@@ -2,6 +2,7 @@ package io.github.sjtrotter.strengthlog.domain.generator
 
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
+import io.github.sjtrotter.strengthlog.domain.library.GoalSource
 import io.github.sjtrotter.strengthlog.domain.model.CardioMode
 import io.github.sjtrotter.strengthlog.domain.model.CardioPlacement
 import io.github.sjtrotter.strengthlog.domain.model.CardioSuggestion
@@ -48,10 +49,11 @@ data class GeneratedProgram(
 
 /**
  * Turns [WizardAnswers] into a concrete, editable [Program] (spec §6.3). Each
- * day is a fixed skeleton of pattern slots; every slot is filled with the
- * library's rank-1 entry for that pattern (equipment-filtered), except anchor
- * mains, which come from the wizard's chosen scheme. Muscle-angle emphasis and
- * the core pattern rotate across the cycle (§12 "calves principle").
+ * day is a fixed skeleton of pattern slots. Anchor mains come from the wizard's
+ * chosen scheme; every other slot takes the pattern's best-ranked entry that is
+ * equipment-available and not Std-sourced (spec §4: accessory GOALs come from
+ * flatGoal or a fraction of a main, never a full strength standard). Muscle-angle
+ * emphasis and the core pattern rotate across the cycle (§12 "calves principle").
  */
 object ProgramGenerator {
 
@@ -140,27 +142,27 @@ object ProgramGenerator {
         slots += if (lowerMain) {
             accessory(pickChest(incline, equip))
         } else {
-            accessory(pick(if (singleLeg) SINGLE_LEG else SQUAT_BILATERAL, equip))
+            accessory(pickAccessory(if (singleLeg) SINGLE_LEG else SQUAT_BILATERAL, equip))
         }
 
         // Hinge-or-squat leg complement. When the main is already the hinge, the
         // complement is a quad move; otherwise it is a posterior move so every
         // day carries a hinge OR knee-flexion (§12 hamstrings rule).
         slots += if (mainPattern == HINGE) {
-            accessory(pick(if (singleLeg) SINGLE_LEG else SQUAT_BILATERAL, equip))
+            accessory(pickAccessory(if (singleLeg) SINGLE_LEG else SQUAT_BILATERAL, equip))
         } else {
-            accessory(pick(if (kneeFlex) KNEE_FLEXION else HINGE, equip))
+            accessory(pickAccessory(if (kneeFlex) KNEE_FLEXION else HINGE, equip))
         }
 
         // A pull — or a push, when the main already is a pull.
         slots += if (mainPattern == H_PULL || mainPattern == V_PULL) {
             accessory(pickChest(incline, equip))
         } else {
-            accessory(pick(if (vertPull) V_PULL else H_PULL, equip))
+            accessory(pickAccessory(if (vertPull) V_PULL else H_PULL, equip))
         }
 
         slots += fullBodyIsolation(i, soleus, equip)
-        slots += accessory(pick(CORE_ROTATION[i % CORE_ROTATION.size], equip))
+        slots += accessory(pickAccessory(CORE_ROTATION[i % CORE_ROTATION.size], equip))
 
         return ProgramDay(
             id = id,
@@ -171,12 +173,13 @@ object ProgramGenerator {
         )
     }
 
-    /** FB isolation slot rotates delts → arms → calves across days. */
+    /** FB isolation slot rotates delts → arms superset → calves across days
+     *  (the prototype ran its arms as a superset — spec §8.2's worked examples). */
     private fun fullBodyIsolation(i: Int, soleus: Boolean, equip: Set<Equipment>): ProgramExercise =
         when (i % 3) {
-            0 -> accessory(pick(SIDE_DELT, equip))
-            1 -> accessory(pick(BICEPS, equip))
-            else -> accessory(pick(if (soleus) CALF_SOLEUS else CALF_GASTROC, equip))
+            0 -> accessory(pickAccessory(SIDE_DELT, equip))
+            1 -> armsSuperset(equip)
+            else -> accessory(pickAccessory(if (soleus) CALF_SOLEUS else CALF_GASTROC, equip))
         }
 
     private fun fullBodyEmphasis(
@@ -206,12 +209,12 @@ object ProgramGenerator {
         val mainId = anchorFor(H_PUSH, anchors) ?: pick(H_PUSH, equip).id
         val slots = listOf(
             main(mainId),
-            accessory(pick(H_PULL, equip)),
-            accessory(pick(V_PUSH, equip)),
-            accessory(pick(V_PULL, equip)),
-            accessory(pick(if (occ % 2 == 0) SIDE_DELT else REAR_DELT, equip)),
+            accessory(pickAccessory(H_PULL, equip)),
+            accessory(pickAccessory(V_PUSH, equip)),
+            accessory(pickAccessory(V_PULL, equip)),
+            accessory(pickAccessory(if (occ % 2 == 0) SIDE_DELT else REAR_DELT, equip)),
             armsSuperset(equip),
-            accessory(pick(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
+            accessory(pickAccessory(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
         )
         return ProgramDay(
             id, "Upper",
@@ -237,11 +240,11 @@ object ProgramGenerator {
         val mainId = anchorFor(mainPattern, anchors) ?: pick(mainPattern, equip).id
         val slots = listOf(
             main(mainId),
-            accessory(pick(otherPattern, equip)),
-            accessory(pick(SINGLE_LEG, equip)),
-            accessory(pick(KNEE_FLEXION, equip)),
-            accessory(pick(if (occ % 2 == 0) CALF_GASTROC else CALF_SOLEUS, equip)),
-            accessory(pick(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
+            accessory(pickAccessory(otherPattern, equip)),
+            accessory(pickAccessory(SINGLE_LEG, equip)),
+            accessory(pickAccessory(KNEE_FLEXION, equip)),
+            accessory(pickAccessory(if (occ % 2 == 0) CALF_GASTROC else CALF_SOLEUS, equip)),
+            accessory(pickAccessory(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
         )
         return ProgramDay(
             id, "Lower",
@@ -257,14 +260,14 @@ object ProgramGenerator {
         val slots = listOf(
             main(mainId),
             accessory(pickChest(incline = true, equip)),
-            accessory(pick(V_PUSH, equip)),
-            accessory(pick(SIDE_DELT, equip)),
-            armsSuperset(equip),
-            accessory(pick(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
+            accessory(pickAccessory(V_PUSH, equip)),
+            accessory(pickAccessory(SIDE_DELT, equip)),
+            accessory(pickAccessory(TRICEPS, equip)),
+            accessory(pickAccessory(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
         )
         return ProgramDay(
             id, "Push",
-            "flat + incline press · vertical press · side delts",
+            "flat + incline press · vertical press · side delts · triceps",
             withWarmupHint(slots, H_PUSH),
             finisher(answers, legHeavy = false),
         )
@@ -280,14 +283,14 @@ object ProgramGenerator {
         val mainId = anchorFor(H_PULL, anchors) ?: pick(H_PULL, equip).id
         val slots = listOf(
             main(mainId),
-            accessory(pick(V_PULL, equip)),
-            accessory(pick(REAR_DELT, equip)),
-            armsSuperset(equip),
-            accessory(pick(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
+            accessory(pickAccessory(V_PULL, equip)),
+            accessory(pickAccessory(REAR_DELT, equip)),
+            accessory(pickAccessory(BICEPS, equip)),
+            accessory(pickAccessory(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
         )
         return ProgramDay(
             id, "Pull",
-            "horizontal row · vertical pull · rear delts · arms superset",
+            "horizontal row · vertical pull · rear delts · biceps",
             withWarmupHint(slots, H_PULL),
             finisher(answers, legHeavy = false),
         )
@@ -306,10 +309,10 @@ object ProgramGenerator {
         val mainId = anchorFor(mainPattern, anchors) ?: pick(mainPattern, equip).id
         val slots = listOf(
             main(mainId),
-            accessory(pick(SINGLE_LEG, equip)),
-            accessory(pick(KNEE_FLEXION, equip)),
-            accessory(pick(if (occ % 2 == 0) CALF_GASTROC else CALF_SOLEUS, equip)),
-            accessory(pick(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
+            accessory(pickAccessory(SINGLE_LEG, equip)),
+            accessory(pickAccessory(KNEE_FLEXION, equip)),
+            accessory(pickAccessory(if (occ % 2 == 0) CALF_GASTROC else CALF_SOLEUS, equip)),
+            accessory(pickAccessory(CORE_ROTATION[i % CORE_ROTATION.size], equip)),
         )
         return ProgramDay(
             id, "Legs",
@@ -335,24 +338,38 @@ object ProgramGenerator {
     /** Arms superset: BICEPS primary paired with a TRICEPS partner (spec §6.3). */
     private fun armsSuperset(equip: Set<Equipment>): ProgramExercise =
         ProgramExercise(
-            exerciseId = pick(BICEPS, equip).id,
+            exerciseId = pickAccessory(BICEPS, equip).id,
             targetSets = 3,
             repSchemeLabel = "10–15",
-            superset = SupersetPartner(pick(TRICEPS, equip).id),
+            superset = SupersetPartner(pickAccessory(TRICEPS, equip).id),
         )
 
-    /** Rank-1 entry for [pattern] whose equipment is all available, else the
-     *  rank-1 entry regardless — a slot is never left empty (task requirement). */
+    /** Best-ranked entry for [pattern] whose equipment is all available, else
+     *  the rank-1 entry regardless — a slot is never left empty. Only main-slot
+     *  fallbacks use this; accessories go through [pickAccessory]. */
     private fun pick(pattern: MovementPattern, equip: Set<Equipment>): ExerciseEntry {
         val ranked = ExerciseLibrary.byPattern(pattern)
         return ranked.firstOrNull { available(it, equip) } ?: ranked.first()
     }
 
-    /** Chest press slot, biased flat or incline, still equipment-aware. */
+    /** Accessory pick: like [pick], but skips Std-sourced (main-capable) entries
+     *  — spec §4: accessory GOALs come from flatGoal or a fraction of a main,
+     *  never a full strength-standard weight. */
+    private fun pickAccessory(pattern: MovementPattern, equip: Set<Equipment>): ExerciseEntry =
+        bestAccessory(ExerciseLibrary.byPattern(pattern), equip)
+
+    /** Chest press accessory slot, biased flat or incline, equipment-aware. */
     private fun pickChest(incline: Boolean, equip: Set<Equipment>): ExerciseEntry {
         val press = ExerciseLibrary.byPattern(H_PUSH)
         val pool = press.filter { (it.id in INCLINE_CHEST_IDS) == incline }
-        return pool.firstOrNull { available(it, equip) } ?: pool.firstOrNull() ?: press.first()
+        return bestAccessory(pool.ifEmpty { press }, equip)
+    }
+
+    private fun bestAccessory(ranked: List<ExerciseEntry>, equip: Set<Equipment>): ExerciseEntry {
+        val nonStd = ranked.filter { it.goal !is GoalSource.Std }
+        return nonStd.firstOrNull { available(it, equip) }
+            ?: nonStd.firstOrNull()
+            ?: ranked.first() // never leave a hole
     }
 
     private fun available(entry: ExerciseEntry, equip: Set<Equipment>): Boolean =
@@ -394,7 +411,7 @@ object ProgramGenerator {
                 id = "C${k + 1}",
                 title = "Cardio + Core",
                 cardio = cardio,
-                core = accessory(pick(CORE_ROTATION[k % CORE_ROTATION.size], answers.equipment)),
+                core = accessory(pickAccessory(CORE_ROTATION[k % CORE_ROTATION.size], answers.equipment)),
             )
         }
     }

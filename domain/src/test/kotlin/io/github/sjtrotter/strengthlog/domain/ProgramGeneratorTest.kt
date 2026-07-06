@@ -9,6 +9,7 @@ import io.github.sjtrotter.strengthlog.domain.generator.SplitDefaults
 import io.github.sjtrotter.strengthlog.domain.generator.SplitTemplate
 import io.github.sjtrotter.strengthlog.domain.generator.WizardAnswers
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
+import io.github.sjtrotter.strengthlog.domain.library.GoalSource
 import io.github.sjtrotter.strengthlog.domain.model.CardioMode
 import io.github.sjtrotter.strengthlog.domain.model.CardioPlacement
 import io.github.sjtrotter.strengthlog.domain.model.CardioPrefs
@@ -93,7 +94,7 @@ class ProgramGeneratorTest {
         assertTrue(program.days.all { it.title == "Full Body" })
 
         assertEquals(
-            listOf("bb_back_squat", "bb_bench", "trap_dl", "bb_row", "cable_lateral", "plank"),
+            listOf("bb_back_squat", "db_bench", "rdl", "cs_row", "cable_lateral", "plank"),
             ids(program.days[0]),
         )
         assertEquals(
@@ -101,13 +102,58 @@ class ProgramGeneratorTest {
             ids(program.days[1]),
         )
         assertEquals(
-            listOf("trap_dl", "bb_bench", "bb_back_squat", "bb_row", "standing_calf", "cable_crunch"),
+            listOf("trap_dl", "db_bench", "hack_squat", "cs_row", "standing_calf", "cable_crunch"),
             ids(program.days[2]),
         )
         assertEquals(
             listOf("incline_db", "bss", "seated_curl", "pullup", "cable_lateral", "plank"),
             ids(program.days[3]),
         )
+        // Day B's arms slot is the biceps+triceps superset (prototype-proven §8.2).
+        assertEquals("rope_pushdown", program.days[1].exercises[4].superset?.exerciseId)
+    }
+
+    @Test
+    fun `accessory slots are never Std-sourced across all splits and day counts`() {
+        for (days in 2..6) {
+            for (split in listOfNotNull(SplitDefaults.defaultFor(days), SplitDefaults.alternativeFor(days))) {
+                val program = ProgramGenerator.generate(
+                    WizardAnswers(daysPerWeek = days, split = split),
+                ).program
+                for (day in program.days) {
+                    for (pe in day.exercises.filterNot { it.isMain }) {
+                        for (id in listOfNotNull(pe.exerciseId, pe.superset?.exerciseId)) {
+                            assertTrue(
+                                ExerciseLibrary.get(id).goal !is GoalSource.Std,
+                                "Std-sourced accessory $id on day ${day.id} ($split, $days days)",
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `default day A uses fraction-sourced accessories, not main-capable lifts`() {
+        val dayA = ProgramGenerator.generate(WizardAnswers()).program.days[0]
+        assertTrue("rdl" in ids(dayA), "hinge complement is the RDL, not a deadlift at main GOAL")
+        assertTrue("db_bench" in ids(dayA), "opposing compound is the DB bench, not the barbell main")
+    }
+
+    @Test
+    fun `default 4-day cycle trains arms as a superset with both biceps and triceps`() {
+        val program = ProgramGenerator.generate(WizardAnswers()).program
+        val supersets = program.days.flatMap { d -> d.exercises.filter { it.superset != null } }
+        assertTrue(supersets.isNotEmpty(), "cycle contains at least one superset slot")
+        val patterns = program.days.flatMap { d ->
+            d.exercises.flatMap { pe ->
+                listOfNotNull(pe.exerciseId, pe.superset?.exerciseId)
+                    .map { ExerciseLibrary.get(it).pattern }
+            }
+        }
+        assertTrue(MovementPattern.BICEPS in patterns, "cycle trains biceps")
+        assertTrue(MovementPattern.TRICEPS in patterns, "cycle trains triceps")
     }
 
     @Test
@@ -275,6 +321,24 @@ class ProgramGeneratorTest {
             MovementPattern.TRICEPS,
             ExerciseLibrary.get(superset.superset!!.exerciseId).pattern,
         )
+    }
+
+    @Test
+    fun `push day gets triceps only and pull day biceps only, no supersets`() {
+        val program = ProgramGenerator.generate(
+            WizardAnswers(daysPerWeek = 6, split = SplitTemplate.PPL),
+        ).program
+        for (day in program.days.filter { it.title == "Push" || it.title == "Pull" }) {
+            assertTrue(day.exercises.none { it.superset != null }, "no superset on ${day.title} day")
+            val pats = patternsIn(day)
+            if (day.title == "Push") {
+                assertTrue(MovementPattern.TRICEPS in pats, "push day trains triceps")
+                assertTrue(MovementPattern.BICEPS !in pats, "push day skips biceps")
+            } else {
+                assertTrue(MovementPattern.BICEPS in pats, "pull day trains biceps")
+                assertTrue(MovementPattern.TRICEPS !in pats, "pull day skips triceps")
+            }
+        }
     }
 
     @Test

@@ -64,7 +64,7 @@ class ExerciseLibraryTest {
     }
 
     @Test
-    fun `Std goal source is limited to the six original main lift ids`() {
+    fun `Std goal source is limited to the original main-capable lift ids`() {
         val allowedStdIds = setOf(
             "bb_back_squat", "conv_dl", "trap_dl", "sumo_dl", "bb_bench", "incline_db", "ohp", "bb_row",
         )

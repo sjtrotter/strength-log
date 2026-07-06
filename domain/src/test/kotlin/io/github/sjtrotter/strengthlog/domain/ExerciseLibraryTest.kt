@@ -1,8 +1,9 @@
 package io.github.sjtrotter.strengthlog.domain
 
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
-import io.github.sjtrotter.strengthlog.domain.library.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
+import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
+import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -35,9 +36,9 @@ class ExerciseLibraryTest {
 
     @Test
     fun `weight stepper is 2_5 at or below 20lb else 5`() {
-        assertEquals(2.5, WeightStepper.incrementLb(15.0), 1e-9)
-        assertEquals(2.5, WeightStepper.incrementLb(20.0), 1e-9)
-        assertEquals(5.0, WeightStepper.incrementLb(20.5), 1e-9)
-        assertEquals(5.0, WeightStepper.incrementLb(225.0), 1e-9)
+        assertEquals(2.5, WeightStepper.increment(15.0, WeightUnit.LB), 1e-9)
+        assertEquals(2.5, WeightStepper.increment(20.0, WeightUnit.LB), 1e-9)
+        assertEquals(5.0, WeightStepper.increment(20.5, WeightUnit.LB), 1e-9)
+        assertEquals(5.0, WeightStepper.increment(225.0, WeightUnit.LB), 1e-9)
     }
 }

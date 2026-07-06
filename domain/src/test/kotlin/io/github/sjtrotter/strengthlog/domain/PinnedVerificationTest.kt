@@ -95,4 +95,10 @@ class PinnedVerificationTest {
         assertEquals(330.0, goalOf("leg_press"), 1e-9) // 1.4 x squat
         assertEquals(155.0, goalOf("cs_row"), 1e-9) // 0.8 x bench
     }
+
+    @Test
+    fun `perHand FracOfStd fraction is already per hand, never halved again`() {
+        // db_bench = frac 0.4 x BENCH (perHand): 0.4 x 195 = 78 -> 80/hand.
+        assertEquals(80.0, goalOf("db_bench"), 1e-9)
+    }
 }

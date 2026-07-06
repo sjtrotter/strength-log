@@ -29,14 +29,14 @@ object GoalCalculator {
 
     fun goalFor(entry: ExerciseEntry, cfg: LifterConfig): Double =
         when (val src = entry.goal) {
+            // perHand asymmetry: Std halves the total (pinned by incline_db = 75/hand),
+            // but a FracOfStd fraction is already calibrated per hand — db_bench's
+            // 0.4×BENCH is exactly half of incline_bb's 0.8×BENCH total. Never halve twice.
             is GoalSource.Std ->
                 if (src.tune != null) goalForMain(src.lift, entry.perHand, cfg, src.tune)
                 else goalForMain(src.lift, entry.perHand, cfg)
-            is GoalSource.FracOfStd -> {
-                var v = src.fraction * goalForMain(src.lift, perHand = false, cfg)
-                if (entry.perHand) v /= 2.0
-                round5(v)
-            }
+            is GoalSource.FracOfStd ->
+                round5(src.fraction * goalForMain(src.lift, perHand = false, cfg))
             is GoalSource.Flat -> src.weightLb
         }
 }

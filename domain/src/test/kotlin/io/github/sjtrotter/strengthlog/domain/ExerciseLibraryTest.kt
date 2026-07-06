@@ -1,6 +1,7 @@
 package io.github.sjtrotter.strengthlog.domain
 
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
+import io.github.sjtrotter.strengthlog.domain.library.GoalSource
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
@@ -22,16 +23,53 @@ class ExerciseLibraryTest {
         val subs = ExerciseLibrary.substitutionsFor("bb_back_squat")
         assertFalse(subs.any { it.id == "bb_back_squat" })
         assertTrue(subs.all { it.pattern == MovementPattern.SQUAT_BILATERAL })
-        assertEquals(listOf("hack_squat", "leg_press", "goblet_squat", "front_squat", "smith_squat"), subs.map { it.id })
+        assertEquals(
+            listOf("hack_squat", "leg_press", "goblet_squat", "front_squat", "smith_squat"),
+            subs.take(5).map { it.id },
+        )
     }
 
     @Test
-    fun `leg extension falls back to squat pattern when its own has no siblings`() {
-        // KNEE_EXTENSION holds only leg_ext, so substitutions come from the noted fallback.
+    fun `leg extension no longer falls back, KNEE_EXTENSION now has siblings`() {
+        // fallbackPattern is retained on the entry but dormant now that KNEE_EXTENSION
+        // has its own substitution candidates.
         val subs = ExerciseLibrary.substitutionsFor("leg_ext")
-        assertTrue(subs.isNotEmpty())
-        assertTrue(subs.all { it.pattern == MovementPattern.SQUAT_BILATERAL })
-        assertEquals("bb_back_squat", subs.first().id)
+        assertEquals(listOf("sl_leg_ext", "sissy_squat", "reverse_nordic"), subs.map { it.id })
+    }
+
+    @Test
+    fun `subRanks within each pattern are unique and contiguous from 1`() {
+        for (pattern in MovementPattern.entries) {
+            val ranks = ExerciseLibrary.byPattern(pattern).map { it.subRank }
+            if (ranks.isEmpty()) continue
+            assertEquals(ranks.size, ranks.toSet().size, "duplicate subRank in $pattern")
+            assertEquals((1..ranks.size).toList(), ranks.sorted(), "non-contiguous subRanks in $pattern")
+        }
+    }
+
+    @Test
+    fun `catalog has at least 150 entries`() {
+        assertTrue(ExerciseLibrary.entries.size >= 150)
+    }
+
+    @Test
+    fun `every non-CARDIO movement pattern has at least 2 entries`() {
+        for (pattern in MovementPattern.entries) {
+            if (pattern == MovementPattern.CARDIO) continue
+            assertTrue(
+                ExerciseLibrary.byPattern(pattern).size >= 2,
+                "$pattern has fewer than 2 entries",
+            )
+        }
+    }
+
+    @Test
+    fun `Std goal source is limited to the original main-capable lift ids`() {
+        val allowedStdIds = setOf(
+            "bb_back_squat", "conv_dl", "trap_dl", "sumo_dl", "bb_bench", "incline_db", "ohp", "bb_row",
+        )
+        val stdIds = ExerciseLibrary.entries.filter { it.goal is GoalSource.Std }.map { it.id }
+        assertTrue(stdIds.toSet().all { it in allowedStdIds })
     }
 
     @Test

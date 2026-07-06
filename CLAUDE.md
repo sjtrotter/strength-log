@@ -43,6 +43,11 @@ The Fable review checks, every time:
 Loop until the final check passes cleanly, then merge. Don't merge on a review
 with unresolved findings.
 
+Merging is pre-authorized: once CI is green and the adversarial review is
+accepted, merge without asking and move straight on to the next task. Only
+stop for a human when a review finding can't be resolved or a change would
+alter pinned spec numbers.
+
 ## Design principles
 
 1. **Simple.** Prefer the boring solution. No speculative abstraction, no

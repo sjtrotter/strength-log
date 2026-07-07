@@ -35,6 +35,17 @@ class DayAccentTest {
         }
     }
 
+    @Test
+    fun `error and on-error pairing is the recolored crimson and meets WCAG AA`() {
+        // Design-pass recolor (docs/design-handoff/tokens/colors.css): Error moved
+        // off the M3 default 0xFFB3261E to a cooler crimson so it never reads as
+        // Day A's terracotta. TextPrimary on it is ~4.84:1 — pin both the exact
+        // hex and the contrast floor so neither regresses silently.
+        assertEquals(Color(0xFFC2334D), Error)
+        val ratio = contrastRatio(Error, TextPrimary)
+        assertTrue(ratio >= 4.5, "Error/on-error contrast is $ratio, below WCAG AA's 4.5:1")
+    }
+
     // WCAG 2.x relative luminance + contrast ratio (w3.org/TR/WCAG21/#dfn-contrast-ratio).
     private fun contrastRatio(a: Color, b: Color): Double {
         val la = relativeLuminance(a)

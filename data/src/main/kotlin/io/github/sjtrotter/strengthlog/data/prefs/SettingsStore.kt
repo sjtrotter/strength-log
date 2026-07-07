@@ -106,6 +106,33 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setUnit(unit: WeightUnit) =
         dataStore.edit { it[Keys.WEIGHT_UNIT] = unit.name }
 
+    /**
+     * Replaces every preference in one atomic [edit] (backup restore, A2). The
+     * leading [clear] drops any key not overwritten below, so a restore can't
+     * leave a stale value behind; because these four inputs together own every
+     * key this store defines, nothing is orphaned. A single edit means a crash
+     * mid-restore leaves either the whole old preference set or the whole new one
+     * — never a mix.
+     */
+    suspend fun restore(
+        answers: WizardAnswers,
+        unit: WeightUnit,
+        wizardComplete: Boolean,
+        suggestedDay: String?,
+    ) = dataStore.edit { prefs ->
+        prefs.clear()
+        prefs.writeConfig(answers.config)
+        prefs.writeCardio(answers.cardio)
+        prefs[Keys.DAYS_PER_WEEK] = answers.daysPerWeek
+        prefs[Keys.SPLIT] = answers.split.name
+        prefs[Keys.ANCHOR_SCHEME] = answers.anchorScheme.name
+        prefs[Keys.DEADLIFT_VARIANT] = answers.deadliftVariant.name
+        prefs[Keys.EQUIPMENT] = answers.equipment.map { it.name }.toSet()
+        prefs[Keys.WEIGHT_UNIT] = unit.name
+        prefs[Keys.WIZARD_COMPLETE] = wizardComplete
+        if (suggestedDay != null) prefs[Keys.SUGGESTED_DAY] = suggestedDay
+    }
+
     // --- read/write helpers --------------------------------------------------
 
     private fun Preferences.readConfig(): LifterConfig = LifterConfig(

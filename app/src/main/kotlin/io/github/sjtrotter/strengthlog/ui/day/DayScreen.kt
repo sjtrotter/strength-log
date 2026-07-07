@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -105,54 +106,76 @@ fun DayScreen(state: DayUiState, actions: DayActions) {
             return@Box
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                DayHeader(state, accent, soft, actions)
+        // Fixed chrome top and bottom (day tabs / settings / keep-screen-on above,
+        // the DONE action below); only the exercise cards scroll between them, so
+        // navigation and the primary action never scroll out of reach.
+        Column(Modifier.fillMaxSize().systemBarsPadding()) {
+            TopBar(state, accent, soft, onAccent, actions)
+            LazyColumn(
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item { Spacer(Modifier.size(4.dp)) }
+                items(state.exercises, key = { it.programExerciseId }) { card ->
+                    ExerciseCard(card, state.unit, accent, onAccent, soft, actions)
+                }
+                state.cardio?.let { cardio ->
+                    item { CardioCard(cardio) }
+                }
+                item { Footer(actions) }
+                item { Spacer(Modifier.size(8.dp)) }
             }
-            items(state.exercises, key = { it.programExerciseId }) { card ->
-                ExerciseCard(card, state.unit, accent, onAccent, soft, actions)
-            }
-            state.cardio?.let { cardio ->
-                item { CardioCard(cardio) }
-            }
-            item {
-                DoneButton(nextDayId = state.nextDayId, accent = accent, onAccent = onAccent, onClick = actions.onDone)
-            }
-            item {
-                Footer(state, accent, onAccent, actions)
-            }
-            item { Spacer(Modifier.size(24.dp)) }
+            BottomBar(nextDayId = state.nextDayId, accent = accent, onAccent = onAccent, onDone = actions.onDone)
         }
     }
 }
 
-// --- header + tabs -----------------------------------------------------------
+// --- fixed top bar: tabs, settings, keep-screen-on, day title ----------------
 
 @Composable
-private fun DayHeader(state: DayUiState, accent: Color, accentSoftColor: Color, actions: DayActions) {
-    Column(Modifier.padding(top = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SettingsTab(actions.onOpenSettings)
-            state.tabs.forEach { tab ->
-                DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
+private fun TopBar(state: DayUiState, accent: Color, accentSoftColor: Color, onAccent: Color, actions: DayActions) {
+    Column {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SettingsTab(actions.onOpenSettings)
+                state.tabs.forEach { tab ->
+                    DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
+                }
+            }
+            // Keep-screen-on rides the title row (not the tab row) so it can't
+            // push a fifth+ day tab or the switch off a narrow screen's edge.
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    state.viewDayId?.let {
+                        Text(text = "DAY ${it.uppercase()}", color = accent, style = MaterialTheme.typography.labelSmall)
+                    }
+                    Text(text = state.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+                    Text(text = state.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    if (state.isOverride && state.suggestedDayId != null) {
+                        Spacer(Modifier.size(3.dp))
+                        OverridePill(accent = accent, accentSoftColor = accentSoftColor, suggestedDayId = state.suggestedDayId)
+                    }
+                }
+                KeepScreenOnSwitch(
+                    checked = state.keepScreenOn,
+                    onCheckedChange = actions.onKeepScreenOnChange,
+                    accent = accent,
+                    onAccent = onAccent,
+                    label = "Keep on",
+                )
             }
         }
-        Spacer(Modifier.size(12.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            state.viewDayId?.let {
-                Text(text = "DAY ${it.uppercase()}", color = accent, style = MaterialTheme.typography.labelSmall)
-            }
-            Text(text = state.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-            Text(text = state.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            if (state.isOverride && state.suggestedDayId != null) {
-                Spacer(Modifier.size(3.dp))
-                OverridePill(accent = accent, accentSoftColor = accentSoftColor, suggestedDayId = state.suggestedDayId)
-            }
-        }
+        Hairline()
     }
+}
+
+/** 1dp separator between the fixed chrome and the scrolling list. */
+@Composable
+private fun Hairline() {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
 }
 
 @Composable
@@ -283,10 +306,11 @@ private fun ExerciseCard(
 
         // Widen this section 10dp into the card gutter so the TOP row can bleed
         // (see [bleedHorizontal]); every other element is inset back to the card
-        // content edge. fillMaxWidth keeps the width constant so only height
-        // animates on collapse.
+        // content edge. Collapse swaps content directly (no animateContentSize —
+        // it made every card re-measure as it scrolled into the LazyColumn, which
+        // read as scroll jank).
         val rowInset = Modifier.padding(horizontal = 10.dp)
-        Column(Modifier.bleedHorizontal(10.dp).fillMaxWidth().animateContentSize(tween(320))) {
+        Column(Modifier.bleedHorizontal(10.dp).fillMaxWidth()) {
             if (displayCollapsed) {
                 Spacer(Modifier.size(6.dp))
                 Text(card.collapsedSummary, color = TextSecondary, style = SummaryLine, modifier = rowInset)
@@ -443,6 +467,18 @@ private fun CardioCard(cardio: CardioSuggestion) {
     }
 }
 
+// --- fixed bottom bar: the primary action ------------------------------------
+
+@Composable
+private fun BottomBar(nextDayId: String?, accent: Color, onAccent: Color, onDone: () -> Unit) {
+    Column(Modifier.fillMaxWidth().background(Background)) {
+        Hairline()
+        Box(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+            DoneButton(nextDayId = nextDayId, accent = accent, onAccent = onAccent, onClick = onDone)
+        }
+    }
+}
+
 @Composable
 private fun DoneButton(nextDayId: String?, accent: Color, onAccent: Color, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -455,7 +491,6 @@ private fun DoneButton(nextDayId: String?, accent: Color, onAccent: Color, onCli
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .height(56.dp)
             .background(accent, RoundedCornerShape(12.dp))
@@ -470,8 +505,9 @@ private fun DoneButton(nextDayId: String?, accent: Color, onAccent: Color, onCli
     }
 }
 
+/** The scroll's tail: the rotation blurb and the quiet "clear checkmarks" action. */
 @Composable
-private fun Footer(state: DayUiState, accent: Color, onAccent: Color, actions: DayActions) {
+private fun Footer(actions: DayActions) {
     Column(Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             "Rotation, not calendar — days advance when you finish them, not on a schedule. " +
@@ -479,19 +515,7 @@ private fun Footer(state: DayUiState, accent: Color, onAccent: Color, actions: D
             color = TextFaint,
             style = MaterialTheme.typography.bodySmall,
         )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            QuietButton(onClick = actions.onClearChecks)
-            KeepScreenOnSwitch(
-                checked = state.keepScreenOn,
-                onCheckedChange = actions.onKeepScreenOnChange,
-                accent = accent,
-                onAccent = onAccent,
-            )
-        }
+        QuietButton(onClick = actions.onClearChecks)
     }
 }
 
@@ -512,7 +536,13 @@ private fun QuietButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun KeepScreenOnSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, accent: Color, onAccent: Color) {
+private fun KeepScreenOnSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    accent: Color,
+    onAccent: Color,
+    label: String = "Keep screen on",
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -520,7 +550,7 @@ private fun KeepScreenOnSwitch(checked: Boolean, onCheckedChange: (Boolean) -> U
             .minimumInteractiveComponentSize()
             .clickable { onCheckedChange(!checked) },
     ) {
-        Text("Keep screen on", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+        Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         val trackColor by animateColorAsState(if (checked) accent else Surface2, tween(200), label = "switchTrack")
         val thumbOffset by animateFloatAsState(if (checked) 18f else 2f, tween(200), label = "switchThumb")
         Box(
@@ -560,8 +590,7 @@ private fun Modifier.dashedBorder(color: Color, radius: Dp): Modifier = drawBehi
  * Renders [bleed] wider on each side than the width it reports to its parent,
  * placed shifted left by [bleed] — so the child spills symmetrically into the
  * parent's padding without changing the parent's layout. The TOP set row uses
- * this to bleed into the card gutter; because the widened bounds belong to this
- * node, the clip inside `animateContentSize` no longer cuts the fill.
+ * this to bleed into the card gutter while the card keeps its normal width.
  */
 private fun Modifier.bleedHorizontal(bleed: Dp): Modifier = layout { measurable, constraints ->
     // No bleed under an unbounded-width parent (nothing to spill into).

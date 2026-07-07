@@ -14,8 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.sjtrotter.strengthlog.ui.theme.AppTheme
-import io.github.sjtrotter.strengthlog.ui.theme.TextPrimary
 import io.github.sjtrotter.strengthlog.ui.theme.dayAccent
+import io.github.sjtrotter.strengthlog.ui.theme.onDayAccent
 
 /** Day-letter chip, tinted with that day's accent (see [dayAccent], the SSOT). */
 @Composable
@@ -26,7 +26,11 @@ fun DayBadge(dayIndex: Int, letter: String, modifier: Modifier = Modifier) {
             .background(dayAccent(dayIndex), RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = letter, color = TextPrimary, style = MaterialTheme.typography.labelLarge)
+        Text(
+            text = letter,
+            color = onDayAccent(dayIndex),
+            style = MaterialTheme.typography.labelLarge,
+        )
     }
 }
 

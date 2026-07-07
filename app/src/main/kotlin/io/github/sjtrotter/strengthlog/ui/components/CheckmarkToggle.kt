@@ -10,6 +10,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,19 +29,28 @@ import io.github.sjtrotter.strengthlog.ui.theme.Done
 
 private val ToggleShape = RoundedCornerShape(6.dp)
 
-/** Per-set done tick (spec §8: "green ✓" chip, green left-border on a completed card). */
+/**
+ * Per-set done tick (spec §8's "green ✓"). Visually 28dp, but the toggleable
+ * area sits on a >= 48dp box so the touch target meets Material's minimum.
+ */
 @Composable
 fun CheckmarkToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(28.dp)
-            .background(if (checked) Done else Color.Transparent, ToggleShape)
-            .border(1.dp, if (checked) Done else Border, ToggleShape)
+            .minimumInteractiveComponentSize()
             .toggleable(value = checked, onValueChange = onCheckedChange, role = Role.Checkbox),
         contentAlignment = Alignment.Center,
     ) {
-        if (checked) {
-            Text(text = "✓", color = Background, style = MaterialTheme.typography.labelLarge)
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(if (checked) Done else Color.Transparent, ToggleShape)
+                .border(1.dp, if (checked) Done else Border, ToggleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (checked) {
+                Text(text = "✓", color = Background, style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }

@@ -146,10 +146,10 @@ fun SetRow(
             .drawBehind {
                 if (isTop) drawTopRowBleed(accent, accentSoft) else drawCascadeFlash(accentSoft, flash.value)
             }
-            // TOP row insets its content past the bar (reference `.srow.top`
-            // padding: 0 10 0 7); other rows sit flush — the day screen supplies
-            // their horizontal inset so the TOP row can bleed and they can't.
-            .then(if (isTop) Modifier.padding(start = 7.dp, end = 10.dp) else Modifier),
+            // TOP content sits 10dp in (reference `.srow.top` border-box: 3dp bar
+            // + 7dp padding), which aligns it with the sibling rows the day screen
+            // insets 10dp; those rows sit flush here so only the TOP row can bleed.
+            .then(if (isTop) Modifier.padding(start = 10.dp, end = 10.dp) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

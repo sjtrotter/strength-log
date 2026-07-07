@@ -564,12 +564,13 @@ private fun Modifier.dashedBorder(color: Color, radius: Dp): Modifier = drawBehi
  * node, the clip inside `animateContentSize` no longer cuts the fill.
  */
 private fun Modifier.bleedHorizontal(bleed: Dp): Modifier = layout { measurable, constraints ->
-    val extra = bleed.roundToPx() * 2
+    // No bleed under an unbounded-width parent (nothing to spill into).
+    val extra = if (constraints.hasBoundedWidth) bleed.roundToPx() * 2 else 0
     val widened =
-        if (constraints.hasBoundedWidth) constraints.copy(maxWidth = constraints.maxWidth + extra) else constraints
+        if (extra > 0) constraints.copy(maxWidth = constraints.maxWidth + extra) else constraints
     val placeable = measurable.measure(widened)
     val reported = (placeable.width - extra).coerceAtLeast(0)
-    layout(reported, placeable.height) { placeable.place(-bleed.roundToPx(), 0) }
+    layout(reported, placeable.height) { placeable.place(if (extra > 0) -bleed.roundToPx() else 0, 0) }
 }
 
 /** Callbacks the screen forwards to [DayViewModel] — one place, so previews stay trivial. */

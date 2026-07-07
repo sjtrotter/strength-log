@@ -43,12 +43,12 @@ The Fable review checks, every time:
 Loop until the final check passes cleanly, then merge. Don't merge on a review
 with unresolved findings.
 
-Once CI is green and the adversarial review is accepted, the PR is done from
-Claude's side: post the exact merge command for the user
-(`gh pr merge <n> --squash --delete-branch`) and move straight on to the next
-task — don't block on the merge. The human presses the button; permission
-classifiers block self-merges by design. Escalate beyond that only when a
-review finding can't be resolved or a change would alter pinned spec numbers.
+Once CI is green and the adversarial review is accepted, Claude merges the PR
+itself (`gh pr merge <n> --squash --delete-branch`) and moves straight on to
+the next task — the review loop is the quality gate, not a human on the merge
+button (policy changed 2026-07-07; the user granted the merge permission).
+Never merge with unresolved findings or red CI. Escalate to the user only when
+a review finding can't be resolved or a change would alter pinned spec numbers.
 
 ## Design principles
 

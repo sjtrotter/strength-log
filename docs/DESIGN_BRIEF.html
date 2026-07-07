@@ -1,0 +1,437 @@
+<title>strength.log — Product & Design Brief</title>
+<style>
+  @font-face {
+    font-family: 'Oswald';
+    src: url(../app/src/main/res/font/oswald_variable.ttf) format('truetype-variations');
+    font-weight: 200 700;
+    font-style: normal;
+    font-display: block;
+  }
+  :root {
+    --bg: #0D0D0F;
+    --surface: #16161A;
+    --surface-2: #1D1D22;
+    --border: #2A2A30;
+    --text: #F2F2F0;
+    --muted: #9A9AA2;
+    --faint: #6B6B73;
+    --day-a: #C1440E;
+    --day-b: #2D5A3D;
+    --day-c: #B8860B;
+    --day-d: #1F4E5F;
+    --done: #3E8E5A;
+    --cond: 'Oswald', 'Arial Narrow', sans-serif;
+    --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  /* The product is dark-only; this brief deliberately inhabits it in both viewer themes. */
+  html { background: var(--bg); }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; }
+  p, li { max-width: 68ch; }
+  a { color: var(--day-c); }
+
+  /* ---------- type ---------- */
+  h1, h2, h3, .disp { font-family: var(--cond); font-weight: 700; text-wrap: balance; }
+  h1 { font-size: 46px; line-height: 1.05; margin: 8px 0 4px; letter-spacing: .01em; }
+  h2 { font-size: 27px; line-height: 1.15; margin: 0; }
+  h3 { font-size: 19px; margin: 28px 0 8px; color: var(--text); }
+  .kicker {
+    font-family: var(--cond); font-weight: 500; font-size: 13px;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--muted);
+  }
+  .lede { font-size: 18px; color: var(--text); max-width: 62ch; }
+  .mut { color: var(--muted); }
+  .sm { font-size: 13.5px; }
+  code, .mono { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: .9em; }
+  code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
+
+  /* ---------- section scaffolding: markers cycle A→D like the app's day accents ---------- */
+  section { margin-top: 64px; }
+  .shead { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .sbadge {
+    font-family: var(--cond); font-weight: 500; font-size: 15px;
+    width: 34px; height: 34px; border-radius: 8px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  section:nth-of-type(4n+1) .sbadge { background: var(--day-a); color: var(--text); }
+  section:nth-of-type(4n+2) .sbadge { background: var(--day-b); color: var(--text); }
+  section:nth-of-type(4n+3) .sbadge { background: var(--day-c); color: var(--bg); }
+  section:nth-of-type(4n+0) .sbadge { background: var(--day-d); color: var(--text); }
+
+  /* ---------- header meta strip ---------- */
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; }
+  .chip {
+    font-family: var(--cond); font-weight: 500; font-size: 12.5px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px;
+  }
+
+  /* ---------- cards / tables ---------- */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th {
+    font-family: var(--cond); font-weight: 500; font-size: 12px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); text-align: left;
+  }
+  th, td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  thead tr { background: var(--surface); }
+  td { color: var(--text); }
+  td.mut { color: var(--muted); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- palette swatches ---------- */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .sw { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .sw .fill { height: 52px; }
+  .sw .lab { padding: 8px 10px; font-size: 12.5px; }
+  .sw .lab b { font-family: var(--cond); font-weight: 500; letter-spacing: .04em; display: block; }
+  .sw .lab span { color: var(--muted); font-family: ui-monospace, monospace; font-size: 11.5px; }
+
+  /* ---------- day-screen mock ---------- */
+  .mock { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px; max-width: 480px; }
+  .mock * { box-sizing: border-box; }
+  .tabs { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .tab {
+    font-family: var(--cond); font-weight: 500; font-size: 14px;
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text); opacity: .45; position: relative;
+  }
+  .tab.gear { border: 1px solid var(--border); opacity: 1; color: var(--muted); }
+  .tab.a { background: var(--day-a); }
+  .tab.b { background: var(--day-b); }
+  .tab.c { background: var(--day-c); color: var(--bg); }
+  .tab.d { background: var(--day-d); }
+  .tab.sel { opacity: 1; }
+  .tab.sug { outline: 1.5px solid var(--text); outline-offset: 2px; }
+  .tab.sug::after {
+    content: ''; position: absolute; top: -7px; right: -3px;
+    width: 7px; height: 7px; border-radius: 50%; background: var(--text);
+  }
+  .override { font-size: 12.5px; color: var(--day-a); margin: 10px 2px 14px; }
+  .xcard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 12px; }
+  .xcard.done { border-left: 3px solid var(--done); }
+  .xhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .xtitle { font-family: var(--cond); font-weight: 700; font-size: 19px; line-height: 1.2; }
+  .badges { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .badge {
+    font-family: var(--cond); font-weight: 500; font-size: 10.5px; letter-spacing: .1em;
+    padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
+  }
+  .badge.main { background: var(--day-a); color: var(--text); }
+  .badge.warm { border: 1px solid var(--border); color: var(--muted); }
+  .badge.donechip { background: var(--done); color: var(--bg); }
+  .goal { text-align: right; flex: none; }
+  .goal .glab { font-family: var(--cond); font-weight: 500; font-size: 10px; letter-spacing: .18em; color: var(--muted); }
+  .goal .gnum { font-family: var(--cond); font-weight: 700; font-size: 30px; line-height: 1; color: var(--day-a); font-variant-numeric: tabular-nums; }
+  .goal .gper { font-size: 10.5px; color: var(--muted); }
+  .helper { font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+  .srow { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--border); }
+  .srow:first-of-type { border-top: none; }
+  .srow.top { background: color-mix(in srgb, var(--day-a) 10%, transparent); border: 1px solid var(--day-a); border-radius: 8px; padding: 7px 8px; margin: 2px -8px; }
+  .klab { font-family: var(--cond); font-weight: 500; font-size: 12px; color: var(--muted); width: 30px; flex: none; }
+  .srow.top .klab { color: var(--day-a); font-weight: 700; }
+  .stp { display: flex; align-items: center; gap: 6px; }
+  .stpbtn {
+    width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 7px;
+    background: var(--surface-2); color: var(--text);
+    font-family: var(--cond); display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .stpval { font-family: var(--cond); font-weight: 700; font-size: 21px; min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+  .stpval small { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .tick { width: 24px; height: 24px; border: 1px solid var(--border); border-radius: 6px; flex: none; margin-left: auto; }
+  .tick.on { background: var(--done); border-color: var(--done); position: relative; }
+  .tick.on::after { content: '✓'; color: var(--bg); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .xrm { color: var(--faint); font-size: 14px; flex: none; padding: 0 2px; }
+  .ssrow { margin-left: 22px; border-top: 1px dashed var(--border); background: color-mix(in srgb, var(--surface-2) 60%, transparent); border-radius: 0 0 8px 8px; }
+  .ssmark { color: var(--faint); width: 14px; flex: none; font-size: 12px; }
+  .addset {
+    margin-top: 10px; border: 1.5px dashed var(--border); border-radius: 8px;
+    text-align: center; padding: 8px; color: var(--muted);
+    font-family: var(--cond); font-weight: 500; font-size: 13px; letter-spacing: .06em;
+  }
+  .summary { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .donebtn {
+    margin-top: 16px; background: var(--day-a); color: var(--text); border-radius: 10px;
+    text-align: center; padding: 14px; font-family: var(--cond); font-weight: 700;
+    font-size: 17px; letter-spacing: .08em;
+  }
+  .caption { font-size: 12.5px; color: var(--faint); margin-top: 10px; max-width: 60ch; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+
+  .pin { color: var(--day-c); font-family: var(--cond); font-weight: 500; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  .free { color: var(--done); font-family: var(--cond); font-weight: 500; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  ul { padding-left: 22px; margin: 8px 0; }
+  li { margin: 4px 0; }
+  li::marker { color: var(--faint); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+</style>
+
+<div class="wrap">
+  <div class="kicker">Product &amp; design brief · for the design pass · 2026-07</div>
+  <h1>strength.log</h1>
+  <p class="lede">A no-frills, local-first strength-training tracker for Android and Wear&nbsp;OS.
+  One-time purchase, no account, no ads, no network permission — the app cannot phone home.
+  A lifter answers a short wizard once, then lives on a single workout screen where every tap is cheap.</p>
+  <div class="meta">
+    <span class="chip">Native Android · Jetpack Compose</span>
+    <span class="chip">Wear OS companion</span>
+    <span class="chip">Dark only (v1)</span>
+    <span class="chip">Offline by construction</span>
+    <span class="chip">Phone-sized, portrait</span>
+  </div>
+  <p class="caption">This page is set in the app's own tokens — near-black ground, the four earth-tone day accents (section markers cycle A→D exactly as the app cycles day colors), and its bundled Oswald for numerals and labels. Reading it is a taste of the product.</p>
+
+  <section>
+    <div class="shead"><div class="sbadge">A</div><h2>The user, and where the app gets used</h2></div>
+    <p>The reference user is a ~40-year-old training for <b>maintenance and health</b>, not personal records.
+    Their schedule is unreliable — sessions get missed and the plan must absorb that gracefully.
+    They want a good pump on weights they can own, balanced development, and honest logging of what actually happened.</p>
+    <p><b>Context of use is the gym floor:</b> phone on a bench or the floor, sweaty or chalky hands, 30-second glances between sets under bad lighting. Design implications, already load-bearing:</p>
+    <ul>
+      <li><b>Glanceable numerals.</b> The weight is the hero of every row — big, condensed, high-contrast.</li>
+      <li><b>Cheap taps.</b> Steppers, never keyboards. Checkmarks, never forms. Touch targets ≥ 48dp (enforced in code).</li>
+      <li><b>Cards collapse when done</b> so the screen always answers "what's next?", not "what did I do?"</li>
+      <li>A <b>keep-screen-on</b> toggle lives on the workout screen.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="shead"><div class="sbadge">B</div><h2>Four ideas the design must communicate</h2></div>
+    <h3>1 · Rotation, not calendar</h3>
+    <p>Workout days are lettered A, B, C, D — never Monday/Tuesday. Finishing a workout advances the rotation (A→B→…→A). Missing a day shifts the plan; it never skips a muscle. The app <i>suggests</i> the next day but the user can override by tapping any tab — an override is visibly flagged, never punished. There are no streaks, no guilt mechanics anywhere.</p>
+    <h3>2 · GOAL vs ACTUAL</h3>
+    <p>Every exercise shows a calculated, <b>read-only GOAL</b> — the maintenance weight derived from bodyweight, age, experience, and goal emphasis. The editable log is seeded from the GOAL once, then becomes the lifter's living record. The two must read as different classes of information: GOAL is reference (calm, fixed, accented); the log is theirs (interactive, persistent).</p>
+    <h3>3 · The top set is the anchor</h3>
+    <p>Main lifts are a Madcow-style sequence: four ramp sets (55/70/80/90%, the last a lighter triple) → the <b>TOP set</b> → a back-off set. Editing the TOP set's <i>weight</i> recalculates the whole ramp and back-off (the "cascade"). Editing any other set changes only that set. The TOP row is visually distinct (accent border) because it is mechanically special.</p>
+    <h3>4 · Every tap is cheap</h3>
+    <p>The entire in-workout interaction vocabulary is: tap +/−, tap a checkmark, tap a header to collapse, tap DONE. Anything requiring typing (custom exercise names) happens outside the workout.</p>
+  </section>
+
+  <section>
+    <div class="shead"><div class="sbadge">C</div><h2>Information architecture</h2></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Surface</th><th>Role</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><b>Setup wizard</b></td><td>First run + re-run. Six steps, every step has a sane default so "next-next-next" yields a good program. Generates the editable program.</td><td class="mut">designed, not built</td></tr>
+        <tr><td><b>Day screen</b> (home)</td><td>The workout. Tab strip (⚙ + one tab per day), exercise cards, cardio finisher, DONE button. 95% of app time is spent here. Full anatomy below.</td><td class="mut">v1 built (functional, engineer-assembled)</td></tr>
+        <tr><td><b>Day edit sheet</b></td><td>Per-day gear: swap an exercise (ranked same-pattern substitutions with search + equipment filter), add, remove (min 3 per day), reset day to template.</td><td class="mut">designed, not built</td></tr>
+        <tr><td><b>Setup screen</b> (⚙ tab)</td><td>Bodyweight/age/level/emphasis with a <b>live GOAL preview</b> that recalculates as steppers move; cardio prefs; unit (lb/kg); "re-run wizard" (destructive-confirm).</td><td class="mut">designed, not built</td></tr>
+        <tr><td><b>Log screen</b></td><td>Reverse-chronological session history (immutable records written at each DONE). Sessions from other apps via Health Connect appear marked as external. No charts in v1.</td><td class="mut">designed, not built</td></tr>
+        <tr><td><b>Custom exercise flow</b></td><td>Name + movement pattern + equipment + per-hand flag + starting weight. Merges into the catalog and substitution picker.</td><td class="mut">designed, not built</td></tr>
+        <tr><td><b>Wear OS app</b></td><td>Glanceable in-set logging: suggested day's exercise list → per-exercise screen with GOAL, set rows, rotary/± input, done ticks. Its own layouts, not shrunken phone screens.</td><td class="mut">designed, built last</td></tr>
+      </tbody>
+    </table></div>
+    <p class="sm mut">Navigation is flat: wizard → day screen ⇄ setup, with the edit sheet and log hanging off. No bottom nav bar, no hamburger; the day-tab strip <i>is</i> the navigation.</p>
+  </section>
+
+  <section>
+    <div class="shead"><div class="sbadge">D</div><h2>The day screen — full anatomy</h2></div>
+    <p>Everything below is prototype-proven behavior the design restyles but must not change.</p>
+    <div class="cols">
+      <div>
+        <div class="mock">
+          <div class="tabs">
+            <div class="tab gear">⚙</div>
+            <div class="tab a sel">A</div>
+            <div class="tab b sug">B</div>
+            <div class="tab c">C</div>
+            <div class="tab d">D</div>
+          </div>
+          <div class="override">Viewing Day A (override). Suggested next: Day B.</div>
+
+          <div class="xcard">
+            <div class="xhead">
+              <div>
+                <div class="xtitle">Barbell Back Squat</div>
+                <div class="badges"><span class="badge main">Main</span><span class="badge warm">+1 warm-up</span></div>
+              </div>
+              <div class="goal"><div class="glab">Goal</div><div class="gnum">235</div></div>
+            </div>
+            <div class="helper">Change the TOP set — ramp &amp; back-off recalculate.</div>
+            <div>
+              <div class="srow"><span class="klab">R1</span><span class="stp"><span class="stpbtn">−</span><span class="stpval">130</span><span class="stpbtn">+</span></span><span class="stp"><span class="stpbtn">−</span><span class="stpval">5</span><span class="stpbtn">+</span></span><span class="tick on"></span><span class="xrm">×</span></div>
+              <div class="srow"><span class="klab">R4</span><span class="stp"><span class="stpbtn">−</span><span class="stpval">210</span><span class="stpbtn">+</span></span><span class="stp"><span class="stpbtn">−</span><span class="stpval">3</span><span class="stpbtn">+</span></span><span class="tick on"></span><span class="xrm">×</span></div>
+              <div class="srow top"><span class="klab">TOP</span><span class="stp"><span class="stpbtn">−</span><span class="stpval">235</span><span class="stpbtn">+</span></span><span class="stp"><span class="stpbtn">−</span><span class="stpval">5</span><span class="stpbtn">+</span></span><span class="tick"></span><span class="xrm">×</span></div>
+              <div class="srow"><span class="klab">B/O</span><span class="stp"><span class="stpbtn">−</span><span class="stpval">175</span><span class="stpbtn">+</span></span><span class="stp"><span class="stpbtn">−</span><span class="stpval">8</span><span class="stpbtn">+</span></span><span class="tick"></span><span class="xrm">×</span></div>
+            </div>
+            <div class="addset">+ add set</div>
+          </div>
+          <p class="caption">Main-lift card, expanded. R2/R3 omitted here for space — a real card shows R1–R4, TOP, B/O. Weight stepper, reps stepper, per-set tick, per-row remove.</p>
+        </div>
+      </div>
+      <div>
+        <div class="mock">
+          <div class="xcard">
+            <div class="xhead">
+              <div>
+                <div class="xtitle">SS: EZ-Bar Curl + Rope Pushdown</div>
+              </div>
+              <div class="goal"><div class="glab">Goal</div><div class="gnum">60</div></div>
+            </div>
+            <div>
+              <div class="srow"><span class="klab">1</span><span class="stp"><span class="stpbtn">−</span><span class="stpval">60</span><span class="stpbtn">+</span></span><span class="stp"><span class="stpbtn">−</span><span class="stpval">12</span><span class="stpbtn">+</span></span><span class="tick on"></span><span class="xrm">×</span></div>
+              <div class="srow ssrow"><span class="ssmark">↳</span><span class="stp"><span class="stpbtn">−</span><span class="stpval">50</span><span class="stpbtn">+</span></span><span class="stp"><span class="stpbtn">−</span><span class="stpval">15</span><span class="stpbtn">+</span></span></div>
+              <div class="srow"><span class="klab">2</span><span class="stp"><span class="stpbtn">−</span><span class="stpval">60</span><span class="stpbtn">+</span></span><span class="stp"><span class="stpbtn">−</span><span class="stpval">11</span><span class="stpbtn">+</span></span><span class="tick"></span><span class="xrm">×</span></div>
+              <div class="srow ssrow"><span class="ssmark">↳</span><span class="stp"><span class="stpbtn">−</span><span class="stpval">50</span><span class="stpbtn">+</span></span><span class="stp"><span class="stpbtn">−</span><span class="stpval">14</span><span class="stpbtn">+</span></span></div>
+            </div>
+            <div class="addset">+ add set</div>
+          </div>
+
+          <div class="xcard done">
+            <div class="xhead">
+              <div>
+                <div class="xtitle">Seated Leg Curl</div>
+                <div class="summary">90×10 · 90×10 · 90×9</div>
+              </div>
+              <span class="badge donechip">✓</span>
+            </div>
+          </div>
+
+          <div class="donebtn">DONE — ADVANCE TO DAY B</div>
+          <p class="caption">Top: superset card — the partner rides as an indented sub-row under each primary row; <b>one tick checks the whole round</b> (both rows dim). Middle: auto-collapsed card with green left edge and the completed-sets summary. Bottom: the day's single big moment.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Complete behavior inventory</h3>
+    <ul>
+      <li><b>Tab strip:</b> ⚙ + one lettered tab per day, each tinted with its day accent. The suggested-next day carries a dot + outline. Selecting a non-suggested day shows the override line: <i>"Viewing Day X (override). Suggested next: Day Y."</i></li>
+      <li><b>Card header:</b> name · MAIN badge (mains) · "+1 WARM-UP" badge (first new-pattern accessory of the day) · green ✓ chip when all sets done · GOAL block top-right (tiny "GOAL" label over a large accent numeral, "/hand" suffix for dumbbell-style lifts). Supersets title as <b>"SS: {Primary} + {Partner}"</b>.</li>
+      <li><b>Mains helper line:</b> "change the TOP set → ramp &amp; back-off recalculate."</li>
+      <li><b>Set rows:</b> kind label (R1–R4 · <b>TOP</b> accented · B/O · plain numbers for regular/extra sets) · weight stepper · reps stepper · ✓ · remove. Steppers move by 5 lb / 2.5 kg (2.5 lb / 1.25 kg under 20 lb); reps by 1. Never below 1 set.</li>
+      <li><b>Cascade:</b> TOP-weight edits rewrite R1–R4 and B/O instantly. This deserves a designed micro-moment — right now the numbers just flicker into place.</li>
+      <li><b>Supersets:</b> partner sub-row per primary row — indented, ↳ marker, dashed top border, muted ground, own steppers. One ✓ per round. Add/remove keeps both tracks aligned.</li>
+      <li><b>Collapse:</b> auto when every set is ticked (green left edge + ✓ chip); header tap toggles manually and overrides auto. Summary line when collapsed: <code class="num">185×8 · 185×8 · 185×7</code>, supersets <code class="num">60×12(50×15) / 60×11(50×14)</code>, or <code class="num">3 sets · GOAL 90</code> if nothing is ticked yet.</li>
+      <li><b>Checkmarks reset per calendar date</b> — every new day starts fully expanded and unticked; weights and reps persist as "last time".</li>
+      <li><b>Cardio finisher card</b> below the list (collapsible, default closed): hard intervals only after leg-light lifting, easy Zone 2 after leg-heavy days. Copy reminds: lift first, then run.</li>
+      <li><b>DONE — ADVANCE TO DAY {next}:</b> the one big button. Writes an immutable session record, clears today's ticks, advances the rotation.</li>
+      <li><b>Footer:</b> program-philosophy blurb · "clear today's checkmarks" · keep-screen-on toggle.</li>
+      <li><b>Planned (data already exists):</b> a subtle per-exercise "last time: 185×8" sourced from history.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="shead"><div class="sbadge">A</div><h2>Everything available to display</h2></div>
+    <p>The full fact inventory a design may draw on, by entity. Nothing else exists — there is no social layer, no streaks, no calories, no timers.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Entity</th><th>Facts</th></tr></thead>
+      <tbody>
+        <tr><td><b>Day</b></td><td>letter id (A…) · title ("Lower — squat focus") · emphasis line ("hip-hinge hamstrings, gastroc calves") · accent color · cardio suggestion (label, detail copy, hard/easy) · suggested-next flag</td></tr>
+        <tr><td><b>Exercise slot</b></td><td>display name · movement pattern · equipment list · MAIN flag · GOAL (number + "/hand" flag + <i>where it came from</i>: strength standard, fraction of a main, or flat start) · target sets · rep-scheme label ("8–12") · warm-up hint · superset partner · free-text note</td></tr>
+        <tr><td><b>Set</b></td><td>weight (stored lb, displayed lb or kg) · reps · kind (RAMP/TOP/BACKOFF/WORK/EXTRA) · done tick (valid for today only)</td></tr>
+        <tr><td><b>Session history</b> (per DONE)</td><td>date/time · day letter + title · bodyweight at the time · every set as performed (exercise name, weight, reps, kind, ticked or not) · external flag for Health-Connect imports</td></tr>
+        <tr><td><b>Lifter config</b></td><td>bodyweight · age · experience level (novice/intermediate/advanced) · goal emphasis (strength/balanced/physique) · cardio mode + placement + 5k toggle · unit (lb/kg) · equipment owned (optional)</td></tr>
+        <tr><td><b>Catalog</b></td><td>175 curated exercises (+ user's custom ones) with pattern, equipment, ranked substitution order, per-hand flag, GOAL source</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="shead"><div class="sbadge">B</div><h2>The other screens, briefly</h2></div>
+    <h3>Wizard (6 steps + optional equipment step)</h3>
+    <p>Training goal → days/week (2–6) → split (sane default per days/week, e.g. full-body rotation at 4) → main-lift anchors (three named presets; deadlift style choice) → cardio prefs → about you (bodyweight/age/level). Every step pre-answered — the design should celebrate that "just keep hitting next" is a first-class path, not a skipped configuration. Ends by generating the program.</p>
+    <h3>Setup</h3>
+    <p>The same inputs, editable anytime, with a <b>live preview of the four main-lift GOALs</b> recalculating as the steppers move — the one place the goal math becomes visible and tangible. Re-run-wizard sits here behind a destructive confirm.</p>
+    <h3>Day edit sheet</h3>
+    <p>Swap opens "Best replacements" — same-movement-pattern candidates in ranked order, searchable and filterable by equipment. Old logs are kept; the new exercise seeds fresh from its own GOAL. Add picks pattern → exercise; remove enforces a 3-exercise minimum; "reset day to template" regenerates from stored wizard answers.</p>
+    <h3>Log</h3>
+    <p>A plain reverse-chronological list of completed sessions. It's the honest record, the export source, and where other apps' workouts surface — not an analytics dashboard. Charts are deliberately v2.</p>
+    <h3>Watch</h3>
+    <p>Two levels: today's exercise list → one exercise with GOAL and set rows, rotary or ± input, one tick per set/round. Everything oversized and glanceable mid-set; the phone remains the source of truth.</p>
+  </section>
+
+  <section>
+    <div class="shead"><div class="sbadge">C</div><h2>Current visual identity — what exists in code today</h2></div>
+    <p>A design-system layer already ships: tokens, type scale, and four components (stepper, day badge, card, checkmark), all Compose. The current look is faithful-to-spec but engineer-assembled — layout, rhythm, density, and personality are exactly what the design pass should own.</p>
+    <h3>Palette</h3>
+    <div class="swatches">
+      <div class="sw"><div class="fill" style="background:#0D0D0F"></div><div class="lab"><b>Background</b><span>#0D0D0F · pinned</span></div></div>
+      <div class="sw"><div class="fill" style="background:#16161A"></div><div class="lab"><b>Card surface</b><span>#16161A · pinned</span></div></div>
+      <div class="sw"><div class="fill" style="background:#2A2A30"></div><div class="lab"><b>Border</b><span>#2A2A30 · pinned</span></div></div>
+      <div class="sw"><div class="fill" style="background:#C1440E"></div><div class="lab"><b>Day A — terracotta</b><span>#C1440E · pinned</span></div></div>
+      <div class="sw"><div class="fill" style="background:#2D5A3D"></div><div class="lab"><b>Day B — forest</b><span>#2D5A3D · pinned</span></div></div>
+      <div class="sw"><div class="fill" style="background:#B8860B"></div><div class="lab"><b>Day C — goldenrod</b><span>#B8860B · pinned</span></div></div>
+      <div class="sw"><div class="fill" style="background:#1F4E5F"></div><div class="lab"><b>Day D — deep teal</b><span>#1F4E5F · pinned</span></div></div>
+      <div class="sw"><div class="fill" style="background:#F2F2F0"></div><div class="lab"><b>Text primary</b><span>#F2F2F0 · changeable</span></div></div>
+      <div class="sw"><div class="fill" style="background:#9A9AA2"></div><div class="lab"><b>Text secondary</b><span>#9A9AA2 · changeable</span></div></div>
+      <div class="sw"><div class="fill" style="background:#3E8E5A"></div><div class="lab"><b>Done green</b><span>#3E8E5A · changeable</span></div></div>
+      <div class="sw"><div class="fill" style="background:#B3261E"></div><div class="lab"><b>Error</b><span>#B3261E · changeable</span></div></div>
+    </div>
+    <p class="sm mut" style="margin-top:12px">Day accents cycle for programs beyond four days (day 5 = A's color). Text-on-accent pairings are contrast-tested in CI: white text on A/B/D, near-black on goldenrod C (unit tests enforce ≥ 4.5:1, so any recolor must keep or update those pairings deliberately).</p>
+    <h3>Type</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Role</th><th>Face</th><th>Size/leading</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td class="disp" style="font-size:26px">Display 34</td><td>Oswald Bold</td><td class="num">34/38</td><td>stepper values, GOAL numerals</td></tr>
+        <tr><td class="disp" style="font-size:19px">Title 22</td><td>Oswald Bold</td><td class="num">22/27</td><td>exercise names, screen titles</td></tr>
+        <tr><td style="font-family:var(--cond);font-weight:500;font-size:14px;letter-spacing:.05em">LABEL 14</td><td>Oswald Medium</td><td class="num">14/18 +0.5</td><td>badges, chips, set-kind labels</td></tr>
+        <tr><td>Body 16</td><td>system sans</td><td class="num">16/22</td><td>running copy</td></tr>
+        <tr><td class="sm">Caption 12</td><td>system sans</td><td class="num">12/16</td><td>helper lines, footers</td></tr>
+      </tbody>
+    </table></div>
+    <p class="sm mut" style="margin-top:12px">Oswald ships bundled (OFL). The scale is minimal by intent; the design pass may extend it, keeping the condensed-numerals-on-near-black character.</p>
+  </section>
+
+  <section>
+    <div class="shead"><div class="sbadge">D</div><h2>Constraints vs freedom</h2></div>
+    <div class="cols">
+      <div class="card">
+        <div class="pin">Pinned — do not redesign</div>
+        <ul class="sm">
+          <li>Dark-only in v1; near-black ground + the six spec hexes (bg/surface/border + four accents)</li>
+          <li>Per-day accent identity and its A→D cycle</li>
+          <li>Steppers, not keyboards; checkmarks, not forms</li>
+          <li>Touch targets ≥ 48dp; text-on-accent contrast ≥ 4.5:1 (both enforced by tests)</li>
+          <li>All §8.2 behaviors above (cascade, one-tick rounds, collapse rules, per-date reset, override note)</li>
+          <li>GOAL is read-only, always</li>
+          <li>Condensed display numerals as the typographic signature</li>
+          <li>No purple, no default-Material sameness, no emoji in UI, no wall-of-cards genericism (house rule)</li>
+          <li>Platform: Compose Material 3 components under a full custom theme; portrait phone + watch</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="free">Open — design owns this</div>
+        <ul class="sm">
+          <li>Layout, density and rhythm of the day screen — especially the set-row grid (current build stacks weight over reps; a tighter single-line row is likely possible at gym-glance sizes)</li>
+          <li>Tab strip treatment, selected/suggested/override states</li>
+          <li>The cascade micro-moment; collapse/expand motion; the DONE moment</li>
+          <li>Derived tones (text, muted, done-green, error, container fills) — recolor freely if contrast tests are updated with intent</li>
+          <li>Iconography (currently near none — text glyphs)</li>
+          <li>Wizard personality, empty/first-run states, destructive confirms</li>
+          <li>History list, substitution picker, setup preview presentation</li>
+          <li>Watch UI wholesale (only the one-tick-per-round rule is fixed)</li>
+          <li>Type scale extensions, spacing system, corner radii, elevation language (currently flat + hairline borders)</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Explicitly out of scope for v1</h3>
+    <p class="sm mut">History charts · plate calculator · rest timers · RPE · cloud sync/accounts · light theme · tablet layouts · social anything. Don't design for them; v2 may add charts, a widget, and Drive backup.</p>
+  </section>
+
+  <section>
+    <div class="shead"><div class="sbadge">A</div><h2>Where the design pass lands</h2></div>
+    <p>Build state: domain math, storage, the token layer, and a functional day screen exist; wizard, day-edit, setup, log, custom-exercise, export, Health Connect, and the watch are still to be built and can adopt a new direction from day one. The day screen will be restyled to match.</p>
+    <p>The highest-value design targets, in order:</p>
+    <ul>
+      <li><b>The set row.</b> The single most-repeated element in the product. It must fit weight stepper + reps stepper + tick + kind label in one comfortable line at ≥48dp targets, readable at arm's length.</li>
+      <li><b>The exercise card system</b> — expanded, superset, collapsed, done — as one family with a clear state language.</li>
+      <li><b>The day header</b> — tabs, override note, day title + emphasis line — where rotation-not-calendar either clicks or doesn't.</li>
+      <li><b>The wizard</b> — six screens that set the tone of the whole product in the first two minutes.</li>
+      <li><b>The watch</b> — the purest expression of "glanceable logging".</li>
+    </ul>
+    <p class="mut sm">Companion artifacts for a working session: the product spec (<code>STRENGTH_TRACKER_SPEC.md</code>) pins every behavior; <code>docs/PLAN.md</code> lists the amendments (history, custom exercises, kg, equipment filter). This brief is the design-facing digest of both.</p>
+  </section>
+</div>

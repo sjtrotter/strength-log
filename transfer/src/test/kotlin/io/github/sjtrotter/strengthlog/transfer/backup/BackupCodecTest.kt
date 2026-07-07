@@ -1,6 +1,15 @@
 package io.github.sjtrotter.strengthlog.transfer.backup
 
+import io.github.sjtrotter.strengthlog.data.FullSnapshot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
+import io.github.sjtrotter.strengthlog.data.db.entity.CustomExerciseEntity
+import io.github.sjtrotter.strengthlog.data.db.entity.ExerciseLogEntity
+import io.github.sjtrotter.strengthlog.data.db.entity.ProgramDayEntity
+import io.github.sjtrotter.strengthlog.data.db.entity.ProgramExerciseEntity
+import io.github.sjtrotter.strengthlog.data.db.entity.SessionSetEntity
+import io.github.sjtrotter.strengthlog.data.db.entity.WorkoutSessionEntity
+import io.github.sjtrotter.strengthlog.domain.generator.WizardAnswers
+import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -212,5 +221,174 @@ class BackupCodecTest {
         )
         // Must not throw despite 'custom_deleted' resolving to nothing.
         assertEquals(doc, codec.decode(codec.encode(doc)))
+    }
+
+    // --- embedded payloads (the strings Room stores and decodes on every read) --
+
+    @Test
+    fun `a live log with unparseable setsJson is rejected`() {
+        val doc = document(liveLogs = listOf(LiveLogBackup("A", 1, "main", "garbage", "2026-07-06", 0L)))
+        assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(doc)) }
+    }
+
+    @Test
+    fun `a live log with an unknown SetKind is rejected`() {
+        val doc = document(
+            liveLogs = listOf(
+                LiveLogBackup("A", 1, "main", """[{"weightLb":100.0,"reps":5,"kind":"BOGUS","done":false}]""", "2026-07-06", 0L),
+            ),
+        )
+        assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(doc)) }
+    }
+
+    @Test
+    fun `a day with unparseable cardioJson is rejected`() {
+        val doc = document(
+            program = listOf(
+                ProgramDayBackup(
+                    dayId = "A", title = "Day A", emphasisLine = "", cardioJson = "{ not cardio",
+                    exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", true, 4, "", false, null, "")),
+                ),
+            ),
+        )
+        assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(doc)) }
+    }
+
+    // --- duplicate primary keys (would otherwise abort the restore transaction
+    // --- with a raw SQLite error instead of a typed one) ------------------------
+
+    @Test
+    fun `duplicate program exercise ids are rejected`() {
+        val doc = document(
+            program = listOf(
+                ProgramDayBackup(
+                    dayId = "A", title = "Day A", emphasisLine = "",
+                    exercises = listOf(
+                        ProgramExerciseBackup(1, "bb_back_squat", true, 4, "", false, null, ""),
+                        ProgramExerciseBackup(1, "bb_bench", false, 3, "", false, null, ""),
+                    ),
+                ),
+            ),
+            liveLogs = emptyList(),
+            sessions = emptyList(),
+        )
+        assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(doc)) }
+    }
+
+    @Test
+    fun `duplicate session ids are rejected`() {
+        val session = SessionBackup(id = 7, dayId = "A", dayTitle = "Day A", completedAt = 1L, bodyweightLb = 235)
+        val doc = document(sessions = listOf(session, session.copy(completedAt = 2L)))
+        assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(doc)) }
+    }
+
+    @Test
+    fun `duplicate session set ids are rejected`() {
+        val set = SessionSetBackup(11, "bb_back_squat", "Barbell Back Squat", "main", 0, "TOP", 235.0, 5, true)
+        val doc = document(
+            sessions = listOf(
+                SessionBackup(
+                    id = 7, dayId = "A", dayTitle = "Day A", completedAt = 1L, bodyweightLb = 235,
+                    sets = listOf(set, set.copy(setIndex = 1)),
+                ),
+            ),
+        )
+        assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(doc)) }
+    }
+
+    @Test
+    fun `duplicate live log keys are rejected`() {
+        val log = LiveLogBackup("A", 1, "main", "[]", "2026-07-06", 0L)
+        val doc = document(liveLogs = listOf(log, log.copy(updatedAt = 1L)))
+        assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(doc)) }
+    }
+
+    // --- numeric and slot sanity -------------------------------------------------
+
+    @Test
+    fun `impossible numeric values are rejected`() {
+        val goodSet = SessionSetBackup(11, "bb_back_squat", "Barbell Back Squat", "main", 0, "TOP", 235.0, 5, true)
+        val goodSession = SessionBackup(id = 7, dayId = "A", dayTitle = "Day A", completedAt = 1L, bodyweightLb = 235, sets = listOf(goodSet))
+        val badDocs = listOf(
+            document(settings = settings().copy(bodyweightLb = 0)),
+            document(settings = settings().copy(age = -1)),
+            document(
+                program = listOf(
+                    ProgramDayBackup(
+                        dayId = "A", title = "Day A", emphasisLine = "",
+                        exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", true, 0, "", false, null, "")),
+                    ),
+                ),
+                liveLogs = emptyList(),
+            ),
+            document(sessions = listOf(goodSession.copy(bodyweightLb = -5))),
+            document(sessions = listOf(goodSession.copy(sets = listOf(goodSet.copy(weightLb = -1.0))))),
+            document(sessions = listOf(goodSession.copy(sets = listOf(goodSet.copy(reps = -1))))),
+            document(sessions = listOf(goodSession.copy(sets = listOf(goodSet.copy(setIndex = -1))))),
+        )
+        badDocs.forEach { doc ->
+            assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(doc)) }
+        }
+    }
+
+    @Test
+    fun `an unknown slot kind is rejected`() {
+        val badLog = document(liveLogs = listOf(LiveLogBackup("A", 1, "sideways", "[]", "2026-07-06", 0L)))
+        assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(badLog)) }
+
+        val badSet = document(
+            sessions = listOf(
+                SessionBackup(
+                    id = 7, dayId = "A", dayTitle = "Day A", completedAt = 1L, bodyweightLb = 235,
+                    sets = listOf(SessionSetBackup(11, "bb_back_squat", "Squat", "sideways", 0, "TOP", 235.0, 5, true)),
+                ),
+            ),
+        )
+        assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(badSet)) }
+    }
+
+    @Test
+    fun `a session set with an unknown kind is rejected`() {
+        val doc = document(
+            sessions = listOf(
+                SessionBackup(
+                    id = 7, dayId = "A", dayTitle = "Day A", completedAt = 1L, bodyweightLb = 235,
+                    sets = listOf(SessionSetBackup(11, "bb_back_squat", "Squat", "main", 0, "BOGUS", 235.0, 5, true)),
+                ),
+            ),
+        )
+        assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(doc)) }
+    }
+
+    // --- full-cycle determinism ----------------------------------------------------
+
+    @Test
+    fun `export import export is byte-identical`() {
+        val snapshot = FullSnapshot(
+            answers = WizardAnswers(),
+            unit = WeightUnit.KG,
+            wizardComplete = true,
+            suggestedDay = "A",
+            customExercises = listOf(
+                CustomExerciseEntity(custom.id, custom.name, custom.pattern, custom.equipmentCsv, custom.perHand, custom.goalStartLb),
+            ),
+            days = listOf(
+                ProgramDayEntity("A", 0, "Day A", "Squat-focused", null),
+                ProgramDayEntity("B", 1, "Day B", "Bench-focused", """{"label":"Zone 2","detail":"20-30 min","hard":false}"""),
+            ),
+            exercises = listOf(
+                ProgramExerciseEntity(1, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "belt"),
+                ProgramExerciseEntity(2, "A", 1, custom.id, false, 3, "8-12", false, "bb_bench", ""),
+                ProgramExerciseEntity(3, "B", 0, "bb_bench", true, 4, "6-10", false, null, ""),
+            ),
+            logs = listOf(
+                ExerciseLogEntity("A", 1, "main", """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]""", "2026-07-06", 1_000L),
+            ),
+            sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210)),
+            sessionSets = listOf(SessionSetEntity(11, 7, "bb_back_squat", "Barbell Back Squat", "main", 0, "TOP", 235.0, 5, true)),
+        )
+        val first = codec.encode(snapshot.toDocument())
+        val second = codec.encode(codec.decode(first).toSnapshot().toDocument())
+        assertEquals(first, second)
     }
 }

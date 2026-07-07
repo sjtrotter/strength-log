@@ -1,9 +1,13 @@
 package io.github.sjtrotter.strengthlog.transfer.backup
 
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
+import io.github.sjtrotter.strengthlog.data.db.entity.Slot
+import io.github.sjtrotter.strengthlog.data.serialization.CardioDto
+import io.github.sjtrotter.strengthlog.data.serialization.SetJson
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
+import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import kotlinx.serialization.SerializationException
@@ -87,9 +91,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
 
     /**
      * Semantic checks the type system can't express. These reject a file that
-     * would decode but then break the app: an out-of-range wizard value, a custom
-     * exercise the catalog couldn't ingest, a program slot pointing at a
-     * non-existent exercise, or a self-contradictory pointer/log.
+     * would decode but then break the app: an out-of-range or impossible value, a
+     * custom exercise the catalog couldn't ingest, a program slot pointing at a
+     * non-existent exercise, a duplicate primary key that would abort the restore
+     * transaction with a raw SQLite error, a self-contradictory pointer/log, or —
+     * critically — an embedded `setsJson`/`cardioJson` payload the app's own
+     * codecs can't read (those strings go into Room verbatim and are decoded on
+     * every program/log read, so a poisoned one would crash every collect).
      *
      * Session-set exercise ids are intentionally *not* checked against the
      * catalog: history denormalizes the exercise name precisely so a completed
@@ -97,12 +105,32 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
      * reference an id that no longer resolves.
      */
     private fun validate(doc: BackupDocument) {
-        val days = doc.settings.daysPerWeek
-        if (days !in 2..6) throw BackupError.Inconsistent("daysPerWeek out of range: $days")
+        validateSettings(doc.settings)
+        val customIds = validateCustomExercises(doc.customExercises)
+        val slotsByDay = validateProgram(doc.program, customIds)
+        doc.settings.suggestedDay?.let { suggested ->
+            if (doc.program.none { it.dayId == suggested }) {
+                throw BackupError.Inconsistent("suggestedDay '$suggested' is not a day in this backup")
+            }
+        }
+        validateLiveLogs(doc.liveLogs, slotsByDay)
+        validateSessions(doc.sessions)
+    }
 
+    private fun validateSettings(settings: SettingsBackup) {
+        if (settings.daysPerWeek !in 2..6) {
+            throw BackupError.Inconsistent("daysPerWeek out of range: ${settings.daysPerWeek}")
+        }
+        if (settings.bodyweightLb <= 0) {
+            throw BackupError.Inconsistent("bodyweightLb must be positive: ${settings.bodyweightLb}")
+        }
+        if (settings.age < 0) throw BackupError.Inconsistent("age must not be negative: ${settings.age}")
+    }
+
+    private fun validateCustomExercises(customs: List<CustomExerciseBackup>): Set<String> {
         val codeIds = ExerciseLibrary.entries.mapTo(HashSet()) { it.id }
         val customIds = HashSet<String>()
-        for (c in doc.customExercises) {
+        for (c in customs) {
             if (!c.id.startsWith(ExerciseCatalog.CUSTOM_ID_PREFIX)) {
                 throw BackupError.InvalidCustomExercise(
                     "id '${c.id}' lacks the '${ExerciseCatalog.CUSTOM_ID_PREFIX}' prefix",
@@ -118,27 +146,40 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                     throw BackupError.InvalidCustomExercise("unknown equipment '$token' on '${c.id}'")
                 }
             }
+            if (c.goalStartLb < 0) {
+                throw BackupError.Inconsistent("negative goalStartLb on '${c.id}': ${c.goalStartLb}")
+            }
         }
+        return customIds
+    }
 
-        val resolvable = codeIds + customIds
+    /** Returns each day's set of slot ids for the live-log checks. */
+    private fun validateProgram(
+        program: List<ProgramDayBackup>,
+        customIds: Set<String>,
+    ): Map<String, Set<Long>> {
+        val resolvable = ExerciseLibrary.entries.mapTo(HashSet()) { it.id } + customIds
         val dayIds = HashSet<String>()
-        for (day in doc.program) {
+        val slotIds = HashSet<Long>()
+        for (day in program) {
             if (!dayIds.add(day.dayId)) throw BackupError.Inconsistent("duplicate day id '${day.dayId}'")
+            decodePayload("cardioJson of day '${day.dayId}'") { CardioDto.decode(day.cardioJson) }
             for (ex in day.exercises) {
+                if (!slotIds.add(ex.id)) throw BackupError.Inconsistent("duplicate program exercise id ${ex.id}")
                 if (ex.exerciseId !in resolvable) throw BackupError.DanglingExerciseReference(ex.exerciseId)
                 val ss = ex.supersetExerciseId
                 if (ss != null && ss !in resolvable) throw BackupError.DanglingExerciseReference(ss)
+                if (ex.targetSets < 1) {
+                    throw BackupError.Inconsistent("targetSets must be at least 1 on slot ${ex.id}: ${ex.targetSets}")
+                }
             }
         }
+        return program.associate { d -> d.dayId to d.exercises.mapTo(HashSet()) { it.id } }
+    }
 
-        doc.settings.suggestedDay?.let { suggested ->
-            if (suggested !in dayIds) {
-                throw BackupError.Inconsistent("suggestedDay '$suggested' is not a day in this backup")
-            }
-        }
-
-        val slotsByDay = doc.program.associate { d -> d.dayId to d.exercises.mapTo(HashSet()) { it.id } }
-        for (log in doc.liveLogs) {
+    private fun validateLiveLogs(logs: List<LiveLogBackup>, slotsByDay: Map<String, Set<Long>>) {
+        val logKeys = HashSet<Triple<String, Long, String>>()
+        for (log in logs) {
             val slots = slotsByDay[log.dayId]
                 ?: throw BackupError.Inconsistent("live log references unknown day '${log.dayId}'")
             if (log.programExerciseId !in slots) {
@@ -146,8 +187,58 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                     "live log references unknown slot ${log.programExerciseId} in day '${log.dayId}'",
                 )
             }
+            if (log.slot != Slot.MAIN && log.slot != Slot.SS) {
+                throw BackupError.Inconsistent("unknown live-log slot kind '${log.slot}'")
+            }
+            if (!logKeys.add(Triple(log.dayId, log.programExerciseId, log.slot))) {
+                throw BackupError.Inconsistent(
+                    "duplicate live log for (${log.dayId}, ${log.programExerciseId}, ${log.slot})",
+                )
+            }
+            val sets = decodePayload("setsJson of slot ${log.programExerciseId} in day '${log.dayId}'") {
+                SetJson.decodeSets(log.setsJson)
+            }
+            sets.forEach { s ->
+                if (s.weightLb < 0 || s.reps < 0) {
+                    throw BackupError.Inconsistent(
+                        "negative weight/reps in live log for slot ${log.programExerciseId} in day '${log.dayId}'",
+                    )
+                }
+            }
         }
     }
+
+    private fun validateSessions(sessions: List<SessionBackup>) {
+        val sessionIds = HashSet<Long>()
+        val setIds = HashSet<Long>()
+        for (s in sessions) {
+            if (!sessionIds.add(s.id)) throw BackupError.Inconsistent("duplicate session id ${s.id}")
+            if (s.bodyweightLb <= 0) {
+                throw BackupError.Inconsistent("session ${s.id} bodyweightLb must be positive: ${s.bodyweightLb}")
+            }
+            for (set in s.sets) {
+                if (!setIds.add(set.id)) throw BackupError.Inconsistent("duplicate session set id ${set.id}")
+                if (set.slot != Slot.MAIN && set.slot != Slot.SS) {
+                    throw BackupError.Inconsistent("unknown session-set slot kind '${set.slot}' in session ${s.id}")
+                }
+                if (SetKind.entries.none { it.name == set.kind }) {
+                    throw BackupError.Inconsistent("unknown set kind '${set.kind}' on set ${set.id} in session ${s.id}")
+                }
+                if (set.weightLb < 0 || set.reps < 0 || set.setIndex < 0) {
+                    throw BackupError.Inconsistent("negative weight/reps/setIndex on set ${set.id} in session ${s.id}")
+                }
+            }
+        }
+    }
+
+    /** Runs one of `:data`'s own payload codecs (SSOT — the exact decoders the app
+     *  uses at read time) and converts any failure to the typed error. */
+    private fun <T> decodePayload(what: String, decode: () -> T): T =
+        try {
+            decode()
+        } catch (e: Exception) {
+            throw BackupError.InvalidPayload("$what: ${e.message}", e)
+        }
 
     companion object {
         /**

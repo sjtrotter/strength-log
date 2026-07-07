@@ -113,4 +113,15 @@ class ImportRejectionTest : BackupTestHarness() {
             service.import(bad)
         }
     }
+
+    @Test
+    fun poisoned_sets_json_is_rejected_and_db_untouched() = runTest {
+        assertRejectedAndUntouched<BackupError.InvalidPayload> {
+            // The escaped quotes target the setsJson *string payload* (the live
+            // log), not the plain-JSON session sets. An unknown SetKind there would
+            // otherwise import cleanly and then crash every logFlow collect.
+            val bad = service.export().replaceFirst("\\\"kind\\\":\\\"TOP\\\"", "\\\"kind\\\":\\\"BOGUS\\\"")
+            service.import(bad)
+        }
+    }
 }

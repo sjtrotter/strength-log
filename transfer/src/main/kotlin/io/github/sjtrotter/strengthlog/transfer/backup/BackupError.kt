@@ -20,6 +20,13 @@ sealed class BackupError(message: String, cause: Throwable? = null) : Exception(
     class UnsupportedSchemaVersion(val found: Int?, val supported: Int) :
         BackupError("Unsupported backup schema version $found (this build reads $supported)")
 
+    /** An embedded JSON payload — a live log's sets or a day's cardio — that the
+     *  app's own codecs can't read. These strings are written into Room verbatim
+     *  and decoded on every program/log read, so letting a poisoned one through
+     *  would import data that crashes the app on next collect. */
+    class InvalidPayload(detail: String, cause: Throwable? = null) :
+        BackupError("Unreadable embedded payload: $detail", cause)
+
     /** A program slot names an exercise id that resolves to neither the code
      *  catalog nor a custom exercise carried by this same backup. */
     class DanglingExerciseReference(val exerciseId: String) :

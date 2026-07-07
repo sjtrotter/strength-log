@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -56,8 +57,8 @@ private val PrimaryRowMinHeight = 52.dp
 private val SubRowMinHeight = 46.dp
 private val PrimaryKindLabelWidth = 30.dp
 private val SubRowKindLabelWidth = 16.dp
-private val TopRowBleed = 10.dp
 private val TopRowBarWidth = 3.dp
+private val TopRowCorner = 8.dp
 private const val CASCADE_FLASH_MS = 650
 private const val CASCADE_STAGGER_MS = 45L
 private const val TICK_FADE_MS = 200
@@ -72,9 +73,12 @@ private const val TICK_FADE_MS = 200
  * Layout: `[kind label][weight capsule][reps capsule][spacer][tick][remove ×]`,
  * 8dp gaps, min height 52dp (46dp for a superset sub-row, [isSubRow]).
  *
- * - [isTop] paints the [accentSoft] fill + 3dp [accent] left bar that bleeds
- *   10dp into the card's gutter, and colors the kind label [accent]. Callers
- *   pass both colors (rather than a day index) so the A/C-vs-B/D 12%/14%
+ * - [isTop] paints the [accentSoft] fill (rounded, 3dp [accent] left bar) across
+ *   the row's own bounds and colors the kind label [accent]. The 10dp bleed into
+ *   the card gutter is the caller's job: `DayScreen` widens the TOP row's
+ *   container past the card content edge (a clipping ancestor would otherwise
+ *   cut a fill drawn outside these bounds), so this only draws within bounds.
+ *   Callers pass both colors (rather than a day index) so the A/C-vs-B/D 12%/14%
  *   soft-fill split (see `accentSoft(dayIndex)` in Color.kt) stays computed
  *   in exactly one place.
  * - [ticked] fades the steppers to 55% opacity (the row itself is still
@@ -142,7 +146,10 @@ fun SetRow(
             .drawBehind {
                 if (isTop) drawTopRowBleed(accent, accentSoft) else drawCascadeFlash(accentSoft, flash.value)
             }
-            .padding(horizontal = 4.dp),
+            // TOP row insets its content past the bar (reference `.srow.top`
+            // padding: 0 10 0 7); other rows sit flush — the day screen supplies
+            // their horizontal inset so the TOP row can bleed and they can't.
+            .then(if (isTop) Modifier.padding(start = 7.dp, end = 10.dp) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -199,16 +206,14 @@ private fun RemoveButton(onClick: () -> Unit) {
     }
 }
 
-/** Static accent-soft fill + 3dp accent left bar, bled 10dp beyond the row's own bounds. */
+/** Rounded accent-soft fill + 3dp accent left bar, drawn within the row's own
+ *  (caller-widened) bounds — reference `.srow.top` (radius 8, border-left 3). */
 private fun DrawScope.drawTopRowBleed(accent: Color, accentSoft: Color) {
-    val bleedPx = TopRowBleed.toPx()
+    val cornerPx = TopRowCorner.toPx()
     val barPx = TopRowBarWidth.toPx()
-    drawRect(
-        color = accentSoft,
-        topLeft = Offset(-bleedPx, 0f),
-        size = Size(size.width + 2 * bleedPx, size.height),
-    )
-    drawRect(color = accent, topLeft = Offset(-bleedPx, 0f), size = Size(barPx, size.height))
+    drawRoundRect(color = accentSoft, cornerRadius = CornerRadius(cornerPx))
+    // Bar inset vertically by the corner radius so it doesn't poke the rounded edge.
+    drawRect(color = accent, topLeft = Offset(0f, cornerPx), size = Size(barPx, size.height - 2 * cornerPx))
 }
 
 /** Transient full-width accent-soft flash, read in the draw phase so only redraw (not recomposition) tracks it. */

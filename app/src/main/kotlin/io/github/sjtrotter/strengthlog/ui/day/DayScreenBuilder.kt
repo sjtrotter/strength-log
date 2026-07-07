@@ -23,8 +23,11 @@ import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
  */
 object DayScreenBuilder {
 
-    /** Helper line under a main lift's header (spec §8.2). */
-    const val MAIN_HELPER = "change the TOP set → ramp & back-off recalculate."
+    /** Helper line under a main lift's header (spec §8.2, design-pass copy). */
+    const val MAIN_HELPER = "Change the TOP set — ramp & back-off recalculate."
+
+    /** Helper line under a superset's header (design-pass copy: one tick per round). */
+    const val SUPERSET_HELPER = "One tick checks the whole round — both moves, back-to-back."
 
     /** One log write emitted by [seedPlan]. */
     data class SeedWrite(

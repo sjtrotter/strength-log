@@ -169,4 +169,12 @@ class DayScreenBuilderTest {
         assertTrue(newMain[1].done)
         assertEquals(null, newPartner)
     }
+
+    // --- header helper copy (design-pass reference wording) ------------------
+
+    @Test
+    fun helper_copy_matches_the_design_reference() {
+        assertEquals("Change the TOP set — ramp & back-off recalculate.", DayScreenBuilder.MAIN_HELPER)
+        assertEquals("One tick checks the whole round — both moves, back-to-back.", DayScreenBuilder.SUPERSET_HELPER)
+    }
 }

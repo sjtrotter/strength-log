@@ -39,9 +39,9 @@ private val ToggleShape = RoundedCornerShape(6.dp)
  * Per-set done tick (spec §8's "green ✓"). Visually 28dp, but the toggleable
  * area sits on a >= 48dp box so the touch target meets Material's minimum.
  * Design-pass restyle: unchecked fill is [Surface2] (was transparent), and
- * ticking pops the glyph in — scale 0.7 -> 1.0 on a spring, ~200ms (design
- * tokens: `--dur-med`/`--ease-spring`) — via a transient [Animatable], never
- * persisted state (consistent with A6/motion rule).
+ * ticking pops the whole chip in — scale 0.7 -> 1.0 on a spring, ~200ms (design
+ * tokens: `--dur-med`/`--ease-spring`, reference `@keyframes pop` scales the
+ * tick box) — via a transient [Animatable], never persisted state (A6/motion).
  */
 @Composable
 fun CheckmarkToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
@@ -62,18 +62,14 @@ fun CheckmarkToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifi
     ) {
         Box(
             modifier = Modifier
+                .graphicsLayer(scaleX = scale.value, scaleY = scale.value)
                 .size(28.dp)
                 .background(if (checked) Done else Surface2, ToggleShape)
                 .border(1.dp, if (checked) Done else Border, ToggleShape),
             contentAlignment = Alignment.Center,
         ) {
             if (checked) {
-                Text(
-                    text = "✓",
-                    color = Background,
-                    style = TickGlyph,
-                    modifier = Modifier.graphicsLayer(scaleX = scale.value, scaleY = scale.value),
-                )
+                Text(text = "✓", color = Background, style = TickGlyph)
             }
         }
     }

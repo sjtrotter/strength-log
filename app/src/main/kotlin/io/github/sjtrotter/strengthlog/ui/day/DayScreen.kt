@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -189,6 +190,7 @@ private fun SettingsTab(onClick: () -> Unit) {
 private fun DayTab(tab: DayTab, onClick: () -> Unit) {
     val accent = dayAccent(tab.dayIndex)
     val showSuggestedRing = tab.isSuggested && !tab.isSelected
+    // Border-color uses the muted 55% blend; the suggested ring is the pure accent.
     val borderColor = if (showSuggestedRing) accentBorder(tab.dayIndex) else Border
     Box(
         modifier = Modifier
@@ -197,10 +199,10 @@ private fun DayTab(tab: DayTab, onClick: () -> Unit) {
                 if (showSuggestedRing) {
                     val ringInset = (-2).dp.toPx()
                     drawRoundRect(
-                        color = accentBorder(tab.dayIndex),
+                        color = accent,
                         topLeft = Offset(ringInset, ringInset),
                         size = Size(size.width - 2 * ringInset, size.height - 2 * ringInset),
-                        cornerRadius = CornerRadius(11.dp.toPx()),
+                        cornerRadius = CornerRadius(12.dp.toPx()),
                         style = Stroke(width = 1.5.dp.toPx()),
                     )
                     // Suggested-next dot at the tab's top-right corner, with a
@@ -251,16 +253,16 @@ private fun ExerciseCard(
         }
     }
 
-    val borderColor by animateColorAsState(
-        targetValue = if (card.allDone) Done else Border,
+    val doneEdge by animateFloatAsState(
+        targetValue = if (card.allDone) 1f else 0f,
         animationSpec = tween(200),
-        label = "cardDoneBorder",
+        label = "cardDoneEdge",
     )
     AppCard(modifier = Modifier.drawWithContent {
         drawContent()
-        // On top of AppCard's own background: a green strip marks a finished card
-        // (spec §8.2), muted otherwise so every card reads with the same left edge.
-        drawRect(color = borderColor, size = Size(3.dp.toPx(), size.height))
+        // A finished card gets a 3dp green left edge (spec §8.2); non-done cards
+        // carry only AppCard's hairline border (reference: no muted strip).
+        if (doneEdge > 0f) drawRect(color = Done.copy(alpha = doneEdge), size = Size(3.dp.toPx(), size.height))
     }) {
         Row(
             modifier = Modifier
@@ -271,30 +273,31 @@ private fun ExerciseCard(
             Column(Modifier.weight(1f)) {
                 Text(card.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 5.dp)) {
-                    if (card.allDone) Badge("✓", Done, Background)
                     if (card.isMain) Badge("MAIN", accent, onAccent)
                     if (card.hasWarmupHint) Badge("+1 WARM-UP", Color.Transparent, TextSecondary, outlined = true)
+                    if (card.allDone) Badge("✓", Done, Background)
                 }
             }
             if (!displayCollapsed) GoalBlock(card.goalDisplay, card.perHand, accent)
         }
 
-        Column(Modifier.animateContentSize(tween(320))) {
+        // Widen this section 10dp into the card gutter so the TOP row can bleed
+        // (see [bleedHorizontal]); every other element is inset back to the card
+        // content edge. fillMaxWidth keeps the width constant so only height
+        // animates on collapse.
+        val rowInset = Modifier.padding(horizontal = 10.dp)
+        Column(Modifier.bleedHorizontal(10.dp).fillMaxWidth().animateContentSize(tween(320))) {
             if (displayCollapsed) {
                 Spacer(Modifier.size(6.dp))
-                Text(card.collapsedSummary, color = TextSecondary, style = SummaryLine)
+                Text(card.collapsedSummary, color = TextSecondary, style = SummaryLine, modifier = rowInset)
             } else {
                 if (card.isMain) {
                     Spacer(Modifier.size(6.dp))
-                    Text(DayScreenBuilder.MAIN_HELPER, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text(DayScreenBuilder.MAIN_HELPER, color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
                 }
-                if (card.isSuperset && card.partnerGoalDisplay != null) {
-                    Spacer(Modifier.size(4.dp))
-                    Text(
-                        "↳ partner GOAL ${card.partnerGoalDisplay}${if (card.partnerPerHand) "/hand" else ""}",
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                if (card.isSuperset) {
+                    Spacer(Modifier.size(6.dp))
+                    Text(DayScreenBuilder.SUPERSET_HELPER, color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
                 }
 
                 Spacer(Modifier.size(4.dp))
@@ -315,6 +318,7 @@ private fun ExerciseCard(
                         weightRound = { WeightStepper.round(it, unit) },
                         reps = row.reps,
                         onRepsChange = { actions.onRepsChange(card.programExerciseId, Slot.MAIN, row.index, it) },
+                        modifier = if (row.isTop) Modifier else rowInset,
                         isTop = row.isTop,
                         ticked = row.done,
                         onToggleDone = { actions.onToggleDone(card.programExerciseId, row.index, it, card.isSuperset) },
@@ -323,28 +327,29 @@ private fun ExerciseCard(
                     )
                     val partner = row.partner
                     if (card.isSuperset && partner != null) {
-                        Box(Modifier.padding(start = 30.dp)) {
-                            SetRow(
-                                kindLabel = "",
-                                accent = accent,
-                                accentSoft = accentSoftColor,
-                                weight = partner.weightDisplay,
-                                onWeightChange = {
-                                    actions.onWeightChange(card.programExerciseId, Slot.SS, row.index, WeightStepper.round(it, unit))
-                                },
-                                weightStep = { WeightStepper.increment(it, unit) },
-                                weightFormat = WeightStepper::format,
-                                weightRound = { WeightStepper.round(it, unit) },
-                                reps = partner.reps,
-                                onRepsChange = { actions.onRepsChange(card.programExerciseId, Slot.SS, row.index, it) },
-                                isSubRow = true,
-                            )
-                        }
+                        SetRow(
+                            kindLabel = "",
+                            accent = accent,
+                            accentSoft = accentSoftColor,
+                            weight = partner.weightDisplay,
+                            onWeightChange = {
+                                actions.onWeightChange(card.programExerciseId, Slot.SS, row.index, WeightStepper.round(it, unit))
+                            },
+                            weightStep = { WeightStepper.increment(it, unit) },
+                            weightFormat = WeightStepper::format,
+                            weightRound = { WeightStepper.round(it, unit) },
+                            reps = partner.reps,
+                            onRepsChange = { actions.onRepsChange(card.programExerciseId, Slot.SS, row.index, it) },
+                            // 10dp base inset + 30dp superset indent; dims with the round's tick.
+                            modifier = Modifier.padding(start = 40.dp, end = 10.dp),
+                            isSubRow = true,
+                            ticked = row.done,
+                        )
                     }
                 }
                 if (card.rows.isNotEmpty()) {
                     Spacer(Modifier.size(2.dp))
-                    AddSetButton(isSuperset = card.isSuperset) { actions.onAddSet(card.programExerciseId, card.isSuperset) }
+                    AddSetButton(modifier = rowInset, isSuperset = card.isSuperset) { actions.onAddSet(card.programExerciseId, card.isSuperset) }
                 }
             }
         }
@@ -370,20 +375,24 @@ private fun Badge(text: String, fill: Color, textColor: Color, outlined: Boolean
         modifier = Modifier
             .background(fill, RoundedCornerShape(4.dp))
             .then(if (outlined) Modifier.border(1.dp, Border, RoundedCornerShape(4.dp)) else Modifier)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            // Outline badges pad 7/2 (tighter, to offset the 1px border); filled 8/3.
+            .padding(horizontal = if (outlined) 7.dp else 8.dp, vertical = if (outlined) 2.dp else 3.dp),
     ) {
         Text(text.uppercase(), color = textColor, style = MaterialTheme.typography.labelSmall)
     }
 }
 
 @Composable
-private fun AddSetButton(isSuperset: Boolean, onClick: () -> Unit) {
+private fun AddSetButton(modifier: Modifier = Modifier, isSuperset: Boolean, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(top = 8.dp)
             .dashedBorder(Border, radius = 8.dp)
-            .clickable(onClick = onClick)
+            .background(if (pressed) Surface2 else Color.Transparent, RoundedCornerShape(8.dp))
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -488,13 +497,17 @@ private fun Footer(state: DayUiState, accent: Color, onAccent: Color, actions: D
 
 @Composable
 private fun QuietButton(onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     Box(
         modifier = Modifier
             .border(1.dp, Border, RoundedCornerShape(50))
-            .clickable(onClick = onClick)
+            .background(if (pressed) Surface2 else Color.Transparent, RoundedCornerShape(50))
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
-        Text("CLEAR TODAY'S CHECKMARKS", color = TextSecondary, style = MaterialTheme.typography.labelLarge)
+        // The one labelLarge element the reference leaves mixed-case (no caps).
+        Text("Clear today's checkmarks", color = TextSecondary, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -509,7 +522,7 @@ private fun KeepScreenOnSwitch(checked: Boolean, onCheckedChange: (Boolean) -> U
     ) {
         Text("Keep screen on", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         val trackColor by animateColorAsState(if (checked) accent else Surface2, tween(200), label = "switchTrack")
-        val thumbOffset by animateFloatAsState(if (checked) 16f else 2f, tween(200), label = "switchThumb")
+        val thumbOffset by animateFloatAsState(if (checked) 18f else 2f, tween(200), label = "switchThumb")
         Box(
             modifier = Modifier
                 .width(40.dp)
@@ -541,6 +554,22 @@ private fun KeepScreenOn(enabled: Boolean) {
 private fun Modifier.dashedBorder(color: Color, radius: Dp): Modifier = drawBehind {
     val stroke = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 5f)))
     drawRoundRect(color = color, cornerRadius = CornerRadius(radius.toPx()), style = stroke)
+}
+
+/**
+ * Renders [bleed] wider on each side than the width it reports to its parent,
+ * placed shifted left by [bleed] — so the child spills symmetrically into the
+ * parent's padding without changing the parent's layout. The TOP set row uses
+ * this to bleed into the card gutter; because the widened bounds belong to this
+ * node, the clip inside `animateContentSize` no longer cuts the fill.
+ */
+private fun Modifier.bleedHorizontal(bleed: Dp): Modifier = layout { measurable, constraints ->
+    val extra = bleed.roundToPx() * 2
+    val widened =
+        if (constraints.hasBoundedWidth) constraints.copy(maxWidth = constraints.maxWidth + extra) else constraints
+    val placeable = measurable.measure(widened)
+    val reported = (placeable.width - extra).coerceAtLeast(0)
+    layout(reported, placeable.height) { placeable.place(-bleed.roundToPx(), 0) }
 }
 
 /** Callbacks the screen forwards to [DayViewModel] — one place, so previews stay trivial. */

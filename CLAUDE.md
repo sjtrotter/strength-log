@@ -43,6 +43,13 @@ The Fable review checks, every time:
 Loop until the final check passes cleanly, then merge. Don't merge on a review
 with unresolved findings.
 
+Once CI is green and the adversarial review is accepted, the PR is done from
+Claude's side: post the exact merge command for the user
+(`gh pr merge <n> --squash --delete-branch`) and move straight on to the next
+task — don't block on the merge. The human presses the button; permission
+classifiers block self-merges by design. Escalate beyond that only when a
+review finding can't be resolved or a change would alter pinned spec numbers.
+
 ## Design principles
 
 1. **Simple.** Prefer the boring solution. No speculative abstraction, no

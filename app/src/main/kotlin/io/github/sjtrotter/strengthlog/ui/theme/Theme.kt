@@ -5,7 +5,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.lerp
 
 /** Container roles are their accent sunk into the card surface — dark, not pastel. */
 private fun containerOf(accent: Color) = accent.copy(alpha = 0.25f).compositeOver(Surface)
@@ -27,15 +26,16 @@ private val AppColorScheme = darkColorScheme(
     // surfaceTint = surface disables M3's tonal-elevation tinting — surfaces
     // stay flat near-black at any elevation.
     surfaceTint = Surface,
-    // The container-surface ramp reuses the spec's three surfaces instead of
-    // M3's violet-cast dark neutrals.
+    // The container-surface ramp reuses the spec's surfaces (design-pass:
+    // Surface2/Surface3 are the "raised control" ramp — steppers, ticks) instead
+    // of M3's violet-cast dark neutrals.
     surfaceDim = Background,
     surfaceBright = Border,
     surfaceContainerLowest = Background,
     surfaceContainerLow = Surface,
     surfaceContainer = Surface,
-    surfaceContainerHigh = lerp(Surface, Border, 0.5f),
-    surfaceContainerHighest = Border,
+    surfaceContainerHigh = Surface2,
+    surfaceContainerHighest = Surface3,
     primary = dayAccent(0),
     onPrimary = onDayAccent(0),
     primaryContainer = containerOf(dayAccent(0)),

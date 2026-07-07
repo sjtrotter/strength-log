@@ -19,7 +19,8 @@ import io.github.sjtrotter.strengthlog.ui.theme.Surface
 import io.github.sjtrotter.strengthlog.ui.theme.TextPrimary
 import io.github.sjtrotter.strengthlog.ui.theme.TextSecondary
 
-private val CardShape = RoundedCornerShape(10.dp)
+// Design-pass: card radius 10 -> 12 (docs/design-handoff/tokens/spacing.css --r-card).
+private val CardShape = RoundedCornerShape(12.dp)
 
 /**
  * The standard app card: flat surface + hairline border, no Material tonal

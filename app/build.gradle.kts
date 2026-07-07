@@ -35,6 +35,7 @@ android {
 
     testOptions {
         unitTests.all { it.useJUnitPlatform() }
+        unitTests.isIncludeAndroidResources = true // Robolectric
     }
 }
 
@@ -70,7 +71,17 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(libs.kotlinx.coroutines.core)
+    // DataModule constructs the Room DB and Preferences DataStore, so the app
+    // module depends on them directly (they are not part of :data's API).
+    implementation(libs.room.runtime)
+    implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric (JUnit4, run via the vintage engine under the JUnit platform)
+    // for ViewModel wiring tests against a real in-memory Room DB.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.junit4)
+    testImplementation(libs.androidx.test.core)
+    testRuntimeOnly(libs.junit.vintage.engine)
 }

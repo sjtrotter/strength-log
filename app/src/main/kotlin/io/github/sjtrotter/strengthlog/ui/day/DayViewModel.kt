@@ -20,7 +20,6 @@ import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -31,15 +30,21 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Day screen ViewModel (spec §8.2, MVVM/UDF). Holds no working truth of its own:
  * every render value derives from Room/DataStore flows, and every mutation writes
- * straight back through [TrackerRepository] (data principle — nothing that must
- * survive process death lives in a bare field). The only in-VM state is the
- * ephemeral view-day override and keep-screen-on (in [SavedStateHandle], so a
- * rotation keeps them) and the manual collapse overrides (in-memory, reset on
- * advance per spec §8.2).
+ * straight back through [TrackerRepository]. Ephemeral UI state — the view-day
+ * override, keep-screen-on, and the manual collapse overrides — lives in
+ * [SavedStateHandle] per PLAN.md A6, so rotation and process death can't lose it;
+ * collapse overrides still reset when a session advances (spec §8.2).
+ *
+ * Log mutations are read-modify-write over a whole set track, so they are
+ * serialized through [mutationLock] — without it two rapid intents on one slot
+ * (tick set 1, tick set 2) could each read the same stored list and the second
+ * write would silently drop the first.
  *
  * The §8.2 decision logic lives in the pure [DayScreenBuilder]; this class is the
  * flow/write wiring around it. All cascade/edit math comes from `:domain`
@@ -54,7 +59,11 @@ class DayViewModel @Inject constructor(
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
     private val keepScreenOn: StateFlow<Boolean> = savedState.getStateFlow(KEY_KEEP_ON, false)
-    private val manualCollapse = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
+    private val manualCollapse: StateFlow<Map<Long, Boolean>> =
+        savedState.getStateFlow(KEY_COLLAPSE, emptyMap())
+
+    /** Serializes all read-modify-write log mutations (see class doc). */
+    private val mutationLock = Mutex()
 
     /** The day actually shown: a valid override, else the suggested day, else the first. */
     private val effectiveDayId: StateFlow<String?> =
@@ -99,10 +108,10 @@ class DayViewModel @Inject constructor(
 
     fun changeWeight(programExerciseId: Long, slot: String, index: Int, newDisplayWeight: Double) {
         val day = currentDay() ?: return
-        viewModelScope.launch {
+        mutate {
             val unit = repo.unitFlow.first()
             val sets = trackFor(day, programExerciseId, slot)
-            if (index !in sets.indices) return@launch
+            if (index !in sets.indices) return@mutate
             val updated = SetEditor.editWeight(sets, index, unit.toLb(newDisplayWeight))
             repo.updateSets(day, programExerciseId, slot, updated)
         }
@@ -110,34 +119,40 @@ class DayViewModel @Inject constructor(
 
     fun changeReps(programExerciseId: Long, slot: String, index: Int, newReps: Int) {
         val day = currentDay() ?: return
-        viewModelScope.launch {
+        mutate {
             val sets = trackFor(day, programExerciseId, slot)
-            if (index !in sets.indices) return@launch
+            if (index !in sets.indices) return@mutate
             repo.updateSets(day, programExerciseId, slot, SetEditor.editReps(sets, index, newReps))
         }
     }
 
     fun toggleDone(programExerciseId: Long, index: Int, checked: Boolean, isSuperset: Boolean) {
         val day = currentDay() ?: return
-        viewModelScope.launch {
+        mutate {
             val main = trackFor(day, programExerciseId, Slot.MAIN)
             val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else null
             val (newMain, newPartner) = DayScreenBuilder.applyRoundTick(main, partner, index, checked)
-            repo.updateSets(day, programExerciseId, Slot.MAIN, newMain)
-            if (newPartner != null) repo.updateSets(day, programExerciseId, Slot.SS, newPartner)
+            if (newPartner != null) {
+                repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
+            } else {
+                repo.updateSets(day, programExerciseId, Slot.MAIN, newMain)
+            }
         }
     }
 
     fun addSet(programExerciseId: Long, isSuperset: Boolean) {
         val day = currentDay() ?: return
-        viewModelScope.launch {
+        mutate {
             val main = trackFor(day, programExerciseId, Slot.MAIN)
-            if (isSuperset) {
-                val partner = trackFor(day, programExerciseId, Slot.SS)
+            // An unseeded track has no last row to copy — nothing to add yet.
+            if (main.isEmpty()) return@mutate
+            val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else emptyList()
+            if (partner.isNotEmpty()) {
                 val (newMain, newPartner) = SetEditor.addSetPaired(main, partner)
-                repo.updateSets(day, programExerciseId, Slot.MAIN, newMain)
-                repo.updateSets(day, programExerciseId, Slot.SS, newPartner)
+                repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
             } else {
+                // No partner track exists (e.g. its catalog entry is unknown, so it
+                // never seeded) — there is nothing to keep aligned; plain add.
                 repo.updateSets(day, programExerciseId, Slot.MAIN, SetEditor.addSet(main))
             }
         }
@@ -145,13 +160,13 @@ class DayViewModel @Inject constructor(
 
     fun removeSet(programExerciseId: Long, index: Int, isSuperset: Boolean) {
         val day = currentDay() ?: return
-        viewModelScope.launch {
+        mutate {
             val main = trackFor(day, programExerciseId, Slot.MAIN)
-            if (isSuperset) {
-                val partner = trackFor(day, programExerciseId, Slot.SS)
+            if (index !in main.indices) return@mutate
+            val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else emptyList()
+            if (partner.isNotEmpty()) {
                 val (newMain, newPartner) = SetEditor.removeSetPaired(main, partner, index)
-                repo.updateSets(day, programExerciseId, Slot.MAIN, newMain)
-                repo.updateSets(day, programExerciseId, Slot.SS, newPartner)
+                repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
             } else {
                 repo.updateSets(day, programExerciseId, Slot.MAIN, SetEditor.removeSet(main, index))
             }
@@ -160,7 +175,7 @@ class DayViewModel @Inject constructor(
 
     fun toggleCollapse(programExerciseId: Long) {
         val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return
-        manualCollapse.value = manualCollapse.value + (programExerciseId to !card.collapsed)
+        savedState[KEY_COLLAPSE] = manualCollapse.value + (programExerciseId to !card.collapsed)
     }
 
     fun setKeepScreenOn(on: Boolean) {
@@ -177,7 +192,7 @@ class DayViewModel @Inject constructor(
         val day = currentDay() ?: return
         viewModelScope.launch {
             repo.advanceDay(day)
-            manualCollapse.value = emptyMap()
+            savedState[KEY_COLLAPSE] = emptyMap<Long, Boolean>()
             savedState[KEY_VIEW_DAY] = null
         }
     }
@@ -196,7 +211,7 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    private suspend fun ensureSeeded(dayId: String, slots: List<ProgramSlot>) {
+    private suspend fun ensureSeeded(dayId: String, slots: List<ProgramSlot>) = mutationLock.withLock {
         val existing = repo.logFlow(dayId).first().map { it.programExerciseId to it.slot }.toSet()
         val cfg = repo.configFlow.first()
         val catalog = repo.catalogFlow.first()
@@ -220,6 +235,11 @@ class DayViewModel @Inject constructor(
     }
 
     // --- helpers -------------------------------------------------------------
+
+    /** Launches a log mutation with its read-modify-write held under [mutationLock]. */
+    private fun mutate(block: suspend () -> Unit) {
+        viewModelScope.launch { mutationLock.withLock { block() } }
+    }
 
     private fun currentDay(): String? = effectiveDayId.value
 
@@ -255,7 +275,7 @@ class DayViewModel @Inject constructor(
             emphasisLine = day.emphasisLine,
             unit = ctx.unit,
             suggestedDayId = ctx.suggested,
-            nextDayId = if (program.days.isNotEmpty()) Rotation.next(program, dayId) else null,
+            nextDayId = Rotation.next(program, dayId),
             exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse) },
             cardio = day.cardio,
             keepScreenOn = ctx.keepOn,
@@ -337,6 +357,7 @@ class DayViewModel @Inject constructor(
     private companion object {
         const val KEY_VIEW_DAY = "day_view_override"
         const val KEY_KEEP_ON = "day_keep_screen_on"
+        const val KEY_COLLAPSE = "day_collapse_overrides"
         const val STOP_TIMEOUT_MS = 5_000L
     }
 }

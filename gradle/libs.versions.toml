@@ -18,7 +18,9 @@ androidxTestCore = "1.7.0"
 hilt = "2.57.2"
 hiltNavigationCompose = "1.3.0"
 navigationCompose = "2.9.5"
-lifecycleRuntimeCompose = "2.11.0"
+robolectric = "4.16"
+junit4 = "4.13.2"
+junitVintage = "5.10.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -48,7 +50,10 @@ hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
-androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+junit-vintage-engine = { group = "org.junit.vintage", name = "junit-vintage-engine", version.ref = "junitVintage" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -23,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -204,10 +204,10 @@ private fun ExerciseCard(card: ExerciseCardState, unit: WeightUnit, accent: Colo
                         color = TextPrimary,
                         style = MaterialTheme.typography.titleLarge,
                     )
-                }
-                if (card.hasWarmupHint) {
-                    Spacer(Modifier.size(4.dp))
-                    Badge("+1 WARM-UP", Surface, TextSecondary, outlined = true)
+                    if (card.hasWarmupHint) {
+                        Spacer(Modifier.width(6.dp))
+                        Badge("+1 WARM-UP", Surface, TextSecondary, outlined = true)
+                    }
                 }
             }
             GoalBlock(card.goalDisplay, card.perHand, accent)
@@ -239,7 +239,9 @@ private fun ExerciseCard(card: ExerciseCardState, unit: WeightUnit, accent: Colo
                 PartnerSubRow(card.programExerciseId, row, unit, actions)
             }
         }
-        AddSetButton { actions.onAddSet(card.programExerciseId, card.isSuperset) }
+        if (card.rows.isNotEmpty()) {
+            AddSetButton { actions.onAddSet(card.programExerciseId, card.isSuperset) }
+        }
     }
 }
 
@@ -400,7 +402,8 @@ private fun RemoveButton(onClick: () -> Unit) {
 
 @Composable
 private fun CardioCard(cardio: CardioSuggestion) {
-    var open by remember { mutableStateOf(false) }
+    // Saveable so LazyColumn eviction and rotation don't snap it shut (defaults closed).
+    var open by rememberSaveable { mutableStateOf(false) }
     AppCard(modifier = Modifier.clickable { open = !open }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(

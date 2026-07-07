@@ -37,12 +37,14 @@ ksp {
 dependencies {
     implementation(project(":domain"))
 
-    implementation(libs.room.runtime)
+    // api: TrackerRepository's constructor and Flow-returning surface expose Room
+    // and DataStore types, so consumers (:app) need them on the compile classpath.
+    api(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.kotlinx.coroutines.core)
+    api(libs.androidx.datastore.preferences)
+    api(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.kotlin.test.junit5)

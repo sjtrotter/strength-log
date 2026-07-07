@@ -172,6 +172,16 @@ class TrackerRepository(
 
     // --- live logs -----------------------------------------------------------
 
+    /**
+     * The day's exercise slots with their stable row ids, in program order. The UI
+     * needs the id to key and seed each slot's log ([logFlow]/[updateSets]); the
+     * pure-domain [Program] from [programFlow] deliberately doesn't carry it.
+     */
+    fun daySlotsFlow(dayId: String): Flow<List<ProgramSlot>> =
+        programDao.observeExercisesForDay(dayId).map { rows ->
+            rows.map { ProgramSlot(it.id, it.position, it.toDomain()) }
+        }
+
     /** The day's live logs with the daily checkmark reset applied (spec §7). */
     fun logFlow(dayId: String): Flow<List<LoggedSlot>> =
         programDao.observeLogs(dayId).map { rows ->
@@ -193,6 +203,13 @@ class TrackerRepository(
             ),
         )
     }
+
+    /**
+     * Clears today's checkmarks for one day without advancing the rotation (spec
+     * §8.2 footer "clear today's checkmarks"). Invalidates each log's checkDate so
+     * the daily-reset rule surfaces every set as unchecked; weights and reps stay.
+     */
+    suspend fun clearChecks(dayId: String) = programDao.clearChecksForDay(dayId)
 
     // --- rotation & session history ------------------------------------------
 

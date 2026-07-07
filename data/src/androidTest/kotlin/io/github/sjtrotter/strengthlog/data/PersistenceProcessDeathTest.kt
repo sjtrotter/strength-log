@@ -6,7 +6,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import app.cash.turbine.test
 import io.github.sjtrotter.strengthlog.data.db.StrengthDatabase
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
@@ -14,6 +13,7 @@ import io.github.sjtrotter.strengthlog.domain.generator.AnchorScheme
 import io.github.sjtrotter.strengthlog.domain.generator.DeadliftVariant
 import io.github.sjtrotter.strengthlog.domain.generator.SplitTemplate
 import io.github.sjtrotter.strengthlog.domain.generator.WizardAnswers
+import io.github.sjtrotter.strengthlog.domain.library.GoalSource
 import io.github.sjtrotter.strengthlog.domain.model.CardioMode
 import io.github.sjtrotter.strengthlog.domain.model.CardioPlacement
 import io.github.sjtrotter.strengthlog.domain.model.CardioPrefs
@@ -23,15 +23,19 @@ import io.github.sjtrotter.strengthlog.domain.model.ExperienceLevel
 import io.github.sjtrotter.strengthlog.domain.model.GoalEmphasis
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
+import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.model.Program
 import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
+import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -41,16 +45,23 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Simulates the app being killed mid-edit and relaunched (PLAN.md A6, issue #7).
+ * Pins the A6 persistence guarantee (PLAN.md, issue #7): every mutation made
+ * through [TrackerRepository] is committed to Room/DataStore immediately, so
+ * nothing the user entered exists only in memory. Mutations are written through
+ * a repository backed by a real on-disk Room database and a real DataStore
+ * file; both are then closed and reopened as *fresh instances over the same
+ * files*, and every mutated field must still be there. If the app ever
+ * regressed to holding unsaved truth in a ViewModel field (the React-prototype
+ * bug this hardening exists to prevent), the reopened instances would come up
+ * empty.
  *
- * There is no API to actually kill and restart a process from inside an
- * instrumented test, so the honest stand-in is: perform mutations through a
- * [TrackerRepository] backed by a real on-disk Room database and a real
- * DataStore file, close both, then open *fresh instances over the same files*
- * — exactly what happens on relaunch — and assert every mutated field is
- * still there. If the app ever regressed to holding unsaved state only in a
- * ViewModel field (the React-prototype bug this hardening exists to prevent),
- * this test would find nothing after reopening.
+ * Honesty note on fidelity: `db.close()` is a *clean* shutdown (WAL
+ * checkpointed, files flushed) — strictly cleaner than a real process kill, so
+ * this test does not exercise the crash path where SQLite replays an
+ * uncheckpointed `-wal` file on next open. For *committed* transactions the
+ * durability guarantee is the same either way (that replay is SQLite's job,
+ * not ours); what this test rules out is the application-level bug of never
+ * committing at all.
  */
 @RunWith(AndroidJUnit4::class)
 class PersistenceProcessDeathTest {
@@ -70,7 +81,7 @@ class PersistenceProcessDeathTest {
 
     @After
     fun tearDown() {
-        closeSession()
+        runBlocking { closeSession() }
         cleanUpFiles()
     }
 
@@ -84,15 +95,13 @@ class PersistenceProcessDeathTest {
 
     /** (Re)builds the repository over [dbName]/[prefsName] — a fresh Room instance
      *  and a fresh DataStore instance over the same on-disk files, standing in
-     *  for a relaunch after process death. */
+     *  for a relaunch. */
     private fun openSession() {
         db = Room.databaseBuilder(context(), StrengthDatabase::class.java, dbName)
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
             .build()
-        // DataStore has no close(): its own CoroutineScope is what releases the
-        // per-file lock, so each "session" gets one it can cancel before the next
-        // session reopens the same file (otherwise DataStore throws — it refuses
-        // two live instances over one file, even across GC'd references).
+        // DataStore has no close(): cancelling the CoroutineScope it was created
+        // with is what releases the per-file lock, so each "session" gets one.
         dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val dataStore = PreferenceDataStoreFactory.create(
             scope = dataStoreScope,
@@ -107,9 +116,12 @@ class PersistenceProcessDeathTest {
         )
     }
 
-    private fun closeSession() {
+    /** Joining the cancelled scope matters: DataStore only marks the file
+     *  inactive once its scope has fully completed, and reopening before that
+     *  races an IllegalStateException ("multiple DataStores active"). */
+    private suspend fun closeSession() {
         db.close()
-        dataStoreScope.cancel()
+        dataStoreScope.coroutineContext.job.cancelAndJoin()
     }
 
     private val wizardAnswers = WizardAnswers(
@@ -123,62 +135,114 @@ class PersistenceProcessDeathTest {
     )
 
     @Test
-    fun mutations_survive_closing_and_reopening_the_database_and_datastore() = runTest {
-        val dayId = "A"
-        val squat = ProgramExercise(exerciseId = "bb_back_squat", isMain = true, targetSets = 4, repSchemeLabel = "5/5/5/3")
-        val row = ProgramExercise(exerciseId = "bb_row", isMain = false, targetSets = 3, repSchemeLabel = "8-12")
-        val bench = ProgramExercise(exerciseId = "bb_bench", isMain = false, targetSets = 3, repSchemeLabel = "6-10")
-        val day = ProgramDay(
-            id = dayId,
+    fun every_mutation_survives_closing_and_reopening_the_database_and_datastore() = runTest {
+        // --- settings: wizard answers, completion flag, display unit ----------
+        repository.setWizardAnswers(wizardAnswers)
+        repository.setWizardComplete(true)
+        repository.setUnit(WeightUnit.KG)
+
+        // --- a user-created exercise ------------------------------------------
+        val customId = repository.addCustomExercise(
+            name = "Cable Hack Squat",
+            pattern = MovementPattern.SQUAT_BILATERAL,
+            equipment = listOf(Equipment.MACHINE, Equipment.CABLE),
+            perHand = false,
+            goalStartLb = 80.0,
+        )
+
+        // --- the program -------------------------------------------------------
+        val squat = ProgramExercise(
+            exerciseId = "bb_back_squat",
+            isMain = true,
+            targetSets = 4,
+            repSchemeLabel = "5/5/5/3",
+            hasWarmupHint = true,
+            note = "belt on top set",
+        )
+        val row = ProgramExercise(exerciseId = "bb_row", targetSets = 3, repSchemeLabel = "8-12")
+        val bench = ProgramExercise(exerciseId = "bb_bench", targetSets = 3, repSchemeLabel = "6-10")
+        val dayA = ProgramDay(
+            id = "A",
             title = "Day A",
             emphasisLine = "Squat-focused lower",
             exercises = listOf(squat, row, bench),
             cardio = CardioSuggestion("Intervals", "5 min easy, then 4x2min hard/easy", hard = true),
         )
-        repository.replaceProgram(Program(listOf(day)))
+        val dayB = ProgramDay(
+            id = "B",
+            title = "Day B",
+            emphasisLine = "Bench-focused upper",
+            exercises = listOf(ProgramExercise(exerciseId = "bb_bench", isMain = true, targetSets = 4)),
+            cardio = null,
+        )
+        repository.replaceProgram(Program(listOf(dayA, dayB)))
 
-        val squatRowId = db.programDao().exerciseAt(dayId, 0)!!.id
-        val rowRowId = db.programDao().exerciseAt(dayId, 1)!!.id
+        val squatRowId = db.programDao().exerciseAt("A", 0)!!.id
+        val rowRowId = db.programDao().exerciseAt("A", 1)!!.id
 
-        // A set-weight edit: log an initial weight, then edit it upward.
-        repository.updateSets(dayId, squatRowId, Slot.MAIN, listOf(LoggedSet(225.0, 5, SetKind.TOP)))
-        repository.updateSets(dayId, squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP)))
+        // --- a completed workout: log, then DONE — advance ---------------------
+        repository.updateSets("A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
+        repository.updateSets("A", rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
+        repository.advanceDay("A") // appends history, clears A's checks, rotation -> B
 
-        // A checkmark toggle: log a set unchecked, then check it off.
-        repository.updateSets(dayId, rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = false)))
-        repository.updateSets(dayId, rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
-
+        // --- mid-edit state after that session ---------------------------------
+        // A set-weight edit: write once, then edit upward.
+        repository.updateSets("A", squatRowId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
+        repository.updateSets("A", squatRowId, Slot.MAIN, listOf(LoggedSet(255.0, 5, SetKind.TOP)))
+        // A checkmark toggle: unchecked, then checked.
+        repository.updateSets("A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = false)))
+        repository.updateSets("A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)))
         // An exercise swap: the bench slot becomes a dumbbell-bench slot.
-        repository.swapExercise(dayId, position = 2, newExerciseId = "db_bench")
+        repository.swapExercise("A", position = 2, newExerciseId = "db_bench")
 
-        // Wizard answers, so a later "edit setup" run can regenerate from them.
-        repository.setWizardAnswers(wizardAnswers)
-        repository.setWizardComplete(true)
+        // Snapshot the live logs (including each slot's checkDate) as the last
+        // thing written before the "kill".
+        val logsBeforeKill = repository.logFlow("A").first().sortedBy { it.programExerciseId }
+        assertEquals(2, logsBeforeKill.size)
 
-        // --- kill the process: close the DB and DataStore, reopen both ---
+        // --- kill the process: close DB and DataStore, reopen over the files ---
         closeSession()
         openSession()
 
+        // Program: every field of every slot, not just the id ordering.
         val program = repository.programFlow.first()
-        assertEquals(1, program.days.size)
-        val reopenedDay = program.days.single()
-        assertEquals("Day A", reopenedDay.title)
-        assertEquals(CardioSuggestion("Intervals", "5 min easy, then 4x2min hard/easy", hard = true), reopenedDay.cardio)
+        assertEquals(listOf("A", "B"), program.days.map { it.id })
+        val reopenedA = program.days.first()
+        assertEquals("Day A", reopenedA.title)
+        assertEquals("Squat-focused lower", reopenedA.emphasisLine)
+        assertEquals(CardioSuggestion("Intervals", "5 min easy, then 4x2min hard/easy", hard = true), reopenedA.cardio)
+        assertEquals(listOf(squat, row, bench.copy(exerciseId = "db_bench")), reopenedA.exercises)
+        assertEquals(dayB, program.days.last())
+
+        // Live logs: weights, reps, kinds, done flags AND checkDate stamps.
+        assertEquals(logsBeforeKill, repository.logFlow("A").first().sortedBy { it.programExerciseId })
+        assertEquals(listOf(LoggedSet(255.0, 5, SetKind.TOP)), logsBeforeKill[0].sets)
+        assertEquals(listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)), logsBeforeKill[1].sets)
+
+        // Workout history: the session row and its denormalized set rows.
+        val session = repository.sessionsFlow.first().single()
+        assertEquals("A", session.dayId)
+        assertEquals("Day A", session.dayTitle)
+        assertEquals(210, session.bodyweightLb) // from the wizard answers' config
+        assertTrue(session.completedAt > 0)
+        val sessionSets = db.sessionDao().setsForSession(session.id)
         assertEquals(
-            listOf("bb_back_squat", "bb_row", "db_bench"),
-            reopenedDay.exercises.map { it.exerciseId },
+            listOf(
+                listOf("bb_back_squat", 245.0, 5, "TOP", true),
+                listOf("bb_row", 95.0, 10, "WORK", true),
+            ),
+            sessionSets.sortedBy { it.exerciseId }
+                .map { listOf(it.exerciseId, it.weightLb, it.reps, it.kind, it.done) },
         )
+        assertTrue(sessionSets.all { it.exerciseName.isNotBlank() })
 
-        repository.logFlow(dayId).test {
-            val logs = awaitItem().associateBy { it.programExerciseId }
-            assertEquals(listOf(LoggedSet(245.0, 5, SetKind.TOP, done = false)), logs.getValue(squatRowId).sets)
-            assertEquals(listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)), logs.getValue(rowRowId).sets)
-            // Only the two logged slots persisted; the swapped bench slot was never logged.
-            assertEquals(2, logs.size)
-        }
-
+        // Settings: rotation pointer, wizard state, unit, custom exercise.
+        assertEquals("B", repository.suggestedDayFlow.first()) // advanced past A
         assertEquals(wizardAnswers, repository.wizardAnswersFlow.first())
         assertTrue(repository.wizardCompleteFlow.first())
-        assertEquals(dayId, repository.suggestedDayFlow.first())
+        assertEquals(WeightUnit.KG, repository.unitFlow.first())
+        val customEntry = repository.catalogFlow.first().get(customId)
+        assertEquals("Cable Hack Squat", customEntry.name)
+        assertEquals(GoalSource.Flat(80.0), customEntry.goal)
     }
 }

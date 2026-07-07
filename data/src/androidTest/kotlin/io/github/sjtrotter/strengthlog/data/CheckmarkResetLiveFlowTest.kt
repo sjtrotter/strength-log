@@ -22,8 +22,9 @@ import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -34,16 +35,19 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Documents the accepted A6 limitation (PLAN.md, spec §11.2): [TrackerRepository.logFlow]
- * applies the checkmark reset at *emission* time, computing "today" fresh each
- * time the underlying Room query re-runs. Room's [androidx.room.InvalidationTracker]
- * only re-emits on a write to an observed table, never on a wall-clock tick, so a
- * midnight crossing with no DB write in between does not itself trigger a
- * re-emission — a collector that has been alive since before midnight keeps
- * seeing yesterday's (still-checked) snapshot until something re-collects the
- * flow. This is a deliberate, accepted trade-off, not a bug: the UI re-collects
- * `logFlow` whenever the day screen resumes, so the stale window in practice is
- * "the app kept running, uninteracted with, across local midnight."
+ * Pins how [TrackerRepository.logFlow] applies the daily checkmark reset: at
+ * *emission* time, computing "today" fresh on each re-query. A collector that
+ * crossed local midnight sees stale checks cleared on the very next emission —
+ * whatever triggered it — because the reset is evaluated against the new date,
+ * not the date the flow was first collected on.
+ *
+ * This is also where the accepted A6 limitation lives (PLAN.md): Room's
+ * InvalidationTracker only re-runs the query on a write to an observed table,
+ * never on a wall-clock tick, so a midnight crossing with *no* accompanying DB
+ * write does not itself produce a re-emission — a silent, untouched app keeps
+ * showing yesterday's snapshot until something writes or re-collects (the day
+ * screen re-subscribes on resume, so in practice the stale window is an app
+ * left running, uninteracted with, across local midnight).
  */
 @RunWith(AndroidJUnit4::class)
 class CheckmarkResetLiveFlowTest {
@@ -94,44 +98,54 @@ class CheckmarkResetLiveFlowTest {
     @After
     fun tearDown() {
         db.close()
-        dataStoreScope.cancel()
+        // Join the cancellation so the next test's DataStore over this file
+        // can't race "multiple DataStores active".
+        runBlocking { dataStoreScope.coroutineContext.job.cancelAndJoin() }
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         context.deleteDatabase(dbName)
         context.preferencesDataStoreFile(prefsName).delete()
     }
 
     @Test
-    fun a_midnight_crossing_with_no_write_does_not_re_emit_until_re_collection() = runTest {
-        val exercise = ProgramExercise(exerciseId = "bb_back_squat", isMain = true)
+    fun a_live_collector_sees_stale_checks_cleared_on_the_first_emission_after_midnight() = runTest {
         val day = ProgramDay(
             id = dayId,
             title = "Day A",
             emphasisLine = "Squat-focused",
-            exercises = listOf(exercise),
+            exercises = listOf(
+                ProgramExercise(exerciseId = "bb_back_squat", isMain = true),
+                ProgramExercise(exerciseId = "bb_row"),
+            ),
             cardio = null,
         )
         repository.replaceProgram(Program(listOf(day)))
-        val rowId = db.programDao().exerciseAt(dayId, 0)!!.id
+        val squatId = db.programDao().exerciseAt(dayId, 0)!!.id
+        val rowId = db.programDao().exerciseAt(dayId, 1)!!.id
 
         assertEquals("2026-07-06", CheckmarkReset.today(clock))
-        repository.updateSets(dayId, rowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
+        repository.updateSets(dayId, squatId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
 
         repository.logFlow(dayId).test {
             val beforeMidnight = awaitItem().single()
             assertTrue("checked before midnight", beforeMidnight.sets.single().done)
 
-            // Cross local midnight — no DB write accompanies it.
+            // Cross local midnight with the collector still alive. The clock bump
+            // alone triggers nothing (the accepted A6 limitation: no table write,
+            // no re-query) — so the next observable emission is caused by a write.
             clock.instant = Instant.parse("2026-07-07T05:00:00Z") // 2026-07-07, 1am EDT
             assertEquals("2026-07-07", CheckmarkReset.today(clock))
+            repository.updateSets(dayId, rowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
 
-            // The live collector does not re-emit on its own: no table changed.
-            expectNoEvents()
+            // That emission is computed against the NEW today: the squat's check
+            // (stamped yesterday) reads cleared even though its row was untouched,
+            // while the row's fresh check (stamped today) stands.
+            val afterMidnight = awaitItem().associateBy { it.programExerciseId }
+            val squatLog = afterMidnight.getValue(squatId)
+            assertFalse("yesterday's check cleared at emission", squatLog.sets.single().done)
+            assertEquals("2026-07-06", squatLog.checkDate) // stored stamp untouched; reset is read-side
+            assertTrue("today's check stands", afterMidnight.getValue(rowId).sets.single().done)
+
+            cancelAndIgnoreRemainingEvents()
         }
-
-        // A fresh collection re-runs the query and reapplies the reset at the new
-        // "today" — this is how the UI actually observes the rollover in practice
-        // (day-screen resume re-subscribes to logFlow).
-        val afterReCollection = repository.logFlow(dayId).first().single()
-        assertFalse("cleared once something re-collects the flow", afterReCollection.sets.single().done)
     }
 }

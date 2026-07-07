@@ -16,9 +16,19 @@ interface CustomExerciseDao {
     @Query("SELECT * FROM custom_exercise")
     suspend fun getAll(): List<CustomExerciseEntity>
 
+    /** Stable order for backup export (A2). */
+    @Query("SELECT * FROM custom_exercise ORDER BY id")
+    suspend fun allOrdered(): List<CustomExerciseEntity>
+
     @Upsert
     suspend fun upsert(exercise: CustomExerciseEntity)
 
+    @Upsert
+    suspend fun upsertAll(exercises: List<CustomExerciseEntity>)
+
     @Query("DELETE FROM custom_exercise WHERE id = :id")
     suspend fun delete(id: String)
+
+    @Query("DELETE FROM custom_exercise")
+    suspend fun deleteAll()
 }

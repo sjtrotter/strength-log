@@ -22,7 +22,7 @@ jobs:
         run: ./gradlew build
 
       - name: Compile instrumented tests
-        run: ./gradlew :data:assembleDebugAndroidTest
+        run: ./gradlew :data:assembleDebugAndroidTest :transfer:assembleDebugAndroidTest
 
       - name: Enable KVM for the emulator
         run: |
@@ -35,4 +35,4 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          script: ./gradlew :data:connectedDebugAndroidTest
+          script: ./gradlew :data:connectedDebugAndroidTest :transfer:connectedDebugAndroidTest

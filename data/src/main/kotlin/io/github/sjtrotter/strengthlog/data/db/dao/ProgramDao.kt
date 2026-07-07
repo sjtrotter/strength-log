@@ -44,6 +44,10 @@ interface ProgramDao {
     @Query("SELECT * FROM exercise_log WHERE dayId = :dayId")
     suspend fun logsForDay(dayId: String): List<ExerciseLogEntity>
 
+    /** Every live log across all days, in a stable order (backup export, A2). */
+    @Query("SELECT * FROM exercise_log ORDER BY dayId, programExerciseId, slot")
+    suspend fun allLogs(): List<ExerciseLogEntity>
+
     @Query("SELECT COALESCE(MAX(position), -1) FROM program_exercise WHERE dayId = :dayId")
     suspend fun maxPosition(dayId: String): Int
 
@@ -58,6 +62,11 @@ interface ProgramDao {
     @Insert
     suspend fun insertExercise(exercise: ProgramExerciseEntity): Long
 
+    /** Bulk insert preserving each row's [ProgramExerciseEntity.id] so live logs,
+     *  which key on that surrogate id, keep resolving after a backup restore (A2). */
+    @Insert
+    suspend fun insertExercises(exercises: List<ProgramExerciseEntity>)
+
     @Query("UPDATE program_exercise SET exerciseId = :exerciseId WHERE id = :id")
     suspend fun setExerciseId(id: Long, exerciseId: String)
 
@@ -69,6 +78,10 @@ interface ProgramDao {
 
     @Upsert
     suspend fun upsertLog(log: ExerciseLogEntity)
+
+    /** Bulk insert of live logs into a freshly cleared table (backup restore, A2). */
+    @Insert
+    suspend fun insertLogs(logs: List<ExerciseLogEntity>)
 
     @Query("DELETE FROM exercise_log WHERE dayId = :dayId AND programExerciseId = :programExerciseId")
     suspend fun deleteLogsForExercise(dayId: String, programExerciseId: Long)

@@ -263,6 +263,63 @@ class TrackerRepository(
         next?.let { settings.setSuggestedDay(it) }
     }
 
+    // --- full backup (A2) ----------------------------------------------------
+
+    /**
+     * Reads everything the user owns into one [FullSnapshot] for the A2 backup.
+     * Every list comes from a query with an explicit `ORDER BY`, so the output is
+     * deterministic — two exports of the same state are byte-identical, keeping
+     * diffs and round-trip tests honest.
+     */
+    suspend fun exportSnapshot(): FullSnapshot = FullSnapshot(
+        answers = settings.wizardAnswersFlow.first(),
+        unit = settings.unitFlow.first(),
+        wizardComplete = settings.wizardCompleteFlow.first(),
+        suggestedDay = settings.suggestedDayFlow.first(),
+        customExercises = customExerciseDao.allOrdered(),
+        days = programDao.allDays(),
+        exercises = programDao.allExercises(),
+        logs = programDao.allLogs(),
+        sessions = sessionDao.allSessions(),
+        sessionSets = sessionDao.allSessionSets(),
+    )
+
+    /**
+     * Replaces the device's entire state with [snapshot] (A2 restore). The caller
+     * (`:transfer`) has already validated the backup end-to-end; this method does
+     * no validation and performs an unconditional destructive replace.
+     *
+     * Atomicity across two independent stores. Room and DataStore each commit
+     * atomically on their own, but there is no transaction spanning both, so a
+     * crash can land between them. The write order makes that window safe: the
+     * only cross-store reference is `suggestedDay` (DataStore) pointing at a
+     * `dayId` (Room), so the referenced program is written *first*. A crash after
+     * the Room transaction but before the DataStore edit therefore leaves fully
+     * consistent new training data (program, logs, history and customs all swapped
+     * as one transaction) with at worst a stale rotation pointer — which is a
+     * nullable value the app already resolves against the live program, never a
+     * torn or crashing state. The reverse order could publish a pointer into a
+     * program that does not exist yet, so it is deliberately avoided.
+     */
+    suspend fun importSnapshot(snapshot: FullSnapshot) {
+        db.withTransaction {
+            programDao.deleteAllLogs()
+            programDao.deleteAllExercises()
+            programDao.deleteAllDays()
+            sessionDao.deleteAllSessionSets()
+            sessionDao.deleteAllSessions()
+            customExerciseDao.deleteAll()
+
+            customExerciseDao.upsertAll(snapshot.customExercises)
+            programDao.upsertDays(snapshot.days)
+            programDao.insertExercises(snapshot.exercises)
+            programDao.insertLogs(snapshot.logs)
+            sessionDao.insertSessions(snapshot.sessions)
+            sessionDao.insertSets(snapshot.sessionSets)
+        }
+        settings.restore(snapshot.answers, snapshot.unit, snapshot.wizardComplete, snapshot.suggestedDay)
+    }
+
     // --- helpers -------------------------------------------------------------
 
     private fun assemble(

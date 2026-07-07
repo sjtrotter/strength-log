@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -9,11 +10,16 @@ android {
 
     defaultConfig {
         minSdk = 26
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    testOptions {
+        unitTests.all { it.useJUnitPlatform() }
     }
 }
 
@@ -24,4 +30,23 @@ kotlin {
 dependencies {
     implementation(project(":domain"))
     implementation(project(":data"))
+
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.kotlin.test.junit5)
+
+    // Instrumented round-trip and atomicity tests (A2): the export/import contract
+    // runs against a real on-disk Room DB + DataStore + TrackerRepository, exactly
+    // as :data's persistence tests do. CI runs these via :transfer:connectedDebugAndroidTest.
+    // Room/DataStore are restated because :data declares them `implementation`
+    // (non-transitive) and the test harness constructs both directly.
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(project(":data"))
+    androidTestImplementation(libs.room.runtime)
+    androidTestImplementation(libs.room.ktx)
+    androidTestImplementation(libs.androidx.datastore.preferences)
 }

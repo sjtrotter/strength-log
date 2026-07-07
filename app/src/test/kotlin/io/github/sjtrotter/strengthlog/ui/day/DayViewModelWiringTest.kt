@@ -228,6 +228,21 @@ class DayViewModelWiringTest {
     }
 
     @Test
+    fun supersetTickWithMissingPartnerTrackWritesMainOnly() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val lateralId = slotId("db_lateral")
+
+        vm.toggleDone(lateralId, index = 0, checked = true, isSuperset = true)
+        advanceUntilIdle()
+
+        assertTrue(track(lateralId, Slot.MAIN)!![0].done)
+        // No junk empty SS row: the partner side must stay unseeded.
+        assertNull(track(lateralId, Slot.SS))
+    }
+
+    @Test
     fun addSetWithMissingPartnerTrackAddsToMainOnly() = runVmTest {
         insertProgram()
         val vm = newViewModel()

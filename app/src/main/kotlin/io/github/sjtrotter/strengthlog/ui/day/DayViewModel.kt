@@ -130,7 +130,13 @@ class DayViewModel @Inject constructor(
         val day = currentDay() ?: return
         mutate {
             val main = trackFor(day, programExerciseId, Slot.MAIN)
-            val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else null
+            // A missing partner track (never seeded) must stay missing — writing an
+            // empty SS row would mark it as seeded forever. Same rule as addSet.
+            val partner = if (isSuperset) {
+                trackFor(day, programExerciseId, Slot.SS).takeIf { it.isNotEmpty() }
+            } else {
+                null
+            }
             val (newMain, newPartner) = DayScreenBuilder.applyRoundTick(main, partner, index, checked)
             if (newPartner != null) {
                 repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
@@ -184,13 +190,15 @@ class DayViewModel @Inject constructor(
 
     fun clearChecks() {
         val day = currentDay() ?: return
-        viewModelScope.launch { repo.clearChecks(day) }
+        // Under the lock: a mutation that read its track before the clear must not
+        // write stale done-flags back after it.
+        mutate { repo.clearChecks(day) }
     }
 
     /** DONE — advance: record the session (A1), reset collapse, follow the new suggested day. */
     fun completeDay() {
         val day = currentDay() ?: return
-        viewModelScope.launch {
+        mutate {
             repo.advanceDay(day)
             savedState[KEY_COLLAPSE] = emptyMap<Long, Boolean>()
             savedState[KEY_VIEW_DAY] = null

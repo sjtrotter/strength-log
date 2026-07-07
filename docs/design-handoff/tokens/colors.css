@@ -1,0 +1,58 @@
+/* strength.log — color tokens.
+   PINNED by spec §8.5 (do not change): --bg, --surface, --border, and the
+   four day accents. Everything else is a derived tone the design pass owns.
+   Contrast pairings are enforced by unit tests in the repo (DayAccentTest):
+   white text on A/B/D, near-black text on C. */
+
+:root {
+  /* ---- ground (pinned) ---- */
+  --bg: #0D0D0F;            /* app background — near-black, OLED-friendly */
+  --surface: #16161A;       /* card surface */
+  --border: #2A2A30;        /* hairline borders */
+
+  /* ---- derived surfaces (design-owned) ---- */
+  --surface-2: #1D1D22;     /* raised controls: steppers, ticks, inputs */
+  --surface-3: #26262C;     /* pressed state of raised controls */
+  --border-strong: #3A3A42; /* focus / emphasized outline */
+
+  /* ---- text ---- */
+  --text: #F2F2F0;          /* primary */
+  --text-2: #9A9AA2;        /* secondary / muted */
+  --text-3: #6B6B73;        /* faint: captions, disabled, remove glyphs */
+
+  /* ---- day accents (pinned hexes, A→D cycle) ---- */
+  --day-a: #C1440E;  --on-day-a: #F2F2F0;  /* terracotta, 4.57:1 */
+  --day-b: #2D5A3D;  --on-day-b: #F2F2F0;  /* forest,     7.09:1 */
+  --day-c: #B8860B;  --on-day-c: #0D0D0F;  /* goldenrod,  5.97:1 — dark text! */
+  --day-d: #1F4E5F;  --on-day-d: #F2F2F0;  /* deep teal,  8.10:1 */
+
+  /* ---- semantic ---- */
+  --done: #3E8E5A;          /* completed-set green (kept from code) */
+  --on-done: #0D0D0F;
+  --error: #C2334D;         /* destructive — recolored off M3 default #B3261E:
+                               cooler crimson so it never reads as Day A
+                               terracotta. White text 4.8:1. */
+  --on-error: #F2F2F0;
+
+  /* ---- contextual accent (default = Day A) ----
+     Scope a subtree with .theme-day-a … .theme-day-d to retint it.
+     In Compose this is dayAccent(index)/onDayAccent(index). */
+  --accent: var(--day-a);
+  --on-accent: var(--on-day-a);
+  --accent-soft: color-mix(in srgb, var(--day-a) 12%, transparent);
+  --accent-border: color-mix(in srgb, var(--day-a) 55%, var(--border));
+  --done-soft: color-mix(in srgb, var(--done) 12%, transparent);
+}
+
+.theme-day-a { --accent: var(--day-a); --on-accent: var(--on-day-a);
+  --accent-soft: color-mix(in srgb, var(--day-a) 12%, transparent);
+  --accent-border: color-mix(in srgb, var(--day-a) 55%, var(--border)); }
+.theme-day-b { --accent: var(--day-b); --on-accent: var(--on-day-b);
+  --accent-soft: color-mix(in srgb, var(--day-b) 14%, transparent);
+  --accent-border: color-mix(in srgb, var(--day-b) 60%, var(--border)); }
+.theme-day-c { --accent: var(--day-c); --on-accent: var(--on-day-c);
+  --accent-soft: color-mix(in srgb, var(--day-c) 12%, transparent);
+  --accent-border: color-mix(in srgb, var(--day-c) 55%, var(--border)); }
+.theme-day-d { --accent: var(--day-d); --on-accent: var(--on-day-d);
+  --accent-soft: color-mix(in srgb, var(--day-d) 14%, transparent);
+  --accent-border: color-mix(in srgb, var(--day-d) 60%, var(--border)); }

@@ -1,0 +1,98 @@
+<!-- @dsCard group="Components" viewport="700x760" subtitle="Steppers · ticks · badges · day tabs · set rows · card states · DONE" name="Core components" -->
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="styles.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); padding: 18px 20px; display: flex; flex-direction: column; gap: 18px; font: var(--type-body); }
+  .lbl { font: var(--type-label-sm); letter-spacing: var(--ls-label-sm); text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+  .stp { display: inline-flex; align-items: center; height: 40px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-control); overflow: hidden; }
+  .sb { width: 32px; align-self: stretch; border: none; background: transparent; color: var(--text-2); font: 600 18px/1 var(--font-cond); }
+  .sval { min-width: 52px; text-align: center; font: var(--type-display-2); font-variant-numeric: tabular-nums; }
+  .stp.r .sval { min-width: 36px; font: var(--type-display-3); }
+
+  .tick { width: 28px; height: 28px; border-radius: var(--r-tick); background: var(--surface-2); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font: 700 15px/1 var(--font-cond); color: var(--on-done); }
+  .tick.on { background: var(--done); border-color: var(--done); }
+
+  .badge { display: inline-flex; padding: 3px 8px; border-radius: 4px; font: var(--type-label-sm); letter-spacing: var(--ls-label-sm); text-transform: uppercase; }
+  .badge.main { background: var(--day-a); color: var(--on-day-a); }
+  .badge.outline { border: 1px solid var(--border); color: var(--text-2); padding: 2px 7px; }
+  .badge.donechip { background: var(--done); color: var(--on-done); }
+
+  .tab { position: relative; width: 40px; height: 40px; border-radius: var(--r-tab); border: 1px solid var(--border); font: 600 16px/1 var(--font-cond); background: var(--surface); display: inline-flex; align-items: center; justify-content: center; }
+  .tab.gear { background: var(--surface-2); color: var(--text-2); }
+  .tab.sel { background: var(--day-a); color: var(--on-day-a); border-color: transparent; }
+  .tab.sug { outline: 1.5px solid var(--day-b); outline-offset: 2px; color: var(--day-b); border-color: color-mix(in srgb, var(--day-b) 55%, var(--border)); }
+  .tab.sug::after { content: ''; position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--day-b); border: 2px solid var(--bg); }
+  .tab.c { color: var(--day-c); } .tab.d { color: var(--day-d); }
+
+  .cardish { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); padding: 14px 16px; }
+  .srow { display: flex; align-items: center; gap: 8px; min-height: 52px; }
+  .klab { width: 30px; flex: none; font: 500 13px/1 var(--font-cond); letter-spacing: .5px; text-transform: uppercase; color: var(--text-2); }
+  .srow.top { background: color-mix(in srgb, var(--day-a) 12%, transparent); border-left: 3px solid var(--day-a); border-radius: var(--r-control); margin: 2px -10px; padding: 0 10px 0 7px; }
+  .srow.top .klab { color: var(--day-a); font-weight: 700; }
+  .srow.dim .steppers { opacity: .55; }
+  .steppers { display: flex; gap: 8px; }
+  .srow.sub { margin-left: 30px; border-top: 1px dashed var(--border); min-height: 46px; }
+  .srow.sub .klab { width: 16px; color: var(--text-3); }
+  .spring { flex: 1; }
+  .rm { color: var(--text-3); font: 400 15px/1 var(--font-sans); }
+  .ctitle { margin: 0; font: var(--type-title); }
+  .summary { margin-top: 6px; font: 500 14px/18px var(--font-cond); letter-spacing: .5px; font-variant-numeric: tabular-nums; color: var(--text-2); }
+  .goal { text-align: right; } .glab { font: var(--type-label-sm); letter-spacing: var(--ls-label-sm); text-transform: uppercase; color: var(--text-2); }
+  .gnum { font: var(--type-display-1); color: var(--day-a); font-variant-numeric: tabular-nums; }
+  .donebtn { width: 100%; height: 56px; border: none; background: var(--day-a); color: var(--on-day-a); border-radius: var(--r-card); font: 700 18px/1 var(--font-cond); letter-spacing: 1.5px; text-transform: uppercase; }
+</style></head><body>
+
+<div class="cols">
+  <div><div class="lbl">Stepper — weight / reps</div>
+    <div class="row">
+      <span class="stp"><button class="sb">−</button><span class="sval">185</span><button class="sb">+</button></span>
+      <span class="stp r"><button class="sb">−</button><span class="sval">8</span><button class="sb">+</button></span>
+    </div>
+  </div>
+  <div><div class="lbl">CheckTick · Badge</div>
+    <div class="row">
+      <span class="tick"></span><span class="tick on">✓</span>
+      <span class="badge main">Main</span><span class="badge outline">+1 warm-up</span><span class="badge donechip">✓</span>
+    </div>
+  </div>
+</div>
+
+<div><div class="lbl">DayTab — gear · selected · suggested-next · idle</div>
+  <div class="row"><span class="tab gear">⚙</span><span class="tab sel">A</span><span class="tab sug">B</span><span class="tab c">C</span><span class="tab d">D</span></div>
+</div>
+
+<div><div class="lbl">SetRow — ramp · TOP anchor · done · superset partner</div>
+  <div class="cardish" style="display:flex;flex-direction:column">
+    <div class="srow"><span class="klab">R4</span><span class="steppers"><span class="stp"><button class="sb">−</button><span class="sval">210</span><button class="sb">+</button></span><span class="stp r"><button class="sb">−</button><span class="sval">3</span><button class="sb">+</button></span></span><span class="spring"></span><span class="tick"></span><span class="rm">×</span></div>
+    <div class="srow top"><span class="klab">TOP</span><span class="steppers"><span class="stp"><button class="sb">−</button><span class="sval">235</span><button class="sb">+</button></span><span class="stp r"><button class="sb">−</button><span class="sval">5</span><button class="sb">+</button></span></span><span class="spring"></span><span class="tick"></span><span class="rm">×</span></div>
+    <div class="srow dim"><span class="klab">B/O</span><span class="steppers"><span class="stp"><button class="sb">−</button><span class="sval">175</span><button class="sb">+</button></span><span class="stp r"><button class="sb">−</button><span class="sval">8</span><button class="sb">+</button></span></span><span class="spring"></span><span class="tick on">✓</span><span class="rm">×</span></div>
+    <div class="srow sub"><span class="klab">↳</span><span class="steppers"><span class="stp"><button class="sb">−</button><span class="sval">50</span><button class="sb">+</button></span><span class="stp r"><button class="sb">−</button><span class="sval">15</span><button class="sb">+</button></span></span></div>
+  </div>
+</div>
+
+<div class="cols">
+  <div><div class="lbl">ExerciseCard — collapsed &amp; done</div>
+    <div class="cardish" style="border-left:3px solid var(--done)">
+      <div style="display:flex;justify-content:space-between;gap:10px">
+        <div><h3 class="ctitle">Seated Leg Curl</h3><div class="summary">90×10 · 90×10 · 90×9</div></div>
+        <span class="badge donechip" style="align-self:flex-start">✓</span>
+      </div>
+    </div>
+  </div>
+  <div><div class="lbl">GoalBlock (read-only)</div>
+    <div class="cardish" style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h3 class="ctitle">Barbell Back Squat</h3>
+      <div class="goal"><div class="glab">Goal</div><div class="gnum">235</div></div>
+    </div>
+  </div>
+</div>
+
+<div><div class="lbl">DoneButton — the day's one big moment</div>
+  <button class="donebtn">Done — advance to Day B</button>
+</div>
+
+</body></html>

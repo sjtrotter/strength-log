@@ -45,7 +45,8 @@ private val ToggleShape = RoundedCornerShape(6.dp)
  */
 @Composable
 fun CheckmarkToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    val scale = remember { Animatable(if (checked) 1f else 0.7f) }
+    // Resting scale is always 1.0; 0.7 is only the transient start of the pop.
+    val scale = remember { Animatable(1f) }
     // Only pop on an actual tick — not when a checked row scrolls back into the
     // LazyColumn (LaunchedEffect re-runs on every re-entry to composition, which
     // otherwise replays the spring per card during a scroll and stutters it).

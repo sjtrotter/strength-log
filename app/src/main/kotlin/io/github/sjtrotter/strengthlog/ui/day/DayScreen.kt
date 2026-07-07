@@ -144,7 +144,21 @@ private fun TopBar(state: DayUiState, accent: Color, accentSoftColor: Color, onA
                 state.tabs.forEach { tab ->
                     DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
                 }
-                Spacer(Modifier.weight(1f))
+            }
+            // Keep-screen-on rides the title row (not the tab row) so it can't
+            // push a fifth+ day tab or the switch off a narrow screen's edge.
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    state.viewDayId?.let {
+                        Text(text = "DAY ${it.uppercase()}", color = accent, style = MaterialTheme.typography.labelSmall)
+                    }
+                    Text(text = state.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+                    Text(text = state.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    if (state.isOverride && state.suggestedDayId != null) {
+                        Spacer(Modifier.size(3.dp))
+                        OverridePill(accent = accent, accentSoftColor = accentSoftColor, suggestedDayId = state.suggestedDayId)
+                    }
+                }
                 KeepScreenOnSwitch(
                     checked = state.keepScreenOn,
                     onCheckedChange = actions.onKeepScreenOnChange,
@@ -152,17 +166,6 @@ private fun TopBar(state: DayUiState, accent: Color, accentSoftColor: Color, onA
                     onAccent = onAccent,
                     label = "Keep on",
                 )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                state.viewDayId?.let {
-                    Text(text = "DAY ${it.uppercase()}", color = accent, style = MaterialTheme.typography.labelSmall)
-                }
-                Text(text = state.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                Text(text = state.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                if (state.isOverride && state.suggestedDayId != null) {
-                    Spacer(Modifier.size(3.dp))
-                    OverridePill(accent = accent, accentSoftColor = accentSoftColor, suggestedDayId = state.suggestedDayId)
-                }
             }
         }
         Hairline()
@@ -587,8 +590,7 @@ private fun Modifier.dashedBorder(color: Color, radius: Dp): Modifier = drawBehi
  * Renders [bleed] wider on each side than the width it reports to its parent,
  * placed shifted left by [bleed] — so the child spills symmetrically into the
  * parent's padding without changing the parent's layout. The TOP set row uses
- * this to bleed into the card gutter; because the widened bounds belong to this
- * node, the clip inside `animateContentSize` no longer cuts the fill.
+ * this to bleed into the card gutter while the card keeps its normal width.
  */
 private fun Modifier.bleedHorizontal(bleed: Dp): Modifier = layout { measurable, constraints ->
     // No bleed under an unbounded-width parent (nothing to spill into).

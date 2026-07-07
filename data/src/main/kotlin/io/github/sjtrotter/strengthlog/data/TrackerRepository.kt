@@ -63,14 +63,30 @@ class TrackerRepository(
     val wizardCompleteFlow: Flow<Boolean> = settings.wizardCompleteFlow
     val wizardAnswersFlow: Flow<WizardAnswers> = settings.wizardAnswersFlow
 
-    suspend fun setConfig(config: LifterConfig) = settings.setConfig(config)
-    suspend fun setCardioPrefs(prefs: CardioPrefs) = settings.setCardioPrefs(prefs)
-    suspend fun setUnit(unit: WeightUnit) = settings.setUnit(unit)
-    suspend fun setWizardComplete(complete: Boolean) = settings.setWizardComplete(complete)
+    // Block bodies, not expression form: DataStore's Preferences (SettingsStore's
+    // setter return type) must not leak into this public surface via inference —
+    // it is a :data-internal detail and consumers don't compile against DataStore.
+    suspend fun setConfig(config: LifterConfig) {
+        settings.setConfig(config)
+    }
+
+    suspend fun setCardioPrefs(prefs: CardioPrefs) {
+        settings.setCardioPrefs(prefs)
+    }
+
+    suspend fun setUnit(unit: WeightUnit) {
+        settings.setUnit(unit)
+    }
+
+    suspend fun setWizardComplete(complete: Boolean) {
+        settings.setWizardComplete(complete)
+    }
 
     /** Persists the wizard inputs so a single day can later be regenerated
      *  ([resetDayToTemplate]) and the setup screen can re-run the wizard. */
-    suspend fun setWizardAnswers(answers: WizardAnswers) = settings.setWizardAnswers(answers)
+    suspend fun setWizardAnswers(answers: WizardAnswers) {
+        settings.setWizardAnswers(answers)
+    }
 
     // --- exercise catalog (code + custom overlay) ----------------------------
 
@@ -172,6 +188,16 @@ class TrackerRepository(
 
     // --- live logs -----------------------------------------------------------
 
+    /**
+     * The day's exercise slots with their stable row ids, in program order. The UI
+     * needs the id to key and seed each slot's log ([logFlow]/[updateSets]); the
+     * pure-domain [Program] from [programFlow] deliberately doesn't carry it.
+     */
+    fun daySlotsFlow(dayId: String): Flow<List<ProgramSlot>> =
+        programDao.observeExercisesForDay(dayId).map { rows ->
+            rows.map { ProgramSlot(it.id, it.position, it.toDomain()) }
+        }
+
     /** The day's live logs with the daily checkmark reset applied (spec §7). */
     fun logFlow(dayId: String): Flow<List<LoggedSlot>> =
         programDao.observeLogs(dayId).map { rows ->
@@ -182,17 +208,48 @@ class TrackerRepository(
     /** Persists a slot's set track immediately (spec §7). The write stamps today's
      *  date, so the `done` flags it carries are "today's" checks. */
     suspend fun updateSets(dayId: String, programExerciseId: Long, slot: String, sets: List<LoggedSet>) {
-        programDao.upsertLog(
-            ExerciseLogEntity(
-                dayId = dayId,
-                programExerciseId = programExerciseId,
-                slot = slot,
-                setsJson = SetJson.encodeSets(sets),
-                checkDate = CheckmarkReset.today(clock),
-                updatedAt = clock.millis(),
-            ),
-        )
+        programDao.upsertLog(logEntity(dayId, programExerciseId, slot, sets))
     }
+
+    /**
+     * Persists a superset slot's two tracks in one transaction (spec §4/§8.2:
+     * rounds stay aligned row-for-row). Paired mutations must never be two
+     * separate writes — process death between them would misalign the tracks
+     * permanently, and the misalignment would flow into A1 session history.
+     */
+    suspend fun updateSetsPaired(
+        dayId: String,
+        programExerciseId: Long,
+        mainSets: List<LoggedSet>,
+        ssSets: List<LoggedSet>,
+    ) {
+        db.withTransaction {
+            programDao.upsertLog(logEntity(dayId, programExerciseId, Slot.MAIN, mainSets))
+            programDao.upsertLog(logEntity(dayId, programExerciseId, Slot.SS, ssSets))
+        }
+    }
+
+    private fun logEntity(
+        dayId: String,
+        programExerciseId: Long,
+        slot: String,
+        sets: List<LoggedSet>,
+    ): ExerciseLogEntity =
+        ExerciseLogEntity(
+            dayId = dayId,
+            programExerciseId = programExerciseId,
+            slot = slot,
+            setsJson = SetJson.encodeSets(sets),
+            checkDate = CheckmarkReset.today(clock),
+            updatedAt = clock.millis(),
+        )
+
+    /**
+     * Clears today's checkmarks for one day without advancing the rotation (spec
+     * §8.2 footer "clear today's checkmarks"). Invalidates each log's checkDate so
+     * the daily-reset rule surfaces every set as unchecked; weights and reps stay.
+     */
+    suspend fun clearChecks(dayId: String) = programDao.clearChecksForDay(dayId)
 
     // --- rotation & session history ------------------------------------------
 

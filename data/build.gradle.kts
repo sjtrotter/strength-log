@@ -21,6 +21,7 @@ android {
 
     testOptions {
         unitTests.all { it.useJUnitPlatform() }
+        unitTests.isIncludeAndroidResources = true // Robolectric
     }
 }
 
@@ -42,10 +43,19 @@ dependencies {
     ksp(libs.room.compiler)
 
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.kotlinx.coroutines.core)
+    // api: the repository's public reads are Flows, so consumers compile against
+    // coroutines types. Room and DataStore stay implementation details.
+    api(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.kotlin.test.junit5)
+    // Robolectric (JUnit4, run via the vintage engine under the JUnit platform)
+    // for JVM tests that need a real in-memory Room DB — the paired-write path.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.junit4)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testRuntimeOnly(libs.junit.vintage.engine)
 
     // Instrumented persistence-hardening tests (PLAN.md A6, issue #7): a real
     // on-disk Room DB and DataStore file exercised across close/reopen.

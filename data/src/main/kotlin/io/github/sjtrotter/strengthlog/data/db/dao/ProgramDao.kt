@@ -36,6 +36,9 @@ interface ProgramDao {
     suspend fun day(dayId: String): ProgramDayEntity?
 
     @Query("SELECT * FROM program_exercise WHERE dayId = :dayId ORDER BY position")
+    fun observeExercisesForDay(dayId: String): Flow<List<ProgramExerciseEntity>>
+
+    @Query("SELECT * FROM program_exercise WHERE dayId = :dayId ORDER BY position")
     suspend fun exercisesForDay(dayId: String): List<ProgramExerciseEntity>
 
     @Query("SELECT * FROM program_exercise WHERE dayId = :dayId ORDER BY position LIMIT 1 OFFSET :ordinal")

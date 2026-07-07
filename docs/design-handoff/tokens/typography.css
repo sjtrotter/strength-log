@@ -1,0 +1,39 @@
+/* strength.log — type tokens.
+   Signature: condensed Oswald numerals on near-black (pinned). Body copy is
+   the platform sans. The scale extends the code's 5 roles to 8, adding a
+   weight/reps hierarchy inside the set row and a hero size for the DONE
+   moment and wizard. 1px here = 1sp/1dp in Compose. */
+
+:root {
+  --font-cond: 'Barlow Condensed', 'Oswald', 'Arial Narrow', sans-serif;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+
+  /* display / numerals — Oswald, always tabular-nums */
+  --type-display-xl: 700 40px/44px var(--font-cond);  /* DONE button moment, wizard hero, live GOAL preview */
+  --type-display-1: 700 34px/38px var(--font-cond);   /* GOAL numeral (code: displayLarge) */
+  --type-display-2: 700 28px/32px var(--font-cond);   /* weight stepper value — the hero of the row */
+  --type-display-3: 600 22px/26px var(--font-cond);   /* reps stepper value, collapsed summary numerals */
+
+  /* titles & labels — Oswald */
+  --type-title: 700 22px/27px var(--font-cond);       /* exercise names, screen titles (code: titleLarge) */
+  --type-label: 500 14px/18px var(--font-cond);       /* badges, tabs, set-kind labels (code: labelLarge) */
+  --ls-label: 0.5px;
+  --type-label-sm: 500 11px/14px var(--font-cond);    /* GOAL caption, overline labels — always uppercase */
+  --ls-label-sm: 1.2px;
+
+  /* body — platform sans */
+  --type-body: 400 16px/22px var(--font-sans);        /* running copy (code: bodyLarge) */
+  --type-caption: 400 12px/16px var(--font-sans);     /* helper lines, footers (code: bodySmall) */
+}
+
+/* utility classes used by specimen cards and UI kits */
+.t-display-xl { font: var(--type-display-xl); font-variant-numeric: tabular-nums; }
+.t-display-1  { font: var(--type-display-1);  font-variant-numeric: tabular-nums; }
+.t-display-2  { font: var(--type-display-2);  font-variant-numeric: tabular-nums; }
+.t-display-3  { font: var(--type-display-3);  font-variant-numeric: tabular-nums; }
+.t-title      { font: var(--type-title); }
+.t-label      { font: var(--type-label); letter-spacing: var(--ls-label); }
+.t-label-sm   { font: var(--type-label-sm); letter-spacing: var(--ls-label-sm); text-transform: uppercase; }
+.t-body       { font: var(--type-body); }
+.t-caption    { font: var(--type-caption); }

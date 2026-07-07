@@ -1,0 +1,483 @@
+<!-- @dsCard group="strength.log app" viewport="444x900" subtitle="Interactive day screen — steppers, cascade, one-tick rounds, collapse, DONE" name="Day screen" -->
+<!-- @startingPoint section="strength.log" subtitle="The day screen — 95% of app time" viewport="444x900" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>strength.log — Day screen</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); }
+  body { display: flex; justify-content: center; padding: 16px 0 48px; }
+  button { font: inherit; }
+
+  .phone { width: 412px; padding: 12px var(--gutter) 24px; display: flex; flex-direction: column; gap: var(--sp-3); }
+
+  /* ---- tab strip ---- */
+  .tabs { display: flex; gap: var(--sp-2); align-items: center; padding: 4px 0; }
+  .tab {
+    position: relative; width: var(--tab-size); height: var(--tab-size); flex: none;
+    border-radius: var(--r-tab); cursor: pointer; border: 1px solid var(--border);
+    font: 600 16px/1 var(--font-cond); background: var(--surface); color: var(--tabc);
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+  .tab.gear { background: var(--surface-2); color: var(--text-2); font-size: 15px; }
+  .tab.sel { background: var(--tabc); color: var(--tabon); border-color: transparent; }
+  .tab.sug:not(.sel) { outline: 1.5px solid var(--tabc); outline-offset: 2px;
+    border-color: color-mix(in srgb, var(--tabc) 55%, var(--border)); }
+  .tab.sug:not(.sel)::after {
+    content: ''; position: absolute; top: -4px; right: -4px; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--tabc); border: 2px solid var(--bg);
+  }
+  .tabs .spring { flex: 1; }
+
+  /* ---- day header ---- */
+  .dayhead { display: flex; flex-direction: column; gap: 3px; padding: 2px 2px 0; }
+  .overline { font: var(--type-label-sm); letter-spacing: var(--ls-label-sm); text-transform: uppercase; color: var(--accent); }
+  .daytitle { margin: 0; font: var(--type-title); color: var(--text); }
+  .emphasis { font: var(--type-caption); color: var(--text-2); }
+  .override {
+    align-self: flex-start; margin-top: 6px; padding: 4px 10px; border-radius: var(--r-pill);
+    background: var(--accent-soft); color: var(--accent);
+    font: var(--type-label-sm); letter-spacing: var(--ls-label-sm); text-transform: uppercase;
+  }
+  .override b { font-weight: 700; }
+  .override.hidden { display: none; }
+
+  /* ---- cards ---- */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card);
+    padding: var(--card-pad);
+    transition: border-color var(--dur-med) var(--ease-out);
+  }
+  .card.isdone { border-left: 3px solid var(--done); padding-left: calc(var(--card-pad) - 2px); }
+  .chead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; cursor: pointer; user-select: none; }
+  .ctitle { margin: 0; font: var(--type-title); color: var(--text); }
+  .badges { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px;
+    font: var(--type-label-sm); letter-spacing: var(--ls-label-sm); text-transform: uppercase;
+  }
+  .badge.main { background: var(--accent); color: var(--on-accent); }
+  .badge.outline { border: 1px solid var(--border); color: var(--text-2); padding: 2px 7px; }
+  .badge.donechip { background: var(--done); color: var(--on-done); display: none; }
+  .card.isdone .badge.donechip { display: inline-flex; }
+  .goal { text-align: right; flex: none; }
+  .goal .glab { font: var(--type-label-sm); letter-spacing: var(--ls-label-sm); text-transform: uppercase; color: var(--text-2); }
+  .goal .gnum { font: var(--type-display-1); font-variant-numeric: tabular-nums; color: var(--accent); }
+  .summary {
+    display: none; margin-top: 6px; font: 500 14px/18px var(--font-cond); letter-spacing: 0.5px;
+    font-variant-numeric: tabular-nums; color: var(--text-2);
+  }
+  .card.collapsed .summary { display: block; }
+  .card.collapsed .goal, .card.collapsed .helper { display: none; }
+
+  .cbody { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--dur-slow) var(--ease-out); }
+  .card.collapsed .cbody { grid-template-rows: 0fr; }
+  .cbody > .cbody-in { overflow: hidden; min-height: 0; }
+
+  .helper { margin: 8px 0 2px; font: var(--type-caption); color: var(--text-2); }
+
+  /* ---- set rows ---- */
+  .rows { display: flex; flex-direction: column; padding-top: 4px; }
+  .srow { display: flex; align-items: center; gap: var(--sp-2); min-height: var(--row-h); border-radius: var(--r-control); }
+  .srow.flash { animation: rowflash 650ms var(--ease-out); }
+  @keyframes rowflash { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
+  .srow.top {
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    margin: 2px -10px; padding: 0 10px 0 7px;
+  }
+  .klab {
+    width: 30px; flex: none; font: 500 13px/1 var(--font-cond); letter-spacing: 0.5px;
+    text-transform: uppercase; color: var(--text-2);
+  }
+  .srow.top .klab { color: var(--accent); font-weight: 700; }
+  .steppers { display: flex; gap: var(--sp-2); transition: opacity var(--dur-med) var(--ease-out); }
+  .srow.ticked .steppers { opacity: 0.55; }
+  .stp {
+    display: inline-flex; align-items: center; height: var(--control-h);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--r-control); overflow: hidden;
+  }
+  .sb {
+    width: 32px; align-self: stretch; border: none; background: transparent; cursor: pointer;
+    color: var(--text-2); font: 600 18px/1 var(--font-cond); padding: 0;
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+  .sb:active { background: var(--surface-3); color: var(--text); }
+  .sval { min-width: 52px; text-align: center; color: var(--text); font: var(--type-display-2); font-variant-numeric: tabular-nums; padding: 0 2px; }
+  .stp.r .sval { min-width: 36px; font: var(--type-display-3); }
+  .sval.flash { color: var(--accent); transition: color 650ms var(--ease-out); }
+  .spring { flex: 1; }
+  .tickbtn { width: 40px; height: 48px; flex: none; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0; }
+  .tick {
+    width: var(--tick-size); height: var(--tick-size); border-radius: var(--r-tick);
+    background: var(--surface-2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--on-done); font: 700 15px/1 var(--font-cond);
+  }
+  .srow.ticked .tick { background: var(--done); border-color: var(--done); animation: pop var(--dur-med) var(--ease-spring); }
+  @keyframes pop { 0% { transform: scale(0.7); } 100% { transform: scale(1); } }
+  .rm { width: 24px; height: 48px; flex: none; background: transparent; border: none; cursor: pointer; color: var(--text-3); font: 400 15px/1 var(--font-sans); padding: 0; }
+
+  /* superset partner sub-row */
+  .srow.sub { margin-left: 30px; border-top: 1px dashed var(--border); border-radius: 0; min-height: 46px; }
+  .srow.sub .klab { width: 16px; color: var(--text-3); }
+  .round.ticked .steppers { opacity: 0.55; }
+
+  .addset {
+    margin-top: 10px; width: 100%; padding: 10px; cursor: pointer;
+    border: 1.5px dashed var(--border); border-radius: var(--r-control); background: transparent;
+    color: var(--text-2); font: var(--type-label); letter-spacing: var(--ls-label); text-transform: uppercase;
+  }
+  .addset:active { background: var(--surface-2); }
+
+  /* ---- cardio ---- */
+  .cardio .chead { align-items: center; }
+  .chev { flex: none; color: var(--text-3); font: 600 14px/1 var(--font-cond); transition: transform var(--dur-med) var(--ease-out); }
+  .cardio.open .chev { transform: rotate(180deg); }
+  .cardio .cbody { grid-template-rows: 0fr; }
+  .cardio.open .cbody { grid-template-rows: 1fr; }
+
+  /* ---- done button ---- */
+  .donebtn {
+    width: 100%; height: 56px; border: none; cursor: pointer;
+    background: var(--accent); color: var(--on-accent); border-radius: var(--r-card);
+    font: 700 18px/1 var(--font-cond); letter-spacing: 1.5px; text-transform: uppercase;
+    transition: transform var(--dur-fast) var(--ease-spring);
+  }
+  .donebtn:active { transform: scale(0.985); }
+
+  /* ---- footer ---- */
+  .foot { display: flex; flex-direction: column; gap: var(--sp-3); padding: 4px 2px 0; }
+  .foot .blurb { font: var(--type-caption); color: var(--text-3); margin: 0; }
+  .footrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+  .quiet {
+    background: transparent; border: 1px solid var(--border); border-radius: var(--r-pill);
+    color: var(--text-2); padding: 8px 14px; cursor: pointer;
+    font: var(--type-label); letter-spacing: var(--ls-label);
+  }
+  .quiet:active { background: var(--surface-2); }
+  .switchrow { display: flex; align-items: center; gap: var(--sp-2); cursor: pointer; }
+  .switchrow .slab { font: var(--type-caption); color: var(--text-2); }
+  .sw { width: 40px; height: 24px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--surface-2); position: relative; transition: background var(--dur-med) var(--ease-out); flex: none; }
+  .sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--text-2); transition: all var(--dur-med) var(--ease-out); }
+  .switchrow.on .sw { background: var(--accent); border-color: var(--accent); }
+  .switchrow.on .sw::after { left: 18px; background: var(--on-accent); }
+</style>
+</head>
+<body>
+<div class="phone theme-day-a" id="phone" data-screen-label="Day screen">
+
+  <div class="tabs" id="tabs">
+    <button class="tab gear" title="Setup">⚙</button>
+    <button class="tab sel" data-day="a" style="--tabc: var(--day-a); --tabon: var(--on-day-a)">A</button>
+    <button class="tab sug" data-day="b" style="--tabc: var(--day-b); --tabon: var(--on-day-b)">B</button>
+    <button class="tab" data-day="c" style="--tabc: var(--day-c); --tabon: var(--on-day-c)">C</button>
+    <button class="tab" data-day="d" style="--tabc: var(--day-d); --tabon: var(--on-day-d)">D</button>
+    <span class="spring"></span>
+  </div>
+
+  <div class="dayhead">
+    <div class="overline" id="overline">Day A</div>
+    <h1 class="daytitle" id="daytitle">Lower — squat focus</h1>
+    <div class="emphasis" id="emphasis">hip-hinge hamstrings · gastroc calves</div>
+    <div class="override" id="override">Override · suggested next: <b id="sugname">Day B</b></div>
+  </div>
+
+  <!-- main lift -->
+  <section class="card" id="mainCard" data-comment-anchor="main-lift-card">
+    <div class="chead" data-toggle="mainCard">
+      <div style="min-width:0">
+        <h3 class="ctitle">Barbell Back Squat</h3>
+        <div class="badges">
+          <span class="badge main">Main</span>
+          <span class="badge outline">+1 warm-up</span>
+          <span class="badge donechip">✓</span>
+        </div>
+        <div class="summary"></div>
+      </div>
+      <div class="goal"><div class="glab">Goal</div><div class="gnum">235</div></div>
+    </div>
+    <div class="cbody"><div class="cbody-in">
+      <p class="helper">Change the TOP set — ramp &amp; back-off recalculate.</p>
+      <div class="rows" id="mainRows"></div>
+      <button class="addset" data-add="main">+ add set</button>
+    </div></div>
+  </section>
+
+  <!-- superset -->
+  <section class="card" id="ssCard" data-comment-anchor="superset-card">
+    <div class="chead" data-toggle="ssCard">
+      <div style="min-width:0">
+        <h3 class="ctitle">SS: EZ-Bar Curl + Rope Pushdown</h3>
+        <div class="badges" style="display:none"></div>
+        <span class="badge donechip">✓</span>
+        <div class="summary"></div>
+      </div>
+      <div class="goal"><div class="glab">Goal</div><div class="gnum">60</div></div>
+    </div>
+    <div class="cbody"><div class="cbody-in">
+      <p class="helper">One tick checks the whole round — curl, then pushdown, then rest.</p>
+      <div class="rows" id="ssRows"></div>
+      <button class="addset" data-add="ss">+ add round</button>
+    </div></div>
+  </section>
+
+  <!-- collapsed / done -->
+  <section class="card isdone collapsed" id="doneCard" data-comment-anchor="done-card">
+    <div class="chead" data-toggle="doneCard">
+      <div style="min-width:0">
+        <h3 class="ctitle">Seated Leg Curl</h3>
+        <div class="badges"><span class="badge donechip" style="display:inline-flex">✓</span></div>
+        <div class="summary" style="display:block">90×10 · 90×10 · 90×9</div>
+      </div>
+      <div class="goal"><div class="glab">Goal</div><div class="gnum">90</div></div>
+    </div>
+    <div class="cbody"><div class="cbody-in">
+      <div class="rows" id="lcRows"></div>
+      <button class="addset" data-add="lc">+ add set</button>
+    </div></div>
+  </section>
+
+  <!-- cardio finisher -->
+  <section class="card cardio" id="cardioCard" data-comment-anchor="cardio-card">
+    <div class="chead" data-toggle-cardio>
+      <div style="min-width:0">
+        <h3 class="ctitle" style="font-size:19px">Cardio finisher</h3>
+        <div class="badges"><span class="badge outline">Easy · Zone 2</span></div>
+      </div>
+      <span class="chev">▼</span>
+    </div>
+    <div class="cbody"><div class="cbody-in">
+      <p class="helper" style="margin-top:10px">20–25 min easy — legs were heavy today, keep it conversational. Lift first, then run.</p>
+    </div></div>
+  </section>
+
+  <button class="donebtn" id="donebtn">Done — advance to Day B</button>
+
+  <div class="foot">
+    <p class="blurb">Maintenance, not max-outs. Miss a day and the rotation shifts — it never skips a muscle. No streaks, no guilt.</p>
+    <div class="footrow">
+      <button class="quiet" id="clearbtn">Clear today’s checkmarks</button>
+      <div class="switchrow" id="keepon"><span class="slab">Keep screen on</span><span class="sw"></span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+  const round5 = v => Math.round(v / 5) * 5;
+
+  /* ---------- row factory ---------- */
+  function makeRow(o) {
+    const row = document.createElement('div');
+    row.className = 'srow' + (o.top ? ' top' : '') + (o.sub ? ' sub' : '');
+    row.dataset.kind = o.kind || '';
+    row.innerHTML =
+      '<span class="klab">' + (o.sub ? '↳' : (o.kind || '')) + '</span>' +
+      '<span class="steppers">' +
+        '<span class="stp w"><button class="sb" data-d="-5" aria-label="less weight">−</button><span class="sval w">' + o.w + '</span><button class="sb" data-d="5" aria-label="more weight">+</button></span>' +
+        '<span class="stp r"><button class="sb" data-d="-1" aria-label="fewer reps">−</button><span class="sval r">' + o.r + '</span><button class="sb" data-d="1" aria-label="more reps">+</button></span>' +
+      '</span>' +
+      '<span class="spring"></span>' +
+      (o.sub ? '' : '<button class="tickbtn" aria-label="set done"><span class="tick"></span></button><button class="rm" aria-label="remove set">×</button>');
+    return row;
+  }
+
+  const getW = row => parseFloat($('.sval.w', row).textContent);
+  const getR = row => parseFloat($('.sval.r', row).textContent);
+  const setW = (row, v, flash) => { const el = $('.sval.w', row); el.textContent = v; if (flash) flashEl(row, el); };
+  function flashEl(row, el) {
+    row.classList.remove('flash'); el.classList.remove('flash');
+    void row.offsetWidth;
+    row.classList.add('flash'); el.classList.add('flash');
+    setTimeout(() => { row.classList.remove('flash'); el.classList.remove('flash'); }, 700);
+  }
+
+  /* ---------- main card: ramp + cascade ---------- */
+  const RAMP = [
+    { kind: 'R1', pct: 0.55 }, { kind: 'R2', pct: 0.70 },
+    { kind: 'R3', pct: 0.80 }, { kind: 'R4', pct: 0.90 },
+  ];
+  const mainRows = $('#mainRows');
+  const seed = 235;
+  RAMP.forEach((r, i) => mainRows.appendChild(makeRow({ kind: r.kind, w: round5(seed * r.pct), r: i === 3 ? 3 : 5 })));
+  mainRows.appendChild(makeRow({ kind: 'TOP', top: true, w: seed, r: 5 }));
+  mainRows.appendChild(makeRow({ kind: 'B/O', w: round5(seed * 0.75), r: 8 }));
+
+  function cascade() {
+    const rows = $$('.srow', mainRows);
+    const topRow = rows.find(r => r.dataset.kind === 'TOP');
+    if (!topRow) return;
+    const top = getW(topRow);
+    let delay = 0;
+    rows.forEach(row => {
+      const k = row.dataset.kind;
+      const pct = (RAMP.find(r => r.kind === k) || {}).pct || (k === 'B/O' ? 0.75 : null);
+      if (!pct) return;
+      setTimeout(() => setW(row, round5(top * pct), true), delay += 45);
+    });
+  }
+
+  /* ---------- superset rounds ---------- */
+  const ssRows = $('#ssRows');
+  [[60, 12, 50, 15], [60, 11, 50, 14], [60, 10, 50, 12]].forEach((v, i) => {
+    const round = document.createElement('div');
+    round.className = 'round';
+    round.appendChild(makeRow({ kind: String(i + 1), w: v[0], r: v[1] }));
+    round.appendChild(makeRow({ sub: true, w: v[2], r: v[3] }));
+    ssRows.appendChild(round);
+  });
+
+  /* ---------- leg curl (starts done/collapsed) ---------- */
+  const lcRows = $('#lcRows');
+  [[90, 10], [90, 10], [90, 9]].forEach((v, i) => {
+    const row = makeRow({ kind: String(i + 1), w: v[0], r: v[1] });
+    row.classList.add('ticked');
+    lcRows.appendChild(row);
+  });
+
+  /* ---------- summaries + auto-collapse ---------- */
+  function summarize(card) {
+    const rounds = $$('.round', card);
+    if (rounds.length) {
+      return rounds.map(rd => {
+        const [p, s] = $$('.srow', rd);
+        return getW(p) + '×' + getR(p) + '(' + getW(s) + '×' + getR(s) + ')';
+      }).join(' / ');
+    }
+    const rows = $$('.srow', card);
+    const ticked = rows.filter(r => r.classList.contains('ticked'));
+    if (!ticked.length) return rows.length + ' sets · GOAL ' + $('.gnum', card).textContent;
+    return ticked.map(r => getW(r) + '×' + getR(r)).join(' · ');
+  }
+  function refreshCard(card) {
+    const units = $$('.round', card).length ? $$('.round', card) : $$('.srow', card);
+    const allDone = units.length && units.every(u => u.classList.contains('ticked'));
+    card.classList.toggle('isdone', allDone);
+    $('.summary', card).textContent = summarize(card);
+    if (allDone && !card.dataset.userExpanded) {
+      setTimeout(() => card.classList.add('collapsed'), 420);
+    } else if (!allDone && !card.dataset.userCollapsed) {
+      card.classList.remove('collapsed');
+    }
+  }
+
+  /* ---------- event delegation ---------- */
+  document.addEventListener('click', e => {
+    const sb = e.target.closest('.sb');
+    if (sb) {
+      const stp = sb.closest('.stp'), row = sb.closest('.srow');
+      const val = $('.sval', stp);
+      const isW = stp.classList.contains('w');
+      const d = parseFloat(sb.dataset.d);
+      const next = Math.max(isW ? 5 : 1, getVal() + d);
+      function getVal() { return parseFloat(val.textContent); }
+      val.textContent = next;
+      if (isW && row.dataset.kind === 'TOP') cascade();
+      const card = row.closest('.card');
+      $('.summary', card).textContent = summarize(card);
+      return;
+    }
+    const tickbtn = e.target.closest('.tickbtn');
+    if (tickbtn) {
+      const row = tickbtn.closest('.srow');
+      const unit = row.closest('.round') || row;
+      unit.classList.toggle('ticked');
+      if (unit !== row) row.classList.toggle('ticked', unit.classList.contains('ticked'));
+      refreshCard(row.closest('.card'));
+      return;
+    }
+    const rm = e.target.closest('.rm');
+    if (rm) {
+      const row = rm.closest('.srow');
+      const card = row.closest('.card');
+      const unit = row.closest('.round') || row;
+      const container = unit.parentElement;
+      if ($$('.srow:not(.sub)', container).length > 1) unit.remove();
+      refreshCard(card);
+      return;
+    }
+    const add = e.target.closest('.addset');
+    if (add) {
+      const which = add.dataset.add;
+      if (which === 'ss') {
+        const last = $$('.round', ssRows).pop();
+        const [p, s] = $$('.srow', last);
+        const rd = document.createElement('div');
+        rd.className = 'round';
+        rd.appendChild(makeRow({ kind: String($$('.round', ssRows).length + 1), w: getW(p), r: getR(p) }));
+        rd.appendChild(makeRow({ sub: true, w: getW(s), r: getR(s) }));
+        ssRows.appendChild(rd);
+      } else {
+        const container = which === 'main' ? mainRows : lcRows;
+        const plain = $$('.srow', container).filter(r => !isNaN(parseInt(r.dataset.kind, 10)));
+        const last = $$('.srow', container).pop();
+        container.appendChild(makeRow({ kind: String(plain.length + 1), w: getW(last), r: getR(last) }));
+      }
+      refreshCard(add.closest('.card'));
+      return;
+    }
+    const head = e.target.closest('.chead');
+    if (head && head.dataset.toggle) {
+      const card = document.getElementById(head.dataset.toggle);
+      const collapsed = card.classList.toggle('collapsed');
+      if (collapsed) { card.dataset.userCollapsed = '1'; delete card.dataset.userExpanded; }
+      else { card.dataset.userExpanded = '1'; delete card.dataset.userCollapsed; }
+      $('.summary', card).textContent = summarize(card);
+      return;
+    }
+    if (e.target.closest('[data-toggle-cardio]')) {
+      $('#cardioCard').classList.toggle('open');
+      return;
+    }
+  });
+
+  /* ---------- day tabs ---------- */
+  const DAYS = {
+    a: { title: 'Lower — squat focus', emph: 'hip-hinge hamstrings · gastroc calves', next: 'B' },
+    b: { title: 'Upper — push focus', emph: 'incline chest · lateral delts', next: 'C' },
+    c: { title: 'Lower — hinge focus', emph: 'deadlift pattern · upper back', next: 'D' },
+    d: { title: 'Upper — pull focus', emph: 'lats · rear delts · arms', next: 'A' },
+  };
+  const SUGGESTED = 'b';
+  $('#tabs').addEventListener('click', e => {
+    const tab = e.target.closest('.tab[data-day]');
+    if (!tab) return;
+    $$('.tab', $('#tabs')).forEach(t => t.classList.remove('sel'));
+    tab.classList.add('sel');
+    const d = tab.dataset.day;
+    $('#phone').className = 'phone theme-day-' + d;
+    $('#overline').textContent = 'Day ' + d.toUpperCase();
+    $('#daytitle').textContent = DAYS[d].title;
+    $('#emphasis').textContent = DAYS[d].emph;
+    $('#override').classList.toggle('hidden', d === SUGGESTED);
+    $('#donebtn').textContent = 'Done — advance to Day ' + DAYS[d].next;
+  });
+
+  /* ---------- footer ---------- */
+  $('#clearbtn').addEventListener('click', () => {
+    $$('.srow, .round').forEach(el => el.classList.remove('ticked'));
+    $$('.card').forEach(c => {
+      if (c.id === 'cardioCard') return;
+      delete c.dataset.userCollapsed; delete c.dataset.userExpanded;
+      c.classList.remove('collapsed', 'isdone');
+      $('.summary', c) && ($('.summary', c).textContent = summarize(c));
+    });
+  });
+  $('#keepon').addEventListener('click', e => e.currentTarget.classList.toggle('on'));
+
+  /* initial summaries */
+  $$('.card').forEach(c => { const s = $('.summary', c); if (s) s.textContent = summarize(c); });
+  $('#doneCard').classList.add('isdone', 'collapsed');
+})();
+</script>
+</body>
+</html>

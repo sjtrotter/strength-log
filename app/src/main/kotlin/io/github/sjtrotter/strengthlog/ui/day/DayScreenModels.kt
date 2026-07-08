@@ -42,6 +42,8 @@ data class ExerciseCardState(
     /** GOAL number already formatted in the user's unit (read-only). */
     val goalDisplay: String,
     val perHand: Boolean,
+    /** "185×8"-style chip (PLAN.md A1 bonus); null when never performed before. */
+    val lastTimeDisplay: String? = null,
     /** Partner GOAL, for the superset sub-track header; null when not a superset. */
     val partnerGoalDisplay: String? = null,
     val partnerPerHand: Boolean = false,

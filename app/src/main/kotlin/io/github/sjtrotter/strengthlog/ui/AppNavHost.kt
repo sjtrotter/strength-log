@@ -27,6 +27,9 @@ import io.github.sjtrotter.strengthlog.ui.day.DayActions
 import io.github.sjtrotter.strengthlog.ui.day.DayEditActions
 import io.github.sjtrotter.strengthlog.ui.day.DayScreen
 import io.github.sjtrotter.strengthlog.ui.day.DayViewModel
+import io.github.sjtrotter.strengthlog.ui.log.LogActions
+import io.github.sjtrotter.strengthlog.ui.log.LogScreen
+import io.github.sjtrotter.strengthlog.ui.log.LogViewModel
 import io.github.sjtrotter.strengthlog.ui.setup.SetupActions
 import io.github.sjtrotter.strengthlog.ui.setup.SetupScreen
 import io.github.sjtrotter.strengthlog.ui.setup.SetupViewModel
@@ -43,14 +46,15 @@ import kotlinx.coroutines.flow.take
 
 /**
  * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / re-run),
- * `day` (home), `setup` (the day screen's gear, #12), and `customExercise`
- * (creation, #13 — reachable from the #11 picker and Setup). History (#14) and
- * the day-edit sheet (#11) add their own destinations as they land.
+ * `day` (home), `setup` (the gear, #12), `customExercise` (creation, #13), and
+ * `log` (history, #14, D2 — reached from a trailing tab once the header wires
+ * it up).
  */
 object Routes {
     const val DAY = "day"
     const val WIZARD = "wizard"
     const val SETUP = "setup"
+    const val LOG = "log"
 
     const val CUSTOM_EXERCISE = "customExercise"
     const val CUSTOM_EXERCISE_PATTERN_ARG = "pattern"
@@ -128,6 +132,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onRerunWizard = { navController.navigate(Routes.WIZARD) },
             )
         }
+        composable(Routes.LOG) { LogRoute(onBack = { navController.popBackStack() }) }
     }
 }
 
@@ -181,6 +186,15 @@ private fun SetupRoute(
             onRerunWizard = onRerunWizard,
             onBack = onBack,
         ),
+    )
+}
+
+@Composable
+private fun LogRoute(onBack: () -> Unit, viewModel: LogViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LogScreen(
+        state = state,
+        actions = LogActions(onBack = onBack, onToggleExpanded = viewModel::toggleExpanded),
     )
 }
 

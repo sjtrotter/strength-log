@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.sjtrotter.strengthlog.data.LastPerformed
 import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -89,8 +91,15 @@ class DayViewModel @Inject constructor(
         if (dayId == null) {
             flowOf(DayUiState(hasProgram = false, keepScreenOn = ctx.keepOn))
         } else {
-            combine(repo.daySlotsFlow(dayId), repo.logFlow(dayId), manualCollapse) { slots, logs, collapse ->
-                buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, collapse)
+            // Re-fetched only when the day's exercise ids change (a program edit),
+            // not on every weight/rep keystroke — the "last time" chip (A1 bonus)
+            // is prior history, not live state, so it doesn't need log-level freshness.
+            val slotsWithHistory = repo.daySlotsFlow(dayId).flatMapLatest { slots ->
+                flow { emit(slots to fetchLastPerformed(slots)) }
+            }
+            combine(slotsWithHistory, repo.logFlow(dayId), manualCollapse) { slotsAndHistory, logs, collapse ->
+                val (slots, lastPerformed) = slotsAndHistory
+                buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, collapse, lastPerformed)
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState())
@@ -296,12 +305,18 @@ class DayViewModel @Inject constructor(
         return override?.takeIf { it in ids } ?: suggested?.takeIf { it in ids } ?: ids.firstOrNull()
     }
 
+    /** One batched read for the whole day's "last time" chips (#14 A1 bonus) —
+     *  never one query per exercise. */
+    private suspend fun fetchLastPerformed(slots: List<ProgramSlot>): Map<String, LastPerformed> =
+        repo.lastPerformed(slots.map { it.exercise.exerciseId }.distinct())
+
     private fun buildState(
         ctx: DayContext,
         dayId: String,
         slots: List<ProgramSlot>,
         logsByKey: Map<Pair<Long, String>, io.github.sjtrotter.strengthlog.data.LoggedSlot>,
         collapse: Map<Long, Boolean>,
+        lastPerformed: Map<String, LastPerformed>,
     ): DayUiState {
         val program = ctx.program
         val day = program.days.firstOrNull { it.id == dayId }
@@ -319,7 +334,7 @@ class DayViewModel @Inject constructor(
             unit = ctx.unit,
             suggestedDayId = ctx.suggested,
             nextDayId = Rotation.next(program, dayId),
-            exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse) },
+            exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse, lastPerformed) },
             cardio = day.cardio,
             keepScreenOn = ctx.keepOn,
         )
@@ -332,6 +347,7 @@ class DayViewModel @Inject constructor(
         unit: WeightUnit,
         catalog: ExerciseCatalog,
         collapse: Map<Long, Boolean>,
+        lastPerformed: Map<String, LastPerformed>,
     ): ExerciseCardState {
         val pe = slot.exercise
         val id = slot.programExerciseId
@@ -369,6 +385,7 @@ class DayViewModel @Inject constructor(
             hasWarmupHint = pe.hasWarmupHint,
             goalDisplay = goalDisplay,
             perHand = entry?.perHand == true,
+            lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed[pe.exerciseId], unit),
             partnerGoalDisplay = partnerEntry?.let {
                 DayScreenBuilder.goalDisplay(GoalCalculator.goalFor(it, cfg), unit)
             },

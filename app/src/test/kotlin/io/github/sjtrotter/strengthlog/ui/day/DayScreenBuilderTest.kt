@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.ui.day
 
+import io.github.sjtrotter.strengthlog.data.LastPerformed
 import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
@@ -14,6 +15,7 @@ import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DayScreenBuilderTest {
@@ -176,5 +178,38 @@ class DayScreenBuilderTest {
     fun helper_copy_matches_the_design_reference() {
         assertEquals("Change the TOP set — ramp & back-off recalculate.", DayScreenBuilder.MAIN_HELPER)
         assertEquals("One tick checks the whole round — both moves, back-to-back.", DayScreenBuilder.SUPERSET_HELPER)
+    }
+
+    // --- kind labels from raw kinds (Log screen reuse, #14) ------------------
+
+    @Test
+    fun kindLabelsForKinds_matches_kindLabels_over_the_same_sequence() {
+        val main = SetSeeder.seed(ProgramExercise("bb_back_squat", isMain = true, targetSets = 6), 235.0, cfg)
+        assertEquals(DayScreenBuilder.kindLabels(main), DayScreenBuilder.kindLabelsForKinds(main.map { it.kind }))
+    }
+
+    @Test
+    fun kindLabelsForKinds_restarts_the_ramp_counter_per_call() {
+        // Each history exercise group (#14) is labeled independently — R1 always
+        // starts over, it never keeps counting from a previous exercise's group.
+        assertEquals(
+            listOf("R1", "TOP"),
+            DayScreenBuilder.kindLabelsForKinds(listOf(SetKind.RAMP, SetKind.TOP)),
+        )
+    }
+
+    // --- "last time" chip (PLAN.md A1 bonus, #14) ----------------------------
+
+    @Test
+    fun lastTimeDisplay_formats_weight_and_reps_in_the_display_unit() {
+        assertEquals("185×8", DayScreenBuilder.lastTimeDisplay(LastPerformed(185.0, 8), WeightUnit.LB))
+        // 44.092452436 lb == exactly 20 kg — an even round trip so the assertion
+        // isn't sensitive to WeightStepper's decimal formatting.
+        assertEquals("20×8", DayScreenBuilder.lastTimeDisplay(LastPerformed(44.092452436, 8), WeightUnit.KG))
+    }
+
+    @Test
+    fun lastTimeDisplay_is_null_when_never_performed() {
+        assertNull(DayScreenBuilder.lastTimeDisplay(null, WeightUnit.LB))
     }
 }

@@ -2,6 +2,7 @@ package io.github.sjtrotter.strengthlog.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import io.github.sjtrotter.strengthlog.domain.theme.DayAccentColors
 
 // Spec §8.5 — dark theme only in v1; there is deliberately no light palette.
 val Background = Color(0xFF0D0D0F)
@@ -32,14 +33,10 @@ val Error = Color(0xFFC2334D)
 // any future done-state tinting) — the one accent that isn't day-specific.
 val Done = Color(0xFF3E8E5A)
 
-// Per-day earth-tone accents, spec §8.5, in day order A-D. These four hexes
-// are pinned by the spec — accessibility fixes go in DayOnAccents, not here.
-private val DayAccents = listOf(
-    Color(0xFFC1440E), // A
-    Color(0xFF2D5A3D), // B
-    Color(0xFFB8860B), // C
-    Color(0xFF1F4E5F), // D
-)
+// Per-day earth-tone accents, spec §8.5, in day order A-D. The hexes
+// themselves are SSOT in DayAccentColors (:domain, shared with :wear);
+// accessibility fixes go in DayOnAccents, not here.
+private val DayAccents = List(4) { i -> Color(DayAccentColors.hex(i)) }
 
 // Text drawn on top of each accent, chosen per accent so every pairing meets
 // WCAG AA (>= 4.5:1). Measured: A/TextPrimary 4.57, B/TextPrimary 7.09,

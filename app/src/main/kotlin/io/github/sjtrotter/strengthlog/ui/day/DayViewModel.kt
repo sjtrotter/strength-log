@@ -9,9 +9,11 @@ import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.domain.generator.Rotation
+import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.Program
+import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.seeding.SetEditor
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
@@ -92,6 +94,19 @@ class DayViewModel @Inject constructor(
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState())
+
+    /** Render model for the day-edit sheet (#11, spec §8.3) — a second view over
+     *  the same day, kept out of [uiState] so the sheet never touches the
+     *  exercise-card render path (see [DayEditUiState] doc). */
+    val dayEditState: StateFlow<DayEditUiState> = effectiveDayId.flatMapLatest { dayId ->
+        if (dayId == null) {
+            flowOf(DayEditUiState())
+        } else {
+            combine(repo.daySlotsFlow(dayId), repo.catalogFlow, repo.wizardAnswersFlow) { slots, catalog, answers ->
+                buildEditState(slots, catalog, answers.equipment)
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
 
     init {
         seedMissingLogs()
@@ -200,6 +215,43 @@ class DayViewModel @Inject constructor(
             savedState[KEY_COLLAPSE] = emptyMap<Long, Boolean>()
             savedState[KEY_VIEW_DAY] = null
         }
+    }
+
+    // --- day-edit sheet intents (#11, spec §8.3) ------------------------------
+
+    /** Confirming a swap in the substitution picker. The old log stays keyed to
+     *  the slot's [position]; the repository clears it so the new exercise
+     *  seeds fresh from its own GOAL (D4 — seeding happens on next observation,
+     *  never here). */
+    fun swapDaySlot(position: Int, newExerciseId: String) {
+        val day = currentDay() ?: return
+        mutate { repo.swapExercise(day, position, newExerciseId) }
+    }
+
+    /** Appends a new slot for the picked exercise (spec §8.3 add flow). Mirrors
+     *  `ProgramGenerator`'s plain-accessory shape (3 sets, "8–12") — a sane
+     *  default for a manually added exercise, not a re-seed of pinned math. */
+    fun addDaySlot(exerciseId: String) {
+        val day = currentDay() ?: return
+        mutate { repo.addExercise(day, ProgramExercise(exerciseId = exerciseId, repSchemeLabel = "8–12")) }
+    }
+
+    /** Removes a slot, enforcing the minimum-3-exercises-per-day floor (spec
+     *  §8.3) against a fresh read so the guard can't race a concurrent add. */
+    fun removeDaySlot(position: Int) {
+        val day = currentDay() ?: return
+        mutate {
+            val slots = repo.daySlotsFlow(day).first()
+            if (!DayEditRules.canRemove(slots.size)) return@mutate
+            repo.removeExercise(day, position)
+        }
+    }
+
+    /** The reset-day-to-template escape hatch (spec §8.3): regenerates this one
+     *  day from the stored wizard answers; other days are untouched. */
+    fun resetDayToTemplate() {
+        val day = currentDay() ?: return
+        mutate { repo.resetDayToTemplate(day) }
     }
 
     // --- seeding & bootstrap -------------------------------------------------
@@ -325,6 +377,31 @@ class DayViewModel @Inject constructor(
             collapsed = DayScreenBuilder.collapsed(main, collapse[id]),
             collapsedSummary = DayScreenBuilder.collapsedSummary(main, partnerSets, goalDisplay, unit),
             rows = rows,
+        )
+    }
+
+    private fun buildEditState(
+        slots: List<ProgramSlot>,
+        catalog: ExerciseCatalog,
+        equipment: Set<Equipment>,
+    ): DayEditUiState {
+        val rows = slots.map { slot ->
+            val pe = slot.exercise
+            val entry = catalog.find(pe.exerciseId)
+            DayEditSlotState(
+                programExerciseId = slot.programExerciseId,
+                position = slot.position,
+                exerciseId = pe.exerciseId,
+                title = entry?.name ?: pe.exerciseId,
+                pattern = entry?.pattern,
+                isSuperset = pe.superset != null,
+            )
+        }
+        return DayEditUiState(
+            slots = rows,
+            canRemove = DayEditRules.canRemove(rows.size),
+            defaultEquipmentFilter = equipment,
+            catalog = catalog,
         )
     }
 

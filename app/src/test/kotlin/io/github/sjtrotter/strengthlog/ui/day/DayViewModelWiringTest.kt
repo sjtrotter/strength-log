@@ -256,6 +256,84 @@ class DayViewModelWiringTest {
         assertNull(track(lateralId, Slot.SS))
     }
 
+    // --- day-edit sheet wiring (#11, spec §8.3) --------------------------------
+    // dayEditState is WhileSubscribed, like uiState — each test collects it (same
+    // reason collapseOverrideSurvivesViewModelRecreation collects uiState) so
+    // `.value` reflects the DB instead of the flow's un-started default.
+
+    @Test
+    fun swapDaySlotReplacesTheExerciseAndClearsItsLog() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val ghostPosition = vm.dayEditState.value.slots.first { it.exerciseId == "ghost_unknown" }.position
+
+        vm.swapDaySlot(ghostPosition, "hack_squat")
+        advanceUntilIdle()
+
+        val hackId = slotId("hack_squat")
+        assertEquals("hack_squat", vm.dayEditState.value.slots.first { it.programExerciseId == hackId }.exerciseId)
+        // The swapped-in exercise is known, so the normal seed pass fills its log.
+        assertEquals(3, track(hackId, Slot.MAIN)!!.size)
+        collect.cancel()
+    }
+
+    @Test
+    fun addDaySlotAppendsAKnownExerciseToTheEditState() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val before = vm.dayEditState.value.slots.size
+
+        vm.addDaySlot("face_pull")
+        advanceUntilIdle()
+
+        assertEquals(before + 1, vm.dayEditState.value.slots.size)
+        assertTrue(vm.dayEditState.value.slots.any { it.exerciseId == "face_pull" })
+        assertEquals(3, track(slotId("face_pull"), Slot.MAIN)!!.size)
+        collect.cancel()
+    }
+
+    @Test
+    fun removeDaySlotIsANoOpAtTheMinimumOfThree() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        // insertProgram's day A has 4 slots; remove once (down to 3) succeeds...
+        val firstPosition = vm.dayEditState.value.slots.first().position
+        vm.removeDaySlot(firstPosition)
+        advanceUntilIdle()
+        assertEquals(3, vm.dayEditState.value.slots.size)
+
+        // ...a further remove at the floor is refused.
+        val nextPosition = vm.dayEditState.value.slots.first().position
+        vm.removeDaySlot(nextPosition)
+        advanceUntilIdle()
+        assertEquals(3, vm.dayEditState.value.slots.size)
+        collect.cancel()
+    }
+
+    @Test
+    fun resetDayToTemplateRegeneratesFromWizardAnswers() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertTrue(vm.dayEditState.value.slots.any { it.exerciseId == "ghost_unknown" })
+
+        vm.resetDayToTemplate()
+        advanceUntilIdle()
+
+        // Regenerated from the default wizard answers — the hand-built fixture's
+        // unknown placeholder exercise is gone.
+        assertFalse(vm.dayEditState.value.slots.any { it.exerciseId == "ghost_unknown" })
+        assertTrue(vm.dayEditState.value.slots.isNotEmpty())
+        collect.cancel()
+    }
+
     // --- collapse overrides survive process death (PLAN.md A6) -------------------
 
     @Test

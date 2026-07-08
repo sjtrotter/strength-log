@@ -92,11 +92,19 @@ import kotlinx.coroutines.delay
  * docs/design-handoff — visual QA is against `day_screen_reference.html`).
  */
 @Composable
-fun DayScreen(state: DayUiState, actions: DayActions) {
+fun DayScreen(
+    state: DayUiState,
+    actions: DayActions,
+    dayEditState: DayEditUiState,
+    dayEditActions: DayEditActions,
+) {
     KeepScreenOn(state.keepScreenOn)
     val accent = dayAccent(state.dayIndex)
     val onAccent = onDayAccent(state.dayIndex)
     val soft = accentSoft(state.dayIndex)
+    // The day-edit sheet (#11) is not a nav route (brief D1): it lives entirely
+    // as local UI state here, sharing this screen's DayViewModel-derived data.
+    var showEditSheet by rememberSaveable { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         if (!state.hasProgram) {
@@ -110,7 +118,7 @@ fun DayScreen(state: DayUiState, actions: DayActions) {
         // the DONE action below); only the exercise cards scroll between them, so
         // navigation and the primary action never scroll out of reach.
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
-            TopBar(state, accent, soft, onAccent, actions)
+            TopBar(state, accent, soft, onAccent, actions, onEditDay = { showEditSheet = true })
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -128,12 +136,28 @@ fun DayScreen(state: DayUiState, actions: DayActions) {
             BottomBar(nextDayId = state.nextDayId, accent = accent, onAccent = onAccent, onDone = actions.onDone)
         }
     }
+
+    if (showEditSheet) {
+        DayEditSheet(
+            state = dayEditState,
+            actions = dayEditActions,
+            accent = accent,
+            onDismiss = { showEditSheet = false },
+        )
+    }
 }
 
 // --- fixed top bar: tabs, settings, keep-screen-on, day title ----------------
 
 @Composable
-private fun TopBar(state: DayUiState, accent: Color, accentSoftColor: Color, onAccent: Color, actions: DayActions) {
+private fun TopBar(
+    state: DayUiState,
+    accent: Color,
+    accentSoftColor: Color,
+    onAccent: Color,
+    actions: DayActions,
+    onEditDay: () -> Unit,
+) {
     Column {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
@@ -159,6 +183,11 @@ private fun TopBar(state: DayUiState, accent: Color, accentSoftColor: Color, onA
                         OverridePill(accent = accent, accentSoftColor = accentSoftColor, suggestedDayId = state.suggestedDayId)
                     }
                 }
+                // Opens the day-edit sheet (#11, spec §8.3: "a gear icon in the
+                // day header"). Distinct glyph from SettingsTab's ⚙ — that tab is
+                // the app-wide Setup destination (brief D2), this one edits only
+                // the day being viewed.
+                EditDayButton(onClick = onEditDay)
                 KeepScreenOnSwitch(
                     checked = state.keepScreenOn,
                     onCheckedChange = actions.onKeepScreenOnChange,
@@ -169,6 +198,20 @@ private fun TopBar(state: DayUiState, accent: Color, accentSoftColor: Color, onA
             }
         }
         Hairline()
+    }
+}
+
+@Composable
+private fun EditDayButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .background(Surface2, RoundedCornerShape(10.dp))
+            .border(1.dp, Border, RoundedCornerShape(10.dp))
+            .clickable(onClickLabel = "Edit day", onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("✎", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp))
     }
 }
 
@@ -716,6 +759,13 @@ private fun DayScreenPreview() {
                 onClearChecks = {},
                 onDone = {},
                 onOpenSettings = {},
+            ),
+            dayEditState = DayEditUiState(),
+            dayEditActions = DayEditActions(
+                onSwap = { _, _ -> },
+                onAdd = {},
+                onRemove = {},
+                onResetToTemplate = {},
             ),
         )
     }

@@ -24,6 +24,7 @@ import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseActions
 import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseScreen
 import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseViewModel
 import io.github.sjtrotter.strengthlog.ui.day.DayActions
+import io.github.sjtrotter.strengthlog.ui.day.DayEditActions
 import io.github.sjtrotter.strengthlog.ui.day.DayScreen
 import io.github.sjtrotter.strengthlog.ui.day.DayViewModel
 import io.github.sjtrotter.strengthlog.ui.setup.SetupActions
@@ -133,6 +134,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
 @Composable
 private fun DayRoute(onOpenSettings: () -> Unit, viewModel: DayViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
     DayScreen(
         state = state,
         actions = DayActions(
@@ -147,6 +149,13 @@ private fun DayRoute(onOpenSettings: () -> Unit, viewModel: DayViewModel = hiltV
             onClearChecks = viewModel::clearChecks,
             onDone = viewModel::completeDay,
             onOpenSettings = onOpenSettings,
+        ),
+        dayEditState = dayEditState,
+        dayEditActions = DayEditActions(
+            onSwap = viewModel::swapDaySlot,
+            onAdd = viewModel::addDaySlot,
+            onRemove = viewModel::removeDaySlot,
+            onResetToTemplate = viewModel::resetDayToTemplate,
         ),
     )
 }

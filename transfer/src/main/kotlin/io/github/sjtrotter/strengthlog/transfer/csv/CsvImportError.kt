@@ -16,6 +16,12 @@ sealed class CsvImportError(message: String, cause: Throwable? = null) : Excepti
     /** The file has a header row (or none at all) but no data rows. */
     class Empty : CsvImportError("CSV file has no data rows")
 
+    /** The CSV grammar is broken — currently: the file ends inside a quoted
+     *  field (odd number of quote characters), which means it's truncated or
+     *  corrupt. */
+    class MalformedCsv(detail: String, cause: Throwable? = null) :
+        CsvImportError("Malformed CSV: $detail", cause)
+
     /** One or more columns this import needs weren't found by header name. */
     class MissingColumns(val missing: List<String>) :
         CsvImportError("Missing required column(s): ${missing.joinToString(", ")}")

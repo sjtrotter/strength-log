@@ -2,6 +2,7 @@ package io.github.sjtrotter.strengthlog.transfer.csv
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 /** RFC 4180 quoting/parsing edge cases (#16): the primitives everything else
  *  in this package is built on. */
@@ -71,5 +72,15 @@ class CsvTest {
     @Test
     fun `empty input parses to no rows`() {
         assertEquals(emptyList(), Csv.parse(""))
+    }
+
+    @Test
+    fun `an unterminated quoted field is rejected instead of swallowing the rest`() {
+        assertFailsWith<Csv.UnterminatedQuote> { Csv.parse("\"open,b\nc,d\n") }
+    }
+
+    @Test
+    fun `a lone trailing quote is unterminated`() {
+        assertFailsWith<Csv.UnterminatedQuote> { Csv.parse("a,b,\"") }
     }
 }

@@ -13,6 +13,7 @@ import io.github.sjtrotter.strengthlog.data.db.entity.WorkoutSessionEntity
 import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
+import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -120,6 +121,50 @@ class CsvHistoryServiceTest {
                 setOf("Barbell Back Squat" to 225.0, "Barbell Bench Press" to 185.0),
                 history.sessionSets.map { it.exerciseName to it.weightLb }.toSet(),
             )
+        } finally {
+            freshDb.close()
+            freshScope.cancel()
+        }
+    }
+
+    @Test
+    fun `kg weights round-trip export to import to export byte-identical`() = runTest {
+        repo.setUnit(WeightUnit.KG)
+        // Canonical storage is lb; these are exactly toLb(100 / 102.5 / 42.5 kg).
+        val kgValues = listOf(100.0, 102.5, 42.5)
+        val sets = kgValues.mapIndexed { index, kg ->
+            SessionSetEntity(0, 0, "bb_back_squat", "Barbell Back Squat", Slot.MAIN, index, SetKind.WORK.name, WeightUnit.KG.toLb(kg), 5, done = true)
+        }
+        repo.importSessionHistory(
+            listOf(ImportedSession(WorkoutSessionEntity(0, "csv:Day KG", "Day KG", null, 1_720_000_000_000L, 0), sets)),
+            emptyList(),
+        )
+
+        val outA = ByteArrayOutputStream()
+        service.exportTo(outA)
+        val csvA = outA.toString(Charsets.UTF_8.name())
+
+        // The kg display values survive the WeightUnit.fromLb SSOT exactly.
+        val rows = Csv.parse(csvA).drop(1)
+        assertEquals(listOf("100", "102.5", "42.5"), rows.map { it[5] })
+        assertTrue(rows.all { it[6] == "kg" })
+
+        // Re-importing that CSV (into a fresh KG device) and re-exporting is
+        // byte-for-byte identical — toLb/fromLb reaches a fixed point, no drift.
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val freshDb = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
+        val freshScope = CoroutineScope(Dispatchers.IO + Job())
+        val freshStore = PreferenceDataStoreFactory.create(scope = freshScope) {
+            File.createTempFile("csv-service-kg-settings", ".preferences_pb")
+        }
+        val freshRepo = TrackerRepository(freshDb, freshDb.programDao(), freshDb.sessionDao(), freshDb.customExerciseDao(), SettingsStore(freshStore))
+        val freshService = CsvHistoryService(freshRepo)
+        try {
+            freshRepo.setUnit(WeightUnit.KG)
+            freshService.commit(freshService.preview(ByteArrayInputStream(csvA.toByteArray())))
+            val outB = ByteArrayOutputStream()
+            freshService.exportTo(outB)
+            assertEquals(csvA, outB.toString(Charsets.UTF_8.name()))
         } finally {
             freshDb.close()
             freshScope.cancel()

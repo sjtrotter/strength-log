@@ -143,4 +143,70 @@ class HistoryCsvReaderTest {
         }
         assertEquals(32, e.maxBytes)
     }
+
+    // --- untrusted-input hardening (PR #48 review) ------------------------------
+
+    @Test
+    fun `a row truncated before its Weight Unit cell is a typed error, not a crash`() {
+        // 6-column header (Weight Unit last); the data row carries only 5 fields.
+        val text = "Date,Workout Name,Exercise Name,Weight,Reps,Weight Unit\n" +
+            "2026-07-01 08:00:00,Day A,Barbell Back Squat,225,5\n"
+        val e = assertFailsWith<CsvImportError.MalformedRow> { HistoryCsvReader.preview(text, catalog, zone) }
+        assertEquals(2, e.line)
+    }
+
+    @Test
+    fun `a leading UTF-8 BOM is stripped so the first header still matches`() {
+        val text = "\uFEFF" + fixture("strong_export.csv")
+        val preview = HistoryCsvReader.preview(text, catalog, zone)
+        assertEquals(2, preview.sessions.size)
+    }
+
+    @Test
+    fun `a negative weight is rejected`() {
+        val text = "Date,Workout Name,Exercise Name,Weight,Weight Unit,Reps\n" +
+            "2026-07-01 08:00:00,Day A,Barbell Back Squat,-5,lb,5\n"
+        assertFailsWith<CsvImportError.MalformedRow> { HistoryCsvReader.preview(text, catalog, zone) }
+    }
+
+    @Test
+    fun `negative reps are rejected`() {
+        val text = "Date,Workout Name,Exercise Name,Weight,Weight Unit,Reps\n" +
+            "2026-07-01 08:00:00,Day A,Barbell Back Squat,225,lb,-3\n"
+        assertFailsWith<CsvImportError.MalformedRow> { HistoryCsvReader.preview(text, catalog, zone) }
+    }
+
+    @Test
+    fun `a non-finite weight is rejected`() {
+        for (bad in listOf("Infinity", "NaN", "1e400")) {
+            val text = "Date,Workout Name,Exercise Name,Weight,Weight Unit,Reps\n" +
+                "2026-07-01 08:00:00,Day A,Barbell Back Squat,$bad,lb,5\n"
+            assertFailsWith<CsvImportError.MalformedRow>("expected '$bad' to be rejected") {
+                HistoryCsvReader.preview(text, catalog, zone)
+            }
+        }
+    }
+
+    @Test
+    fun `cardio and bodyweight rows are skipped or zero-defaulted, not rejected`() {
+        val preview = HistoryCsvReader.preview(fixture("strong_mixed.csv"), catalog, zone)
+
+        assertTrue(preview.isFullyMatched)
+        val dayA = preview.sessions.single { it.dayTitle == "Day A" }
+        // The cardio row (blank weight AND reps) is dropped; the loaded squat and
+        // the blank-weight bodyweight pull-up survive.
+        assertEquals(2, dayA.sets.size)
+        val pullup = dayA.sets.single { it.exerciseName == "Pull-Up / Chin-Up" }
+        assertEquals(0.0, pullup.weightLb, 0.0) // bodyweight → weight defaults to 0
+        assertEquals(8, pullup.reps)
+        val squat = dayA.sets.single { it.exerciseName == "Barbell Back Squat" }
+        assertEquals(225.0, squat.weightLb, 0.001)
+    }
+
+    @Test
+    fun `an unterminated quoted field is surfaced as a typed malformed-CSV error`() {
+        val text = "Date,Workout Name,Exercise Name,Weight,Weight Unit,Reps\n" +
+            "2026-07-01 08:00:00,\"Day A,Barbell Back Squat,225,lb,5\n"
+        assertFailsWith<CsvImportError.MalformedCsv> { HistoryCsvReader.preview(text, catalog, zone) }
+    }
 }

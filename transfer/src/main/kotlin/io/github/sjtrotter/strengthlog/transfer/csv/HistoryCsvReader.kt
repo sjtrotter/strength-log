@@ -25,6 +25,8 @@ import java.time.format.DateTimeParseException
  */
 object HistoryCsvReader {
 
+    private const val BYTE_ORDER_MARK = "\uFEFF"
+
     private val DATE_FORMATS = listOf(
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
         DateTimeFormatter.ISO_LOCAL_DATE_TIME,
@@ -60,7 +62,17 @@ object HistoryCsvReader {
     ): CsvImportPreview {
         if (text.length.toLong() > maxBytes) throw CsvImportError.TooLarge(text.length.toLong(), maxBytes)
 
-        val rows = Csv.parse(text).filterNot { row -> row.all { it.isBlank() } }
+        // A UTF-8 BOM survives trim() (U+FEFF is not whitespace), so an Excel/
+        // Windows re-save would otherwise make the first header ("Date") fail to
+        // match and report a misleading MissingColumns. Strip it once, up front.
+        val content = text.removePrefix(BYTE_ORDER_MARK)
+
+        val parsed = try {
+            Csv.parse(content)
+        } catch (e: Csv.UnterminatedQuote) {
+            throw CsvImportError.MalformedCsv(e.message ?: "ends inside a quoted field", e)
+        }
+        val rows = parsed.filterNot { row -> row.all { it.isBlank() } }
         if (rows.isEmpty()) throw CsvImportError.Empty()
         val header = rows.first()
         val dataRows = rows.drop(1)
@@ -69,7 +81,10 @@ object HistoryCsvReader {
         val columns = mapColumns(header)
         val weightUnitResolver = resolveWeightUnit(header, columns)
 
-        val parsedRows = dataRows.mapIndexed { index, fields ->
+        // Cardio / bodyweight rows (both weight and reps blank) aren't strength
+        // sets we model, so parseRow returns null for them and they're dropped
+        // here rather than rejecting the whole file.
+        val parsedRows = dataRows.mapIndexedNotNull { index, fields ->
             parseRow(fields, line = index + 2, columns = columns, zone = zone, weightUnit = weightUnitResolver)
         }
 
@@ -137,18 +152,40 @@ object HistoryCsvReader {
         val reps: Int,
     )
 
+    /**
+     * Parses one data row, or returns null for a cardio/bodyweight row we don't
+     * model (both weight and reps blank) so the caller drops it without
+     * rejecting the whole file. Every cell is read through [cell]/[rawCell]
+     * ([List.getOrNull]) so a row truncated short of a column it needs surfaces
+     * a typed [CsvImportError.MalformedRow], never a raw IndexOutOfBounds.
+     *
+     * Blank vs. bad are treated differently: a *blank* weight or reps defaults
+     * (0.0 / 0) because a real Strong/Hevy export leaves them blank for
+     * bodyweight/cardio work; a *present but malformed* value (non-numeric,
+     * negative, or non-finite like Infinity/NaN/overflow) rejects the file.
+     */
     private fun parseRow(
         fields: List<String>,
         line: Int,
         columns: Map<HistoryField, Int>,
         zone: ZoneId,
         weightUnit: WeightUnitStrategy,
-    ): ParsedRow {
+    ): ParsedRow? {
+        // A column that mapColumns proved is present, but whose cell this row is
+        // too short to contain, is a ragged row — a typed error, not a crash.
         fun cell(field: HistoryField): String {
             val index = columns.getValue(field)
             return fields.getOrNull(index)?.trim()
-                ?: throw CsvImportError.MalformedRow(line, "missing column ${field.name}")
+                ?: throw CsvImportError.MalformedRow(line, "row is too short for column ${field.name}")
         }
+        // An optional column's cell, absent-or-blank collapsing to "".
+        fun rawCell(field: HistoryField): String =
+            columns[field]?.let { fields.getOrNull(it)?.trim() }.orEmpty()
+
+        val weightText = cell(HistoryField.WEIGHT)
+        val repsText = cell(HistoryField.REPS)
+        // Not a strength set we model — skip, don't reject the file.
+        if (weightText.isBlank() && repsText.isBlank()) return null
 
         val dateText = cell(HistoryField.DATE)
         val completedAt = parseDate(dateText, zone)
@@ -160,23 +197,41 @@ object HistoryCsvReader {
         val exerciseName = cell(HistoryField.EXERCISE_NAME)
         if (exerciseName.isBlank()) throw CsvImportError.MalformedRow(line, "exercise name is blank")
 
-        val setOrder = columns[HistoryField.SET_ORDER]?.let { index ->
-            val raw = fields.getOrNull(index)?.trim().orEmpty()
-            if (raw.isEmpty()) return@let null
-            raw.toIntOrNull()?.minus(1) ?: throw CsvImportError.MalformedRow(line, "unparsable set order '$raw'")
+        val setOrder = rawCell(HistoryField.SET_ORDER).takeIf { it.isNotEmpty() }?.let { raw ->
+            val order = raw.toIntOrNull() ?: throw CsvImportError.MalformedRow(line, "unparsable set order '$raw'")
+            if (order < 1) throw CsvImportError.MalformedRow(line, "set order must be at least 1: '$raw'")
+            order - 1
         }
 
-        val weightText = cell(HistoryField.WEIGHT)
-        val weightDisplay = weightText.toDoubleOrNull()
-            ?: throw CsvImportError.MalformedRow(line, "unparsable weight '$weightText'")
-        val unit = when (weightUnit) {
-            is WeightUnitStrategy.Fixed -> weightUnit.unit
-            is WeightUnitStrategy.PerRow -> parseWeightUnitToken(fields[weightUnit.column], line)
+        val weightLb = if (weightText.isBlank()) {
+            0.0 // bodyweight row: reps present, no external load
+        } else {
+            val display = weightText.toDoubleOrNull()
+                ?: throw CsvImportError.MalformedRow(line, "unparsable weight '$weightText'")
+            if (!display.isFinite() || display < 0) {
+                throw CsvImportError.MalformedRow(line, "weight out of range '$weightText'")
+            }
+            // Only a loaded row needs a unit; a blank-weight (bodyweight) row may
+            // legitimately omit its Weight Unit cell.
+            val unit = when (weightUnit) {
+                is WeightUnitStrategy.Fixed -> weightUnit.unit
+                is WeightUnitStrategy.PerRow -> {
+                    val token = fields.getOrNull(weightUnit.column)?.trim()
+                        ?: throw CsvImportError.MalformedRow(line, "row is too short for its Weight Unit column")
+                    parseWeightUnitToken(token, line)
+                }
+            }
+            unit.toLb(display)
         }
-        val weightLb = unit.toLb(weightDisplay)
 
-        val repsText = cell(HistoryField.REPS)
-        val reps = repsText.toIntOrNull() ?: throw CsvImportError.MalformedRow(line, "unparsable reps '$repsText'")
+        val reps = if (repsText.isBlank()) {
+            0 // cardio-adjacent or unlogged reps default to none
+        } else {
+            val parsed = repsText.toIntOrNull()
+                ?: throw CsvImportError.MalformedRow(line, "unparsable reps '$repsText'")
+            if (parsed < 0) throw CsvImportError.MalformedRow(line, "reps must not be negative: '$repsText'")
+            parsed
+        }
 
         return ParsedRow(completedAt, dayTitle, exerciseName, setOrder, weightLb, reps)
     }
@@ -195,6 +250,12 @@ object HistoryCsvReader {
     // --- grouping & matching -------------------------------------------------
 
     private fun groupIntoSessions(rows: List<ParsedRow>): List<PreviewSession> {
+        // Rows group by (completedAt, workout name). The date carries only
+        // second precision (Strong's "yyyy-MM-dd HH:mm:ss") — deliberately, to
+        // stay byte-compatible with Strong on re-export. The only ambiguity that
+        // buys is two *distinct* workouts with the same title starting in the
+        // same second, which merges them; that's negligible in practice and a
+        // fair trade for interchange fidelity.
         val groups = LinkedHashMap<Pair<Long, String>, MutableList<ParsedRow>>()
         for (row in rows) {
             groups.getOrPut(row.completedAt to row.dayTitle) { mutableListOf() }.add(row)

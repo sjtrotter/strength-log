@@ -79,7 +79,16 @@ object Csv {
             }
             i++
         }
+        // A field left open at EOF means the file has an odd number of quotes —
+        // a corrupt or truncated upload, not a valid CSV. Fail loudly rather
+        // than silently swallowing the rest of the file into one giant field.
+        if (inQuotes) throw UnterminatedQuote("CSV ends inside a quoted field")
         if (pending) endRow()
         return rows
     }
+
+    /** Thrown by [parse] when the input ends mid-quote. The import layer
+     *  translates this into a typed [CsvImportError] at its untrusted-input
+     *  boundary. */
+    class UnterminatedQuote(message: String) : Exception(message)
 }

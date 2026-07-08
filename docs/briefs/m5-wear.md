@@ -51,6 +51,12 @@ never computes derived sets. One-tick-per-round applies on the watch UI, sent
 as a single `done` delta on the primary row (phone ticks both tracks —
 same paired-atomic repo path as the day screen).
 
+Serialization (#20 must honor): decode both DTOs with
+`Json { ignoreUnknownKeys = true }` on the transport, so a bump to
+`schemaVersion` that adds a field doesn't break an older reader — the DTOs
+carry the version but the leniency lives in the decoder. (#19 defined the
+DTOs; the DTOs alone can't enforce this.)
+
 ## #19 Wear OS app UI (tier:sonnet)
 
 - Compose for Wear + Horologist (version catalog; check current stable).

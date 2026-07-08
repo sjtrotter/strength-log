@@ -105,5 +105,3 @@ class WatchUiModelsTest {
         assertEquals(WeightUnit.LB, watchUnit("garbage"))
     }
 }
-
-private fun assertFalse(actual: Boolean) = kotlin.test.assertFalse(actual)

@@ -1,6 +1,25 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
+      Health Connect permissions (#17, PLAN.md A3). These are on-device IPC
+      permissions granted through the Health Connect provider — NOT INTERNET
+      (the app still declares no android.permission.INTERNET, so the local-first
+      promise holds). Requested lazily and individually at runtime from the Log
+      screen; the app is fully functional with any or none of them granted.
+    -->
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_WEIGHT" />
+
+    <!--
+      Lets HealthConnectClient.getSdkStatus see the Health Connect provider on
+      API 30+ package-visibility. No launch, no data — just availability.
+    -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+
+    <!--
       Auto Backup (allowBackup): opts into Google One cloud backup and
       device-to-device transfer for the Room DB + DataStore prefs, at no
       engineering cost. It's a free ride on top of, not a replacement for,
@@ -28,6 +47,34 @@
         <activity
             android:name=".MainActivity"
             android:exported="false" />
+
+        <!--
+          Health Connect's mandatory permissions-rationale target (#17). The
+          provider launches this to explain why the app requests health
+          permissions. Exported (it has to be launchable by the Health Connect
+          provider) but inert: it shows a static, on-device rationale screen and
+          reads no data. Two filters cover both eras — the pre-14 provider APK
+          fires SHOW_PERMISSIONS_RATIONALE; platform Health Connect (API 34+)
+          fires VIEW_PERMISSION_USAGE with the HEALTH_PERMISSIONS category. The
+          full privacy-policy page is #23's job.
+        -->
+        <activity
+            android:name=".health.HealthRationaleActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.connect.action.SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+        <activity-alias
+            android:name=".health.ViewPermissionUsageActivity"
+            android:targetActivity=".health.HealthRationaleActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
 
         <!--
           Day-swapping launcher icon (#22): one alias per rotation day, one

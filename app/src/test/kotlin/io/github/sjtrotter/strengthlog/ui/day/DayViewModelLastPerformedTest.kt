@@ -12,6 +12,7 @@ import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
 import io.github.sjtrotter.strengthlog.domain.model.Program
 import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
+import io.github.sjtrotter.strengthlog.transfer.health.SessionPublisher
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -85,7 +86,7 @@ class DayViewModelLastPerformedTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, handle).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, handle).also { vms += it }
 
     private suspend fun insertSingleDayProgram() {
         repo.replaceProgram(

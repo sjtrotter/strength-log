@@ -270,6 +270,10 @@ open class TrackerRepository(
      *  (#14) — not part of [sessionSummariesFlow] because most rows stay collapsed. */
     suspend fun sessionSets(sessionId: Long): List<SessionSetEntity> = sessionDao.setsForSession(sessionId)
 
+    /** One session header by id (#17): the Health Connect publish path pairs this
+     *  with [sessionSets] to build the exported record. */
+    suspend fun session(sessionId: Long): WorkoutSessionEntity? = sessionDao.sessionById(sessionId)
+
     /**
      * Batches the A1 "last time" chip for a whole day into one query (#14):
      * [exerciseIds]' most recent completed performance, keyed by exercise id. An
@@ -289,11 +293,16 @@ open class TrackerRepository(
      * Takes the completed day id because the user may have completed a manually
      * overridden day, not the suggested one; the spec's bare `advanceDay()` can't
      * express that.
+     *
+     * Returns the id of the session row it just appended, so the caller can hand
+     * it to a [SessionPublisher] (#17, D7 trigger point) without re-querying for
+     * "the latest session" and racing a second completion.
      */
-    suspend fun advanceDay(completedDayId: String) {
+    suspend fun advanceDay(completedDayId: String): Long {
         val bodyweight = settings.configFlow.first().bodyweightLb
         val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
         var next: String? = null
+        var newSessionId = 0L
         db.withTransaction {
             val days = programDao.allDays()
             val exercises = programDao.allExercises()
@@ -311,6 +320,7 @@ open class TrackerRepository(
                     bodyweightLb = bodyweight,
                 ),
             )
+            newSessionId = sessionId
             val sessionSets = logs.flatMap { log ->
                 val pe = slotsById[log.programExerciseId] ?: return@flatMap emptyList()
                 val exerciseId = if (log.slot == Slot.SS) pe.supersetExerciseId else pe.exerciseId
@@ -341,6 +351,7 @@ open class TrackerRepository(
             }
         }
         next?.let { settings.setSuggestedDay(it) }
+        return newSessionId
     }
 
     // --- full backup (A2) ----------------------------------------------------

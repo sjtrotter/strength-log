@@ -81,6 +81,12 @@ dependencies {
 
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Health Connect client, test-only: the LogViewModel wiring test constructs
+    // a HealthConnectReader over a null provider (no HC under Robolectric), which
+    // references the client type. App *main* still declares no connect-client
+    // dependency and imports no androidx.health type — the seams in :transfer
+    // keep it off the production classpath (#17).
+    testImplementation(libs.androidx.health.connect.client)
     // Robolectric (JUnit4, run via the vintage engine under the JUnit platform)
     // for ViewModel wiring tests against a real in-memory Room DB.
     testImplementation(libs.robolectric)

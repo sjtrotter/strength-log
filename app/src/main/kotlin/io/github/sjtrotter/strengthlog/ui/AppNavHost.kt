@@ -259,12 +259,28 @@ private fun BackupRoute(onBack: () -> Unit, viewModel: BackupViewModel = hiltVie
     )
 }
 
+/**
+ * Owns the Health Connect permission launcher (#17). The request contract and
+ * the permission set come from [LogViewModel] (which delegates to the reader),
+ * so `:app` drives the lazy, user-initiated request without importing any
+ * androidx.health type. On any result — granted or denied — the ViewModel
+ * re-reads Health Connect; a denial simply leaves the section empty (A3).
+ */
 @Composable
 private fun LogRoute(onBack: () -> Unit, viewModel: LogViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val permissionLauncher = rememberLauncherForActivityResult(remember { viewModel.permissionContract() }) {
+        viewModel.refreshHealth()
+    }
     LogScreen(
         state = state,
-        actions = LogActions(onBack = onBack, onToggleExpanded = viewModel::toggleExpanded),
+        actions = LogActions(
+            onBack = onBack,
+            onToggleExpanded = viewModel::toggleExpanded,
+            onConnectHealth = { permissionLauncher.launch(viewModel.requestedPermissions) },
+            onApplyBodyweight = viewModel::applyBodyweightPrompt,
+            onDismissBodyweight = viewModel::dismissBodyweightPrompt,
+        ),
     )
 }
 

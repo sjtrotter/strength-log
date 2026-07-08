@@ -54,6 +54,11 @@ interface SessionDao {
     @Query("SELECT * FROM session_set WHERE sessionId = :sessionId ORDER BY id")
     suspend fun setsForSession(sessionId: Long): List<SessionSetEntity>
 
+    /** One session by id, for the Health Connect publish path (#17) — the session
+     *  header (dayTitle, start/end times) that pairs with [setsForSession]. */
+    @Query("SELECT * FROM workout_session WHERE id = :sessionId")
+    suspend fun sessionById(sessionId: Long): WorkoutSessionEntity?
+
     /**
      * Every completed ([SessionSetEntity.done]) set ever logged for any of
      * [exerciseIds], newest session first (ties — i.e. rows from the same

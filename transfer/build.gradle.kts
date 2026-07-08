@@ -35,6 +35,14 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
 
+    // Health Connect write/read client (#17, PLAN.md A3). On-device IPC only —
+    // it adds no network permission. Kept an `implementation` dependency so the
+    // androidx.health types never leak into :app's classpath: :app talks to the
+    // SessionPublisher / HealthConnectReader seams this module exposes, and the
+    // one androidx type it must hold (the permission-request ActivityResultContract)
+    // comes back through a plain androidx.activity return type.
+    implementation(libs.androidx.health.connect.client)
+
     testImplementation(libs.kotlin.test.junit5)
 
     // Robolectric (JUnit4, run via the vintage engine under the JUnit platform),

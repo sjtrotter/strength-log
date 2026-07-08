@@ -13,19 +13,113 @@
     <application
         android:name=".StrengthLogApp"
         android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher_day_a"
+        android:roundIcon="@mipmap/ic_launcher_day_a"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules">
 
+        <!--
+          MainActivity is never launched directly — only through one of the
+          Launcher_Day* aliases below, which is what carries the LAUNCHER
+          intent-filter and the day-specific icon. Unexported so there's no
+          second, iconless path into the app.
+        -->
         <activity
             android:name=".MainActivity"
+            android:exported="false" />
+
+        <!--
+          Day-swapping launcher icon (#22): one alias per rotation day, one
+          icon each. DayIconManager enables the alias for the current
+          suggested day and disables the rest via PackageManager component
+          toggling — no new permission, no network. Day A ships enabled so a
+          fresh install always shows exactly one icon.
+        -->
+        <activity-alias
+            android:name=".Launcher_DayA"
+            android:targetActivity=".MainActivity"
+            android:enabled="true"
             android:exported="true"
-            android:label="@string/app_name">
+            android:icon="@mipmap/ic_launcher_day_a"
+            android:roundIcon="@mipmap/ic_launcher_day_a">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+        <activity-alias
+            android:name=".Launcher_DayB"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_day_b"
+            android:roundIcon="@mipmap/ic_launcher_day_b">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Launcher_DayC"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_day_c"
+            android:roundIcon="@mipmap/ic_launcher_day_c">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Launcher_DayD"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_day_d"
+            android:roundIcon="@mipmap/ic_launcher_day_d">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Launcher_DayE"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_day_e"
+            android:roundIcon="@mipmap/ic_launcher_day_e">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Launcher_DayF"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_day_f"
+            android:roundIcon="@mipmap/ic_launcher_day_f">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Launcher_DayG"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_day_g"
+            android:roundIcon="@mipmap/ic_launcher_day_g">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
     </application>
 
 </manifest>

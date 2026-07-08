@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher day-icon accents (#22). A-D are the pinned in-app brand accents;
+         E-G extend the rotation for 5-7 day plans. Every day's barbell renders in
+         on_day_X, which is off-white except day C (goldenrod), which flips to
+         near-black for contrast — see docs/briefs and the icon design handoff. -->
+    <color name="day_a">#C1440E</color>
+    <color name="on_day_a">#F2F2F0</color>
+    <color name="day_b">#2D5A3D</color>
+    <color name="on_day_b">#F2F2F0</color>
+    <color name="day_c">#B8860B</color>
+    <color name="on_day_c">#0D0D0F</color>
+    <color name="day_d">#1F4E5F</color>
+    <color name="on_day_d">#F2F2F0</color>
+    <color name="day_e">#3C4E78</color>
+    <color name="on_day_e">#F2F2F0</color>
+    <color name="day_f">#8B4356</color>
+    <color name="on_day_f">#F2F2F0</color>
+    <color name="day_g">#6B6A2C</color>
+    <color name="on_day_g">#F2F2F0</color>
+</resources>

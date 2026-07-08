@@ -17,13 +17,22 @@ import java.time.ZoneId
  *
  * One STRENGTH_TRAINING session carries one [ExerciseSegment] per distinct
  * exercise, in first-performed order, each segment's `repetitions` the sum of
- * that exercise's rep counts across its sets — the same "group by exercise"
- * shape the Log screen shows. We don't record per-set timestamps, so the
- * segments evenly partition the session window; the window itself is the stored
- * `startedAt`..`completedAt`, or a synthesized lead-in when `startedAt` is null
- * (history rows created by `advanceDay` carry no start time).
+ * that exercise's rep counts across its **done** sets only — this record lands
+ * in the user's shared health history, so unchecked seeded sets (which
+ * `advanceDay` still persists to local history) must never inflate it. An
+ * exercise with no done sets keeps its segment at 0 reps. We don't record
+ * per-set timestamps, so the segments evenly partition the session window; the
+ * window itself is the stored `startedAt`..`completedAt`, or a synthesized
+ * lead-in when `startedAt` is null (history rows carry no start time).
+ *
+ * A whole session with nothing checked off represents no performed work — the
+ * publisher skips it rather than writing an all-zero record.
  */
 object SessionRecordMapper {
+
+    /** A stable client record id so a retry/re-publish updates rather than
+     *  duplicates the Health Connect entry (idempotency). */
+    fun clientRecordId(sessionId: Long): String = "strengthlog-session-$sessionId"
 
     /** Nominal per-exercise duration used to synthesize a session window when the
      *  session has no recorded start, and to guarantee every segment spans at
@@ -35,9 +44,11 @@ object SessionRecordMapper {
         sets: List<SessionSetEntity>,
         zone: ZoneId = ZoneId.systemDefault(),
     ): ExerciseSessionRecord {
+        // Group by exercise (first-performed order), but only done sets add reps —
+        // an exercise the user never checked off contributes a 0-rep segment.
         val repsByExercise = LinkedHashMap<String, Int>()
         for (set in sets) {
-            repsByExercise[set.exerciseId] = (repsByExercise[set.exerciseId] ?: 0) + set.reps
+            repsByExercise[set.exerciseId] = (repsByExercise[set.exerciseId] ?: 0) + (if (set.done) set.reps else 0)
         }
         val exerciseCount = repsByExercise.size
 
@@ -74,7 +85,7 @@ object SessionRecordMapper {
             exerciseType = ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING,
             title = session.dayTitle,
             segments = segments,
-            metadata = Metadata.manualEntry(),
+            metadata = Metadata.manualEntry(clientRecordId(session.id)),
         )
     }
 }

@@ -98,20 +98,25 @@ class LogViewModel @Inject constructor(
 
     val requestedPermissions: Set<String> get() = healthReader.requestedPermissions
 
-    /** Re-reads Health Connect after a permission result (or on first open). */
+    /** Re-reads Health Connect after a permission result (or on first open). The
+     *  reader is already degrade-safe; this extra guard means even an unexpected
+     *  provider failure can only leave the section empty, never crash the Log
+     *  screen (A3). */
     fun refreshHealth() {
         viewModelScope.launch {
-            if (!healthReader.isAvailable()) {
-                healthData.value = HealthData(available = false)
-                return@launch
-            }
-            val granted = healthReader.grantedPermissions()
-            healthData.value = HealthData(
-                available = true,
-                connected = granted.isNotEmpty(),
-                externalSessions = ExternalSessionFormatter.format(healthReader.externalWorkouts()),
-                latestWeightLb = healthReader.latestBodyweightLb(),
-            )
+            healthData.value = runCatching {
+                if (!healthReader.isAvailable()) {
+                    HealthData(available = false)
+                } else {
+                    val granted = healthReader.grantedPermissions()
+                    HealthData(
+                        available = true,
+                        connected = granted.isNotEmpty(),
+                        externalSessions = ExternalSessionFormatter.format(healthReader.externalWorkouts()),
+                        latestWeightLb = healthReader.latestBodyweightLb(),
+                    )
+                }
+            }.getOrDefault(HealthData())
         }
     }
 

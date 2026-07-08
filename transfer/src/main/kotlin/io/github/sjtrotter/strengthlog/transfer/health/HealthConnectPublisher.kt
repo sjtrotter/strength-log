@@ -28,7 +28,9 @@ class HealthConnectPublisher(
 
             val session = repository.session(sessionId) ?: return
             val sets = repository.sessionSets(sessionId)
-            if (sets.isEmpty()) return
+            // Nothing checked off means nothing was performed — don't write an
+            // empty/all-zero session into the user's shared health record.
+            if (sets.none { it.done }) return
 
             val record = SessionRecordMapper.toExerciseSession(session, sets, zone)
             client.insertRecords(listOf(record))

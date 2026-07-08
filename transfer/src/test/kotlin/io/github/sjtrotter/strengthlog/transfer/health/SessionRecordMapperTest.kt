@@ -31,9 +31,9 @@ class SessionRecordMapperTest {
         startedAt = startedAt, completedAt = completedAt, bodyweightLb = 180,
     )
 
-    private fun set(exerciseId: String, reps: Int, slot: String = Slot.MAIN) = SessionSetEntity(
+    private fun set(exerciseId: String, reps: Int, slot: String = Slot.MAIN, done: Boolean = true) = SessionSetEntity(
         id = 0, sessionId = 1, exerciseId = exerciseId, exerciseName = exerciseId, slot = slot,
-        setIndex = 0, kind = SetKind.WORK.name, weightLb = 100.0, reps = reps, done = true,
+        setIndex = 0, kind = SetKind.WORK.name, weightLb = 100.0, reps = reps, done = done,
     )
 
     @Test
@@ -65,6 +65,27 @@ class SessionRecordMapperTest {
         assertEquals(13, record.segments[0].repetitions) // 5+5+3
         assertEquals(20, record.segments[1].repetitions) // 10+10
         assertTrue(record.segments.all { it.segmentType == ExerciseSegment.EXERCISE_SEGMENT_TYPE_UNKNOWN })
+    }
+
+    @Test
+    fun onlyDoneSetsCountTowardReps() {
+        val record = SessionRecordMapper.toExerciseSession(
+            session(startedAt = null, completedAt = 2_000_000L),
+            listOf(
+                set("bb_back_squat", 5, done = true),
+                set("bb_back_squat", 8, done = false), // an unchecked seeded set: excluded
+                set("seated_leg_curl", 10, done = false), // fully unchecked exercise: 0-rep segment kept
+            ),
+            zone,
+        )
+        assertEquals(2, record.segments.size)
+        assertEquals(5, record.segments[0].repetitions) // only the done squat set
+        assertEquals(0, record.segments[1].repetitions) // curl never checked off
+    }
+
+    @Test
+    fun clientRecordIdIsStablePerSession() {
+        assertEquals("strengthlog-session-42", SessionRecordMapper.clientRecordId(42L))
     }
 
     @Test

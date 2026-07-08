@@ -81,9 +81,9 @@ class HealthConnectPublisherTest {
         id = 0, dayId = "A", dayTitle = "Lower", startedAt = null, completedAt = 10_000L, bodyweightLb = 180,
     )
 
-    private fun set(exerciseId: String) = SessionSetEntity(
+    private fun set(exerciseId: String, done: Boolean = true) = SessionSetEntity(
         id = 0, sessionId = 0, exerciseId = exerciseId, exerciseName = exerciseId, slot = Slot.MAIN,
-        setIndex = 0, kind = SetKind.WORK.name, weightLb = 100.0, reps = 8, done = true,
+        setIndex = 0, kind = SetKind.WORK.name, weightLb = 100.0, reps = 8, done = done,
     )
 
     private fun publisher(client: FakeHealthConnectClient?) =
@@ -118,6 +118,16 @@ class HealthConnectPublisherTest {
     @Test
     fun emptySession_doesNotInsert() = runTest {
         val id = seedSession(sets = emptyList())
+        val client = FakeHealthConnectClient(grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE))
+        publisher(client).publish(id)
+        assertEquals(0, client.insertCallCount)
+    }
+
+    @Test
+    fun allUndoneSession_doesNotInsert() = runTest {
+        // Sets exist but nothing was checked off — nothing was performed, so the
+        // session must not be written to the user's shared health record.
+        val id = seedSession(listOf(set("bb_back_squat", done = false), set("bb_bench", done = false)))
         val client = FakeHealthConnectClient(grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE))
         publisher(client).publish(id)
         assertEquals(0, client.insertCallCount)

@@ -34,8 +34,9 @@ class HealthConnectReader(
     fun permissionRequestContract(): ActivityResultContract<Set<String>, Set<String>> =
         PermissionController.createRequestPermissionResultContract()
 
-    /** True when a Health Connect provider is installed and usable. */
-    fun isAvailable(): Boolean = clientProvider.get() != null
+    /** True when a Health Connect provider is installed and usable. Any provider
+     *  exception (e.g. a throwing getSdkStatus) degrades to "unavailable" (A3). */
+    fun isAvailable(): Boolean = runCatching { clientProvider.get() != null }.getOrDefault(false)
 
     /** Which of [requestedPermissions] are currently granted (empty on any error). */
     suspend fun grantedPermissions(): Set<String> =
@@ -45,56 +46,63 @@ class HealthConnectReader(
     /**
      * Other apps' STRENGTH_TRAINING sessions from the last [LOOKBACK_DAYS] days,
      * our own writes excluded. Empty when the read permission isn't granted, the
-     * provider is absent, or the call fails.
+     * provider is absent, or anything at all fails — the whole body, including
+     * acquiring the client, is inside the swallow so nothing reaches the UI (A3).
      */
-    suspend fun externalWorkouts(): List<ExternalWorkout> {
-        val client = client() ?: return emptyList()
-        if (HealthConnectPermissions.READ_EXERCISE !in grantedPermissions()) return emptyList()
-        return runCatching {
-            val response = client.readRecords(
-                ReadRecordsRequest(
-                    recordType = ExerciseSessionRecord::class,
-                    timeRangeFilter = TimeRangeFilter.after(Instant.now().minus(LOOKBACK_DAYS, ChronoUnit.DAYS)),
-                ),
-            )
-            response.records
-                .filter { it.exerciseType == ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING }
-                .filter { it.metadata.dataOrigin.packageName != ownPackageName }
-                .map {
-                    ExternalWorkout(
-                        title = it.title,
-                        startMillis = it.startTime.toEpochMilli(),
-                        endMillis = it.endTime.toEpochMilli(),
-                        sourcePackage = it.metadata.dataOrigin.packageName,
-                    )
-                }
-        }.getOrDefault(emptyList())
-    }
+    suspend fun externalWorkouts(): List<ExternalWorkout> = runCatching {
+        val client = client() ?: return@runCatching emptyList()
+        if (HealthConnectPermissions.READ_EXERCISE !in grantedPermissions()) return@runCatching emptyList()
+        val response = client.readRecords(
+            ReadRecordsRequest(
+                recordType = ExerciseSessionRecord::class,
+                timeRangeFilter = TimeRangeFilter.after(Instant.now().minus(LOOKBACK_DAYS, ChronoUnit.DAYS)),
+            ),
+        )
+        response.records
+            .filter { it.exerciseType == ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING }
+            .filter { it.metadata.dataOrigin.packageName != ownPackageName }
+            .map {
+                ExternalWorkout(
+                    title = it.title,
+                    startMillis = it.startTime.toEpochMilli(),
+                    endMillis = it.endTime.toEpochMilli(),
+                    sourcePackage = it.metadata.dataOrigin.packageName,
+                )
+            }
+    }.getOrDefault(emptyList())
 
     /**
      * The latest bodyweight in canonical pounds, or null when the read permission
-     * isn't granted, no weight is recorded, the provider is absent, or the call
-     * fails.
+     * isn't granted, no weight is recorded, the provider is absent, or anything
+     * at all fails — the whole body, including acquiring the client, is inside
+     * the swallow so nothing reaches the UI (A3).
      */
-    suspend fun latestBodyweightLb(): Double? {
-        val client = client() ?: return null
-        if (HealthConnectPermissions.READ_WEIGHT !in grantedPermissions()) return null
-        return runCatching {
-            val response = client.readRecords(
-                ReadRecordsRequest(
-                    recordType = WeightRecord::class,
-                    timeRangeFilter = TimeRangeFilter.after(Instant.now().minus(LOOKBACK_DAYS, ChronoUnit.DAYS)),
-                    ascendingOrder = false,
-                    pageSize = 1,
-                ),
-            )
-            response.records.firstOrNull()?.weight?.inPounds
-        }.getOrNull()
-    }
+    suspend fun latestBodyweightLb(): Double? = runCatching {
+        val client = client() ?: return@runCatching null
+        if (HealthConnectPermissions.READ_WEIGHT !in grantedPermissions()) return@runCatching null
+        val response = client.readRecords(
+            ReadRecordsRequest(
+                recordType = WeightRecord::class,
+                timeRangeFilter = TimeRangeFilter.after(Instant.now().minus(LOOKBACK_DAYS, ChronoUnit.DAYS)),
+                ascendingOrder = false,
+                pageSize = 1,
+            ),
+        )
+        response.records.firstOrNull()?.weight?.inPounds
+    }.getOrNull()
 
     private fun client() = clientProvider.get()
 
-    private companion object {
-        const val LOOKBACK_DAYS = 365L
+    companion object {
+        private const val LOOKBACK_DAYS = 365L
+
+        /**
+         * A reader with no provider: every read degrades to empty and
+         * [isAvailable] is false. For callers that must supply a reader on a
+         * platform without Health Connect — notably JVM/Robolectric ViewModel
+         * tests, which then need no androidx.health reference of their own.
+         */
+        fun unavailable(ownPackageName: String = "unavailable"): HealthConnectReader =
+            HealthConnectReader({ null }, ownPackageName)
     }
 }

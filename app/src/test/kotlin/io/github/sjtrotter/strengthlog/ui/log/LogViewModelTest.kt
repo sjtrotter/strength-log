@@ -14,7 +14,6 @@ import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.data.db.entity.WorkoutSessionEntity
 import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
-import io.github.sjtrotter.strengthlog.transfer.health.HealthConnectClientProvider
 import io.github.sjtrotter.strengthlog.transfer.health.HealthConnectReader
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -89,9 +88,10 @@ class LogViewModelTest {
 
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
-    // No Health Connect provider under Robolectric — a null-provider reader makes
-    // every HC read a degrade-safe empty, isolating these tests to own-history.
-    private val healthReader = HealthConnectReader(HealthConnectClientProvider { null }, ownPackageName = "test")
+    // No Health Connect provider under Robolectric — the null-object reader makes
+    // every HC read a degrade-safe empty, isolating these tests to own-history
+    // (and keeping androidx.health entirely out of :app's test classpath).
+    private val healthReader = HealthConnectReader.unavailable()
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): LogViewModel =
         LogViewModel(repo, healthReader, handle).also { vms += it }

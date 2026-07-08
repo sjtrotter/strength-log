@@ -94,6 +94,25 @@ object ProgramGenerator {
         }
     }
 
+    /**
+     * The anchor ids that actually rotate for [a] (spec §6.1 step 4: "for
+     * 2–3-day splits only the first N anchors are used in rotation"). Only the
+     * full-body split narrows — and only when the day count is at or below the
+     * anchor count; every other split assigns anchors by pattern match, not by
+     * position, so its whole anchor set stays active. This is the SSOT
+     * [fullBodyDay] builds its rotation from and the wizard's anchor-step
+     * preview reads, so the preview can never disagree with the generated
+     * program (SSOT — the narrowing rule lives in exactly one place).
+     */
+    fun activeAnchorIds(a: WizardAnswers): List<String> {
+        val anchors = anchorIds(a)
+        return if (a.split == SplitTemplate.FULL_BODY && a.daysPerWeek <= anchors.size) {
+            anchors.take(a.daysPerWeek)
+        } else {
+            anchors
+        }
+    }
+
     private fun anchorFor(pattern: MovementPattern, anchors: List<String>): String? =
         anchors.firstOrNull { ExerciseLibrary.get(it).pattern == pattern }
 
@@ -107,7 +126,7 @@ object ProgramGenerator {
         anchors: List<String>,
         answers: WizardAnswers,
     ): ProgramDay = when (kind) {
-        DayKind.FULL_BODY -> fullBodyDay(id, dayIndex, anchors, answers)
+        DayKind.FULL_BODY -> fullBodyDay(id, dayIndex, answers)
         DayKind.UPPER -> upperDay(id, dayIndex, occ, anchors, answers)
         DayKind.LOWER -> lowerDay(id, dayIndex, occ, anchors, answers)
         DayKind.PUSH -> pushDay(id, dayIndex, answers)
@@ -120,16 +139,13 @@ object ProgramGenerator {
     private fun fullBodyDay(
         id: String,
         i: Int,
-        anchors: List<String>,
         answers: WizardAnswers,
     ): ProgramDay {
         val equip = answers.equipment
         // 2–3 day splits use only the first N anchors; longer cycles reuse them.
-        val used = if (answers.daysPerWeek <= anchors.size) {
-            anchors.take(answers.daysPerWeek)
-        } else {
-            anchors
-        }
+        // The narrowing rule itself lives in [activeAnchorIds] (SSOT with the
+        // wizard preview).
+        val used = activeAnchorIds(answers)
         val anchorId = used[i % used.size]
         val mainPattern = ExerciseLibrary.get(anchorId).pattern
         val lowerMain = mainPattern in LEG_MAIN_PATTERNS

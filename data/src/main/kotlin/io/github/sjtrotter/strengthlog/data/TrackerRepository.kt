@@ -45,8 +45,12 @@ import kotlinx.coroutines.flow.map
  *
  * "Today" for the daily checkmark reset is the device-local date via [clock]
  * (injectable for tests).
+ *
+ * `open` only to allow a recording subclass in tests to assert the ordering of
+ * cross-store mutations (e.g. wizard finish writes the program before the
+ * completion flag); the public surface is unchanged.
  */
-class TrackerRepository(
+open class TrackerRepository(
     private val db: StrengthDatabase,
     private val programDao: ProgramDao,
     private val sessionDao: SessionDao,
@@ -78,13 +82,13 @@ class TrackerRepository(
         settings.setUnit(unit)
     }
 
-    suspend fun setWizardComplete(complete: Boolean) {
+    open suspend fun setWizardComplete(complete: Boolean) {
         settings.setWizardComplete(complete)
     }
 
     /** Persists the wizard inputs so a single day can later be regenerated
      *  ([resetDayToTemplate]) and the setup screen can re-run the wizard. */
-    suspend fun setWizardAnswers(answers: WizardAnswers) {
+    open suspend fun setWizardAnswers(answers: WizardAnswers) {
         settings.setWizardAnswers(answers)
     }
 
@@ -124,7 +128,7 @@ class TrackerRepository(
     /** Full replace with the wizard's generated program (spec §7). Also points the
      *  rotation at the first day. Destructive: old program and live logs are
      *  cleared (history in `workout_session` is untouched). */
-    suspend fun replaceProgram(program: Program) {
+    open suspend fun replaceProgram(program: Program) {
         db.withTransaction {
             programDao.deleteAllLogs()
             programDao.deleteAllExercises()

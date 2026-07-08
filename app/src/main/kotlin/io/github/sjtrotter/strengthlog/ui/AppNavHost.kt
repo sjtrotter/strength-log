@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
 
 /**
  * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / re-run)
@@ -45,11 +47,19 @@ object Routes {
  * yet" — [AppNavHost] renders nothing but the app background until then, so
  * the graph is never built with the wrong start destination and then
  * re-navigated (no flicker-navigation after compose).
+ *
+ * [take] latches the *first* resolved value: this is only the initial
+ * screen, and after that explicit navigation drives every transition. Without
+ * the latch, first-run finish() flipping wizardComplete false→true would
+ * rebuild the NavHost with a new start destination (resetting the back stack)
+ * at the same instant [WizardRoute] explicitly navigates to the day screen —
+ * the double-navigation D1 warns against.
  */
 @HiltViewModel
 class StartDestinationViewModel @Inject constructor(repo: TrackerRepository) : ViewModel() {
     val startDestination: StateFlow<String?> = repo.wizardCompleteFlow
         .map { complete -> if (complete) Routes.DAY else Routes.WIZARD }
+        .take(1)
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 }
 
@@ -105,6 +115,10 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) onFinished()
     }
+    // System back steps the wizard backward; on the first step it's disabled so
+    // back falls through (exiting a fresh install is fine — the draft is in
+    // SavedStateHandle either way).
+    BackHandler(enabled = !state.isFirstStep) { viewModel.onBack() }
     WizardScreen(
         state = state,
         actions = WizardActions(

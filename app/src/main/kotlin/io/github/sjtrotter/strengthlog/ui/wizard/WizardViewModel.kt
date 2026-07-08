@@ -230,14 +230,27 @@ class WizardViewModel @Inject constructor(
 
     // --- finish --------------------------------------------------------------
 
-    /** Persists the answers, marks the wizard complete, generates the program
-     *  via `:domain`, and replaces it (spec §6, D3: the only program creator). */
+    /**
+     * Persists the answers, generates the program via `:domain`, replaces it,
+     * and only then marks the wizard complete (spec §6, D3: the only program
+     * creator).
+     *
+     * Write order is crash-safety, not cosmetics. `wizardComplete=true` is what
+     * routes the app to the day screen (D1); if it were set before
+     * [TrackerRepository.replaceProgram], a process death in the gap would
+     * strand the app on an empty program — the day screen would show
+     * "Preparing your program…" forever, and with the #10 bootstrap deleted
+     * (D3) and Setup (#12) not yet built there is no in-app recovery. Setting
+     * it last means a crash before it simply re-runs the wizard (the draft
+     * survives in [SavedStateHandle]). Mirrors [TrackerRepository.importSnapshot]'s
+     * own write-before-flag ordering.
+     */
     private fun finish() {
         viewModelScope.launch {
             val answers = currentAnswers()
             repo.setWizardAnswers(answers)
-            repo.setWizardComplete(true)
             repo.replaceProgram(ProgramGenerator.generate(answers).program)
+            repo.setWizardComplete(true)
             isComplete.value = true
         }
     }

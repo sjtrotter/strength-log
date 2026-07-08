@@ -52,45 +52,25 @@ class WizardStateBuilderTest {
         assertTrue(state.isLastStep)
     }
 
-    // --- anchor-set narrowing (spec §6.1: 2-3 day splits use only the first N) --
+    // --- anchor-set narrowing surfaces the :domain SSOT (spec §6.1) -----------
+    // The narrowing rule itself is proven in ProgramGeneratorAnchorsTest (the one
+    // place it lives now); here we only assert the wizard state exposes exactly
+    // that helper's output, so preview and generated program can't drift.
 
     @Test
-    fun activeAnchorIds_narrows_to_two_for_a_two_day_full_body_split() {
-        val answers = WizardAnswers(daysPerWeek = 2, split = SplitTemplate.FULL_BODY)
-        val expected = ProgramGenerator.anchorIds(answers).take(2)
-        assertEquals(expected, WizardStateBuilder.activeAnchorIds(answers))
-    }
-
-    @Test
-    fun activeAnchorIds_narrows_to_three_for_a_three_day_full_body_split() {
-        val answers = WizardAnswers(daysPerWeek = 3, split = SplitTemplate.FULL_BODY)
-        val expected = ProgramGenerator.anchorIds(answers).take(3)
-        assertEquals(expected, WizardStateBuilder.activeAnchorIds(answers))
-    }
-
-    @Test
-    fun activeAnchorIds_is_unnarrowed_at_four_days_full_body() {
-        val answers = WizardAnswers(daysPerWeek = 4, split = SplitTemplate.FULL_BODY)
-        assertEquals(ProgramGenerator.anchorIds(answers), WizardStateBuilder.activeAnchorIds(answers))
-    }
-
-    @Test
-    fun activeAnchorIds_is_unnarrowed_for_non_full_body_splits_even_at_low_days() {
-        // Upper/Lower and PPL assign anchors by pattern match, not by count —
-        // the spec's narrowing rule only ever applied to the full-body rotation.
-        val upperLower = WizardAnswers(daysPerWeek = 4, split = SplitTemplate.UPPER_LOWER)
-        assertEquals(ProgramGenerator.anchorIds(upperLower), WizardStateBuilder.activeAnchorIds(upperLower))
-
-        val ppl = WizardAnswers(daysPerWeek = 3, split = SplitTemplate.PPL)
-        assertEquals(ProgramGenerator.anchorIds(ppl), WizardStateBuilder.activeAnchorIds(ppl))
-    }
-
-    @Test
-    fun activeAnchorIds_is_unnarrowed_for_a_five_day_full_body_split() {
-        // 5 > the 4 available anchors, so the generator cycles them instead of
-        // narrowing (ProgramGenerator.fullBodyDay's "else anchors" branch).
-        val answers = WizardAnswers(daysPerWeek = 5, split = SplitTemplate.FULL_BODY)
-        assertEquals(ProgramGenerator.anchorIds(answers), WizardStateBuilder.activeAnchorIds(answers))
+    fun buildUiState_surfaces_ProgramGenerators_activeAnchorIds_verbatim() {
+        val cases = listOf(
+            WizardAnswers(daysPerWeek = 2, split = SplitTemplate.FULL_BODY),
+            WizardAnswers(daysPerWeek = 3, split = SplitTemplate.FULL_BODY),
+            WizardAnswers(daysPerWeek = 4, split = SplitTemplate.FULL_BODY),
+            WizardAnswers(daysPerWeek = 5, split = SplitTemplate.FULL_BODY),
+            WizardAnswers(daysPerWeek = 4, split = SplitTemplate.UPPER_LOWER),
+            WizardAnswers(daysPerWeek = 3, split = SplitTemplate.PPL),
+        )
+        cases.forEach { answers ->
+            val state = WizardStateBuilder.buildUiState(WizardStep.ANCHORS.ordinal, answers, isComplete = false)
+            assertEquals(ProgramGenerator.activeAnchorIds(answers), state.activeAnchorIds)
+        }
     }
 
     // --- split validity across a days/week change -----------------------------

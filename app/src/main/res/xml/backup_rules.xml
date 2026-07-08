@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy Auto Backup rules for the API 26-30 floor (minSdk 26); API 31+ uses
+  data_extraction_rules.xml instead. Same content, older syntax. See that
+  file's comment for why this exists alongside the JSON backup (#15).
+-->
+<full-backup-content>
+    <include domain="database" path="." />
+    <include domain="file" path="datastore/strength_settings.preferences_pb" />
+</full-backup-content>

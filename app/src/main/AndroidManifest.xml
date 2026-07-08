@@ -1,8 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      Auto Backup (allowBackup): opts into Google One cloud backup and
+      device-to-device transfer for the Room DB + DataStore prefs, at no
+      engineering cost. It's a free ride on top of, not a replacement for,
+      the versioned JSON full backup (PLAN.md A2, #15/PR #42) — that JSON
+      export is the user-visible, guaranteed way to move data on purpose;
+      Auto Backup is opaque, best-effort, and skipped if the OEM transfer
+      tool doesn't invoke it. dataExtractionRules covers API 31+; the
+      identical fullBackupContent rules back-fill the API 26-30 floor.
+    -->
     <application
         android:name=".StrengthLogApp"
-        android:label="@string/app_name">
+        android:label="@string/app_name"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules">
 
         <activity
             android:name=".MainActivity"

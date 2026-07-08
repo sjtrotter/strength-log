@@ -26,6 +26,9 @@ import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseViewModel
 import io.github.sjtrotter.strengthlog.ui.day.DayActions
 import io.github.sjtrotter.strengthlog.ui.day.DayScreen
 import io.github.sjtrotter.strengthlog.ui.day.DayViewModel
+import io.github.sjtrotter.strengthlog.ui.setup.SetupActions
+import io.github.sjtrotter.strengthlog.ui.setup.SetupScreen
+import io.github.sjtrotter.strengthlog.ui.setup.SetupViewModel
 import io.github.sjtrotter.strengthlog.ui.theme.Background
 import io.github.sjtrotter.strengthlog.ui.wizard.WizardActions
 import io.github.sjtrotter.strengthlog.ui.wizard.WizardScreen
@@ -39,13 +42,14 @@ import kotlinx.coroutines.flow.take
 
 /**
  * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / re-run),
- * `day` (home) and `customExercise` (creation, #13 — reachable from both the
- * #11 substitution picker and Setup, D1). Setup (#12) and history (#14) add
- * their own destinations as they land.
+ * `day` (home), `setup` (the day screen's gear, #12), and `customExercise`
+ * (creation, #13 — reachable from the #11 picker and Setup). History (#14) and
+ * the day-edit sheet (#11) add their own destinations as they land.
  */
 object Routes {
     const val DAY = "day"
     const val WIZARD = "wizard"
+    const val SETUP = "setup"
 
     const val CUSTOM_EXERCISE = "customExercise"
     const val CUSTOM_EXERCISE_PATTERN_ARG = "pattern"
@@ -95,7 +99,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
 
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = start) {
-        composable(Routes.DAY) { DayRoute() }
+        composable(Routes.DAY) { DayRoute(onOpenSettings = { navController.navigate(Routes.SETUP) }) }
         composable(Routes.WIZARD) {
             WizardRoute(
                 onFinished = {
@@ -117,11 +121,17 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         ) {
             CustomExerciseRoute(onDone = { navController.popBackStack() })
         }
+        composable(Routes.SETUP) {
+            SetupRoute(
+                onBack = { navController.popBackStack() },
+                onRerunWizard = { navController.navigate(Routes.WIZARD) },
+            )
+        }
     }
 }
 
 @Composable
-private fun DayRoute(viewModel: DayViewModel = hiltViewModel()) {
+private fun DayRoute(onOpenSettings: () -> Unit, viewModel: DayViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     DayScreen(
         state = state,
@@ -136,8 +146,31 @@ private fun DayRoute(viewModel: DayViewModel = hiltViewModel()) {
             onKeepScreenOnChange = viewModel::setKeepScreenOn,
             onClearChecks = viewModel::clearChecks,
             onDone = viewModel::completeDay,
-            // Setup screen lands in #12; the gear is inert until then.
-            onOpenSettings = {},
+            onOpenSettings = onOpenSettings,
+        ),
+    )
+}
+
+@Composable
+private fun SetupRoute(
+    onBack: () -> Unit,
+    onRerunWizard: () -> Unit,
+    viewModel: SetupViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    SetupScreen(
+        state = state,
+        actions = SetupActions(
+            onBodyweightChange = viewModel::setBodyweight,
+            onAgeChange = viewModel::setAge,
+            onLevelChange = viewModel::setLevel,
+            onEmphasisChange = viewModel::setEmphasis,
+            onCardioModeChange = viewModel::setCardioMode,
+            onCardioPlacementChange = viewModel::setCardioPlacement,
+            onFiveKChange = viewModel::setFiveK,
+            onUnitToggle = viewModel::setUnit,
+            onRerunWizard = onRerunWizard,
+            onBack = onBack,
         ),
     )
 }

@@ -83,6 +83,7 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 item { EmphasisSection(state.config.emphasis, actions.onEmphasisChange) }
                 item { CardioSection(state.cardio, actions) }
                 item { UnitCard(state.unit, actions.onUnitToggle) }
+                item { CreateCustomExerciseButton(accent, actions.onCreateCustomExercise) }
                 item {
                     RerunWizardButton(onClick = { showRerunConfirm = true })
                 }
@@ -285,6 +286,22 @@ private fun UnitCard(unit: WeightUnit, onToggle: (WeightUnit) -> Unit) {
     }
 }
 
+// --- create custom exercise (route #13, D1: reachable from Setup and the day-edit picker) ---
+
+@Composable
+private fun CreateCustomExerciseButton(accent: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .border(1.dp, accent, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("+ CREATE CUSTOM EXERCISE", color = accent, style = DoneButtonLabel)
+    }
+}
+
 // --- re-run wizard (destructive escape hatch, spec §8.4) ---------------------
 
 @Composable
@@ -364,7 +381,7 @@ private fun SetupScreenPreview() {
             actions = SetupActions(
                 onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEmphasisChange = {},
                 onCardioModeChange = {}, onCardioPlacementChange = {}, onFiveKChange = {},
-                onUnitToggle = {}, onRerunWizard = {}, onBack = {},
+                onUnitToggle = {}, onRerunWizard = {}, onCreateCustomExercise = {}, onBack = {},
             ),
         )
     }

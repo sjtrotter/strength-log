@@ -65,7 +65,13 @@ import io.github.sjtrotter.strengthlog.ui.theme.TextSecondary
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DayEditSheet(state: DayEditUiState, actions: DayEditActions, accent: Color, onDismiss: () -> Unit) {
+fun DayEditSheet(
+    state: DayEditUiState,
+    actions: DayEditActions,
+    accent: Color,
+    onDismiss: () -> Unit,
+    onCreateExercise: (MovementPattern) -> Unit,
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var swapSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     var pickingPattern by rememberSaveable { mutableStateOf(false) }
@@ -78,11 +84,13 @@ fun DayEditSheet(state: DayEditUiState, actions: DayEditActions, accent: Color, 
             swapSlot != null && swapSlot.pattern != null -> ExercisePickerScreen(
                 key = "swap-${swapSlot.programExerciseId}",
                 title = "Swap — ${swapSlot.title}",
+                pattern = swapSlot.pattern,
                 candidates = state.catalog.substitutionsFor(swapSlot.exerciseId),
                 defaultEquipment = state.defaultEquipmentFilter,
                 accent = accent,
                 onPick = { entry -> actions.onSwap(swapSlot.position, entry.id); swapSlotId = null },
                 onBack = { swapSlotId = null },
+                onCreateExercise = onCreateExercise,
             )
             pickingPattern -> PatternPickerScreen(
                 patterns = state.catalog.entries.map { it.pattern }.distinct().sortedBy { it.ordinal },
@@ -94,11 +102,13 @@ fun DayEditSheet(state: DayEditUiState, actions: DayEditActions, accent: Color, 
                 ExercisePickerScreen(
                     key = "add-${pattern.name}",
                     title = "Add — ${patternLabel(pattern)}",
+                    pattern = pattern,
                     candidates = state.catalog.byPattern(pattern),
                     defaultEquipment = state.defaultEquipmentFilter,
                     accent = accent,
                     onPick = { entry -> actions.onAdd(entry.id); addPatternName = null },
                     onBack = { addPatternName = null },
+                    onCreateExercise = onCreateExercise,
                 )
             }
             else -> DaySlotList(
@@ -203,11 +213,13 @@ private fun PatternPickerScreen(patterns: List<MovementPattern>, onPick: (Moveme
 private fun ExercisePickerScreen(
     key: String,
     title: String,
+    pattern: MovementPattern,
     candidates: List<ExerciseEntry>,
     defaultEquipment: Set<Equipment>,
     accent: Color,
     onPick: (ExerciseEntry) -> Unit,
     onBack: () -> Unit,
+    onCreateExercise: (MovementPattern) -> Unit,
 ) {
     var query by remember(key) { mutableStateOf("") }
     var equipmentFilter by remember(key) { mutableStateOf(defaultEquipment) }
@@ -246,11 +258,12 @@ private fun ExercisePickerScreen(
                 }
             }
         }
-        // TODO(#13): once the customExercise route lands, add a "+ Create
-        // exercise" row here (navigates to it with this picker's pattern
-        // pre-filled; on save the picker re-shows with the new custom entry
-        // visible, ranked after the catalog per ExerciseCatalog.CUSTOM_SUBRANK).
-        // Left out entirely until then — no dead click target on this branch.
+        Spacer(Modifier.size(10.dp))
+        // Navigates to the customExercise route (D1) with this picker's pattern
+        // pre-filled; on save the route pops back and the picker re-shows with
+        // the new custom entry visible, ranked after the catalog per
+        // ExerciseCatalog.CUSTOM_SUBRANK.
+        SheetButton("+ Create exercise", onClick = { onCreateExercise(pattern) }, modifier = Modifier.fillMaxWidth())
     }
 }
 

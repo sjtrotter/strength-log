@@ -104,7 +104,13 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
 
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = start) {
-        composable(Routes.DAY) { DayRoute(onOpenSettings = { navController.navigate(Routes.SETUP) }) }
+        composable(Routes.DAY) {
+            DayRoute(
+                onOpenSettings = { navController.navigate(Routes.SETUP) },
+                onOpenLog = { navController.navigate(Routes.LOG) },
+                onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
+            )
+        }
         composable(Routes.WIZARD) {
             WizardRoute(
                 onFinished = {
@@ -130,6 +136,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
             SetupRoute(
                 onBack = { navController.popBackStack() },
                 onRerunWizard = { navController.navigate(Routes.WIZARD) },
+                onCreateCustomExercise = { navController.navigate(Routes.customExercise(null)) },
             )
         }
         composable(Routes.LOG) { LogRoute(onBack = { navController.popBackStack() }) }
@@ -137,7 +144,12 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun DayRoute(onOpenSettings: () -> Unit, viewModel: DayViewModel = hiltViewModel()) {
+private fun DayRoute(
+    onOpenSettings: () -> Unit,
+    onOpenLog: () -> Unit,
+    onCreateExercise: (MovementPattern) -> Unit,
+    viewModel: DayViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
     DayScreen(
@@ -154,6 +166,8 @@ private fun DayRoute(onOpenSettings: () -> Unit, viewModel: DayViewModel = hiltV
             onClearChecks = viewModel::clearChecks,
             onDone = viewModel::completeDay,
             onOpenSettings = onOpenSettings,
+            onOpenLog = onOpenLog,
+            onCreateExercise = onCreateExercise,
         ),
         dayEditState = dayEditState,
         dayEditActions = DayEditActions(
@@ -169,6 +183,7 @@ private fun DayRoute(onOpenSettings: () -> Unit, viewModel: DayViewModel = hiltV
 private fun SetupRoute(
     onBack: () -> Unit,
     onRerunWizard: () -> Unit,
+    onCreateCustomExercise: () -> Unit,
     viewModel: SetupViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -184,6 +199,7 @@ private fun SetupRoute(
             onFiveKChange = viewModel::setFiveK,
             onUnitToggle = viewModel::setUnit,
             onRerunWizard = onRerunWizard,
+            onCreateCustomExercise = onCreateCustomExercise,
             onBack = onBack,
         ),
     )

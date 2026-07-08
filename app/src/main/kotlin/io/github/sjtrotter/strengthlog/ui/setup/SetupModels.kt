@@ -37,5 +37,6 @@ data class SetupActions(
     val onFiveKChange: (Boolean) -> Unit,
     val onUnitToggle: (WeightUnit) -> Unit,
     val onRerunWizard: () -> Unit,
+    val onCreateCustomExercise: () -> Unit,
     val onBack: () -> Unit,
 )

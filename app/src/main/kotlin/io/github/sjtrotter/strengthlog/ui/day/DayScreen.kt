@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.domain.model.CardioSuggestion
+import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import io.github.sjtrotter.strengthlog.ui.components.AppCard
@@ -143,6 +144,7 @@ fun DayScreen(
             actions = dayEditActions,
             accent = accent,
             onDismiss = { showEditSheet = false },
+            onCreateExercise = actions.onCreateExercise,
         )
     }
 }
@@ -168,6 +170,8 @@ private fun TopBar(
                 state.tabs.forEach { tab ->
                     DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
                 }
+                Spacer(Modifier.weight(1f))
+                LogTab(actions.onOpenLog)
             }
             // Keep-screen-on rides the title row (not the tab row) so it can't
             // push a fifth+ day tab or the switch off a narrow screen's edge.
@@ -249,6 +253,22 @@ private fun SettingsTab(onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Text("⚙", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp))
+    }
+}
+
+/** Trailing tab that opens the history Log (brief D2 — a plain navigation, not a day-selection). */
+@Composable
+private fun LogTab(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .height(40.dp)
+            .background(Surface2, RoundedCornerShape(10.dp))
+            .border(1.dp, Border, RoundedCornerShape(10.dp))
+            .clickable(onClickLabel = "Open log", onClick = onClick)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("LOG", color = TextSecondary, style = TabLetter.copy(fontSize = 13.sp))
     }
 }
 
@@ -669,6 +689,8 @@ data class DayActions(
     val onClearChecks: () -> Unit,
     val onDone: () -> Unit,
     val onOpenSettings: () -> Unit,
+    val onOpenLog: () -> Unit,
+    val onCreateExercise: (MovementPattern) -> Unit,
 )
 
 // --- preview: the reference scenario (day_screen_reference.html) ------------
@@ -771,6 +793,8 @@ private fun DayScreenPreview() {
                 onClearChecks = {},
                 onDone = {},
                 onOpenSettings = {},
+                onOpenLog = {},
+                onCreateExercise = {},
             ),
             dayEditState = DayEditUiState(),
             dayEditActions = DayEditActions(

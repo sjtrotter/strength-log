@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Day D · deep teal · accent-fill launcher icon (#22). -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/day_d" />
+    <foreground android:drawable="@drawable/ic_barbell_fg_d" />
+    <monochrome android:drawable="@drawable/ic_barbell_monochrome" />
+</adaptive-icon>

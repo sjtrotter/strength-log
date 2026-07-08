@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Day F launcher foreground: shared barbell silhouette, tinted on-accent. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:drawable="@drawable/ic_barbell_foreground"
+        android:tint="@color/on_day_f" />
+</layer-list>

@@ -1,8 +1,13 @@
 package io.github.sjtrotter.strengthlog.icon
 
+import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
+import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class DayIconManagerTest {
 
@@ -62,5 +67,33 @@ class DayIconManagerTest {
         val states = aliasStatesFor(6)
 
         assertEquals("Launcher_DayG", states.single { it.enabled }.alias)
+    }
+
+    // --- shouldReapplyIcon: skip component writes when nothing changed ---------
+
+    @Test
+    fun `target already explicitly enabled needs no re-apply`() {
+        // Any day whose alias is already ENABLED (a prior swap set it) is left alone.
+        assertFalse(shouldReapplyIcon(targetIndex = 2, currentTargetState = COMPONENT_ENABLED_STATE_ENABLED))
+    }
+
+    @Test
+    fun `day A in its manifest-default state needs no re-apply`() {
+        // Day A ships enabled="true", so DEFAULT already means enabled — first
+        // launch on Day A must not toggle anything.
+        assertFalse(shouldReapplyIcon(targetIndex = 0, currentTargetState = COMPONENT_ENABLED_STATE_DEFAULT))
+    }
+
+    @Test
+    fun `a non-A day still in DEFAULT state needs a re-apply`() {
+        // B-G are enabled="false"; DEFAULT for them means disabled, so switching
+        // to that day is a real change.
+        assertTrue(shouldReapplyIcon(targetIndex = 3, currentTargetState = COMPONENT_ENABLED_STATE_DEFAULT))
+    }
+
+    @Test
+    fun `a disabled target needs a re-apply`() {
+        assertTrue(shouldReapplyIcon(targetIndex = 0, currentTargetState = COMPONENT_ENABLED_STATE_DISABLED))
+        assertTrue(shouldReapplyIcon(targetIndex = 5, currentTargetState = COMPONENT_ENABLED_STATE_DISABLED))
     }
 }

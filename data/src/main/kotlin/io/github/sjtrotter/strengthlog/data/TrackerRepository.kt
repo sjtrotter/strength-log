@@ -7,6 +7,7 @@ import io.github.sjtrotter.strengthlog.data.db.StrengthDatabase
 import io.github.sjtrotter.strengthlog.data.db.dao.CustomExerciseDao
 import io.github.sjtrotter.strengthlog.data.db.dao.ProgramDao
 import io.github.sjtrotter.strengthlog.data.db.dao.SessionDao
+import io.github.sjtrotter.strengthlog.data.db.dao.SessionSummaryRow
 import io.github.sjtrotter.strengthlog.data.db.entity.CustomExerciseEntity
 import io.github.sjtrotter.strengthlog.data.db.entity.ExerciseLogEntity
 import io.github.sjtrotter.strengthlog.data.db.entity.ProgramDayEntity
@@ -260,6 +261,24 @@ open class TrackerRepository(
     val suggestedDayFlow: Flow<String?> = settings.suggestedDayFlow
 
     val sessionsFlow: Flow<List<WorkoutSessionEntity>> = sessionDao.observeSessions()
+
+    /** The Log screen's list (#14): every session newest-first, with its total
+     *  set count pre-aggregated (no per-row query as history grows). */
+    val sessionSummariesFlow: Flow<List<SessionSummaryRow>> = sessionDao.observeSessionSummaries()
+
+    /** One session's sets, fetched on demand when the Log screen expands a row
+     *  (#14) — not part of [sessionSummariesFlow] because most rows stay collapsed. */
+    suspend fun sessionSets(sessionId: Long): List<SessionSetEntity> = sessionDao.setsForSession(sessionId)
+
+    /**
+     * Batches the A1 "last time" chip for a whole day into one query (#14):
+     * [exerciseIds]' most recent completed performance, keyed by exercise id. An
+     * id with no history is simply absent from the result.
+     */
+    suspend fun lastPerformed(exerciseIds: List<String>): Map<String, LastPerformed> {
+        if (exerciseIds.isEmpty()) return emptyMap()
+        return sessionDao.lastPerformedRows(exerciseIds).toLastPerformedByExercise()
+    }
 
     /**
      * "DONE — advance" (spec §7, PLAN.md A1): appends an immutable session record

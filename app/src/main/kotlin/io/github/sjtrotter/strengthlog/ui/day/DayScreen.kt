@@ -343,6 +343,17 @@ private fun ExerciseCard(
                     if (card.hasWarmupHint) Badge("+1 WARM-UP", Color.Transparent, TextSecondary, outlined = true)
                     if (card.allDone) Badge("✓", Done, Background)
                 }
+                // History bonus (PLAN.md A1): the exercise's last completed
+                // performance, when one exists — silent otherwise (no "never
+                // logged" copy clutter on a brand-new slot).
+                card.lastTimeDisplay?.let {
+                    Text(
+                        "Last time: $it",
+                        color = TextFaint,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
+                }
             }
             if (!displayCollapsed) GoalBlock(card.goalDisplay, card.perHand, accent)
         }
@@ -692,6 +703,7 @@ private fun DayScreenPreview() {
                 hasWarmupHint = true,
                 goalDisplay = "235",
                 perHand = false,
+                lastTimeDisplay = "230×5",
                 allDone = false,
                 collapsed = false,
                 collapsedSummary = "5 sets · GOAL 235",

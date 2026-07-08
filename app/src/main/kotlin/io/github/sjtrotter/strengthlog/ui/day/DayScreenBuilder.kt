@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.ui.day
 
+import io.github.sjtrotter.strengthlog.data.LastPerformed
 import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
@@ -88,10 +89,19 @@ object DayScreenBuilder {
     }
 
     /** Per-row kind labels: R1…, TOP, B/O, or a plain 1-based number for WORK/EXTRA. */
-    fun kindLabels(sets: List<LoggedSet>): List<String> {
+    fun kindLabels(sets: List<LoggedSet>): List<String> = kindLabelsForKinds(sets.map { it.kind })
+
+    /**
+     * The same per-row label rule as [kindLabels], taken straight from a list of
+     * [SetKind] — the SSOT the Log screen's history grouping (#14) reuses instead
+     * of re-deriving "R1/TOP/B/O/plain number" from [SessionSetEntity][
+     * io.github.sjtrotter.strengthlog.data.db.entity.SessionSetEntity]'s stored
+     * kind name.
+     */
+    fun kindLabelsForKinds(kinds: List<SetKind>): List<String> {
         var ramp = 0
-        return sets.mapIndexed { index, s ->
-            when (s.kind) {
+        return kinds.mapIndexed { index, kind ->
+            when (kind) {
                 SetKind.RAMP -> "R${++ramp}"
                 SetKind.TOP -> "TOP"
                 SetKind.BACKOFF -> "B/O"
@@ -126,6 +136,14 @@ object DayScreenBuilder {
     /** GOAL number formatted in [unit] (canonical lb in, display out). */
     fun goalDisplay(goalLb: Double, unit: WeightUnit): String =
         WeightStepper.format(unit.fromLb(goalLb))
+
+    /**
+     * The "last time: {w}×{r}" chip's value (PLAN.md A1 bonus, issue #14) —
+     * `null` when [last] is `null` (the exercise has no prior completed
+     * performance), in which case the card shows no chip at all.
+     */
+    fun lastTimeDisplay(last: LastPerformed?, unit: WeightUnit): String? =
+        last?.let { "${WeightStepper.format(unit.fromLb(it.weightLb))}×${it.reps}" }
 
     /** True once every round is ticked — drives the green chip and auto-collapse. */
     fun allDone(main: List<LoggedSet>): Boolean = main.isNotEmpty() && main.all { it.done }

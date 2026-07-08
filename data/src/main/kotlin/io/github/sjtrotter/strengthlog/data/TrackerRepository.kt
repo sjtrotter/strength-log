@@ -377,6 +377,49 @@ class TrackerRepository(
         settings.restore(snapshot.answers, snapshot.unit, snapshot.wizardComplete, snapshot.suggestedDay)
     }
 
+    // --- CSV history export/import (#16) --------------------------------------
+
+    /**
+     * Every session + set for CSV history export (#16), in the same
+     * deterministic order as [exportSnapshot]'s equivalent fields. Read-only —
+     * `:transfer` builds the CSV text from this instead of touching Room.
+     */
+    suspend fun exportSessionHistory(): SessionHistorySnapshot = SessionHistorySnapshot(
+        unit = settings.unitFlow.first(),
+        sessions = sessionDao.allSessions(),
+        sessionSets = sessionDao.allSessionSets(),
+    )
+
+    /**
+     * Appends CSV-imported history in one transaction (#16, D9's one staging
+     * transaction rule). Additive only: unlike [importSnapshot]'s full
+     * destructive replace, the program and live logs are untouched.
+     * [newCustomExercises] are upserted first so every imported set's
+     * `exerciseId` already resolves by the time its row lands; each
+     * [ImportedSession] then gets a freshly generated session id stamped onto
+     * its own sets before they're inserted, exactly as [advanceDay] links a
+     * completed day's sets to the session it just created.
+     *
+     * The caller has already validated the file and the user has already
+     * confirmed the exercise-name matches (`:transfer`'s preview/confirm
+     * model) — this method performs no validation of its own and always
+     * commits what it's given.
+     */
+    suspend fun importSessionHistory(
+        sessions: List<ImportedSession>,
+        newCustomExercises: List<CustomExerciseEntity>,
+    ) {
+        db.withTransaction {
+            if (newCustomExercises.isNotEmpty()) customExerciseDao.upsertAll(newCustomExercises)
+            sessions.forEach { imported ->
+                val sessionId = sessionDao.insertSession(imported.session.copy(id = 0))
+                if (imported.sets.isNotEmpty()) {
+                    sessionDao.insertSets(imported.sets.map { it.copy(id = 0, sessionId = sessionId) })
+                }
+            }
+        }
+    }
+
     // --- helpers -------------------------------------------------------------
 
     private fun assemble(

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Auto Backup (API 31+): rides Google One cloud backup and the
+  device-to-device transfer flow for free. This is the "free ride," not the
+  guaranteed path — Auto Backup is best-effort, opaque to the user, and skipped
+  entirely if the OEM's transfer tool doesn't invoke it. The versioned JSON
+  full backup (PLAN.md A2, #15/PR #42) is the user-visible, guaranteed export;
+  it stays the recommended way to move data on purpose. Nothing here is a
+  secret, so everything the app writes is included and nothing is excluded.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="." />
+        <include domain="file" path="datastore/strength_settings.preferences_pb" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="." />
+        <include domain="file" path="datastore/strength_settings.preferences_pb" />
+    </device-transfer>
+</data-extraction-rules>

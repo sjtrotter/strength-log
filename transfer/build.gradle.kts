@@ -20,6 +20,7 @@ android {
 
     testOptions {
         unitTests.all { it.useJUnitPlatform() }
+        unitTests.isIncludeAndroidResources = true // Robolectric
     }
 }
 
@@ -35,6 +36,20 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.kotlin.test.junit5)
+
+    // Robolectric (JUnit4, run via the vintage engine under the JUnit platform),
+    // same setup as :data, for the CSV import/export tests that exercise a real
+    // in-memory Room DB + TrackerRepository (round-trip, DB-untouched-on-
+    // rejection) without needing the emulator (#16; D10 prefers JVM/Robolectric
+    // over instrumented tests when the code under test allows it).
+    testImplementation(libs.robolectric)
+    testImplementation(libs.junit4)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.room.runtime)
+    testImplementation(libs.room.ktx)
+    testImplementation(libs.androidx.datastore.preferences)
+    testRuntimeOnly(libs.junit.vintage.engine)
 
     // Instrumented round-trip and atomicity tests (A2): the export/import contract
     // runs against a real on-disk Room DB + DataStore + TrackerRepository, exactly

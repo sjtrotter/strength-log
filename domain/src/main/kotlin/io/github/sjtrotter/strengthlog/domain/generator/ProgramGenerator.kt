@@ -77,7 +77,11 @@ object ProgramGenerator {
 
     // --- anchors -------------------------------------------------------------
 
-    private fun anchorIds(a: WizardAnswers): List<String> {
+    /** The four anchor lift ids for [a]'s scheme/deadlift choice, in rotation
+     *  order (spec §6.1 step 4). Public so the wizard's anchor-step preview
+     *  (#9) can read the same table instead of re-deriving it (SSOT) — this
+     *  widened visibility is the only change; the mapping itself is untouched. */
+    fun anchorIds(a: WizardAnswers): List<String> {
         val dl = when (a.deadliftVariant) {
             DeadliftVariant.TRAP_BAR -> "trap_dl"
             DeadliftVariant.CONVENTIONAL -> "conv_dl"
@@ -87,6 +91,25 @@ object ProgramGenerator {
             AnchorScheme.PROTOTYPE -> listOf("bb_back_squat", "bb_bench", dl, "incline_db")
             AnchorScheme.BIG_4 -> listOf("bb_back_squat", "bb_bench", dl, "bb_row")
             AnchorScheme.FIVE_THREE_ONE -> listOf("bb_back_squat", "bb_bench", dl, "ohp")
+        }
+    }
+
+    /**
+     * The anchor ids that actually rotate for [a] (spec §6.1 step 4: "for
+     * 2–3-day splits only the first N anchors are used in rotation"). Only the
+     * full-body split narrows — and only when the day count is at or below the
+     * anchor count; every other split assigns anchors by pattern match, not by
+     * position, so its whole anchor set stays active. This is the SSOT
+     * [fullBodyDay] builds its rotation from and the wizard's anchor-step
+     * preview reads, so the preview can never disagree with the generated
+     * program (SSOT — the narrowing rule lives in exactly one place).
+     */
+    fun activeAnchorIds(a: WizardAnswers): List<String> {
+        val anchors = anchorIds(a)
+        return if (a.split == SplitTemplate.FULL_BODY && a.daysPerWeek <= anchors.size) {
+            anchors.take(a.daysPerWeek)
+        } else {
+            anchors
         }
     }
 
@@ -103,7 +126,7 @@ object ProgramGenerator {
         anchors: List<String>,
         answers: WizardAnswers,
     ): ProgramDay = when (kind) {
-        DayKind.FULL_BODY -> fullBodyDay(id, dayIndex, anchors, answers)
+        DayKind.FULL_BODY -> fullBodyDay(id, dayIndex, answers)
         DayKind.UPPER -> upperDay(id, dayIndex, occ, anchors, answers)
         DayKind.LOWER -> lowerDay(id, dayIndex, occ, anchors, answers)
         DayKind.PUSH -> pushDay(id, dayIndex, answers)
@@ -116,16 +139,13 @@ object ProgramGenerator {
     private fun fullBodyDay(
         id: String,
         i: Int,
-        anchors: List<String>,
         answers: WizardAnswers,
     ): ProgramDay {
         val equip = answers.equipment
         // 2–3 day splits use only the first N anchors; longer cycles reuse them.
-        val used = if (answers.daysPerWeek <= anchors.size) {
-            anchors.take(answers.daysPerWeek)
-        } else {
-            anchors
-        }
+        // The narrowing rule itself lives in [activeAnchorIds] (SSOT with the
+        // wizard preview).
+        val used = activeAnchorIds(answers)
         val anchorId = used[i % used.size]
         val mainPattern = ExerciseLibrary.get(anchorId).pattern
         val lowerMain = mainPattern in LEG_MAIN_PATTERNS

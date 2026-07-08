@@ -8,9 +8,7 @@ import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
-import io.github.sjtrotter.strengthlog.domain.generator.ProgramGenerator
 import io.github.sjtrotter.strengthlog.domain.generator.Rotation
-import io.github.sjtrotter.strengthlog.domain.generator.WizardAnswers
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.Program
@@ -96,7 +94,6 @@ class DayViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState())
 
     init {
-        bootstrapProgramIfEmpty()
         seedMissingLogs()
     }
 
@@ -225,20 +222,6 @@ class DayViewModel @Inject constructor(
         val catalog = repo.catalogFlow.first()
         DayScreenBuilder.seedPlan(slots, existing, cfg, catalog).forEach { write ->
             repo.updateSets(dayId, write.programExerciseId, write.slot, write.sets)
-        }
-    }
-
-    /**
-     * Temporary: until the setup wizard (#9) lands, generate the default 4-day
-     * full-body program on first run so the day screen has something to show.
-     */
-    private fun bootstrapProgramIfEmpty() {
-        viewModelScope.launch {
-            if (repo.programFlow.first().days.isEmpty()) {
-                val answers = WizardAnswers()
-                repo.setWizardAnswers(answers)
-                repo.replaceProgram(ProgramGenerator.generate(answers).program)
-            }
         }
     }
 

@@ -77,7 +77,11 @@ object ProgramGenerator {
 
     // --- anchors -------------------------------------------------------------
 
-    private fun anchorIds(a: WizardAnswers): List<String> {
+    /** The four anchor lift ids for [a]'s scheme/deadlift choice, in rotation
+     *  order (spec §6.1 step 4). Public so the wizard's anchor-step preview
+     *  (#9) can read the same table instead of re-deriving it (SSOT) — this
+     *  widened visibility is the only change; the mapping itself is untouched. */
+    fun anchorIds(a: WizardAnswers): List<String> {
         val dl = when (a.deadliftVariant) {
             DeadliftVariant.TRAP_BAR -> "trap_dl"
             DeadliftVariant.CONVENTIONAL -> "conv_dl"

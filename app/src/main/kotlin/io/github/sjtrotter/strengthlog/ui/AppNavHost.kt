@@ -12,11 +12,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
+import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
+import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseActions
+import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseScreen
+import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseViewModel
 import io.github.sjtrotter.strengthlog.ui.day.DayActions
 import io.github.sjtrotter.strengthlog.ui.day.DayScreen
 import io.github.sjtrotter.strengthlog.ui.day.DayViewModel
@@ -32,13 +38,28 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 
 /**
- * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / re-run)
- * and `day` (home). Setup (#12), history (#14) and the day-edit sheet (#11) add
+ * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / re-run),
+ * `day` (home) and `customExercise` (creation, #13 — reachable from both the
+ * #11 substitution picker and Setup, D1). Setup (#12) and history (#14) add
  * their own destinations as they land.
  */
 object Routes {
     const val DAY = "day"
     const val WIZARD = "wizard"
+
+    const val CUSTOM_EXERCISE = "customExercise"
+    const val CUSTOM_EXERCISE_PATTERN_ARG = "pattern"
+    const val CUSTOM_EXERCISE_ROUTE = "$CUSTOM_EXERCISE?$CUSTOM_EXERCISE_PATTERN_ARG={$CUSTOM_EXERCISE_PATTERN_ARG}"
+
+    /**
+     * Public entry point for #13 (D1: a route, not a sheet, since it's reachable
+     * from two places). [pattern] pre-selects the form's movement pattern for
+     * the #11 picker's "＋ Create exercise" context; Setup (#12) calls this with
+     * `null`. Both callers land with their own PRs — this is the stable surface
+     * they navigate through (`navController.navigate(Routes.customExercise(...))`).
+     */
+    fun customExercise(pattern: MovementPattern? = null): String =
+        if (pattern == null) CUSTOM_EXERCISE else "$CUSTOM_EXERCISE?$CUSTOM_EXERCISE_PATTERN_ARG=${pattern.name}"
 }
 
 /**
@@ -83,6 +104,18 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                     }
                 },
             )
+        }
+        composable(
+            route = Routes.CUSTOM_EXERCISE_ROUTE,
+            arguments = listOf(
+                navArgument(Routes.CUSTOM_EXERCISE_PATTERN_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) {
+            CustomExerciseRoute(onDone = { navController.popBackStack() })
         }
     }
 }
@@ -136,6 +169,33 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
             onAgeChange = viewModel::setAge,
             onLevelChange = viewModel::setLevel,
             onEquipmentToggle = viewModel::toggleEquipment,
+        ),
+    )
+}
+
+/**
+ * On save, returns to the caller (the picker or Setup) with the new exercise
+ * already visible there: it's in [io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog]
+ * the moment [CustomExerciseViewModel.save] returns, and [io.github.sjtrotter.strengthlog.data.TrackerRepository.catalogFlow]
+ * is live, so the #11 picker wiring landing later only needs to observe it.
+ * System back before saving cancels the same way.
+ */
+@Composable
+private fun CustomExerciseRoute(onDone: () -> Unit, viewModel: CustomExerciseViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(state.saved) {
+        if (state.saved) onDone()
+    }
+    CustomExerciseScreen(
+        state = state,
+        actions = CustomExerciseActions(
+            onNameChange = viewModel::setName,
+            onPatternChange = viewModel::setPattern,
+            onEquipmentToggle = viewModel::toggleEquipment,
+            onPerHandChange = viewModel::setPerHand,
+            onWeightChange = viewModel::setWeightDisplay,
+            onSave = viewModel::save,
+            onCancel = onDone,
         ),
     )
 }

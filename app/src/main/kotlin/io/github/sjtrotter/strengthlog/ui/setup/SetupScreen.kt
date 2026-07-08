@@ -84,6 +84,7 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 item { CardioSection(state.cardio, actions) }
                 item { UnitCard(state.unit, actions.onUnitToggle) }
                 item { CreateCustomExerciseButton(accent, actions.onCreateCustomExercise) }
+                item { DataBackupButton(accent, actions.onOpenBackup) }
                 item {
                     RerunWizardButton(onClick = { showRerunConfirm = true })
                 }
@@ -302,6 +303,22 @@ private fun CreateCustomExerciseButton(accent: Color, onClick: () -> Unit) {
     }
 }
 
+// --- data / backup (PLAN.md A2, brief D9's :app-side UI PR) ------------------
+
+@Composable
+private fun DataBackupButton(accent: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .border(1.dp, accent, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("DATA / BACKUP", color = accent, style = DoneButtonLabel)
+    }
+}
+
 // --- re-run wizard (destructive escape hatch, spec §8.4) ---------------------
 
 @Composable
@@ -381,7 +398,7 @@ private fun SetupScreenPreview() {
             actions = SetupActions(
                 onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEmphasisChange = {},
                 onCardioModeChange = {}, onCardioPlacementChange = {}, onFiveKChange = {},
-                onUnitToggle = {}, onRerunWizard = {}, onCreateCustomExercise = {}, onBack = {},
+                onUnitToggle = {}, onRerunWizard = {}, onCreateCustomExercise = {}, onOpenBackup = {}, onBack = {},
             ),
         )
     }

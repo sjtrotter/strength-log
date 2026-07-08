@@ -53,6 +53,9 @@ hilt {
 dependencies {
     implementation(project(":domain"))
     implementation(project(":data"))
+    // BackupService/CsvHistoryService (:transfer's Uri-free core, D9) — the
+    // Data/Backup screen supplies the SAF Uri->stream plumbing on top.
+    implementation(project(":transfer"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -1,12 +1,15 @@
 package io.github.sjtrotter.strengthlog.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -20,6 +23,9 @@ import androidx.navigation.navArgument
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
+import io.github.sjtrotter.strengthlog.ui.backup.BackupActions
+import io.github.sjtrotter.strengthlog.ui.backup.BackupScreen
+import io.github.sjtrotter.strengthlog.ui.backup.BackupViewModel
 import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseActions
 import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseScreen
 import io.github.sjtrotter.strengthlog.ui.customexercise.CustomExerciseViewModel
@@ -37,6 +43,7 @@ import io.github.sjtrotter.strengthlog.ui.theme.Background
 import io.github.sjtrotter.strengthlog.ui.wizard.WizardActions
 import io.github.sjtrotter.strengthlog.ui.wizard.WizardScreen
 import io.github.sjtrotter.strengthlog.ui.wizard.WizardViewModel
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -55,6 +62,7 @@ object Routes {
     const val WIZARD = "wizard"
     const val SETUP = "setup"
     const val LOG = "log"
+    const val BACKUP = "backup"
 
     const val CUSTOM_EXERCISE = "customExercise"
     const val CUSTOM_EXERCISE_PATTERN_ARG = "pattern"
@@ -137,9 +145,11 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onBack = { navController.popBackStack() },
                 onRerunWizard = { navController.navigate(Routes.WIZARD) },
                 onCreateCustomExercise = { navController.navigate(Routes.customExercise(null)) },
+                onOpenBackup = { navController.navigate(Routes.BACKUP) },
             )
         }
         composable(Routes.LOG) { LogRoute(onBack = { navController.popBackStack() }) }
+        composable(Routes.BACKUP) { BackupRoute(onBack = { navController.popBackStack() }) }
     }
 }
 
@@ -184,6 +194,7 @@ private fun SetupRoute(
     onBack: () -> Unit,
     onRerunWizard: () -> Unit,
     onCreateCustomExercise: () -> Unit,
+    onOpenBackup: () -> Unit,
     viewModel: SetupViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -200,6 +211,49 @@ private fun SetupRoute(
             onUnitToggle = viewModel::setUnit,
             onRerunWizard = onRerunWizard,
             onCreateCustomExercise = onCreateCustomExercise,
+            onOpenBackup = onOpenBackup,
+            onBack = onBack,
+        ),
+    )
+}
+
+/**
+ * Owns the SAF launchers (brief D9: `:transfer` stays Uri-free, so the Uri
+ * itself only ever exists here and in [BackupViewModel]). Each launcher hands
+ * its result `Uri` straight to the matching view-model call; a `null` result
+ * (the user backed out of the picker) is a no-op, not an error.
+ */
+@Composable
+private fun BackupRoute(onBack: () -> Unit, viewModel: BackupViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val today = remember { LocalDate.now().toString() }
+
+    val exportBackupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        uri?.let(viewModel::exportBackup)
+    }
+    val importBackupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::beginImportBackup)
+    }
+    val exportCsvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        uri?.let(viewModel::exportCsv)
+    }
+    val importCsvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::beginImportCsv)
+    }
+
+    BackupScreen(
+        state = state,
+        actions = BackupActions(
+            onExportBackupClick = { exportBackupLauncher.launch("strength-log-backup-$today.json") },
+            onImportBackupClick = { importBackupLauncher.launch(arrayOf("application/json")) },
+            onExportCsvClick = { exportCsvLauncher.launch("strength-log-history-$today.csv") },
+            onImportCsvClick = { importCsvLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain")) },
+            onConfirmRestore = viewModel::confirmRestore,
+            onCancelRestore = viewModel::cancelRestore,
+            onUnmatchedPatternChange = viewModel::setUnmatchedPattern,
+            onConfirmCsvImport = viewModel::confirmCsvImport,
+            onCancelCsvImport = viewModel::cancelCsvImport,
+            onDismissMessage = viewModel::dismissMessage,
             onBack = onBack,
         ),
     )

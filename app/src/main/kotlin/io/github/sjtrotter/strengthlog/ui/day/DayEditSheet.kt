@@ -37,6 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
@@ -274,10 +278,11 @@ private fun PickerHeader(title: String, onBack: () -> Unit) {
             modifier = Modifier
                 .size(32.dp)
                 .background(Surface2, RoundedCornerShape(8.dp))
-                .clickable(onClick = onBack),
+                .clickable(onClickLabel = "Back", role = Role.Button, onClick = onBack)
+                .semantics { contentDescription = "Back" },
             contentAlignment = Alignment.Center,
         ) {
-            Text("←", color = TextSecondary, style = MaterialTheme.typography.labelLarge)
+            Text("←", color = TextSecondary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clearAndSetSemantics {})
         }
         Spacer(Modifier.size(10.dp))
         Text(title, color = TextPrimary, style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp))

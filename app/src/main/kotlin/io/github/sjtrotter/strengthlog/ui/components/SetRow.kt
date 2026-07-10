@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -37,6 +38,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
@@ -157,7 +162,13 @@ fun SetRow(
             text = if (isSubRow) "↳" else kindLabel,
             color = if (isTop) accent else if (isSubRow) TextFaint else TextSecondary,
             style = SetKindLabel,
-            modifier = Modifier.width(if (isSubRow) SubRowKindLabelWidth else PrimaryKindLabelWidth),
+            maxLines = 1,
+            softWrap = false,
+            // widthIn(min), not width: a fixed width clips at large font scale
+            // (A7) — the Stepper value's widthIn(min) pattern is the model.
+            modifier = Modifier
+                .widthIn(min = if (isSubRow) SubRowKindLabelWidth else PrimaryKindLabelWidth)
+                .then(if (isSubRow) Modifier.clearAndSetSemantics { contentDescription = "Superset partner" } else Modifier),
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.alpha(fadeAlpha)) {
@@ -171,6 +182,8 @@ fun SetRow(
                 format = weightFormat,
                 round = weightRound,
                 valueColor = lerp(TextPrimary, accent, flash.value),
+                decreaseDescription = "Decrease weight",
+                increaseDescription = "Increase weight",
             )
             Stepper(
                 value = reps.toDouble(),
@@ -180,6 +193,8 @@ fun SetRow(
                 format = { it.toInt().toString() },
                 valueTextStyle = StepperRepsValue,
                 valueMinWidth = 36.dp,
+                decreaseDescription = "Decrease reps",
+                increaseDescription = "Increase reps",
             )
         }
 
@@ -197,11 +212,12 @@ private fun RemoveButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .clickable(onClick = onClick),
+            .clickable(onClickLabel = "Remove set", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Remove set" },
         contentAlignment = Alignment.Center,
     ) {
         Box(modifier = Modifier.size(width = 24.dp, height = 48.dp), contentAlignment = Alignment.Center) {
-            Text(text = "×", color = TextFaint, style = RemoveGlyph)
+            Text(text = "×", color = TextFaint, style = RemoveGlyph, modifier = Modifier.clearAndSetSemantics {})
         }
     }
 }
@@ -314,6 +330,49 @@ private fun SetRowSupersetSubRowPreview() {
             reps = 15,
             onRepsChange = {},
             isSubRow = true,
+        )
+    }
+}
+
+// --- font-scale audit (A7): the TOP row exercises the widest kind label
+// ("TOP") plus a 3-digit weight, the row most at risk of clipping. ----------
+
+@Preview(showBackground = true, backgroundColor = 0xFF16161A, fontScale = 1.3f)
+@Composable
+private fun SetRowTopFontScale130Preview() {
+    AppTheme {
+        SetRow(
+            kindLabel = "TOP",
+            accent = dayAccent(0),
+            accentSoft = accentSoft(0),
+            weight = 235.0,
+            onWeightChange = {},
+            weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
+            weightFormat = WeightStepper::format,
+            weightRound = { WeightStepper.round(it, WeightUnit.LB) },
+            reps = 5,
+            onRepsChange = {},
+            isTop = true,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF16161A, fontScale = 2.0f)
+@Composable
+private fun SetRowTopFontScale200Preview() {
+    AppTheme {
+        SetRow(
+            kindLabel = "TOP",
+            accent = dayAccent(0),
+            accentSoft = accentSoft(0),
+            weight = 235.0,
+            onWeightChange = {},
+            weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
+            weightFormat = WeightStepper::format,
+            weightRound = { WeightStepper.round(it, WeightUnit.LB) },
+            reps = 5,
+            onRepsChange = {},
+            isTop = true,
         )
     }
 }

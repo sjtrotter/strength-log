@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.sjtrotter.strengthlog.ui.theme.AppTheme
@@ -39,6 +40,10 @@ import io.github.sjtrotter.strengthlog.ui.theme.onDayAccent
  * later Setup's unit/prefs toggles). Same track-and-thumb look the day screen
  * already uses for keep-screen-on, pulled out here so a second screen doesn't
  * have to re-draw it.
+ *
+ * `toggleable(role = Role.Switch)` (A7) gives TalkBack the switch role and
+ * on/off state for free; [label] is real [Text] so it merges into the
+ * accessible name without any extra `contentDescription`.
  */
 @Composable
 fun SwitchToggle(
@@ -55,7 +60,7 @@ fun SwitchToggle(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
             .minimumInteractiveComponentSize()
-            .clickable { onCheckedChange(!checked) },
+            .toggleable(value = checked, onValueChange = onCheckedChange, role = Role.Switch),
     ) {
         Text(label, color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
         val trackColor by animateColorAsState(if (checked) accent else Surface2, tween(200), label = "switchTrack")

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -21,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.sjtrotter.strengthlog.domain.generator.AnchorScheme
@@ -157,6 +159,8 @@ private fun DaysPerWeekStep(answers: WizardAnswers, actions: WizardActions) {
                 minValue = 2.0,
                 format = { it.toInt().toString() },
                 round = { it.coerceIn(2.0, 6.0) },
+                decreaseDescription = "Decrease days per week",
+                increaseDescription = "Increase days per week",
             )
         }
     }
@@ -304,6 +308,8 @@ private fun AboutYouStep(answers: WizardAnswers, actions: WizardActions) {
                 step = { 5.0 },
                 minValue = 1.0,
                 format = { it.toInt().toString() },
+                decreaseDescription = "Decrease bodyweight",
+                increaseDescription = "Increase bodyweight",
             )
         }
     }
@@ -317,6 +323,8 @@ private fun AboutYouStep(answers: WizardAnswers, actions: WizardActions) {
                 step = { 1.0 },
                 minValue = 1.0,
                 format = { it.toInt().toString() },
+                decreaseDescription = "Decrease age",
+                increaseDescription = "Increase age",
             )
         }
     }
@@ -403,12 +411,15 @@ private fun FooterButton(
 ) {
     Box(
         modifier = modifier
-            .height(52.dp)
+            // heightIn(min), not height (A7 font-scale): "GENERATE PROGRAM"
+            // wraps to two lines at large fontScale instead of overflowing.
+            .heightIn(min = 52.dp)
             .background(fill, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = textColor, style = DoneButtonLabel)
+        Text(label, color = textColor, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 

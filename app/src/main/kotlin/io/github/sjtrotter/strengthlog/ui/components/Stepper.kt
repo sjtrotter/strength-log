@@ -18,14 +18,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,8 +49,15 @@ import io.github.sjtrotter.strengthlog.ui.theme.Surface2
 import io.github.sjtrotter.strengthlog.ui.theme.Surface3
 import io.github.sjtrotter.strengthlog.ui.theme.TextPrimary
 import io.github.sjtrotter.strengthlog.ui.theme.TextSecondary
+import kotlinx.coroutines.delay
 
 private val CapsuleShape = RoundedCornerShape(8.dp)
+
+/** Long-press auto-repeat timing (A7): a deliberate pause before the first
+ *  repeat so a normal tap never double-fires, then a steady interval that
+ *  reads as "held down", not stuttery. */
+private const val LONG_PRESS_INITIAL_DELAY_MS = 400L
+private const val LONG_PRESS_REPEAT_INTERVAL_MS = 90L
 
 /**
  * The ± stepper capsule used for both set weight and set reps (design-pass
@@ -67,10 +81,19 @@ private val CapsuleShape = RoundedCornerShape(8.dp)
  * `SetRow`), driving the number-level half of the flash while the row
  * background drives the other half.
  *
- * No long-press auto-repeat: the spec's sets are small (single-digit reps,
- * a handful of weight taps to the next plate), so the +/- taps a lifter
- * actually needs are few enough that repeat-on-hold isn't worth the added
- * state and complexity here.
+ * [decreaseDescription]/[increaseDescription] are the TalkBack accessible
+ * names for the − / + segments (A7); they default to the bare verbs but
+ * callers that know what they're stepping (weight vs. reps, see `SetRow`)
+ * should pass something more specific, e.g. "Decrease weight".
+ *
+ * Long-press auto-repeat (A7): holding either segment repeats [onValueChange]
+ * — the very call a single tap makes, so min/round clamp identically — after
+ * [LONG_PRESS_INITIAL_DELAY_MS], then every [LONG_PRESS_REPEAT_INTERVAL_MS].
+ * A quick tap never reaches the initial delay, so it fires exactly once, via
+ * the ordinary click path; holding suppresses that path's own click at
+ * release so a long press doesn't tack on one extra step (see [StepSegment]).
+ * No new persisted state — the repeat is entirely transient press-driven UI
+ * state, gone the moment the finger lifts.
  */
 @Composable
 fun Stepper(
@@ -84,6 +107,8 @@ fun Stepper(
     valueTextStyle: TextStyle = StepperValue,
     valueMinWidth: Dp = 52.dp,
     valueColor: Color = TextPrimary,
+    decreaseDescription: String = "decrease",
+    increaseDescription: String = "increase",
 ) {
     Row(
         modifier = modifier
@@ -93,7 +118,7 @@ fun Stepper(
             .border(1.dp, Border, CapsuleShape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StepSegment(symbol = "−", contentDescription = "decrease") {
+        StepSegment(symbol = "−", contentDescription = decreaseDescription) {
             onValueChange(maxOf(minValue, round(value - step(value))))
         }
         Text(
@@ -105,7 +130,7 @@ fun Stepper(
             color = valueColor,
             style = valueTextStyle,
         )
-        StepSegment(symbol = "+", contentDescription = "increase") {
+        StepSegment(symbol = "+", contentDescription = increaseDescription) {
             onValueChange(maxOf(minValue, round(value + step(value))))
         }
     }
@@ -117,6 +142,18 @@ fun Stepper(
  * overlapping into the neighboring segment/value the same way the old
  * per-button implementation did. Press flashes [Surface3] for 120ms
  * (design tokens: `--dur-fast`), matching `.sb:active`.
+ *
+ * [contentDescription] is the accessible name (TalkBack never reads the raw
+ * −/+ glyph — [clearAndSetSemantics] silences the inner [Text] and the
+ * outer [Modifier.semantics] carries the real description instead).
+ *
+ * The [LaunchedEffect] below drives long-press auto-repeat: it starts timing
+ * the moment [pressed] goes true and is cancelled (its delay/loop torn down)
+ * the moment it goes false, so releasing always stops the repeat immediately.
+ * [repeated] latches once the first repeat fires so the release-triggered
+ * `clickable` click — which still occurs, since holding-without-dragging is
+ * still a valid tap in Compose's gesture detector — is skipped instead of
+ * appending one extra, unrepeatable step.
  */
 @Composable
 private fun StepSegment(symbol: String, contentDescription: String, onClick: () -> Unit) {
@@ -127,6 +164,17 @@ private fun StepSegment(symbol: String, contentDescription: String, onClick: () 
         animationSpec = tween(120),
         label = "stepSegmentPress",
     )
+    var repeated by remember { mutableStateOf(false) }
+    LaunchedEffect(pressed) {
+        if (!pressed) return@LaunchedEffect
+        repeated = false
+        delay(LONG_PRESS_INITIAL_DELAY_MS)
+        while (true) {
+            repeated = true
+            onClick()
+            delay(LONG_PRESS_REPEAT_INTERVAL_MS)
+        }
+    }
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
@@ -134,15 +182,19 @@ private fun StepSegment(symbol: String, contentDescription: String, onClick: () 
                 interactionSource = interactionSource,
                 indication = null,
                 onClickLabel = contentDescription,
-                onClick = onClick,
-            ),
+                onClick = { if (!repeated) onClick() },
+            )
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            },
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier.width(32.dp).fillMaxHeight().background(background),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = symbol, color = TextSecondary, style = StepperGlyph)
+            Text(text = symbol, color = TextSecondary, style = StepperGlyph, modifier = Modifier.clearAndSetSemantics {})
         }
     }
 }

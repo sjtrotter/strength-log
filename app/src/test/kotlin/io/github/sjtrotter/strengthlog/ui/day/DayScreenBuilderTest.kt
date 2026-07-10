@@ -1,6 +1,7 @@
 package io.github.sjtrotter.strengthlog.ui.day
 
 import io.github.sjtrotter.strengthlog.data.LastPerformed
+import io.github.sjtrotter.strengthlog.data.PersonalRecord
 import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
@@ -211,5 +212,38 @@ class DayScreenBuilderTest {
     @Test
     fun lastTimeDisplay_is_null_when_never_performed() {
         assertNull(DayScreenBuilder.lastTimeDisplay(null, WeightUnit.LB))
+    }
+
+    // --- "Best" profile chip (performance-profile.md Phase 1) ----------------
+
+    @Test
+    fun personalRecordDisplay_formats_weight_and_reps_in_the_display_unit() {
+        val record = PersonalRecord("bb_bench", 245.0, 5, 1_000L)
+        assertEquals("245×5", DayScreenBuilder.personalRecordDisplay(record, lastTime = null, WeightUnit.LB))
+        // 44.092452436 lb == exactly 20 kg, same even round trip as the last-time test.
+        val kgRecord = PersonalRecord("bb_bench", 44.092452436, 8, 1_000L)
+        assertEquals("20×8", DayScreenBuilder.personalRecordDisplay(kgRecord, lastTime = null, WeightUnit.KG))
+    }
+
+    @Test
+    fun personalRecordDisplay_is_null_when_there_is_no_record() {
+        assertNull(DayScreenBuilder.personalRecordDisplay(null, lastTime = LastPerformed(185.0, 5), WeightUnit.LB))
+    }
+
+    @Test
+    fun personalRecordDisplay_is_suppressed_when_it_equals_the_last_time_chip() {
+        // The record IS the most recent performance — showing "245×5" twice
+        // right next to each other would be redundant noise, not signal.
+        val record = PersonalRecord("bb_back_squat", 245.0, 5, 1_000L)
+        assertNull(DayScreenBuilder.personalRecordDisplay(record, lastTime = LastPerformed(245.0, 5), WeightUnit.LB))
+    }
+
+    @Test
+    fun personalRecordDisplay_shows_when_it_differs_from_the_last_time_chip() {
+        val record = PersonalRecord("bb_back_squat", 245.0, 5, 1_000L)
+        assertEquals(
+            "245×5",
+            DayScreenBuilder.personalRecordDisplay(record, lastTime = LastPerformed(225.0, 5), WeightUnit.LB),
+        )
     }
 }

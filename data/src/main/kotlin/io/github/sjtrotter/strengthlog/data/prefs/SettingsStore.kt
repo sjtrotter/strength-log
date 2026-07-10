@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import io.github.sjtrotter.strengthlog.domain.generator.AnchorScheme
@@ -53,6 +54,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val SUGGESTED_DAY = stringPreferencesKey("suggested_day")
         val WIZARD_COMPLETE = booleanPreferencesKey("wizard_complete")
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
+        val SESSION_STARTED_AT = longPreferencesKey("session_started_at")
     }
 
     // --- reads ---------------------------------------------------------------
@@ -81,6 +83,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val unitFlow: Flow<WeightUnit> =
         dataStore.data.map { it.enum(Keys.WEIGHT_UNIT, WeightUnit.LB) }
 
+    /** The in-progress session's start stamp (session-start capture), or `null`
+     *  when no set has been ticked yet since the last advance/clear. One global
+     *  slot: only one day is worked at a time, so it needs no day key. */
+    val sessionStartedAtFlow: Flow<Long?> = dataStore.data.map { it[Keys.SESSION_STARTED_AT] }
+
     // --- writes --------------------------------------------------------------
 
     suspend fun setConfig(config: LifterConfig) = dataStore.edit { it.writeConfig(config) }
@@ -106,13 +113,26 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setUnit(unit: WeightUnit) =
         dataStore.edit { it[Keys.WEIGHT_UNIT] = unit.name }
 
+    /** Stamps [nowMillis] as the in-progress session's start — a no-op if a
+     *  stamp is already set, so only the first performed tick since the last
+     *  advance/clear records "now" (session-start capture). */
+    suspend fun stampSessionStartIfUnset(nowMillis: Long) = dataStore.edit { prefs ->
+        if (prefs[Keys.SESSION_STARTED_AT] == null) prefs[Keys.SESSION_STARTED_AT] = nowMillis
+    }
+
+    /** Clears the session-start stamp: called both when checkmarks are cleared
+     *  (restart semantics — the next tick starts a new session) and once
+     *  `advanceDay` has consumed the stamp into `workout_session.startedAt`. */
+    suspend fun clearSessionStartedAt() = dataStore.edit { it.remove(Keys.SESSION_STARTED_AT) }
+
     /**
      * Replaces every preference in one atomic [edit] (backup restore, A2). The
      * leading [clear] drops any key not overwritten below, so a restore can't
      * leave a stale value behind; because these four inputs together own every
      * key this store defines, nothing is orphaned. A single edit means a crash
      * mid-restore leaves either the whole old preference set or the whole new one
-     * — never a mix.
+     * — never a mix. [Keys.SESSION_STARTED_AT] is deliberately left cleared: a
+     * restore can't be "mid-workout".
      */
     suspend fun restore(
         answers: WizardAnswers,

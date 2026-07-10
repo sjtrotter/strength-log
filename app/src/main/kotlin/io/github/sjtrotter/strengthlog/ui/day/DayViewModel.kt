@@ -53,6 +53,12 @@ import kotlinx.coroutines.sync.withLock
  * The §8.2 decision logic lives in the pure [DayScreenBuilder]; this class is the
  * flow/write wiring around it. All cascade/edit math comes from `:domain`
  * ([SetEditor]) — never reimplemented here.
+ *
+ * [toggleDone] also stamps the session-start time on the first done=true tick
+ * (session-start capture) via [TrackerRepository.stampSessionStartIfUnset] —
+ * ticking is performing, not planning, so weight/rep edits never stamp. The
+ * watch delta path ([io.github.sjtrotter.strengthlog.sync.SetEditApplier])
+ * shares the same repository helper so a watch-first workout stamps too.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -153,6 +159,10 @@ class DayViewModel @Inject constructor(
     fun toggleDone(programExerciseId: Long, index: Int, checked: Boolean, isSuperset: Boolean) {
         val day = currentDay() ?: return
         mutate {
+            // A tick is performing, not planning (weight/rep edits don't stamp) —
+            // only the FIRST done=true tick since the last advance/clear starts
+            // the session clock (session-start capture).
+            if (checked) repo.stampSessionStartIfUnset()
             val main = trackFor(day, programExerciseId, Slot.MAIN)
             // A missing partner track (never seeded) must stay missing — writing an
             // empty SS row would mark it as seeded forever. Same rule as addSet.

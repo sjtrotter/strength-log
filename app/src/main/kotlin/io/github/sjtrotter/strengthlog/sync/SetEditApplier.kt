@@ -20,6 +20,11 @@ import kotlinx.coroutines.sync.withLock
  * the watch never computes a derived set. The resulting higher-revision snapshot is
  * the watch's ack (spec §9, last-write-wins).
  *
+ * A done=true delta (main or partner row) also stamps the session-start time
+ * if unset ([TrackerRepository.stampSessionStartIfUnset]) — watch-first
+ * workouts exist, so the same first-tick-starts-the-clock rule the day screen
+ * applies must hold here too (session-start capture).
+ *
  * Two guards before any write:
  *  - **Validation** — the day, slot (programExerciseId + main/ss track) and set
  *    index must all exist; a superset "ss" delta needs a real partner. Anything
@@ -87,6 +92,7 @@ class SetEditApplier(
 
         val done = delta.done
         if (done != null) {
+            if (done) repo.stampSessionStartIfUnset()
             // One-tick-per-round: a done on the main row flips the aligned partner
             // round too, atomically — same rule and repo path as the day screen. A
             // never-seeded partner stays missing (writing an empty SS row would mark
@@ -107,6 +113,7 @@ class SetEditApplier(
         delta.weightLb?.let { ss = SetEditor.editWeight(ss, delta.setIndex, it) }
         delta.reps?.let { ss = SetEditor.editReps(ss, delta.setIndex, it) }
         delta.done?.let { done ->
+            if (done) repo.stampSessionStartIfUnset()
             ss = ss.mapIndexed { i, s -> if (i == delta.setIndex) s.copy(done = done) else s }
         }
         repo.updateSets(delta.dayId, delta.programExerciseId, Slot.SS, ss)

@@ -286,4 +286,49 @@ class SetEditApplierTest {
         assertEquals(listOf(60.0, 60.0), main.map { it.weightLb })
         assertFalse(main[1].done)
     }
+
+    // --- session-start stamp (session-start capture: watch-first workouts) -----
+
+    @Test
+    fun `a done=true delta on the main row stamps the session start if unset`() = runTest {
+        seedProgram()
+        val id = squatId()
+        assertEquals(null, repo.sessionStartedAtFlow.first())
+
+        applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, done = true, editedAtMillis = 1L))
+
+        assertTrue(repo.sessionStartedAtFlow.first() != null)
+    }
+
+    @Test
+    fun `a done=true delta on the ss row stamps the session start if unset`() = runTest {
+        seedProgram()
+        val id = curlId()
+        assertEquals(null, repo.sessionStartedAtFlow.first())
+
+        applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 0, done = true, editedAtMillis = 1L))
+
+        assertTrue(repo.sessionStartedAtFlow.first() != null)
+    }
+
+    @Test
+    fun `a weight or reps only delta does not stamp the session start`() = runTest {
+        seedProgram()
+        val id = squatId()
+
+        applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, weightLb = 140.0, editedAtMillis = 1L))
+        applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1, reps = 4, editedAtMillis = 2L))
+
+        assertEquals(null, repo.sessionStartedAtFlow.first())
+    }
+
+    @Test
+    fun `a done=false delta does not stamp the session start`() = runTest {
+        seedProgram()
+        val id = squatId()
+
+        applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, done = false, editedAtMillis = 1L))
+
+        assertEquals(null, repo.sessionStartedAtFlow.first())
+    }
 }

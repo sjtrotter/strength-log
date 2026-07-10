@@ -53,6 +53,12 @@ object CsvHistoryImporter {
                     // marker, never resolved against the live program.
                     dayId = "csv:${session.dayTitle}",
                     dayTitle = session.dayTitle,
+                    // The Duration column is never read back into startedAt: this
+                    // app's own export writes it (HistoryCsvWriter), but a foreign
+                    // Strong/Hevy file's Duration has no verified format or
+                    // semantics — treating it as a real start stamp would let
+                    // untrusted input feed the HC-calories guard a fabricated
+                    // window. An imported session simply has no recorded start.
                     startedAt = null,
                     completedAt = session.completedAt,
                     bodyweightLb = 0, // CSV carries no bodyweight column

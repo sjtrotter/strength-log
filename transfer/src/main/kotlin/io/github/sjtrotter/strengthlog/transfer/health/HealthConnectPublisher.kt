@@ -1,6 +1,7 @@
 package io.github.sjtrotter.strengthlog.transfer.health
 
 import android.util.Log
+import androidx.health.connect.client.records.Record
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import java.time.ZoneId
 
@@ -11,8 +12,14 @@ import java.time.ZoneId
  * no sets, or the insert itself throws, [publish] returns without surfacing
  * anything to the UI.
  *
- * The pure session → record mapping is [SessionRecordMapper]; this class only
- * adds the availability check, the permission gate, and the swallow-and-log.
+ * The pure session → record mapping is [SessionRecordMapper] (exercise) and
+ * [CaloriesRecordMapper] (calories); this class only adds the availability
+ * check, the permission gates, and the swallow-and-log. The calorie record
+ * rides alongside the exercise record in the same [insertRecords][
+ * androidx.health.connect.client.HealthConnectClient.insertRecords] call when
+ * both its own permission is granted and [CaloriesRecordMapper] doesn't
+ * refuse the session (no real start, or an insane duration) — the exercise
+ * record is written either way.
  */
 class HealthConnectPublisher(
     private val clientProvider: HealthConnectClientProvider,
@@ -32,8 +39,11 @@ class HealthConnectPublisher(
             // empty/all-zero session into the user's shared health record.
             if (sets.none { it.done }) return
 
-            val record = SessionRecordMapper.toExerciseSession(session, sets, zone)
-            client.insertRecords(listOf(record))
+            val records = mutableListOf<Record>(SessionRecordMapper.toExerciseSession(session, sets, zone))
+            if (HealthConnectPermissions.WRITE_CALORIES in granted) {
+                CaloriesRecordMapper.toActiveCalories(session, zone)?.let { records += it }
+            }
+            client.insertRecords(records)
         } catch (t: Throwable) {
             // Degrade invisibly (A3): a workout the user already completed and
             // saved locally must never fail because of an optional export.

@@ -2,6 +2,7 @@ package io.github.sjtrotter.strengthlog.transfer.health
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -69,16 +70,16 @@ class HealthConnectPublisherTest {
         storeScope.cancel()
     }
 
-    private suspend fun seedSession(sets: List<SessionSetEntity>): Long {
+    private suspend fun seedSession(sets: List<SessionSetEntity>, session: WorkoutSessionEntity = session()): Long {
         repo.importSessionHistory(
-            listOf(ImportedSession(session(), sets)),
+            listOf(ImportedSession(session, sets)),
             newCustomExercises = emptyList(),
         )
         return repo.sessionSummariesFlow.first().first().session.id
     }
 
-    private fun session() = WorkoutSessionEntity(
-        id = 0, dayId = "A", dayTitle = "Lower", startedAt = null, completedAt = 10_000L, bodyweightLb = 180,
+    private fun session(startedAt: Long? = null, completedAt: Long = 10_000L, bodyweightLb: Int = 180) = WorkoutSessionEntity(
+        id = 0, dayId = "A", dayTitle = "Lower", startedAt = startedAt, completedAt = completedAt, bodyweightLb = bodyweightLb,
     )
 
     private fun set(exerciseId: String, done: Boolean = true) = SessionSetEntity(
@@ -150,5 +151,86 @@ class HealthConnectPublisherTest {
         val client = FakeHealthConnectClient(grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE))
         publisher(client).publish(sessionId = 4242L)
         assertEquals(0, client.insertCallCount)
+    }
+
+    // --- HC calories (session-start-calories brief) -----------------------------
+
+    @Test
+    fun caloriesGranted_withRealStartInWindow_insertsBothRecords() = runTest {
+        val id = seedSession(
+            listOf(set("bb_back_squat")),
+            session(startedAt = 10_000L, completedAt = 10_000L + 30 * 60_000L, bodyweightLb = 200), // 30 minutes
+        )
+        val client = FakeHealthConnectClient(
+            grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE, HealthConnectPermissions.WRITE_CALORIES),
+        )
+        publisher(client).publish(id)
+
+        assertEquals(1, client.insertCallCount) // one batched insert call
+        assertEquals(2, client.insertedRecords.size)
+        assertTrue(client.insertedRecords.any { it is ExerciseSessionRecord })
+        assertTrue(client.insertedRecords.any { it is ActiveCaloriesBurnedRecord })
+    }
+
+    @Test
+    fun caloriesPermissionNotGranted_onlyExerciseRecordInserted() = runTest {
+        val id = seedSession(
+            listOf(set("bb_back_squat")),
+            session(startedAt = 10_000L, completedAt = 10_000L + 30 * 60_000L),
+        )
+        // Exercise-write granted, calories-write withheld — degrades per permission.
+        val client = FakeHealthConnectClient(grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE))
+        publisher(client).publish(id)
+
+        assertEquals(1, client.insertedRecords.size)
+        assertTrue(client.insertedRecords.first() is ExerciseSessionRecord)
+    }
+
+    @Test
+    fun caloriesGranted_butNoRecordedStart_onlyExerciseRecordInserted() = runTest {
+        // startedAt null (the synthesized-window case) — the session record still
+        // writes, but calories must never be estimated from a fabricated window.
+        val id = seedSession(listOf(set("bb_back_squat")), session(startedAt = null))
+        val client = FakeHealthConnectClient(
+            grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE, HealthConnectPermissions.WRITE_CALORIES),
+        )
+        publisher(client).publish(id)
+
+        assertEquals(1, client.insertedRecords.size)
+        assertTrue(client.insertedRecords.first() is ExerciseSessionRecord)
+    }
+
+    @Test
+    fun caloriesGranted_butDurationOutsideSanityWindow_onlyExerciseRecordInserted() = runTest {
+        // Ticked-yesterday-finished-today shape: 7 hours, past the 6-hour ceiling.
+        val id = seedSession(
+            listOf(set("bb_back_squat")),
+            session(startedAt = 0L, completedAt = 7 * 3_600_000L),
+        )
+        val client = FakeHealthConnectClient(
+            grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE, HealthConnectPermissions.WRITE_CALORIES),
+        )
+        publisher(client).publish(id)
+
+        assertEquals(1, client.insertedRecords.size)
+        assertTrue(client.insertedRecords.first() is ExerciseSessionRecord)
+    }
+
+    @Test
+    fun caloriesRecordClientRecordIdIsStableAndDistinctFromTheSessionRecords() = runTest {
+        val id = seedSession(
+            listOf(set("bb_back_squat")),
+            session(startedAt = 10_000L, completedAt = 10_000L + 30 * 60_000L),
+        )
+        val client = FakeHealthConnectClient(
+            grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE, HealthConnectPermissions.WRITE_CALORIES),
+        )
+        publisher(client).publish(id)
+
+        val exercise = client.insertedRecords.filterIsInstance<ExerciseSessionRecord>().single()
+        val calories = client.insertedRecords.filterIsInstance<ActiveCaloriesBurnedRecord>().single()
+        assertEquals(CaloriesRecordMapper.clientRecordId(id), calories.metadata.clientRecordId)
+        assertEquals(SessionRecordMapper.clientRecordId(id), exercise.metadata.clientRecordId)
+        assertTrue(calories.metadata.clientRecordId != exercise.metadata.clientRecordId)
     }
 }

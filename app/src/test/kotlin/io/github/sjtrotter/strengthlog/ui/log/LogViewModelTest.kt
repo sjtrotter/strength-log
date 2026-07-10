@@ -192,4 +192,27 @@ class LogViewModelTest {
         assertTrue(sessions.getValue(second).expanded)
         collect.cancel()
     }
+
+    @Test
+    fun restoringWithAnExpandedSessionIdFetchesItsSets() = runVmTest {
+        seedTwoSessions()
+        // Simulate process death: a fresh VM is constructed with a
+        // SavedStateHandle that already carries an expanded session id (as it
+        // would survive), but expandedSets — an in-memory cache — starts empty.
+        val probe = newViewModel()
+        val probeCollect = launch { probe.uiState.collect {} }
+        advanceUntilIdle()
+        val upperId = probe.uiState.value.sessions.first { it.dayTitle == "Upper" }.sessionId
+        probeCollect.cancel()
+
+        val restoredHandle = SavedStateHandle(mapOf("log_expanded_session" to upperId))
+        val vm = newViewModel(restoredHandle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        val expanded = vm.uiState.value.sessions.first { it.sessionId == upperId }
+        assertTrue(expanded.expanded)
+        assertEquals(listOf("Barbell Bench Press", "Barbell Row"), expanded.exerciseGroups?.map { it.exerciseName })
+        collect.cancel()
+    }
 }

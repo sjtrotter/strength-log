@@ -249,6 +249,11 @@ class WizardViewModel @Inject constructor(
         viewModelScope.launch {
             val answers = currentAnswers()
             repo.setWizardAnswers(answers)
+            // Taking only .program drops GeneratedProgram.cardioDays: standalone
+            // Cardio+Core day cards (spec §6.4, SEPARATE_DAYS/BOTH placements)
+            // aren't modeled in :data or the day screen yet — tracked in
+            // docs/briefs/m6-polish-ledger.md. Deliberately dropped whole here
+            // rather than half-persisted.
             repo.replaceProgram(ProgramGenerator.generate(answers).program)
             repo.setWizardComplete(true)
             isComplete.value = true

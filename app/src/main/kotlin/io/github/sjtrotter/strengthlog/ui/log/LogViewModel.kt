@@ -75,6 +75,11 @@ class LogViewModel @Inject constructor(
 
     init {
         refreshHealth()
+        // expandedSessionId survives process death via SavedStateHandle, but
+        // expandedSets is an in-memory cache and doesn't — without this, a
+        // restored VM shows the row expanded with no content until the user
+        // collapses and re-expands it. Fetch through the same path as a tap.
+        expandedSessionId.value?.let(::fetchExpandedSets)
     }
 
     /** Expanding a session that isn't cached yet fetches its sets once; expanding
@@ -82,11 +87,14 @@ class LogViewModel @Inject constructor(
     fun toggleExpanded(sessionId: Long) {
         val next = if (expandedSessionId.value == sessionId) null else sessionId
         savedState[KEY_EXPANDED] = next
-        if (next != null && next !in expandedSets.value) {
-            viewModelScope.launch {
-                val sets = repo.sessionSets(next)
-                expandedSets.update { it + (next to sets) }
-            }
+        if (next != null) fetchExpandedSets(next)
+    }
+
+    private fun fetchExpandedSets(sessionId: Long) {
+        if (sessionId in expandedSets.value) return
+        viewModelScope.launch {
+            val sets = repo.sessionSets(sessionId)
+            expandedSets.update { it + (sessionId to sets) }
         }
     }
 

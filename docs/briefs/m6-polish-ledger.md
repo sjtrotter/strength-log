@@ -17,6 +17,13 @@ the direction lands.
   over the day screen on a real device once M3 completes; agents cannot do
   this (no device). Ask the user; provide a checklist from spec §8.2.
 - **Manual §11.4 watch-restart gate** after M5 — same, user-run.
+- **Standalone Cardio+Core day cards** (spec §6.4, SEPARATE_DAYS/BOTH cardio
+  placements): ProgramGenerator emits them (`GeneratedProgram.cardioDays`) but
+  no schema/UI consumes them — `WizardViewModel.finish()` takes only
+  `.program`, so users choosing those placements currently get their extra
+  cardio guidance nowhere. Needs a product decision first (they live outside
+  the rotation, so the day-tab model doesn't fit); candidate for a v1.1/M-later
+  issue.
 
 ## #21 Gym-floor usability & a11y pass (tier:sonnet)
 

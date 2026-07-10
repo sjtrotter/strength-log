@@ -39,5 +39,6 @@ data class SetupActions(
     val onRerunWizard: () -> Unit,
     val onCreateCustomExercise: () -> Unit,
     val onOpenBackup: () -> Unit,
+    val onOpenLicenses: () -> Unit,
     val onBack: () -> Unit,
 )

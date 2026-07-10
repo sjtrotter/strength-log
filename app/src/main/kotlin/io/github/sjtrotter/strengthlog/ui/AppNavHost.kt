@@ -11,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,6 +34,8 @@ import io.github.sjtrotter.strengthlog.ui.day.DayActions
 import io.github.sjtrotter.strengthlog.ui.day.DayEditActions
 import io.github.sjtrotter.strengthlog.ui.day.DayScreen
 import io.github.sjtrotter.strengthlog.ui.day.DayViewModel
+import io.github.sjtrotter.strengthlog.ui.licenses.LicenseEntry
+import io.github.sjtrotter.strengthlog.ui.licenses.LicensesScreen
 import io.github.sjtrotter.strengthlog.ui.log.LogActions
 import io.github.sjtrotter.strengthlog.ui.log.LogScreen
 import io.github.sjtrotter.strengthlog.ui.log.LogViewModel
@@ -63,6 +66,7 @@ object Routes {
     const val SETUP = "setup"
     const val LOG = "log"
     const val BACKUP = "backup"
+    const val LICENSES = "licenses"
 
     const val CUSTOM_EXERCISE = "customExercise"
     const val CUSTOM_EXERCISE_PATTERN_ARG = "pattern"
@@ -154,10 +158,12 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onRerunWizard = { navController.navigate(Routes.WIZARD) },
                 onCreateCustomExercise = { navController.navigate(Routes.customExercise(null)) },
                 onOpenBackup = { navController.navigate(Routes.BACKUP) },
+                onOpenLicenses = { navController.navigate(Routes.LICENSES) },
             )
         }
         composable(Routes.LOG) { LogRoute(onBack = { navController.popBackStack() }) }
         composable(Routes.BACKUP) { BackupRoute(onBack = { navController.popBackStack() }) }
+        composable(Routes.LICENSES) { LicensesRoute(onBack = { navController.popBackStack() }) }
     }
 }
 
@@ -203,6 +209,7 @@ private fun SetupRoute(
     onRerunWizard: () -> Unit,
     onCreateCustomExercise: () -> Unit,
     onOpenBackup: () -> Unit,
+    onOpenLicenses: () -> Unit,
     viewModel: SetupViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -220,6 +227,7 @@ private fun SetupRoute(
             onRerunWizard = onRerunWizard,
             onCreateCustomExercise = onCreateCustomExercise,
             onOpenBackup = onOpenBackup,
+            onOpenLicenses = onOpenLicenses,
             onBack = onBack,
         ),
     )
@@ -265,6 +273,31 @@ private fun BackupRoute(onBack: () -> Unit, viewModel: BackupViewModel = hiltVie
             onBack = onBack,
         ),
     )
+}
+
+/**
+ * Static OSS-licenses screen (M6 #23). No view-model: the two license texts
+ * ship as APK assets (`app/src/main/assets/licenses/`) rather than live
+ * repo-only, so `remember` just reads them off [LocalContext] once per visit
+ * — there's no state to survive process death because there's nothing to
+ * edit.
+ */
+@Composable
+private fun LicensesRoute(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val entries = remember {
+        listOf(
+            LicenseEntry(
+                "Barlow Condensed — SIL Open Font License 1.1",
+                context.assets.open("licenses/barlow-condensed-OFL.txt").bufferedReader().use { it.readText() },
+            ),
+            LicenseEntry(
+                "Third-party libraries — Apache License 2.0",
+                context.assets.open("licenses/apache-2.0-notices.txt").bufferedReader().use { it.readText() },
+            ),
+        )
+    }
+    LicensesScreen(entries = entries, onBack = onBack)
 }
 
 /**

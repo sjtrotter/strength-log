@@ -55,6 +55,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val WIZARD_COMPLETE = booleanPreferencesKey("wizard_complete")
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val SESSION_STARTED_AT = longPreferencesKey("session_started_at")
+        val SESSION_STARTED_DATE = stringPreferencesKey("session_started_date")
     }
 
     // --- reads ---------------------------------------------------------------
@@ -83,10 +84,18 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val unitFlow: Flow<WeightUnit> =
         dataStore.data.map { it.enum(Keys.WEIGHT_UNIT, WeightUnit.LB) }
 
-    /** The in-progress session's start stamp (session-start capture), or `null`
-     *  when no set has been ticked yet since the last advance/clear. One global
-     *  slot: only one day is worked at a time, so it needs no day key. */
-    val sessionStartedAtFlow: Flow<Long?> = dataStore.data.map { it[Keys.SESSION_STARTED_AT] }
+    /** The in-progress session's start stamp with the calendar date it was
+     *  recorded on (session-start capture), or `null` when no set has been
+     *  ticked since the last advance/clear. One global slot: only one day is
+     *  worked at a time, so it needs no day key. The stored date lets the reader
+     *  drop a stamp that outlived its calendar day — the same staleness rule
+     *  `CheckmarkReset` applies to checkmarks — so the date is compared, not the
+     *  millis, and the caller owns the "today" it compares against (SSOT). */
+    val sessionStartRawFlow: Flow<SessionStartStamp?> = dataStore.data.map { prefs ->
+        val startedAt = prefs[Keys.SESSION_STARTED_AT] ?: return@map null
+        val date = prefs[Keys.SESSION_STARTED_DATE] ?: return@map null
+        SessionStartStamp(startedAt, date)
+    }
 
     // --- writes --------------------------------------------------------------
 
@@ -113,17 +122,28 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setUnit(unit: WeightUnit) =
         dataStore.edit { it[Keys.WEIGHT_UNIT] = unit.name }
 
-    /** Stamps [nowMillis] as the in-progress session's start — a no-op if a
-     *  stamp is already set, so only the first performed tick since the last
-     *  advance/clear records "now" (session-start capture). */
-    suspend fun stampSessionStartIfUnset(nowMillis: Long) = dataStore.edit { prefs ->
-        if (prefs[Keys.SESSION_STARTED_AT] == null) prefs[Keys.SESSION_STARTED_AT] = nowMillis
+    /** Stamps [nowMillis]/[today] as the in-progress session's start, unless a
+     *  stamp for [today] already exists. A stamp carrying any other date is
+     *  treated as absent and overwritten: it belonged to an abandoned session
+     *  from a previous calendar day (ticked, never advanced), so the first tick
+     *  of a new day starts a fresh clock instead of inheriting a stale start
+     *  (session-start capture). */
+    suspend fun stampSessionStartIfUnset(nowMillis: Long, today: String) = dataStore.edit { prefs ->
+        val current = prefs[Keys.SESSION_STARTED_DATE]
+        if (prefs[Keys.SESSION_STARTED_AT] == null || current != today) {
+            prefs[Keys.SESSION_STARTED_AT] = nowMillis
+            prefs[Keys.SESSION_STARTED_DATE] = today
+        }
     }
 
-    /** Clears the session-start stamp: called both when checkmarks are cleared
-     *  (restart semantics — the next tick starts a new session) and once
-     *  `advanceDay` has consumed the stamp into `workout_session.startedAt`. */
-    suspend fun clearSessionStartedAt() = dataStore.edit { it.remove(Keys.SESSION_STARTED_AT) }
+    /** Clears the session-start stamp (both millis and date): called when
+     *  checkmarks are cleared (restart semantics — the next tick starts a new
+     *  session) and once `advanceDay` has consumed the stamp into
+     *  `workout_session.startedAt`. */
+    suspend fun clearSessionStartedAt() = dataStore.edit {
+        it.remove(Keys.SESSION_STARTED_AT)
+        it.remove(Keys.SESSION_STARTED_DATE)
+    }
 
     /**
      * Replaces every preference in one atomic [edit] (backup restore, A2). The
@@ -131,8 +151,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * leave a stale value behind; because these four inputs together own every
      * key this store defines, nothing is orphaned. A single edit means a crash
      * mid-restore leaves either the whole old preference set or the whole new one
-     * — never a mix. [Keys.SESSION_STARTED_AT] is deliberately left cleared: a
-     * restore can't be "mid-workout".
+     * — never a mix. The session-start stamp keys ([Keys.SESSION_STARTED_AT]
+     * and [Keys.SESSION_STARTED_DATE]) are deliberately left cleared: a restore
+     * can't be "mid-workout".
      */
     suspend fun restore(
         answers: WizardAnswers,
@@ -201,3 +222,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val DEFAULT_ANSWERS = WizardAnswers()
     }
 }
+
+/** A session-start stamp paired with the calendar [date] it was recorded on, so
+ *  a reader can drop one that outlived its day (session-start capture). [date]
+ *  is a `yyyy-MM-dd` string from the same clock basis `CheckmarkReset` uses. */
+data class SessionStartStamp(val startedAtMillis: Long, val date: String)

@@ -69,8 +69,14 @@ open class TrackerRepository(
     val wizardAnswersFlow: Flow<WizardAnswers> = settings.wizardAnswersFlow
 
     /** The in-progress session's start stamp (session-start capture), or `null`
-     *  between an advance/clear and the next performed tick. */
-    val sessionStartedAtFlow: Flow<Long?> = settings.sessionStartedAtFlow
+     *  between an advance/clear and the next performed tick. A stamp whose stored
+     *  calendar date isn't today reads as `null`: it belonged to a session
+     *  abandoned on an earlier day (ticked, never advanced), and must never be
+     *  inherited by today's — the same cross-day staleness rule [CheckmarkReset]
+     *  applies to checkmarks, off the one injectable [clock] (SSOT). */
+    val sessionStartedAtFlow: Flow<Long?> = settings.sessionStartRawFlow.map { stamp ->
+        stamp?.takeIf { it.date == CheckmarkReset.today(clock) }?.startedAtMillis
+    }
 
     // Block bodies, not expression form: DataStore's Preferences (SettingsStore's
     // setter return type) must not leak into this public surface via inference —
@@ -267,13 +273,17 @@ open class TrackerRepository(
 
     /**
      * Stamps "now" as the in-progress session's start — a no-op if already
-     * stamped since the last advance/clear (session-start capture). Ticking a
-     * set is performing, not planning, so this is called from the day screen's
-     * first done=true tick and from the watch delta applier's first done=true
-     * apply; both go through this one helper so "session start" means the same
-     * thing regardless of which device performed the first set.
+     * stamped *today* since the last advance/clear (session-start capture); a
+     * stamp left over from a previous calendar day is overwritten, not kept.
+     * Ticking a set is performing, not planning, so this is called from the day
+     * screen's first done=true tick and from the watch delta applier's first
+     * done=true apply; both go through this one helper so "session start" means
+     * the same thing regardless of which device performed the first set. "Today"
+     * is [CheckmarkReset]'s device-local date off [clock] — the one date basis
+     * the daily reset already uses.
      */
-    suspend fun stampSessionStartIfUnset() = settings.stampSessionStartIfUnset(clock.millis())
+    suspend fun stampSessionStartIfUnset() =
+        settings.stampSessionStartIfUnset(clock.millis(), CheckmarkReset.today(clock))
 
     // --- rotation & session history ------------------------------------------
 
@@ -335,15 +345,19 @@ open class TrackerRepository(
      * cleared *after* it commits — a crash before the read changes nothing; a
      * crash between the read and the commit leaves the stamp for a retry to
      * consume; a crash after commit but before the clear leaves a stale stamp
-     * that a later session might read. None of those tears the just-written
-     * session or set rows, so the worst case is a stale/absent `startedAt` on a
-     * future session — the `:transfer` HC-calories path already refuses any
-     * window outside 5 min–6 h, which is exactly the shape a stale stamp
-     * produces.
+     * behind. None of those tears the just-written session or set rows. A stale
+     * stamp is contained on two fronts: the date-scoped read ([sessionStartedAtFlow])
+     * drops it outright once the calendar day turns over, and even within the
+     * same day both `:transfer` exports (HC calories, CSV Duration) refuse a
+     * span outside a sane 5 min–6 h window — so the worst case is a session
+     * whose `startedAt` is simply absent, never a garbage duration.
      */
     suspend fun advanceDay(completedDayId: String): Long {
         val bodyweight = settings.configFlow.first().bodyweightLb
-        val sessionStartedAt = settings.sessionStartedAtFlow.first()
+        // Date-scoped read (see [sessionStartedAtFlow]): a stamp from a day the
+        // user ticked but never advanced reads as null here, so the completed
+        // session records no start rather than inheriting the abandoned one.
+        val sessionStartedAt = sessionStartedAtFlow.first()
         val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
         var next: String? = null
         var newSessionId = 0L

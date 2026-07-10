@@ -3,6 +3,7 @@ package io.github.sjtrotter.strengthlog.transfer.csv
 import io.github.sjtrotter.strengthlog.data.db.entity.SessionSetEntity
 import io.github.sjtrotter.strengthlog.data.db.entity.WorkoutSessionEntity
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
+import io.github.sjtrotter.strengthlog.transfer.SessionDurationBounds
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -80,12 +81,16 @@ object HistoryCsvWriter {
 
     /** `H:MM:SS` of the session's real wall-clock duration, or `""` when there
      *  is no [WorkoutSessionEntity.startedAt] to measure from (see class doc).
-     *  A negative span — a corrupt or stale stamp outliving its session —
-     *  prints empty rather than a nonsense negative duration. */
+     *  A span outside a sane session length — negative (a corrupt stamp), or
+     *  past [SessionDurationBounds.MAX_MILLIS] (a stale stamp that outlived its
+     *  calendar day or a crash) — prints empty rather than a garbage duration
+     *  like `27:00:00`. The same ceiling the calorie estimate refuses, so CSV
+     *  and Health Connect agree on what a real session looks like. */
     private fun durationField(session: WorkoutSessionEntity): String {
         val startedAt = session.startedAt ?: return ""
-        val totalSeconds = (session.completedAt - startedAt) / 1000
-        if (totalSeconds < 0) return ""
+        val durationMillis = session.completedAt - startedAt
+        if (durationMillis < 0 || durationMillis > SessionDurationBounds.MAX_MILLIS) return ""
+        val totalSeconds = durationMillis / 1000
         val hours = totalSeconds / 3600
         val minutes = (totalSeconds % 3600) / 60
         val seconds = totalSeconds % 60

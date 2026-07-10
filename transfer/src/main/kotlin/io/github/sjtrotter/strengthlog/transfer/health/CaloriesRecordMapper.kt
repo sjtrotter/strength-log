@@ -5,6 +5,7 @@ import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.units.Energy
 import io.github.sjtrotter.strengthlog.data.db.entity.WorkoutSessionEntity
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
+import io.github.sjtrotter.strengthlog.transfer.SessionDurationBounds
 import java.time.Instant
 import java.time.ZoneId
 
@@ -24,9 +25,10 @@ import java.time.ZoneId
  *    never [SessionRecordMapper]'s synthesized lead-in; a synthesized window
  *    is sized to fit the exercise segments, not to approximate how long the
  *    lifter actually trained, so it is not a defensible calorie duration.
- *  - **Sane duration.** Below 5 minutes is too short to be a real workout
- *    (dedupe/roundoff noise); above 6 hours smells like a stale stamp from a
- *    session ticked yesterday and finished today (see
+ *  - **Sane duration.** Outside [SessionDurationBounds] (5 min – 6 h):
+ *    below the floor is too short to be a real workout (dedupe/roundoff
+ *    noise); above the ceiling smells like a stale stamp from a session
+ *    ticked yesterday and finished today (see
  *    [io.github.sjtrotter.strengthlog.data.TrackerRepository.advanceDay]'s
  *    crash-ordering note) rather than one continuous session.
  */
@@ -36,8 +38,6 @@ object CaloriesRecordMapper {
      *  training — a single accepted constant, not derived per exercise. */
     private const val RESISTANCE_TRAINING_MET = 5.0
 
-    private const val MIN_DURATION_MILLIS = 5 * 60_000L
-    private const val MAX_DURATION_MILLIS = 6 * 60 * 60_000L
     private const val MILLIS_PER_HOUR = 3_600_000.0
 
     /** A stable client record id so a retry/re-publish updates rather than
@@ -51,7 +51,9 @@ object CaloriesRecordMapper {
     ): ActiveCaloriesBurnedRecord? {
         val startedAt = session.startedAt ?: return null
         val durationMillis = session.completedAt - startedAt
-        if (durationMillis < MIN_DURATION_MILLIS || durationMillis > MAX_DURATION_MILLIS) return null
+        if (durationMillis < SessionDurationBounds.MIN_MILLIS || durationMillis > SessionDurationBounds.MAX_MILLIS) {
+            return null
+        }
 
         val bodyweightKg = WeightUnit.KG.fromLb(session.bodyweightLb.toDouble())
         val hours = durationMillis / MILLIS_PER_HOUR

@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -145,5 +146,45 @@ class SessionStartStampTest {
         seedProgram()
         val sessionId = repo.advanceDay("A")
         assertNull(repo.session(sessionId)!!.startedAt)
+    }
+
+    // --- cross-day staleness (the abandoned-session poison path) --------------
+
+    @Test
+    fun aStampFromAPreviousCalendarDayReadsAsAbsent() = runTest {
+        repo.stampSessionStartIfUnset()
+        assertEquals(clock.instant.toEpochMilli(), repo.sessionStartedAtFlow.first())
+
+        // Roll the device clock into the next calendar day (UTC zone): the
+        // yesterday-dated stamp must no longer surface.
+        clock.instant = clock.instant.plusSeconds(24 * 3_600)
+        assertNull("a stamp dated to a prior day must read as unset", repo.sessionStartedAtFlow.first())
+    }
+
+    @Test
+    fun theFirstTickOfANewDayOverwritesAStaleStampWithTodaysStart() = runTest {
+        repo.stampSessionStartIfUnset()
+        val dayOne = clock.instant.toEpochMilli()
+
+        clock.instant = clock.instant.plusSeconds(24 * 3_600) // next calendar day
+        repo.stampSessionStartIfUnset() // first tick of the new day
+
+        // Fresh stamp for today, not the inherited day-one start.
+        assertEquals(clock.instant.toEpochMilli(), repo.sessionStartedAtFlow.first())
+        assertNotEquals(dayOne, repo.sessionStartedAtFlow.first())
+    }
+
+    @Test
+    fun advanceDayOnALaterDayDoesNotInheritAnAbandonedStamp() = runTest {
+        seedProgram()
+        repo.stampSessionStartIfUnset() // day one: ticked but never advanced
+
+        clock.instant = clock.instant.plusSeconds(24 * 3_600) // finish on a later day
+        val sessionId = repo.advanceDay("A")
+
+        assertNull(
+            "a stale cross-day stamp must not become the completed session's startedAt",
+            repo.session(sessionId)!!.startedAt,
+        )
     }
 }

@@ -54,6 +54,12 @@ dependencies {
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.navigation)
     implementation(libs.androidx.wear.ambient)
+    // Wear Data Layer client (#20): read snapshots, send set-edit deltas; the
+    // play-services adapter gives Task.await(). The pending-edit queue persists to
+    // a Preferences DataStore.
+    implementation(libs.play.services.wearable)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.horologist.compose.layout) {
         // horologist-compose-layout depends on the full androidx ui-tooling artifact
         // (not debug-scoped), which ships androidx.compose.ui.tooling.PreviewActivity

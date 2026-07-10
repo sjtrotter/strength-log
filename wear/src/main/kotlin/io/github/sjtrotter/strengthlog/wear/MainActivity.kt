@@ -7,13 +7,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.wear.ambient.AmbientLifecycleObserver
-import io.github.sjtrotter.strengthlog.wear.data.FakeWatchClient
 import io.github.sjtrotter.strengthlog.wear.ui.WearApp
 
 /**
- * Single-activity Compose-for-Wear host (spec §9). Wired against
- * [FakeWatchClient] here — #20 swaps in the real Data Layer client without
- * touching this class or the screens.
+ * Single-activity Compose-for-Wear host (spec §9). Reads the one process-wide
+ * [io.github.sjtrotter.strengthlog.wear.data.WatchTrackerClient] from
+ * [StrengthLogWearApp] — the real Data Layer client (#20) — so Activity recreation
+ * (rotation, ambient exit) never re-registers listeners or drops the edit queue.
  */
 class MainActivity : ComponentActivity() {
 
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         lifecycle.addObserver(AmbientLifecycleObserver(this, ambientCallback))
 
-        val client = FakeWatchClient()
+        val client = (application as StrengthLogWearApp).watchClient
         setContent {
             WearApp(client = client, isAmbient = isAmbient)
         }

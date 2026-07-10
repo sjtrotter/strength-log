@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.first
  *  - the monotonic snapshot [revision], persisted so a phone-app restart resumes
  *    counting up instead of resetting to 0 — a regressed revision would make a
  *    live watch treat a genuinely newer snapshot as stale;
- *  - the per-slot applied-edit markers ([AppliedEditMarkers]) that dedupe replayed
+ *  - the per-row applied-edit markers ([AppliedEditMarkers]) that dedupe replayed
  *    watch deltas.
  */
 class WearSyncStore(private val dataStore: DataStore<Preferences>) : AppliedEditMarkers {
@@ -35,14 +35,14 @@ class WearSyncStore(private val dataStore: DataStore<Preferences>) : AppliedEdit
         return next
     }
 
-    override suspend fun lastApplied(slotKey: String): Long =
-        dataStore.data.first()[appliedKey(slotKey)] ?: 0L
+    override suspend fun lastApplied(rowKey: String): Long =
+        dataStore.data.first()[appliedKey(rowKey)] ?: 0L
 
-    override suspend fun markApplied(slotKey: String, editedAtMillis: Long) {
-        dataStore.edit { it[appliedKey(slotKey)] = editedAtMillis }
+    override suspend fun markApplied(rowKey: String, editedAtMillis: Long) {
+        dataStore.edit { it[appliedKey(rowKey)] = editedAtMillis }
     }
 
-    private fun appliedKey(slotKey: String) = longPreferencesKey("$APPLIED_PREFIX$slotKey")
+    private fun appliedKey(rowKey: String) = longPreferencesKey("$APPLIED_PREFIX$rowKey")
 
     private companion object {
         val REVISION = longPreferencesKey("snapshot_revision")

@@ -19,8 +19,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -47,9 +45,6 @@ class DataLayerWatchClient(
 
     private val snapshots = MutableStateFlow<WatchSnapshot?>(null)
 
-    /** Serializes queue read-modify-write across sendEdit and snapshot-driven drains. */
-    private val queueLock = Mutex()
-
     init {
         scope.launch { prime() }
         snapshotChanges()
@@ -63,7 +58,7 @@ class DataLayerWatchClient(
     override suspend fun sendEdit(delta: SetEditDelta) {
         // Re-stamp with a strictly monotonic, persisted editedAtMillis: the caller's
         // wall clock can stamp two distinct edits into the same millisecond, and the
-        // phone's per-slot dedupe would then drop the second as a replay.
+        // phone's per-row dedupe would then drop the second as a replay.
         val stamped = delta.copy(editedAtMillis = queue.issueStamp(delta.editedAtMillis))
         // Echo the edit on-wrist immediately (spec §9); the phone's next snapshot —
         // with cascade/seeding applied — overwrites this and is the real ack.
@@ -108,19 +103,15 @@ class DataLayerWatchClient(
 
     private suspend fun onSnapshot(snapshot: WatchSnapshot) {
         snapshots.value = snapshot
-        reconcile(snapshot)
+        // Drop-settled runs atomically inside the store (one DataStore.edit), so a
+        // sendEdit enqueuing concurrently can't be wiped between read and write —
+        // no lock needed here.
+        queue.reconcileAgainst(snapshot)
         drainQueue()
     }
 
-    private suspend fun reconcile(snapshot: WatchSnapshot) = queueLock.withLock {
-        val pending = queue.all()
-        val stillPending = PendingEdits.reconcile(pending, snapshot)
-        if (stillPending.size != pending.size) queue.replace(stillPending)
-    }
-
     private suspend fun drainQueue() {
-        val pending = queueLock.withLock { queue.all() }
-        pending.forEach { send(it) }
+        queue.all().forEach { send(it) }
     }
 
     private suspend fun send(delta: SetEditDelta) {

@@ -51,8 +51,8 @@ class SetEditApplierTest {
 
     private class RecordingMarkers : AppliedEditMarkers {
         val map = mutableMapOf<String, Long>()
-        override suspend fun lastApplied(slotKey: String): Long = map[slotKey] ?: 0L
-        override suspend fun markApplied(slotKey: String, editedAtMillis: Long) { map[slotKey] = editedAtMillis }
+        override suspend fun lastApplied(rowKey: String): Long = map[rowKey] ?: 0L
+        override suspend fun markApplied(rowKey: String, editedAtMillis: Long) { map[rowKey] = editedAtMillis }
     }
 
     @Before
@@ -183,6 +183,22 @@ class SetEditApplierTest {
 
         assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
         assertEquals(7, track(id, Slot.MAIN)!![0].reps)
+    }
+
+    @Test
+    fun `an older row-0 edit still applies after a newer row-1 edit on the same track`() = runTest {
+        seedProgram()
+        val id = squatId()
+        // Row 1 lands first with the newer stamp (e.g. row 0's first send failed)...
+        applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1, reps = 8, editedAtMillis = 200L))
+
+        // ...then row 0's delayed re-send arrives with an older stamp. Markers are
+        // per-ROW, so row 1's newer marker must not STALE-starve it.
+        val outcome = applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, reps = 7, editedAtMillis = 100L))
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(7, track(id, Slot.MAIN)!![0].reps)
+        assertEquals(8, track(id, Slot.MAIN)!![1].reps)
     }
 
     @Test

@@ -26,7 +26,7 @@ import kotlinx.coroutines.sync.withLock
  *    else is [Outcome.INVALID] and touches no data (malformed input from an
  *    exported/foreign sender must never corrupt the log).
  *  - **Dedupe** — a delta whose `editedAtMillis` is not newer than the last one
- *    applied to that slot is [Outcome.STALE] and dropped, which is what makes the
+ *    applied to that row is [Outcome.STALE] and dropped, which is what makes the
  *    watch's re-sends idempotent.
  *
  * Read-modify-write over a whole track, so it holds [mutationLock] for the same
@@ -64,15 +64,15 @@ class SetEditApplier(
         }?.sets.orEmpty()
         if (delta.setIndex !in track.indices) return Outcome.INVALID
 
-        val slotKey = slotKey(delta)
-        if (delta.editedAtMillis <= markers.lastApplied(slotKey)) return Outcome.STALE
+        val rowKey = rowKey(delta)
+        if (delta.editedAtMillis <= markers.lastApplied(rowKey)) return Outcome.STALE
 
         if (delta.slot == Slot.MAIN) {
             applyToMain(delta, track, partnerTrack = logs.trackOf(delta.programExerciseId, Slot.SS))
         } else {
             applyToPartner(delta, track)
         }
-        markers.markApplied(slotKey, delta.editedAtMillis)
+        markers.markApplied(rowKey, delta.editedAtMillis)
         return Outcome.APPLIED
     }
 
@@ -118,6 +118,9 @@ class SetEditApplier(
     ): List<LoggedSet> =
         firstOrNull { it.programExerciseId == programExerciseId && it.slot == slot }?.sets.orEmpty()
 
-    private fun slotKey(delta: SetEditDelta): String =
-        "${delta.dayId}|${delta.programExerciseId}|${delta.slot}"
+    /** Per-ROW, not per-track: a per-track marker would let a newer edit to row 1
+     *  permanently STALE-starve a delayed re-send of a distinct row-0 edit. A
+     *  replayed edit still dedupes — it carries the same row and the same stamp. */
+    private fun rowKey(delta: SetEditDelta): String =
+        "${delta.dayId}|${delta.programExerciseId}|${delta.slot}|${delta.setIndex}"
 }

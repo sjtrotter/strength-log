@@ -57,6 +57,10 @@ object PendingEdits {
             (older.reps == null || reps != null) &&
             (older.done == null || done != null)
 
+    // Settle edge: this checks every carried field together, which is exact only
+    // while the UI emits single-field deltas (it does today). If the watch ever
+    // sends multi-field deltas, settling must become per-field — each carried
+    // field reflected OR overwritten by a newer pending delta carrying it.
     private fun SetEditDelta.isReflectedIn(snapshot: WatchSnapshot): Boolean {
         val exercise = snapshot.day.exercises
             .firstOrNull { it.programExerciseId == programExerciseId } ?: return false

@@ -8,6 +8,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.db.StrengthDatabase
+import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
 import io.github.sjtrotter.strengthlog.domain.generator.AnchorScheme
 import io.github.sjtrotter.strengthlog.domain.generator.DeadliftVariant
@@ -15,6 +16,9 @@ import io.github.sjtrotter.strengthlog.domain.generator.SplitTemplate
 import io.github.sjtrotter.strengthlog.domain.generator.WizardAnswers
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.GoalEmphasis
+import io.github.sjtrotter.strengthlog.domain.model.SetKind
+import io.github.sjtrotter.strengthlog.transfer.health.SessionPublisher
+import io.github.sjtrotter.strengthlog.ui.day.DayViewModel
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,7 +60,7 @@ class WizardViewModelWiringTest {
     private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
-    private val vms = mutableListOf<WizardViewModel>()
+    private val vms = mutableListOf<androidx.lifecycle.ViewModel>()
 
     @Before
     fun setUp() {
@@ -264,6 +268,42 @@ class WizardViewModelWiringTest {
         assertTrue(
             "replaceProgram must run before setWizardComplete",
             recording.calls.indexOf("replaceProgram") < recording.calls.indexOf("setWizardComplete"),
+        )
+    }
+
+    @Test
+    fun finishThenDayScreenSeedsThePinnedSquatSequence() = runVmTest {
+        // Closes the compositional gap between finish_persists_answers_and_
+        // replaces_the_program (real generator, but only a day count assert)
+        // and DayViewModelWiringTest (pinned §11 seed numbers, but against a
+        // hand-built program fixture): drive the REAL generator through
+        // finish(), then let a real DayViewModel seed day A of that program
+        // and pin the persisted squat log end to end.
+        val vm = newViewModel()
+        advanceUntilIdle()
+        repeat(WizardStep.entries.size - 1) { vm.onNext() }
+        vm.onNext() // last step -> finish(): ProgramGenerator -> replaceProgram
+        advanceUntilIdle()
+
+        DayViewModel(repo, SessionPublisher.NoOp, SavedStateHandle()).also { vms += it }
+        advanceUntilIdle() // constructing the VM triggers the day-A seed pass
+
+        val squatSlotId = repo.daySlotsFlow("A").first()
+            .first { it.exercise.exerciseId == "bb_back_squat" }
+            .programExerciseId
+        val squat = repo.logFlow("A").first()
+            .first { it.programExerciseId == squatSlotId && it.slot == Slot.MAIN }
+            .sets
+        assertEquals(
+            listOf(
+                Triple(130.0, 5, SetKind.RAMP),
+                Triple(165.0, 5, SetKind.RAMP),
+                Triple(190.0, 5, SetKind.RAMP),
+                Triple(210.0, 3, SetKind.RAMP),
+                Triple(235.0, 5, SetKind.TOP),
+                Triple(175.0, 8, SetKind.BACKOFF),
+            ),
+            squat.map { Triple(it.weightLb, it.reps, it.kind) },
         )
     }
 

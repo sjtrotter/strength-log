@@ -54,7 +54,14 @@ dependencies {
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.navigation)
     implementation(libs.androidx.wear.ambient)
-    implementation(libs.horologist.compose.layout)
+    implementation(libs.horologist.compose.layout) {
+        // horologist-compose-layout depends on the full androidx ui-tooling artifact
+        // (not debug-scoped), which ships androidx.compose.ui.tooling.PreviewActivity
+        // (exported, unguarded) into the release APK's manifest. We don't use
+        // horologist's tooling/preview surface, and ui-tooling is separately pulled in
+        // below as debugImplementation, so drop this transitive copy entirely.
+        exclude(group = "androidx.compose.ui", module = "ui-tooling")
+    }
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.ui.tooling.preview)
 

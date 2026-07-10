@@ -69,6 +69,28 @@ class DayIconManagerTest {
         assertEquals("Launcher_DayG", states.single { it.enabled }.alias)
     }
 
+    // --- applicationOrderFor: the target alias must be ENABLED before any DISABLE ----
+
+    @Test
+    fun `application order enables the target alias first, for every day`() {
+        // A process death between individual setComponentEnabledSetting calls is
+        // possible; if a DISABLE ever committed before the target's ENABLE, that
+        // window could leave zero enabled launcher aliases (unlaunchable app, no
+        // self-heal reachable). Enabling first means the worst observable state is
+        // "two aliases enabled", which is harmless.
+        for (dayIndex in 0..6) {
+            val unordered = aliasStatesFor(dayIndex)
+            val order = applicationOrderFor(dayIndex)
+
+            assertEquals(7, order.size)
+            assertTrue(order.first().enabled, "day index $dayIndex: first entry must be enabled")
+            assertEquals(unordered.single { it.enabled }.alias, order.first().alias)
+            assertEquals(1, order.count { it.enabled })
+            assertEquals(unordered.map { it.alias }.toSet(), order.map { it.alias }.toSet())
+            assertEquals(7, order.map { it.alias }.toSet().size)
+        }
+    }
+
     // --- shouldReapplyIcon: skip component writes when nothing changed ---------
 
     @Test

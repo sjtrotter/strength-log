@@ -26,44 +26,12 @@ class FakeWatchClient : WatchTrackerClient {
 
     override suspend fun sendEdit(delta: SetEditDelta) {
         state.update { snapshot ->
-            val exercises = snapshot.day.exercises.map { exercise ->
-                if (exercise.programExerciseId != delta.programExerciseId) return@map exercise
-                applyDelta(exercise, delta)
-            }
-            snapshot.copy(revision = snapshot.revision + 1, day = snapshot.day.copy(exercises = exercises))
+            snapshot.copy(
+                revision = snapshot.revision + 1,
+                day = snapshot.day.copy(exercises = WatchEditOptimism.apply(snapshot.day.exercises, delta)),
+            )
         }
     }
-
-    private fun applyDelta(exercise: WatchExercise, delta: SetEditDelta): WatchExercise {
-        val editingMain = delta.slot == "main"
-        val track = if (editingMain) exercise.sets else exercise.ssSets
-        if (delta.setIndex !in track.indices) return exercise
-
-        val updatedTrack = track.mapIndexed { i, set ->
-            if (i != delta.setIndex) set else set.applying(delta)
-        }
-
-        // One-tick-per-round: a done edit on the main track dims the aligned
-        // partner round too — there is no independent tick on the sub-row.
-        val doneEdit = delta.done
-        val updatedSsSets = if (editingMain && doneEdit != null && exercise.ssSets.isNotEmpty()) {
-            exercise.ssSets.mapIndexed { i, set -> if (i == delta.setIndex) set.copy(done = doneEdit) else set }
-        } else {
-            exercise.ssSets
-        }
-
-        return if (editingMain) {
-            exercise.copy(sets = updatedTrack, ssSets = updatedSsSets)
-        } else {
-            exercise.copy(ssSets = updatedTrack)
-        }
-    }
-
-    private fun WatchSet.applying(delta: SetEditDelta): WatchSet = copy(
-        weightLb = delta.weightLb ?: weightLb,
-        reps = delta.reps ?: reps,
-        done = delta.done ?: done,
-    )
 
     private companion object {
         /** Squat's pinned seeded ramp (spec §11.1) — R130/R165/R190/R210/TOP235/B175. */

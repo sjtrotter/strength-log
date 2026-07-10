@@ -98,6 +98,10 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(libs.kotlinx.coroutines.core)
+    // Wear Data Layer: publish snapshots + receive set-edit deltas (#20). The
+    // play-services adapter gives Task.await() so the flow pipeline stays suspend.
+    implementation(libs.play.services.wearable)
+    implementation(libs.kotlinx.coroutines.play.services)
     // DataModule constructs the Room DB and Preferences DataStore, so the app
     // module depends on them directly (they are not part of :data's API).
     implementation(libs.room.runtime)

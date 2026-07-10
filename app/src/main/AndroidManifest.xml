@@ -77,6 +77,27 @@
         </activity-alias>
 
         <!--
+          Wear Data Layer receiver (#20). Google Play Services binds this service
+          to deliver watch->phone set-edit messages, waking the app process if it
+          was dead so an edit made while the phone app wasn't running still lands.
+
+          exported="true" is required and safe: only Google Play Services binds a
+          WearableListenerService (the bind is gated by that trusted process), and
+          the filter is path-scoped to /strengthlog so nothing but our own
+          set-edit messages can reach it. The service validates and dedupes every
+          payload before touching data (SetEditApplier), and no INTERNET permission
+          is added — the Data Layer is on-device Play-services IPC.
+        -->
+        <service
+            android:name=".sync.StrengthLogWearListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/strengthlog" />
+            </intent-filter>
+        </service>
+
+        <!--
           Day-swapping launcher icon (#22): one alias per rotation day, one
           icon each. DayIconManager enables the alias for the current
           suggested day and disables the rest via PackageManager component

@@ -3,6 +3,7 @@
     <uses-feature android:name="android.hardware.type.watch" />
 
     <application
+        android:name=".StrengthLogWearApp"
         android:label="@string/app_name">
 
         <meta-data

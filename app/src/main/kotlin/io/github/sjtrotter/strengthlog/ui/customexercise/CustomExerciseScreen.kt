@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -25,7 +26,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
@@ -87,10 +93,11 @@ private fun Header(actions: CustomExerciseActions) {
         Box(
             modifier = Modifier
                 .minimumInteractiveComponentSize()
-                .clickable(onClickLabel = "cancel", onClick = actions.onCancel),
+                .clickable(onClickLabel = "Cancel", role = Role.Button, onClick = actions.onCancel)
+                .semantics { contentDescription = "Cancel" },
             contentAlignment = Alignment.Center,
         ) {
-            Text("✕", color = TextSecondary, style = MaterialTheme.typography.titleMedium)
+            Text("✕", color = TextSecondary, style = MaterialTheme.typography.titleMedium, modifier = Modifier.clearAndSetSemantics {})
         }
     }
 }
@@ -180,6 +187,8 @@ private fun PerHandAndWeightSection(state: CustomExerciseUiState, actions: Custo
                 step = { WeightStepper.increment(it, state.unit) },
                 round = { WeightStepper.round(it, state.unit) },
                 format = WeightStepper::format,
+                decreaseDescription = "Decrease starting weight",
+                increaseDescription = "Increase starting weight",
             )
         }
     }
@@ -228,13 +237,14 @@ private fun FooterButton(
 ) {
     Box(
         modifier = modifier
-            .height(52.dp)
+            .heightIn(min = 52.dp)
             .alpha(if (enabled) 1f else 0.4f)
             .background(fill, RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = textColor, style = DoneButtonLabel)
+        Text(label, color = textColor, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 

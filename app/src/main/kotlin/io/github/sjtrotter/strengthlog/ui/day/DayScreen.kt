@@ -19,12 +19,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -52,9 +56,15 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -167,8 +177,13 @@ private fun TopBar(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SettingsTab(actions.onOpenSettings)
-                state.tabs.forEach { tab ->
-                    DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
+                Row(
+                    modifier = Modifier.selectableGroup(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    state.tabs.forEach { tab ->
+                        DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
+                    }
                 }
                 Spacer(Modifier.weight(1f))
                 LogTab(actions.onOpenLog)
@@ -212,10 +227,11 @@ private fun EditDayButton(onClick: () -> Unit) {
             .size(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Edit day", onClick = onClick),
+            .clickable(onClickLabel = "Edit day", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Edit day" },
         contentAlignment = Alignment.Center,
     ) {
-        Text("✎", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp))
+        Text("✎", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
@@ -249,10 +265,11 @@ private fun SettingsTab(onClick: () -> Unit) {
             .size(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick),
+            .clickable(onClickLabel = "Settings", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Settings" },
         contentAlignment = Alignment.Center,
     ) {
-        Text("⚙", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp))
+        Text("⚙", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
@@ -264,20 +281,24 @@ private fun LogTab(onClick: () -> Unit) {
             .height(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Open log", onClick = onClick)
+            .clickable(onClickLabel = "Open log", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Open log" }
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text("LOG", color = TextSecondary, style = TabLetter.copy(fontSize = 13.sp))
+        Text("LOG", color = TextSecondary, style = TabLetter.copy(fontSize = 13.sp), modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
+// internal, not private (A7): the semantics test exercises this composable
+// directly rather than standing up a whole DayScreen fixture.
 @Composable
-private fun DayTab(tab: DayTab, onClick: () -> Unit) {
+internal fun DayTab(tab: DayTab, onClick: () -> Unit) {
     val accent = dayAccent(tab.dayIndex)
     val showSuggestedRing = tab.isSuggested && !tab.isSelected
     // Border-color uses the muted 55% blend; the suggested ring is the pure accent.
     val borderColor = if (showSuggestedRing) accentBorder(tab.dayIndex) else Border
+    val description = "Day ${tab.dayId}" + if (showSuggestedRing) ", suggested next" else ""
     Box(
         modifier = Modifier
             .size(40.dp)
@@ -300,13 +321,18 @@ private fun DayTab(tab: DayTab, onClick: () -> Unit) {
             }
             .background(if (tab.isSelected) accent else Surface, RoundedCornerShape(10.dp))
             .then(if (tab.isSelected) Modifier else Modifier.border(1.dp, borderColor, RoundedCornerShape(10.dp)))
-            .clickable(onClick = onClick),
+            // selectable (A7), not plain clickable: the day tabs are a mutually-
+            // exclusive group (selectableGroup wraps them, see TopBar) so
+            // TalkBack announces "Day A, suggested next, tab, selected" etc.
+            .selectable(selected = tab.isSelected, onClick = onClick, role = Role.Tab)
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Text(
             tab.dayId,
             color = if (tab.isSelected) onDayAccent(tab.dayIndex) else accent,
             style = TabLetter,
+            modifier = Modifier.clearAndSetSemantics {},
         )
     }
 }
@@ -353,7 +379,12 @@ private fun ExerciseCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { actions.onToggleCollapse(card.programExerciseId) },
+                .clickable(
+                    onClickLabel = if (displayCollapsed) "Expand" else "Collapse",
+                    role = Role.Button,
+                    onClick = { actions.onToggleCollapse(card.programExerciseId) },
+                )
+                .semantics { stateDescription = if (displayCollapsed) "Collapsed" else "Expanded" },
             verticalAlignment = Alignment.Top,
         ) {
             Column(Modifier.weight(1f)) {
@@ -361,7 +392,7 @@ private fun ExerciseCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 5.dp)) {
                     if (card.isMain) Badge("MAIN", accent, onAccent)
                     if (card.hasWarmupHint) Badge("+1 WARM-UP", Color.Transparent, TextSecondary, outlined = true)
-                    if (card.allDone) Badge("✓", Done, Background)
+                    if (card.allDone) Badge("✓", Done, Background, description = "All sets done")
                 }
                 // History bonus (PLAN.md A1): the exercise's last completed
                 // performance, when one exists — silent otherwise (no "never
@@ -479,14 +510,18 @@ private fun GoalBlock(goalDisplay: String, perHand: Boolean, accent: Color) {
     }
 }
 
+/** [description] overrides the accessible name for badges whose visible
+ *  [text] is a glyph rather than a word (the "✓" all-done badge, A7) — TalkBack
+ *  must never read a raw glyph. */
 @Composable
-private fun Badge(text: String, fill: Color, textColor: Color, outlined: Boolean = false) {
+private fun Badge(text: String, fill: Color, textColor: Color, outlined: Boolean = false, description: String? = null) {
     Box(
         modifier = Modifier
             .background(fill, RoundedCornerShape(4.dp))
             .then(if (outlined) Modifier.border(1.dp, Border, RoundedCornerShape(4.dp)) else Modifier)
             // Outline badges pad 7/2 (tighter, to offset the 1px border); filled 8/3.
-            .padding(horizontal = if (outlined) 7.dp else 8.dp, vertical = if (outlined) 2.dp else 3.dp),
+            .padding(horizontal = if (outlined) 7.dp else 8.dp, vertical = if (outlined) 2.dp else 3.dp)
+            .then(if (description != null) Modifier.clearAndSetSemantics { contentDescription = description } else Modifier),
     ) {
         Text(text.uppercase(), color = textColor, style = MaterialTheme.typography.labelSmall)
     }
@@ -521,7 +556,11 @@ private fun CardioCard(cardio: CardioSuggestion) {
     // Saveable so LazyColumn eviction and rotation don't snap it shut (defaults closed).
     var open by rememberSaveable { mutableStateOf(false) }
     val chevronRotation by animateFloatAsState(if (open) 180f else 0f, tween(200), label = "cardioChevron")
-    AppCard(modifier = Modifier.clickable { open = !open }) {
+    AppCard(
+        modifier = Modifier
+            .clickable(onClickLabel = if (open) "Collapse" else "Expand", role = Role.Button) { open = !open }
+            .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
@@ -541,7 +580,7 @@ private fun CardioCard(cardio: CardioSuggestion) {
                 "▼",
                 color = TextFaint,
                 style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.rotate(chevronRotation),
+                modifier = Modifier.rotate(chevronRotation).clearAndSetSemantics {},
             )
         }
         Column(Modifier.animateContentSize(tween(320))) {
@@ -578,15 +617,21 @@ private fun DoneButton(nextDayId: String?, accent: Color, onAccent: Color, onCli
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .height(56.dp)
+            // heightIn(min), not height (A7 font-scale): the longer "ADVANCE TO
+            // DAY B" label wraps to two lines at large fontScale instead of
+            // overflowing the fixed-height pill.
+            .heightIn(min = 56.dp)
             .background(accent, RoundedCornerShape(12.dp))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = if (nextDayId != null) "DONE — ADVANCE TO DAY ${nextDayId.uppercase()}" else "DONE",
             color = onAccent,
             style = DoneButtonLabel,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
         )
     }
 }
@@ -634,7 +679,10 @@ private fun KeepScreenOnSwitch(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .clickable { onCheckedChange(!checked) },
+            // toggleable(role = Switch) (A7): TalkBack gets the switch role and
+            // on/off state for free; [label] is real Text, so it merges into
+            // the accessible name without a separate contentDescription.
+            .toggleable(value = checked, onValueChange = onCheckedChange, role = Role.Switch),
     ) {
         Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         val trackColor by animateColorAsState(if (checked) accent else Surface2, tween(200), label = "switchTrack")
@@ -710,6 +758,27 @@ data class DayActions(
 @Preview(showBackground = true, heightDp = 900, backgroundColor = 0xFF0D0D0F)
 @Composable
 private fun DayScreenPreview() {
+    DayScreenPreviewContent()
+}
+
+// Font-scale audit (A7): the DONE button's "ADVANCE TO DAY B" label and the
+// GOAL numeral are the two elements most at risk of clipping/overflow at
+// large system font scales — see the heightIn(min)/maxLines fix on
+// [DoneButton]. Same fixture as [DayScreenPreview], just re-scaled.
+@Preview(showBackground = true, heightDp = 1000, backgroundColor = 0xFF0D0D0F, fontScale = 1.3f)
+@Composable
+private fun DayScreenFontScale130Preview() {
+    DayScreenPreviewContent()
+}
+
+@Preview(showBackground = true, heightDp = 1200, backgroundColor = 0xFF0D0D0F, fontScale = 2.0f)
+@Composable
+private fun DayScreenFontScale200Preview() {
+    DayScreenPreviewContent()
+}
+
+@Composable
+private fun DayScreenPreviewContent() {
     fun row(index: Int, kind: String, isTop: Boolean, w: Double, r: Int, done: Boolean = false) =
         SetRowState(index = index, kindLabel = kind, isTop = isTop, weightDisplay = w, reps = r, done = done)
 

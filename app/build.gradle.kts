@@ -111,4 +111,8 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.androidx.test.core)
     testRuntimeOnly(libs.junit.vintage.engine)
+    // compose-ui-test on Robolectric (A7): semantics smoke tests for the
+    // TalkBack-facing content descriptions/state without a device.
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

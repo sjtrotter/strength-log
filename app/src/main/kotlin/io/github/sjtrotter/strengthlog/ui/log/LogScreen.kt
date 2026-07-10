@@ -27,6 +27,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.sjtrotter.strengthlog.transfer.health.ExternalSessionRow
@@ -121,17 +126,22 @@ private fun BackButton(onClick: () -> Unit) {
             .size(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick),
+            .clickable(onClickLabel = "Back", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Back" },
         contentAlignment = Alignment.Center,
     ) {
-        Text("←", color = TextSecondary, style = TabLetter)
+        Text("←", color = TextSecondary, style = TabLetter, modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
 @Composable
 private fun SessionCard(item: SessionListItem, onToggle: () -> Unit) {
     val chevronRotation by animateFloatAsState(if (item.expanded) 180f else 0f, tween(200), label = "logChevron")
-    AppCard(modifier = Modifier.clickable(onClick = onToggle)) {
+    AppCard(
+        modifier = Modifier
+            .clickable(onClickLabel = if (item.expanded) "Collapse" else "Expand", role = Role.Button, onClick = onToggle)
+            .semantics { stateDescription = if (item.expanded) "Expanded" else "Collapsed" },
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DayBadge(dayIndex = item.dayIndex, letter = item.dayLetter)
             Spacer(Modifier.size(10.dp))
@@ -148,7 +158,7 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit) {
                 "▼",
                 color = TextFaint,
                 style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.rotate(chevronRotation),
+                modifier = Modifier.rotate(chevronRotation).clearAndSetSemantics {},
             )
         }
         Column(Modifier.animateContentSize(tween(220))) {

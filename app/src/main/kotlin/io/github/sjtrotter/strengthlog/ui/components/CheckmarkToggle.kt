@@ -24,6 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.sjtrotter.strengthlog.ui.theme.AppTheme
@@ -42,9 +46,19 @@ private val ToggleShape = RoundedCornerShape(6.dp)
  * ticking pops the whole chip in — scale 0.7 -> 1.0 on a spring, ~200ms (design
  * tokens: `--dur-med`/`--ease-spring`, reference `@keyframes pop` scales the
  * tick box) — via a transient [Animatable], never persisted state (A6/motion).
+ *
+ * TalkBack (A7): [description] is the accessible name (defaults to "Set
+ * done"); [stateDescription] announces "Done"/"Not done" on top of the
+ * checkbox role `toggleable` already sets. The inner ✓ glyph is silenced via
+ * [clearAndSetSemantics] — the state description already says it.
  */
 @Composable
-fun CheckmarkToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+fun CheckmarkToggle(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    description: String = "Set done",
+) {
     // Resting scale is always 1.0; 0.7 is only the transient start of the pop.
     val scale = remember { Animatable(1f) }
     // Only pop on an actual tick — not when a checked row scrolls back into the
@@ -64,7 +78,11 @@ fun CheckmarkToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifi
     Box(
         modifier = modifier
             .minimumInteractiveComponentSize()
-            .toggleable(value = checked, onValueChange = onCheckedChange, role = Role.Checkbox),
+            .toggleable(value = checked, onValueChange = onCheckedChange, role = Role.Checkbox)
+            .semantics {
+                contentDescription = description
+                stateDescription = if (checked) "Done" else "Not done"
+            },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -76,7 +94,7 @@ fun CheckmarkToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifi
             contentAlignment = Alignment.Center,
         ) {
             if (checked) {
-                Text(text = "✓", color = Background, style = TickGlyph)
+                Text(text = "✓", color = Background, style = TickGlyph, modifier = Modifier.clearAndSetSemantics {})
             }
         }
     }

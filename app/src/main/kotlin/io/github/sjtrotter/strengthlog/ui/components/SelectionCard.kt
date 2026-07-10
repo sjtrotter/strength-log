@@ -15,6 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +39,10 @@ private val CardShape = RoundedCornerShape(12.dp)
  * day of its own yet) use day index 0's accent as the app's one "primary"
  * highlight color — this reuses the existing per-day palette (SSOT) rather
  * than introducing a new brand color.
+ *
+ * `.semantics { selected = ... }` (A7) exposes the choice state directly, so
+ * TalkBack announces "selected"/"not selected" without depending on the ✓
+ * glyph, which is silenced via [clearAndSetSemantics] to avoid reading it raw.
  */
 @Composable
 fun SelectionCard(
@@ -57,6 +64,7 @@ fun SelectionCard(
             .background(background, CardShape)
             .border(1.dp, border, CardShape)
             .clickable(onClick = onClick)
+            .semantics { this.selected = selected }
             .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -67,7 +75,7 @@ fun SelectionCard(
                 modifier = Modifier.weight(1f),
             )
             if (selected) {
-                Text("✓", color = onAccent, style = MaterialTheme.typography.labelLarge)
+                Text("✓", color = onAccent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clearAndSetSemantics {})
             }
         }
         subtitle?.let {

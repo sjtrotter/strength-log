@@ -134,10 +134,19 @@ class BackupViewModel @Inject constructor(
     /** Runs [block] on [Dispatchers.IO], marking [BackupUiState.isBusy] for its
      *  duration and turning every typed core error (plus a raw I/O failure —
      *  a revoked SAF grant, a provider that vanished) into a [StatusMessage]
-     *  instead of a crash. */
+     *  instead of a crash.
+     *
+     *  The busy flag is checked and set *before* launching, synchronously on
+     *  the caller's thread — every entry point here runs on the main thread,
+     *  so this check-and-set is atomic with respect to a second call arriving
+     *  while the first is still in flight. Setting it from inside the launched
+     *  coroutine instead would let two overlapping SAF results race: the first
+     *  result's `finally` could clear the flag while the second was still
+     *  running. */
     private fun runBusy(block: suspend () -> Unit) {
+        if (_uiState.value.isBusy) return
+        _uiState.update { it.copy(isBusy = true, message = null) }
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isBusy = true, message = null) }
             try {
                 block()
             } catch (e: BackupError) {

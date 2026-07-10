@@ -122,8 +122,16 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         composable(Routes.WIZARD) {
             WizardRoute(
                 onFinished = {
+                    // graph.startDestinationId only clears back to WIZARD on a
+                    // first-run finish (stack [wizard] -> [day]). It latches for
+                    // the process lifetime (see StartDestinationViewModel), so a
+                    // Setup re-run reaches here with stack [day, setup, wizard]
+                    // and startDestinationId is still WIZARD, not DAY — popping
+                    // to it would leave [day, setup, day]. Popping the whole
+                    // back stack (id 0) is correct for both paths: first-run
+                    // [wizard] -> [day], re-run [day, setup, wizard] -> [day].
                     navController.navigate(Routes.DAY) {
-                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 },
             )

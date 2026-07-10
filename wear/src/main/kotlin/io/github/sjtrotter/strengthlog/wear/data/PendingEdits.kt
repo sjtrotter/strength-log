@@ -14,17 +14,48 @@ import kotlin.math.abs
  * phone dedupes replays by `editedAtMillis`, re-sending an already-applied delta is
  * harmless, so the queue can safely resend everything still pending on any signal.
  *
- * A queued delta settles (drops out of the queue) when either:
- *  - the snapshot's addressed row already shows the delta's requested values, or
+ * A queued delta settles (drops out of the queue) when any of:
+ *  - the snapshot's addressed row already shows the delta's requested values;
  *  - the snapshot is for a *different* suggested day — the phone has moved on
  *    (the day was completed/advanced), so an edit to the old day can neither be
- *    confirmed nor should keep resending; last-write-wins lets it go.
+ *    confirmed nor should keep resending; last-write-wins lets it go;
+ *  - a strictly newer pending delta to the same row overwrites every field it
+ *    carries — the snapshot will only ever reflect the newer value, so the
+ *    superseded delta could never settle and would re-send forever (the phone
+ *    safely drops it as stale, but the queue would never drain).
  */
 object PendingEdits {
 
     /** The deltas still worth re-sending after reconciling against [snapshot]. */
     fun reconcile(pending: List<SetEditDelta>, snapshot: WatchSnapshot): List<SetEditDelta> =
-        pending.filter { it.dayId == snapshot.day.dayId && !it.isReflectedIn(snapshot) }
+        pending.filter { delta ->
+            delta.dayId == snapshot.day.dayId &&
+                !delta.isReflectedIn(snapshot) &&
+                pending.none { it.supersedes(delta) }
+        }
+
+    /**
+     * The strictly-monotonic issue rule for `editedAtMillis` (the phone's per-slot
+     * dedupe key): two distinct edits stamped in the same wall-clock millisecond
+     * must still order, or the phone drops the second as a replay. The caller
+     * persists the returned value as the new last-issued stamp so process death
+     * can't reissue an old one.
+     */
+    fun nextStamp(nowMillis: Long, lastIssuedMillis: Long): Long =
+        maxOf(nowMillis, lastIssuedMillis + 1)
+
+    /** True when this delta makes [older] pointless: same row, strictly newer, and
+     *  every field [older] carries is overwritten. Field-aware on purpose — a newer
+     *  reps-only edit must not swallow a pending weight edit to the same row. */
+    private fun SetEditDelta.supersedes(older: SetEditDelta): Boolean =
+        editedAtMillis > older.editedAtMillis &&
+            dayId == older.dayId &&
+            programExerciseId == older.programExerciseId &&
+            slot == older.slot &&
+            setIndex == older.setIndex &&
+            (older.weightLb == null || weightLb != null) &&
+            (older.reps == null || reps != null) &&
+            (older.done == null || done != null)
 
     private fun SetEditDelta.isReflectedIn(snapshot: WatchSnapshot): Boolean {
         val exercise = snapshot.day.exercises

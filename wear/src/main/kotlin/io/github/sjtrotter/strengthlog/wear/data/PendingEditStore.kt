@@ -3,6 +3,7 @@ package io.github.sjtrotter.strengthlog.wear.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.sjtrotter.strengthlog.domain.sync.SetEditDelta
 import io.github.sjtrotter.strengthlog.domain.sync.SyncCodec
@@ -14,6 +15,11 @@ import kotlinx.coroutines.flow.first
  * phone app is dead outlives the *watch* app being closed too, and is re-sent when
  * the phone comes back. Reads/writes are whole-list under [DataStore.edit] so a
  * concurrent enqueue and drain can't clobber each other.
+ *
+ * Also persists the last-issued `editedAtMillis` stamp ([issueStamp]) — the rule
+ * itself is [PendingEdits.nextStamp]; keeping the marker in the same store means a
+ * watch process death can't reissue an old stamp, which the phone would then drop
+ * as a replay.
  */
 class PendingEditStore(private val dataStore: DataStore<Preferences>) {
 
@@ -31,7 +37,20 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[QUEUE] = SyncCodec.encodeDeltaQueue(deltas) }
     }
 
+    /** A strictly monotonic `editedAtMillis` for an edit made "now" — the
+     *  read-modify-write runs inside one [DataStore.edit], so concurrent issues
+     *  can't hand out the same stamp. */
+    suspend fun issueStamp(nowMillis: Long): Long {
+        var issued = 0L
+        dataStore.edit { prefs ->
+            issued = PendingEdits.nextStamp(nowMillis, prefs[LAST_ISSUED] ?: 0L)
+            prefs[LAST_ISSUED] = issued
+        }
+        return issued
+    }
+
     private companion object {
         val QUEUE = stringPreferencesKey("pending_edits")
+        val LAST_ISSUED = longPreferencesKey("last_issued_stamp")
     }
 }

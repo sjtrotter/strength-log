@@ -47,6 +47,11 @@ class SetEditApplier(
 
     suspend fun apply(delta: SetEditDelta): Outcome = mutationLock.withLock {
         if (delta.slot != Slot.MAIN && delta.slot != Slot.SS) return Outcome.INVALID
+        // Value hardening: this arrives through an exported service, so assume
+        // hostile input. Negative or non-finite numbers must never reach the log
+        // (zero reps stays legal — 0-rep rows exist).
+        delta.weightLb?.let { if (!it.isFinite() || it < 0.0) return Outcome.INVALID }
+        delta.reps?.let { if (it < 0) return Outcome.INVALID }
 
         // The slot must be a real exercise slot on a real day of the current program.
         val slots = repo.daySlotsFlow(delta.dayId).first()

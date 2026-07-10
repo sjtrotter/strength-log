@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
-
 /**
  * Standalone stand-in for the real Data Layer client (#20). It seeds one
  * canned day — Squat's pinned seeded ramp (spec §11.1) plus a superset pair —

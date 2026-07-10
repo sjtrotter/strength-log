@@ -219,4 +219,55 @@ class SetEditApplierTest {
 
         assertEquals(before, track(id, Slot.MAIN)!!)
     }
+
+    @Test
+    fun `hostile numeric values are rejected without touching data`() = runTest {
+        seedProgram()
+        val id = squatId()
+        val before = track(id, Slot.MAIN)!!
+
+        // Negative weight.
+        assertEquals(
+            SetEditApplier.Outcome.INVALID,
+            applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, weightLb = -50.0, editedAtMillis = 1L)),
+        )
+        // Non-finite weight.
+        assertEquals(
+            SetEditApplier.Outcome.INVALID,
+            applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, weightLb = Double.NaN, editedAtMillis = 1L)),
+        )
+        // Negative reps.
+        assertEquals(
+            SetEditApplier.Outcome.INVALID,
+            applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, reps = -1, editedAtMillis = 1L)),
+        )
+
+        assertEquals(before, track(id, Slot.MAIN)!!)
+    }
+
+    @Test
+    fun `a valid ss-track delta applies to the partner rows only`() = runTest {
+        seedProgram()
+        val id = curlId()
+
+        // Weight + reps on the partner's first round.
+        assertEquals(
+            SetEditApplier.Outcome.APPLIED,
+            applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 0, weightLb = 55.0, reps = 12, editedAtMillis = 1L)),
+        )
+        // Done on the partner's second round (does not pair back to main).
+        assertEquals(
+            SetEditApplier.Outcome.APPLIED,
+            applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 1, done = true, editedAtMillis = 2L)),
+        )
+
+        val ss = track(id, Slot.SS)!!
+        assertEquals(55.0, ss[0].weightLb, 0.0)
+        assertEquals(12, ss[0].reps)
+        assertTrue(ss[1].done)
+        // The main track is untouched by partner-row edits.
+        val main = track(id, Slot.MAIN)!!
+        assertEquals(listOf(60.0, 60.0), main.map { it.weightLb })
+        assertFalse(main[1].done)
+    }
 }

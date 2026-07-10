@@ -61,15 +61,19 @@ class DataLayerWatchClient(
     override fun snapshotFlow(): Flow<WatchSnapshot> = snapshots.filterNotNull()
 
     override suspend fun sendEdit(delta: SetEditDelta) {
+        // Re-stamp with a strictly monotonic, persisted editedAtMillis: the caller's
+        // wall clock can stamp two distinct edits into the same millisecond, and the
+        // phone's per-slot dedupe would then drop the second as a replay.
+        val stamped = delta.copy(editedAtMillis = queue.issueStamp(delta.editedAtMillis))
         // Echo the edit on-wrist immediately (spec §9); the phone's next snapshot —
         // with cascade/seeding applied — overwrites this and is the real ack.
         snapshots.value?.let { current ->
             snapshots.value = current.copy(
-                day = current.day.copy(exercises = WatchEditOptimism.apply(current.day.exercises, delta)),
+                day = current.day.copy(exercises = WatchEditOptimism.apply(current.day.exercises, stamped)),
             )
         }
-        queue.enqueue(delta)
-        send(delta)
+        queue.enqueue(stamped)
+        send(stamped)
     }
 
     /** The last snapshot the Data Layer cached on this node (survives restarts). */

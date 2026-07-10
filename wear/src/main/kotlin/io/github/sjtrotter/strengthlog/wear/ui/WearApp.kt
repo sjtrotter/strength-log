@@ -28,8 +28,6 @@ import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import io.github.sjtrotter.strengthlog.domain.sync.SetEditDelta
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
-import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
-import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import io.github.sjtrotter.strengthlog.wear.data.WatchTrackerClient
 import io.github.sjtrotter.strengthlog.wear.theme.Background
 import io.github.sjtrotter.strengthlog.wear.theme.WearTrackerTheme
@@ -238,9 +236,10 @@ private fun ExerciseStreamRoute(
         state = exercise.toStreamUiState(unit, snap.day.dayId, snap.day.accentIndex),
         currentIndex = boundedIndex,
         onBack = onBack,
-        onWeightStep = { i, up -> send("main", i, weightLb = unit.toLb(steppedWeight(exercise.sets[i].weightLb, unit, up))) },
+        onWeightStep = { i, up -> send("main", i, weightLb = scrolledWeightLb(exercise.sets[i].weightLb, unit, up.detent())) },
+        onWeightScroll = { i, detents -> send("main", i, weightLb = scrolledWeightLb(exercise.sets[i].weightLb, unit, detents)) },
         onRepsStep = { i, up -> send("main", i, reps = steppedReps(exercise.sets[i].reps, up)) },
-        onPartnerWeightStep = { i, up -> send("ss", i, weightLb = unit.toLb(steppedWeight(exercise.ssSets[i].weightLb, unit, up))) },
+        onPartnerWeightStep = { i, up -> send("ss", i, weightLb = scrolledWeightLb(exercise.ssSets[i].weightLb, unit, up.detent())) },
         onPartnerRepsStep = { i, up -> send("ss", i, reps = steppedReps(exercise.ssSets[i].reps, up)) },
         onTick = {
             val nowDone = !exercise.sets[boundedIndex].done
@@ -260,11 +259,7 @@ private fun ExerciseStreamRoute(
     )
 }
 
-/** Steps a canonical-lb weight by one display-unit increment and rounds it (spec §5). */
-private fun steppedWeight(currentLb: Double, unit: WeightUnit, up: Boolean): Double {
-    val display = unit.fromLb(currentLb)
-    val step = WeightStepper.increment(display, unit)
-    return WeightStepper.round(if (up) display + step else display - step, unit)
-}
+/** A ± button press is a single-detent scroll — one shared weight-stepping rule ([scrolledWeightLb]). */
+private fun Boolean.detent(): Int = if (this) 1 else -1
 
 private fun steppedReps(current: Int, up: Boolean): Int = (current + if (up) 1 else -1).coerceAtLeast(1)

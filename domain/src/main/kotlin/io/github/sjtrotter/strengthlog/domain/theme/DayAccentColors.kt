@@ -39,6 +39,10 @@ object DayAccentColors {
         TEXT_PRIMARY, // G
     )
 
+    /** Distinct accents before the rotation repeats — the cycle length both
+     *  consumers mod by. Exposed so neither `:app` nor `:wear` hardcodes 7. */
+    val count: Int get() = HEX.size
+
     /** 0-based day index (matches the generator's A-Z ids); cycles past 7. */
     fun hex(dayIndex: Int): Long = HEX[Math.floorMod(dayIndex, HEX.size)]
 

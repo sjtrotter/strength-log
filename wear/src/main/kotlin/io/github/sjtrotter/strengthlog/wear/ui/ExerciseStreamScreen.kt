@@ -42,11 +42,15 @@ import io.github.sjtrotter.strengthlog.wear.theme.dayAccent
  * numeral sizes differ.
  *
  * Rotary crown -> weight: [onRotaryScrollEvent] accumulates raw scroll pixels
- * via [RotaryAccumulator] into whole detents and feeds them through
- * [onWeightStep] — the same unit-aware [WeightStepper] increment the on-screen
- * ± buttons use, never a literal 5. Reps stay buttons-only (digest: "the
- * physical crown is hard-wired to weight ... reps only move via the on-screen
- * ± buttons").
+ * via [RotaryAccumulator] into whole detents, then feeds the *signed detent
+ * count* to [onWeightScroll] in one shot. This is deliberately not a loop over
+ * [onWeightStep]: a single-step edit computes an absolute target from the
+ * composition-captured weight, so N synchronous single-steps would all target
+ * the same value and advance only one step — [onWeightScroll] instead steps
+ * cumulatively (via [scrolledWeightLb], the same [WeightStepper] increment the
+ * ± buttons use, never a literal 5) so N detents move N steps. Reps stay
+ * buttons-only (digest: "the physical crown is hard-wired to weight ... reps
+ * only move via the on-screen ± buttons").
  */
 @Composable
 fun ExerciseStreamScreen(
@@ -54,6 +58,7 @@ fun ExerciseStreamScreen(
     currentIndex: Int,
     onBack: () -> Unit,
     onWeightStep: (index: Int, up: Boolean) -> Unit,
+    onWeightScroll: (index: Int, detents: Int) -> Unit,
     onRepsStep: (index: Int, up: Boolean) -> Unit,
     onPartnerWeightStep: (index: Int, up: Boolean) -> Unit,
     onPartnerRepsStep: (index: Int, up: Boolean) -> Unit,
@@ -72,7 +77,7 @@ fun ExerciseStreamScreen(
             .background(Background)
             .onRotaryScrollEvent { event ->
                 val steps = rotary.onScroll(event.verticalScrollPixels)
-                if (steps != 0) repeat(kotlin.math.abs(steps)) { onWeightStep(currentIndex, steps > 0) }
+                if (steps != 0) onWeightScroll(currentIndex, steps)
                 steps != 0
             }
             .focusRequester(focusRequester)

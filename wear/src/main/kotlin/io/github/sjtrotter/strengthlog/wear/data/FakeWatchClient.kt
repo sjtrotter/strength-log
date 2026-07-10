@@ -32,6 +32,15 @@ class FakeWatchClient : WatchTrackerClient {
     override fun pendingCountFlow(): Flow<Int> = flowOf(0)
 
     override suspend fun sendEdit(delta: SetEditDelta) {
+        // NOTE ON THE REVISION BUMP — read alongside DataLayerWatchClient.sendEdit's
+        // invariant. There, the optimistic *echo* must NOT bump `revision`, or the
+        // watch would flash "updated from phone" on the lifter's own edit. Here
+        // there is no phone, so this single step deliberately stands in for BOTH
+        // the echo AND the phone's confirming snapshot — hence it bumps revision
+        // (giving the reconcile-on-next-snapshot logic a real revision to settle
+        // against). Consequence: a standalone preview may briefly show the pill on
+        // a self-edit; that's fine because this fake never ships. Do not "align"
+        // this with the real client by moving the bump onto the real echo.
         state.update { snapshot ->
             snapshot.copy(
                 revision = snapshot.revision + 1,

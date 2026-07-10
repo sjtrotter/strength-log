@@ -70,6 +70,40 @@ class HistoryCsvWriterTest {
     }
 
     @Test
+    fun `Duration is H-MM-SS of the session's real start when one was recorded`() {
+        val startedAt = 1_720_000_000_000L
+        val completedAt = startedAt + 3_665_000L // 1h 1m 5s
+        val session = WorkoutSessionEntity(1, "A", "Day A", startedAt, completedAt, 235)
+        val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
+
+        val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
+
+        assertEquals("1:01:05", row[2])
+    }
+
+    @Test
+    fun `Duration is empty when the session carries no recorded start`() {
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
+
+        val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
+
+        assertEquals("", row[2])
+    }
+
+    @Test
+    fun `Duration is empty when the span exceeds a sane session (stale stamp)`() {
+        val startedAt = 1_720_000_000_000L
+        val completedAt = startedAt + 7L * 60 * 60_000L // 7 hours — past the 6h ceiling
+        val session = WorkoutSessionEntity(1, "A", "Day A", startedAt, completedAt, 235)
+        val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
+
+        val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
+
+        assertEquals("", row[2])
+    }
+
+    @Test
     fun `sessions are ordered by completedAt then id, sets by id within a session`() {
         val earlier = WorkoutSessionEntity(2, "A", "Second Inserted But Earlier", null, 1_000L, 235)
         val later = WorkoutSessionEntity(1, "A", "First Inserted But Later", null, 2_000L, 235)

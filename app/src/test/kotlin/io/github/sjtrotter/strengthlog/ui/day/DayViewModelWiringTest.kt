@@ -389,4 +389,101 @@ class DayViewModelWiringTest {
         assertEquals(listOf(sessionId), published)
         collect.cancel()
     }
+
+    // --- session-start stamp (session-start capture) ----------------------------
+
+    @Test
+    fun firstDoneTickStampsSessionStart_secondTickDoesNotRestamp() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+        assertNull(repo.sessionStartedAtFlow.first())
+
+        vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
+        advanceUntilIdle()
+        val stampedAt = repo.sessionStartedAtFlow.first()
+        assertTrue("the first tick must stamp a session start", stampedAt != null)
+
+        vm.toggleDone(squatId, index = 1, checked = true, isSuperset = false)
+        advanceUntilIdle()
+        assertEquals("a later tick must not move the stamp", stampedAt, repo.sessionStartedAtFlow.first())
+    }
+
+    @Test
+    fun uncheckingAFirstTickDoesNotStamp() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        vm.toggleDone(squatId, index = 0, checked = false, isSuperset = false)
+        advanceUntilIdle()
+
+        assertNull("un-ticking is not performing a set", repo.sessionStartedAtFlow.first())
+    }
+
+    @Test
+    fun weightAndRepEditsDoNotStampSessionStart() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        vm.changeWeight(squatId, Slot.MAIN, index = 4, newDisplayWeight = 999.0)
+        vm.changeReps(squatId, Slot.MAIN, index = 4, newReps = 3)
+        advanceUntilIdle()
+
+        assertNull("weight/rep edits are planning, not performing", repo.sessionStartedAtFlow.first())
+    }
+
+    @Test
+    fun supersetRoundTickStampsSessionStart() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val curlId = slotId("ez_curl")
+
+        vm.toggleDone(curlId, index = 0, checked = true, isSuperset = true)
+        advanceUntilIdle()
+
+        assertTrue(repo.sessionStartedAtFlow.first() != null)
+    }
+
+    @Test
+    fun clearChecksClearsTheSessionStartStamp() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+        vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
+        advanceUntilIdle()
+        assertTrue(repo.sessionStartedAtFlow.first() != null)
+
+        vm.clearChecks()
+        advanceUntilIdle()
+
+        assertNull(repo.sessionStartedAtFlow.first())
+    }
+
+    @Test
+    fun completeDayWritesTheStampedStartIntoTheSessionAndConsumesIt() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
+        advanceUntilIdle()
+        val stampedAt = repo.sessionStartedAtFlow.first()
+
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val session = repo.sessionSummariesFlow.first().first().session
+        assertEquals(stampedAt, session.startedAt)
+        assertNull("advanceDay must consume the stamp", repo.sessionStartedAtFlow.first())
+        collect.cancel()
+    }
 }

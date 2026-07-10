@@ -28,6 +28,13 @@ data class WatchDay(
     val title: String,
     val accentIndex: Int,
     val exercises: List<WatchExercise>,
+    /**
+     * The day's muscle-angle emphasis ([io.github.sjtrotter.strengthlog.domain.model.ProgramDay.emphasisLine]),
+     * shown as the today-list subtitle when non-blank. Defaults to "" so older
+     * publishers (and every existing test fixture) decode fine without it —
+     * the watch UI treats blank as "no subtitle", never invents one.
+     */
+    val emphasisLine: String = "",
 )
 
 /** One exercise slot's set track for the suggested day, ready to render. */

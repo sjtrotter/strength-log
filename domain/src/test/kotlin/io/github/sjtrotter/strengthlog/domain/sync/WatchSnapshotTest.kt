@@ -57,6 +57,19 @@ class WatchSnapshotTest {
     }
 
     @Test
+    fun `emphasisLine defaults to blank for a publisher that doesn't set it`() {
+        assertEquals("", sample.day.emphasisLine)
+    }
+
+    @Test
+    fun `emphasisLine round-trips when set`() {
+        val withEmphasis = sample.copy(day = sample.day.copy(emphasisLine = "quads"))
+        val encoded = json.encodeToString(WatchSnapshot.serializer(), withEmphasis)
+        val decoded = json.decodeFromString(WatchSnapshot.serializer(), encoded)
+        assertEquals("quads", decoded.day.emphasisLine)
+    }
+
+    @Test
     fun `a superset partner's rows align by index with the main track`() {
         val press = sample.day.exercises[1]
         assertEquals(press.sets.size, press.ssSets.size)

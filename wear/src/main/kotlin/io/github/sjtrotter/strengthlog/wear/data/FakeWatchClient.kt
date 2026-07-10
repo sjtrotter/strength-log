@@ -5,8 +5,10 @@ import io.github.sjtrotter.strengthlog.domain.sync.WatchDay
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 
 /**
@@ -23,6 +25,11 @@ class FakeWatchClient : WatchTrackerClient {
     private val state = MutableStateFlow(CANNED)
 
     override fun snapshotFlow(): StateFlow<WatchSnapshot> = state
+
+    // Standalone/preview stand-in has no real transport to queue against, so
+    // there is never anything pending — the real count comes from
+    // DataLayerWatchClient's PendingEditStore.
+    override fun pendingCountFlow(): Flow<Int> = flowOf(0)
 
     override suspend fun sendEdit(delta: SetEditDelta) {
         state.update { snapshot ->
@@ -81,6 +88,7 @@ class FakeWatchClient : WatchTrackerClient {
                 title = "Day A — Squat Focus",
                 accentIndex = 0,
                 exercises = listOf(SQUAT, INCLINE_PRESS),
+                emphasisLine = "lower · squat focus",
             ),
             unit = "lb",
         )

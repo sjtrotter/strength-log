@@ -55,6 +55,8 @@ class DataLayerWatchClient(
 
     override fun snapshotFlow(): Flow<WatchSnapshot> = snapshots.filterNotNull()
 
+    override fun pendingCountFlow(): Flow<Int> = queue.countFlow()
+
     override suspend fun sendEdit(delta: SetEditDelta) {
         // Re-stamp with a strictly monotonic, persisted editedAtMillis: the caller's
         // wall clock can stamp two distinct edits into the same millisecond, and the

@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -84,6 +85,17 @@ class PendingEditStoreTest {
         val later = delta(setIndex = 1, reps = 9, stamp = 3L)
         store.enqueue(later)
         assertEquals(listOf(pending, later), store.all())
+    }
+
+    @Test
+    fun `countFlow reflects the live queue depth`() = runTest {
+        assertEquals(0, store.countFlow().first())
+        store.enqueue(delta(setIndex = 0, done = true, stamp = 1L))
+        assertEquals(1, store.countFlow().first())
+        store.enqueue(delta(setIndex = 1, done = true, stamp = 2L))
+        assertEquals(2, store.countFlow().first())
+        store.reconcileAgainst(snapshot) // settles setIndex 0 (already done in the snapshot)
+        assertEquals(1, store.countFlow().first())
     }
 
     @Test

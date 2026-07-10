@@ -9,7 +9,14 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "io.github.sjtrotter.strengthlog.wear"
+        // MUST equal the phone's applicationId (io.github.sjtrotter.strengthlog),
+        // not the wear namespace above. The Wearable Data Layer only delivers
+        // DataItems/messages to an app with the same installed package name (+
+        // signature) on the paired node — a mismatched suffix here silently
+        // breaks all phone<->watch sync (the watch never receives a snapshot and
+        // sits frozen on the loading screen). `namespace` stays wear-suffixed;
+        // components are resolved relative to it and are unaffected.
+        applicationId = "io.github.sjtrotter.strengthlog"
         minSdk = 30
         targetSdk = 37
         versionCode = 1

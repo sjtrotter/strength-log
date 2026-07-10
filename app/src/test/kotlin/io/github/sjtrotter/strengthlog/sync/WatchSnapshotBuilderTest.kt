@@ -58,6 +58,7 @@ class WatchSnapshotBuilderTest {
         assertEquals(0, snapshot.day.accentIndex)
         assertEquals("kg", snapshot.unit) // unit label only; weights stay canonical lb
         assertEquals(3L, snapshot.revision)
+        assertEquals("quads", snapshot.day.emphasisLine) // carries the day's real focus, not filler text
         val ex = snapshot.day.exercises.single()
         assertEquals(10L, ex.programExerciseId)
         assertEquals(235.0, ex.goal) // GOAL is phone-computed and matches spec §11

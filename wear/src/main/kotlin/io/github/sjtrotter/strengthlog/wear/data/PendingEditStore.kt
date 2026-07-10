@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.sjtrotter.strengthlog.domain.sync.SetEditDelta
 import io.github.sjtrotter.strengthlog.domain.sync.SyncCodec
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 /**
  * Durable home for the watch's unacked outbound deltas (§11.4). Persisted as one
@@ -32,6 +34,10 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
 
     suspend fun all(): List<SetEditDelta> =
         SyncCodec.decodeDeltaQueue(dataStore.data.first()[QUEUE].orEmpty())
+
+    /** Live queue depth — the wire behind [WatchTrackerClient.pendingCountFlow]. */
+    fun countFlow(): Flow<Int> =
+        dataStore.data.map { prefs -> SyncCodec.decodeDeltaQueue(prefs[QUEUE].orEmpty()).size }
 
     suspend fun enqueue(delta: SetEditDelta) {
         dataStore.edit { prefs ->

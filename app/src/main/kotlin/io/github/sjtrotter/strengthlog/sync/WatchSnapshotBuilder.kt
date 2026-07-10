@@ -60,6 +60,7 @@ object WatchSnapshotBuilder {
                 title = day.title,
                 accentIndex = dayIndex,
                 exercises = exercises,
+                emphasisLine = day.emphasisLine,
             ),
             unit = unit.name.lowercase(),
         )

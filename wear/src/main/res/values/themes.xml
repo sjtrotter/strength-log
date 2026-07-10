@@ -1,0 +1,18 @@
+<resources>
+
+    <!--
+      Spec §8.5, dark theme only: kills the white launch flash. Compose paints
+      the real UI once composition starts, but the Android window itself (the
+      frame the system shows before/around that, and behind anywhere a
+      Scaffold doesn't fill) uses the platform's light default unless a theme
+      says otherwise — this is that theme, applied to <application> in the
+      manifest.
+    -->
+    <style name="AppTheme" parent="android:Theme.DeviceDefault">
+        <item name="android:windowBackground">#0D0D0F</item>
+        <item name="android:colorBackground">#0D0D0F</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+</resources>

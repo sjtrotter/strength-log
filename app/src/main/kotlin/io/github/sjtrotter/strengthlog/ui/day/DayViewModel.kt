@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.sjtrotter.strengthlog.data.LastPerformed
+import io.github.sjtrotter.strengthlog.data.PersonalRecord
 import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
@@ -94,14 +95,14 @@ class DayViewModel @Inject constructor(
             flowOf(DayUiState(hasProgram = false, keepScreenOn = ctx.keepOn))
         } else {
             // Re-fetched only when the day's exercise ids change (a program edit),
-            // not on every weight/rep keystroke — the "last time" chip (A1 bonus)
-            // is prior history, not live state, so it doesn't need log-level freshness.
+            // not on every weight/rep keystroke — both history chips are prior
+            // history, not live state, so neither needs log-level freshness.
             val slotsWithHistory = repo.daySlotsFlow(dayId).flatMapLatest { slots ->
-                flow { emit(slots to fetchLastPerformed(slots)) }
+                flow { emit(slots to fetchDayHistory(slots)) }
             }
             combine(slotsWithHistory, repo.logFlow(dayId), manualCollapse) { slotsAndHistory, logs, collapse ->
-                val (slots, lastPerformed) = slotsAndHistory
-                buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, collapse, lastPerformed)
+                val (slots, history) = slotsAndHistory
+                buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, collapse, history)
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState())
@@ -312,10 +313,13 @@ class DayViewModel @Inject constructor(
         return override?.takeIf { it in ids } ?: suggested?.takeIf { it in ids } ?: ids.firstOrNull()
     }
 
-    /** One batched read for the whole day's "last time" chips (#14 A1 bonus) —
-     *  never one query per exercise. */
-    private suspend fun fetchLastPerformed(slots: List<ProgramSlot>): Map<String, LastPerformed> =
-        repo.lastPerformed(slots.map { it.exercise.exerciseId }.distinct())
+    /** One batched read for the whole day's "last time" chips (#14 A1 bonus)
+     *  AND its "Best" profile chips (performance-profile.md Phase 1) — never
+     *  one query per exercise for either. */
+    private suspend fun fetchDayHistory(slots: List<ProgramSlot>): DayHistory {
+        val ids = slots.map { it.exercise.exerciseId }.distinct()
+        return DayHistory(repo.lastPerformed(ids), repo.personalRecords(ids))
+    }
 
     private fun buildState(
         ctx: DayContext,
@@ -323,7 +327,7 @@ class DayViewModel @Inject constructor(
         slots: List<ProgramSlot>,
         logsByKey: Map<Pair<Long, String>, io.github.sjtrotter.strengthlog.data.LoggedSlot>,
         collapse: Map<Long, Boolean>,
-        lastPerformed: Map<String, LastPerformed>,
+        history: DayHistory,
     ): DayUiState {
         val program = ctx.program
         val day = program.days.firstOrNull { it.id == dayId }
@@ -341,7 +345,7 @@ class DayViewModel @Inject constructor(
             unit = ctx.unit,
             suggestedDayId = ctx.suggested,
             nextDayId = Rotation.next(program, dayId),
-            exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse, lastPerformed) },
+            exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse, history) },
             cardio = day.cardio,
             keepScreenOn = ctx.keepOn,
         )
@@ -354,7 +358,7 @@ class DayViewModel @Inject constructor(
         unit: WeightUnit,
         catalog: ExerciseCatalog,
         collapse: Map<Long, Boolean>,
-        lastPerformed: Map<String, LastPerformed>,
+        history: DayHistory,
     ): ExerciseCardState {
         val pe = slot.exercise
         val id = slot.programExerciseId
@@ -380,6 +384,7 @@ class DayViewModel @Inject constructor(
             )
         }
         val goalDisplay = DayScreenBuilder.goalDisplay(goalLb, unit)
+        val lastPerformed = history.lastPerformed[pe.exerciseId]
         return ExerciseCardState(
             programExerciseId = id,
             title = if (pe.superset != null) {
@@ -392,11 +397,8 @@ class DayViewModel @Inject constructor(
             hasWarmupHint = pe.hasWarmupHint,
             goalDisplay = goalDisplay,
             perHand = entry?.perHand == true,
-            lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed[pe.exerciseId], unit),
-            partnerGoalDisplay = partnerEntry?.let {
-                DayScreenBuilder.goalDisplay(GoalCalculator.goalFor(it, cfg), unit)
-            },
-            partnerPerHand = partnerEntry?.perHand == true,
+            lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, unit),
+            personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[pe.exerciseId], lastPerformed, unit),
             allDone = DayScreenBuilder.allDone(main),
             collapsed = DayScreenBuilder.collapsed(main, collapse[id]),
             collapsedSummary = DayScreenBuilder.collapsedSummary(main, partnerSets, goalDisplay, unit),
@@ -428,6 +430,14 @@ class DayViewModel @Inject constructor(
             catalog = catalog,
         )
     }
+
+    /** One day's worth of batched history reads (see [fetchDayHistory]): the A1
+     *  "last time" chip and the performance-profile "Best" chip share the same
+     *  fetch-once-per-exercise-id-set cadence, so they travel together. */
+    private data class DayHistory(
+        val lastPerformed: Map<String, LastPerformed>,
+        val personalRecords: Map<String, PersonalRecord>,
+    )
 
     private data class PartialContext(
         val program: Program,

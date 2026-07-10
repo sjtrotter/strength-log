@@ -18,9 +18,33 @@ android {
         versionName = "0.1"
     }
 
+    // The release signing key is user-held and never enters this repo (public
+    // repo, CLAUDE.md data principles) — these four values only exist as
+    // Gradle properties supplied locally (~/.gradle/gradle.properties, a
+    // -P flag, or an ORG_GRADLE_PROJECT_ env var), never as project files.
+    // Absent (the common case: CI, or any non-signing dev build), the
+    // release build type is simply left unsigned — see docs/RELEASE.md.
+    val releaseStoreFile = providers.gradleProperty("STRENGTHLOG_RELEASE_STORE_FILE")
+    signingConfigs {
+        create("release") {
+            releaseStoreFile.orNull?.let { storeFile = file(it) }
+            providers.gradleProperty("STRENGTHLOG_RELEASE_STORE_PASSWORD").orNull?.let { storePassword = it }
+            providers.gradleProperty("STRENGTHLOG_RELEASE_KEY_ALIAS").orNull?.let { keyAlias = it }
+            providers.gradleProperty("STRENGTHLOG_RELEASE_KEY_PASSWORD").orNull?.let { keyPassword = it }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 on for the shipping build (M6 #23/A9); :wear stays unminified
+            // (its build.gradle.kts) since it's a small watch face-adjacent app
+            // and shrinking there hasn't earned its keep yet.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (releaseStoreFile.isPresent) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

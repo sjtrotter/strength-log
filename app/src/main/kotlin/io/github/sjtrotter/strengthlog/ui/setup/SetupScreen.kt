@@ -85,6 +85,7 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 item { UnitCard(state.unit, actions.onUnitToggle) }
                 item { CreateCustomExerciseButton(accent, actions.onCreateCustomExercise) }
                 item { DataBackupButton(accent, actions.onOpenBackup) }
+                item { LicensesButton(actions.onOpenLicenses) }
                 item {
                     RerunWizardButton(onClick = { showRerunConfirm = true })
                 }
@@ -319,6 +320,22 @@ private fun DataBackupButton(accent: Color, onClick: () -> Unit) {
     }
 }
 
+// --- OSS licenses (M6 #23: Barlow Condensed OFL + third-party notices) -------
+
+@Composable
+private fun LicensesButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .border(1.dp, Border, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("OSS LICENSES", color = TextSecondary, style = DoneButtonLabel)
+    }
+}
+
 // --- re-run wizard (destructive escape hatch, spec §8.4) ---------------------
 
 @Composable
@@ -398,7 +415,8 @@ private fun SetupScreenPreview() {
             actions = SetupActions(
                 onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEmphasisChange = {},
                 onCardioModeChange = {}, onCardioPlacementChange = {}, onFiveKChange = {},
-                onUnitToggle = {}, onRerunWizard = {}, onCreateCustomExercise = {}, onOpenBackup = {}, onBack = {},
+                onUnitToggle = {}, onRerunWizard = {}, onCreateCustomExercise = {}, onOpenBackup = {},
+                onOpenLicenses = {}, onBack = {},
             ),
         )
     }

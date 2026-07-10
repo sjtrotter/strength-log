@@ -1,6 +1,7 @@
 package io.github.sjtrotter.strengthlog.ui.day
 
 import io.github.sjtrotter.strengthlog.data.LastPerformed
+import io.github.sjtrotter.strengthlog.data.PersonalRecord
 import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
@@ -144,6 +145,18 @@ object DayScreenBuilder {
      */
     fun lastTimeDisplay(last: LastPerformed?, unit: WeightUnit): String? =
         last?.let { "${WeightStepper.format(unit.fromLb(it.weightLb))}×${it.reps}" }
+
+    /**
+     * The "Best: {w}×{r}" chip's value (docs/briefs/performance-profile.md
+     * Phase 1) — `null` when [record] is `null` (never performed), and also
+     * `null` when it formats identically to [lastTime]'s chip: the two lines
+     * sit right next to each other, so a record that IS the last performance
+     * would just repeat the same number — quiet redundancy, not signal.
+     */
+    fun personalRecordDisplay(record: PersonalRecord?, lastTime: LastPerformed?, unit: WeightUnit): String? {
+        val display = record?.let { "${WeightStepper.format(unit.fromLb(it.weightLb))}×${it.reps}" } ?: return null
+        return display.takeIf { it != lastTimeDisplay(lastTime, unit) }
+    }
 
     /** True once every round is ticked — drives the green chip and auto-collapse. */
     fun allDone(main: List<LoggedSet>): Boolean = main.isNotEmpty() && main.all { it.done }

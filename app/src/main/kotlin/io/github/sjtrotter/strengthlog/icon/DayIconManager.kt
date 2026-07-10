@@ -54,6 +54,18 @@ fun aliasStatesFor(dayIndex: Int): List<AliasState> =
     ALIAS_NAMES.mapIndexed { i, alias -> AliasState(alias, enabled = i == dayIndex) }
 
 /**
+ * The order [applyDayIcon] must issue its `setComponentEnabledSetting` calls in: the
+ * target alias (enabled) first, then the rest (disabled). Each call commits individually,
+ * so a process death between calls is possible; enabling the target before disabling
+ * anything else means that window can only ever be observed as "two aliases enabled"
+ * (harmless — backward transitions already tolerate it, and the next apply's disables
+ * resolve it), never as zero enabled aliases, which would leave the app with no launcher
+ * entry and no way to reach the self-heal in [shouldReapplyIcon].
+ */
+fun applicationOrderFor(dayIndex: Int): List<AliasState> =
+    aliasStatesFor(dayIndex).sortedByDescending { it.enabled }
+
+/**
  * Swaps the home-screen launcher icon to match the current rotation day (#22) by
  * enabling exactly one `Launcher_Day*` activity-alias and disabling the rest.
  * `DONT_KILL_APP` keeps this invisible to the running process.
@@ -72,7 +84,8 @@ class DayIconManager @Inject constructor(@ApplicationContext private val context
         )
         if (!shouldReapplyIcon(dayIndex, currentState)) return
 
-        for ((alias, enabled) in aliasStatesFor(dayIndex)) {
+        // Enable-first: see applicationOrderFor for why this ordering matters.
+        for ((alias, enabled) in applicationOrderFor(dayIndex)) {
             val state = if (enabled) {
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED
             } else {

@@ -45,17 +45,28 @@ class WatchUiModelsTest {
     private val snapshot = WatchSnapshot(
         revision = 1L,
         suggestedDayId = "A",
-        day = WatchDay("A", "Day A — Squat Focus", accentIndex = 0, exercises = listOf(squat, press)),
+        day = WatchDay("A", "Day A — Squat Focus", accentIndex = 0, exercises = listOf(squat, press), emphasisLine = "lower · squat focus"),
         unit = "lb",
     )
 
     @Test
     fun `day list rows report per-exercise done count out of total`() {
         val state = snapshot.toDayListUiState()
-        assertEquals("Day A — Squat Focus", state.dayTitle)
+        assertEquals("A", state.dayId)
         assertEquals(2, state.rows[0].doneCount)
         assertEquals(6, state.rows[0].totalCount)
         assertFalse(state.rows[0].allDone)
+    }
+
+    @Test
+    fun `subtitle carries the real emphasisLine, not hardcoded filler`() {
+        assertEquals("lower · squat focus", snapshot.toDayListUiState().subtitle)
+    }
+
+    @Test
+    fun `subtitle is omitted (null) when the snapshot's emphasisLine is blank`() {
+        val noEmphasis = snapshot.copy(day = snapshot.day.copy(emphasisLine = ""))
+        assertNull(noEmphasis.toDayListUiState().subtitle)
     }
 
     @Test
@@ -71,31 +82,70 @@ class WatchUiModelsTest {
     }
 
     @Test
-    fun `set-row kind labels follow the ramp-numbering, TOP, B-O convention`() {
-        val detail = squat.toDetailUiState(WeightUnit.LB, accentIndex = 0)
-        assertEquals(listOf("R1", "R2", "R3", "R4", "TOP", "B/O"), detail.rows.map { it.kindLabel })
+    fun `a row's firstUndoneIndex is the first not-done round`() {
+        val row = snapshot.toDayListUiState().rows.single { it.programExerciseId == 1L }
+        assertEquals(2, row.firstUndoneIndex) // rounds 0,1 done; round 2 is the first undone
     }
 
     @Test
-    fun `GOAL and set weights convert from canonical lb to the display unit`() {
-        val detail = squat.toDetailUiState(WeightUnit.KG, accentIndex = 0)
-        assertEquals(WeightUnit.KG.fromLb(235.0), detail.rows.single { it.kindLabel == "TOP" }.weightDisplay)
-        assertEquals("106.59", detail.goalDisplay)
+    fun `a fully-done row's firstUndoneIndex falls back to the last round`() {
+        val allDone = squat.copy(sets = squat.sets.map { it.copy(done = true) })
+        val row = WatchSnapshot(
+            revision = 1L,
+            suggestedDayId = "A",
+            day = WatchDay("A", "t", accentIndex = 0, exercises = listOf(allDone)),
+            unit = "lb",
+        ).toDayListUiState().rows.single()
+        assertEquals(5, row.firstUndoneIndex)
     }
 
     @Test
-    fun `a plain exercise has no partner rows`() {
-        val detail = squat.toDetailUiState(WeightUnit.LB, accentIndex = 0)
-        assertTrue(detail.rows.all { it.partner == null })
-        assertNull(detail.partnerName)
+    fun `upNextIndex picks the first not-yet-complete row`() {
+        val state = snapshot.toDayListUiState()
+        assertEquals(0, upNextIndex(state.rows)) // squat (row 0) isn't done yet
     }
 
     @Test
-    fun `a superset exercise pairs partner rows by index`() {
-        val detail = press.toDetailUiState(WeightUnit.LB, accentIndex = 0)
-        assertEquals("Rope Pushdown", detail.partnerName)
-        assertEquals(50.0, detail.rows.single().partner?.weightDisplay)
-        assertEquals(12, detail.rows.single().partner?.reps)
+    fun `upNextIndex is null once every row is done`() {
+        val allDoneRows = snapshot.toDayListUiState().rows.map { it.copy(doneCount = it.totalCount) }
+        assertNull(upNextIndex(allDoneRows))
+    }
+
+    @Test
+    fun `set-round kind labels follow the ramp-numbering, TOP, B-O convention`() {
+        val stream = squat.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        assertEquals(listOf("R1", "R2", "R3", "R4", "TOP", "B/O"), stream.rounds.map { it.kindLabel })
+    }
+
+    @Test
+    fun `GOAL and round weights convert from canonical lb to the display unit`() {
+        val stream = squat.toStreamUiState(WeightUnit.KG, dayId = "A", accentIndex = 0)
+        assertEquals(WeightUnit.KG.fromLb(235.0), stream.rounds.single { it.kindLabel == "TOP" }.weightDisplay)
+        assertEquals("106.59", stream.goalDisplay)
+    }
+
+    @Test
+    fun `a plain exercise is not a superset and has no partner rounds`() {
+        val stream = squat.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        assertFalse(stream.isSuperset)
+        assertTrue(stream.rounds.all { it.partner == null })
+        assertNull(stream.partnerName)
+    }
+
+    @Test
+    fun `a superset exercise pairs partner rounds by index`() {
+        val stream = press.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        assertTrue(stream.isSuperset)
+        assertEquals("Rope Pushdown", stream.partnerName)
+        assertEquals(50.0, stream.rounds.single().partner?.weightDisplay)
+        assertEquals(12, stream.rounds.single().partner?.reps)
+    }
+
+    @Test
+    fun `day-done rounds-logged sums every exercise's round count`() {
+        val doneState = snapshot.toDayDoneUiState()
+        assertEquals(7, doneState.roundsLogged) // 6 squat rounds + 1 press round
+        assertEquals("A", doneState.dayId)
     }
 
     @Test

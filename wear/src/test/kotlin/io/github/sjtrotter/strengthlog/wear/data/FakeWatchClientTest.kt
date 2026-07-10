@@ -56,6 +56,16 @@ class FakeWatchClientTest {
     }
 
     @Test
+    fun `the standalone fake never reports a pending count — it has no real transport to queue against`() = runTest {
+        val client = FakeWatchClient()
+        assertEquals(0, client.pendingCountFlow().first())
+        client.sendEdit(
+            SetEditDelta(dayId = "A", programExerciseId = 1L, slot = "main", setIndex = 0, reps = 6, editedAtMillis = 1L),
+        )
+        assertEquals(0, client.pendingCountFlow().first())
+    }
+
+    @Test
     fun `a null field on a delta leaves that field unchanged`() = runTest {
         val client = FakeWatchClient()
         client.sendEdit(

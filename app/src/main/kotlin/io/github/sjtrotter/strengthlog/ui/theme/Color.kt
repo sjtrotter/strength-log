@@ -33,39 +33,33 @@ val Error = Color(0xFFC2334D)
 // any future done-state tinting) — the one accent that isn't day-specific.
 val Done = Color(0xFF3E8E5A)
 
-// Per-day earth-tone accents, spec §8.5, in day order A-D. The hexes
-// themselves are SSOT in DayAccentColors (:domain, shared with :wear);
-// accessibility fixes go in DayOnAccents, not here.
-private val DayAccents = List(4) { i -> Color(DayAccentColors.hex(i)) }
-
-// Text drawn on top of each accent, chosen per accent so every pairing meets
-// WCAG AA (>= 4.5:1). Measured: A/TextPrimary 4.57, B/TextPrimary 7.09,
-// C/Background 5.97 (TextPrimary on goldenrod is only 2.90 — C needs dark
-// text), D/TextPrimary 8.10. DayAccentTest pins these ratios.
-private val DayOnAccents = listOf(
-    TextPrimary, // A
-    TextPrimary, // B
-    Background,  // C
-    TextPrimary, // D
-)
+// Per-day earth-tone accents (spec §8.5, extended to 7 in the wear-companion
+// §8.5 amendment). Both the accent hexes AND their on-accent contrast colors
+// are SSOT in DayAccentColors (:domain, shared with :wear) — read straight
+// from there, with no truncated local copy that could drift out of sync with
+// the watch. Cycling past the 7th day lives in the domain lookups.
+//
+// On-accent contrast is chosen per accent so every pairing meets WCAG AA
+// (>= 4.5:1): only C (goldenrod) needs Background (dark) text; every other
+// accent takes TextPrimary. DayAccentTest pins the ratios for all 7.
 
 /**
- * SSOT for day-accent color: 0-based day index (matches
- * `ProgramGenerator`'s A-Z day ids). Programs beyond 4 days cycle back to
- * A's accent — day index 4 (5th day) reads as A, 5 as B, and so on.
+ * SSOT for day-accent color: 0-based day index (matches `ProgramGenerator`'s
+ * A-Z day ids). Programs beyond 7 days cycle back to A's accent — day index 7
+ * reads as A, 8 as B, and so on (domain-side `floorMod`).
  */
-fun dayAccent(dayIndex: Int): Color = DayAccents[Math.floorMod(dayIndex, DayAccents.size)]
+fun dayAccent(dayIndex: Int): Color = Color(DayAccentColors.hex(dayIndex))
 
-/** Text color to use on [dayAccent] for the same index — same cycling rule. */
-fun onDayAccent(dayIndex: Int): Color = DayOnAccents[Math.floorMod(dayIndex, DayOnAccents.size)]
+/** Text color to use on [dayAccent] for the same index — same domain SSOT, same cycling. */
+fun onDayAccent(dayIndex: Int): Color = Color(DayAccentColors.onAccentHex(dayIndex))
 
-// B/D (indices 1 and 3) are the darker accents; colors.css gives them slightly
-// more soft-fill/border presence (14%/60%) than A/C (12%/55%) so they read at
-// the same visual weight against the near-black surfaces.
-private fun isDarkerAccent(dayIndex: Int): Boolean {
-    val i = Math.floorMod(dayIndex, DayAccents.size)
-    return i == 1 || i == 3
-}
+// The low-luminance accents (B/D/E/G); colors.css gives them slightly more
+// soft-fill/border presence (14%/60%) than the brighter A/C/F (12%/55%) so
+// they read at the same visual weight against the near-black surfaces.
+private val DarkerAccentIndices = setOf(1, 3, 4, 6)
+
+private fun isDarkerAccent(dayIndex: Int): Boolean =
+    Math.floorMod(dayIndex, DayAccentColors.count) in DarkerAccentIndices
 
 /**
  * TOP-row fill / override pill / cascade flash: the day accent at low alpha,

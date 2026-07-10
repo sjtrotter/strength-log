@@ -6,27 +6,43 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class DayAccentTest {
 
     @Test
-    fun `indices 0-3 map to the four spec accents in order`() {
+    fun `indices 0-6 map to the seven day accents in order`() {
+        // Extended from the spec's 4 to 7 (wear-companion §8.5 amendment); the
+        // hexes are SSOT in :domain DayAccentColors and the phone now reads all
+        // seven from there rather than a truncated local copy.
         assertEquals(Color(0xFFC1440E), dayAccent(0)) // A
         assertEquals(Color(0xFF2D5A3D), dayAccent(1)) // B
         assertEquals(Color(0xFFB8860B), dayAccent(2)) // C
         assertEquals(Color(0xFF1F4E5F), dayAccent(3)) // D
+        assertEquals(Color(0xFF3C4E78), dayAccent(4)) // E
+        assertEquals(Color(0xFF8B4356), dayAccent(5)) // F
+        assertEquals(Color(0xFF6B6A2C), dayAccent(6)) // G
     }
 
     @Test
-    fun `day 5 cycles back to A's colors`() {
-        assertEquals(dayAccent(0), dayAccent(4))
-        assertEquals(onDayAccent(0), onDayAccent(4))
+    fun `days E-G are distinct accents, not a cycle back to A-D`() {
+        // Regression guard for the old modulo-4 cycle: day index 4/5/6 must be
+        // their own colors (matching the watch), not A/B/C again.
+        assertNotEquals(dayAccent(0), dayAccent(4))
+        assertNotEquals(dayAccent(1), dayAccent(5))
+        assertNotEquals(dayAccent(2), dayAccent(6))
+    }
+
+    @Test
+    fun `day 8 cycles back to A's colors`() {
+        assertEquals(dayAccent(0), dayAccent(7))
+        assertEquals(onDayAccent(0), onDayAccent(7))
     }
 
     @Test
     fun `every accent and on-color pairing meets WCAG AA`() {
-        for (dayIndex in 0..3) {
+        for (dayIndex in 0..6) {
             val ratio = contrastRatio(dayAccent(dayIndex), onDayAccent(dayIndex))
             assertTrue(
                 ratio >= 4.5,

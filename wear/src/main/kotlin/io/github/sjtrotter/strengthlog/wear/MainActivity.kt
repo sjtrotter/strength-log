@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.wear.ambient.AmbientLifecycleObserver
@@ -19,13 +20,24 @@ class MainActivity : ComponentActivity() {
 
     private var isAmbient by mutableStateOf(false)
 
+    // Bumped on the system's own once-a-minute ambient refresh signal
+    // (onUpdateAmbient) rather than driving the ambient clock off a
+    // free-running coroutine, which isn't guaranteed to fire while the CPU is
+    // suspended in ambient mode.
+    private var ambientTick by mutableIntStateOf(0)
+
     private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
         override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
             isAmbient = true
+            ambientTick++
         }
 
         override fun onExitAmbient() {
             isAmbient = false
+        }
+
+        override fun onUpdateAmbient() {
+            ambientTick++
         }
     }
 
@@ -35,7 +47,7 @@ class MainActivity : ComponentActivity() {
 
         val client = (application as StrengthLogWearApp).watchClient
         setContent {
-            WearApp(client = client, isAmbient = isAmbient)
+            WearApp(client = client, isAmbient = isAmbient, ambientTick = ambientTick)
         }
     }
 }

@@ -17,6 +17,14 @@ interface WatchTrackerClient {
     fun snapshotFlow(): Flow<WatchSnapshot>
 
     /**
+     * The number of outbound edits still unacked (backed by [PendingEditStore]
+     * on the real client) — drives the "queued"/"synced" pills (design digest
+     * §3): a persistent count while phone is unreachable, and the transition
+     * to 0 is what triggers the transient "synced" confirmation.
+     */
+    fun pendingCountFlow(): Flow<Int>
+
+    /**
      * Sends an edit toward the phone. This call does not itself update
      * [snapshotFlow] — cascade/seeding run phone-side only, so the caller
      * renders optimistically and reconciles against the next snapshot

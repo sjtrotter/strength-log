@@ -374,6 +374,18 @@ private fun ExerciseCard(
                         modifier = Modifier.padding(top = 3.dp),
                     )
                 }
+                // Profile bonus (performance-profile.md Phase 1): the exercise's
+                // all-time-best completed performance — same quiet register as
+                // "Last time", silent when there's no record or it would just
+                // repeat the last-time number.
+                card.personalRecordDisplay?.let {
+                    Text(
+                        "Best: $it",
+                        color = TextFaint,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
+                }
             }
             if (!displayCollapsed) GoalBlock(card.goalDisplay, card.perHand, accent)
         }
@@ -726,6 +738,7 @@ private fun DayScreenPreview() {
                 goalDisplay = "235",
                 perHand = false,
                 lastTimeDisplay = "230×5",
+                personalRecordDisplay = "245×5",
                 allDone = false,
                 collapsed = false,
                 collapsedSummary = "5 sets · GOAL 235",
@@ -746,7 +759,6 @@ private fun DayScreenPreview() {
                 hasWarmupHint = false,
                 goalDisplay = "60",
                 perHand = false,
-                partnerGoalDisplay = "50",
                 allDone = false,
                 collapsed = false,
                 collapsedSummary = "3 sets · GOAL 60",

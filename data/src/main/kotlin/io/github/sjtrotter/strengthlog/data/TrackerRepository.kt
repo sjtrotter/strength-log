@@ -285,6 +285,18 @@ open class TrackerRepository(
     }
 
     /**
+     * Batches the day-card "Best" chip for a whole day into one query
+     * (performance-profile.md Phase 1): [exerciseIds]' all-time heaviest
+     * completed performance, keyed by exercise id. An id with no history is
+     * simply absent from the result. Purely derived from session history —
+     * never stored, never touches GOAL math.
+     */
+    suspend fun personalRecords(exerciseIds: List<String>): Map<String, PersonalRecord> {
+        if (exerciseIds.isEmpty()) return emptyMap()
+        return sessionDao.personalRecordRows(exerciseIds).toPersonalRecordsByExercise()
+    }
+
+    /**
      * "DONE — advance" (spec §7, PLAN.md A1): appends an immutable session record
      * for the completed day (denormalizing exercise names so history survives
      * later edits/deletions), clears that day's checkmarks, and advances the

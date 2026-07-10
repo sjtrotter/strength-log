@@ -29,6 +29,18 @@ data class LastPerformedRow(
     val reps: Int,
 )
 
+/**
+ * One flat row behind [SessionDao.personalRecordRows] — see
+ * [io.github.sjtrotter.strengthlog.data.TrackerRepository.personalRecords] for
+ * how this is reduced to one entry per exercise.
+ */
+data class PersonalRecordRow(
+    val exerciseId: String,
+    val weightLb: Double,
+    val reps: Int,
+    val completedAt: Long,
+)
+
 /** Append-only workout history (PLAN.md A1). Rows are inserted, never updated. */
 @Dao
 interface SessionDao {
@@ -79,6 +91,26 @@ interface SessionDao {
         """,
     )
     suspend fun lastPerformedRows(exerciseIds: List<String>): List<LastPerformedRow>
+
+    /**
+     * Every completed set ever logged for any of [exerciseIds], heaviest weight
+     * first (ties broken by more reps, then by which was achieved earliest) —
+     * the profile "Best" chip (performance-profile.md Phase 1). One query for a
+     * whole day's worth of exercise ids, same batching shape as
+     * [lastPerformedRows]; see
+     * [io.github.sjtrotter.strengthlog.data.TrackerRepository.personalRecords]
+     * for how the flat result collapses to one row per exercise.
+     */
+    @Query(
+        """
+        SELECT ss.exerciseId AS exerciseId, ss.weightLb AS weightLb, ss.reps AS reps, ws.completedAt AS completedAt
+        FROM session_set ss
+        INNER JOIN workout_session ws ON ws.id = ss.sessionId
+        WHERE ss.exerciseId IN (:exerciseIds) AND ss.done = 1
+        ORDER BY ss.weightLb DESC, ss.reps DESC, ws.completedAt ASC
+        """,
+    )
+    suspend fun personalRecordRows(exerciseIds: List<String>): List<PersonalRecordRow>
 
     /** Whole history in a stable order (backup export, A2). */
     @Query("SELECT * FROM workout_session ORDER BY id")

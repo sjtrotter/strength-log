@@ -44,9 +44,10 @@ data class ExerciseCardState(
     val perHand: Boolean,
     /** "185×8"-style chip (PLAN.md A1 bonus); null when never performed before. */
     val lastTimeDisplay: String? = null,
-    /** Partner GOAL, for the superset sub-track header; null when not a superset. */
-    val partnerGoalDisplay: String? = null,
-    val partnerPerHand: Boolean = false,
+    /** "245×5"-style all-time-best chip (docs/briefs/performance-profile.md Phase
+     *  1); null when there is no record, or when it equals [lastTimeDisplay] —
+     *  showing the same number twice is noise, not signal. */
+    val personalRecordDisplay: String? = null,
     val allDone: Boolean,
     val collapsed: Boolean,
     val collapsedSummary: String,

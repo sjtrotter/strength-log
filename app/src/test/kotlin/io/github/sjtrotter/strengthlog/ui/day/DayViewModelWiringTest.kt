@@ -16,6 +16,7 @@ import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.model.SupersetPartner
+import io.github.sjtrotter.strengthlog.transfer.health.SessionPublisher
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -90,8 +91,11 @@ class DayViewModelWiringTest {
 
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
-    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, handle).also { vms += it }
+    private fun newViewModel(
+        handle: SavedStateHandle = SavedStateHandle(),
+        publisher: SessionPublisher = SessionPublisher.NoOp,
+    ): DayViewModel =
+        DayViewModel(repo, publisher, handle).also { vms += it }
 
     /** Day A: a ramped main, an arms superset, an unknown-id slot, and a superset
      *  whose partner id is unknown (its SS track can never seed). */
@@ -360,5 +364,29 @@ class DayViewModelWiringTest {
             revived.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
         )
         collectRevived.cancel()
+    }
+
+    // --- Health Connect publish trigger (#17, D7) --------------------------------
+
+    @Test
+    fun completeDayPublishesTheNewlyRecordedSession() = runVmTest {
+        insertProgram()
+        val published = mutableListOf<Long>()
+        val recording = object : SessionPublisher {
+            override suspend fun publish(sessionId: Long) {
+                published += sessionId
+            }
+        }
+        val vm = newViewModel(publisher = recording)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.completeDay()
+        advanceUntilIdle()
+
+        // Exactly the session advanceDay just wrote is handed to the publisher.
+        val sessionId = repo.sessionSummariesFlow.first().first().session.id
+        assertEquals(listOf(sessionId), published)
+        collect.cancel()
     }
 }

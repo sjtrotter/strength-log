@@ -1,8 +1,36 @@
 package io.github.sjtrotter.strengthlog.ui.log
 
-/** Immutable render model for the Log screen (PLAN.md A1, issue #14). */
+import io.github.sjtrotter.strengthlog.transfer.health.ExternalSessionRow
+
+/** Immutable render model for the Log screen (PLAN.md A1, issue #14, extended by
+ *  the #17 Health Connect read path). */
 data class LogUiState(
     val sessions: List<SessionListItem> = emptyList(),
+    val health: HealthSectionUi = HealthSectionUi(),
+)
+
+/**
+ * The Log screen's Health Connect section (#17 read path). When no provider is
+ * installed the section stays hidden ([available] false); when available but not
+ * yet permitted it shows a single "Connect Health Connect" affordance; once
+ * connected it lists other apps' sessions (clearly external) and, if the latest
+ * recorded bodyweight differs from the configured one, offers [bodyweightPrompt].
+ */
+data class HealthSectionUi(
+    val available: Boolean = false,
+    val connected: Boolean = false,
+    val externalSessions: List<ExternalSessionRow> = emptyList(),
+    val bodyweightPrompt: BodyweightPromptUi? = null,
+)
+
+/**
+ * The "bodyweight changed — update your GOALs?" prompt (#17, A3). Surfaced, never
+ * auto-applied (GOAL-vs-ACTUAL): the user chooses to apply, which updates the
+ * configured bodyweight, or dismisses.
+ */
+data class BodyweightPromptUi(
+    val currentDisplay: String,
+    val healthConnectDisplay: String,
 )
 
 /**

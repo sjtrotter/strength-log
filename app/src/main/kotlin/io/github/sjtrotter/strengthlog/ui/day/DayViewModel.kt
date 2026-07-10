@@ -19,6 +19,7 @@ import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.seeding.SetEditor
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
+import io.github.sjtrotter.strengthlog.transfer.health.SessionPublisher
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -56,6 +57,7 @@ import kotlinx.coroutines.sync.withLock
 @HiltViewModel
 class DayViewModel @Inject constructor(
     private val repo: TrackerRepository,
+    private val sessionPublisher: SessionPublisher,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
 
@@ -216,13 +218,18 @@ class DayViewModel @Inject constructor(
         mutate { repo.clearChecks(day) }
     }
 
-    /** DONE — advance: record the session (A1), reset collapse, follow the new suggested day. */
+    /** DONE — advance: record the session (A1), reset collapse, follow the new
+     *  suggested day, then hand the just-written session to Health Connect
+     *  (#17/D7 trigger point). The publish is fired after `advanceDay` returns
+     *  and never blocks or fails the completion — [SessionPublisher] swallows
+     *  every failure path, and the no-op binding covers devices without HC. */
     fun completeDay() {
         val day = currentDay() ?: return
         mutate {
-            repo.advanceDay(day)
+            val sessionId = repo.advanceDay(day)
             savedState[KEY_COLLAPSE] = emptyMap<Long, Boolean>()
             savedState[KEY_VIEW_DAY] = null
+            viewModelScope.launch { sessionPublisher.publish(sessionId) }
         }
     }
 

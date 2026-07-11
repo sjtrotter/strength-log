@@ -39,6 +39,10 @@ object SetEditor {
     fun editReps(sets: List<LoggedSet>, index: Int, newReps: Int): List<LoggedSet> =
         sets.mapIndexed { i, s -> if (i == index) s.copy(reps = newReps) else s }
 
+    /** Seconds never cascade — a TIMED edit changes only its own row. */
+    fun editSeconds(sets: List<LoggedSet>, index: Int, newSeconds: Int): List<LoggedSet> =
+        sets.mapIndexed { i, s -> if (i == index) s.copy(seconds = newSeconds) else s }
+
     /** "+ add set" appends a copy of the last row as an EXTRA. */
     fun addSet(sets: List<LoggedSet>): List<LoggedSet> {
         val last = sets.last()

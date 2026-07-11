@@ -7,6 +7,17 @@ import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.StandardLift
 
+/**
+ * The one display-target shape every surface formats a GOAL from (§2.2). Which
+ * variant an entry yields is decided solely by [GoalCalculator.targetFor]'s
+ * exhaustive `when`, so no surface can invent its own "0 lb × 60" rendering.
+ */
+sealed interface GoalTarget {
+    data class Weight(val lb: Double, val perHand: Boolean) : GoalTarget
+    data class Reps(val reps: Int) : GoalTarget
+    data class Time(val seconds: Int, val addedLb: Double) : GoalTarget
+}
+
 object GoalCalculator {
     fun round5(w: Double) = maxOf(5.0, Math.round(w / 5.0) * 5.0)
 
@@ -38,5 +49,22 @@ object GoalCalculator {
             is GoalSource.FracOfStd ->
                 round5(src.fraction * goalForMain(src.lift, perHand = false, cfg))
             is GoalSource.Flat -> src.weightLb
+            // targetFor is the router for these; goalFor is never called on them.
+            is GoalSource.Reps -> error("goalFor called on a REPS entry: ${entry.id}")
+            is GoalSource.Time -> error("goalFor called on a TIMED entry: ${entry.id}")
+        }
+
+    /**
+     * The read-only display target for any entry — the single SSOT router that
+     * turns each [GoalSource] variant into a [GoalTarget]. Weighted sources reuse
+     * [goalFor] verbatim; REPS/TIMED read their declared targets. Every GOAL
+     * chip, collapsed summary, and watch label formats from this.
+     */
+    fun targetFor(entry: ExerciseEntry, cfg: LifterConfig): GoalTarget =
+        when (val src = entry.goal) {
+            is GoalSource.Std, is GoalSource.FracOfStd, is GoalSource.Flat ->
+                GoalTarget.Weight(goalFor(entry, cfg), entry.perHand)
+            is GoalSource.Reps -> GoalTarget.Reps(src.targetReps)
+            is GoalSource.Time -> GoalTarget.Time(src.targetSeconds, src.addedWeightLb)
         }
 }

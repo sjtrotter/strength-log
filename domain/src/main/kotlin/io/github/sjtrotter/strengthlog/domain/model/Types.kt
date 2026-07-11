@@ -27,6 +27,7 @@ data class LoggedSet(
     val reps: Int,
     val kind: SetKind,
     val done: Boolean = false, // per-set checkmark, reset daily
+    val seconds: Int = 0, // TIMED tracks only; 0 (ignored) for WEIGHTED/REPS
 )
 
 data class SupersetPartner(val exerciseId: String) // refers into ExerciseLibrary

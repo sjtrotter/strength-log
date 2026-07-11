@@ -5,12 +5,28 @@ import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
+import io.github.sjtrotter.strengthlog.domain.standards.GoalTarget
 import io.github.sjtrotter.strengthlog.domain.standards.StrengthStandards
 
 /** Seeds the initial ACTUAL log rows from a GOAL (spec §4). */
 object SetSeeder {
 
     private const val ACCESSORY_REPS = 10
+
+    /**
+     * Type-aware seeding routed by the resolved [GoalTarget] (§2.2). WEIGHTED
+     * reuses the exact weighted sequence; REPS/TIMED seed `targetSets` all-WORK
+     * rows at their target, so the TOP-keyed cascade is unreachable for them by
+     * construction.
+     */
+    fun seed(pe: ProgramExercise, target: GoalTarget, cfg: LifterConfig): List<LoggedSet> =
+        when (target) {
+            is GoalTarget.Weight -> seed(pe, target.lb, cfg)
+            is GoalTarget.Reps ->
+                List(pe.targetSets) { LoggedSet(0.0, target.reps, SetKind.WORK) }
+            is GoalTarget.Time ->
+                List(pe.targetSets) { LoggedSet(target.addedLb, 0, SetKind.WORK, seconds = target.seconds) }
+        }
 
     fun seed(pe: ProgramExercise, goal: Double, cfg: LifterConfig): List<LoggedSet> {
         if (!pe.isMain) {

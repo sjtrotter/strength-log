@@ -247,10 +247,18 @@ object ExerciseLibrary {
 
     private val byId: Map<String, ExerciseEntry> = entries.associateBy { it.id }
 
+    /** target id → declaring (unloaded) id, validated at init (see
+     *  [buildWeightedPairIndex]). Empty until pairs are populated in P2. */
+    private val bodyweightByTarget: Map<String, String> = buildWeightedPairIndex(entries)
+
     fun get(id: String): ExerciseEntry =
         byId[id] ?: error("Unknown exercise id: $id")
 
     fun find(id: String): ExerciseEntry? = byId[id]
+
+    /** The unloaded (REMOVE-WEIGHT) counterpart of a loaded entry, if any —
+     *  the reverse of [ExerciseEntry.weightedPairId]. */
+    fun bodyweightPairFor(id: String): String? = bodyweightByTarget[id]
 
     fun byPattern(pattern: MovementPattern): List<ExerciseEntry> =
         entries.filter { it.pattern == pattern }.sortedBy { it.subRank }

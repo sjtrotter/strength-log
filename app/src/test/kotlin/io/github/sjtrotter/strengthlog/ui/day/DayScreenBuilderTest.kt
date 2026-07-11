@@ -5,8 +5,12 @@ import io.github.sjtrotter.strengthlog.data.PersonalRecord
 import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
+import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
+import io.github.sjtrotter.strengthlog.domain.library.GoalSource
+import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
+import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.model.SupersetPartner
@@ -56,6 +60,48 @@ class DayScreenBuilderTest {
         val slot = ProgramSlot(2, 0, ProgramExercise(exerciseId = "ez_curl", targetSets = 3))
         val existing = setOf(2L to Slot.MAIN)
         assertTrue(DayScreenBuilder.seedPlan(listOf(slot), existing, cfg, catalog).isEmpty())
+    }
+
+    // A catalog carrying synthetic REPS/TIMED entries (P2 will reclassify real
+    // ones; today the whole live catalog is WEIGHTED, so these prove crash-safety
+    // ahead of that). `find` is a plain id lookup, so custom entries resolve.
+    private val trackingCatalog = ExerciseCatalog(
+        listOf(
+            ExerciseEntry("custom_pullup", "Pull-up", MovementPattern.V_PULL, listOf(Equipment.BODYWEIGHT), perHand = false, goal = GoalSource.Reps(6), subRank = ExerciseCatalog.CUSTOM_SUBRANK),
+            ExerciseEntry("custom_plank", "Plank", MovementPattern.CORE_ANTI_EXT, listOf(Equipment.BODYWEIGHT), perHand = false, goal = GoalSource.Time(45, 25.0), subRank = ExerciseCatalog.CUSTOM_SUBRANK),
+        ),
+    )
+
+    @Test
+    fun seedPlan_routes_a_REPS_entry_through_targetFor_without_throwing() {
+        val slot = ProgramSlot(3, 0, ProgramExercise("custom_pullup", targetSets = 3))
+        val plan = DayScreenBuilder.seedPlan(listOf(slot), emptySet(), cfg, trackingCatalog)
+        // No goalFor error() branch: all-WORK rows at the rep target, zero weight/seconds.
+        assertEquals(List(3) { LoggedSet(0.0, 6, SetKind.WORK, seconds = 0) }, plan.single().sets)
+    }
+
+    @Test
+    fun seedPlan_routes_a_TIMED_partner_through_targetFor_without_throwing() {
+        // A weighted main with a TIMED superset partner — the partner path used to
+        // call goalFor and would throw the moment the partner is reclassified.
+        val slot = ProgramSlot(
+            4, 0,
+            ProgramExercise("ez_curl", targetSets = 3, superset = SupersetPartner("custom_plank")),
+        )
+        val plan = DayScreenBuilder.seedPlan(listOf(slot), emptySet(), cfg, trackingCatalog)
+        val partner = plan.first { it.slot == Slot.SS }
+        assertEquals(List(3) { LoggedSet(25.0, 0, SetKind.WORK, seconds = 45) }, partner.sets)
+    }
+
+    @Test
+    fun seedPlan_weighted_seed_is_unchanged_by_the_targetFor_routing() {
+        // Behavior-preserving: the routed path must produce the exact same rows as
+        // the old goalFor->seed path for a WEIGHTED slot.
+        val pe = ProgramExercise("bb_back_squat", isMain = true, targetSets = 6)
+        val slot = ProgramSlot(1, 0, pe)
+        val routed = DayScreenBuilder.seedPlan(listOf(slot), emptySet(), cfg, catalog).single().sets
+        val direct = SetSeeder.seed(pe, GoalCalculator.goalFor(catalog.get("bb_back_squat"), cfg), cfg)
+        assertEquals(direct, routed)
     }
 
     @Test

@@ -19,6 +19,8 @@ import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.seeding.SetEditor
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
+import io.github.sjtrotter.strengthlog.domain.standards.GoalFormatter
+import io.github.sjtrotter.strengthlog.domain.standards.GoalTarget
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import io.github.sjtrotter.strengthlog.transfer.health.SessionPublisher
 import javax.inject.Inject
@@ -374,7 +376,8 @@ class DayViewModel @Inject constructor(
         val id = slot.programExerciseId
         val entry = catalog.find(pe.exerciseId)
         val name = entry?.name ?: pe.exerciseId
-        val goalLb = entry?.let { GoalCalculator.goalFor(it, cfg) } ?: 0.0
+        val goalTarget = entry?.let { GoalCalculator.targetFor(it, cfg) }
+            ?: GoalTarget.Weight(0.0, perHand = false)
         val main = logsByKey[id to Slot.MAIN]?.sets ?: emptyList()
         val partnerEntry = pe.superset?.let { catalog.find(it.exerciseId) }
         val partnerSets = pe.superset?.let { logsByKey[id to Slot.SS]?.sets }
@@ -393,7 +396,7 @@ class DayViewModel @Inject constructor(
                 },
             )
         }
-        val goalDisplay = DayScreenBuilder.goalDisplay(goalLb, unit)
+        val goalDisplay = GoalFormatter.label(goalTarget, unit)
         val lastPerformed = history.lastPerformed[pe.exerciseId]
         return ExerciseCardState(
             programExerciseId = id,

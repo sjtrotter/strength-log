@@ -6,7 +6,7 @@ import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
 import io.github.sjtrotter.strengthlog.domain.model.CardioPrefs
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
-import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
+import io.github.sjtrotter.strengthlog.domain.standards.GoalFormatter
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 
 /**
@@ -32,10 +32,9 @@ object SetupStateBuilder {
     fun goalPreview(cfg: LifterConfig, answers: WizardAnswers, unit: WeightUnit): List<GoalPreviewItem> =
         ProgramGenerator.anchorIds(answers).map { id ->
             val entry = ExerciseLibrary.get(id)
-            val goalLb = GoalCalculator.goalFor(entry, cfg)
             GoalPreviewItem(
                 name = entry.name,
-                display = WeightStepper.format(unit.fromLb(goalLb)),
+                display = GoalFormatter.label(GoalCalculator.targetFor(entry, cfg), unit),
                 perHand = entry.perHand,
             )
         }

@@ -3,6 +3,8 @@ package io.github.sjtrotter.strengthlog.domain.generator
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
 import io.github.sjtrotter.strengthlog.domain.library.GoalSource
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
+import io.github.sjtrotter.strengthlog.domain.library.tracking
 import io.github.sjtrotter.strengthlog.domain.model.CardioMode
 import io.github.sjtrotter.strengthlog.domain.model.CardioPlacement
 import io.github.sjtrotter.strengthlog.domain.model.CardioSuggestion
@@ -344,13 +346,17 @@ object ProgramGenerator {
 
     // --- slot builders -------------------------------------------------------
 
-    private fun main(id: String): ProgramExercise =
-        ProgramExercise(
+    private fun main(id: String): ProgramExercise {
+        require(ExerciseLibrary.get(id).tracking == TrackingType.WEIGHTED) {
+            "main slot '$id' must be WEIGHTED; only weighted lifts ramp/cascade (§2.1)"
+        }
+        return ProgramExercise(
             exerciseId = id,
             isMain = true,
             targetSets = 6,
             repSchemeLabel = "ramp → top → back-off",
         )
+    }
 
     private fun accessory(entry: ExerciseEntry): ProgramExercise =
         ProgramExercise(exerciseId = entry.id, targetSets = 3, repSchemeLabel = "8–12")

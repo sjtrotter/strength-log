@@ -26,6 +26,7 @@ import io.github.sjtrotter.strengthlog.wear.data.WatchEditOptimism
 private fun SetEditDelta.fieldTag(): String = when {
     weightLb != null -> "W"
     reps != null -> "R"
+    seconds != null -> "S"
     done != null -> "D"
     else -> "?"
 }

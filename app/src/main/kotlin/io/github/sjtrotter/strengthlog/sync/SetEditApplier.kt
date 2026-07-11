@@ -2,9 +2,12 @@ package io.github.sjtrotter.strengthlog.sync
 
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
+import io.github.sjtrotter.strengthlog.domain.library.tracking
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.seeding.SetEditor
 import io.github.sjtrotter.strengthlog.domain.sync.SetEditDelta
+import io.github.sjtrotter.strengthlog.domain.sync.guardedFor
 import io.github.sjtrotter.strengthlog.ui.day.DayScreenBuilder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -25,7 +28,7 @@ import kotlinx.coroutines.sync.withLock
  * workouts exist, so the same first-tick-starts-the-clock rule the day screen
  * applies must hold here too (session-start capture).
  *
- * Two guards before any write:
+ * Three guards before any write:
  *  - **Validation** — the day, slot (programExerciseId + main/ss track) and set
  *    index must all exist; a superset "ss" delta needs a real partner. Anything
  *    else is [Outcome.INVALID] and touches no data (malformed input from an
@@ -33,6 +36,12 @@ import kotlinx.coroutines.sync.withLock
  *  - **Dedupe** — a delta whose `editedAtMillis` is not newer than the last one
  *    applied to that row is [Outcome.STALE] and dropped, which is what makes the
  *    watch's re-sends idempotent.
+ *  - **Tracking guard** ([guardedFor], design risk #2) — the target exercise's
+ *    [TrackingType] strips any field it doesn't track (a weight edit on a REPS/TIMED
+ *    hold, a reps edit on a TIMED hold, a seconds edit on a weighted lift) so a
+ *    stale/old watch that still draws the wrong control can never write a dead field.
+ *    The MAIN track resolves against the slot's exercise, an SS track against its
+ *    superset partner — each has its own type.
  *
  * Read-modify-write over a whole track, so it holds [mutationLock] for the same
  * lost-update reason the day ViewModel serializes its own edits. That lock is
@@ -57,6 +66,7 @@ class SetEditApplier(
         // (zero reps stays legal — 0-rep rows exist).
         delta.weightLb?.let { if (!it.isFinite() || it < 0.0) return Outcome.INVALID }
         delta.reps?.let { if (it < 0) return Outcome.INVALID }
+        delta.seconds?.let { if (it < 0) return Outcome.INVALID }
 
         // The slot must be a real exercise slot on a real day of the current program.
         val slots = repo.daySlotsFlow(delta.dayId).first()
@@ -72,10 +82,18 @@ class SetEditApplier(
         val rowKey = rowKey(delta)
         if (delta.editedAtMillis <= markers.lastApplied(rowKey)) return Outcome.STALE
 
+        // Tracking guard: resolve the *edited* exercise's type (the partner's own
+        // type for an SS delta) and drop any field that type doesn't track.
+        val catalog = repo.catalogFlow.first()
+        val editedExerciseId =
+            if (delta.slot == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
+        val tracking = editedExerciseId?.let { catalog.find(it)?.tracking } ?: TrackingType.WEIGHTED
+        val guarded = delta.guardedFor(tracking)
+
         if (delta.slot == Slot.MAIN) {
-            applyToMain(delta, track, partnerTrack = logs.trackOf(delta.programExerciseId, Slot.SS))
+            applyToMain(guarded, track, partnerTrack = logs.trackOf(delta.programExerciseId, Slot.SS))
         } else {
-            applyToPartner(delta, track)
+            applyToPartner(guarded, track)
         }
         markers.markApplied(rowKey, delta.editedAtMillis)
         return Outcome.APPLIED
@@ -89,6 +107,7 @@ class SetEditApplier(
         var main = track
         delta.weightLb?.let { main = SetEditor.editWeight(main, delta.setIndex, it) }
         delta.reps?.let { main = SetEditor.editReps(main, delta.setIndex, it) }
+        delta.seconds?.let { main = SetEditor.editSeconds(main, delta.setIndex, it) }
 
         val done = delta.done
         if (done != null) {
@@ -112,6 +131,7 @@ class SetEditApplier(
         var ss = track
         delta.weightLb?.let { ss = SetEditor.editWeight(ss, delta.setIndex, it) }
         delta.reps?.let { ss = SetEditor.editReps(ss, delta.setIndex, it) }
+        delta.seconds?.let { ss = SetEditor.editSeconds(ss, delta.setIndex, it) }
         delta.done?.let { done ->
             if (done) repo.stampSessionStartIfUnset()
             ss = ss.mapIndexed { i, s -> if (i == delta.setIndex) s.copy(done = done) else s }

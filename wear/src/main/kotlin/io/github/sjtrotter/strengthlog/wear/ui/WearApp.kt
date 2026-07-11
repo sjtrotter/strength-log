@@ -33,6 +33,7 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.sync.SetEditDelta
 import io.github.sjtrotter.strengthlog.domain.sync.SyncCodec
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
@@ -298,22 +299,30 @@ private fun ExerciseStreamRoute(
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { flush() }
 
     val displayExercise = applyPendingOverlay(exercise, latestSent + latestDirty)
+    val streamState = displayExercise.toStreamUiState(unit, snap.day.dayId, snap.day.accentIndex)
 
-    fun record(slot: String, index: Int, weightLb: Double? = null, reps: Int? = null) {
-        dirty = mergePending(dirty, buildDelta(snap, programExerciseId, slot, index, weightLb, reps, done = null))
+    fun record(slot: String, index: Int, weightLb: Double? = null, reps: Int? = null, seconds: Int? = null) {
+        dirty = mergePending(dirty, buildDelta(snap, programExerciseId, slot, index, weightLb, reps, seconds, done = null))
     }
 
     ExerciseStreamScreen(
-        state = displayExercise.toStreamUiState(unit, snap.day.dayId, snap.day.accentIndex),
+        state = streamState,
         currentIndex = boundedIndex,
         onBack = { flush(); onBack() },
         onWeightStep = { i, up ->
             record("main", i, weightLb = scrolledWeightLb(displayExercise.sets[i].weightLb, unit, up.detent()))
         },
-        onWeightScroll = { i, detents ->
-            record("main", i, weightLb = scrolledWeightLb(displayExercise.sets[i].weightLb, unit, detents))
+        // The crown edits the PRIMARY tracked value per type (§3): weight / reps / seconds.
+        onCrownScroll = { i, detents ->
+            val set = displayExercise.sets[i]
+            when (streamState.tracking) {
+                TrackingType.WEIGHTED -> record("main", i, weightLb = scrolledWeightLb(set.weightLb, unit, detents))
+                TrackingType.REPS -> record("main", i, reps = scrolledReps(set.reps, detents))
+                TrackingType.TIMED -> record("main", i, seconds = scrolledSeconds(set.seconds, detents))
+            }
         },
         onRepsStep = { i, up -> record("main", i, reps = steppedReps(displayExercise.sets[i].reps, up)) },
+        onSecondsStep = { i, up -> record("main", i, seconds = scrolledSeconds(displayExercise.sets[i].seconds, up.detent())) },
         onPartnerWeightStep = { i, up ->
             record("ss", i, weightLb = scrolledWeightLb(displayExercise.ssSets[i].weightLb, unit, up.detent()))
         },
@@ -321,7 +330,7 @@ private fun ExerciseStreamRoute(
         onTick = {
             flush()
             val nowDone = !displayExercise.sets[boundedIndex].done
-            sendEdit(buildDelta(snap, programExerciseId, "main", boundedIndex, weightLb = null, reps = null, done = nowDone))
+            sendEdit(buildDelta(snap, programExerciseId, "main", boundedIndex, weightLb = null, reps = null, seconds = null, done = nowDone))
             if (nowDone) {
                 scope.launch {
                     delay(380)
@@ -344,6 +353,7 @@ private fun buildDelta(
     index: Int,
     weightLb: Double?,
     reps: Int?,
+    seconds: Int?,
     done: Boolean?,
 ): SetEditDelta = SetEditDelta(
     dayId = snap.day.dayId,
@@ -352,6 +362,7 @@ private fun buildDelta(
     setIndex = index,
     weightLb = weightLb,
     reps = reps,
+    seconds = seconds,
     done = done,
     editedAtMillis = System.currentTimeMillis(),
 )

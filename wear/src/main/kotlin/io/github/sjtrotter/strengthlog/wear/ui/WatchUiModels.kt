@@ -1,8 +1,10 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
+import io.github.sjtrotter.strengthlog.domain.units.SecondsStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 
@@ -66,6 +68,16 @@ data class ExerciseStreamUiState(
     val accentIndex: Int,
     val name: String,
     val goalDisplay: String,
+    /** How this exercise is tracked — decides which control the stream renders and
+     *  which field the crown edits (§3). */
+    val tracking: TrackingType,
+    /** True for a TIMED exercise whose goal carries load (weighted plank): the added
+     *  load shows as a read-only caption. False for every other type. */
+    val hasAddedLoad: Boolean,
+    /** The read-only added-load caption ("+25") for a loaded TIMED hold; blank otherwise.
+     *  Added load is a phone-side setup value — the watch never edits it (the phone drops
+     *  weight deltas on TIMED tracks, design risk #2), so it is displayed, not stepped. */
+    val addedLoadDisplay: String,
     val perHand: Boolean,
     val partnerName: String?,
     val rounds: List<RoundUiState>,
@@ -78,22 +90,35 @@ data class RoundUiState(
     val kindLabel: String,
     val weightDisplay: Double,
     val reps: Int,
+    val seconds: Int,
     val done: Boolean,
     /** Null when this exercise has no superset partner. */
     val partner: PartnerRowUiState? = null,
-)
+) {
+    /** The TIMED hold formatted the same way the phone does ("45s" / "1:30"). */
+    val secondsDisplay: String get() = SecondsStepper.format(seconds)
+}
 
 data class PartnerRowUiState(val weightDisplay: Double, val reps: Int)
 
 /** [unit] converts the DTO's canonical lb into what the watch displays. */
 fun WatchExercise.toStreamUiState(unit: WeightUnit, dayId: String, accentIndex: Int): ExerciseStreamUiState {
     val labels = kindLabels(sets)
+    val track = watchTracking(tracking)
+    // A TIMED goal carries its added load on the numeric [goal] (0 when none), so a
+    // loaded hold is simply goal > 0 — same rule the phone's timedShowsWeight uses.
+    val loaded = track == TrackingType.TIMED && goal > 0.0
     return ExerciseStreamUiState(
         programExerciseId = programExerciseId,
         dayId = dayId,
         accentIndex = accentIndex,
         name = name,
-        goalDisplay = WeightStepper.format(unit.fromLb(goal)),
+        // Use the phone's pre-formatted, per-type GOAL label; fall back to the weight
+        // numeral only for a pre-P1.5 snapshot that never set it (keeps old wires safe).
+        goalDisplay = goalLabel.ifBlank { WeightStepper.format(unit.fromLb(goal)) },
+        tracking = track,
+        hasAddedLoad = loaded,
+        addedLoadDisplay = if (loaded) "+${WeightStepper.format(unit.fromLb(goal))}" else "",
         perHand = perHand,
         partnerName = supersetPartnerName,
         rounds = sets.mapIndexed { i, set ->
@@ -102,6 +127,7 @@ fun WatchExercise.toStreamUiState(unit: WeightUnit, dayId: String, accentIndex: 
                 kindLabel = labels[i],
                 weightDisplay = unit.fromLb(set.weightLb),
                 reps = set.reps,
+                seconds = set.seconds,
                 done = set.done,
                 partner = ssSets.getOrNull(i)?.let {
                     PartnerRowUiState(unit.fromLb(it.weightLb), it.reps)
@@ -110,6 +136,12 @@ fun WatchExercise.toStreamUiState(unit: WeightUnit, dayId: String, accentIndex: 
         },
     )
 }
+
+/** [WatchExercise.tracking] ("weighted"/"reps"/"timed") parsed to the domain enum;
+ *  defaults to WEIGHTED on anything else so a stale/garbled wire degrades safely. */
+fun watchTracking(tracking: String): TrackingType = TrackingType.entries.firstOrNull {
+    it.name.equals(tracking, ignoreCase = true)
+} ?: TrackingType.WEIGHTED
 
 /** Per-round kind labels: R1…, TOP, B/O, or a plain 1-based number — mirrors the phone's DayScreenBuilder. */
 private fun kindLabels(sets: List<WatchSet>): List<String> {

@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
+import io.github.sjtrotter.strengthlog.domain.units.SecondsStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import kotlin.math.abs
@@ -27,3 +28,18 @@ fun scrolledWeightLb(currentLb: Double, unit: WeightUnit, detents: Int): Double 
     }
     return unit.toLb(display)
 }
+
+/**
+ * The crown's cumulative reps for a REPS track (and the reps ± buttons, via a
+ * single detent): ±1 per detent, floored at 1 to match the phone's reps stepper
+ * minimum. Unit-free — reps carry no unit.
+ */
+fun scrolledReps(current: Int, detents: Int): Int = (current + detents).coerceAtLeast(1)
+
+/**
+ * The crown's cumulative hold for a TIMED track (and the seconds ± buttons, via a
+ * single detent): [SecondsStepper.increment] (±5s) per detent, floored at 0. The
+ * step comes from the domain stepper so the watch never hard-codes a second value.
+ */
+fun scrolledSeconds(current: Int, detents: Int): Int =
+    (current + detents * SecondsStepper.increment(current)).coerceAtLeast(0)

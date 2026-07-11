@@ -5,6 +5,8 @@ import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
+import io.github.sjtrotter.strengthlog.domain.library.tracking
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.Program
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
@@ -103,6 +105,9 @@ object WatchSnapshotBuilder {
             name = entry?.name ?: pe.exerciseId,
             goal = goalLb,
             goalLabel = target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
+            // Enum name lowercased; the watch parses it back to pick a per-type control.
+            // Unknown/missing entry falls back to "weighted" — the only pre-P5 behavior.
+            tracking = (entry?.tracking ?: TrackingType.WEIGHTED).name.lowercase(),
             perHand = entry?.perHand == true,
             supersetPartnerName = partnerEntry?.name,
             sets = main.map { it.toWatchSet() },
@@ -111,5 +116,5 @@ object WatchSnapshotBuilder {
     }
 
     private fun LoggedSet.toWatchSet(): WatchSet =
-        WatchSet(weightLb = weightLb, reps = reps, kind = kind.name, done = done)
+        WatchSet(weightLb = weightLb, reps = reps, kind = kind.name, done = done, seconds = seconds)
 }

@@ -331,4 +331,163 @@ class SetEditApplierTest {
 
         assertEquals(null, repo.sessionStartedAtFlow.first())
     }
+
+    // --- per-type delta guard (design risk #2: a stale/old watch can't write dead fields) ---
+
+    /** Day T: a REPS pull-up, a plain TIMED plank, and a loaded TIMED weighted plank. */
+    private suspend fun seedTrackingDay() {
+        repo.replaceProgram(
+            Program(
+                listOf(
+                    ProgramDay(
+                        id = "T",
+                        title = "Tracking",
+                        emphasisLine = "",
+                        exercises = listOf(
+                            ProgramExercise("pullup"),
+                            ProgramExercise("plank"),
+                            ProgramExercise("weighted_plank"),
+                            // Mixed-type superset: a WEIGHTED main + a REPS partner (bench_dip).
+                            ProgramExercise("ez_curl", superset = SupersetPartner("bench_dip")),
+                        ),
+                        cardio = null,
+                    ),
+                ),
+            ),
+        )
+        repo.updateSets("T", trackId("pullup"), Slot.MAIN, listOf(LoggedSet(0.0, 6, SetKind.WORK)))
+        repo.updateSets("T", trackId("plank"), Slot.MAIN, listOf(LoggedSet(0.0, 0, SetKind.WORK, seconds = 45)))
+        repo.updateSets("T", trackId("weighted_plank"), Slot.MAIN, listOf(LoggedSet(25.0, 0, SetKind.WORK, seconds = 45)))
+        repo.updateSetsPaired(
+            "T", trackId("ez_curl"),
+            mainSets = listOf(LoggedSet(60.0, 12, SetKind.WORK)),
+            ssSets = listOf(LoggedSet(0.0, 12, SetKind.WORK)), // bench_dip: REPS, zero weight
+        )
+    }
+
+    private suspend fun trackId(exerciseId: String): Long =
+        repo.daySlotsFlow("T").first().first { it.exercise.exerciseId == exerciseId }.programExerciseId
+
+    private suspend fun tTrack(id: Long): List<LoggedSet> =
+        repo.logFlow("T").first().first { it.programExerciseId == id && it.slot == Slot.MAIN }.sets
+
+    private suspend fun tSsTrack(id: Long): List<LoggedSet> =
+        repo.logFlow("T").first().first { it.programExerciseId == id && it.slot == Slot.SS }.sets
+
+    @Test
+    fun `a weight edit on a TIMED track is ignored`() = runTest {
+        seedTrackingDay()
+        val id = trackId("plank")
+        val before = tTrack(id)
+
+        val outcome = applier.apply(
+            SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, weightLb = 99.0, editedAtMillis = 1L),
+        )
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome) // deduped/accepted, but the dead field is stripped
+        assertEquals(before, tTrack(id)) // weight still 0, seconds still 45
+    }
+
+    @Test
+    fun `a reps edit on a TIMED track is ignored`() = runTest {
+        seedTrackingDay()
+        val id = trackId("plank")
+        val before = tTrack(id)
+
+        applier.apply(SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, reps = 99, editedAtMillis = 1L))
+
+        assertEquals(before, tTrack(id)) // reps stays 0
+    }
+
+    @Test
+    fun `a seconds edit on a WEIGHTED track is ignored`() = runTest {
+        seedProgram()
+        val id = squatId()
+        val before = track(id, Slot.MAIN)!!
+
+        applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, seconds = 99, editedAtMillis = 1L))
+
+        assertEquals(before, track(id, Slot.MAIN)!!) // seconds stays 0 on a weighted lift
+        assertEquals(0, track(id, Slot.MAIN)!![0].seconds)
+    }
+
+    @Test
+    fun `a seconds edit on a TIMED track applies`() = runTest {
+        seedTrackingDay()
+        val id = trackId("weighted_plank")
+
+        val outcome = applier.apply(
+            SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, seconds = 60, editedAtMillis = 1L),
+        )
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(60, tTrack(id)[0].seconds)
+        assertEquals(25.0, tTrack(id)[0].weightLb, 0.0) // added load untouched
+    }
+
+    @Test
+    fun `a reps edit on a REPS track applies`() = runTest {
+        seedTrackingDay()
+        val id = trackId("pullup")
+
+        val outcome = applier.apply(
+            SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, reps = 8, editedAtMillis = 1L),
+        )
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(8, tTrack(id)[0].reps)
+    }
+
+    @Test
+    fun `a weight edit on a REPS track is ignored`() = runTest {
+        seedTrackingDay()
+        val id = trackId("pullup")
+        val before = tTrack(id)
+
+        applier.apply(SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, weightLb = 45.0, editedAtMillis = 1L))
+
+        assertEquals(before, tTrack(id)) // a bodyweight movement never gains a weight
+        assertEquals(0.0, tTrack(id)[0].weightLb, 0.0)
+    }
+
+    @Test
+    fun `an SS delta is guarded by the PARTNER's own type, not the main's`() = runTest {
+        seedTrackingDay()
+        val id = trackId("ez_curl") // WEIGHTED main, bench_dip (REPS) partner
+        val before = tSsTrack(id)
+
+        // A weight delta on the REPS partner row must be stripped by the partner's
+        // REPS type — not accepted because the *main* is WEIGHTED. A dead weight on a
+        // bodyweight row would pollute CSV and the ties-at-zero PR ordering.
+        val weightOutcome = applier.apply(
+            SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.SS, setIndex = 0, weightLb = 45.0, editedAtMillis = 1L),
+        )
+        assertEquals(SetEditApplier.Outcome.APPLIED, weightOutcome)
+        assertEquals(before, tSsTrack(id)) // partner weight stays 0
+        assertEquals(0.0, tSsTrack(id)[0].weightLb, 0.0)
+
+        // A reps delta on the same REPS partner row applies (its live field).
+        val repsOutcome = applier.apply(
+            SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.SS, setIndex = 0, reps = 8, editedAtMillis = 2L),
+        )
+        assertEquals(SetEditApplier.Outcome.APPLIED, repsOutcome)
+        assertEquals(8, tSsTrack(id)[0].reps)
+        assertEquals(0.0, tSsTrack(id)[0].weightLb, 0.0) // still no weight
+    }
+
+    @Test
+    fun `a done tick on a TIMED track still applies alongside a stripped weight field`() = runTest {
+        seedTrackingDay()
+        val id = trackId("plank")
+
+        // A stale watch sends done together with a bogus plank weight — the tick must
+        // still land, only the weight is dropped.
+        applier.apply(
+            SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, weightLb = 99.0, done = true, editedAtMillis = 1L),
+        )
+
+        assertTrue(tTrack(id)[0].done)
+        assertEquals(0.0, tTrack(id)[0].weightLb, 0.0)
+        assertEquals(45, tTrack(id)[0].seconds)
+    }
 }

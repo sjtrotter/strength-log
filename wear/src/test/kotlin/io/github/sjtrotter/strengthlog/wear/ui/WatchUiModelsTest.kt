@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.sync.WatchDay
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
@@ -153,5 +154,96 @@ class WatchUiModelsTest {
         assertEquals(WeightUnit.KG, watchUnit("kg"))
         assertEquals(WeightUnit.LB, watchUnit("LB"))
         assertEquals(WeightUnit.LB, watchUnit("garbage"))
+    }
+
+    // --- per-type stream state (§3) ---------------------------------------------
+
+    private val pullup = WatchExercise(
+        programExerciseId = 3L,
+        slot = "main",
+        name = "Pull-Up",
+        goal = 0.0,
+        perHand = false,
+        supersetPartnerName = null,
+        sets = listOf(WatchSet(0.0, 6, "WORK", done = false), WatchSet(0.0, 5, "WORK", done = false)),
+        ssSets = emptyList(),
+        goalLabel = "6 reps",
+        tracking = "reps",
+    )
+
+    private val plank = WatchExercise(
+        programExerciseId = 4L,
+        slot = "main",
+        name = "Plank",
+        goal = 0.0,
+        perHand = false,
+        supersetPartnerName = null,
+        sets = listOf(WatchSet(0.0, 0, "WORK", done = false, seconds = 45)),
+        ssSets = emptyList(),
+        goalLabel = "45s",
+        tracking = "timed",
+    )
+
+    private val weightedPlank = WatchExercise(
+        programExerciseId = 5L,
+        slot = "main",
+        name = "Weighted Plank",
+        goal = 25.0,
+        perHand = false,
+        supersetPartnerName = null,
+        sets = listOf(WatchSet(25.0, 0, "WORK", done = false, seconds = 100)),
+        ssSets = emptyList(),
+        goalLabel = "45s +25",
+        tracking = "timed",
+    )
+
+    @Test
+    fun `watchTracking parses the wire string and defaults to WEIGHTED`() {
+        assertEquals(TrackingType.REPS, watchTracking("reps"))
+        assertEquals(TrackingType.TIMED, watchTracking("TIMED"))
+        assertEquals(TrackingType.WEIGHTED, watchTracking("weighted"))
+        assertEquals(TrackingType.WEIGHTED, watchTracking("garbage"))
+    }
+
+    @Test
+    fun `a REPS exercise carries no weight control and uses the goalLabel`() {
+        val stream = pullup.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        assertEquals(TrackingType.REPS, stream.tracking)
+        assertFalse(stream.hasAddedLoad)
+        assertEquals("", stream.addedLoadDisplay) // never "0 lb"
+        assertEquals("6 reps", stream.goalDisplay) // the phone's per-type label, not a bare weight
+        assertEquals(6, stream.rounds.first().reps)
+    }
+
+    @Test
+    fun `a plain TIMED hold shows seconds via the shared formatter and no added load`() {
+        val stream = plank.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        assertEquals(TrackingType.TIMED, stream.tracking)
+        assertFalse(stream.hasAddedLoad)
+        assertEquals("45s", stream.rounds.first().secondsDisplay) // under the 90s threshold
+        assertEquals("45s", stream.goalDisplay)
+    }
+
+    @Test
+    fun `a loaded TIMED hold shows a read-only added-load caption and m ss over 90s`() {
+        val stream = weightedPlank.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        assertTrue(stream.hasAddedLoad)
+        assertEquals("+25", stream.addedLoadDisplay)
+        assertEquals("1:40", stream.rounds.first().secondsDisplay) // 100s -> m:ss
+    }
+
+    @Test
+    fun `a loaded TIMED hold converts its added-load caption to the display unit`() {
+        val stream = weightedPlank.toStreamUiState(WeightUnit.KG, dayId = "A", accentIndex = 0)
+        assertEquals("+${io.github.sjtrotter.strengthlog.domain.units.WeightStepper.format(WeightUnit.KG.fromLb(25.0))}", stream.addedLoadDisplay)
+    }
+
+    @Test
+    fun `a weighted exercise still falls back to the weight numeral when goalLabel is blank`() {
+        // squat's fixture leaves goalLabel default "" (a pre-P1.5 wire) — the goal
+        // display must degrade to the converted weight, not go blank.
+        val stream = squat.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        assertEquals(TrackingType.WEIGHTED, stream.tracking)
+        assertEquals("235", stream.goalDisplay)
     }
 }

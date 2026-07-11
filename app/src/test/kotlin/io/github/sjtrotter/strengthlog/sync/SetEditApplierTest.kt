@@ -347,6 +347,8 @@ class SetEditApplierTest {
                             ProgramExercise("pullup"),
                             ProgramExercise("plank"),
                             ProgramExercise("weighted_plank"),
+                            // Mixed-type superset: a WEIGHTED main + a REPS partner (bench_dip).
+                            ProgramExercise("ez_curl", superset = SupersetPartner("bench_dip")),
                         ),
                         cardio = null,
                     ),
@@ -356,6 +358,11 @@ class SetEditApplierTest {
         repo.updateSets("T", trackId("pullup"), Slot.MAIN, listOf(LoggedSet(0.0, 6, SetKind.WORK)))
         repo.updateSets("T", trackId("plank"), Slot.MAIN, listOf(LoggedSet(0.0, 0, SetKind.WORK, seconds = 45)))
         repo.updateSets("T", trackId("weighted_plank"), Slot.MAIN, listOf(LoggedSet(25.0, 0, SetKind.WORK, seconds = 45)))
+        repo.updateSetsPaired(
+            "T", trackId("ez_curl"),
+            mainSets = listOf(LoggedSet(60.0, 12, SetKind.WORK)),
+            ssSets = listOf(LoggedSet(0.0, 12, SetKind.WORK)), // bench_dip: REPS, zero weight
+        )
     }
 
     private suspend fun trackId(exerciseId: String): Long =
@@ -363,6 +370,9 @@ class SetEditApplierTest {
 
     private suspend fun tTrack(id: Long): List<LoggedSet> =
         repo.logFlow("T").first().first { it.programExerciseId == id && it.slot == Slot.MAIN }.sets
+
+    private suspend fun tSsTrack(id: Long): List<LoggedSet> =
+        repo.logFlow("T").first().first { it.programExerciseId == id && it.slot == Slot.SS }.sets
 
     @Test
     fun `a weight edit on a TIMED track is ignored`() = runTest {
@@ -438,6 +448,31 @@ class SetEditApplierTest {
 
         assertEquals(before, tTrack(id)) // a bodyweight movement never gains a weight
         assertEquals(0.0, tTrack(id)[0].weightLb, 0.0)
+    }
+
+    @Test
+    fun `an SS delta is guarded by the PARTNER's own type, not the main's`() = runTest {
+        seedTrackingDay()
+        val id = trackId("ez_curl") // WEIGHTED main, bench_dip (REPS) partner
+        val before = tSsTrack(id)
+
+        // A weight delta on the REPS partner row must be stripped by the partner's
+        // REPS type — not accepted because the *main* is WEIGHTED. A dead weight on a
+        // bodyweight row would pollute CSV and the ties-at-zero PR ordering.
+        val weightOutcome = applier.apply(
+            SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.SS, setIndex = 0, weightLb = 45.0, editedAtMillis = 1L),
+        )
+        assertEquals(SetEditApplier.Outcome.APPLIED, weightOutcome)
+        assertEquals(before, tSsTrack(id)) // partner weight stays 0
+        assertEquals(0.0, tSsTrack(id)[0].weightLb, 0.0)
+
+        // A reps delta on the same REPS partner row applies (its live field).
+        val repsOutcome = applier.apply(
+            SetEditDelta(dayId = "T", programExerciseId = id, slot = Slot.SS, setIndex = 0, reps = 8, editedAtMillis = 2L),
+        )
+        assertEquals(SetEditApplier.Outcome.APPLIED, repsOutcome)
+        assertEquals(8, tSsTrack(id)[0].reps)
+        assertEquals(0.0, tSsTrack(id)[0].weightLb, 0.0) // still no weight
     }
 
     @Test

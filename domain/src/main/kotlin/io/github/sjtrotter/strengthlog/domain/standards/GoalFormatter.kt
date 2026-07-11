@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.domain.standards
 
+import io.github.sjtrotter.strengthlog.domain.units.SecondsStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 
@@ -20,7 +21,10 @@ object GoalFormatter {
         is GoalTarget.Weight -> WeightStepper.format(unit.fromLb(target.lb))
         is GoalTarget.Reps -> "${target.reps} reps"
         is GoalTarget.Time ->
-            if (target.addedLb > 0.0) "${target.seconds}s +${WeightStepper.format(unit.fromLb(target.addedLb))}"
-            else "${target.seconds}s"
+            if (target.addedLb > 0.0) {
+                "${SecondsStepper.format(target.seconds)} +${WeightStepper.format(unit.fromLb(target.addedLb))}"
+            } else {
+                SecondsStepper.format(target.seconds)
+            }
     }
 }

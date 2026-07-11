@@ -31,8 +31,10 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -71,6 +73,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.model.CardioSuggestion
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
@@ -136,7 +139,7 @@ fun DayScreen(
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
                 items(state.exercises, key = { it.programExerciseId }) { card ->
-                    ExerciseCard(card, state.unit, accent, onAccent, soft, actions)
+                    ExerciseCard(card, state.unit, accent, onAccent, soft, actions, onSwapWeight = dayEditActions.onSwap)
                 }
                 state.cardio?.let { cardio ->
                     item { CardioCard(cardio) }
@@ -347,9 +350,14 @@ private fun ExerciseCard(
     onAccent: Color,
     accentSoftColor: Color,
     actions: DayActions,
+    onSwapWeight: (position: Int, targetExerciseId: String) -> Unit,
 ) {
     var previousAllDone by remember { mutableStateOf(card.allDone) }
     var displayCollapsed by remember { mutableStateOf(card.collapsed) }
+    // Confirm-before-swap (§4.2): the pill never mutates on tap alone — a swap
+    // discards the slot's live rows, the same courtesy other destructive day
+    // actions get (ResetToTemplateDialog).
+    var pendingSwap by remember { mutableStateOf<WeightSwapAffordance?>(null) }
     LaunchedEffect(card.collapsed, card.allDone) {
         val justFinished = card.allDone && !previousAllDone
         previousAllDone = card.allDone
@@ -393,6 +401,9 @@ private fun ExerciseCard(
                     if (card.isMain) Badge("MAIN", accent, onAccent)
                     if (card.hasWarmupHint) Badge("+1 WARM-UP", Color.Transparent, TextSecondary, outlined = true)
                     if (card.allDone) Badge("✓", Done, Background, description = "All sets done")
+                    card.weightSwap?.let { swap ->
+                        WeightSwapPill(swap, accent, onClick = { pendingSwap = swap })
+                    }
                 }
                 // History bonus (PLAN.md A1): the exercise's last completed
                 // performance, when one exists — silent otherwise (no "never
@@ -465,6 +476,10 @@ private fun ExerciseCard(
                         onToggleDone = { actions.onToggleDone(card.programExerciseId, row.index, it, card.isSuperset) },
                         onRemove = { actions.onRemoveSet(card.programExerciseId, row.index, card.isSuperset) },
                         cascadeOrdinal = ordinal,
+                        tracking = card.tracking,
+                        seconds = row.seconds,
+                        onSecondsChange = { actions.onSecondsChange(card.programExerciseId, Slot.MAIN, row.index, it) },
+                        showTimedWeight = card.timedShowsWeight,
                     )
                     val partner = row.partner
                     if (card.isSuperset && partner != null) {
@@ -485,6 +500,10 @@ private fun ExerciseCard(
                             modifier = Modifier.padding(start = 40.dp, end = 10.dp),
                             isSubRow = true,
                             ticked = row.done,
+                            tracking = card.partnerTracking ?: TrackingType.WEIGHTED,
+                            seconds = partner.seconds,
+                            onSecondsChange = { actions.onSecondsChange(card.programExerciseId, Slot.SS, row.index, it) },
+                            showTimedWeight = card.partnerTimedShowsWeight,
                         )
                     }
                 }
@@ -495,6 +514,57 @@ private fun ExerciseCard(
             }
         }
     }
+
+    pendingSwap?.let { swap ->
+        WeightSwapConfirmDialog(
+            swap = swap,
+            onConfirm = {
+                onSwapWeight(card.position, swap.targetExerciseId)
+                pendingSwap = null
+            },
+            onDismiss = { pendingSwap = null },
+        )
+    }
+}
+
+// --- ADD WEIGHT / REMOVE WEIGHT pill (§4.2) ----------------------------------
+
+/**
+ * The labeled swap pill on an exercise card's header — "+ ADD WEIGHT" toward a
+ * loaded variant, "− REMOVE WEIGHT" back off one. A bordered pill rather than
+ * a filled badge (spec §8.5: not a generic Material button) so it reads as an
+ * affordance, not a status chip like [Badge]. `internal`, not `private` (A7
+ * pattern, see `DayTab`): a UI test taps this composable directly.
+ */
+@Composable
+internal fun WeightSwapPill(swap: WeightSwapAffordance, accent: Color, onClick: () -> Unit) {
+    val label = if (swap.isRemove) "− REMOVE WEIGHT" else "+ ADD WEIGHT"
+    val borderColor = if (swap.isRemove) Border else accent
+    val textColor = if (swap.isRemove) TextSecondary else accent
+    Box(
+        modifier = Modifier
+            .border(1.dp, borderColor, RoundedCornerShape(50))
+            .clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    ) {
+        Text(label, color = textColor, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+/** One-line confirm before a swap discards the slot's live rows (spec §4.2) —
+ *  same courtesy [ResetToTemplateDialog] gives other destructive day actions. */
+@Composable
+internal fun WeightSwapConfirmDialog(swap: WeightSwapAffordance, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Surface,
+        titleContentColor = TextPrimary,
+        textContentColor = TextSecondary,
+        title = { Text("Switch to ${swap.targetName}?") },
+        text = { Text("Your sets reseed from its goal.") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Switch", color = Done) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+    )
 }
 
 // --- small pieces ------------------------------------------------------------
@@ -741,6 +811,7 @@ data class DayActions(
     val onSelectDay: (String) -> Unit,
     val onWeightChange: (Long, String, Int, Double) -> Unit,
     val onRepsChange: (Long, String, Int, Int) -> Unit,
+    val onSecondsChange: (Long, String, Int, Int) -> Unit,
     val onToggleDone: (Long, Int, Boolean, Boolean) -> Unit,
     val onAddSet: (Long, Boolean) -> Unit,
     val onRemoveSet: (Long, Int, Boolean) -> Unit,
@@ -800,6 +871,7 @@ private fun DayScreenPreviewContent() {
         exercises = listOf(
             ExerciseCardState(
                 programExerciseId = 1,
+                position = 0,
                 title = "Barbell Back Squat",
                 isMain = true,
                 isSuperset = false,
@@ -822,6 +894,7 @@ private fun DayScreenPreviewContent() {
             ),
             ExerciseCardState(
                 programExerciseId = 2,
+                position = 1,
                 title = "SS: EZ-Bar Curl + Rope Pushdown",
                 isMain = false,
                 isSuperset = true,
@@ -839,6 +912,7 @@ private fun DayScreenPreviewContent() {
             ),
             ExerciseCardState(
                 programExerciseId = 3,
+                position = 2,
                 title = "Seated Leg Curl",
                 isMain = false,
                 isSuperset = false,
@@ -854,6 +928,26 @@ private fun DayScreenPreviewContent() {
                     row(2, "3", false, 90.0, 9, done = true),
                 ),
             ),
+            ExerciseCardState(
+                programExerciseId = 4,
+                position = 3,
+                title = "Plank / Side Plank",
+                isMain = false,
+                isSuperset = false,
+                hasWarmupHint = false,
+                goalDisplay = "45s",
+                perHand = false,
+                tracking = TrackingType.TIMED,
+                allDone = false,
+                collapsed = false,
+                collapsedSummary = "3 sets · GOAL 45s",
+                rows = listOf(
+                    SetRowState(0, "1", false, 0.0, 0, false, seconds = 45),
+                    SetRowState(1, "2", false, 0.0, 0, false, seconds = 45),
+                    SetRowState(2, "3", false, 0.0, 0, false, seconds = 45),
+                ),
+                weightSwap = WeightSwapAffordance("weighted_plank", "Weighted Plank", isRemove = false),
+            ),
         ),
         cardio = CardioSuggestion("Zone 2", "20-25 min easy — legs were heavy today, keep it conversational.", hard = false),
         keepScreenOn = false,
@@ -866,6 +960,7 @@ private fun DayScreenPreviewContent() {
                 onSelectDay = {},
                 onWeightChange = { _, _, _, _ -> },
                 onRepsChange = { _, _, _, _ -> },
+                onSecondsChange = { _, _, _, _ -> },
                 onToggleDone = { _, _, _, _ -> },
                 onAddSet = { _, _ -> },
                 onRemoveSet = { _, _, _ -> },

@@ -7,6 +7,7 @@ import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
 import io.github.sjtrotter.strengthlog.domain.library.GoalSource
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
@@ -28,7 +29,8 @@ class DayScreenBuilderTest {
     private val cfg = LifterConfig() // bw 235, age 40, INTERMEDIATE, BALANCED
     private val catalog = ExerciseCatalog.CODE_ONLY
 
-    private fun work(w: Double, r: Int, done: Boolean = false) = LoggedSet(w, r, SetKind.WORK, done)
+    private fun work(w: Double, r: Int, done: Boolean = false, seconds: Int = 0) =
+        LoggedSet(w, r, SetKind.WORK, done, seconds)
 
     // --- seeding-once --------------------------------------------------------
 
@@ -177,6 +179,39 @@ class DayScreenBuilderTest {
         )
     }
 
+    @Test
+    fun collapsedSummary_formats_a_REPS_track_with_no_weight_at_all() {
+        val main = listOf(work(0.0, 12, done = true), work(0.0, 10, done = true))
+        assertEquals(
+            "×12 · ×10",
+            DayScreenBuilder.collapsedSummary(main, partner = null, goalDisplay = "12 reps", unit = WeightUnit.LB, tracking = TrackingType.REPS),
+        )
+    }
+
+    @Test
+    fun collapsedSummary_formats_a_TIMED_track_as_a_hold() {
+        val main = listOf(work(0.0, 0, done = true, seconds = 45))
+        assertEquals(
+            "45s",
+            DayScreenBuilder.collapsedSummary(main, partner = null, goalDisplay = "45s", unit = WeightUnit.LB, tracking = TrackingType.TIMED),
+        )
+    }
+
+    @Test
+    fun collapsedSummary_formats_main_and_partner_independently_when_their_tracking_differs() {
+        // A weighted main superset with a TIMED accessory partner — valid per
+        // §3 (only mains must be WEIGHTED); each track formats by its own type.
+        val main = listOf(work(60.0, 12, done = true))
+        val partner = listOf(work(0.0, 0, seconds = 30))
+        assertEquals(
+            "60×12(30s)",
+            DayScreenBuilder.collapsedSummary(
+                main, partner, goalDisplay = "60", unit = WeightUnit.LB,
+                tracking = TrackingType.WEIGHTED, partnerTracking = TrackingType.TIMED,
+            ),
+        )
+    }
+
     // --- collapse resolution -------------------------------------------------
 
     @Test
@@ -260,6 +295,19 @@ class DayScreenBuilderTest {
         assertNull(DayScreenBuilder.lastTimeDisplay(null, WeightUnit.LB))
     }
 
+    @Test
+    fun lastTimeDisplay_reads_a_hold_from_seconds_when_present() {
+        assertEquals("45s", DayScreenBuilder.lastTimeDisplay(LastPerformed(0.0, 0, seconds = 45), WeightUnit.LB))
+    }
+
+    @Test
+    fun lastTimeDisplay_renders_a_legacy_reps_shaped_TIMED_row_as_reps_never_0s() {
+        // Logged before the exercise's reclassification to TIMED: seconds is
+        // still 0, the hold sits in reps (P3 Decision 5's assumption) — the
+        // history chip must read the value, not "0s".
+        assertEquals("×45", DayScreenBuilder.lastTimeDisplay(LastPerformed(0.0, 45), WeightUnit.LB))
+    }
+
     // --- "Best" profile chip (performance-profile.md Phase 1) ----------------
 
     @Test
@@ -277,6 +325,12 @@ class DayScreenBuilderTest {
     }
 
     @Test
+    fun personalRecordDisplay_renders_a_legacy_reps_shaped_TIMED_row_as_reps_never_0s() {
+        val record = PersonalRecord("plank", weightLb = 0.0, reps = 60, achievedAtMillis = 1_000L)
+        assertEquals("×60", DayScreenBuilder.personalRecordDisplay(record, lastTime = null, WeightUnit.LB))
+    }
+
+    @Test
     fun personalRecordDisplay_is_suppressed_when_it_equals_the_last_time_chip() {
         // The record IS the most recent performance — showing "245×5" twice
         // right next to each other would be redundant noise, not signal.
@@ -291,5 +345,35 @@ class DayScreenBuilderTest {
             "245×5",
             DayScreenBuilder.personalRecordDisplay(record, lastTime = LastPerformed(225.0, 5), WeightUnit.LB),
         )
+    }
+
+    // --- ADD WEIGHT / REMOVE WEIGHT pill (§4.2) ------------------------------
+
+    @Test
+    fun weightSwapAffordance_offers_ADD_WEIGHT_for_an_entry_that_declares_a_weighted_pair() {
+        val plank = catalog.get("plank")
+        val swap = DayScreenBuilder.weightSwapAffordance(plank, catalog)
+        assertEquals("weighted_plank", swap?.targetExerciseId)
+        assertEquals("Weighted Plank", swap?.targetName)
+        assertEquals(false, swap?.isRemove)
+    }
+
+    @Test
+    fun weightSwapAffordance_offers_REMOVE_WEIGHT_for_the_declared_target_itself() {
+        val weightedPlank = catalog.get("weighted_plank")
+        val swap = DayScreenBuilder.weightSwapAffordance(weightedPlank, catalog)
+        assertEquals("plank", swap?.targetExerciseId)
+        assertEquals("Plank / Side Plank", swap?.targetName)
+        assertEquals(true, swap?.isRemove)
+    }
+
+    @Test
+    fun weightSwapAffordance_is_null_for_an_entry_with_no_pair_link_at_all() {
+        assertNull(DayScreenBuilder.weightSwapAffordance(catalog.get("bb_back_squat"), catalog))
+    }
+
+    @Test
+    fun weightSwapAffordance_is_null_for_an_unresolved_entry() {
+        assertNull(DayScreenBuilder.weightSwapAffordance(null, catalog))
     }
 }

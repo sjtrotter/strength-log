@@ -5,12 +5,14 @@ import io.github.sjtrotter.strengthlog.data.PersonalRecord
 import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
+import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.seeding.SetSeeder
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
-import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
+import io.github.sjtrotter.strengthlog.domain.standards.SetFormatter
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 
 /**
@@ -110,46 +112,76 @@ object DayScreenBuilder {
     }
 
     /**
-     * The collapsed one-line summary (spec §8.2): completed rows as `w×r` joined by
-     * " · ", or `w×r(ssW×ssR)` joined by " / " for a superset. When nothing is
-     * checked yet, `{n} sets · GOAL {g}`.
+     * The collapsed one-line summary (spec §8.2): completed rows formatted per
+     * [tracking]/[partnerTracking] (SSOT: [SetFormatter], never an ad-hoc
+     * `w×r`), joined by " · ", or `main(partner)` joined by " / " for a
+     * superset. When nothing is checked yet, `{n} sets · GOAL {g}`.
      */
     fun collapsedSummary(
         main: List<LoggedSet>,
         partner: List<LoggedSet>?,
         goalDisplay: String,
         unit: WeightUnit,
+        tracking: TrackingType = TrackingType.WEIGHTED,
+        partnerTracking: TrackingType = TrackingType.WEIGHTED,
     ): String {
         val doneIndices = main.indices.filter { main[it].done }
         if (doneIndices.isEmpty()) return "${main.size} sets · GOAL $goalDisplay"
         return if (partner == null) {
-            doneIndices.joinToString(" · ") { i -> wxr(main[i], unit) }
+            doneIndices.joinToString(" · ") { i -> setSummary(main[i], tracking, unit) }
         } else {
             doneIndices.joinToString(" / ") { i ->
                 val ss = partner.getOrNull(i)
-                if (ss == null) wxr(main[i], unit) else "${wxr(main[i], unit)}(${wxr(ss, unit)})"
+                val mainText = setSummary(main[i], tracking, unit)
+                if (ss == null) mainText else "$mainText(${setSummary(ss, partnerTracking, unit)})"
             }
         }
     }
 
     /**
-     * The "last time: {w}×{r}" chip's value (PLAN.md A1 bonus, issue #14) —
-     * `null` when [last] is `null` (the exercise has no prior completed
-     * performance), in which case the card shows no chip at all.
+     * The "last time: …" chip's value (PLAN.md A1 bonus, issue #14) — `null`
+     * when [last] is `null` (the exercise has no prior completed performance),
+     * in which case the card shows no chip at all. Formats by the logged
+     * VALUE ([SetFormatter.summaryOfValues]), not the exercise's current
+     * tracking type: a `session_set`/last-performed row can be legacy
+     * reps-shaped for an exercise reclassified TIMED since (design risk #3 —
+     * history is never touched by the P3 fixup, only live logs are).
      */
     fun lastTimeDisplay(last: LastPerformed?, unit: WeightUnit): String? =
-        last?.let { "${WeightStepper.format(unit.fromLb(it.weightLb))}×${it.reps}" }
+        last?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit) }
 
     /**
-     * The "Best: {w}×{r}" chip's value (docs/briefs/performance-profile.md
-     * Phase 1) — `null` when [record] is `null` (never performed), and also
-     * `null` when it formats identically to [lastTime]'s chip: the two lines
-     * sit right next to each other, so a record that IS the last performance
+     * The "Best: …" chip's value (docs/briefs/performance-profile.md Phase 1)
+     * — `null` when [record] is `null` (never performed), and also `null`
+     * when it formats identically to [lastTime]'s chip: the two lines sit
+     * right next to each other, so a record that IS the last performance
      * would just repeat the same number — quiet redundancy, not signal.
+     * Value-formatted for the same legacy-history reason as [lastTimeDisplay].
      */
     fun personalRecordDisplay(record: PersonalRecord?, lastTime: LastPerformed?, unit: WeightUnit): String? {
-        val display = record?.let { "${WeightStepper.format(unit.fromLb(it.weightLb))}×${it.reps}" } ?: return null
+        val display = record?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit) } ?: return null
         return display.takeIf { it != lastTimeDisplay(lastTime, unit) }
+    }
+
+    /**
+     * The ADD WEIGHT / REMOVE WEIGHT pill for [entry] (§4.2): derived, never
+     * invented — a loaded variant ([ExerciseEntry.weightedPairId]) yields
+     * "ADD WEIGHT" targeting it; being the loaded target of some other entry
+     * ([ExerciseCatalog.bodyweightPairFor]) yields "REMOVE WEIGHT" targeting
+     * that unloaded entry. An entry can only ever be one side of a pair (the
+     * library validates this is injective/acyclic at init), so at most one of
+     * the two resolves. `null` when [entry] has no pair link at all, or is
+     * `null` itself (an unknown exercise id).
+     */
+    fun weightSwapAffordance(entry: ExerciseEntry?, catalog: ExerciseCatalog): WeightSwapAffordance? {
+        entry ?: return null
+        entry.weightedPairId?.let { targetId ->
+            val target = catalog.find(targetId) ?: return null
+            return WeightSwapAffordance(targetId, target.name, isRemove = false)
+        }
+        val bodyweightId = catalog.bodyweightPairFor(entry.id) ?: return null
+        val target = catalog.find(bodyweightId) ?: return null
+        return WeightSwapAffordance(bodyweightId, target.name, isRemove = true)
     }
 
     /** True once every round is ticked — drives the green chip and auto-collapse. */
@@ -159,6 +191,6 @@ object DayScreenBuilder {
     fun collapsed(main: List<LoggedSet>, manualOverride: Boolean?): Boolean =
         manualOverride ?: allDone(main)
 
-    private fun wxr(set: LoggedSet, unit: WeightUnit): String =
-        "${WeightStepper.format(unit.fromLb(set.weightLb))}×${set.reps}"
+    private fun setSummary(set: LoggedSet, tracking: TrackingType, unit: WeightUnit): String =
+        SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, unit)
 }

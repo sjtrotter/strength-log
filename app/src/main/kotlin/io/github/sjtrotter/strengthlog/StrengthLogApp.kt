@@ -1,6 +1,7 @@
 package io.github.sjtrotter.strengthlog
 
 import android.app.Application
+import android.util.Log
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -49,9 +50,21 @@ class StrengthLogApp : Application() {
         // One-shot on first launch of the tracking-types build: reinterpret the
         // reps a user logged for now-TIMED holds (plank, ...) as seconds. Guarded
         // by a DataStore flag, so this is a cheap no-op on every later launch.
+        // runCatching (Fable P3 advisory #1): this runs unattended at startup
+        // with nothing downstream to surface a failure to, so a corrupt row (a
+        // stored `setsJson` that fails to decode) must not crash-loop the app
+        // on every launch — log it and move on; the fixup's own idempotency
+        // (SettingsStore.md) means a future, fixed build can still pick it up.
         val repository = EntryPointAccessors
             .fromApplication(this, RepositoryEntryPoint::class.java)
             .trackerRepository()
-        appScope.launch { repository.runLegacyTimedFixupIfNeeded() }
+        appScope.launch {
+            runCatching { repository.runLegacyTimedFixupIfNeeded() }
+                .onFailure { Log.e(TAG, "Legacy TIMED fixup failed; will retry next launch", it) }
+        }
+    }
+
+    private companion object {
+        const val TAG = "StrengthLogApp"
     }
 }

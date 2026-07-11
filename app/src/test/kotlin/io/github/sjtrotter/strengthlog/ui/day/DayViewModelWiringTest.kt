@@ -260,6 +260,97 @@ class DayViewModelWiringTest {
         assertNull(track(lateralId, Slot.SS))
     }
 
+    // --- tracking types P4: seconds edit persists like reps/weight ------------
+
+    @Test
+    fun changeSecondsPersistsOnlyTheEditedRow() = runVmTest {
+        repo.replaceProgram(
+            Program(
+                listOf(
+                    ProgramDay(
+                        id = "A", title = "Test", emphasisLine = "",
+                        exercises = listOf(ProgramExercise("plank", targetSets = 3)),
+                        cardio = null,
+                    ),
+                ),
+            ),
+        )
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val plankId = slotId("plank")
+
+        vm.changeSeconds(plankId, Slot.MAIN, index = 1, newSeconds = 60)
+        advanceUntilIdle()
+
+        val sets = track(plankId, Slot.MAIN)!!
+        assertEquals(listOf(45, 60, 45), sets.map { it.seconds })
+        // Seconds never cascades — the other rows' own values are untouched,
+        // and reps/weight (always 0/0 for a REPS-free TIMED track) stay put.
+        assertTrue(sets.all { it.reps == 0 && it.weightLb == 0.0 })
+    }
+
+    // --- ADD WEIGHT / REMOVE WEIGHT pill wiring (§4.2) --------------------------
+
+    @Test
+    fun weightSwapAffordanceOffersAddWeight_andSwappingAppliesTheDeclaredPairedId() = runVmTest {
+        repo.replaceProgram(
+            Program(
+                listOf(
+                    ProgramDay(
+                        id = "A", title = "Test", emphasisLine = "",
+                        exercises = listOf(ProgramExercise("plank", targetSets = 3)),
+                        cardio = null,
+                    ),
+                ),
+            ),
+        )
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val plankId = slotId("plank")
+        val card = vm.uiState.value.exercises.first { it.programExerciseId == plankId }
+        val swap = card.weightSwap
+        assertEquals("weighted_plank", swap?.targetExerciseId)
+        assertFalse(swap!!.isRemove)
+        collect.cancel()
+
+        // Tapping the pill is exactly this: swap the slot to the pill's own
+        // targetExerciseId, at the card's own position — never re-derived.
+        vm.swapDaySlot(card.position, swap.targetExerciseId)
+        advanceUntilIdle()
+
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertEquals(
+            "weighted_plank",
+            vm.dayEditState.value.slots.first { it.programExerciseId == plankId }.exerciseId,
+        )
+        collectEdit.cancel()
+    }
+
+    @Test
+    fun weightSwapAffordanceOffersRemoveWeight_forTheDeclaredPairTargetItself() = runVmTest {
+        repo.replaceProgram(
+            Program(
+                listOf(
+                    ProgramDay(
+                        id = "A", title = "Test", emphasisLine = "",
+                        exercises = listOf(ProgramExercise("weighted_plank", targetSets = 3)),
+                        cardio = null,
+                    ),
+                ),
+            ),
+        )
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val card = vm.uiState.value.exercises.first { it.programExerciseId == slotId("weighted_plank") }
+
+        assertEquals("plank", card.weightSwap?.targetExerciseId)
+        assertTrue(card.weightSwap!!.isRemove)
+        collect.cancel()
+    }
+
     // --- day-edit sheet wiring (#11, spec §8.3) --------------------------------
     // dayEditState is WhileSubscribed, like uiState — each test collects it (same
     // reason collapseOverrideSurvivesViewModelRecreation collects uiState) so

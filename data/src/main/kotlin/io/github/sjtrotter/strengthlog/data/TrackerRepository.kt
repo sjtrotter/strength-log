@@ -25,6 +25,7 @@ import io.github.sjtrotter.strengthlog.domain.generator.ProgramGenerator
 import io.github.sjtrotter.strengthlog.domain.generator.Rotation
 import io.github.sjtrotter.strengthlog.domain.generator.WizardAnswers
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.model.CardioPrefs
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
@@ -110,12 +111,23 @@ open class TrackerRepository(
     val catalogFlow: Flow<ExerciseCatalog> =
         customExerciseDao.observeAll().map { rows -> ExerciseCatalog(rows.map { it.toEntry() }) }
 
+    /**
+     * [tracking] selects which of [goalStartLb]/[targetReps]/[targetSeconds] is
+     * the live GOAL (mirrors [io.github.sjtrotter.strengthlog.data.mapping.toEntry]):
+     * WEIGHTED reads [goalStartLb] as the flat starting weight; REPS reads
+     * [targetReps]; TIMED reads [targetSeconds] plus [goalStartLb] as any
+     * optional added load. Defaulted so every pre-tracking-types call site
+     * (weighted-only) keeps compiling unchanged.
+     */
     suspend fun addCustomExercise(
         name: String,
         pattern: MovementPattern,
         equipment: List<Equipment>,
         perHand: Boolean,
         goalStartLb: Double,
+        tracking: TrackingType = TrackingType.WEIGHTED,
+        targetReps: Int? = null,
+        targetSeconds: Int? = null,
     ): String {
         val id = ExerciseCatalog.CUSTOM_ID_PREFIX + UUID.randomUUID().toString().replace("-", "")
         customExerciseDao.upsert(
@@ -126,6 +138,9 @@ open class TrackerRepository(
                 equipmentCsv = equipment.joinToString(",") { it.name },
                 perHand = perHand,
                 goalStartLb = goalStartLb,
+                tracking = tracking.name,
+                targetReps = targetReps,
+                targetSeconds = targetSeconds,
             ),
         )
         return id

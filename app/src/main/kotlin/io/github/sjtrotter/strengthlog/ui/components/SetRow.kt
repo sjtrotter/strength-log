@@ -44,6 +44,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
+import io.github.sjtrotter.strengthlog.domain.units.SecondsStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import io.github.sjtrotter.strengthlog.ui.theme.AppTheme
@@ -100,6 +102,17 @@ private const val TICK_FADE_MS = 200
  * in this composable — never from new ViewModel state (motion rule). [isTop]
  * rows never flash themselves, matching the reference. [cascadeOrdinal]
  * staggers the flash 45ms per row for a group of rows that update together.
+ * Cascade never reaches a non-WEIGHTED track by construction (REPS/TIMED rows
+ * seed all-WORK, so no row is ever [isTop]), so the flash is dead code there,
+ * not a bug to guard against.
+ *
+ * Per-type controls ([tracking], tracking-types §3): WEIGHTED shows the weight
+ * and reps steppers, unchanged. REPS shows reps only — no weight control at
+ * all, so a bodyweight movement never reads "0 lb". TIMED shows a seconds
+ * stepper ([SecondsStepper], ±5s, "45s"/"1:30" threshold) in place of reps,
+ * plus the weight stepper only when [showTimedWeight] is set (the exercise's
+ * GOAL declares an added load, e.g. a weighted plank) — never derived from
+ * whether this particular row's weight happens to be nonzero.
  */
 @Composable
 fun SetRow(
@@ -120,6 +133,10 @@ fun SetRow(
     onToggleDone: (Boolean) -> Unit = {},
     onRemove: () -> Unit = {},
     cascadeOrdinal: Int = 0,
+    tracking: TrackingType = TrackingType.WEIGHTED,
+    seconds: Int = 0,
+    onSecondsChange: (Int) -> Unit = {},
+    showTimedWeight: Boolean = false,
 ) {
     var previousWeight by remember { mutableDoubleStateOf(weight) }
     var selfEdited by remember { mutableStateOf(false) }
@@ -172,30 +189,62 @@ fun SetRow(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.alpha(fadeAlpha)) {
-            Stepper(
-                value = weight,
-                onValueChange = {
-                    selfEdited = true
-                    onWeightChange(it)
-                },
-                step = weightStep,
-                format = weightFormat,
-                round = weightRound,
-                valueColor = lerp(TextPrimary, accent, flash.value),
-                decreaseDescription = "Decrease weight",
-                increaseDescription = "Increase weight",
-            )
-            Stepper(
-                value = reps.toDouble(),
-                onValueChange = { onRepsChange(it.toInt()) },
-                step = { 1.0 },
-                minValue = 1.0,
-                format = { it.toInt().toString() },
-                valueTextStyle = StepperRepsValue,
-                valueMinWidth = 36.dp,
-                decreaseDescription = "Decrease reps",
-                increaseDescription = "Increase reps",
-            )
+            val weightStepper: @Composable () -> Unit = {
+                Stepper(
+                    value = weight,
+                    onValueChange = {
+                        selfEdited = true
+                        onWeightChange(it)
+                    },
+                    step = weightStep,
+                    format = weightFormat,
+                    round = weightRound,
+                    valueColor = lerp(TextPrimary, accent, flash.value),
+                    decreaseDescription = "Decrease weight",
+                    increaseDescription = "Increase weight",
+                )
+            }
+            when (tracking) {
+                TrackingType.WEIGHTED -> {
+                    weightStepper()
+                    Stepper(
+                        value = reps.toDouble(),
+                        onValueChange = { onRepsChange(it.toInt()) },
+                        step = { 1.0 },
+                        minValue = 1.0,
+                        format = { it.toInt().toString() },
+                        valueTextStyle = StepperRepsValue,
+                        valueMinWidth = 36.dp,
+                        decreaseDescription = "Decrease reps",
+                        increaseDescription = "Increase reps",
+                    )
+                }
+                TrackingType.REPS -> {
+                    Stepper(
+                        value = reps.toDouble(),
+                        onValueChange = { onRepsChange(it.toInt()) },
+                        step = { 1.0 },
+                        minValue = 1.0,
+                        format = { it.toInt().toString() },
+                        valueTextStyle = StepperRepsValue,
+                        valueMinWidth = 36.dp,
+                        decreaseDescription = "Decrease reps",
+                        increaseDescription = "Increase reps",
+                    )
+                }
+                TrackingType.TIMED -> {
+                    Stepper(
+                        value = seconds.toDouble(),
+                        onValueChange = { onSecondsChange(it.toInt()) },
+                        step = { SecondsStepper.increment(it.toInt()).toDouble() },
+                        format = { SecondsStepper.format(it.toInt()) },
+                        valueTextStyle = StepperRepsValue,
+                        decreaseDescription = "Decrease hold",
+                        increaseDescription = "Increase hold",
+                    )
+                    if (showTimedWeight) weightStepper()
+                }
+            }
         }
 
         Spacer(Modifier.weight(1f))

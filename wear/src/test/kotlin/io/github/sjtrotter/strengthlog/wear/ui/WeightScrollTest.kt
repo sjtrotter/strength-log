@@ -40,4 +40,22 @@ class WeightScrollTest {
         val target = scrolledWeightLb(WeightUnit.KG.toLb(100.0), WeightUnit.KG, detents = 3)
         assertEquals(WeightUnit.KG.toLb(107.5), target, 1e-6)
     }
+
+    // --- REPS crown (§3): ±1 per detent, floored at 1 -------------------------
+
+    @Test
+    fun `reps crown steps one per detent and floors at 1`() {
+        assertEquals(9, scrolledReps(6, detents = 3))
+        assertEquals(4, scrolledReps(6, detents = -2))
+        assertEquals(1, scrolledReps(6, detents = -20)) // never below the phone's reps minimum
+    }
+
+    // --- TIMED crown (§3): ±5s per detent, floored at 0 -----------------------
+
+    @Test
+    fun `seconds crown steps five per detent and floors at 0`() {
+        assertEquals(60, scrolledSeconds(45, detents = 3)) // 45 -> 50 -> 55 -> 60
+        assertEquals(30, scrolledSeconds(45, detents = -3)) // 45 -> 40 -> 35 -> 30
+        assertEquals(0, scrolledSeconds(45, detents = -20)) // never negative
+    }
 }

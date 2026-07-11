@@ -55,6 +55,7 @@ object PendingEdits {
             setIndex == older.setIndex &&
             (older.weightLb == null || weightLb != null) &&
             (older.reps == null || reps != null) &&
+            (older.seconds == null || seconds != null) &&
             (older.done == null || done != null)
 
     // Settle edge: this checks every carried field together, which is exact only
@@ -68,8 +69,9 @@ object PendingEdits {
         val set = track.getOrNull(setIndex) ?: return false
         val weightOk = weightLb?.let { abs(set.weightLb - it) < WEIGHT_EPSILON } ?: true
         val repsOk = reps?.let { set.reps == it } ?: true
+        val secondsOk = seconds?.let { set.seconds == it } ?: true
         val doneOk = done?.let { set.done == it } ?: true
-        return weightOk && repsOk && doneOk
+        return weightOk && repsOk && secondsOk && doneOk
     }
 
     private const val SLOT_SS = "ss"

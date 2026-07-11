@@ -60,6 +60,15 @@ data class WatchExercise(
      * already derives from [goal].
      */
     val goalLabel: String = "",
+    /**
+     * How this exercise is tracked — [io.github.sjtrotter.strengthlog.domain.library.TrackingType]'s
+     * name, lowercased ("weighted"/"reps"/"timed"). Tells the watch which control to
+     * render (weight numeral, reps-only, or a seconds hold) and which field the crown
+     * edits. Additive, appended last, defaulting to "weighted" so a pre-P5 publisher and
+     * every existing fixture decode as the (only) old behavior; a stale watch that
+     * ignores it just keeps drawing the weighted view (self-heals on update).
+     */
+    val tracking: String = "weighted",
 )
 
 /** One round. [kind] mirrors [io.github.sjtrotter.strengthlog.domain.model.SetKind]'s name. */
@@ -69,4 +78,10 @@ data class WatchSet(
     val reps: Int,
     val kind: String,
     val done: Boolean,
+    /**
+     * The TIMED hold duration in seconds ([io.github.sjtrotter.strengthlog.domain.model.LoggedSet.seconds]);
+     * 0 and ignored for WEIGHTED/REPS. Additive, appended last, defaulting to 0 so
+     * old publishers and existing fixtures decode fine.
+     */
+    val seconds: Int = 0,
 )

@@ -52,6 +52,7 @@ object WatchEditOptimism {
         weightLb = delta.weightLb ?: weightLb,
         reps = delta.reps ?: reps,
         done = delta.done ?: done,
+        seconds = delta.seconds ?: seconds,
     )
 
     private const val SLOT_MAIN = "main"

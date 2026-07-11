@@ -113,10 +113,33 @@ class WatchSnapshotBuilderTest {
         val reps = exercises.first { it.programExerciseId == 1L }
         assertEquals("6 reps", reps.goalLabel)
         assertEquals(0.0, reps.goal) // rep targets carry no weight — never "0 lb × 60"
+        assertEquals("reps", reps.tracking) // enum name, lowercased — the watch picks a reps-only control
 
         val timed = exercises.first { it.programExerciseId == 2L }
         assertEquals("45s +25", timed.goalLabel)
         assertEquals(25.0, timed.goal) // the timed added-load rides the numeric goal
+        assertEquals("timed", timed.tracking)
+    }
+
+    @Test
+    fun `a weighted exercise projects tracking=weighted and carries each set's seconds`() {
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val ex = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+        assertEquals("weighted", ex.tracking)
+    }
+
+    @Test
+    fun `a TIMED slot's logged seconds ride the wire`() {
+        val program = Program(listOf(ProgramDay("A", "Core", "", listOf(ProgramExercise("custom_plank")), cardio = null)))
+        val slots = listOf(ProgramSlot(2L, 0, ProgramExercise("custom_plank")))
+        val logs = listOf(loggedSlot(2L, Slot.MAIN, listOf(LoggedSet(25.0, 0, SetKind.WORK, seconds = 45))))
+        val timed = WatchSnapshotBuilder.build(
+            program, "A", slots, logs, cfg = cfg, catalog = trackingCatalog, unit = WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+        assertEquals("timed", timed.tracking)
+        assertEquals(45, timed.sets.single().seconds)
     }
 
     @Test

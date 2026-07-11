@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
  * add a `when` branch when the on-disk shape changes; no migration machinery is
  * built ahead of a real second version.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 1
+const val CURRENT_SCHEMA_VERSION: Int = 2
 
 /**
  * The portable, versioned full backup (PLAN.md A2): one self-contained document
@@ -62,7 +62,9 @@ data class SettingsBackup(
     val suggestedDay: String? = null,
 )
 
-/** A user-created exercise (mirror of the `custom_exercise` row). */
+/** A user-created exercise (mirror of the `custom_exercise` row). The tracking
+ *  fields are defaulted so a v1 document (which predates them) restores as a
+ *  WEIGHTED exercise with no rep/time target — exactly the v1 meaning. */
 @Serializable
 data class CustomExerciseBackup(
     val id: String,
@@ -71,6 +73,9 @@ data class CustomExerciseBackup(
     val equipmentCsv: String,
     val perHand: Boolean,
     val goalStartLb: Double,
+    val tracking: String = "WEIGHTED",
+    val targetReps: Int? = null,
+    val targetSeconds: Int? = null,
 )
 
 /** One program day with its ordered exercise slots. */
@@ -136,4 +141,7 @@ data class SessionSetBackup(
     val weightLb: Double,
     val reps: Int,
     val done: Boolean,
+    /** Defaulted so a v1 document (no `seconds` key) restores each set at 0 —
+     *  its exact v1 meaning of weight×reps. */
+    val seconds: Int = 0,
 )

@@ -56,6 +56,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val SESSION_STARTED_AT = longPreferencesKey("session_started_at")
         val SESSION_STARTED_DATE = stringPreferencesKey("session_started_date")
+
+        /** Set once the one-shot reps→seconds fixup for entries reclassified TIMED
+         *  has run (tracking-types P3, Decision 5). Its presence is what makes the
+         *  fixup one-shot — it never runs a second time. */
+        val LEGACY_TIMED_FIXUP_DONE = booleanPreferencesKey("legacy_timed_fixup_done")
     }
 
     // --- reads ---------------------------------------------------------------
@@ -97,9 +102,18 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         SessionStartStamp(startedAt, date)
     }
 
+    /** Whether the one-shot reps→seconds fixup for reclassified-TIMED live logs
+     *  has already run (tracking-types P3, Decision 5). */
+    val legacyTimedFixupDoneFlow: Flow<Boolean> =
+        dataStore.data.map { it[Keys.LEGACY_TIMED_FIXUP_DONE] ?: false }
+
     // --- writes --------------------------------------------------------------
 
     suspend fun setConfig(config: LifterConfig) = dataStore.edit { it.writeConfig(config) }
+
+    /** Marks the one-shot legacy-TIMED fixup as done so it never runs again. */
+    suspend fun setLegacyTimedFixupDone() =
+        dataStore.edit { it[Keys.LEGACY_TIMED_FIXUP_DONE] = true }
 
     suspend fun setCardioPrefs(prefs: CardioPrefs) = dataStore.edit { it.writeCardio(prefs) }
 

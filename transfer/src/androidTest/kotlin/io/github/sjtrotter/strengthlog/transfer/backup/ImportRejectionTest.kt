@@ -82,7 +82,9 @@ class ImportRejectionTest : BackupTestHarness() {
     @Test
     fun unknown_schema_version_is_rejected_and_db_untouched() = runTest {
         assertRejectedAndUntouched<BackupError.UnsupportedSchemaVersion> {
-            val bad = service.export().replaceFirst("\"schemaVersion\":1", "\"schemaVersion\":999")
+            // Rewrite whatever the current schemaVersion is to an unsupported one,
+            // so this stays correct across version bumps (v1 backups still restore).
+            val bad = service.export().replaceFirst(Regex("\"schemaVersion\":\\d+"), "\"schemaVersion\":999")
             service.import(bad)
         }
     }

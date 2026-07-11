@@ -31,13 +31,15 @@ data class PreviewSession(
     val sets: List<PreviewSet>,
 )
 
-/** One CSV row, resolved as far as it can be without user input. */
+/** One CSV row, resolved as far as it can be without user input. [seconds] is a
+ *  TIMED hold/carry read from the Strong `Seconds` column; 0 for weight/reps sets. */
 data class PreviewSet(
     val exerciseName: String,
     val exerciseId: String?,
     val setIndex: Int,
     val weightLb: Double,
     val reps: Int,
+    val seconds: Int = 0,
 )
 
 /** A CSV exercise name with no catalog/custom match, and a best-effort

@@ -27,6 +27,7 @@ data class LastPerformedRow(
     val exerciseId: String,
     val weightLb: Double,
     val reps: Int,
+    val seconds: Int = 0,
 )
 
 /**
@@ -39,6 +40,7 @@ data class PersonalRecordRow(
     val weightLb: Double,
     val reps: Int,
     val completedAt: Long,
+    val seconds: Int = 0,
 )
 
 /** Append-only workout history (PLAN.md A1). Rows are inserted, never updated. */
@@ -79,15 +81,20 @@ interface SessionDao {
      * [io.github.sjtrotter.strengthlog.data.TrackerRepository.lastPerformed] for
      * how the flat result collapses to one row per exercise. For a ramped main
      * lift, every round (ramp/top/back-off) shares one `exerciseId`, so "heaviest
-     * weight in the session" naturally picks its TOP set.
+     * weight in the session" naturally picks its TOP set. The `reps`/`seconds`
+     * tiebreaks make the pick type-correct without the SQL knowing the type: a
+     * REPS exercise's rows all tie at weight 0 so `reps DESC` picks its best set,
+     * a TIMED exercise's rows tie at weight/reps so `seconds DESC` picks its
+     * longest hold, and for a WEIGHTED lift both are constant across the winning
+     * (heaviest) tier so nothing changes.
      */
     @Query(
         """
-        SELECT ss.exerciseId AS exerciseId, ss.weightLb AS weightLb, ss.reps AS reps
+        SELECT ss.exerciseId AS exerciseId, ss.weightLb AS weightLb, ss.reps AS reps, ss.seconds AS seconds
         FROM session_set ss
         INNER JOIN workout_session ws ON ws.id = ss.sessionId
         WHERE ss.exerciseId IN (:exerciseIds) AND ss.done = 1
-        ORDER BY ws.completedAt DESC, ss.weightLb DESC
+        ORDER BY ws.completedAt DESC, ss.weightLb DESC, ss.reps DESC, ss.seconds DESC
         """,
     )
     suspend fun lastPerformedRows(exerciseIds: List<String>): List<LastPerformedRow>
@@ -103,11 +110,11 @@ interface SessionDao {
      */
     @Query(
         """
-        SELECT ss.exerciseId AS exerciseId, ss.weightLb AS weightLb, ss.reps AS reps, ws.completedAt AS completedAt
+        SELECT ss.exerciseId AS exerciseId, ss.weightLb AS weightLb, ss.reps AS reps, ws.completedAt AS completedAt, ss.seconds AS seconds
         FROM session_set ss
         INNER JOIN workout_session ws ON ws.id = ss.sessionId
         WHERE ss.exerciseId IN (:exerciseIds) AND ss.done = 1
-        ORDER BY ss.weightLb DESC, ss.reps DESC, ws.completedAt ASC
+        ORDER BY ss.weightLb DESC, ss.reps DESC, ss.seconds DESC, ws.completedAt ASC
         """,
     )
     suspend fun personalRecordRows(exerciseIds: List<String>): List<PersonalRecordRow>

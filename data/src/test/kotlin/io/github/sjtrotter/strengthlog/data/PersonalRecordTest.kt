@@ -31,6 +31,26 @@ class PersonalRecordTest {
     }
 
     @Test
+    fun `a reps best carries the winning rep count and no seconds`() {
+        // The query already sorted this exercise's rows (all weight 0) by reps DESC.
+        val rows = listOf(
+            PersonalRecordRow("pushup", 0.0, 20, 3_000L),
+            PersonalRecordRow("pushup", 0.0, 15, 1_000L),
+        )
+        assertEquals(PersonalRecord("pushup", 0.0, 20, 3_000L, seconds = 0), rows.toPersonalRecordsByExercise()["pushup"])
+    }
+
+    @Test
+    fun `a timed best carries the winning hold in seconds`() {
+        // The query sorted this exercise's rows (weight/reps constant) by seconds DESC.
+        val rows = listOf(
+            PersonalRecordRow("plank", 0.0, 0, 3_000L, seconds = 60),
+            PersonalRecordRow("plank", 0.0, 0, 1_000L, seconds = 45),
+        )
+        assertEquals(PersonalRecord("plank", 0.0, 0, 3_000L, seconds = 60), rows.toPersonalRecordsByExercise()["plank"])
+    }
+
+    @Test
     fun anExerciseWithNoRowsIsAbsent() {
         val result = listOf(PersonalRecordRow("bb_bench", 185.0, 5, 1_000L)).toPersonalRecordsByExercise()
 

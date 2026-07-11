@@ -63,6 +63,9 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 equipmentCsv = it.equipmentCsv,
                 perHand = it.perHand,
                 goalStartLb = it.goalStartLb,
+                tracking = it.tracking,
+                targetReps = it.targetReps,
+                targetSeconds = it.targetSeconds,
             )
         },
         program = days.map { day ->
@@ -114,6 +117,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         weightLb = set.weightLb,
                         reps = set.reps,
                         done = set.done,
+                        seconds = set.seconds,
                     )
                 },
             )
@@ -203,6 +207,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 weightLb = set.weightLb,
                 reps = set.reps,
                 done = set.done,
+                seconds = set.seconds,
             )
         }
     }
@@ -220,6 +225,9 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 equipmentCsv = it.equipmentCsv,
                 perHand = it.perHand,
                 goalStartLb = it.goalStartLb,
+                tracking = it.tracking,
+                targetReps = it.targetReps,
+                targetSeconds = it.targetSeconds,
             )
         },
         days = dayEntities,

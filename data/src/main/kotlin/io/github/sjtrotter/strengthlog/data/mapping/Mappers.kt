@@ -7,6 +7,7 @@ import io.github.sjtrotter.strengthlog.data.db.entity.ProgramExerciseEntity
 import io.github.sjtrotter.strengthlog.data.serialization.CardioDto
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
 import io.github.sjtrotter.strengthlog.domain.library.GoalSource
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
@@ -59,7 +60,11 @@ fun ProgramDay.toEntity(): ProgramDayEntity =
         cardioJson = CardioDto.encode(cardio),
     )
 
-/** Custom-exercise overlay row → the catalog's [ExerciseEntry] shape (PLAN.md A4). */
+/** Custom-exercise overlay row → the catalog's [ExerciseEntry] shape (PLAN.md A4).
+ *  [CustomExerciseEntity.tracking] selects the GOAL source: WEIGHTED→flat load,
+ *  REPS→rep target, TIMED→time target with [goalStartLb] as any added load. An
+ *  unrecognized tracking name (a row from a newer build) falls back to WEIGHTED
+ *  rather than crashing the catalog read. */
 fun CustomExerciseEntity.toEntry(): ExerciseEntry =
     ExerciseEntry(
         id = id,
@@ -67,6 +72,10 @@ fun CustomExerciseEntity.toEntry(): ExerciseEntry =
         pattern = MovementPattern.valueOf(pattern),
         equipment = equipmentCsv.split(",").filter { it.isNotBlank() }.map { Equipment.valueOf(it) },
         perHand = perHand,
-        goal = GoalSource.Flat(goalStartLb),
+        goal = when (TrackingType.entries.firstOrNull { it.name == tracking }) {
+            TrackingType.REPS -> GoalSource.Reps(targetReps ?: 0)
+            TrackingType.TIMED -> GoalSource.Time(targetSeconds ?: 0, goalStartLb)
+            else -> GoalSource.Flat(goalStartLb)
+        },
         subRank = ExerciseCatalog.CUSTOM_SUBRANK,
     )

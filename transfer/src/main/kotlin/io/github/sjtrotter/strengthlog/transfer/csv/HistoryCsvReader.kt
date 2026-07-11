@@ -150,6 +150,7 @@ object HistoryCsvReader {
         val setOrder: Int?,
         val weightLb: Double,
         val reps: Int,
+        val seconds: Int,
     )
 
     /**
@@ -184,8 +185,13 @@ object HistoryCsvReader {
 
         val weightText = cell(HistoryField.WEIGHT)
         val repsText = cell(HistoryField.REPS)
-        // Not a strength set we model — skip, don't reject the file.
-        if (weightText.isBlank() && repsText.isBlank()) return null
+        val secondsText = rawCell(HistoryField.SECONDS)
+        // A row with a Distance is cardio (a run/ride), not a strength set — even
+        // if it also carries Seconds. A TIMED hold has Seconds but no distance.
+        val isCardio = rawCell(HistoryField.DISTANCE).isNotBlank()
+        // Not a strength set we model — skip, don't reject the file. A weight or
+        // reps keeps the row; a lone Seconds keeps it only when it isn't cardio.
+        if (weightText.isBlank() && repsText.isBlank() && (secondsText.isBlank() || isCardio)) return null
 
         val dateText = cell(HistoryField.DATE)
         val completedAt = parseDate(dateText, zone)
@@ -233,7 +239,16 @@ object HistoryCsvReader {
             parsed
         }
 
-        return ParsedRow(completedAt, dayTitle, exerciseName, setOrder, weightLb, reps)
+        val seconds = if (secondsText.isBlank()) {
+            0 // no Seconds column, or a non-timed set — no hold to record
+        } else {
+            val parsed = secondsText.toIntOrNull()
+                ?: throw CsvImportError.MalformedRow(line, "unparsable seconds '$secondsText'")
+            if (parsed < 0) throw CsvImportError.MalformedRow(line, "seconds must not be negative: '$secondsText'")
+            parsed
+        }
+
+        return ParsedRow(completedAt, dayTitle, exerciseName, setOrder, weightLb, reps, seconds)
     }
 
     private fun parseDate(text: String, zone: ZoneId): Long? {
@@ -272,6 +287,7 @@ object HistoryCsvReader {
                     setIndex = setIndex,
                     weightLb = row.weightLb,
                     reps = row.reps,
+                    seconds = row.seconds,
                 )
             }
             PreviewSession(dayTitle = dayTitle, completedAt = completedAt, sets = sets)

@@ -18,11 +18,13 @@ import io.github.sjtrotter.strengthlog.data.db.entity.WorkoutSessionEntity
 import io.github.sjtrotter.strengthlog.data.mapping.toDomain
 import io.github.sjtrotter.strengthlog.data.mapping.toEntity
 import io.github.sjtrotter.strengthlog.data.mapping.toEntry
+import io.github.sjtrotter.strengthlog.data.migration.reinterpretRepsAsSeconds
 import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
 import io.github.sjtrotter.strengthlog.data.serialization.SetJson
 import io.github.sjtrotter.strengthlog.domain.generator.ProgramGenerator
 import io.github.sjtrotter.strengthlog.domain.generator.Rotation
 import io.github.sjtrotter.strengthlog.domain.generator.WizardAnswers
+import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
 import io.github.sjtrotter.strengthlog.domain.model.CardioPrefs
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
@@ -199,6 +201,41 @@ open class TrackerRepository(
                 programDao.insertExercise(pe.toEntity(dayId, pos))
             }
         }
+    }
+
+    // --- one-shot legacy fixups ----------------------------------------------
+
+    /**
+     * One-shot reps→seconds carry for live logs of entries reclassified to TIMED
+     * (tracking-types P3, Decision 5). Before the update those exercises (plank,
+     * hollow hold, weighted plank, suitcase carry) were tracked with the only
+     * field the UI offered — reps — so a timed hold was recorded there; this moves
+     * it into `seconds` and zeroes reps for exactly those slots. It never touches
+     * any other exercise and never deletes a row.
+     *
+     * One-shot on two fronts: a DataStore flag short-circuits it after the first
+     * run, and the underlying [reinterpretRepsAsSeconds] only moves an *unfixed*
+     * set (seconds 0, reps > 0), so even a second run — e.g. after the flag is
+     * cleared by a restore — leaves already-migrated holds untouched. Runs in one
+     * transaction so a crash mid-fixup leaves every slot either fully old or fully
+     * carried, never half. Called once at app startup.
+     */
+    suspend fun runLegacyTimedFixupIfNeeded() {
+        if (settings.legacyTimedFixupDoneFlow.first()) return
+        db.withTransaction {
+            val slotsById = programDao.allExercises().associateBy { it.id }
+            for (log in programDao.allLogs()) {
+                val pe = slotsById[log.programExerciseId] ?: continue
+                val exerciseId = if (log.slot == Slot.SS) pe.supersetExerciseId else pe.exerciseId
+                if (exerciseId == null || exerciseId !in ExerciseLibrary.RECLASSIFIED_TO_TIMED_IDS) continue
+                val original = SetJson.decodeSets(log.setsJson)
+                val fixed = original.map { it.reinterpretRepsAsSeconds() }
+                if (fixed != original) {
+                    programDao.upsertLog(log.copy(setsJson = SetJson.encodeSets(fixed)))
+                }
+            }
+        }
+        settings.setLegacyTimedFixupDone()
     }
 
     // --- live logs -----------------------------------------------------------
@@ -396,6 +433,7 @@ open class TrackerRepository(
                         weightLb = s.weightLb,
                         reps = s.reps,
                         done = s.done,
+                        seconds = s.seconds,
                     )
                 }
             }

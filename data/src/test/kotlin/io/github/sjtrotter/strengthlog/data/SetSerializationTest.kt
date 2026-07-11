@@ -45,6 +45,31 @@ class SetSerializationTest {
     }
 
     @Test
+    fun `timed and reps sets round-trip with their seconds`() {
+        val sets = listOf(
+            LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 45), // plank hold
+            LoggedSet(25.0, 0, SetKind.WORK, seconds = 60),             // weighted plank
+            LoggedSet(0.0, 12, SetKind.WORK),                          // bodyweight reps, seconds 0
+        )
+        assertEquals(sets, SetJson.decodeSets(SetJson.encodeSets(sets)))
+    }
+
+    @Test
+    fun `a pre-tracking-types row with no seconds key decodes to zero`() {
+        // Old on-disk shape: no `seconds` field. It must read back as a weight×reps set.
+        val legacy = """[{"weightLb":225.0,"reps":5,"kind":"TOP","done":false}]"""
+        assertEquals(listOf(LoggedSet(225.0, 5, SetKind.TOP, seconds = 0)), SetJson.decodeSets(legacy))
+    }
+
+    @Test
+    fun `a weighted set omits the defaulted seconds key so old builds are unaffected`() {
+        // encodeDefaults is off for SetJson, so seconds 0 is not written — a
+        // pre-tracking-types build reading this row sees exactly its old fields.
+        val json = SetJson.encodeSets(listOf(LoggedSet(225.0, 5, SetKind.TOP, done = true)))
+        assertTrue("seconds" !in json)
+    }
+
+    @Test
     fun `empty list round-trips to empty`() {
         assertTrue(SetJson.decodeSets(SetJson.encodeSets(emptyList())).isEmpty())
     }

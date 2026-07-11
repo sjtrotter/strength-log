@@ -49,17 +49,19 @@ fun StepperButton(size: Dp, glyph: String, onClick: () -> Unit, modifier: Modifi
     }
 }
 
-/** The floating 56dp tick button (digest §1.2) — accent when undone, [Done] green when done. */
+/** The floating 44dp tick button (digest §1.2) — accent when undone, [Done] green when done.
+ *  Sized down from the original 56dp so it clears the bottom bezel and the reps row on the
+ *  small round face without ever being covered by a sync pill (those now sit at the top). */
 @Composable
 fun TickButton(done: Boolean, accent: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(56.dp)
+            .size(44.dp)
             .background(if (done) Done else accent, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text("✓", color = TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("✓", color = TextPrimary, fontSize = 19.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -122,19 +124,20 @@ fun SyncedPill(modifier: Modifier = Modifier) {
     )
 }
 
-/** Transient "updated from phone" pill (digest §1.1) — accent on accentSoft. */
+/** Transient "updated from phone" pill (digest §1.1) — accent on accentSoft. Compact and
+ *  top-anchored so it reads as a quiet indicator, not a screen-dominating banner. */
 @Composable
 fun UpdatedFromPhonePill(accentColor: Color, accentSoftColor: Color, modifier: Modifier = Modifier) {
     Text(
-        text = "updated from phone".uppercase(),
+        text = "updated · phone".uppercase(),
         color = accentColor,
-        fontSize = 10.sp,
+        fontSize = 9.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.sp,
         modifier = modifier
             .background(accentSoftColor, RoundedCornerShape(50))
             .border(1.dp, accentColor, RoundedCornerShape(50))
-            .padding(horizontal = 12.dp, vertical = 5.dp),
+            .padding(horizontal = 9.dp, vertical = 3.dp),
     )
 }
 

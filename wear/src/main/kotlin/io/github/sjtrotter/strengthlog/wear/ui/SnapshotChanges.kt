@@ -20,3 +20,23 @@ import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
  */
 fun isUpdatedFromPhone(previous: WatchSnapshot?, current: WatchSnapshot): Boolean =
     previous != null && current.revision > previous.revision && current.day != previous.day
+
+/**
+ * Whether the "updated from phone" pill should actually flash for [current].
+ *
+ * [isUpdatedFromPhone] alone over-fires: when the lifter edits on the watch, the
+ * phone applies it and re-publishes with its cascade/seeding — a genuine
+ * revision+content change that the optimistic echo didn't predict — so the pill
+ * would announce the lifter's *own* action. We suppress that by ignoring any
+ * inbound change that lands within [suppressionWindowMillis] of the last local
+ * edit ([elapsedSinceLocalEditMillis]); after the window, an inbound change is
+ * attributable to the phone (a program edit, an inserted exercise, a change the
+ * user made on the phone) and fires normally.
+ */
+fun shouldFlashUpdatedFromPhone(
+    previous: WatchSnapshot?,
+    current: WatchSnapshot,
+    elapsedSinceLocalEditMillis: Long,
+    suppressionWindowMillis: Long,
+): Boolean =
+    isUpdatedFromPhone(previous, current) && elapsedSinceLocalEditMillis >= suppressionWindowMillis

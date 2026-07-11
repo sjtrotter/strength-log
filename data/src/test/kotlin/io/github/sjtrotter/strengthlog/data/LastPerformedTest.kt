@@ -29,6 +29,21 @@ class LastPerformedTest {
     }
 
     @Test
+    fun `a reps last-time carries reps and a timed one carries seconds`() {
+        val rows = listOf(
+            // Same session; the query ordered each exercise's rows so the
+            // representative set is first (reps DESC for pushup, seconds DESC for plank).
+            LastPerformedRow("pushup", 0.0, 18, 0),
+            LastPerformedRow("plank", 0.0, 0, 55),
+        )
+
+        val result = rows.toLastPerformedByExercise()
+
+        assertEquals(LastPerformed(0.0, 18, 0), result["pushup"])
+        assertEquals(LastPerformed(0.0, 0, 55), result["plank"])
+    }
+
+    @Test
     fun anExerciseWithNoRowsIsAbsent() {
         val result = listOf(LastPerformedRow("bb_bench", 185.0, 5)).toLastPerformedByExercise()
 

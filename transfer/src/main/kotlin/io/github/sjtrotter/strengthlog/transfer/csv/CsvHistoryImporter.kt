@@ -80,6 +80,7 @@ object CsvHistoryImporter {
                         weightLb = set.weightLb,
                         reps = set.reps,
                         done = true,
+                        seconds = set.seconds,
                     )
                 },
             )

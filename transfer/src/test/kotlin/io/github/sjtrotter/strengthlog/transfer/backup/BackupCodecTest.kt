@@ -108,7 +108,8 @@ class BackupCodecTest {
 
     @Test
     fun `an unknown schema version is rejected loudly`() {
-        val text = codec.encode(document()).replaceFirst("\"schemaVersion\":1", "\"schemaVersion\":999")
+        val text = codec.encode(document())
+            .replaceFirst("\"schemaVersion\":$CURRENT_SCHEMA_VERSION", "\"schemaVersion\":999")
         val e = assertFailsWith<BackupError.UnsupportedSchemaVersion> { codec.decode(text) }
         assertEquals(999, e.found)
         assertEquals(CURRENT_SCHEMA_VERSION, e.supported)

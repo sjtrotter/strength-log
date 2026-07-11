@@ -5,6 +5,7 @@ import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.data.serialization.CardioDto
 import io.github.sjtrotter.strengthlog.data.serialization.SetJson
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
@@ -75,7 +76,12 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
         val document = when (version) {
-            CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
+            // v1 and v2 share one decoder: v2 only *added* defaulted fields
+            // (session-set `seconds`, custom-exercise tracking/targets), so a v1
+            // document decodes byte-for-byte into the same shape with those fields
+            // at their defaults — a v1 backup must always restore. A newer version
+            // is still rejected loudly rather than silently misread.
+            1, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -149,6 +155,12 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             if (c.goalStartLb < 0) {
                 throw BackupError.Inconsistent("negative goalStartLb on '${c.id}': ${c.goalStartLb}")
             }
+            if (TrackingType.entries.none { it.name == c.tracking }) {
+                throw BackupError.InvalidCustomExercise("unknown tracking '${c.tracking}' on '${c.id}'")
+            }
+            if ((c.targetReps ?: 0) < 0 || (c.targetSeconds ?: 0) < 0) {
+                throw BackupError.Inconsistent("negative rep/time target on '${c.id}'")
+            }
         }
         return customIds
     }
@@ -199,9 +211,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 SetJson.decodeSets(log.setsJson)
             }
             sets.forEach { s ->
-                if (s.weightLb < 0 || s.reps < 0) {
+                if (s.weightLb < 0 || s.reps < 0 || s.seconds < 0) {
                     throw BackupError.Inconsistent(
-                        "negative weight/reps in live log for slot ${log.programExerciseId} in day '${log.dayId}'",
+                        "negative weight/reps/seconds in live log for slot ${log.programExerciseId} in day '${log.dayId}'",
                     )
                 }
             }
@@ -224,8 +236,8 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 if (SetKind.entries.none { it.name == set.kind }) {
                     throw BackupError.Inconsistent("unknown set kind '${set.kind}' on set ${set.id} in session ${s.id}")
                 }
-                if (set.weightLb < 0 || set.reps < 0 || set.setIndex < 0) {
-                    throw BackupError.Inconsistent("negative weight/reps/setIndex on set ${set.id} in session ${s.id}")
+                if (set.weightLb < 0 || set.reps < 0 || set.setIndex < 0 || set.seconds < 0) {
+                    throw BackupError.Inconsistent("negative weight/reps/setIndex/seconds on set ${set.id} in session ${s.id}")
                 }
             }
         }

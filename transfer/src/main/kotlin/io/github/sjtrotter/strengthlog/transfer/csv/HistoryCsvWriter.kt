@@ -51,6 +51,18 @@ object HistoryCsvWriter {
             val duration = durationField(session)
             val sets = setsBySession[session.id].orEmpty().sortedBy { it.id }
             for (set in sets) {
+                // A set's tracking type is read off its own values (the same
+                // fallback history rendering uses, so no catalog lookup is needed
+                // and a deleted/custom exercise still exports correctly): a hold
+                // has seconds, a pure-reps set has reps but no load, everything
+                // else is weight×reps. TIMED writes Seconds with a blank Reps;
+                // REPS writes Reps with a blank Weight; WEIGHTED is unchanged.
+                val isTimed = set.seconds > 0
+                val isReps = !isTimed && set.weightLb == 0.0 && set.reps > 0
+                // A REPS set has no load; a TIMED hold with no added load has no
+                // load either. Every other set writes its weight.
+                val weightCell =
+                    if (isReps || isTimed && set.weightLb == 0.0) "" else formatWeight(unit.fromLb(set.weightLb))
                 rows.add(
                     listOf(
                         date,
@@ -58,12 +70,12 @@ object HistoryCsvWriter {
                         duration,
                         set.exerciseName,
                         (set.setIndex + 1).toString(),
-                        formatWeight(unit.fromLb(set.weightLb)),
+                        weightCell,
                         unit.name.lowercase(),
-                        set.reps.toString(),
+                        if (isTimed) "" else set.reps.toString(),
                         "", // Distance — not tracked
                         "", // Distance Unit — not tracked
-                        "", // Seconds — not tracked
+                        if (isTimed) set.seconds.toString() else "", // Seconds
                         "", // Notes — not tracked
                         "", // Workout Notes — not tracked
                         "", // RPE — not tracked

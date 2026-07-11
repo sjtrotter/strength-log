@@ -19,13 +19,23 @@ data class SetDto(
     val reps: Int,
     val kind: String,
     val done: Boolean,
+    // Defaulted so a pre-tracking-types row (no `seconds` key) decodes to 0, and —
+    // with the codec's encodeDefaults off — a WEIGHTED/REPS set (seconds 0) still
+    // serializes byte-identically to before. TIMED sets carry a non-zero value.
+    val seconds: Int = 0,
 ) {
     fun toDomain(): LoggedSet =
-        LoggedSet(weightLb = weightLb, reps = reps, kind = SetKind.valueOf(kind), done = done)
+        LoggedSet(weightLb = weightLb, reps = reps, kind = SetKind.valueOf(kind), done = done, seconds = seconds)
 
     companion object {
         fun of(set: LoggedSet): SetDto =
-            SetDto(weightLb = set.weightLb, reps = set.reps, kind = set.kind.name, done = set.done)
+            SetDto(
+                weightLb = set.weightLb,
+                reps = set.reps,
+                kind = set.kind.name,
+                done = set.done,
+                seconds = set.seconds,
+            )
     }
 }
 

@@ -8,9 +8,11 @@ import androidx.room.PrimaryKey
  * this table is the user overlay; the two are merged behind `ExerciseCatalog`.
  * [id] is always prefixed `custom_` so it can never collide with a catalog id.
  *
- * A custom exercise's GOAL is always a flat starting weight ([goalStartLb]); the
- * bodyweight-ratio standards only anchor the fixed main lifts.
- * [pattern] and [equipmentCsv] hold enum *names* (comma-separated for equipment).
+ * [tracking] (a [io.github.sjtrotter.strengthlog.domain.library.TrackingType] name)
+ * decides how the GOAL is read (added in DB v2, DEFAULT 'WEIGHTED'):
+ * WEIGHTED uses [goalStartLb], REPS uses [targetReps], TIMED uses [targetSeconds]
+ * with [goalStartLb] as any added load. [pattern] and [equipmentCsv] hold enum
+ * *names* (comma-separated for equipment).
  */
 @Entity(tableName = "custom_exercise")
 data class CustomExerciseEntity(
@@ -20,4 +22,7 @@ data class CustomExerciseEntity(
     val equipmentCsv: String,
     val perHand: Boolean,
     val goalStartLb: Double,
+    val tracking: String = "WEIGHTED",
+    val targetReps: Int? = null,
+    val targetSeconds: Int? = null,
 )

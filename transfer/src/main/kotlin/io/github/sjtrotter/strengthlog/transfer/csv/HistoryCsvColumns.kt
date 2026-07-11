@@ -6,9 +6,10 @@ import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
  * Strong's column layout (PLAN.md A2/A5, issue #16) — the header this app's
  * own export always writes, and the de facto interchange format Hevy/
  * FitNotes/spreadsheets also target. Duration, Distance, Distance Unit,
- * Seconds, Notes, Workout Notes and RPE are always emitted empty: this app
- * doesn't track them, but the headers stay present for round-trip
- * compatibility with tools that read a fixed Strong-shaped column set.
+ * Notes, Workout Notes and RPE are always emitted empty: this app doesn't
+ * track them, but the headers stay present for round-trip compatibility with
+ * tools that read a fixed Strong-shaped column set. The `Seconds` column is
+ * written for TIMED holds/carries and read back on import (tracking types).
  */
 val HISTORY_CSV_HEADER: List<String> = listOf(
     "Date",
@@ -28,11 +29,11 @@ val HISTORY_CSV_HEADER: List<String> = listOf(
 )
 
 /**
- * The seven facts the importer actually reads out of a row; every other
- * Strong/Hevy column (Duration, RPE, Notes, ...) is accepted in the header
- * but ignored, matching what this app tracks (PLAN.md A1).
+ * The facts the importer actually reads out of a row; every other Strong/Hevy
+ * column (Duration, RPE, Notes, ...) is accepted in the header but ignored,
+ * matching what this app tracks (PLAN.md A1). SECONDS carries a TIMED hold/carry.
  */
-internal enum class HistoryField { DATE, WORKOUT_NAME, EXERCISE_NAME, SET_ORDER, WEIGHT, WEIGHT_UNIT, REPS }
+internal enum class HistoryField { DATE, WORKOUT_NAME, EXERCISE_NAME, SET_ORDER, WEIGHT, WEIGHT_UNIT, REPS, SECONDS, DISTANCE }
 
 /** Header spellings recognized for each field, matched case/whitespace-
  *  insensitively so the mapping is header-driven, not positional — a Hevy
@@ -45,6 +46,10 @@ internal val HISTORY_FIELD_ALIASES: Map<HistoryField, List<String>> = mapOf(
     HistoryField.WEIGHT to listOf("Weight", "Weight (kg)", "Weight (lb)", "Weight Kg", "Weight Lb"),
     HistoryField.WEIGHT_UNIT to listOf("Weight Unit"),
     HistoryField.REPS to listOf("Reps"),
+    HistoryField.SECONDS to listOf("Seconds"),
+    // Read only to tell a cardio row (has a distance) apart from a TIMED hold
+    // (seconds, no distance); the value itself isn't imported.
+    HistoryField.DISTANCE to listOf("Distance"),
 )
 
 /**

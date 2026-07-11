@@ -4,7 +4,7 @@ import io.github.sjtrotter.strengthlog.data.db.dao.LastPerformedRow
 
 /** One exercise's most recent completed performance (PLAN.md A1 "last time"
  *  chip on the day screen's exercise cards, issue #14). */
-data class LastPerformed(val weightLb: Double, val reps: Int)
+data class LastPerformed(val weightLb: Double, val reps: Int, val seconds: Int = 0)
 
 /**
  * Reduces [io.github.sjtrotter.strengthlog.data.db.dao.SessionDao.lastPerformedRows]'
@@ -18,7 +18,7 @@ data class LastPerformed(val weightLb: Double, val reps: Int)
 fun List<LastPerformedRow>.toLastPerformedByExercise(): Map<String, LastPerformed> {
     val result = LinkedHashMap<String, LastPerformed>()
     for (row in this) {
-        result.getOrPut(row.exerciseId) { LastPerformed(row.weightLb, row.reps) }
+        result.getOrPut(row.exerciseId) { LastPerformed(row.weightLb, row.reps, row.seconds) }
     }
     return result
 }

@@ -130,4 +130,25 @@ class SessionRecordMapperTest {
         assertEquals(end, record.endTime.toEpochMilli())
         assertTrue(record.startTime.toEpochMilli() < end)
     }
+
+    private fun timedSet(exerciseId: String, seconds: Int) = SessionSetEntity(
+        id = 0, sessionId = 1, exerciseId = exerciseId, exerciseName = exerciseId, slot = Slot.MAIN,
+        setIndex = 0, kind = SetKind.WORK.name, weightLb = 0.0, reps = 0, done = true, seconds = seconds,
+    )
+
+    @Test
+    fun timedExerciseDegradesToADurationSegmentWithNoRepCount() {
+        // A REPS exercise still contributes its rep sum; a TIMED hold contributes a
+        // segment that spans time but carries no reps (HC segments never carry
+        // weight, so "no weight" is automatic). The session write never breaks.
+        val record = SessionRecordMapper.toExerciseSession(
+            session(startedAt = null, completedAt = 2_000_000L),
+            listOf(set("pushup", 15), set("pushup", 12), timedSet("plank", 45)),
+            zone,
+        )
+        assertEquals(2, record.segments.size)
+        assertEquals(27, record.segments[0].repetitions) // REPS: 15 + 12
+        assertEquals(0, record.segments[1].repetitions) // TIMED: a hold, no rep count
+        assertTrue(record.segments[1].endTime.isAfter(record.segments[1].startTime))
+    }
 }

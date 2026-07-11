@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "bodyweightLb": 235,
+    "age": 40,
+    "level": "INTERMEDIATE",
+    "emphasis": "BALANCED",
+    "cardioMode": "OUTDOOR_RUN",
+    "cardioPlacement": "FINISHERS",
+    "fiveKGoal": true,
+    "daysPerWeek": 4,
+    "split": "FULL_BODY",
+    "anchorScheme": "PROTOTYPE",
+    "deadliftVariant": "TRAP_BAR",
+    "equipment": ["BARBELL", "DUMBBELL"],
+    "weightUnit": "LB",
+    "wizardComplete": true,
+    "suggestedDay": "A"
+  },
+  "customExercises": [
+    {
+      "id": "custom_abc",
+      "name": "Cable Hack Squat",
+      "pattern": "SQUAT_BILATERAL",
+      "equipmentCsv": "MACHINE,CABLE",
+      "perHand": false,
+      "goalStartLb": 80.0
+    }
+  ],
+  "program": [
+    {
+      "dayId": "A",
+      "title": "Day A",
+      "emphasisLine": "Squat-focused",
+      "cardioJson": null,
+      "exercises": [
+        {
+          "id": 1,
+          "exerciseId": "bb_back_squat",
+          "isMain": true,
+          "targetSets": 4,
+          "repSchemeLabel": "5/5/5/3",
+          "hasWarmupHint": true,
+          "supersetExerciseId": null,
+          "note": ""
+        },
+        {
+          "id": 2,
+          "exerciseId": "plank",
+          "isMain": false,
+          "targetSets": 3,
+          "repSchemeLabel": "",
+          "hasWarmupHint": false,
+          "supersetExerciseId": null,
+          "note": ""
+        }
+      ]
+    }
+  ],
+  "liveLogs": [
+    {
+      "dayId": "A",
+      "programExerciseId": 2,
+      "slot": "main",
+      "setsJson": "[{\"weightLb\":0.0,\"reps\":45,\"kind\":\"WORK\",\"done\":true}]",
+      "checkDate": "2026-07-11",
+      "updatedAt": 1000
+    }
+  ],
+  "sessions": [
+    {
+      "id": 1,
+      "dayId": "A",
+      "dayTitle": "Day A",
+      "startedAt": null,
+      "completedAt": 2000,
+      "bodyweightLb": 235,
+      "sets": [
+        {
+          "id": 1,
+          "exerciseId": "bb_back_squat",
+          "exerciseName": "Barbell Back Squat",
+          "slot": "main",
+          "setIndex": 0,
+          "kind": "TOP",
+          "weightLb": 235.0,
+          "reps": 5,
+          "done": true
+        }
+      ]
+    }
+  ]
+}

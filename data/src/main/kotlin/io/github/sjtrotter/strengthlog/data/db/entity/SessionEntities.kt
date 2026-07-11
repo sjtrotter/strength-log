@@ -41,4 +41,7 @@ data class SessionSetEntity(
     val weightLb: Double,
     val reps: Int,
     val done: Boolean,
+    /** Hold/carry duration for TIMED tracks; 0 (ignored) for WEIGHTED/REPS.
+     *  Added in DB v2 with a DEFAULT 0 so pre-v2 history reads back as weight×reps. */
+    val seconds: Int = 0,
 )

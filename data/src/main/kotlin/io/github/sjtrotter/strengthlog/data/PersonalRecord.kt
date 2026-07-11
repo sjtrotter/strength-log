@@ -9,7 +9,15 @@ import io.github.sjtrotter.strengthlog.data.db.dao.PersonalRecordRow
  * first set at, kept for a future profile surface even though Phase 1 only
  * renders the weight/reps.
  */
-data class PersonalRecord(val exerciseId: String, val weightLb: Double, val reps: Int, val achievedAtMillis: Long)
+data class PersonalRecord(
+    val exerciseId: String,
+    val weightLb: Double,
+    val reps: Int,
+    val achievedAtMillis: Long,
+    /** Best hold for a TIMED exercise; 0 for WEIGHTED/REPS. The formatter reads
+     *  it per the exercise's tracking type so a timed best renders as its hold. */
+    val seconds: Int = 0,
+)
 
 /**
  * Reduces [io.github.sjtrotter.strengthlog.data.db.dao.SessionDao.personalRecordRows]'
@@ -23,7 +31,9 @@ data class PersonalRecord(val exerciseId: String, val weightLb: Double, val reps
 fun List<PersonalRecordRow>.toPersonalRecordsByExercise(): Map<String, PersonalRecord> {
     val result = LinkedHashMap<String, PersonalRecord>()
     for (row in this) {
-        result.getOrPut(row.exerciseId) { PersonalRecord(row.exerciseId, row.weightLb, row.reps, row.completedAt) }
+        result.getOrPut(row.exerciseId) {
+            PersonalRecord(row.exerciseId, row.weightLb, row.reps, row.completedAt, row.seconds)
+        }
     }
     return result
 }

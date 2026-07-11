@@ -4,8 +4,12 @@ import io.github.sjtrotter.strengthlog.data.LoggedSlot
 import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
+import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
+import io.github.sjtrotter.strengthlog.domain.library.GoalSource
+import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
+import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.model.Program
 import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
@@ -62,8 +66,57 @@ class WatchSnapshotBuilderTest {
         val ex = snapshot.day.exercises.single()
         assertEquals(10L, ex.programExerciseId)
         assertEquals(235.0, ex.goal) // GOAL is phone-computed and matches spec §11
+        assertEquals("106.59", ex.goalLabel) // additive label in the phone's unit (235 lb -> kg), the same number the watch derives
         assertEquals(235.0, ex.sets.single().weightLb) // canonical lb, not converted
         assertEquals(true, ex.sets.single().done)
+    }
+
+    // A catalog with synthetic REPS/TIMED entries. P2 reclassifies real ones;
+    // until then this proves the watch projection is crash-safe ahead of that.
+    private val trackingCatalog = ExerciseCatalog(
+        listOf(
+            ExerciseEntry("custom_pullup", "Pull-up", MovementPattern.V_PULL, listOf(Equipment.BODYWEIGHT), perHand = false, goal = GoalSource.Reps(6), subRank = ExerciseCatalog.CUSTOM_SUBRANK),
+            ExerciseEntry("custom_plank", "Plank", MovementPattern.CORE_ANTI_EXT, listOf(Equipment.BODYWEIGHT), perHand = false, goal = GoalSource.Time(45, 25.0), subRank = ExerciseCatalog.CUSTOM_SUBRANK),
+        ),
+    )
+
+    @Test
+    fun `weighted goalLabel equals the number the watch already shows today`() {
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val ex = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+        // Watch UI renders WeightStepper.format(unit.fromLb(goal)) == "235"; goalLabel must match.
+        assertEquals(235.0, ex.goal)
+        assertEquals("235", ex.goalLabel)
+    }
+
+    @Test
+    fun `REPS and TIMED slots project without hitting goalFor's error branch`() {
+        val program = Program(
+            listOf(
+                ProgramDay(
+                    "A", "Core", "",
+                    listOf(ProgramExercise("custom_pullup"), ProgramExercise("custom_plank")),
+                    cardio = null,
+                ),
+            ),
+        )
+        val slots = listOf(
+            ProgramSlot(1L, 0, ProgramExercise("custom_pullup")),
+            ProgramSlot(2L, 1, ProgramExercise("custom_plank")),
+        )
+        val exercises = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = emptyList(), cfg = cfg, catalog = trackingCatalog, unit = WeightUnit.LB, revision = 1L,
+        )!!.day.exercises
+
+        val reps = exercises.first { it.programExerciseId == 1L }
+        assertEquals("6 reps", reps.goalLabel)
+        assertEquals(0.0, reps.goal) // rep targets carry no weight — never "0 lb × 60"
+
+        val timed = exercises.first { it.programExerciseId == 2L }
+        assertEquals("45s +25", timed.goalLabel)
+        assertEquals(25.0, timed.goal) // the timed added-load rides the numeric goal
     }
 
     @Test

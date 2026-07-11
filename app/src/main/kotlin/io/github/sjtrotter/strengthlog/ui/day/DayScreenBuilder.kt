@@ -54,19 +54,17 @@ object DayScreenBuilder {
         for (slot in slots) {
             val pe = slot.exercise
             val entry = catalog.find(pe.exerciseId) ?: continue
-            val goal = GoalCalculator.goalFor(entry, cfg)
-            val mainSeed = SetSeeder.seed(pe, goal, cfg)
+            val mainSeed = SetSeeder.seed(pe, GoalCalculator.targetFor(entry, cfg), cfg)
             if (slot.programExerciseId to Slot.MAIN !in existing) {
                 writes += SeedWrite(slot.programExerciseId, Slot.MAIN, mainSeed)
             }
             val partner = pe.superset
             if (partner != null && slot.programExerciseId to Slot.SS !in existing) {
                 val partnerEntry = catalog.find(partner.exerciseId) ?: continue
-                val partnerGoal = GoalCalculator.goalFor(partnerEntry, cfg)
                 writes += SeedWrite(
                     slot.programExerciseId,
                     Slot.SS,
-                    SetSeeder.seedPartner(mainSeed.size, partnerGoal),
+                    SetSeeder.seedPartner(mainSeed.size, GoalCalculator.targetFor(partnerEntry, cfg)),
                 )
             }
         }
@@ -133,10 +131,6 @@ object DayScreenBuilder {
             }
         }
     }
-
-    /** GOAL number formatted in [unit] (canonical lb in, display out). */
-    fun goalDisplay(goalLb: Double, unit: WeightUnit): String =
-        WeightStepper.format(unit.fromLb(goalLb))
 
     /**
      * The "last time: {w}×{r}" chip's value (PLAN.md A1 bonus, issue #14) —

@@ -8,6 +8,8 @@ import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.Program
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
+import io.github.sjtrotter.strengthlog.domain.standards.GoalFormatter
+import io.github.sjtrotter.strengthlog.domain.standards.GoalTarget
 import io.github.sjtrotter.strengthlog.domain.sync.WatchDay
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
@@ -49,7 +51,7 @@ object WatchSnapshotBuilder {
 
         val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
         val exercises = slots.map { slot ->
-            buildExercise(slot, logsByKey, cfg, catalog)
+            buildExercise(slot, logsByKey, cfg, catalog, unit)
         }
 
         return WatchSnapshot(
@@ -71,10 +73,21 @@ object WatchSnapshotBuilder {
         logsByKey: Map<Pair<Long, String>, LoggedSlot>,
         cfg: LifterConfig,
         catalog: ExerciseCatalog,
+        unit: WeightUnit,
     ): WatchExercise {
         val pe = slot.exercise
         val id = slot.programExerciseId
         val entry = catalog.find(pe.exerciseId)
+        // Routed through targetFor so a reclassified REPS/TIMED slot never hits
+        // goalFor's error() branch. The numeric goal stays canonical lb (0 for
+        // rep/time targets, which carry no weight); the watch still renders from
+        // it for weighted slots. goalLabel is the type-safe display groundwork.
+        val target = entry?.let { GoalCalculator.targetFor(it, cfg) }
+        val goalLb = when (target) {
+            is GoalTarget.Weight -> target.lb
+            is GoalTarget.Time -> target.addedLb
+            is GoalTarget.Reps, null -> 0.0
+        }
         val partnerEntry = pe.superset?.let { catalog.find(it.exerciseId) }
         val main = logsByKey[id to Slot.MAIN]?.sets.orEmpty()
         val ss = pe.superset?.let { logsByKey[id to Slot.SS]?.sets }.orEmpty()
@@ -88,7 +101,8 @@ object WatchSnapshotBuilder {
             // retire it (see report).
             slot = Slot.MAIN,
             name = entry?.name ?: pe.exerciseId,
-            goal = entry?.let { GoalCalculator.goalFor(it, cfg) } ?: 0.0,
+            goal = goalLb,
+            goalLabel = target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
             perHand = entry?.perHand == true,
             supersetPartnerName = partnerEntry?.name,
             sets = main.map { it.toWatchSet() },

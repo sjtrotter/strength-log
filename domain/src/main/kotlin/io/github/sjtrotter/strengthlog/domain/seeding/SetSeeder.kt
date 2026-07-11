@@ -51,6 +51,20 @@ object SetSeeder {
 
     /**
      * Superset partner track: same row count as the primary, seeded from the
+     * partner's own [GoalTarget], all [SetKind.WORK] (spec §4). Type-aware so a
+     * reclassified REPS/TIMED partner never routes through the weighted path.
+     */
+    fun seedPartner(primaryCount: Int, target: GoalTarget): List<LoggedSet> =
+        when (target) {
+            is GoalTarget.Weight -> seedPartner(primaryCount, target.lb)
+            is GoalTarget.Reps ->
+                List(primaryCount) { LoggedSet(0.0, target.reps, SetKind.WORK) }
+            is GoalTarget.Time ->
+                List(primaryCount) { LoggedSet(target.addedLb, 0, SetKind.WORK, seconds = target.seconds) }
+        }
+
+    /**
+     * Superset partner track: same row count as the primary, seeded from the
      * partner's own GOAL, all [SetKind.WORK] (spec §4).
      */
     fun seedPartner(primaryCount: Int, partnerGoal: Double): List<LoggedSet> =

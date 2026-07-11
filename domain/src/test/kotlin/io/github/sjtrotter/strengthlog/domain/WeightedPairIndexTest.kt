@@ -11,7 +11,6 @@ import io.github.sjtrotter.strengthlog.domain.model.MovementPattern.V_PULL
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
 
 class WeightedPairIndexTest {
 
@@ -68,9 +67,9 @@ class WeightedPairIndexTest {
     }
 
     @Test
-    fun `real catalog has no pairs yet in P1`() {
-        // P2 populates the links; P1 only ships the machinery.
-        assertEquals(emptyList(), ExerciseLibrary.entries.mapNotNull { it.weightedPairId })
-        assertNull(ExerciseLibrary.bodyweightPairFor("dips"))
+    fun `real catalog validates cleanly and dips resolves from bw_dip`() {
+        // P2 populates the links (8 pairs); this just proves the real catalog
+        // builds without throwing and the reverse lookup works end to end.
+        assertEquals("bw_dip", ExerciseLibrary.bodyweightPairFor("dips"))
     }
 }

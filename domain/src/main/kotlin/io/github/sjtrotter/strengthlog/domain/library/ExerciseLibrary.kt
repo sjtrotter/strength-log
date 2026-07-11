@@ -50,6 +50,11 @@ object ExerciseLibrary {
 
     private fun flat(weightLb: Double) = GoalSource.Flat(weightLb)
 
+    private fun reps(targetReps: Int) = GoalSource.Reps(targetReps)
+
+    private fun time(targetSeconds: Int, addedWeightLb: Double = 0.0) =
+        GoalSource.Time(targetSeconds, addedWeightLb)
+
     val entries: List<ExerciseEntry> = listOf(
         ExerciseEntry("bb_back_squat", "Barbell Back Squat", SQUAT_BILATERAL, listOf(BARBELL, RACK), false, std(SQUAT), 1),
         ExerciseEntry("hack_squat", "Hack Squat", SQUAT_BILATERAL, listOf(MACHINE), false, flat(180.0), 2),
@@ -64,6 +69,7 @@ object ExerciseLibrary {
         ExerciseEntry("kb_goblet_squat", "KB Goblet Squat", SQUAT_BILATERAL, listOf(KETTLEBELL), false, flat(53.0), 11),
         ExerciseEntry("kb_front_squat", "Double-KB Front Squat", SQUAT_BILATERAL, listOf(KETTLEBELL), true, flat(44.0), 12),
         ExerciseEntry("zercher_squat", "Zercher Squat", SQUAT_BILATERAL, listOf(BARBELL, RACK), false, frac(0.65, SQUAT), 13),
+        ExerciseEntry("wall_sit", "Wall Sit", SQUAT_BILATERAL, listOf(BODYWEIGHT), false, time(45), 14),
 
         ExerciseEntry("bss", "Bulgarian Split Squat", SINGLE_LEG, listOf(DUMBBELL, BENCH), true, flat(35.0), 1),
         ExerciseEntry("walking_lunge", "Walking Lunge", SINGLE_LEG, listOf(DUMBBELL), true, flat(30.0), 2),
@@ -77,8 +83,8 @@ object ExerciseLibrary {
         ExerciseEntry("smith_split_squat", "Smith Machine Split Squat", SINGLE_LEG, listOf(MACHINE), false, flat(95.0), 10),
         ExerciseEntry("sl_leg_press", "Single-Leg Press", SINGLE_LEG, listOf(MACHINE), false, flat(160.0), 11),
         ExerciseEntry("cossack_squat", "Cossack Squat", SINGLE_LEG, listOf(KETTLEBELL), false, flat(35.0), 12),
-        ExerciseEntry("pistol_squat", "Pistol Squat", SINGLE_LEG, listOf(BODYWEIGHT), false, flat(0.0), 13),
-        ExerciseEntry("skater_squat", "Skater Squat", SINGLE_LEG, listOf(BODYWEIGHT), false, flat(0.0), 14),
+        ExerciseEntry("pistol_squat", "Pistol Squat", SINGLE_LEG, listOf(BODYWEIGHT), false, reps(5), 13),
+        ExerciseEntry("skater_squat", "Skater Squat", SINGLE_LEG, listOf(BODYWEIGHT), false, reps(8), 14),
 
         ExerciseEntry("trap_dl", "Trap-Bar Deadlift", HINGE, listOf(TRAP_BAR), false, std(DEADLIFT), 1),
         ExerciseEntry("conv_dl", "Conventional Deadlift", HINGE, listOf(BARBELL), false, std(DEADLIFT, tune = 1.0), 2),
@@ -86,7 +92,7 @@ object ExerciseLibrary {
         ExerciseEntry("rdl", "Romanian Deadlift", HINGE, listOf(BARBELL), false, frac(0.72, SQUAT), 4),
         ExerciseEntry("stiff_dl", "Stiff-Leg Deadlift", HINGE, listOf(BARBELL), false, frac(0.65, SQUAT), 5),
         ExerciseEntry("good_morning", "Good Morning", HINGE, listOf(BARBELL, RACK), false, frac(0.45, SQUAT), 6),
-        ExerciseEntry("back_ext", "Back Extension", HINGE, listOf(BODYWEIGHT), false, flat(0.0), 7),
+        ExerciseEntry("back_ext", "Back Extension", HINGE, listOf(BODYWEIGHT), false, reps(12), 7, weightedPairId = "back_ext_45"),
         ExerciseEntry("db_rdl", "DB Romanian Deadlift", HINGE, listOf(DUMBBELL), true, flat(55.0), 8),
         ExerciseEntry("kb_rdl", "Double-KB RDL", HINGE, listOf(KETTLEBELL), true, flat(53.0), 9),
         ExerciseEntry("sl_rdl", "Single-Leg RDL", HINGE, listOf(DUMBBELL), true, flat(40.0), 10),
@@ -103,16 +109,16 @@ object ExerciseLibrary {
 
         ExerciseEntry("seated_curl", "Seated Leg Curl", KNEE_FLEXION, listOf(MACHINE), false, flat(90.0), 1),
         ExerciseEntry("lying_curl", "Lying Leg Curl", KNEE_FLEXION, listOf(MACHINE), false, flat(90.0), 2),
-        ExerciseEntry("ball_curl", "Swiss Ball Leg Curl", KNEE_FLEXION, listOf(BODYWEIGHT), false, flat(0.0), 3),
-        ExerciseEntry("nordic", "Nordic Curl (assisted)", KNEE_FLEXION, listOf(BODYWEIGHT), false, flat(0.0), 4),
+        ExerciseEntry("ball_curl", "Swiss Ball Leg Curl", KNEE_FLEXION, listOf(BODYWEIGHT), false, reps(12), 3),
+        ExerciseEntry("nordic", "Nordic Curl (assisted)", KNEE_FLEXION, listOf(BODYWEIGHT), false, reps(6), 4),
         ExerciseEntry("standing_leg_curl", "Standing Single-Leg Curl", KNEE_FLEXION, listOf(MACHINE), false, flat(45.0), 5),
-        ExerciseEntry("ghr", "Glute-Ham Raise", KNEE_FLEXION, listOf(MACHINE), false, flat(0.0), 6),
-        ExerciseEntry("slider_curl", "Slider Leg Curl", KNEE_FLEXION, listOf(BODYWEIGHT), false, flat(0.0), 7),
+        ExerciseEntry("ghr", "Glute-Ham Raise", KNEE_FLEXION, listOf(MACHINE), false, reps(8), 6),
+        ExerciseEntry("slider_curl", "Slider Leg Curl", KNEE_FLEXION, listOf(BODYWEIGHT), false, reps(10), 7),
 
         ExerciseEntry("leg_ext", "Leg Extension", KNEE_EXTENSION, listOf(MACHINE), false, flat(90.0), 1, fallbackPattern = SQUAT_BILATERAL),
         ExerciseEntry("sl_leg_ext", "Single-Leg Extension", KNEE_EXTENSION, listOf(MACHINE), false, flat(45.0), 2),
-        ExerciseEntry("sissy_squat", "Sissy Squat", KNEE_EXTENSION, listOf(BODYWEIGHT), false, flat(0.0), 3),
-        ExerciseEntry("reverse_nordic", "Reverse Nordic", KNEE_EXTENSION, listOf(BODYWEIGHT), false, flat(0.0), 4),
+        ExerciseEntry("sissy_squat", "Sissy Squat", KNEE_EXTENSION, listOf(BODYWEIGHT), false, reps(10), 3),
+        ExerciseEntry("reverse_nordic", "Reverse Nordic", KNEE_EXTENSION, listOf(BODYWEIGHT), false, reps(10), 4),
 
         ExerciseEntry("bb_bench", "Barbell Bench Press", H_PUSH, listOf(BARBELL, BENCH, RACK), false, std(STD_BENCH), 1),
         ExerciseEntry("db_bench", "DB Bench Press", H_PUSH, listOf(DUMBBELL, BENCH), true, frac(0.4, STD_BENCH), 2),
@@ -120,7 +126,7 @@ object ExerciseLibrary {
         ExerciseEntry("incline_bb", "Incline Barbell Press", H_PUSH, listOf(BARBELL, BENCH, RACK), false, frac(0.8, STD_BENCH), 4),
         ExerciseEntry("machine_chest", "Machine Chest Press", H_PUSH, listOf(MACHINE), false, flat(100.0), 5),
         ExerciseEntry("pec_deck", "Pec Deck", H_PUSH, listOf(MACHINE), false, flat(100.0), 6),
-        ExerciseEntry("dips", "Weighted Dip", H_PUSH, listOf(BODYWEIGHT), false, flat(0.0), 7),
+        ExerciseEntry("dips", "Weighted Dip", H_PUSH, listOf(BODYWEIGHT), false, flat(45.0), 7),
         ExerciseEntry("smith_bench", "Smith Machine Bench Press", H_PUSH, listOf(MACHINE, BENCH), false, frac(0.9, STD_BENCH), 8),
         ExerciseEntry("decline_bb", "Decline Barbell Press", H_PUSH, listOf(BARBELL, BENCH, RACK), false, frac(0.95, STD_BENCH), 9),
         ExerciseEntry("incline_machine", "Incline Machine Press", H_PUSH, listOf(MACHINE), false, flat(90.0), 10),
@@ -130,7 +136,9 @@ object ExerciseLibrary {
         ExerciseEntry("db_fly", "DB Fly", H_PUSH, listOf(DUMBBELL, BENCH), true, flat(30.0), 14),
         ExerciseEntry("cable_fly", "Cable Fly", H_PUSH, listOf(CABLE), false, flat(30.0), 15),
         ExerciseEntry("low_cable_fly", "Low-to-High Cable Fly", H_PUSH, listOf(CABLE), false, flat(25.0), 16),
-        ExerciseEntry("pushup", "Push-Up", H_PUSH, listOf(BODYWEIGHT), false, flat(0.0), 17),
+        ExerciseEntry("pushup", "Push-Up", H_PUSH, listOf(BODYWEIGHT), false, reps(15), 17, weightedPairId = "weighted_pushup"),
+        ExerciseEntry("bw_dip", "Dip", H_PUSH, listOf(BODYWEIGHT), false, reps(10), 18, weightedPairId = "dips"),
+        ExerciseEntry("weighted_pushup", "Weighted Push-Up", H_PUSH, listOf(BODYWEIGHT), false, flat(25.0), 19),
 
         ExerciseEntry("ohp", "Overhead Press (Barbell)", V_PUSH, listOf(BARBELL, RACK), false, std(OHP), 1),
         ExerciseEntry("db_shoulder", "Seated DB Shoulder Press", V_PUSH, listOf(DUMBBELL, BENCH), true, flat(55.0), 2),
@@ -143,8 +151,8 @@ object ExerciseLibrary {
         ExerciseEntry("arnold_press", "Arnold Press", V_PUSH, listOf(DUMBBELL, BENCH), true, flat(45.0), 9),
         ExerciseEntry("smith_shoulder", "Smith Machine Shoulder Press", V_PUSH, listOf(MACHINE, BENCH), false, frac(0.85, OHP), 10),
         ExerciseEntry("z_press", "Z Press", V_PUSH, listOf(BARBELL, RACK), false, frac(0.75, OHP), 11),
-        ExerciseEntry("pike_pushup", "Pike Push-Up", V_PUSH, listOf(BODYWEIGHT), false, flat(0.0), 12),
-        ExerciseEntry("hspu", "Handstand Push-Up", V_PUSH, listOf(BODYWEIGHT), false, flat(0.0), 13),
+        ExerciseEntry("pike_pushup", "Pike Push-Up", V_PUSH, listOf(BODYWEIGHT), false, reps(10), 12),
+        ExerciseEntry("hspu", "Handstand Push-Up", V_PUSH, listOf(BODYWEIGHT), false, reps(5), 13),
 
         ExerciseEntry("bb_row", "Barbell Row", H_PULL, listOf(BARBELL), false, std(ROW), 1),
         ExerciseEntry("cs_row", "Chest-Supported Row", H_PULL, listOf(MACHINE), false, frac(0.8, STD_BENCH), 2),
@@ -157,17 +165,20 @@ object ExerciseLibrary {
         ExerciseEntry("seal_row", "Seal Row", H_PULL, listOf(BARBELL, BENCH), false, frac(0.75, ROW), 9),
         ExerciseEntry("single_cable_row", "Single-Arm Cable Row", H_PULL, listOf(CABLE), false, flat(60.0), 10),
         ExerciseEntry("kb_row", "KB Row", H_PULL, listOf(KETTLEBELL), true, flat(53.0), 11),
-        ExerciseEntry("inverted_row", "Inverted Row", H_PULL, listOf(BARBELL, RACK), false, flat(0.0), 12),
+        ExerciseEntry("inverted_row", "Inverted Row", H_PULL, listOf(BARBELL, RACK), false, reps(10), 12),
 
-        ExerciseEntry("pullup", "Pull-Up / Chin-Up", V_PULL, listOf(PULLUP_BAR), false, flat(0.0), 1),
+        ExerciseEntry("pullup", "Pull-Up / Chin-Up", V_PULL, listOf(PULLUP_BAR), false, reps(6), 1, weightedPairId = "weighted_pullup"),
         ExerciseEntry("lat_pd_wide", "Lat Pulldown (wide)", V_PULL, listOf(CABLE), false, flat(130.0), 2),
         ExerciseEntry("lat_pd_neutral", "Lat Pulldown (neutral)", V_PULL, listOf(CABLE), false, flat(125.0), 3),
         ExerciseEntry("assisted_pullup", "Assisted Pull-Up", V_PULL, listOf(MACHINE), false, flat(0.0), 4),
         ExerciseEntry("machine_pulldown", "Machine Pulldown", V_PULL, listOf(MACHINE), false, flat(120.0), 5),
-        ExerciseEntry("neutral_pullup", "Neutral-Grip Pull-Up", V_PULL, listOf(PULLUP_BAR), false, flat(0.0), 6),
+        ExerciseEntry("neutral_pullup", "Neutral-Grip Pull-Up", V_PULL, listOf(PULLUP_BAR), false, reps(6), 6, weightedPairId = "weighted_neutral_pullup"),
         ExerciseEntry("single_arm_pulldown", "Single-Arm Cable Pulldown", V_PULL, listOf(CABLE), false, flat(50.0), 7),
         ExerciseEntry("straight_arm_pd", "Straight-Arm Pulldown", V_PULL, listOf(CABLE), false, flat(45.0), 8),
         ExerciseEntry("db_pullover", "DB Pullover", V_PULL, listOf(DUMBBELL, BENCH), false, flat(60.0), 9),
+        ExerciseEntry("weighted_pullup", "Weighted Pull-Up", V_PULL, listOf(PULLUP_BAR), false, flat(25.0), 10),
+        ExerciseEntry("weighted_neutral_pullup", "Weighted Neutral-Grip Pull-Up", V_PULL, listOf(PULLUP_BAR), false, flat(25.0), 11),
+        ExerciseEntry("dead_hang", "Dead Hang", V_PULL, listOf(PULLUP_BAR), false, time(30), 12),
 
         ExerciseEntry("cable_lateral", "Cable Lateral Raise", SIDE_DELT, listOf(CABLE), false, flat(15.0), 1),
         ExerciseEntry("db_lateral", "DB Lateral Raise", SIDE_DELT, listOf(DUMBBELL), true, flat(15.0), 2),
@@ -207,8 +218,8 @@ object ExerciseLibrary {
         ExerciseEntry("machine_tri_ext", "Machine Triceps Extension", TRICEPS, listOf(MACHINE), false, flat(70.0), 8),
         ExerciseEntry("cgbp", "Close-Grip Bench Press", TRICEPS, listOf(BARBELL, BENCH, RACK), false, frac(0.85, STD_BENCH), 9),
         ExerciseEntry("jm_press", "JM Press", TRICEPS, listOf(BARBELL, BENCH, RACK), false, frac(0.6, STD_BENCH), 10),
-        ExerciseEntry("bench_dip", "Bench Dip", TRICEPS, listOf(BENCH, BODYWEIGHT), false, flat(0.0), 11),
-        ExerciseEntry("diamond_pushup", "Diamond Push-Up", TRICEPS, listOf(BODYWEIGHT), false, flat(0.0), 12),
+        ExerciseEntry("bench_dip", "Bench Dip", TRICEPS, listOf(BENCH, BODYWEIGHT), false, reps(12), 11),
+        ExerciseEntry("diamond_pushup", "Diamond Push-Up", TRICEPS, listOf(BODYWEIGHT), false, reps(12), 12),
         ExerciseEntry("kickback", "DB Triceps Kickback", TRICEPS, listOf(DUMBBELL), true, flat(15.0), 13),
 
         ExerciseEntry("standing_calf", "Standing Calf Raise", CALF_GASTROC, listOf(MACHINE), false, flat(90.0), 1),
@@ -216,39 +227,49 @@ object ExerciseLibrary {
         ExerciseEntry("smith_calf", "Smith Machine Calf Raise", CALF_GASTROC, listOf(MACHINE), false, flat(135.0), 3),
         ExerciseEntry("donkey_calf", "Donkey Calf Raise", CALF_GASTROC, listOf(MACHINE), false, flat(140.0), 4),
         ExerciseEntry("db_calf", "DB Single-Leg Calf Raise", CALF_GASTROC, listOf(DUMBBELL), true, flat(50.0), 5),
-        ExerciseEntry("bw_calf_raise", "Single-Leg Calf Raise", CALF_GASTROC, listOf(BODYWEIGHT), false, flat(0.0), 6),
+        ExerciseEntry("bw_calf_raise", "Single-Leg Calf Raise", CALF_GASTROC, listOf(BODYWEIGHT), false, reps(15), 6, weightedPairId = "db_calf"),
 
         ExerciseEntry("seated_calf", "Seated Calf Raise", CALF_SOLEUS, listOf(MACHINE), false, flat(90.0), 1),
         ExerciseEntry("bent_knee_lp_calf", "Leg-Press Calf Raise (Bent-Knee)", CALF_SOLEUS, listOf(MACHINE), false, flat(140.0), 2),
 
-        ExerciseEntry("plank", "Plank / Side Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, flat(0.0), 1),
-        ExerciseEntry("ab_wheel", "Ab Wheel Rollout", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, flat(0.0), 2),
-        ExerciseEntry("dead_bug", "Dead Bug", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, flat(0.0), 3),
-        ExerciseEntry("weighted_plank", "Weighted Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, flat(25.0), 4),
-        ExerciseEntry("body_saw", "Body Saw", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, flat(0.0), 5),
-        ExerciseEntry("hollow_hold", "Hollow Hold", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, flat(0.0), 6),
+        ExerciseEntry("plank", "Plank / Side Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 1, weightedPairId = "weighted_plank"),
+        ExerciseEntry("ab_wheel", "Ab Wheel Rollout", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 2),
+        ExerciseEntry("dead_bug", "Dead Bug", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 3),
+        ExerciseEntry("weighted_plank", "Weighted Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45, 25.0), 4),
+        ExerciseEntry("body_saw", "Body Saw", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 5),
+        ExerciseEntry("hollow_hold", "Hollow Hold", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(30), 6),
 
         ExerciseEntry("pallof", "Pallof Press", CORE_ANTI_ROT, listOf(CABLE), false, flat(25.0), 1),
-        ExerciseEntry("suitcase_carry", "Suitcase Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, flat(50.0), 2),
+        ExerciseEntry("suitcase_carry", "Suitcase Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 2),
         ExerciseEntry("half_kneel_pallof", "Half-Kneeling Pallof Press", CORE_ANTI_ROT, listOf(CABLE), false, flat(20.0), 3),
         ExerciseEntry("landmine_rotation", "Landmine Rotation", CORE_ANTI_ROT, listOf(BARBELL), false, flat(25.0), 4),
         ExerciseEntry("kb_windmill", "KB Windmill", CORE_ANTI_ROT, listOf(KETTLEBELL), true, flat(25.0), 5),
         ExerciseEntry("turkish_getup", "Turkish Get-Up", CORE_ANTI_ROT, listOf(KETTLEBELL), true, flat(35.0), 6),
+        ExerciseEntry("farmers_carry", "Farmer's Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 7),
 
         ExerciseEntry("cable_crunch", "Cable Crunch", CORE_FLEX, listOf(CABLE), false, flat(90.0), 1),
-        ExerciseEntry("hanging_raise", "Hanging Leg Raise", CORE_FLEX, listOf(PULLUP_BAR), false, flat(0.0), 2),
+        ExerciseEntry("hanging_raise", "Hanging Leg Raise", CORE_FLEX, listOf(PULLUP_BAR), false, reps(10), 2),
         ExerciseEntry("machine_crunch", "Machine Crunch", CORE_FLEX, listOf(MACHINE), false, flat(90.0), 3),
         ExerciseEntry("weighted_crunch", "Weighted Crunch", CORE_FLEX, listOf(DUMBBELL), false, flat(25.0), 4),
-        ExerciseEntry("decline_situp", "Decline Sit-Up", CORE_FLEX, listOf(BENCH, BODYWEIGHT), false, flat(0.0), 5),
-        ExerciseEntry("reverse_crunch", "Reverse Crunch", CORE_FLEX, listOf(BODYWEIGHT), false, flat(0.0), 6),
-        ExerciseEntry("v_up", "V-Up", CORE_FLEX, listOf(BODYWEIGHT), false, flat(0.0), 7),
-        ExerciseEntry("knee_raise", "Captain's Chair Knee Raise", CORE_FLEX, listOf(MACHINE), false, flat(0.0), 8),
+        ExerciseEntry("decline_situp", "Decline Sit-Up", CORE_FLEX, listOf(BENCH, BODYWEIGHT), false, reps(20), 5),
+        ExerciseEntry("reverse_crunch", "Reverse Crunch", CORE_FLEX, listOf(BODYWEIGHT), false, reps(15), 6),
+        ExerciseEntry("v_up", "V-Up", CORE_FLEX, listOf(BODYWEIGHT), false, reps(12), 7),
+        ExerciseEntry("knee_raise", "Captain's Chair Knee Raise", CORE_FLEX, listOf(MACHINE), false, reps(12), 8),
+        ExerciseEntry("hanging_knee_raise", "Hanging Knee Raise", CORE_FLEX, listOf(PULLUP_BAR), false, reps(12), 9, weightedPairId = "weighted_knee_raise"),
+        ExerciseEntry("weighted_knee_raise", "Weighted Knee Raise", CORE_FLEX, listOf(PULLUP_BAR, DUMBBELL), false, flat(10.0), 10),
     )
+
+    /** Ids reclassified from a bodyweight-fake [GoalSource.Flat] to
+     *  [GoalSource.Time] in the tracking-types catalog pass. The P3 one-shot
+     *  legacy-data fixup (reps→seconds carry) operates on exactly this set —
+     *  declared once here, next to the catalog it describes, so the migration
+     *  and its tests share a single source of truth. */
+    val RECLASSIFIED_TO_TIMED_IDS: Set<String> = setOf("plank", "hollow_hold", "weighted_plank", "suitcase_carry")
 
     private val byId: Map<String, ExerciseEntry> = entries.associateBy { it.id }
 
     /** target id → declaring (unloaded) id, validated at init (see
-     *  [buildWeightedPairIndex]). Empty until pairs are populated in P2. */
+     *  [buildWeightedPairIndex]). */
     private val bodyweightByTarget: Map<String, String> = buildWeightedPairIndex(entries)
 
     fun get(id: String): ExerciseEntry =

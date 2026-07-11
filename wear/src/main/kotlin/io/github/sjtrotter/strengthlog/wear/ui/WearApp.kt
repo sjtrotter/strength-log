@@ -1,8 +1,11 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
+import android.os.SystemClock
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -11,22 +14,27 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation.NavHostController
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import io.github.sjtrotter.strengthlog.domain.sync.SetEditDelta
+import io.github.sjtrotter.strengthlog.domain.sync.SyncCodec
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
 import io.github.sjtrotter.strengthlog.wear.data.WatchTrackerClient
 import io.github.sjtrotter.strengthlog.wear.theme.Background
@@ -42,7 +50,16 @@ private const val ROUTE_DONE = "done"
 private const val ARG_ID = "id"
 private const val ARG_ROUND = "round"
 private const val UPDATED_PILL_MILLIS = 2_800L
-private const val SYNCED_PILL_MILLIS = 2_000L
+
+// The crown/± edit coalescing window: rapid edits collapse into one delta, sent
+// this long after the lifter pauses (or immediately on tick/back/stop).
+private const val COALESCE_WINDOW_MILLIS = 600L
+
+// An inbound snapshot within this long of the lifter's last local edit is the
+// phone echoing that edit back (its cascade/seeding) — not a genuine phone-side
+// change — so the "updated from phone" pill stays quiet. Comfortably longer than
+// a normal watch->phone->watch round-trip, shorter than any deliberate follow-up.
+private const val UPDATED_PILL_SUPPRESS_MILLIS = 3_500L
 
 /**
  * Root composable: owns navigation, keeps the screen on while logging (A8),
@@ -87,34 +104,56 @@ private fun BoxScope.InteractiveContent(
     navController: NavHostController,
     sendEdit: (SetEditDelta) -> Unit,
 ) {
-    WearNavHost(snap, navController, sendEdit)
-
-    val updatedPillVisible = rememberUpdatedFromPhonePill(snap)
-    val syncedPillVisible = rememberSyncedPill(pendingCount)
-
-    if (updatedPillVisible) {
-        UpdatedFromPhonePill(
-            accentColor = dayAccent(snap.day.accentIndex),
-            accentSoftColor = accentSoft(snap.day.accentIndex),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 46.dp),
-        )
+    // Stamp when the lifter last sent an edit (a coalesced flush, a tick). The
+    // "updated from phone" pill uses it to tell the phone re-publishing our own
+    // edit from a genuine phone-side change. rememberSaveable so a restore right
+    // after an edit still suppresses the echo; elapsedRealtime dodges wall-clock jumps.
+    var lastLocalEditAtMillis by rememberSaveable { mutableLongStateOf(Long.MIN_VALUE / 2) }
+    val trackedSendEdit: (SetEditDelta) -> Unit = { delta ->
+        lastLocalEditAtMillis = SystemClock.elapsedRealtime()
+        sendEdit(delta)
     }
 
-    Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp)) {
+    WearNavHost(snap, navController, trackedSendEdit)
+
+    val updatedPillVisible = rememberUpdatedFromPhonePill(snap) {
+        SystemClock.elapsedRealtime() - lastLocalEditAtMillis
+    }
+    val syncedPillVisible = rememberSyncedPill(pendingCount)
+
+    // Every sync indicator lives at the TOP of the face, below the "‹ day X" back
+    // button, as a compact, non-interactive column. It never sits over the tick
+    // button (which used to be covered and un-tappable) and has no `clickable`, so
+    // touches fall straight through to the content and the tick beneath it.
+    Column(
+        modifier = Modifier.align(Alignment.TopCenter).padding(top = 30.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
         when {
             pendingCount > 0 -> QueuedPill(pendingCount)
             syncedPillVisible -> SyncedPill()
         }
+        if (updatedPillVisible) {
+            UpdatedFromPhonePill(
+                accentColor = dayAccent(snap.day.accentIndex),
+                accentSoftColor = accentSoft(snap.day.accentIndex),
+            )
+        }
     }
 }
 
-/** Tracks the last rendered snapshot and flashes true for [UPDATED_PILL_MILLIS] on a real content delta (digest §1.1). */
+/**
+ * Flashes true for [UPDATED_PILL_MILLIS] on a *genuine* phone-side content change
+ * (design digest §1.1). [elapsedSinceLocalEdit] lets [shouldFlashUpdatedFromPhone]
+ * suppress the phone's re-publish of the lifter's own watch edit.
+ */
 @Composable
-private fun rememberUpdatedFromPhonePill(snap: WatchSnapshot): Boolean {
+private fun rememberUpdatedFromPhonePill(snap: WatchSnapshot, elapsedSinceLocalEdit: () -> Long): Boolean {
     var previous by remember { mutableStateOf<WatchSnapshot?>(null) }
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(snap) {
-        if (isUpdatedFromPhone(previous, snap)) {
+        if (shouldFlashUpdatedFromPhone(previous, snap, elapsedSinceLocalEdit(), UPDATED_PILL_SUPPRESS_MILLIS)) {
             visible = true
             delay(UPDATED_PILL_MILLIS)
             visible = false
@@ -124,7 +163,7 @@ private fun rememberUpdatedFromPhonePill(snap: WatchSnapshot): Boolean {
     return visible
 }
 
-/** Tracks the pending-edit count transition and flashes true for [SYNCED_PILL_MILLIS] when it settles to zero (digest §3). */
+/** Tracks the pending-edit count transition and flashes true for ~2s when it settles to zero (digest §3). */
 @Composable
 private fun rememberSyncedPill(pendingCount: Int): Boolean {
     var previousCount by remember { mutableIntStateOf(0) }
@@ -134,7 +173,7 @@ private fun rememberSyncedPill(pendingCount: Int): Boolean {
         previousCount = pendingCount
         if (kind == SyncPillKind.SYNCED) {
             visible = true
-            delay(SYNCED_PILL_MILLIS)
+            delay(2_000L)
             visible = false
         }
     }
@@ -193,13 +232,24 @@ private fun WearNavHost(
     }
 }
 
+/** Encodes the un-flushed local edits so they survive process death (write-on-mutation). */
+private val DeltaListSaver: Saver<List<SetEditDelta>, String> = Saver(
+    save = { SyncCodec.encodeDeltaQueue(it) },
+    restore = { SyncCodec.decodeDeltaQueue(it) },
+)
+
 /**
- * Owns the exercise-stream screen's local navigation state — [currentIndex] is
- * "which round is focused", a pure UI-navigation concept that lives outside
- * [WatchSnapshot] (the round *data* itself is snapshot-sourced, so back/forth
- * navigation never loses progress; only which round is on-screen is local).
- * [rememberSaveable] survives rotation/process death without a ViewModel —
- * this module has no Hilt/DI, so that's the idiomatic no-DI equivalent.
+ * Owns the exercise-stream screen's local state. [currentIndex] is which round is
+ * focused (a pure UI-navigation concept outside [WatchSnapshot]).
+ *
+ * Crown/± edits are *coalesced*: instead of one [SetEditDelta] per rotary detent
+ * (which spammed the sync queue), each detent folds into [dirty] — the pending,
+ * unsent edits — and [applyPendingOverlay] shows them live on the numerals. A
+ * 600ms pause, a tick, a back, or the app stopping flushes [dirty] into one delta
+ * per touched field. [rememberSaveable] keeps [dirty] across process death and
+ * [LifecycleEventEffect] flushes on stop, so an un-flushed edit is never lost.
+ * [sent] holds already-sent-but-unconfirmed edits only to keep the numeral steady
+ * until the phone's next (revision-bumped) snapshot lands.
  */
 @Composable
 private fun ExerciseStreamRoute(
@@ -217,33 +267,61 @@ private fun ExerciseStreamRoute(
     val latestSnap by rememberUpdatedState(snap)
     val scope = rememberCoroutineScope()
 
-    fun send(slot: String, index: Int, weightLb: Double? = null, reps: Int? = null, done: Boolean? = null) {
-        sendEdit(
-            SetEditDelta(
-                dayId = snap.day.dayId,
-                programExerciseId = programExerciseId,
-                slot = slot,
-                setIndex = index,
-                weightLb = weightLb,
-                reps = reps,
-                done = done,
-                editedAtMillis = System.currentTimeMillis(),
-            ),
-        )
+    var dirty by rememberSaveable(programExerciseId, stateSaver = DeltaListSaver) {
+        mutableStateOf(emptyList<SetEditDelta>())
+    }
+    var sent by remember(programExerciseId) { mutableStateOf(emptyList<SetEditDelta>()) }
+    val latestDirty by rememberUpdatedState(dirty)
+    val latestSent by rememberUpdatedState(sent)
+
+    fun flush() {
+        val toSend = latestDirty
+        if (toSend.isEmpty()) return
+        dirty = emptyList()
+        sent = toSend.fold(latestSent) { acc, d -> mergePending(acc, d) }
+        toSend.forEach(sendEdit)
+    }
+
+    // A revision bump (the optimistic echo never bumps it) is the phone's ack:
+    // drop the sent overlay, the snapshot is authoritative now.
+    LaunchedEffect(snap.revision) { sent = emptyList() }
+
+    // Trailing debounce — a fresh edit restarts the timer; a 600ms pause flushes.
+    LaunchedEffect(dirty) {
+        if (dirty.isNotEmpty()) {
+            delay(COALESCE_WINDOW_MILLIS)
+            flush()
+        }
+    }
+
+    // Don't lose an un-flushed edit when the app is backgrounded / the process dies.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { flush() }
+
+    val displayExercise = applyPendingOverlay(exercise, latestSent + latestDirty)
+
+    fun record(slot: String, index: Int, weightLb: Double? = null, reps: Int? = null) {
+        dirty = mergePending(dirty, buildDelta(snap, programExerciseId, slot, index, weightLb, reps, done = null))
     }
 
     ExerciseStreamScreen(
-        state = exercise.toStreamUiState(unit, snap.day.dayId, snap.day.accentIndex),
+        state = displayExercise.toStreamUiState(unit, snap.day.dayId, snap.day.accentIndex),
         currentIndex = boundedIndex,
-        onBack = onBack,
-        onWeightStep = { i, up -> send("main", i, weightLb = scrolledWeightLb(exercise.sets[i].weightLb, unit, up.detent())) },
-        onWeightScroll = { i, detents -> send("main", i, weightLb = scrolledWeightLb(exercise.sets[i].weightLb, unit, detents)) },
-        onRepsStep = { i, up -> send("main", i, reps = steppedReps(exercise.sets[i].reps, up)) },
-        onPartnerWeightStep = { i, up -> send("ss", i, weightLb = scrolledWeightLb(exercise.ssSets[i].weightLb, unit, up.detent())) },
-        onPartnerRepsStep = { i, up -> send("ss", i, reps = steppedReps(exercise.ssSets[i].reps, up)) },
+        onBack = { flush(); onBack() },
+        onWeightStep = { i, up ->
+            record("main", i, weightLb = scrolledWeightLb(displayExercise.sets[i].weightLb, unit, up.detent()))
+        },
+        onWeightScroll = { i, detents ->
+            record("main", i, weightLb = scrolledWeightLb(displayExercise.sets[i].weightLb, unit, detents))
+        },
+        onRepsStep = { i, up -> record("main", i, reps = steppedReps(displayExercise.sets[i].reps, up)) },
+        onPartnerWeightStep = { i, up ->
+            record("ss", i, weightLb = scrolledWeightLb(displayExercise.ssSets[i].weightLb, unit, up.detent()))
+        },
+        onPartnerRepsStep = { i, up -> record("ss", i, reps = steppedReps(displayExercise.ssSets[i].reps, up)) },
         onTick = {
-            val nowDone = !exercise.sets[boundedIndex].done
-            send("main", boundedIndex, done = nowDone)
+            flush()
+            val nowDone = !displayExercise.sets[boundedIndex].done
+            sendEdit(buildDelta(snap, programExerciseId, "main", boundedIndex, weightLb = null, reps = null, done = nowDone))
             if (nowDone) {
                 scope.launch {
                     delay(380)
@@ -258,6 +336,25 @@ private fun ExerciseStreamRoute(
         },
     )
 }
+
+private fun buildDelta(
+    snap: WatchSnapshot,
+    programExerciseId: Long,
+    slot: String,
+    index: Int,
+    weightLb: Double?,
+    reps: Int?,
+    done: Boolean?,
+): SetEditDelta = SetEditDelta(
+    dayId = snap.day.dayId,
+    programExerciseId = programExerciseId,
+    slot = slot,
+    setIndex = index,
+    weightLb = weightLb,
+    reps = reps,
+    done = done,
+    editedAtMillis = System.currentTimeMillis(),
+)
 
 /** A ± button press is a single-detent scroll — one shared weight-stepping rule ([scrolledWeightLb]). */
 private fun Boolean.detent(): Int = if (this) 1 else -1

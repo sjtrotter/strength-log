@@ -63,4 +63,32 @@ class SnapshotChangesTest {
         val differentButSameRevision = snapshot(3L, listOf(squat.copy(name = "Renamed")))
         assertFalse(isUpdatedFromPhone(a, differentButSameRevision))
     }
+
+    // --- own-edit suppression (shouldFlashUpdatedFromPhone) ---
+
+    private val window = 3_500L
+
+    @Test
+    fun `suppressed when the change lands right after a local edit (the phone echoing our own edit)`() {
+        val before = snapshot(1L, listOf(squat))
+        val cascaded = squat.copy(sets = squat.sets.map { it.copy(weightLb = it.weightLb + 10) })
+        val after = snapshot(2L, listOf(cascaded))
+        // Genuine content change, but only 400ms after our own watch edit -> our cascade coming back.
+        assertFalse(shouldFlashUpdatedFromPhone(before, after, elapsedSinceLocalEditMillis = 400L, suppressionWindowMillis = window))
+    }
+
+    @Test
+    fun `fires for a genuine phone change once the suppression window has passed`() {
+        val before = snapshot(1L, listOf(squat))
+        val calf = squat.copy(programExerciseId = 2L, name = "Standing Calf Raise")
+        val after = snapshot(2L, listOf(squat, calf))
+        assertTrue(shouldFlashUpdatedFromPhone(before, after, elapsedSinceLocalEditMillis = 10_000L, suppressionWindowMillis = window))
+    }
+
+    @Test
+    fun `still never fires when nothing visible changed, regardless of local-edit timing`() {
+        val a = snapshot(1L, listOf(squat))
+        val b = snapshot(2L, listOf(squat)) // idle republish
+        assertFalse(shouldFlashUpdatedFromPhone(a, b, elapsedSinceLocalEditMillis = 10_000L, suppressionWindowMillis = window))
+    }
 }

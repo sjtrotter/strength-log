@@ -34,9 +34,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
+import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import io.github.sjtrotter.strengthlog.ui.components.AppCard
 import io.github.sjtrotter.strengthlog.ui.components.SelectionCard
 import io.github.sjtrotter.strengthlog.ui.components.Stepper
@@ -74,7 +76,8 @@ fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseAc
                 item { NameField(state.name, actions.onNameChange) }
                 item { PatternSection(state, actions) }
                 item { EquipmentSection(state, actions) }
-                item { PerHandAndWeightSection(state, actions) }
+                item { TrackingSection(state, actions) }
+                item { PerHandAndTargetSection(state, actions) }
                 item { Spacer(Modifier.size(8.dp)) }
             }
             Footer(state, accent, onAccent, actions)
@@ -163,8 +166,45 @@ private fun EquipmentSection(state: CustomExerciseUiState, actions: CustomExerci
     }
 }
 
+/**
+ * The tracking-type choice (tracking-types §2.1, §5.6): what the exercise's
+ * GOAL is and how its sets log — weight×reps, reps only, or a timed hold.
+ * Three [SelectionCard]s, same pattern as [PatternSection], so the choice
+ * reads as a first-class question rather than a buried toggle.
+ */
 @Composable
-private fun PerHandAndWeightSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
+private fun TrackingSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
+    Column {
+        Text("How is it tracked?", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Spacer(Modifier.size(6.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SelectionCard(
+                title = "Weighted",
+                subtitle = "Load × reps — barbell, dumbbell, machine, cable.",
+                selected = state.tracking == TrackingType.WEIGHTED,
+                onClick = { actions.onTrackingChange(TrackingType.WEIGHTED) },
+            )
+            SelectionCard(
+                title = "Reps",
+                subtitle = "Bodyweight, counted reps — push-up, pull-up, sit-up.",
+                selected = state.tracking == TrackingType.REPS,
+                onClick = { actions.onTrackingChange(TrackingType.REPS) },
+            )
+            SelectionCard(
+                title = "Timed",
+                subtitle = "A hold or carry, logged in seconds — plank, wall sit.",
+                selected = state.tracking == TrackingType.TIMED,
+                onClick = { actions.onTrackingChange(TrackingType.TIMED) },
+            )
+        }
+    }
+}
+
+/** The per-hand toggle plus whichever target input matches [state.tracking]
+ *  (§3): a starting GOAL weight, a target rep count, or a target hold with an
+ *  optional added load — never all three at once. */
+@Composable
+private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
     AppCard {
         SwitchToggle(
             label = "Per hand (dumbbell/unilateral)",
@@ -173,22 +213,81 @@ private fun PerHandAndWeightSection(state: CustomExerciseUiState, actions: Custo
         )
     }
     Spacer(Modifier.size(12.dp))
+    when (state.tracking) {
+        TrackingType.WEIGHTED -> WeightTargetCard(
+            label = "Starting weight (${state.unit.name.lowercase()})",
+            weightDisplay = state.weightDisplay,
+            unit = state.unit,
+            onWeightChange = actions.onWeightChange,
+        )
+        TrackingType.REPS -> TargetStepperCard(
+            label = "Target reps",
+            value = state.targetReps,
+            onValueChange = actions.onTargetRepsChange,
+            step = 1,
+            decreaseDescription = "Decrease target reps",
+            increaseDescription = "Increase target reps",
+        )
+        TrackingType.TIMED -> {
+            TargetStepperCard(
+                label = "Target hold (seconds)",
+                value = state.targetSeconds,
+                onValueChange = actions.onTargetSecondsChange,
+                step = 5,
+                decreaseDescription = "Decrease target hold",
+                increaseDescription = "Increase target hold",
+            )
+            Spacer(Modifier.size(12.dp))
+            WeightTargetCard(
+                label = "Added load, optional (${state.unit.name.lowercase()})",
+                weightDisplay = state.addedWeightDisplay,
+                unit = state.unit,
+                onWeightChange = actions.onAddedWeightChange,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeightTargetCard(label: String, weightDisplay: Double, unit: WeightUnit, onWeightChange: (Double) -> Unit) {
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                "Starting weight (${state.unit.name.lowercase()})",
-                color = TextSecondary,
-                style = MaterialTheme.typography.bodySmall,
-            )
+            Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.size(8.dp))
             Stepper(
-                value = state.weightDisplay,
-                onValueChange = actions.onWeightChange,
-                step = { WeightStepper.increment(it, state.unit) },
-                round = { WeightStepper.round(it, state.unit) },
+                value = weightDisplay,
+                onValueChange = onWeightChange,
+                step = { WeightStepper.increment(it, unit) },
+                round = { WeightStepper.round(it, unit) },
                 format = WeightStepper::format,
-                decreaseDescription = "Decrease starting weight",
-                increaseDescription = "Increase starting weight",
+                decreaseDescription = "Decrease $label",
+                increaseDescription = "Increase $label",
+            )
+        }
+    }
+}
+
+@Composable
+private fun TargetStepperCard(
+    label: String,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    step: Int,
+    decreaseDescription: String,
+    increaseDescription: String,
+) {
+    AppCard {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.size(8.dp))
+            Stepper(
+                value = value.toDouble(),
+                onValueChange = { onValueChange(it.toInt()) },
+                step = { step.toDouble() },
+                minValue = step.toDouble(),
+                format = { it.toInt().toString() },
+                decreaseDescription = decreaseDescription,
+                increaseDescription = increaseDescription,
             )
         }
     }
@@ -286,7 +385,9 @@ private fun CustomExerciseScreenPreview() {
             state = CustomExerciseUiState(name = "Cable Hack Squat", pattern = MovementPattern.SQUAT_BILATERAL),
             actions = CustomExerciseActions(
                 onNameChange = {}, onPatternChange = {}, onEquipmentToggle = {},
-                onPerHandChange = {}, onWeightChange = {}, onSave = {}, onCancel = {},
+                onPerHandChange = {}, onTrackingChange = {}, onWeightChange = {},
+                onTargetRepsChange = {}, onTargetSecondsChange = {}, onAddedWeightChange = {},
+                onSave = {}, onCancel = {},
             ),
         )
     }

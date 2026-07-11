@@ -28,6 +28,12 @@ class ExerciseCatalog(customEntries: List<ExerciseEntry>) {
     fun get(id: String): ExerciseEntry =
         byId[id] ?: error("Unknown exercise id: $id")
 
+    /** The unloaded (REMOVE-WEIGHT) counterpart of a loaded entry, if any (§4.2)
+     *  — mirrors [ExerciseLibrary.bodyweightPairFor] so callers depend only on
+     *  the catalog. Custom exercises never declare [ExerciseEntry.weightedPairId],
+     *  so the code library's reverse index already covers the whole merged set. */
+    fun bodyweightPairFor(id: String): String? = ExerciseLibrary.bodyweightPairFor(id)
+
     fun byPattern(pattern: MovementPattern): List<ExerciseEntry> =
         entries.filter { it.pattern == pattern }.sortedBy { it.subRank }
 

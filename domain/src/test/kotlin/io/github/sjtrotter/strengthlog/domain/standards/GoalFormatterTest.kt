@@ -58,4 +58,10 @@ class GoalFormatterTest {
         // number isn't sensitive to WeightStepper's decimal formatting.
         assertEquals("30s +20", GoalFormatter.label(GoalTarget.Time(30, 44.092452436), WeightUnit.KG))
     }
+
+    @Test
+    fun `timed label switches to m colon ss at 90 seconds, same threshold as the row stepper`() {
+        assertEquals("1:30", GoalFormatter.label(GoalTarget.Time(90, 0.0), WeightUnit.LB))
+        assertEquals("2:00 +45", GoalFormatter.label(GoalTarget.Time(120, 45.0), WeightUnit.LB))
+    }
 }

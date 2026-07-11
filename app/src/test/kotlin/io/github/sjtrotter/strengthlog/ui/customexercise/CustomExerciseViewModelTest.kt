@@ -10,6 +10,8 @@ import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.db.StrengthDatabase
 import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
+import io.github.sjtrotter.strengthlog.domain.library.GoalSource
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
@@ -151,6 +153,80 @@ class CustomExerciseViewModelTest {
         assertEquals(MovementPattern.SQUAT_BILATERAL, saved.pattern)
         assertTrue(saved.perHand)
         assertEquals(listOf(Equipment.CABLE), saved.equipment)
+    }
+
+    // --- tracking-type mapping (P4: form gains a WEIGHTED/REPS/TIMED choice) ----
+
+    @Test
+    fun defaultTracking_isWeighted_andSavesAFlatGoalAsBefore() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        assertEquals(TrackingType.WEIGHTED, vm.uiState.value.tracking)
+        vm.setName("Cable Hack Squat")
+        vm.setWeightDisplay(80.0)
+        advanceUntilIdle() // setWeightDisplay converts via unitFlow.first() asynchronously
+        vm.save()
+        advanceUntilIdle()
+
+        val saved = repo.catalogFlow.first().entries.first { it.name == "Cable Hack Squat" }
+        assertEquals(GoalSource.Flat(80.0), saved.goal)
+    }
+
+    @Test
+    fun repsTracking_savesTheTargetRepCount_ignoringTheWeightField() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.setName("Bodyweight Lunge")
+        vm.setTracking(TrackingType.REPS)
+        vm.setTargetReps(15)
+        vm.setWeightDisplay(999.0) // must be ignored once tracking is REPS
+        advanceUntilIdle()
+
+        assertEquals(TrackingType.REPS, vm.uiState.value.tracking)
+        assertEquals(15, vm.uiState.value.targetReps)
+        vm.save()
+        advanceUntilIdle()
+
+        val saved = repo.catalogFlow.first().entries.first { it.name == "Bodyweight Lunge" }
+        assertEquals(GoalSource.Reps(15), saved.goal)
+    }
+
+    @Test
+    fun timedTracking_savesTargetSecondsAndOptionalAddedLoad() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.setName("Custom Timed Hold")
+        vm.setTracking(TrackingType.TIMED)
+        vm.setTargetSeconds(60)
+        vm.setAddedWeightDisplay(10.0)
+        advanceUntilIdle()
+
+        assertEquals(TrackingType.TIMED, vm.uiState.value.tracking)
+        assertEquals(60, vm.uiState.value.targetSeconds)
+        assertEquals(10.0, vm.uiState.value.addedWeightDisplay, 0.001)
+        vm.save()
+        advanceUntilIdle()
+
+        val saved = repo.catalogFlow.first().entries.first { it.name == "Custom Timed Hold" }
+        assertEquals(GoalSource.Time(60, 10.0), saved.goal)
+    }
+
+    @Test
+    fun timedTracking_withNoAddedLoad_savesAnUnloadedHold() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.setName("Plank")
+        vm.setTracking(TrackingType.TIMED)
+        vm.setTargetSeconds(45)
+        vm.save()
+        advanceUntilIdle()
+
+        val saved = repo.catalogFlow.first().entries.first { it.name == "Plank" }
+        assertEquals(GoalSource.Time(45, 0.0), saved.goal)
     }
 
     // --- nav arg: pattern pre-fill from the #11 picker context -------------------

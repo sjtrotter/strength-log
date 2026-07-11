@@ -11,6 +11,8 @@ import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.domain.generator.Rotation
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
+import io.github.sjtrotter.strengthlog.domain.library.tracking
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
@@ -155,6 +157,18 @@ class DayViewModel @Inject constructor(
             val sets = trackFor(day, programExerciseId, slot)
             if (index !in sets.indices) return@mutate
             repo.updateSets(day, programExerciseId, slot, SetEditor.editReps(sets, index, newReps))
+        }
+    }
+
+    /** TIMED tracks' seconds edit — same write-immediately shape as
+     *  [changeReps]/[changeWeight], routed through [SetEditor.editSeconds]
+     *  (never cascades, exactly like reps). */
+    fun changeSeconds(programExerciseId: Long, slot: String, index: Int, newSeconds: Int) {
+        val day = currentDay() ?: return
+        mutate {
+            val sets = trackFor(day, programExerciseId, slot)
+            if (index !in sets.indices) return@mutate
+            repo.updateSets(day, programExerciseId, slot, SetEditor.editSeconds(sets, index, newSeconds))
         }
     }
 
@@ -378,8 +392,13 @@ class DayViewModel @Inject constructor(
         val name = entry?.name ?: pe.exerciseId
         val goalTarget = entry?.let { GoalCalculator.targetFor(it, cfg) }
             ?: GoalTarget.Weight(0.0, perHand = false)
+        val tracking = entry?.tracking ?: TrackingType.WEIGHTED
+        val timedShowsWeight = (goalTarget as? GoalTarget.Time)?.let { it.addedLb > 0.0 } ?: false
         val main = logsByKey[id to Slot.MAIN]?.sets ?: emptyList()
         val partnerEntry = pe.superset?.let { catalog.find(it.exerciseId) }
+        val partnerGoalTarget = partnerEntry?.let { GoalCalculator.targetFor(it, cfg) }
+        val partnerTracking = partnerEntry?.tracking
+        val partnerTimedShowsWeight = (partnerGoalTarget as? GoalTarget.Time)?.let { it.addedLb > 0.0 } ?: false
         val partnerSets = pe.superset?.let { logsByKey[id to Slot.SS]?.sets }
 
         val labels = DayScreenBuilder.kindLabels(main)
@@ -390,9 +409,10 @@ class DayViewModel @Inject constructor(
                 isTop = s.kind == SetKind.TOP,
                 weightDisplay = unit.fromLb(s.weightLb),
                 reps = s.reps,
+                seconds = s.seconds,
                 done = s.done,
                 partner = partnerSets?.getOrNull(i)?.let {
-                    PartnerRowState(weightDisplay = unit.fromLb(it.weightLb), reps = it.reps)
+                    PartnerRowState(weightDisplay = unit.fromLb(it.weightLb), reps = it.reps, seconds = it.seconds)
                 },
             )
         }
@@ -400,6 +420,7 @@ class DayViewModel @Inject constructor(
         val lastPerformed = history.lastPerformed[pe.exerciseId]
         return ExerciseCardState(
             programExerciseId = id,
+            position = slot.position,
             title = if (pe.superset != null) {
                 "SS: $name + ${partnerEntry?.name ?: pe.superset!!.exerciseId}"
             } else {
@@ -410,12 +431,20 @@ class DayViewModel @Inject constructor(
             hasWarmupHint = pe.hasWarmupHint,
             goalDisplay = goalDisplay,
             perHand = entry?.perHand == true,
+            tracking = tracking,
+            timedShowsWeight = timedShowsWeight,
+            partnerTracking = partnerTracking,
+            partnerTimedShowsWeight = partnerTimedShowsWeight,
             lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, unit),
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[pe.exerciseId], lastPerformed, unit),
             allDone = DayScreenBuilder.allDone(main),
             collapsed = DayScreenBuilder.collapsed(main, collapse[id]),
-            collapsedSummary = DayScreenBuilder.collapsedSummary(main, partnerSets, goalDisplay, unit),
+            collapsedSummary = DayScreenBuilder.collapsedSummary(
+                main, partnerSets, goalDisplay, unit,
+                tracking = tracking, partnerTracking = partnerTracking ?: TrackingType.WEIGHTED,
+            ),
             rows = rows,
+            weightSwap = DayScreenBuilder.weightSwapAffordance(entry, catalog),
         )
     }
 

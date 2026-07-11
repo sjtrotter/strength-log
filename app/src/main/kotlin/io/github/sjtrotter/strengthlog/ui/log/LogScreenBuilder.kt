@@ -2,6 +2,7 @@ package io.github.sjtrotter.strengthlog.ui.log
 
 import io.github.sjtrotter.strengthlog.data.db.entity.SessionSetEntity
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
+import io.github.sjtrotter.strengthlog.domain.standards.SetFormatter
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import io.github.sjtrotter.strengthlog.ui.day.DayScreenBuilder
@@ -43,6 +44,12 @@ object LogScreenBuilder {
      * Groups a session's flat [sets] by exercise id, preserving first-appearance
      * order. A superset's partner has its own `exerciseId`/name, so it lands in
      * its own group — this is "grouped by exercise", not by program slot.
+     *
+     * Each row formats by its logged VALUE ([SetFormatter.summaryOfValues]),
+     * not by looking the exercise back up in the catalog: a `session_set` row
+     * can predate a reclassification (design risk #3 — the P3 fixup only ever
+     * touched live `exercise_log` rows, never history), so a legacy plank
+     * logged as reps must still read as reps, never a manufactured "0s".
      */
     fun groupByExercise(sets: List<SessionSetEntity>, unit: WeightUnit): List<SessionExerciseGroup> {
         val byExercise = LinkedHashMap<String, MutableList<SessionSetEntity>>()
@@ -54,7 +61,7 @@ object LogScreenBuilder {
             SessionExerciseGroup(
                 exerciseName = group.first().exerciseName,
                 sets = group.mapIndexed { i, s ->
-                    SessionSetSummary(labels[i], "${WeightStepper.format(unit.fromLb(s.weightLb))}×${s.reps}")
+                    SessionSetSummary(labels[i], SetFormatter.summaryOfValues(s.weightLb, s.reps, s.seconds, unit))
                 },
             )
         }

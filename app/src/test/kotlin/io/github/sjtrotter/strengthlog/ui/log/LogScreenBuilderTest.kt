@@ -11,11 +11,18 @@ import kotlin.test.assertEquals
 
 class LogScreenBuilderTest {
 
-    private fun set(exerciseId: String, name: String, kind: SetKind, weightLb: Double, reps: Int, sessionId: Long = 1) =
-        SessionSetEntity(
-            id = 0, sessionId = sessionId, exerciseId = exerciseId, exerciseName = name, slot = Slot.MAIN,
-            setIndex = 0, kind = kind.name, weightLb = weightLb, reps = reps, done = true,
-        )
+    private fun set(
+        exerciseId: String,
+        name: String,
+        kind: SetKind,
+        weightLb: Double,
+        reps: Int,
+        sessionId: Long = 1,
+        seconds: Int = 0,
+    ) = SessionSetEntity(
+        id = 0, sessionId = sessionId, exerciseId = exerciseId, exerciseName = name, slot = Slot.MAIN,
+        setIndex = 0, kind = kind.name, weightLb = weightLb, reps = reps, done = true, seconds = seconds,
+    )
 
     // --- date / day / bodyweight formatting -----------------------------------
 
@@ -94,5 +101,22 @@ class LogScreenBuilderTest {
     @Test
     fun groupByExercise_of_an_empty_session_is_an_empty_list() {
         assertEquals(emptyList(), LogScreenBuilder.groupByExercise(emptyList(), WeightUnit.LB))
+    }
+
+    @Test
+    fun groupByExercise_reads_a_hold_from_a_positive_seconds_value() {
+        val sets = listOf(set("plank", "Plank / Side Plank", SetKind.WORK, 0.0, 0, seconds = 45))
+        val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
+        assertEquals("45s", groups.single().sets.single().weightRepsDisplay)
+    }
+
+    @Test
+    fun groupByExercise_renders_a_legacy_reps_shaped_TIMED_row_as_reps_never_0s() {
+        // Logged before "plank" was reclassified to TIMED: history predates the
+        // P3 fixup (which only ever touched live exercise_log rows), so this
+        // row is still weight 0 / reps 45 / seconds 0 — must read as reps.
+        val sets = listOf(set("plank", "Plank / Side Plank", SetKind.WORK, 0.0, 45))
+        val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
+        assertEquals("×45", groups.single().sets.single().weightRepsDisplay)
     }
 }

@@ -8,6 +8,9 @@ import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.StrengthDatabase
 import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseLibrary
+import io.github.sjtrotter.strengthlog.domain.library.GoalSource
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
+import io.github.sjtrotter.strengthlog.domain.library.tracking
 import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import java.io.File
@@ -120,6 +123,42 @@ class TrackerRepositoryCustomExerciseTest {
         assertEquals(MovementPattern.SQUAT_BILATERAL, entry.pattern)
         assertTrue(entry.perHand)
         assertTrue(id in catalog.byPattern(MovementPattern.SQUAT_BILATERAL).map { it.id })
+    }
+
+    // --- tracking-type mapping (P4: custom-exercise form gains a type choice) --
+
+    @Test
+    fun `a REPS custom exercise stores its rep target and ignores the weight field`() = runTest {
+        val id = repo.addCustomExercise(
+            name = "Bodyweight Lunge",
+            pattern = MovementPattern.SINGLE_LEG,
+            equipment = listOf(Equipment.BODYWEIGHT),
+            perHand = false,
+            goalStartLb = 0.0,
+            tracking = TrackingType.REPS,
+            targetReps = 15,
+        )
+
+        val entry = repo.catalogFlow.first().get(id)
+        assertEquals(TrackingType.REPS, entry.tracking)
+        assertEquals(GoalSource.Reps(15), entry.goal)
+    }
+
+    @Test
+    fun `a TIMED custom exercise stores its target seconds and optional added load`() = runTest {
+        val id = repo.addCustomExercise(
+            name = "Wall Sit",
+            pattern = MovementPattern.SQUAT_BILATERAL,
+            equipment = listOf(Equipment.BODYWEIGHT),
+            perHand = false,
+            goalStartLb = 10.0,
+            tracking = TrackingType.TIMED,
+            targetSeconds = 60,
+        )
+
+        val entry = repo.catalogFlow.first().get(id)
+        assertEquals(TrackingType.TIMED, entry.tracking)
+        assertEquals(GoalSource.Time(60, 10.0), entry.goal)
     }
 
     @Test

@@ -9,17 +9,21 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 // DayTab is both a data class (DayScreenModels) and the day-tab composable
 // (DayScreen, made `internal` for this test) living in the same package —
 // the wildcard import resolves each call by shape, exactly as it already
-// does inside DayScreen.kt itself.
+// does inside DayScreen.kt itself. WeightSwapPill/WeightSwapConfirmDialog/
+// WeightSwapAffordance (§4.2) resolve the same way.
 import io.github.sjtrotter.strengthlog.ui.day.*
 import io.github.sjtrotter.strengthlog.ui.theme.AppTheme
 import io.github.sjtrotter.strengthlog.ui.theme.accentSoft
 import io.github.sjtrotter.strengthlog.ui.theme.dayAccent
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -99,6 +103,143 @@ class A11ySemanticsTest {
         composeTestRule.onNodeWithContentDescription("Decrease reps").assertExists()
         composeTestRule.onNodeWithContentDescription("Increase reps").assertExists()
         composeTestRule.onNodeWithContentDescription("Remove set").assertExists()
+    }
+
+    // --- per-type set rows (tracking-types §3) -----------------------------------
+
+    @Test
+    fun repsTrackRowHasNoWeightControlAtAll() {
+        composeTestRule.setContent {
+            AppTheme {
+                SetRow(
+                    kindLabel = "1",
+                    accent = dayAccent(0),
+                    accentSoft = accentSoft(0),
+                    weight = 0.0,
+                    onWeightChange = {},
+                    weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
+                    weightFormat = WeightStepper::format,
+                    weightRound = { WeightStepper.round(it, WeightUnit.LB) },
+                    reps = 12,
+                    onRepsChange = {},
+                    tracking = TrackingType.REPS,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithContentDescription("Decrease weight").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Increase weight").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Decrease reps").assertExists()
+        composeTestRule.onNodeWithContentDescription("Increase reps").assertExists()
+    }
+
+    @Test
+    fun timedTrackRowShowsAHoldStepperAndHidesWeightUnlessTheGoalCarriesLoad() {
+        composeTestRule.setContent {
+            AppTheme {
+                SetRow(
+                    kindLabel = "1",
+                    accent = dayAccent(0),
+                    accentSoft = accentSoft(0),
+                    weight = 0.0,
+                    onWeightChange = {},
+                    weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
+                    weightFormat = WeightStepper::format,
+                    weightRound = { WeightStepper.round(it, WeightUnit.LB) },
+                    reps = 0,
+                    onRepsChange = {},
+                    tracking = TrackingType.TIMED,
+                    seconds = 45,
+                    showTimedWeight = false,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithContentDescription("Decrease hold").assertExists()
+        composeTestRule.onNodeWithContentDescription("Increase hold").assertExists()
+        composeTestRule.onNodeWithText("45s").assertExists()
+        composeTestRule.onNodeWithContentDescription("Decrease weight").assertDoesNotExist()
+    }
+
+    @Test
+    fun timedTrackRowShowsTheWeightStepperWhenTheGoalCarriesLoad() {
+        composeTestRule.setContent {
+            AppTheme {
+                SetRow(
+                    kindLabel = "1",
+                    accent = dayAccent(0),
+                    accentSoft = accentSoft(0),
+                    weight = 25.0,
+                    onWeightChange = {},
+                    weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
+                    weightFormat = WeightStepper::format,
+                    weightRound = { WeightStepper.round(it, WeightUnit.LB) },
+                    reps = 0,
+                    onRepsChange = {},
+                    tracking = TrackingType.TIMED,
+                    seconds = 90,
+                    showTimedWeight = true,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithContentDescription("Decrease weight").assertExists()
+        // 90s crosses the m:ss threshold, same as the GOAL chip/history formatters.
+        composeTestRule.onNodeWithText("1:30").assertExists()
+    }
+
+    // --- ADD WEIGHT / REMOVE WEIGHT pill (§4.2) ----------------------------------
+
+    @Test
+    fun addWeightPillReadsAsALabeledAffordanceAndFiresOnClick() {
+        var tapped = false
+        composeTestRule.setContent {
+            AppTheme {
+                WeightSwapPill(
+                    swap = WeightSwapAffordance("weighted_plank", "Weighted Plank", isRemove = false),
+                    accent = dayAccent(0),
+                    onClick = { tapped = true },
+                )
+            }
+        }
+
+        val pill = composeTestRule.onNodeWithText("+ ADD WEIGHT")
+        pill.assertExists()
+        pill.performClick()
+        assertTrue(tapped)
+    }
+
+    @Test
+    fun removeWeightPillReadsDifferentlyFromAddWeight() {
+        composeTestRule.setContent {
+            AppTheme {
+                WeightSwapPill(
+                    swap = WeightSwapAffordance("plank", "Plank / Side Plank", isRemove = true),
+                    accent = dayAccent(0),
+                    onClick = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("− REMOVE WEIGHT").assertExists()
+    }
+
+    @Test
+    fun weightSwapConfirmDialogNamesTheTargetAndConfirmingInvokesTheCallback() {
+        var confirmed = false
+        composeTestRule.setContent {
+            AppTheme {
+                WeightSwapConfirmDialog(
+                    swap = WeightSwapAffordance("weighted_pullup", "Weighted Pull-Up", isRemove = false),
+                    onConfirm = { confirmed = true },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Switch to Weighted Pull-Up?").assertExists()
+        composeTestRule.onNodeWithText("Switch").performClick()
+        assertTrue(confirmed)
     }
 
     @Test

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The app's window theme. This is a single-activity Jetpack Compose app (MAD),
+      so Compose owns every pixel and the window must be NoActionBar. Without an
+      explicit theme the framework falls back to a default that draws a system
+      ActionBar titled with android:label ("strength.log") on top of the Compose
+      content — hiding the real day header and clipping the top of the list,
+      especially on a cold launch through a Launcher_Day* alias. NoActionBar
+      removes it. windowBackground is the near-black §8.5 fill (no launch flash);
+      the system bars are transparent so enableEdgeToEdge() draws behind them and
+      the composables inset themselves via systemBarsPadding().
+    -->
+    <style name="Theme.StrengthLog" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

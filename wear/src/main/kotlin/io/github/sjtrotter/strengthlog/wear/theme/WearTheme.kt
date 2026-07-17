@@ -31,10 +31,6 @@ val AmbientClock = Color(0xFF6B6B73)
 
 val Done = Color(0xFF3E8E5A)
 
-// All ± circular stepper buttons (digest §0).
-val StepperBg = Color(0xFF1D1D22)
-val StepperBorder = Color(0xFF2A2A30)
-
 // "Phone away" queued-edit pill (digest §0/§3).
 val QueuedPillBg = Color(0xFF1D1D22)
 val QueuedPillBorder = Color(0xFF3A3A42)

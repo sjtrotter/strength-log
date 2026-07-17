@@ -1,6 +1,7 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
 import io.github.sjtrotter.strengthlog.domain.library.TrackingType
+import io.github.sjtrotter.strengthlog.domain.standards.SetFormatter
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
@@ -92,6 +93,16 @@ data class RoundUiState(
     val reps: Int,
     val seconds: Int,
     val done: Boolean,
+    /** The read-only hero numeral (redesign §1.2), pre-formatted per tracking type
+     *  so the screen does layout only: the weight (WEIGHTED), "×r" (REPS), the hold
+     *  (TIMED), or — for a superset round — the [SetFormatter] summary ("185×5")
+     *  regardless of tracking, since a paired round always reads as one line. */
+    val heroDisplay: String,
+    /** The read-only secondary caption under the hero numeral: "× 5" reps for
+     *  WEIGHTED, blank for REPS/TIMED/superset (their captions are either a static
+     *  label the screen owns, or the exercise-level added-load caption, or the
+     *  partner row). */
+    val secondaryDisplay: String,
     /** Null when this exercise has no superset partner. */
     val partner: PartnerRowUiState? = null,
 ) {
@@ -99,12 +110,18 @@ data class RoundUiState(
     val secondsDisplay: String get() = SecondsStepper.format(seconds)
 }
 
-data class PartnerRowUiState(val weightDisplay: Double, val reps: Int)
+data class PartnerRowUiState(
+    val weightDisplay: Double,
+    val reps: Int,
+    /** The partner round's [SetFormatter] summary ("50×12") — read-only. */
+    val summaryDisplay: String,
+)
 
 /** [unit] converts the DTO's canonical lb into what the watch displays. */
 fun WatchExercise.toStreamUiState(unit: WeightUnit, dayId: String, accentIndex: Int): ExerciseStreamUiState {
     val labels = kindLabels(sets)
     val track = watchTracking(tracking)
+    val isSuperset = supersetPartnerName != null
     // A TIMED goal carries its added load on the numeric [goal] (0 when none), so a
     // loaded hold is simply goal > 0 — same rule the phone's timedShowsWeight uses.
     val loaded = track == TrackingType.TIMED && goal > 0.0
@@ -122,6 +139,12 @@ fun WatchExercise.toStreamUiState(unit: WeightUnit, dayId: String, accentIndex: 
         perHand = perHand,
         partnerName = supersetPartnerName,
         rounds = sets.mapIndexed { i, set ->
+            val (hero, secondary) = when {
+                isSuperset -> SetFormatter.summary(track, set.weightLb, set.reps, set.seconds, unit) to ""
+                track == TrackingType.WEIGHTED -> WeightStepper.format(unit.fromLb(set.weightLb)) to "× ${set.reps}"
+                track == TrackingType.REPS -> "×${set.reps}" to ""
+                else -> SecondsStepper.format(set.seconds) to ""
+            }
             RoundUiState(
                 index = i,
                 kindLabel = labels[i],
@@ -129,8 +152,14 @@ fun WatchExercise.toStreamUiState(unit: WeightUnit, dayId: String, accentIndex: 
                 reps = set.reps,
                 seconds = set.seconds,
                 done = set.done,
+                heroDisplay = hero,
+                secondaryDisplay = secondary,
                 partner = ssSets.getOrNull(i)?.let {
-                    PartnerRowUiState(unit.fromLb(it.weightLb), it.reps)
+                    PartnerRowUiState(
+                        weightDisplay = unit.fromLb(it.weightLb),
+                        reps = it.reps,
+                        summaryDisplay = SetFormatter.summary(track, it.weightLb, it.reps, it.seconds, unit),
+                    )
                 },
             )
         },

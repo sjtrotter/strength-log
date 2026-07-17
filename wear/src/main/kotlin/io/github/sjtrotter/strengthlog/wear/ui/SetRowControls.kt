@@ -22,46 +22,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Text
 import io.github.sjtrotter.strengthlog.wear.theme.Done
 import io.github.sjtrotter.strengthlog.wear.theme.QueuedPillBg
 import io.github.sjtrotter.strengthlog.wear.theme.QueuedPillBorder
-import io.github.sjtrotter.strengthlog.wear.theme.StepperBg
-import io.github.sjtrotter.strengthlog.wear.theme.StepperBorder
 import io.github.sjtrotter.strengthlog.wear.theme.TextPrimary
 import io.github.sjtrotter.strengthlog.wear.theme.TextSecondary
 
-/** A circular ± button — every weight/reps stepper on the exercise stream (digest §1.2). */
-@Composable
-fun StepperButton(size: Dp, glyph: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .background(StepperBg, CircleShape)
-            .border(1.dp, StepperBorder, CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(glyph, color = TextSecondary, fontSize = (size.value * 0.44f).sp, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-/** The floating 44dp tick button (digest §1.2) — accent when undone, [Done] green when done.
- *  Sized down from the original 56dp so it clears the bottom bezel and the reps row on the
- *  small round face without ever being covered by a sync pill (those now sit at the top). */
+/** The floating 56dp tick button (redesign §1.3) — accent when undone, [Done] green when done.
+ *  Grown back to 56dp (A7's ≥48dp target) now that [ExerciseStreamScreen]'s reserved bottom
+ *  slot makes overlap with the round content structurally impossible, rather than shrunk to
+ *  dodge it. */
 @Composable
 fun TickButton(done: Boolean, accent: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(44.dp)
+            .size(56.dp)
             .background(if (done) Done else accent, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text("✓", color = TextPrimary, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+        Text("✓", color = TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     }
 }
 

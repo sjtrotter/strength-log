@@ -142,6 +142,39 @@ class WatchUiModelsTest {
         assertEquals(12, stream.rounds.single().partner?.reps)
     }
 
+    // --- read-only hero/secondary display (redesign §1.2) ------------------------
+
+    @Test
+    fun `a WEIGHTED round's hero is the weight and its secondary is the rep count`() {
+        val stream = squat.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        val top = stream.rounds.single { it.kindLabel == "TOP" }
+        assertEquals("235", top.heroDisplay)
+        assertEquals("× 5", top.secondaryDisplay)
+    }
+
+    @Test
+    fun `a REPS round's hero uses the multiplier glyph and has no secondary`() {
+        val stream = pullup.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        assertEquals("×6", stream.rounds.first().heroDisplay)
+        assertEquals("", stream.rounds.first().secondaryDisplay)
+    }
+
+    @Test
+    fun `a TIMED round's hero is the formatted hold and has no secondary`() {
+        val stream = plank.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        assertEquals("45s", stream.rounds.first().heroDisplay)
+        assertEquals("", stream.rounds.first().secondaryDisplay)
+    }
+
+    @Test
+    fun `a superset round's hero is the SetFormatter summary and the partner carries its own summary`() {
+        val stream = press.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        val round = stream.rounds.single()
+        assertEquals("75×8", round.heroDisplay)
+        assertEquals("", round.secondaryDisplay)
+        assertEquals("50×12", round.partner?.summaryDisplay)
+    }
+
     @Test
     fun `day-done rounds-logged sums every exercise's round count`() {
         val doneState = snapshot.toDayDoneUiState()

@@ -31,6 +31,13 @@ import kotlinx.coroutines.launch
  * Fire-once is structural: [arm] cancels any running timer before starting a new
  * one (one timer at a time), the coroutine buzzes exactly once when it reaches the
  * deadline, and a cancelled coroutine (skip / replace) never buzzes.
+ *
+ * Each job owns its wake lock as a coroutine-local and releases *that* instance in
+ * its own `finally` — never a shared field. This matters when [arm] replaces a
+ * still-active job: `cancel()` only queues the old coroutine's cancellation, so its
+ * `finally` runs *after* the replacement has already acquired a fresh lock; a
+ * shared field would let the departing job release the newcomer's lock and silently
+ * void its ambient-punctuality.
  */
 class RestTimerController(
     private val context: Context,
@@ -46,7 +53,6 @@ class RestTimerController(
     data class ActiveRest(val deadlineMillis: Long, val nextLabel: String)
 
     private var job: Job? = null
-    private var wakeLock: PowerManager.WakeLock? = null
 
     /**
      * Start (or idempotently keep) a deadline-anchored single-buzz timer for
@@ -58,7 +64,8 @@ class RestTimerController(
      */
     fun arm(deadlineMillis: Long, nextLabel: String) {
         if (job?.isActive == true && activeRest?.deadlineMillis == deadlineMillis) return
-        cancelJobAndLock()
+        job?.cancel()
+        job = null
 
         val remaining = RestTimer.remainingMillis(deadlineMillis, SystemClock.elapsedRealtime())
         if (remaining <= 0L) {
@@ -69,7 +76,12 @@ class RestTimerController(
         }
 
         activeRest = ActiveRest(deadlineMillis, nextLabel)
-        acquireWakeLock(RestTimer.wakeLockTimeoutMillis(remaining))
+        // Acquire the lock as a LOCAL and release that same instance in this job's
+        // own finally — never a shared field. Replacing a still-active job only
+        // *queues* the old coroutine's cancellation, so its finally runs after this
+        // new lock is already acquired; a shared field would let the old job release
+        // the new lock, silently voiding the replacement's ambient-punctuality.
+        val wakeLock = acquireWakeLock(RestTimer.wakeLockTimeoutMillis(remaining))
         job = scope.launch {
             try {
                 while (isActive && SystemClock.elapsedRealtime() < deadlineMillis) {
@@ -81,21 +93,20 @@ class RestTimerController(
                     if (activeRest?.deadlineMillis == deadlineMillis) activeRest = null
                 }
             } finally {
-                releaseWakeLock()
+                releaseWakeLock(wakeLock)
             }
         }
     }
 
-    /** Cancel the pending rest with **no** buzz (tap-to-skip, early advance, untick). */
+    /**
+     * Cancel the pending rest with **no** buzz (tap-to-skip, early advance, untick).
+     * The cancelled job's own `finally` releases its lock; the bounded
+     * [acquire][PowerManager.WakeLock.acquire] timeout is the backstop.
+     */
     fun skip() {
-        cancelJobAndLock()
-        activeRest = null
-    }
-
-    private fun cancelJobAndLock() {
         job?.cancel()
         job = null
-        releaseWakeLock()
+        activeRest = null
     }
 
     private fun vibrateOnce() {
@@ -111,20 +122,19 @@ class RestTimerController(
             context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
 
-    private fun acquireWakeLock(timeoutMillis: Long) {
-        val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
+    private fun acquireWakeLock(timeoutMillis: Long): PowerManager.WakeLock? {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return null
         val wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG).apply {
             setReferenceCounted(false)
         }
         // Bounded acquire: the OS force-releases at the timeout even if a code path
         // ever failed to — belt to the try/finally's braces.
         wl.acquire(timeoutMillis)
-        wakeLock = wl
+        return wl
     }
 
-    private fun releaseWakeLock() {
+    private fun releaseWakeLock(wakeLock: PowerManager.WakeLock?) {
         wakeLock?.let { if (it.isHeld) it.release() }
-        wakeLock = null
     }
 
     private companion object {

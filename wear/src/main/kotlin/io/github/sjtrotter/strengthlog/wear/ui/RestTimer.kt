@@ -18,9 +18,12 @@ object RestTimer {
      *  late wake still catches the buzz; kept small (battery vs. punctuality). */
     const val WAKE_LOCK_SLACK_MILLIS = 10_000L
 
-    /** Hard ceiling on the rest a watch will honor, mirroring the phone's
-     *  `RestPolicy.MAX_REST_SECONDS` clamp so a garbled wire value can never pin
-     *  the CPU. Kept as a local const — the watch imports no `RestPolicy`. */
+    /** Ceiling used only to bound the wake-lock hold ([wakeLockTimeoutMillis]) so a
+     *  garbled deadline can never pin the CPU indefinitely. It does NOT clamp the
+     *  countdown itself — the phone already clamps rest to 300s via
+     *  `RestPolicy.MAX_REST_SECONDS` before stamping the wire, and the watch counts
+     *  down whatever it receives. Kept as a local const — the watch imports no
+     *  `RestPolicy`. */
     const val MAX_REST_SECONDS = 300
 
     /**

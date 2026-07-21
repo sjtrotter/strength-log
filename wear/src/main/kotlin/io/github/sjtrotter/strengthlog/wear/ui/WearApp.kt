@@ -1,6 +1,9 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
+import android.Manifest
 import android.os.SystemClock
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -32,6 +36,7 @@ import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import io.github.sjtrotter.strengthlog.domain.sync.SetEditDelta
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
+import io.github.sjtrotter.strengthlog.wear.OngoingWorkoutChip
 import io.github.sjtrotter.strengthlog.wear.data.WatchTrackerClient
 import io.github.sjtrotter.strengthlog.wear.theme.Background
 import io.github.sjtrotter.strengthlog.wear.theme.WearTrackerTheme
@@ -70,6 +75,9 @@ fun WearApp(client: WatchTrackerClient, isAmbient: Boolean, ambientTick: Int = 0
     val navController = rememberSwipeDismissableNavController()
     val scope = rememberCoroutineScope()
     KeepScreenOn(enabled = !isAmbient)
+    // Runs on every screen (loading/ambient/interactive) so the chip reconciles
+    // even when the app relaunches straight into ambient — see OngoingSessionChip.
+    OngoingSessionChip(snapshot)
 
     WearTrackerTheme {
         Box(Modifier.fillMaxSize().background(Background)) {
@@ -170,6 +178,45 @@ private fun rememberSyncedPill(pendingCount: Int): Boolean {
         }
     }
     return visible
+}
+
+/**
+ * Drives the OngoingActivity re-entry chip off the snapshot (redesign §1.4 / R6).
+ *
+ * The chip's whole lifecycle is [isSessionActive]: post while a workout is
+ * underway, clear otherwise. Because that is a pure function of the snapshot,
+ * the effect also **reconciles on launch** — first composition (snapshot still
+ * loading ⇒ inactive) cancels any chip a killed process left behind, and DayDone
+ * / day-change / all-undone flip it back to `clear()` with no extra bookkeeping.
+ *
+ * [POST_NOTIFICATIONS][Manifest.permission.POST_NOTIFICATIONS] is requested
+ * **contextually** — once, the moment a session first becomes active (API 33+
+ * only). Denial is graceful: [OngoingWorkoutChip.show] no-ops without the grant,
+ * we never re-ask, and logging is entirely unaffected (re-entry falls back to
+ * the launcher).
+ */
+@Composable
+private fun OngoingSessionChip(snapshot: WatchSnapshot?) {
+    val context = LocalContext.current
+    val chip = remember(context) { OngoingWorkoutChip(context) }
+    val sessionActive = isSessionActive(snapshot)
+
+    var hasPermission by remember {
+        mutableStateOf(OngoingWorkoutChip.hasPostNotificationsPermission(context))
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> hasPermission = granted }
+
+    LaunchedEffect(sessionActive) {
+        if (sessionActive && !hasPermission && OngoingWorkoutChip.needsRuntimePermission()) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    LaunchedEffect(sessionActive, hasPermission) {
+        if (sessionActive) chip.show() else chip.clear()
+    }
 }
 
 /** Mirrors the phone app's DayScreen.KeepScreenOn — a plain `View.keepScreenOn` toggle. */

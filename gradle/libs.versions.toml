@@ -7,6 +7,7 @@ activityCompose = "1.13.0"
 lifecycleRuntimeKtx = "2.11.0"
 wearCompose = "1.6.2"
 wearAmbient = "1.4.0"
+wearOngoing = "1.0.0"
 horologist = "0.7.15"
 ksp = "2.3.9"
 room = "2.8.4"
@@ -42,6 +43,7 @@ androidx-wear-compose-material = { group = "androidx.wear.compose", name = "comp
 androidx-wear-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "wearCompose" }
 androidx-wear-compose-navigation = { group = "androidx.wear.compose", name = "compose-navigation", version.ref = "wearCompose" }
 androidx-wear-ambient = { group = "androidx.wear", name = "wear", version.ref = "wearAmbient" }
+androidx-wear-ongoing = { group = "androidx.wear", name = "wear-ongoing", version.ref = "wearOngoing" }
 horologist-compose-layout = { group = "com.google.android.horologist", name = "horologist-compose-layout", version.ref = "horologist" }
 kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version.ref = "kotlin" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }

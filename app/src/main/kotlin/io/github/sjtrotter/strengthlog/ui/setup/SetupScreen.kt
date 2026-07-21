@@ -356,8 +356,8 @@ private fun restCategoryLabel(category: RestCategory): String = when (category) 
     RestCategory.RAMP -> "Warm-up"
     RestCategory.TOP -> "Top set"
     RestCategory.BACKOFF -> "Back-off"
-    RestCategory.WORK -> "Working"
-    RestCategory.LIGHT -> "Light / accessory"
+    RestCategory.WORK -> "Accessory work"
+    RestCategory.LIGHT -> "Bodyweight · timed"
 }
 
 private const val REST_STEP_SECONDS = 15.0

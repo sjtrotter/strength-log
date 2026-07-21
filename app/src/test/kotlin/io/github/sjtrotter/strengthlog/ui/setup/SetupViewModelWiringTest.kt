@@ -12,6 +12,8 @@ import io.github.sjtrotter.strengthlog.domain.model.CardioMode
 import io.github.sjtrotter.strengthlog.domain.model.CardioPlacement
 import io.github.sjtrotter.strengthlog.domain.model.ExperienceLevel
 import io.github.sjtrotter.strengthlog.domain.model.GoalEmphasis
+import io.github.sjtrotter.strengthlog.domain.standards.RestCategory
+import io.github.sjtrotter.strengthlog.domain.standards.RestPolicy
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -144,5 +146,61 @@ class SetupViewModelWiringTest {
         advanceUntilIdle()
 
         assertEquals(programBefore, repo.programFlow.first())
+    }
+
+    // --- rest-timer setters (watch W2c) ---------------------------------------
+
+    @Test
+    fun setRestTimerEnabled_persists_the_master_toggle_immediately() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.setRestTimerEnabled(false)
+        advanceUntilIdle()
+        assertEquals(false, repo.restSettingsFlow.first().enabled)
+
+        vm.setRestTimerEnabled(true)
+        advanceUntilIdle()
+        assertEquals(true, repo.restSettingsFlow.first().enabled)
+    }
+
+    @Test
+    fun setRestOverride_persists_a_per_category_override_immediately() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.setRestOverride(RestCategory.TOP, 210)
+        advanceUntilIdle()
+
+        assertEquals(210, repo.restSettingsFlow.first().overrides[RestCategory.TOP])
+    }
+
+    @Test
+    fun setRestOverride_clamps_to_RestPolicy_bounds() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.setRestOverride(RestCategory.LIGHT, RestPolicy.MAX_REST_SECONDS + 100)
+        advanceUntilIdle()
+
+        assertEquals(RestPolicy.MAX_REST_SECONDS, repo.restSettingsFlow.first().overrides[RestCategory.LIGHT])
+    }
+
+    @Test
+    fun clearRestOverrides_removes_every_override_but_leaves_the_master_toggle() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.setRestTimerEnabled(false)
+        vm.setRestOverride(RestCategory.RAMP, 15)
+        vm.setRestOverride(RestCategory.TOP, 200)
+        advanceUntilIdle()
+
+        vm.clearRestOverrides()
+        advanceUntilIdle()
+
+        val settings = repo.restSettingsFlow.first()
+        assertEquals(true, settings.overrides.isEmpty())
+        assertEquals(false, settings.enabled)
     }
 }

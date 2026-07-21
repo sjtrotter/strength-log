@@ -33,6 +33,7 @@ import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.model.Program
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
+import io.github.sjtrotter.strengthlog.domain.standards.RestCategory
 import io.github.sjtrotter.strengthlog.domain.standards.RestSettings
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import java.time.Clock
@@ -96,6 +97,24 @@ open class TrackerRepository(
 
     suspend fun setUnit(unit: WeightUnit) {
         settings.setUnit(unit)
+    }
+
+    /** Flips the master rest-timer gate (Setup's "Rest timer on watch" toggle). */
+    suspend fun setRestTimerEnabled(enabled: Boolean) {
+        settings.setRestTimerEnabled(enabled)
+    }
+
+    /** Writes one per-category rest override from the Setup editor; clamping to
+     *  [io.github.sjtrotter.strengthlog.domain.standards.RestPolicy]'s bounds is
+     *  [SettingsStore]'s job (SSOT). */
+    suspend fun setRestOverride(category: RestCategory, seconds: Int) {
+        settings.setRestOverride(category, seconds)
+    }
+
+    /** The Setup "RESET DEFAULTS" affordance: reverts every rest category to its
+     *  RestPolicy default. */
+    suspend fun clearRestOverrides() {
+        settings.clearRestOverrides()
     }
 
     open suspend fun setWizardComplete(complete: Boolean) {

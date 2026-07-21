@@ -63,6 +63,10 @@ dependencies {
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.navigation)
     implementation(libs.androidx.wear.ambient)
+    // Wear OngoingActivity: wraps the "workout in progress" notification so the
+    // watch face shows a one-tap re-entry chip after a stem press / ambient
+    // timeout (redesign §1.4 / R6). Local-only; no INTERNET implication.
+    implementation(libs.androidx.wear.ongoing)
     // Wear Data Layer client (#20): read snapshots, send set-edit deltas; the
     // play-services adapter gives Task.await(). The pending-edit queue persists to
     // a Preferences DataStore.

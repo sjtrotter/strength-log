@@ -31,9 +31,13 @@ import java.time.format.FormatStyle
  * bumps from `AmbientLifecycleCallback.onUpdateAmbient()` — the system's own
  * once-a-minute ambient refresh signal — rather than a free-running coroutine
  * that wouldn't reliably fire while the CPU is suspended in ambient.
+ *
+ * [restLabel] is non-null while a rest countdown is pending (redesign §2.3): a
+ * single dim, static "REST · NEXT …" line — no live numeral, no motion (ambient
+ * repaints once a minute and forbids animation; the buzz is the real signal).
  */
 @Composable
-fun AmbientScreen(snapshot: WatchSnapshot, ambientTick: Int) {
+fun AmbientScreen(snapshot: WatchSnapshot, ambientTick: Int, restLabel: String? = null) {
     val state = snapshot.toDayListUiState()
     val done = state.rows.sumOf { it.doneCount }
     val total = state.rows.sumOf { it.totalCount }
@@ -62,6 +66,17 @@ fun AmbientScreen(snapshot: WatchSnapshot, ambientTick: Int) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 6.dp),
             )
+            if (!restLabel.isNullOrBlank()) {
+                Text(
+                    text = "rest · next $restLabel".uppercase(),
+                    color = AmbientDim,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp,
+                    letterSpacing = 1.5.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
     }
 }

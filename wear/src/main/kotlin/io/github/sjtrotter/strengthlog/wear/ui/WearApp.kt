@@ -74,6 +74,12 @@ fun WearApp(client: WatchTrackerClient, isAmbient: Boolean, ambientTick: Int = 0
     val pendingCount by client.pendingCountFlow().collectAsState(initial = 0)
     val navController = rememberSwipeDismissableNavController()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    // The rest-timer buzz + wake lock live here, at the root, so they outlive the
+    // ambient screen swap (the interactive tree is disposed in ambient, but this
+    // controller's coroutine must keep running to fire the single haptic on time).
+    val restScope = rememberCoroutineScope()
+    val restController = remember(context) { RestTimerController(context.applicationContext, restScope) }
     KeepScreenOn(enabled = !isAmbient)
     // Runs on every screen (loading/ambient/interactive) so the chip reconciles
     // even when the app relaunches straight into ambient — see OngoingSessionChip.
@@ -84,12 +90,13 @@ fun WearApp(client: WatchTrackerClient, isAmbient: Boolean, ambientTick: Int = 0
             val snap = snapshot
             when {
                 snap == null -> LoadingScreen()
-                isAmbient -> AmbientScreen(snap, ambientTick)
+                isAmbient -> AmbientScreen(snap, ambientTick, restLabel = restController.activeRest?.nextLabel)
                 snap.day.exercises.isEmpty() -> EmptyScreen()
                 else -> InteractiveContent(
                     snap = snap,
                     pendingCount = pendingCount,
                     navController = navController,
+                    restController = restController,
                     sendEdit = { scope.launch { client.sendEdit(it) } },
                 )
             }
@@ -102,6 +109,7 @@ private fun BoxScope.InteractiveContent(
     snap: WatchSnapshot,
     pendingCount: Int,
     navController: NavHostController,
+    restController: RestTimerController,
     sendEdit: (SetEditDelta) -> Unit,
 ) {
     // Stamp when the lifter last sent an edit (a tick). The "updated from phone"
@@ -114,7 +122,7 @@ private fun BoxScope.InteractiveContent(
         sendEdit(delta)
     }
 
-    WearNavHost(snap, navController, trackedSendEdit)
+    WearNavHost(snap, navController, restController, trackedSendEdit)
 
     val updatedPillVisible = rememberUpdatedFromPhonePill(snap) {
         SystemClock.elapsedRealtime() - lastLocalEditAtMillis
@@ -233,6 +241,7 @@ private fun KeepScreenOn(enabled: Boolean) {
 private fun WearNavHost(
     snap: WatchSnapshot,
     navController: NavHostController,
+    restController: RestTimerController,
     sendEdit: (SetEditDelta) -> Unit,
 ) {
     SwipeDismissableNavHost(navController = navController, startDestination = ROUTE_DAY_LIST) {
@@ -255,6 +264,7 @@ private fun WearNavHost(
                     snap = snap,
                     programExerciseId = exercise.programExerciseId,
                     startRoundIndex = startRound,
+                    restController = restController,
                     onBack = { navController.popBackStack() },
                     onDayDone = {
                         navController.navigate(ROUTE_DONE) {
@@ -288,6 +298,7 @@ private fun ExerciseStreamRoute(
     snap: WatchSnapshot,
     programExerciseId: Long,
     startRoundIndex: Int,
+    restController: RestTimerController,
     onBack: () -> Unit,
     onDayDone: () -> Unit,
     sendEdit: (SetEditDelta) -> Unit,
@@ -299,7 +310,44 @@ private fun ExerciseStreamRoute(
     val latestSnap by rememberUpdatedState(snap)
     val scope = rememberCoroutineScope()
 
+    // Rest-countdown state. All three are rememberSaveable primitives so an
+    // in-flight rest survives recomposition, ambient, rotation, and process death
+    // (write-on-mutation principle). [restDeadline] is the deadline-anchor: an
+    // elapsedRealtime() instant, never a mutable counter, so a late wake never
+    // drifts. NO_REST means "not resting"; the whole rest state clears together.
+    var restToIndex by rememberSaveable(programExerciseId) { mutableIntStateOf(NO_REST) }
+    var restDeadline by rememberSaveable(programExerciseId) { mutableLongStateOf(0L) }
+    var restTotalSeconds by rememberSaveable(programExerciseId) { mutableIntStateOf(0) }
+
     val streamState = exercise.toStreamUiState(unit, snap.day.dayId, snap.day.accentIndex)
+
+    fun finishRest() {
+        val target = restToIndex
+        restToIndex = NO_REST
+        restDeadline = 0L
+        restTotalSeconds = 0
+        if (target in streamState.rounds.indices) currentIndex = target
+    }
+
+    val resting = restToIndex != NO_REST && restDeadline > 0L
+    if (resting) {
+        val nextLabel = streamState.rounds.getOrNull(restToIndex)?.let(::nextRoundLabel).orEmpty()
+        // Arm (or re-arm after process death) the buzz + wake lock for this
+        // deadline; idempotent, so recomposition doesn't restart it.
+        LaunchedEffect(restDeadline, nextLabel) { restController.arm(restDeadline, nextLabel) }
+        RestCountdownScreen(
+            deadlineMillis = restDeadline,
+            totalSeconds = restTotalSeconds,
+            accentIndex = snap.day.accentIndex,
+            nextLabel = nextLabel,
+            onComplete = { finishRest() },
+            onSkip = {
+                restController.skip()
+                finishRest()
+            },
+        )
+        return
+    }
 
     ExerciseStreamScreen(
         state = streamState,
@@ -307,21 +355,43 @@ private fun ExerciseStreamRoute(
         onBack = onBack,
         onTick = {
             val nowDone = !exercise.sets[boundedIndex].done
+            val restSeconds = exercise.sets[boundedIndex].restAfterSeconds
             sendEdit(buildDelta(snap, programExerciseId, boundedIndex, done = nowDone))
             if (nowDone) {
-                scope.launch {
-                    delay(380)
-                    val ex = latestSnap.day.exercises.first { it.programExerciseId == programExerciseId }
-                    when (val advance = decideStreamAdvance(ex.sets.map { it.done }, allExercisesDone(latestSnap))) {
-                        is StreamAdvance.NextRound -> currentIndex = advance.index
-                        StreamAdvance.BackToList -> onBack()
-                        StreamAdvance.DayDone -> onDayDone()
+                // Post-tick done flags for THIS exercise (optimistic: the tick just
+                // set boundedIndex done). A rest runs only when this advances to a
+                // next round within the exercise AND that set carries a rest.
+                val postTickFlags = exercise.sets.mapIndexed { i, s -> i == boundedIndex || s.done }
+                val localAdvance = decideStreamAdvance(postTickFlags, allExercisesDoneAfterThisTick = false)
+                if (RestTimer.shouldRest(localAdvance, restSeconds)) {
+                    restToIndex = (localAdvance as StreamAdvance.NextRound).index
+                    restTotalSeconds = restSeconds
+                    restDeadline = RestTimer.deadlineFrom(SystemClock.elapsedRealtime(), restSeconds)
+                } else {
+                    // No rest: the existing 380ms confirm + advance handles
+                    // back-to-list, day-done, and a no-rest next round unchanged.
+                    scope.launch {
+                        delay(380)
+                        val ex = latestSnap.day.exercises.first { it.programExerciseId == programExerciseId }
+                        when (val advance = decideStreamAdvance(ex.sets.map { it.done }, allExercisesDone(latestSnap))) {
+                            is StreamAdvance.NextRound -> currentIndex = advance.index
+                            StreamAdvance.BackToList -> onBack()
+                            StreamAdvance.DayDone -> onDayDone()
+                        }
                     }
                 }
             }
         },
     )
 }
+
+/** Sentinel for [ExerciseStreamRoute]'s rest state — no rest in progress. */
+private const val NO_REST = -1
+
+/** The compact one-line label for the round the lifter rests before — the §1.2
+ *  read-only display strings joined ("190 × 5", "×12", "45s", "185×5"). */
+private fun nextRoundLabel(round: RoundUiState): String =
+    listOf(round.heroDisplay, round.secondaryDisplay).filter { it.isNotBlank() }.joinToString(" ")
 
 /** The watch's one outbound mutation (redesign §1.1): a done/undone tick on the "main" track. */
 private fun buildDelta(

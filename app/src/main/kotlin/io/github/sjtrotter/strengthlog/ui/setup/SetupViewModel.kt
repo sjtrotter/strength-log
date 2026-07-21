@@ -10,6 +10,7 @@ import io.github.sjtrotter.strengthlog.domain.model.CardioPrefs
 import io.github.sjtrotter.strengthlog.domain.model.ExperienceLevel
 import io.github.sjtrotter.strengthlog.domain.model.GoalEmphasis
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
+import io.github.sjtrotter.strengthlog.domain.standards.RestCategory
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +36,8 @@ import kotlinx.coroutines.sync.withLock
  * so it is serialized through [mutationLock] — the same lost-update guard
  * [io.github.sjtrotter.strengthlog.ui.day.DayViewModel] uses for log edits —
  * to stop two rapid stepper taps from both reading the same stale snapshot.
+ * The rest-timer setters skip the lock: like [setUnit], each is a direct
+ * single-key write, not a read-modify-write over a composite value.
  */
 @HiltViewModel
 class SetupViewModel @Inject constructor(private val repo: TrackerRepository) : ViewModel() {
@@ -46,8 +49,10 @@ class SetupViewModel @Inject constructor(private val repo: TrackerRepository) : 
         repo.cardioPrefsFlow,
         repo.unitFlow,
         repo.wizardAnswersFlow,
-    ) { cfg, cardio, unit, answers -> SetupStateBuilder.buildUiState(cfg, cardio, unit, answers) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SetupUiState())
+        repo.restSettingsFlow,
+    ) { cfg, cardio, unit, answers, restSettings ->
+        SetupStateBuilder.buildUiState(cfg, cardio, unit, answers, restSettings)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SetupUiState())
 
     fun setBodyweight(displayValue: Double) = mutateConfig { cfg, unit ->
         cfg.copy(bodyweightLb = SetupStateBuilder.bodyweightLb(displayValue, unit))
@@ -67,6 +72,18 @@ class SetupViewModel @Inject constructor(private val repo: TrackerRepository) : 
 
     fun setUnit(unit: WeightUnit) {
         viewModelScope.launch { mutationLock.withLock { repo.setUnit(unit) } }
+    }
+
+    fun setRestTimerEnabled(enabled: Boolean) {
+        viewModelScope.launch { repo.setRestTimerEnabled(enabled) }
+    }
+
+    fun setRestOverride(category: RestCategory, seconds: Int) {
+        viewModelScope.launch { repo.setRestOverride(category, seconds) }
+    }
+
+    fun clearRestOverrides() {
+        viewModelScope.launch { repo.clearRestOverrides() }
     }
 
     private fun mutateConfig(transform: (LifterConfig, WeightUnit) -> LifterConfig) {

@@ -42,6 +42,8 @@ import io.github.sjtrotter.strengthlog.domain.model.CardioPrefs
 import io.github.sjtrotter.strengthlog.domain.model.ExperienceLevel
 import io.github.sjtrotter.strengthlog.domain.model.GoalEmphasis
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
+import io.github.sjtrotter.strengthlog.domain.standards.RestCategory
+import io.github.sjtrotter.strengthlog.domain.standards.RestPolicy
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import io.github.sjtrotter.strengthlog.ui.components.AppCard
@@ -89,6 +91,7 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 item { EmphasisSection(state.config.emphasis, actions.onEmphasisChange) }
                 item { CardioSection(state.cardio, actions) }
                 item { UnitCard(state.unit, actions.onUnitToggle) }
+                item { RestTimerSection(state.restTimerEnabled, state.restCategories, actions) }
                 item { CreateCustomExerciseButton(accent, actions.onCreateCustomExercise) }
                 item { DataBackupButton(accent, actions.onOpenBackup) }
                 item { LicensesButton(actions.onOpenLicenses) }
@@ -299,6 +302,81 @@ private fun UnitCard(unit: WeightUnit, onToggle: (WeightUnit) -> Unit) {
     }
 }
 
+// --- rest timer (watch W2c: master toggle + per-category overrides) ----------
+
+@Composable
+private fun RestTimerSection(enabled: Boolean, categories: List<RestCategoryUiState>, actions: SetupActions) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("REST TIMER", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        AppCard {
+            SwitchToggle(
+                label = "Rest timer on watch",
+                checked = enabled,
+                onCheckedChange = actions.onRestTimerEnabledChange,
+            )
+        }
+        if (enabled) {
+            AppCard {
+                categories.forEachIndexed { index, row ->
+                    RestCategoryRow(row, onChange = { seconds -> actions.onRestOverrideChange(row.category, seconds) })
+                    if (index != categories.lastIndex) Spacer(Modifier.size(10.dp))
+                }
+            }
+            ResetRestDefaultsRow(actions.onRestOverridesReset)
+        }
+    }
+}
+
+@Composable
+private fun RestCategoryRow(row: RestCategoryUiState, onChange: (Int) -> Unit) {
+    val label = restCategoryLabel(row.category)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, color = TextPrimary, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Stepper(
+            value = row.seconds.toDouble(),
+            onValueChange = { onChange(it.toInt()) },
+            step = { REST_STEP_SECONDS },
+            minValue = 0.0,
+            // Doubles as the stepper's clamp (Stepper has no maxValue param):
+            // every tap's result is coerced into RestPolicy's accepted range.
+            round = { it.coerceIn(0.0, RestPolicy.MAX_REST_SECONDS.toDouble()) },
+            format = { SetupStateBuilder.restTimerLabel(it.toInt()) },
+            valueColor = if (row.seconds == 0) TextFaint else TextPrimary,
+            decreaseDescription = "Decrease $label rest",
+            increaseDescription = "Increase $label rest",
+        )
+    }
+}
+
+private fun restCategoryLabel(category: RestCategory): String = when (category) {
+    RestCategory.RAMP -> "Warm-up"
+    RestCategory.TOP -> "Top set"
+    RestCategory.BACKOFF -> "Back-off"
+    RestCategory.WORK -> "Accessory work"
+    RestCategory.LIGHT -> "Bodyweight · timed"
+}
+
+private const val REST_STEP_SECONDS = 15.0
+
+@Composable
+private fun ResetRestDefaultsRow(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 44.dp)
+            .border(1.dp, Border, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("RESET DEFAULTS", color = TextSecondary, style = DoneButtonLabel)
+    }
+}
+
 // --- create custom exercise (route #13, D1: reachable from Setup and the day-edit picker) ---
 
 @Composable
@@ -431,7 +509,8 @@ private fun SetupScreenPreview() {
             actions = SetupActions(
                 onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEmphasisChange = {},
                 onCardioModeChange = {}, onCardioPlacementChange = {}, onFiveKChange = {},
-                onUnitToggle = {}, onRerunWizard = {}, onCreateCustomExercise = {}, onOpenBackup = {},
+                onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
+                onRestOverridesReset = {}, onRerunWizard = {}, onCreateCustomExercise = {}, onOpenBackup = {},
                 onOpenLicenses = {}, onBack = {},
             ),
         )

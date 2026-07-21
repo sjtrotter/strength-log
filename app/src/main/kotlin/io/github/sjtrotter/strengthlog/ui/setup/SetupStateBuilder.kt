@@ -7,6 +7,10 @@ import io.github.sjtrotter.strengthlog.domain.model.CardioPrefs
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
 import io.github.sjtrotter.strengthlog.domain.standards.GoalFormatter
+import io.github.sjtrotter.strengthlog.domain.standards.RestCategory
+import io.github.sjtrotter.strengthlog.domain.standards.RestPolicy
+import io.github.sjtrotter.strengthlog.domain.standards.RestSettings
+import io.github.sjtrotter.strengthlog.domain.units.SecondsStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 
 /**
@@ -48,17 +52,37 @@ object SetupStateBuilder {
     fun bodyweightLb(displayValue: Double, unit: WeightUnit): Int =
         Math.round(unit.toLb(displayValue)).toInt()
 
+    /**
+     * The rest-timer editor's rows (W2c): every [RestCategory] paired with its
+     * *effective* seconds — [settings]' override for that bucket, or else
+     * [RestPolicy]'s default. Absent-means-default (never a duplicated number),
+     * so a defaults change ships to every lifter who hasn't overridden that
+     * bucket without touching this function.
+     */
+    fun restCategoryRows(settings: RestSettings): List<RestCategoryUiState> =
+        RestCategory.entries.map { category ->
+            RestCategoryUiState(category, settings.overrides[category] ?: RestPolicy.defaultSeconds(category))
+        }
+
+    /** A rest row's value label: [SecondsStepper.format] (SSOT — "90s", "2:00"),
+     *  except `0` — "no timer" — which reads as "OFF" rather than "0s". */
+    fun restTimerLabel(seconds: Int): String =
+        if (seconds == 0) "OFF" else SecondsStepper.format(seconds)
+
     /** Assembles the screen's full render state off the current config/prefs/answers. */
     fun buildUiState(
         cfg: LifterConfig,
         cardio: CardioPrefs,
         unit: WeightUnit,
         answers: WizardAnswers,
+        restSettings: RestSettings = RestSettings(),
     ): SetupUiState = SetupUiState(
         config = cfg,
         cardio = cardio,
         unit = unit,
         bodyweightDisplay = bodyweightDisplay(cfg, unit),
         goalPreview = goalPreview(cfg, answers, unit),
+        restTimerEnabled = restSettings.enabled,
+        restCategories = restCategoryRows(restSettings),
     )
 }

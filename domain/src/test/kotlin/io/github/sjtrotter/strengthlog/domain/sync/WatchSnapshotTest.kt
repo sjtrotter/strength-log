@@ -83,6 +83,53 @@ class WatchSnapshotTest {
     }
 
     @Test
+    fun `restAfterSeconds defaults to 0 for a publisher that doesn't set it`() {
+        assertEquals(0, sample.day.exercises.first().sets.first().restAfterSeconds)
+    }
+
+    @Test
+    fun `a snapshot carrying restAfterSeconds round-trips it`() {
+        val withRest = sample.copy(
+            day = sample.day.copy(
+                exercises = listOf(
+                    sample.day.exercises.first().copy(
+                        sets = listOf(
+                            WatchSet(130.0, 5, "RAMP", done = true, restAfterSeconds = 90),
+                            WatchSet(235.0, 5, "TOP", done = false, restAfterSeconds = 180),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val decoded = json.decodeFromString(
+            WatchSnapshot.serializer(),
+            json.encodeToString(WatchSnapshot.serializer(), withRest),
+        )
+        assertEquals(withRest, decoded)
+        val sets = decoded.day.exercises.single().sets
+        assertEquals(90, sets[0].restAfterSeconds)
+        assertEquals(180, sets[1].restAfterSeconds)
+    }
+
+    @Test
+    fun `an old snapshot without the restAfterSeconds key decodes to 0 (no timer)`() {
+        // A pre-W2a wire: the set carries no `restAfterSeconds`. It must decode as
+        // 0 so a pre-rest phone and a rest-aware watch interoperate — 0 = no timer,
+        // the watch advances immediately (mirrors the `seconds` precedent).
+        val lenient = Json { ignoreUnknownKeys = true }
+        val oldWire = """
+            {"schemaVersion":1,"revision":2,"suggestedDayId":"A","unit":"lb",
+             "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[
+               {"programExerciseId":1,"slot":"main","name":"Squat","goal":235.0,"perHand":false,
+                "supersetPartnerName":null,
+                "sets":[{"weightLb":235.0,"reps":5,"kind":"TOP","done":false,"seconds":0}],"ssSets":[]}
+             ]}}
+        """.trimIndent()
+        val decoded = lenient.decodeFromString(WatchSnapshot.serializer(), oldWire)
+        assertEquals(0, decoded.day.exercises.single().sets.single().restAfterSeconds)
+    }
+
+    @Test
     fun `a REPS or TIMED snapshot round-trips tracking, seconds and goalLabel`() {
         val timed = WatchSnapshot(
             revision = 9L,

@@ -33,6 +33,7 @@ import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.model.Program
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
+import io.github.sjtrotter.strengthlog.domain.standards.RestSettings
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import java.time.Clock
 import java.util.UUID
@@ -68,6 +69,7 @@ open class TrackerRepository(
     val configFlow: Flow<LifterConfig> = settings.configFlow
     val cardioPrefsFlow: Flow<CardioPrefs> = settings.cardioPrefsFlow
     val unitFlow: Flow<WeightUnit> = settings.unitFlow
+    val restSettingsFlow: Flow<RestSettings> = settings.restSettingsFlow
     val wizardCompleteFlow: Flow<Boolean> = settings.wizardCompleteFlow
     val wizardAnswersFlow: Flow<WizardAnswers> = settings.wizardAnswersFlow
 

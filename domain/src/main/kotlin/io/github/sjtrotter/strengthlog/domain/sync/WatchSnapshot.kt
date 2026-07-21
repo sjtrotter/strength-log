@@ -84,4 +84,13 @@ data class WatchSet(
      * old publishers and existing fixtures decode fine.
      */
     val seconds: Int = 0,
+    /**
+     * Rest to run after completing this set, in seconds; 0 = no timer. Stamped
+     * phone-side from [io.github.sjtrotter.strengthlog.domain.standards.RestPolicy.effectiveRestSeconds],
+     * gated by the Setup master toggle — the watch counts a number down, it never
+     * computes one. Superset partner rows carry 0: one round has one rest, and the
+     * main track's value governs. Additive, appended last, defaulting to 0 so old
+     * publishers and existing fixtures decode fine (mirrors [seconds]).
+     */
+    val restAfterSeconds: Int = 0,
 )

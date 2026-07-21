@@ -15,6 +15,8 @@ import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.model.SupersetPartner
+import io.github.sjtrotter.strengthlog.domain.standards.RestCategory
+import io.github.sjtrotter.strengthlog.domain.standards.RestSettings
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -170,6 +172,67 @@ class WatchSnapshotBuilderTest {
         assertEquals("Rope Pushdown", ex.supersetPartnerName)
         assertEquals(ex.sets.size, ex.ssSets.size)
         assertEquals(50.0, ex.ssSets.first().weightLb)
+    }
+
+    @Test
+    fun `stamps each main set's rest from RestPolicy when the master toggle is on`() {
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val logs = listOf(
+            loggedSlot(10L, Slot.MAIN, listOf(
+                LoggedSet(130.0, 5, SetKind.RAMP),
+                LoggedSet(235.0, 5, SetKind.TOP),
+                LoggedSet(210.0, 5, SetKind.BACKOFF),
+            )),
+        )
+        val sets = WatchSnapshotBuilder.build(
+            program, "A", slots, logs, cfg, catalog, WeightUnit.LB, revision = 1L,
+            restSettings = RestSettings(enabled = true),
+        )!!.day.exercises.single().sets
+        assertEquals(90, sets[0].restAfterSeconds)  // RAMP default
+        assertEquals(180, sets[1].restAfterSeconds) // TOP default
+        assertEquals(120, sets[2].restAfterSeconds) // BACKOFF default
+    }
+
+    @Test
+    fun `a per-category override reaches the stamped rest`() {
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val logs = listOf(loggedSlot(10L, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP))))
+        val sets = WatchSnapshotBuilder.build(
+            program, "A", slots, logs, cfg, catalog, WeightUnit.LB, revision = 1L,
+            restSettings = RestSettings(enabled = true, overrides = mapOf(RestCategory.TOP to 210)),
+        )!!.day.exercises.single().sets
+        assertEquals(210, sets.single().restAfterSeconds)
+    }
+
+    @Test
+    fun `the master toggle off zeroes every stamped rest`() {
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val logs = listOf(
+            loggedSlot(10L, Slot.MAIN, listOf(LoggedSet(130.0, 5, SetKind.RAMP), LoggedSet(235.0, 5, SetKind.TOP))),
+        )
+        val sets = WatchSnapshotBuilder.build(
+            program, "A", slots, logs, cfg, catalog, WeightUnit.LB, revision = 1L,
+            restSettings = RestSettings(enabled = false),
+        )!!.day.exercises.single().sets
+        assertEquals(0, sets[0].restAfterSeconds)
+        assertEquals(0, sets[1].restAfterSeconds)
+    }
+
+    @Test
+    fun `a superset partner's rows are stamped 0 rest so the round has one rest`() {
+        val pe = ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown"))
+        val slots = listOf(ProgramSlot(30L, 0, pe))
+        val logs = listOf(
+            loggedSlot(30L, Slot.MAIN, listOf(LoggedSet(60.0, 12, SetKind.WORK))),
+            loggedSlot(30L, Slot.SS, listOf(LoggedSet(50.0, 15, SetKind.WORK))),
+        )
+        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe), cardio = null)))
+        val ex = WatchSnapshotBuilder.build(
+            program, "A", slots, logs, cfg, catalog, WeightUnit.LB, revision = 1L,
+            restSettings = RestSettings(enabled = true),
+        )!!.day.exercises.single()
+        assertEquals(90, ex.sets.single().restAfterSeconds) // weighted WORK on the main track
+        assertEquals(0, ex.ssSets.single().restAfterSeconds) // partner carries none
     }
 
     @Test

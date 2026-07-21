@@ -4,7 +4,11 @@ import android.util.Log
 import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.PutDataRequest
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
+import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
+import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
+import io.github.sjtrotter.strengthlog.domain.standards.RestSettings
 import io.github.sjtrotter.strengthlog.domain.sync.SyncCodec
+import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
 import io.github.sjtrotter.strengthlog.domain.sync.WearSyncPaths
 import kotlinx.coroutines.CoroutineScope
@@ -54,8 +58,11 @@ class WearSyncPublisher(
     }
 
     /** The suggested day projected to a snapshot with a placeholder revision (0);
-     *  the real revision is stamped at publish so dedupe compares only content. */
-    private fun snapshotContent() =
+     *  the real revision is stamped at publish so dedupe compares only content.
+     *  `internal` (not private) purely so the wiring test can observe that a
+     *  rest-setting edit changes the emitted content — the byte change that, via
+     *  [distinctUntilChanged] + [publish], spends a fresh revision. */
+    internal fun snapshotContent() =
         repo.suggestedDayFlow.flatMapLatest { dayId ->
             if (dayId == null) {
                 flowOf(null)
@@ -65,21 +72,26 @@ class WearSyncPublisher(
                     repo.daySlotsFlow(dayId),
                     repo.logFlow(dayId),
                 ) { program, slots, logs -> Triple(program, slots, logs) }
+                // restSettingsFlow rides the context combine so a Setup edit (master
+                // toggle or a duration) republishes immediately — the watch never
+                // counts a stale rest for longer than one sync hop.
                 val context = combine(
                     repo.configFlow,
                     repo.catalogFlow,
                     repo.unitFlow,
-                ) { cfg, catalog, unit -> Triple(cfg, catalog, unit) }
-                combine(program, context) { (prog, slots, logs), (cfg, catalog, unit) ->
+                    repo.restSettingsFlow,
+                ) { cfg, catalog, unit, rest -> Context(cfg, catalog, unit, rest) }
+                combine(program, context) { (prog, slots, logs), ctx ->
                     WatchSnapshotBuilder.build(
                         program = prog,
                         suggestedDayId = dayId,
                         slots = slots,
                         logs = logs,
-                        cfg = cfg,
-                        catalog = catalog,
-                        unit = unit,
+                        cfg = ctx.cfg,
+                        catalog = ctx.catalog,
+                        unit = ctx.unit,
                         revision = 0L,
+                        restSettings = ctx.restSettings,
                     )
                 }
             }
@@ -99,6 +111,15 @@ class WearSyncPublisher(
             Log.w(TAG, "snapshot publish failed", e)
         }
     }
+
+    /** The non-program half of a snapshot's inputs, combined separately so the
+     *  program flows and the preference flows conflate independently. */
+    private data class Context(
+        val cfg: LifterConfig,
+        val catalog: ExerciseCatalog,
+        val unit: WeightUnit,
+        val restSettings: RestSettings,
+    )
 
     private companion object {
         const val TAG = "WearSyncPublisher"

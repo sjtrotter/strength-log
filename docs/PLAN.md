@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A10)
+## Amendments (A1–A11)
 
 ### A1. Session history is now required (biggest change)
 
@@ -149,8 +149,40 @@ keep-screen-on/ambient treatment.
 ### A10. Deferred (v2 backlog, in rough order)
 
 Drive appDataFolder auto-backup → trend charts over session history → plate
-calculator → rest timers → home-screen widget ("today: Day B") → light theme →
+calculator → home-screen widget ("today: Day B") → light theme →
 tablet layouts → RPE.
+
+(Rest timers left this backlog on 2026-07-20 — now in scope; see A11.)
+
+### A11. Rest timers are now in scope (watch-primary)
+
+Spec §10 lists rest timers as a v1 non-goal, and A10 parked them in the backlog.
+On the user's request (2026-07-20) they move into scope as a watch-first
+feature: after you tick a set, the watch runs a single-haptic countdown for a
+rest tuned to what the set *is*. The resolver and its signed-off defaults live
+in `domain/standards/RestPolicy.kt` (the SSOT — its doc comments carry the
+design); it rides on the read-only watch-logger rework of the same effort.
+
+- **Source of truth is a pure `:domain` policy, not stored data.** Rest varies
+  with the set, and the set already encodes that (`SetKind` + `TrackingType`).
+  `domain/standards/RestPolicy.kt` maps every set to one of five `RestCategory`
+  buckets (RAMP/TOP/BACKOFF/WORK/LIGHT) and resolves an effective rest through
+  a single function; nothing is stored per set/exercise/program.
+- **Editable defaults.** The five bucket durations ship with signed-off
+  defaults (90/180/120/90/60s) and are user-editable as per-category overrides
+  in DataStore (`SettingsStore`), gated by a master "Rest timer on watch"
+  toggle (default ON). `0` means "no timer". Per-exercise overrides stay
+  deferred behind the same resolver.
+- **Device-local for now.** Rest prefs are settings, not workout data, so they
+  are deliberately outside the backup payload (revisit in a later backup
+  version — additive).
+- **Wire is additive.** `WatchSet.restAfterSeconds` is stamped phone-side from
+  the resolver; `schemaVersion` stays 1, both directions stay compatible (old
+  wire decodes to 0 = no timer). The watch counts a number down, it never
+  computes one.
+
+Delivered across PRs W2a (model + wire + settings plumbing, this amendment),
+W2b (watch timer engine), W2c (Setup UI), W2d (watch countdown UI).
 
 ## Architecture
 

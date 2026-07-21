@@ -12,6 +12,8 @@ import io.github.sjtrotter.strengthlog.domain.model.Program
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
 import io.github.sjtrotter.strengthlog.domain.standards.GoalFormatter
 import io.github.sjtrotter.strengthlog.domain.standards.GoalTarget
+import io.github.sjtrotter.strengthlog.domain.standards.RestPolicy
+import io.github.sjtrotter.strengthlog.domain.standards.RestSettings
 import io.github.sjtrotter.strengthlog.domain.sync.WatchDay
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
@@ -45,6 +47,7 @@ object WatchSnapshotBuilder {
         catalog: ExerciseCatalog,
         unit: WeightUnit,
         revision: Long,
+        restSettings: RestSettings = RestSettings(),
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val dayIndex = program.days.indexOfFirst { it.id == dayId }
@@ -53,7 +56,7 @@ object WatchSnapshotBuilder {
 
         val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
         val exercises = slots.map { slot ->
-            buildExercise(slot, logsByKey, cfg, catalog, unit)
+            buildExercise(slot, logsByKey, cfg, catalog, unit, restSettings)
         }
 
         return WatchSnapshot(
@@ -76,10 +79,12 @@ object WatchSnapshotBuilder {
         cfg: LifterConfig,
         catalog: ExerciseCatalog,
         unit: WeightUnit,
+        restSettings: RestSettings,
     ): WatchExercise {
         val pe = slot.exercise
         val id = slot.programExerciseId
         val entry = catalog.find(pe.exerciseId)
+        val tracking = entry?.tracking ?: TrackingType.WEIGHTED
         // Routed through targetFor so a reclassified REPS/TIMED slot never hits
         // goalFor's error() branch. The numeric goal stays canonical lb (0 for
         // rep/time targets, which carry no weight); the watch still renders from
@@ -107,14 +112,22 @@ object WatchSnapshotBuilder {
             goalLabel = target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
             // Enum name lowercased; the watch parses it back to pick a per-type control.
             // Unknown/missing entry falls back to "weighted" — the only pre-P5 behavior.
-            tracking = (entry?.tracking ?: TrackingType.WEIGHTED).name.lowercase(),
+            tracking = tracking.name.lowercase(),
             perHand = entry?.perHand == true,
             supersetPartnerName = partnerEntry?.name,
-            sets = main.map { it.toWatchSet() },
-            ssSets = ss.map { it.toWatchSet() },
+            // Main track carries the round's rest; the partner rows carry 0 so the
+            // wire holds exactly one rest per round (the watch never tie-breaks).
+            sets = main.map { it.toWatchSet(restAfterSecondsFor(it, tracking, restSettings)) },
+            ssSets = ss.map { it.toWatchSet(restAfterSeconds = 0) },
         )
     }
 
-    private fun LoggedSet.toWatchSet(): WatchSet =
-        WatchSet(weightLb = weightLb, reps = reps, kind = kind.name, done = done, seconds = seconds)
+    /** The gated rest for one main-track set: 0 when the master toggle is off,
+     *  else the one [RestPolicy] resolver (no rest is computed anywhere else). */
+    private fun restAfterSecondsFor(set: LoggedSet, tracking: TrackingType, restSettings: RestSettings): Int =
+        if (!restSettings.enabled) 0
+        else RestPolicy.effectiveRestSeconds(set.kind, tracking, restSettings.overrides)
+
+    private fun LoggedSet.toWatchSet(restAfterSeconds: Int): WatchSet =
+        WatchSet(weightLb = weightLb, reps = reps, kind = kind.name, done = done, seconds = seconds, restAfterSeconds = restAfterSeconds)
 }

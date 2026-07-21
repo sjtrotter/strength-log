@@ -19,6 +19,9 @@ import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.ExperienceLevel
 import io.github.sjtrotter.strengthlog.domain.model.GoalEmphasis
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
+import io.github.sjtrotter.strengthlog.domain.standards.RestCategory
+import io.github.sjtrotter.strengthlog.domain.standards.RestPolicy
+import io.github.sjtrotter.strengthlog.domain.standards.RestSettings
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -61,7 +64,29 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
          *  has run (tracking-types P3, Decision 5). Its presence is what makes the
          *  fixup one-shot — it never runs a second time. */
         val LEGACY_TIMED_FIXUP_DONE = booleanPreferencesKey("legacy_timed_fixup_done")
+
+        /** Rest-timer prefs (W2a). The master gate defaults ON when absent; each
+         *  per-category override is absent-means-default (RestPolicy owns the
+         *  numbers, so we never pre-write a default and can't drift from it).
+         *  Device-local: deliberately excluded from the backup payload (see
+         *  [restore]). */
+        val REST_TIMER_ENABLED = booleanPreferencesKey("rest_timer_enabled")
+        val REST_RAMP_SECONDS = intPreferencesKey("rest_ramp_seconds")
+        val REST_TOP_SECONDS = intPreferencesKey("rest_top_seconds")
+        val REST_BACKOFF_SECONDS = intPreferencesKey("rest_backoff_seconds")
+        val REST_WORK_SECONDS = intPreferencesKey("rest_work_seconds")
+        val REST_LIGHT_SECONDS = intPreferencesKey("rest_light_seconds")
     }
+
+    /** Maps each overridable rest category to its DataStore key (SSOT for the
+     *  key↔category pairing used by both the read flow and the setter). */
+    private val restOverrideKeys: Map<RestCategory, Preferences.Key<Int>> = mapOf(
+        RestCategory.RAMP to Keys.REST_RAMP_SECONDS,
+        RestCategory.TOP to Keys.REST_TOP_SECONDS,
+        RestCategory.BACKOFF to Keys.REST_BACKOFF_SECONDS,
+        RestCategory.WORK to Keys.REST_WORK_SECONDS,
+        RestCategory.LIGHT to Keys.REST_LIGHT_SECONDS,
+    )
 
     // --- reads ---------------------------------------------------------------
 
@@ -107,6 +132,20 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val legacyTimedFixupDoneFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.LEGACY_TIMED_FIXUP_DONE] ?: false }
 
+    /** The rest-timer prefs: the master gate (default ON) plus only the override
+     *  keys the user has actually set. An absent override key is omitted from the
+     *  map — [RestPolicy] supplies its default — so a fresh install with no keys
+     *  yields `RestSettings(enabled = true, overrides = emptyMap())`. */
+    val restSettingsFlow: Flow<RestSettings> = dataStore.data.map { prefs ->
+        val overrides = restOverrideKeys.mapNotNull { (category, key) ->
+            prefs[key]?.let { category to it }
+        }.toMap()
+        RestSettings(
+            enabled = prefs[Keys.REST_TIMER_ENABLED] ?: true,
+            overrides = overrides,
+        )
+    }
+
     // --- writes --------------------------------------------------------------
 
     suspend fun setConfig(config: LifterConfig) = dataStore.edit { it.writeConfig(config) }
@@ -114,6 +153,22 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     /** Marks the one-shot legacy-TIMED fixup as done so it never runs again. */
     suspend fun setLegacyTimedFixupDone() =
         dataStore.edit { it[Keys.LEGACY_TIMED_FIXUP_DONE] = true }
+
+    /** Flips the master rest-timer gate. */
+    suspend fun setRestTimerEnabled(enabled: Boolean) =
+        dataStore.edit { it[Keys.REST_TIMER_ENABLED] = enabled }
+
+    /** Writes one per-category rest override, clamped to [RestPolicy]'s bounds so
+     *  a stored value can never exceed what the resolver accepts. Writing a value
+     *  equal to the default is fine — it just freezes that bucket at that number,
+     *  which is what "I set it" means. */
+    suspend fun setRestOverride(category: RestCategory, seconds: Int) =
+        dataStore.edit { it[restOverrideKeys.getValue(category)] = seconds.coerceIn(0, RestPolicy.MAX_REST_SECONDS) }
+
+    /** The RESET affordance: removes the five override keys so every bucket reverts
+     *  to its [RestPolicy] default. Leaves the master gate untouched. */
+    suspend fun clearRestOverrides() =
+        dataStore.edit { prefs -> restOverrideKeys.values.forEach { prefs.remove(it) } }
 
     suspend fun setCardioPrefs(prefs: CardioPrefs) = dataStore.edit { it.writeCardio(prefs) }
 
@@ -167,7 +222,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * mid-restore leaves either the whole old preference set or the whole new one
      * — never a mix. The session-start stamp keys ([Keys.SESSION_STARTED_AT]
      * and [Keys.SESSION_STARTED_DATE]) are deliberately left cleared: a restore
-     * can't be "mid-workout".
+     * can't be "mid-workout". The rest-timer keys ([Keys.REST_TIMER_ENABLED] and
+     * the five `rest_*_seconds` overrides) are likewise not in the backup payload
+     * (v2 schema untouched — rest prefs are device-local settings, not workout
+     * data), so a restore reverts them to defaults; folding them into a later
+     * backup version is additive.
      */
     suspend fun restore(
         answers: WizardAnswers,

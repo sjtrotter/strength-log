@@ -48,6 +48,22 @@ class SyncCodecTest {
     }
 
     @Test
+    fun `snapshot round-trips a set's restAfterSeconds through the wire bytes`() {
+        val withRest = snapshot.copy(
+            day = snapshot.day.copy(
+                exercises = listOf(
+                    snapshot.day.exercises.single().copy(
+                        sets = listOf(WatchSet(255.0, 5, "TOP", done = false, restAfterSeconds = 180)),
+                    ),
+                ),
+            ),
+        )
+        val decoded = SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(withRest))
+        assertEquals(withRest, decoded)
+        assertEquals(180, decoded.day.exercises.single().sets.single().restAfterSeconds)
+    }
+
+    @Test
     fun `delta round-trips through the wire bytes`() {
         assertEquals(delta, SyncCodec.decodeDelta(SyncCodec.encodeDelta(delta)))
     }

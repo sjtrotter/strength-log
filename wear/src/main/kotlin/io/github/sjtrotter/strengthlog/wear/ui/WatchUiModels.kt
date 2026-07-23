@@ -121,6 +121,7 @@ data class PartnerRowUiState(
 fun WatchExercise.toStreamUiState(unit: WeightUnit, dayId: String, accentIndex: Int): ExerciseStreamUiState {
     val labels = kindLabels(sets)
     val track = watchTracking(tracking)
+    val ssTrack = watchTracking(ssTracking)
     val isSuperset = supersetPartnerName != null
     // A TIMED goal carries its added load on the numeric [goal] (0 when none), so a
     // loaded hold is simply goal > 0 — same rule the phone's timedShowsWeight uses.
@@ -158,7 +159,7 @@ fun WatchExercise.toStreamUiState(unit: WeightUnit, dayId: String, accentIndex: 
                     PartnerRowUiState(
                         weightDisplay = unit.fromLb(it.weightLb),
                         reps = it.reps,
-                        summaryDisplay = SetFormatter.summary(track, it.weightLb, it.reps, it.seconds, unit),
+                        summaryDisplay = SetFormatter.summary(ssTrack, it.weightLb, it.reps, it.seconds, unit),
                     )
                 },
             )

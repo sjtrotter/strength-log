@@ -188,6 +188,37 @@ class WatchSnapshotTest {
     }
 
     @Test
+    fun `a superset partner's ssTracking round-trips when set`() {
+        val press = sample.day.exercises[1].copy(ssTracking = "reps")
+        val withSsTracking = sample.copy(day = sample.day.copy(exercises = listOf(sample.day.exercises[0], press)))
+        val decoded = json.decodeFromString(
+            WatchSnapshot.serializer(),
+            json.encodeToString(WatchSnapshot.serializer(), withSsTracking),
+        )
+        assertEquals(withSsTracking, decoded)
+        assertEquals("reps", decoded.day.exercises[1].ssTracking)
+    }
+
+    @Test
+    fun `an old snapshot without the ssTracking key decodes to the weighted default`() {
+        // A pre-#74-fix wire: the exercise carries no `ssTracking`. Must decode as
+        // "weighted" so a stale publisher and a fixed watch interoperate — the only
+        // old behavior was rendering the partner with the main's tracking, and a
+        // WEIGHTED main is the common case this default silently preserves.
+        val lenient = Json { ignoreUnknownKeys = true }
+        val oldWire = """
+            {"schemaVersion":1,"revision":2,"suggestedDayId":"A","unit":"lb",
+             "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[
+               {"programExerciseId":1,"slot":"main","name":"Squat","goal":235.0,"perHand":false,
+                "supersetPartnerName":null,
+                "sets":[{"weightLb":235.0,"reps":5,"kind":"TOP","done":false}],"ssSets":[]}
+             ]}}
+        """.trimIndent()
+        val decoded = lenient.decodeFromString(WatchSnapshot.serializer(), oldWire)
+        assertEquals("weighted", decoded.day.exercises.single().ssTracking)
+    }
+
+    @Test
     fun `decoding tolerates an unknown future field (forward migration)`() {
         val lenient = Json { ignoreUnknownKeys = true }
         val withExtra = """

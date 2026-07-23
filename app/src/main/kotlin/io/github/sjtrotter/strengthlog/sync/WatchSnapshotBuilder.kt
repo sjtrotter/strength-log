@@ -113,6 +113,8 @@ object WatchSnapshotBuilder {
             // Enum name lowercased; the watch parses it back to pick a per-type control.
             // Unknown/missing entry falls back to "weighted" — the only pre-P5 behavior.
             tracking = tracking.name.lowercase(),
+            // Same encoding, for the superset partner (meaningless without one).
+            ssTracking = (partnerEntry?.tracking ?: TrackingType.WEIGHTED).name.lowercase(),
             perHand = entry?.perHand == true,
             supersetPartnerName = partnerEntry?.name,
             // Main track carries the round's rest; the partner rows carry 0 so the

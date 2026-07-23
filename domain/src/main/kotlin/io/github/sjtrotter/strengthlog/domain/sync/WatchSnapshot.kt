@@ -69,6 +69,14 @@ data class WatchExercise(
      * ignores it just keeps drawing the weighted view (self-heals on update).
      */
     val tracking: String = "weighted",
+    /**
+     * How the superset partner is tracked — same encoding as [tracking], for
+     * [supersetPartnerName]'s exercise. Meaningless when there is no partner.
+     * Additive, appended last, defaulting to "weighted" so a pre-existing
+     * publisher and every existing fixture decode as the (only) old behavior:
+     * the partner row rendered with the main's tracking type.
+     */
+    val ssTracking: String = "weighted",
 )
 
 /** One round. [kind] mirrors [io.github.sjtrotter.strengthlog.domain.model.SetKind]'s name. */

@@ -1,6 +1,7 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
 import io.github.sjtrotter.strengthlog.domain.library.TrackingType
+import io.github.sjtrotter.strengthlog.domain.standards.SetFormatter
 import io.github.sjtrotter.strengthlog.domain.sync.WatchDay
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
@@ -173,6 +174,29 @@ class WatchUiModelsTest {
         assertEquals("75×8", round.heroDisplay)
         assertEquals("", round.secondaryDisplay)
         assertEquals("50×12", round.partner?.summaryDisplay)
+    }
+
+    private val benchDip = WatchExercise(
+        programExerciseId = 6L,
+        slot = "main",
+        name = "Bench Press",
+        goal = 195.0,
+        perHand = false,
+        supersetPartnerName = "Bench Dip",
+        sets = listOf(WatchSet(195.0, 5, "WORK", done = false)),
+        ssSets = listOf(WatchSet(0.0, 12, "WORK", done = false)),
+        ssTracking = "reps",
+    )
+
+    @Test
+    fun `a REPS-tracked partner renders its own summary, not the WEIGHTED main's`() {
+        // #74: the partner used to format with the main's tracking, so a REPS
+        // partner (e.g. Bench Dip under a WEIGHTED main) read like a weighted
+        // set ("0×12") instead of its own "×12" shape.
+        val stream = benchDip.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+        val partner = stream.rounds.single().partner
+        assertEquals("×12", partner?.summaryDisplay)
+        assertEquals(SetFormatter.summary(TrackingType.REPS, 0.0, 12, 0, WeightUnit.LB), partner?.summaryDisplay)
     }
 
     @Test

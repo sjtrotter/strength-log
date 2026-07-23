@@ -175,6 +175,29 @@ class WatchSnapshotBuilderTest {
     }
 
     @Test
+    fun `stamps ssTracking from the superset partner's own entry`() {
+        val pe = ProgramExercise("ez_curl", superset = SupersetPartner("custom_pullup"))
+        val slots = listOf(ProgramSlot(30L, 0, pe))
+        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe), cardio = null)))
+
+        val ex = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = emptyList(), cfg, catalog = trackingCatalog, unit = WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+
+        assertEquals("weighted", ex.tracking) // main track unaffected
+        assertEquals("reps", ex.ssTracking) // the partner's own tracking, not the main's
+    }
+
+    @Test
+    fun `ssTracking defaults to weighted when there is no superset partner`() {
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val ex = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+        assertEquals("weighted", ex.ssTracking)
+    }
+
+    @Test
     fun `stamps each main set's rest from RestPolicy when the master toggle is on`() {
         val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
         val logs = listOf(

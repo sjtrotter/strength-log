@@ -32,6 +32,28 @@ class RestTimerTest {
         assertFalse(RestTimer.shouldRest(StreamAdvance.DayDone, restAfterSeconds = 180))
     }
 
+    // --- shouldRestAfterExercise: the between-exercise (day-list pill) rest, issue #81 ---
+
+    @Test
+    fun `between-exercise rest shows on back-to-list with a positive rest`() {
+        assertTrue(RestTimer.shouldRestAfterExercise(StreamAdvance.BackToList, restAfterSeconds = 90))
+    }
+
+    @Test
+    fun `no between-exercise rest when the last set carries a zero rest`() {
+        assertFalse(RestTimer.shouldRestAfterExercise(StreamAdvance.BackToList, restAfterSeconds = 0))
+    }
+
+    @Test
+    fun `day-done is the only no-rest transition — never a between-exercise rest`() {
+        assertFalse(RestTimer.shouldRestAfterExercise(StreamAdvance.DayDone, restAfterSeconds = 90))
+    }
+
+    @Test
+    fun `a next-round transition is not the between-exercise path — that's shouldRest's job`() {
+        assertFalse(RestTimer.shouldRestAfterExercise(StreamAdvance.NextRound(2), restAfterSeconds = 90))
+    }
+
     // --- deadline anchoring ---
 
     @Test

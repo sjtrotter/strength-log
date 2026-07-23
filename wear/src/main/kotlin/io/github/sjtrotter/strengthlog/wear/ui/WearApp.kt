@@ -52,6 +52,11 @@ private const val ARG_ID = "id"
 private const val ARG_ROUND = "round"
 private const val UPDATED_PILL_MILLIS = 2_800L
 
+// How often the between-exercise rest effect wakes to check its deadline (issue #81).
+// Only gates when the pill *clears*, not the numeral (the pill repaints itself), so a
+// coarse ~4×/s is plenty and keeps the effect cheap.
+private const val LIST_REST_TICK_MILLIS = 250L
+
 // An inbound snapshot within this long of the lifter's last local edit is the
 // phone echoing that edit back (its cascade/seeding) — not a genuine phone-side
 // change — so the "updated from phone" pill stays quiet. Comfortably longer than
@@ -122,7 +127,56 @@ private fun BoxScope.InteractiveContent(
         sendEdit(delta)
     }
 
-    WearNavHost(snap, navController, restController, trackedSendEdit)
+    // Between-exercise rest — the day-list countdown pill (issue #81). Both are
+    // rememberSaveable primitives so an in-flight rest survives recomposition,
+    // ambient, and process death (write-on-mutation), mirroring the stream route's
+    // within-exercise rest. [listRestDeadline] is the deadline-anchor (an
+    // elapsedRealtime() instant; 0L = not resting); the label is the next exercise's
+    // name. Set together when an exercise's last set is ticked (see onBackToListRest).
+    var listRestDeadline by rememberSaveable { mutableLongStateOf(0L) }
+    var listRestNextLabel by rememberSaveable { mutableStateOf("") }
+
+    // Arm the single buzz for this deadline and hold the pill until it passes, then
+    // clear (the controller owns the buzz; the pill just stops showing). Keyed on the
+    // deadline so it re-arms after process death from the restored value and, if that
+    // value is already past, arm() no-ops and the loop clears the stale state at once.
+    LaunchedEffect(listRestDeadline) {
+        if (listRestDeadline <= 0L) return@LaunchedEffect
+        restController.arm(listRestDeadline, listRestNextLabel)
+        while (!RestTimer.isExpired(listRestDeadline, SystemClock.elapsedRealtime())) {
+            delay(LIST_REST_TICK_MILLIS)
+        }
+        listRestDeadline = 0L
+        listRestNextLabel = ""
+    }
+
+    val onSkipRest = {
+        // Tap-to-skip (or starting the next exercise early): cancel the pending buzz
+        // and clear the pill. No haptic — skip is silent by design.
+        restController.skip()
+        listRestDeadline = 0L
+        listRestNextLabel = ""
+    }
+    val onBackToListRest = { restSeconds: Int, nextLabel: String ->
+        listRestNextLabel = nextLabel
+        listRestDeadline = RestTimer.deadlineFrom(SystemClock.elapsedRealtime(), restSeconds)
+    }
+    val restPill = listRestPill(
+        hoistedDeadline = listRestDeadline,
+        hoistedLabel = listRestNextLabel,
+        controllerRest = restController.activeRest,
+        nowElapsedMillis = SystemClock.elapsedRealtime(),
+    )
+
+    WearNavHost(
+        snap = snap,
+        navController = navController,
+        restController = restController,
+        restPill = restPill,
+        onSkipRest = onSkipRest,
+        onBackToListRest = onBackToListRest,
+        sendEdit = trackedSendEdit,
+    )
 
     val updatedPillVisible = rememberUpdatedFromPhonePill(snap) {
         SystemClock.elapsedRealtime() - lastLocalEditAtMillis
@@ -242,13 +296,23 @@ private fun WearNavHost(
     snap: WatchSnapshot,
     navController: NavHostController,
     restController: RestTimerController,
+    restPill: ListRestPill?,
+    onSkipRest: () -> Unit,
+    onBackToListRest: (restSeconds: Int, nextLabel: String) -> Unit,
     sendEdit: (SetEditDelta) -> Unit,
 ) {
     SwipeDismissableNavHost(navController = navController, startDestination = ROUTE_DAY_LIST) {
         composable(ROUTE_DAY_LIST) {
             DayListScreen(
                 state = snap.toDayListUiState(),
-                onExerciseClick = { id, round -> navController.navigate("exercise/$id/$round") },
+                onExerciseClick = { id, round ->
+                    // Starting the next exercise early IS the skip: cancel the pending
+                    // buzz and clear the pill so it never fires mid-set later.
+                    onSkipRest()
+                    navController.navigate("exercise/$id/$round")
+                },
+                rest = restPill,
+                onSkipRest = onSkipRest,
             )
         }
         composable(ROUTE_EXERCISE) { backStackEntry ->
@@ -266,6 +330,7 @@ private fun WearNavHost(
                     startRoundIndex = startRound,
                     restController = restController,
                     onBack = { navController.popBackStack() },
+                    onBackToListRest = onBackToListRest,
                     onDayDone = {
                         navController.navigate(ROUTE_DONE) {
                             popUpTo(ROUTE_DAY_LIST) { inclusive = true }
@@ -300,6 +365,7 @@ private fun ExerciseStreamRoute(
     startRoundIndex: Int,
     restController: RestTimerController,
     onBack: () -> Unit,
+    onBackToListRest: (restSeconds: Int, nextLabel: String) -> Unit,
     onDayDone: () -> Unit,
     sendEdit: (SetEditDelta) -> Unit,
 ) {
@@ -372,10 +438,19 @@ private fun ExerciseStreamRoute(
                     // back-to-list, day-done, and a no-rest next round unchanged.
                     scope.launch {
                         delay(380)
-                        val ex = latestSnap.day.exercises.first { it.programExerciseId == programExerciseId }
-                        when (val advance = decideStreamAdvance(ex.sets.map { it.done }, allExercisesDone(latestSnap))) {
+                        val latest = latestSnap
+                        val ex = latest.day.exercises.first { it.programExerciseId == programExerciseId }
+                        when (val advance = decideStreamAdvance(ex.sets.map { it.done }, allExercisesDone(latest))) {
                             is StreamAdvance.NextRound -> currentIndex = advance.index
-                            StreamAdvance.BackToList -> onBack()
+                            StreamAdvance.BackToList -> {
+                                // Finished this exercise's last set with work still to
+                                // go: hand a between-exercise rest to the day-list pill
+                                // (issue #81), then drop back. DayDone never rests.
+                                if (RestTimer.shouldRestAfterExercise(advance, restSeconds)) {
+                                    onBackToListRest(restSeconds, nextExerciseLabel(latest, programExerciseId))
+                                }
+                                onBack()
+                            }
                             StreamAdvance.DayDone -> onDayDone()
                         }
                     }

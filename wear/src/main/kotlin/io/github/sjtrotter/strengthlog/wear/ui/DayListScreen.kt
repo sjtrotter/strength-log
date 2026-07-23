@@ -12,18 +12,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.os.SystemClock
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.material.Text
 import com.google.android.horologist.compose.layout.ScalingLazyColumn
 import com.google.android.horologist.compose.layout.ScreenScaffold
 import com.google.android.horologist.compose.layout.rememberResponsiveColumnState
+import io.github.sjtrotter.strengthlog.domain.units.SecondsStepper
 import io.github.sjtrotter.strengthlog.wear.theme.Border
 import io.github.sjtrotter.strengthlog.wear.theme.Surface
 import io.github.sjtrotter.strengthlog.wear.theme.TextPrimary
@@ -31,6 +39,7 @@ import io.github.sjtrotter.strengthlog.wear.theme.TextSecondary
 import io.github.sjtrotter.strengthlog.wear.theme.accentSoft
 import io.github.sjtrotter.strengthlog.wear.theme.dayAccent
 import io.github.sjtrotter.strengthlog.wear.theme.onDayAccent
+import kotlinx.coroutines.delay
 
 /**
  * Today list (design digest §1.1): day pill + optional real focus/label
@@ -39,7 +48,12 @@ import io.github.sjtrotter.strengthlog.wear.theme.onDayAccent
  * its stream on [DayListRow.firstUndoneIndex], not necessarily round 1.
  */
 @Composable
-fun DayListScreen(state: DayListUiState, onExerciseClick: (programExerciseId: Long, startRound: Int) -> Unit) {
+fun DayListScreen(
+    state: DayListUiState,
+    onExerciseClick: (programExerciseId: Long, startRound: Int) -> Unit,
+    rest: ListRestPill? = null,
+    onSkipRest: () -> Unit = {},
+) {
     val columnState = rememberResponsiveColumnState()
     val accent = dayAccent(state.accentIndex)
     val onAccent = onDayAccent(state.accentIndex)
@@ -51,6 +65,17 @@ fun DayListScreen(state: DayListUiState, onExerciseClick: (programExerciseId: Lo
             item {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     DayPill(dayId = state.dayId, accentColor = accent, onAccentColor = onAccent)
+                }
+            }
+            rest?.let {
+                item {
+                    RestPill(
+                        rest = it,
+                        accent = accent,
+                        accentSoftColor = accentSoftColor,
+                        onSkip = onSkipRest,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    )
                 }
             }
             state.subtitle?.let { subtitle ->
@@ -125,4 +150,55 @@ private fun ExerciseListRow(
             )
         }
     }
+}
+
+/** How often the pill's remaining numeral repaints — ~5×/s, smooth enough for an
+ *  m:ss countdown without a per-frame animation (the real signal is the buzz). */
+private const val REST_PILL_REFRESH_MILLIS = 200L
+
+/**
+ * The between-exercise rest countdown, inline on the day list (issue #81): a compact
+ * accent-bordered row reading `REST m:ss` (via [SecondsStepper.format] — SSOT), plus
+ * `· NEXT <name>` when the next exercise is known. Deadline-anchored like
+ * [RestCountdownScreen]; it only reads the clock against [ListRestPill.deadlineMillis]
+ * and tap-anywhere skips. It never buzzes and never clears its own state — the caller
+ * owns both (the controller fires the single haptic, the day list clears on expiry).
+ */
+@Composable
+private fun RestPill(
+    rest: ListRestPill,
+    accent: Color,
+    accentSoftColor: Color,
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var nowMillis by remember(rest.deadlineMillis) { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    LaunchedEffect(rest.deadlineMillis) {
+        while (true) {
+            nowMillis = SystemClock.elapsedRealtime()
+            delay(REST_PILL_REFRESH_MILLIS)
+        }
+    }
+    val remaining = RestTimer.remainingSeconds(rest.deadlineMillis, nowMillis)
+    val text = buildString {
+        append("rest ")
+        append(SecondsStepper.format(remaining))
+        if (rest.nextLabel.isNotBlank()) append(" · next ${rest.nextLabel}")
+    }
+
+    Text(
+        text = text.uppercase(),
+        color = accent,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.sp,
+        textAlign = TextAlign.Center,
+        style = TextStyle(fontFeatureSettings = "tnum"),
+        modifier = modifier
+            .fillMaxWidth()
+            .background(accentSoftColor, RoundedCornerShape(50))
+            .border(1.dp, accent, RoundedCornerShape(50))
+            .clickable(onClick = onSkip)
+            .padding(horizontal = 12.dp, vertical = 5.dp),
+    )
 }

@@ -44,3 +44,42 @@ fun decideStreamAdvance(
  */
 fun allExercisesDone(snapshot: WatchSnapshot): Boolean =
     snapshot.day.exercises.all { exercise -> exercise.sets.all { it.done } }
+
+/**
+ * The name the between-exercise rest pill shows as "next" (issue #81): the first
+ * exercise in day order that still has an undone set, **excluding** the one just
+ * finished ([justFinishedExerciseId]) — its optimistic flags may still read undone
+ * for a beat, but the lifter is leaving it, so it's never its own "next". "" when
+ * nothing else remains (the pill then shows a bare `REST m:ss`).
+ */
+fun nextExerciseLabel(snapshot: WatchSnapshot, justFinishedExerciseId: Long): String =
+    snapshot.day.exercises
+        .firstOrNull { it.programExerciseId != justFinishedExerciseId && it.sets.any { s -> !s.done } }
+        ?.name
+        .orEmpty()
+
+/** The day-list rest pill's payload: a deadline to count down and the next exercise's name. */
+data class ListRestPill(val deadlineMillis: Long, val nextLabel: String)
+
+/**
+ * Which rest, if any, the day-list pill shows. The hoisted between-exercise rest
+ * ([hoistedDeadline] > 0, issue #81) wins; otherwise a still-pending within-exercise
+ * rest whose countdown screen the lifter swipe-dismissed ([controllerRest]) gets the
+ * pill as its only on-screen indicator (the accepted quirk from PRs #77–#80). Either
+ * source is ignored once its deadline has passed — the buzz is the controller's job,
+ * the pill just stops showing.
+ */
+fun listRestPill(
+    hoistedDeadline: Long,
+    hoistedLabel: String,
+    controllerRest: RestTimerController.ActiveRest?,
+    nowElapsedMillis: Long,
+): ListRestPill? {
+    if (hoistedDeadline > 0L && !RestTimer.isExpired(hoistedDeadline, nowElapsedMillis)) {
+        return ListRestPill(hoistedDeadline, hoistedLabel)
+    }
+    if (controllerRest != null && !RestTimer.isExpired(controllerRest.deadlineMillis, nowElapsedMillis)) {
+        return ListRestPill(controllerRest.deadlineMillis, controllerRest.nextLabel)
+    }
+    return null
+}

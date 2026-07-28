@@ -44,4 +44,12 @@ data class SessionSetEntity(
     /** Hold/carry duration for TIMED tracks; 0 (ignored) for WEIGHTED/REPS.
      *  Added in DB v2 with a DEFAULT 0 so pre-v2 history reads back as weight×reps. */
     val seconds: Int = 0,
+    /** When this set was started and ticked (wall-clock millis), carried over from
+     *  the live log's [io.github.sjtrotter.strengthlog.domain.model.LoggedSet].
+     *  Nullable, added in DB v3: history archived before per-set timing existed —
+     *  and every set ticked on the phone — carries no stamp, and "not observed"
+     *  must stay distinguishable from "zero". Active time and actual rest are
+     *  derived from these on read; nothing derived is stored. */
+    val startedAtMillis: Long? = null,
+    val completedAtMillis: Long? = null,
 )

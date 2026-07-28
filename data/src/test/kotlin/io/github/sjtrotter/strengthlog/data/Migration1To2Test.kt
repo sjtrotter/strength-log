@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import io.github.sjtrotter.strengthlog.data.db.MIGRATION_1_2
+import io.github.sjtrotter.strengthlog.data.db.MIGRATION_2_3
 import io.github.sjtrotter.strengthlog.data.db.StrengthDatabase
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -20,8 +21,9 @@ import org.robolectric.annotation.Config
 /**
  * The v1→v2 tracking-types migration must be purely additive: it adds columns
  * with defaults and touches no existing value. This opens a hand-built v1 DB with
- * a real `session_set` and `custom_exercise` row, runs [MIGRATION_1_2], and
- * asserts the new columns default (seconds 0, tracking WEIGHTED, null targets)
+ * a real `session_set` and `custom_exercise` row, runs the whole migration chain
+ * from v1 (a device this old upgrades straight to current), and asserts the new
+ * columns default (seconds 0, tracking WEIGHTED, null targets, null timing)
  * while every pre-existing value survives — in particular the plank row's reps
  * are *not* silently reinterpreted here (that is the separate one-shot fixup).
  */
@@ -43,7 +45,7 @@ class Migration1To2Test {
         createV1DatabaseWithRows()
 
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
         try {
@@ -55,6 +57,9 @@ class Migration1To2Test {
             assertEquals(0.0, sets[0].weightLb, 0.0)
             // The new column reads its DEFAULT.
             assertEquals(0, sets[0].seconds)
+            // …and the later per-set timing columns (v3) read NULL, not 0.
+            assertNull(sets[0].startedAtMillis)
+            assertNull(sets[0].completedAtMillis)
 
             val customs = db.customExerciseDao().getAll()
             assertEquals(1, customs.size)

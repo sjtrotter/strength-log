@@ -28,6 +28,11 @@ import kotlinx.coroutines.sync.withLock
  * workouts exist, so the same first-tick-starts-the-clock rule the day screen
  * applies must hold here too (session-start capture).
  *
+ * A delta may also carry the wrist-observed start/complete millis for its round
+ * (#85). Those are persisted verbatim onto the row (and onto the aligned partner
+ * row when the tick pairs) — the phone stores the facts and derives active time and
+ * actual rest from them later; neither side computes a duration to store.
+ *
  * Three guards before any write:
  *  - **Validation** — the day, slot (programExerciseId + main/ss track) and set
  *    index must all exist; a superset "ss" delta needs a real partner. Anything
@@ -67,6 +72,8 @@ class SetEditApplier(
         delta.weightLb?.let { if (!it.isFinite() || it < 0.0) return Outcome.INVALID }
         delta.reps?.let { if (it < 0) return Outcome.INVALID }
         delta.seconds?.let { if (it < 0) return Outcome.INVALID }
+        delta.startedAtMillis?.let { if (it < 0) return Outcome.INVALID }
+        delta.completedAtMillis?.let { if (it < 0) return Outcome.INVALID }
 
         // The slot must be a real exercise slot on a real day of the current program.
         val slots = repo.daySlotsFlow(delta.dayId).first()
@@ -108,6 +115,7 @@ class SetEditApplier(
         delta.weightLb?.let { main = SetEditor.editWeight(main, delta.setIndex, it) }
         delta.reps?.let { main = SetEditor.editReps(main, delta.setIndex, it) }
         delta.seconds?.let { main = SetEditor.editSeconds(main, delta.setIndex, it) }
+        main = main.stamped(delta)
 
         val done = delta.done
         if (done != null) {
@@ -119,7 +127,9 @@ class SetEditApplier(
             val partner = partnerTrack.takeIf { it.isNotEmpty() }
             val (newMain, newPartner) = DayScreenBuilder.applyRoundTick(main, partner, delta.setIndex, done)
             if (newPartner != null) {
-                repo.updateSetsPaired(delta.dayId, delta.programExerciseId, newMain, newPartner)
+                // The round is one round: its start/complete facts belong to the
+                // partner row too, written in the same paired transaction.
+                repo.updateSetsPaired(delta.dayId, delta.programExerciseId, newMain, newPartner.stamped(delta))
                 return
             }
             main = newMain
@@ -132,11 +142,31 @@ class SetEditApplier(
         delta.weightLb?.let { ss = SetEditor.editWeight(ss, delta.setIndex, it) }
         delta.reps?.let { ss = SetEditor.editReps(ss, delta.setIndex, it) }
         delta.seconds?.let { ss = SetEditor.editSeconds(ss, delta.setIndex, it) }
+        ss = ss.stamped(delta)
         delta.done?.let { done ->
             if (done) repo.stampSessionStartIfUnset()
             ss = ss.mapIndexed { i, s -> if (i == delta.setIndex) s.copy(done = done) else s }
         }
         repo.updateSets(delta.dayId, delta.programExerciseId, Slot.SS, ss)
+    }
+
+    /** Writes the watch-observed start/complete millis onto the delta's row. They are
+     *  facts, not tracked fields, so no [TrackingType] strips them ([guardedFor]) and
+     *  they land whatever else the delta carries — in practice they ride with the
+     *  tick that produced them. Null keeps the stored value, the same
+     *  "null means unchanged" rule every other delta field follows. */
+    private fun List<LoggedSet>.stamped(delta: SetEditDelta): List<LoggedSet> {
+        if (delta.startedAtMillis == null && delta.completedAtMillis == null) return this
+        return mapIndexed { i, s ->
+            if (i != delta.setIndex) {
+                s
+            } else {
+                s.copy(
+                    startedAtMillis = delta.startedAtMillis ?: s.startedAtMillis,
+                    completedAtMillis = delta.completedAtMillis ?: s.completedAtMillis,
+                )
+            }
+        }
     }
 
     private fun List<io.github.sjtrotter.strengthlog.data.LoggedSlot>.trackOf(

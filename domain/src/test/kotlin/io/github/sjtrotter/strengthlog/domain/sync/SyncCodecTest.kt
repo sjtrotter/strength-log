@@ -2,6 +2,7 @@ package io.github.sjtrotter.strengthlog.domain.sync
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * The wire codec is the SSOT both transports go through, so its round-trips and —
@@ -86,6 +87,72 @@ class SyncCodecTest {
         val decoded = SyncCodec.decodeDelta(withExtra.encodeToByteArray())
         assertEquals(0, decoded.setIndex)
         assertEquals(5L, decoded.editedAtMillis)
+    }
+
+    // --- per-set timing (#85) ------------------------------------------------
+
+    @Test
+    fun `a delta carrying the set timing round-trips through the wire bytes`() {
+        val tick = delta.copy(
+            weightLb = null,
+            done = true,
+            startedAtMillis = 1_700_000_000_000L,
+            completedAtMillis = 1_700_000_045_000L,
+        )
+        val decoded = SyncCodec.decodeDelta(SyncCodec.encodeDelta(tick))
+        assertEquals(tick, decoded)
+        assertEquals(1_700_000_000_000L, decoded.startedAtMillis)
+        assertEquals(1_700_000_045_000L, decoded.completedAtMillis)
+        // The LWW/dedupe stamp keeps its own job — the facts never overwrite it.
+        assertEquals(1_700_000_000_000L, decoded.editedAtMillis)
+    }
+
+    @Test
+    fun `an old-format delta without the timing keys decodes with nulls`() {
+        val oldFormat = """
+            {"schemaVersion":1,"dayId":"B","programExerciseId":9,"slot":"main","setIndex":1,
+             "done":true,"editedAtMillis":7}
+        """.trimIndent()
+        val decoded = SyncCodec.decodeDelta(oldFormat.encodeToByteArray())
+        assertNull(decoded.startedAtMillis)
+        assertNull(decoded.completedAtMillis)
+        assertEquals(true, decoded.done)
+        assertEquals(7L, decoded.editedAtMillis)
+    }
+
+    @Test
+    fun `a new-format delta still decodes everything an old reader expects`() {
+        // The other direction: a schemaVersion-1 payload written by a *new* watch
+        // carries the extra keys, and every field an older phone reads is untouched.
+        val newFormat = """
+            {"schemaVersion":1,"dayId":"B","programExerciseId":9,"slot":"main","setIndex":1,
+             "reps":5,"done":true,"editedAtMillis":7,
+             "startedAtMillis":1700000000000,"completedAtMillis":1700000045000}
+        """.trimIndent()
+        val decoded = SyncCodec.decodeDelta(newFormat.encodeToByteArray())
+        assertEquals(1, decoded.schemaVersion)
+        assertEquals("B", decoded.dayId)
+        assertEquals(9L, decoded.programExerciseId)
+        assertEquals(1, decoded.setIndex)
+        assertEquals(5, decoded.reps)
+        assertEquals(true, decoded.done)
+        assertEquals(7L, decoded.editedAtMillis)
+        assertEquals(1_700_000_045_000L, decoded.completedAtMillis)
+    }
+
+    @Test
+    fun `a queue mixing old and new format deltas round-trips`() {
+        val queue = listOf(
+            delta,
+            delta.copy(
+                setIndex = 0,
+                editedAtMillis = 2L,
+                done = true,
+                startedAtMillis = 10L,
+                completedAtMillis = 20L,
+            ),
+        )
+        assertEquals(queue, SyncCodec.decodeDeltaQueue(SyncCodec.encodeDeltaQueue(queue)))
     }
 
     @Test

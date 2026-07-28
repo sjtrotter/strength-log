@@ -57,4 +57,15 @@ class SetEditGuardTest {
         val tick = SetEditDelta(dayId = "A", programExerciseId = 1L, slot = "main", setIndex = 0, done = true, editedAtMillis = 1L)
         TrackingType.entries.forEach { assertEquals(true, tick.guardedFor(it).done) }
     }
+
+    @Test
+    fun `the wrist-observed set timing survives on every track`() {
+        // Facts, not tracked fields: no tracking type has grounds to drop them.
+        val timed = everything().copy(startedAtMillis = 1_000L, completedAtMillis = 1_045L)
+        TrackingType.entries.forEach { type ->
+            val g = timed.guardedFor(type)
+            assertEquals(1_000L, g.startedAtMillis, "startedAtMillis dropped on $type")
+            assertEquals(1_045L, g.completedAtMillis, "completedAtMillis dropped on $type")
+        }
+    }
 }

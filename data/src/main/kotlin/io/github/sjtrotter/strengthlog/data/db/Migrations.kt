@@ -23,3 +23,19 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("ALTER TABLE custom_exercise ADD COLUMN targetSeconds INTEGER")
     }
 }
+
+/**
+ * v2 → v3 (per-set timing, #85): two nullable columns on archived sets holding the
+ * wall-clock millis the watch observed for a set's start and its tick. Nullable
+ * with no DEFAULT deliberately — every already-archived set genuinely has no
+ * observed timing, and NULL ("not observed") must stay distinguishable from 0
+ * ("started at the epoch"), which any downstream active-time math would swallow.
+ * The live log needs no migration: it is JSON in `exercise_log.setsJson` and the
+ * two `SetDto` fields default to null there.
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE session_set ADD COLUMN startedAtMillis INTEGER")
+        db.execSQL("ALTER TABLE session_set ADD COLUMN completedAtMillis INTEGER")
+    }
+}

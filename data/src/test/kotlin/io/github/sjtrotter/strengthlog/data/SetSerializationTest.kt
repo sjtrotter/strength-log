@@ -7,6 +7,7 @@ import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** Round-trip tests for everything `:data` stores in a text column (spec §11.2). */
@@ -67,6 +68,30 @@ class SetSerializationTest {
         // pre-tracking-types build reading this row sees exactly its old fields.
         val json = SetJson.encodeSets(listOf(LoggedSet(225.0, 5, SetKind.TOP, done = true)))
         assertTrue("seconds" !in json)
+    }
+
+    @Test
+    fun `per-set timing round-trips through the live log column`() {
+        val sets = listOf(
+            LoggedSet(235.0, 5, SetKind.TOP, done = true, startedAtMillis = 1_700_000_000_000L, completedAtMillis = 1_700_000_045_000L),
+            LoggedSet(175.0, 8, SetKind.BACKOFF), // phone-ticked: no observed timing
+        )
+        assertEquals(sets, SetJson.decodeSets(SetJson.encodeSets(sets)))
+    }
+
+    @Test
+    fun `a row with no timing keys decodes as not observed, never as zero`() {
+        val legacy = """[{"weightLb":225.0,"reps":5,"kind":"TOP","done":true}]"""
+        val decoded = SetJson.decodeSets(legacy).single()
+        assertNull(decoded.startedAtMillis)
+        assertNull(decoded.completedAtMillis)
+    }
+
+    @Test
+    fun `an unstamped set omits the timing keys so old builds are unaffected`() {
+        val json = SetJson.encodeSets(listOf(LoggedSet(225.0, 5, SetKind.TOP, done = true)))
+        assertTrue("startedAtMillis" !in json)
+        assertTrue("completedAtMillis" !in json)
     }
 
     @Test

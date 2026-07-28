@@ -35,6 +35,18 @@ class CheckmarkResetTest {
     }
 
     @Test
+    fun `a stale day clears the per-set timing with the check`() {
+        val timed = listOf(
+            LoggedSet(235.0, 5, SetKind.TOP, done = true, startedAtMillis = 1_000L, completedAtMillis = 1_045L),
+        )
+        val out = CheckmarkReset.applyResetIfStale(timed, checkDate = "2026-07-05", today = "2026-07-06")
+        // Yesterday's timing must not ride into today's session on an unchecked row.
+        assertEquals(listOf(LoggedSet(235.0, 5, SetKind.TOP, done = false)), out)
+        // Same day: the facts stay put.
+        assertEquals(timed, CheckmarkReset.applyResetIfStale(timed, checkDate = "2026-07-06", today = "2026-07-06"))
+    }
+
+    @Test
     fun `an empty check date (explicitly cleared) reads as unchecked`() {
         val out = CheckmarkReset.applyResetIfStale(sets, checkDate = "", today = "2026-07-06")
         assertTrue(out.none { it.done })

@@ -490,4 +490,175 @@ class SetEditApplierTest {
         assertEquals(0.0, tTrack(id)[0].weightLb, 0.0)
         assertEquals(45, tTrack(id)[0].seconds)
     }
+
+    // --- per-set timing (#85: the watch sends facts, the phone stores them) -----
+
+    @Test
+    fun `a tick delta persists the wrist-observed start and complete stamps`() = runTest {
+        seedProgram()
+        val id = squatId()
+
+        val outcome = applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 4,
+                done = true, editedAtMillis = 1L,
+                startedAtMillis = 1_700_000_000_000L,
+                completedAtMillis = 1_700_000_045_000L,
+            ),
+        )
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        val row = track(id, Slot.MAIN)!![4]
+        assertTrue(row.done)
+        assertEquals(1_700_000_000_000L, row.startedAtMillis)
+        assertEquals(1_700_000_045_000L, row.completedAtMillis)
+        // Only the addressed row is stamped.
+        assertEquals(null, track(id, Slot.MAIN)!![3].startedAtMillis)
+    }
+
+    @Test
+    fun `a paired tick stamps the partner round with the same timing`() = runTest {
+        seedProgram()
+        val id = curlId()
+
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
+                done = true, editedAtMillis = 1L,
+                startedAtMillis = 500L, completedAtMillis = 560L,
+            ),
+        )
+
+        // One round, one pair of facts — written in the same paired transaction.
+        assertEquals(500L, track(id, Slot.MAIN)!![1].startedAtMillis)
+        assertEquals(560L, track(id, Slot.MAIN)!![1].completedAtMillis)
+        assertEquals(500L, track(id, Slot.SS)!![1].startedAtMillis)
+        assertEquals(560L, track(id, Slot.SS)!![1].completedAtMillis)
+        assertEquals(null, track(id, Slot.SS)!![0].completedAtMillis)
+    }
+
+    @Test
+    fun `a partner-row tick stamps only the partner row`() = runTest {
+        seedProgram()
+        val id = curlId()
+
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 0,
+                done = true, editedAtMillis = 1L,
+                startedAtMillis = 700L, completedAtMillis = 780L,
+            ),
+        )
+
+        assertEquals(700L, track(id, Slot.SS)!![0].startedAtMillis)
+        assertEquals(780L, track(id, Slot.SS)!![0].completedAtMillis)
+        assertEquals(null, track(id, Slot.MAIN)!![0].startedAtMillis)
+    }
+
+    @Test
+    fun `stamps survive the per-type guard on a TIMED track`() = runTest {
+        seedTrackingDay()
+        val id = trackId("plank")
+
+        applier.apply(
+            SetEditDelta(
+                dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                done = true, editedAtMillis = 1L,
+                startedAtMillis = 10L, completedAtMillis = 55L,
+            ),
+        )
+
+        assertEquals(10L, tTrack(id)[0].startedAtMillis)
+        assertEquals(55L, tTrack(id)[0].completedAtMillis)
+    }
+
+    @Test
+    fun `a later delta without stamps leaves the stored timing alone`() = runTest {
+        seedProgram()
+        val id = squatId()
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                done = true, editedAtMillis = 1L, startedAtMillis = 10L, completedAtMillis = 70L,
+            ),
+        )
+
+        // Null means "unchanged", exactly like every other delta field.
+        applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, reps = 6, editedAtMillis = 2L))
+
+        assertEquals(10L, track(id, Slot.MAIN)!![0].startedAtMillis)
+        assertEquals(70L, track(id, Slot.MAIN)!![0].completedAtMillis)
+        assertEquals(6, track(id, Slot.MAIN)!![0].reps)
+    }
+
+    @Test
+    fun `the dedupe stamp still rules - a replayed tick with new timing is dropped`() = runTest {
+        seedProgram()
+        val id = squatId()
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                done = true, editedAtMillis = 100L, startedAtMillis = 10L, completedAtMillis = 70L,
+            ),
+        )
+
+        // editedAtMillis keeps its own job: same stamp = replay, whatever the facts say.
+        val replay = applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                done = true, editedAtMillis = 100L, startedAtMillis = 999L, completedAtMillis = 9_999L,
+            ),
+        )
+
+        assertEquals(SetEditApplier.Outcome.STALE, replay)
+        assertEquals(10L, track(id, Slot.MAIN)!![0].startedAtMillis)
+        assertEquals(70L, track(id, Slot.MAIN)!![0].completedAtMillis)
+    }
+
+    @Test
+    fun `negative timing is rejected without touching data`() = runTest {
+        seedProgram()
+        val id = squatId()
+        val before = track(id, Slot.MAIN)!!
+
+        assertEquals(
+            SetEditApplier.Outcome.INVALID,
+            applier.apply(
+                SetEditDelta(
+                    dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                    done = true, editedAtMillis = 1L, startedAtMillis = -1L,
+                ),
+            ),
+        )
+        assertEquals(
+            SetEditApplier.Outcome.INVALID,
+            applier.apply(
+                SetEditDelta(
+                    dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                    done = true, editedAtMillis = 1L, completedAtMillis = -5L,
+                ),
+            ),
+        )
+
+        assertEquals(before, track(id, Slot.MAIN)!!)
+    }
+
+    @Test
+    fun `an archived session carries the per-set timing into history`() = runTest {
+        seedProgram()
+        val id = squatId()
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 4,
+                done = true, editedAtMillis = 1L, startedAtMillis = 1_000L, completedAtMillis = 1_042L,
+            ),
+        )
+
+        val sessionId = repo.advanceDay("A")
+        val archived = repo.sessionSets(sessionId)
+            .first { it.slot == Slot.MAIN && it.setIndex == 4 && it.exerciseId == "bb_back_squat" }
+
+        assertEquals(1_000L, archived.startedAtMillis)
+        assertEquals(1_042L, archived.completedAtMillis)
+    }
 }

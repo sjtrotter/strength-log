@@ -429,6 +429,42 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
+    @Test
+    fun swapDaySlotClearsTheManualCollapseOverride() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        vm.toggleCollapse(squatId)
+        advanceUntilIdle()
+        assertTrue(
+            "manual override should collapse the card",
+            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
+        )
+
+        val position = vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.position
+        vm.swapDaySlot(position, "hack_squat")
+        advanceUntilIdle()
+        assertFalse(
+            "the stale override must not follow the slot onto the swapped-in exercise (#95)",
+            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
+        )
+
+        val sets = track(squatId, Slot.MAIN)!!.size
+        repeat(sets) { i -> vm.toggleDone(squatId, index = i, checked = true, isSuperset = false) }
+        advanceUntilIdle()
+        assertTrue(
+            "auto-collapse must still work on the swapped-in exercise",
+            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
+        )
+
+        collectUi.cancel()
+        collectEdit.cancel()
+    }
+
     // --- superset partner editing (#93) ---
 
     @Test

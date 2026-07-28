@@ -265,10 +265,16 @@ class DayViewModel @Inject constructor(
     /** Confirming a swap in the substitution picker. The old log stays keyed to
      *  the slot's [position]; the repository clears it so the new exercise
      *  seeds fresh from its own GOAL (D4 — seeding happens on next observation,
-     *  never here). */
+     *  never here). Also clears any manual collapse override held on the slot's
+     *  stable id, so the swapped-in exercise starts in pure auto-collapse (#95). */
     fun swapDaySlot(position: Int, newExerciseId: String) {
         val day = currentDay() ?: return
-        mutate { repo.swapExercise(day, position, newExerciseId) }
+        mutate {
+            val slotId = repo.daySlotsFlow(day).first()
+                .firstOrNull { it.position == position }?.programExerciseId
+            repo.swapExercise(day, position, newExerciseId)
+            if (slotId != null) savedState[KEY_COLLAPSE] = manualCollapse.value - slotId
+        }
     }
 
     /** Appends a new slot for the picked exercise (spec §8.3 add flow). Mirrors

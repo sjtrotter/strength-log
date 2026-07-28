@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A11)
+## Amendments (A1–A12)
 
 ### A1. Session history is now required (biggest change)
 
@@ -183,6 +183,26 @@ design); it rides on the read-only watch-logger rework of the same effort.
 
 Delivered across PRs W2a (model + wire + settings plumbing, this amendment),
 W2b (watch timer engine), W2c (Setup UI), W2d (watch countdown UI).
+
+### A12. Watch UI is the concentric dial (2026-07-28)
+
+The list-based watch screens are replaced wholesale by the dial redesign —
+normative spec: `docs/briefs/wear-dial-redesign.md` (#84). One composable
+renders the whole workout as concentric rings + a single 176px tap target;
+navigation is the crown, not scrolling. Consequences that supersede A8/§9
+details:
+
+- **Horologist and `ScalingLazyColumn` are gone** from `:wear`; A8's "Compose
+  for Wear + Horologist" is now just Compose for Wear.
+- **Wire grew two facts** (additive, `schemaVersion` still 1):
+  `SetEditDelta.startedAtMillis`/`completedAtMillis` — wall-clock stamps for a
+  set's START and tick, persisted through to archived history (DB v3). The
+  phone derives active time and actual rest; the watch sends facts. An untick
+  retracts its stamps.
+- **The watch's outbound queue settles per field** (a tick delta is
+  multi-field: done + both stamps).
+- **One tap locks a set in; undo is a deliberate 700ms hold.** No untick-by-tap.
+- §6 Swap is deferred until alternates ride the snapshot (#90).
 
 ## Architecture
 

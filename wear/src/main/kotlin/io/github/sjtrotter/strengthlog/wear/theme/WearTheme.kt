@@ -31,10 +31,6 @@ val AmbientClock = Color(0xFF6B6B73)
 
 val Done = Color(0xFF3E8E5A)
 
-// "Phone away" queued-edit pill (digest §0/§3).
-val QueuedPillBg = Color(0xFF1D1D22)
-val QueuedPillBorder = Color(0xFF3A3A42)
-
 /** Day accent for [accentIndex] — reads the pinned hexes from `:domain` (SSOT with `:app`). */
 fun dayAccent(accentIndex: Int): Color = Color(DayAccentColors.hex(accentIndex))
 

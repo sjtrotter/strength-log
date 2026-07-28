@@ -52,68 +52,6 @@ class WatchUiModelsTest {
     )
 
     @Test
-    fun `day list rows report per-exercise done count out of total`() {
-        val state = snapshot.toDayListUiState()
-        assertEquals("A", state.dayId)
-        assertEquals(2, state.rows[0].doneCount)
-        assertEquals(6, state.rows[0].totalCount)
-        assertFalse(state.rows[0].allDone)
-    }
-
-    @Test
-    fun `subtitle carries the real emphasisLine, not hardcoded filler`() {
-        assertEquals("lower · squat focus", snapshot.toDayListUiState().subtitle)
-    }
-
-    @Test
-    fun `subtitle is omitted (null) when the snapshot's emphasisLine is blank`() {
-        val noEmphasis = snapshot.copy(day = snapshot.day.copy(emphasisLine = ""))
-        assertNull(noEmphasis.toDayListUiState().subtitle)
-    }
-
-    @Test
-    fun `a fully-checked exercise reports allDone`() {
-        val allDone = squat.copy(sets = squat.sets.map { it.copy(done = true) })
-        val row = WatchSnapshot(
-            revision = 1L,
-            suggestedDayId = "A",
-            day = WatchDay("A", "t", accentIndex = 0, exercises = listOf(allDone)),
-            unit = "lb",
-        ).toDayListUiState().rows.single()
-        assertTrue(row.allDone)
-    }
-
-    @Test
-    fun `a row's firstUndoneIndex is the first not-done round`() {
-        val row = snapshot.toDayListUiState().rows.single { it.programExerciseId == 1L }
-        assertEquals(2, row.firstUndoneIndex) // rounds 0,1 done; round 2 is the first undone
-    }
-
-    @Test
-    fun `a fully-done row's firstUndoneIndex falls back to the last round`() {
-        val allDone = squat.copy(sets = squat.sets.map { it.copy(done = true) })
-        val row = WatchSnapshot(
-            revision = 1L,
-            suggestedDayId = "A",
-            day = WatchDay("A", "t", accentIndex = 0, exercises = listOf(allDone)),
-            unit = "lb",
-        ).toDayListUiState().rows.single()
-        assertEquals(5, row.firstUndoneIndex)
-    }
-
-    @Test
-    fun `upNextIndex picks the first not-yet-complete row`() {
-        val state = snapshot.toDayListUiState()
-        assertEquals(0, upNextIndex(state.rows)) // squat (row 0) isn't done yet
-    }
-
-    @Test
-    fun `upNextIndex is null once every row is done`() {
-        val allDoneRows = snapshot.toDayListUiState().rows.map { it.copy(doneCount = it.totalCount) }
-        assertNull(upNextIndex(allDoneRows))
-    }
-
-    @Test
     fun `set-round kind labels follow the ramp-numbering, TOP, B-O convention`() {
         val stream = squat.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
         assertEquals(listOf("R1", "R2", "R3", "R4", "TOP", "B/O"), stream.rounds.map { it.kindLabel })

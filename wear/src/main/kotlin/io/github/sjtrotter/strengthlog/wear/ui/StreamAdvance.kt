@@ -44,16 +44,3 @@ fun decideStreamAdvance(
  */
 fun allExercisesDone(snapshot: WatchSnapshot): Boolean =
     snapshot.day.exercises.all { exercise -> exercise.sets.all { it.done } }
-
-/**
- * The name a between-exercise rest shows as "next": the first exercise in day
- * order that still has an undone set, **excluding** the one just finished
- * ([justFinishedExerciseId]) — its optimistic flags may still read undone for a
- * beat, but the lifter is leaving it, so it's never its own "next". "" when
- * nothing else remains.
- */
-fun nextExerciseLabel(snapshot: WatchSnapshot, justFinishedExerciseId: Long): String =
-    snapshot.day.exercises
-        .firstOrNull { it.programExerciseId != justFinishedExerciseId && it.sets.any { s -> !s.done } }
-        ?.name
-        .orEmpty()

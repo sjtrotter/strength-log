@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -36,6 +37,9 @@ import kotlinx.coroutines.launch
 /** No rest, and no rest just ended — the sentinel for both saveable ints. */
 private const val NO_REST = -1
 
+/** The crown hasn't picked an exercise; the dial follows the day's own order. */
+private const val NO_SELECTION = -1
+
 /** How often a live screen re-reads the clock: fine enough for a draining arc,
  *  coarse enough to be free. The lifting elapsed timer only needs seconds. */
 private const val LIVE_TICK_MILLIS = 200L
@@ -48,13 +52,15 @@ private const val GOAL_BUZZ_SETTLE_MILLIS = 250L
 private val LIVE_SCREENS = setOf(DialScreen.LIFTING, DialScreen.TIMED_HOLD, DialScreen.REST)
 
 /**
- * Root composable: keeps the screen on while logging (A8), swaps in
- * [AmbientScreen] while the system reports ambient mode, and otherwise shows
- * the dial — the one screen the whole workout happens on (brief §1).
+ * Root composable: keeps the screen on while logging (A8), swaps in [AmbientDial]
+ * while the system reports ambient mode, and otherwise shows the dial — the one
+ * screen the whole workout happens on (brief §1).
  *
- * There is no navigation. The dial's state changes in place; a swipe dismisses
- * the activity, which is the platform's own behaviour and the only "back" the
- * watch has.
+ * Every state the watch can be in is that same dial: waiting for the phone
+ * ([LoadingDial]), a day with no program yet (the dashed disc [dialUiState]
+ * already produces), the workout, and ambient. There is no navigation. The dial's
+ * state changes in place; a swipe dismisses the activity, which is the platform's
+ * own behaviour and the only "back" the watch has.
  */
 @Composable
 fun WearApp(
@@ -81,9 +87,8 @@ fun WearApp(
         Box(Modifier.fillMaxSize().background(Background)) {
             val snap = snapshot
             when {
-                snap == null -> LoadingScreen()
-                isAmbient -> AmbientScreen(snap, ambientTick, restLabel = restController.activeRest?.nextLabel)
-                snap.day.exercises.isEmpty() -> EmptyScreen()
+                snap == null -> LoadingDial()
+                isAmbient -> AmbientDial(snap, ambientTick, restController.activeRest)
                 else -> WorkoutDial(
                     snap = snap,
                     pendingCount = pendingCount,
@@ -100,10 +105,13 @@ fun WearApp(
  * The workout, as local state over the snapshot. Which exercise and which round
  * the lifter is on are *derived* (the client echoes a tick optimistically, so the
  * ring moves the moment it is tapped); only what the phone cannot know is held
- * here — has this set been started, is a rest running, when did the session begin.
+ * here — has this set been started, is a rest running, when did the session begin,
+ * which exercise did the crown pick, and how long each set actually took.
  *
  * All of it is [rememberSaveable] and deadline-anchored, so a process death
- * mid-set or mid-rest restores to exactly the same dial (write-on-mutation).
+ * mid-set or mid-rest restores to exactly the same dial (write-on-mutation). The
+ * one deliberate exception is the peek: a glance at another round is not a place
+ * the watch should ever restore into.
  */
 @Composable
 private fun WorkoutDial(
@@ -124,22 +132,24 @@ private fun WorkoutDial(
     var restDeadlineMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
     var restTotalSeconds by rememberSaveable(dayId) { mutableIntStateOf(0) }
     var restBetweenExercises by rememberSaveable(dayId) { mutableStateOf(false) }
-    var restNextLabel by rememberSaveable(dayId) { mutableStateOf("") }
     var restedSeconds by rememberSaveable(dayId) { mutableIntStateOf(NO_REST) }
     var sessionStartedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
     var sessionEndedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var selectedExercise by rememberSaveable(dayId) { mutableIntStateOf(NO_SELECTION) }
+    var setTimes by rememberSaveable(dayId, stateSaver = SetTimeMemorySaver) {
+        mutableStateOf(SetTimeMemory.EMPTY)
+    }
+    var peek by remember(dayId) { mutableStateOf<PeekState?>(null) }
     var nowElapsedMillis by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
 
-    val exerciseIndex = currentExerciseIndex(snap)
+    val exerciseIndex = ExerciseSelection.resolve(snap, selectedExercise.takeIf { it >= 0 })
     val exercise = snap.day.exercises.getOrNull(exerciseIndex)
     val roundIndex = exercise?.let(::currentRoundIndex) ?: 0
-    val stream = exercise?.toStreamUiState(watchUnit(snap.unit), snap.day.dayId, snap.day.accentIndex)
     val holdGoal = exercise?.let { holdGoalSeconds(it, roundIndex) } ?: 0
 
-    fun startRest(seconds: Int, betweenExercises: Boolean, nextLabel: String) {
+    fun startRest(seconds: Int, betweenExercises: Boolean) {
         restTotalSeconds = seconds
         restBetweenExercises = betweenExercises
-        restNextLabel = nextLabel
         restDeadlineMillis = RestTimer.deadlineFrom(SystemClock.elapsedRealtime(), seconds)
     }
 
@@ -147,7 +157,6 @@ private fun WorkoutDial(
         restDeadlineMillis = 0L
         restTotalSeconds = 0
         restBetweenExercises = false
-        restNextLabel = ""
     }
 
     fun startSet() {
@@ -180,6 +189,15 @@ private fun WorkoutDial(
             ),
         )
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        // How long the set took, remembered on the wrist only — the wire never
+        // echoes the stamps back, so this is the peek's only source for TOOK (§6).
+        if (startedAtWallMillis > 0L) {
+            setTimes = setTimes.record(
+                programExerciseId = ex.programExerciseId,
+                roundIndex = roundIndex,
+                durationSeconds = ((completedAtMillis - startedAtWallMillis) / 1000L).toInt(),
+            )
+        }
         lifting = false
         startedAtWallMillis = 0L
         startedAtElapsedMillis = 0L
@@ -196,18 +214,37 @@ private fun WorkoutDial(
         }
         val advance = decideStreamAdvance(postTickFlags, postTickFlags.all { it } && othersDone)
         when {
-            RestTimer.shouldRest(advance, set.restAfterSeconds) -> startRest(
-                seconds = set.restAfterSeconds,
-                betweenExercises = false,
-                nextLabel = stream?.rounds?.getOrNull((advance as StreamAdvance.NextRound).index)
-                    ?.let(::roundLabel).orEmpty(),
-            )
-            RestTimer.shouldRestAfterExercise(advance, set.restAfterSeconds) -> startRest(
-                seconds = set.restAfterSeconds,
-                betweenExercises = true,
-                nextLabel = nextExerciseLabel(snap, ex.programExerciseId),
-            )
+            RestTimer.shouldRest(advance, set.restAfterSeconds) ->
+                startRest(seconds = set.restAfterSeconds, betweenExercises = false)
+            RestTimer.shouldRestAfterExercise(advance, set.restAfterSeconds) ->
+                startRest(seconds = set.restAfterSeconds, betweenExercises = true)
         }
+    }
+
+    /**
+     * The deliberate way back out of a tick (§6): send the untick, forget the time
+     * it claimed, and let the derived indices walk back on their own. Whatever the
+     * tick set in motion goes with it — the rest it started was rest between two
+     * sets, one of which no longer exists.
+     */
+    fun undo(index: Int) {
+        val ex = exercise ?: return
+        restController.skip()
+        clearRest()
+        restedSeconds = NO_REST
+        lifting = false
+        startedAtWallMillis = 0L
+        startedAtElapsedMillis = 0L
+        sendEdit(
+            buildUndoDelta(
+                dayId = dayId,
+                programExerciseId = ex.programExerciseId,
+                setIndex = index,
+                editedAtMillis = System.currentTimeMillis(),
+            ),
+        )
+        setTimes = setTimes.forget(ex.programExerciseId, index)
+        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
 
     val state = dialUiState(
@@ -230,6 +267,10 @@ private fun WorkoutDial(
             },
             nowElapsedMillis = nowElapsedMillis,
             session = SessionStamps(sessionStartedAtMillis, sessionEndedAtMillis),
+            peekRoundIndex = peek?.roundIndex,
+            peekTookSeconds = peek?.let { p ->
+                exercise?.let { setTimes.secondsFor(it.programExerciseId, p.roundIndex) }
+            },
         ),
     )
 
@@ -247,9 +288,18 @@ private fun WorkoutDial(
     // it punctual in ambient); this effect only re-segments the dial afterwards.
     // Keyed on the deadline so it re-arms from the restored value after process
     // death — and if that value is already past, clears the stale rest at once.
+    // A peek ends when the crown stops turning: a rotary crown has no release
+    // event, so the brief's "↺ RELEASE TO RETURN" is read as stopping. The effect
+    // re-arms on every turn, so this delay is the idle timeout itself.
+    LaunchedEffect(peek) {
+        val current = peek ?: return@LaunchedEffect
+        delay(PeekScrub.IDLE_TIMEOUT_MILLIS)
+        if (PeekScrub.expired(current, SystemClock.elapsedRealtime())) peek = null
+    }
+
     LaunchedEffect(restDeadlineMillis) {
         if (restDeadlineMillis <= 0L) return@LaunchedEffect
-        restController.arm(restDeadlineMillis, restNextLabel)
+        restController.arm(restDeadlineMillis, restTotalSeconds)
         while (!RestTimer.isExpired(restDeadlineMillis, SystemClock.elapsedRealtime())) {
             delay(LIVE_TICK_MILLIS)
         }
@@ -266,7 +316,7 @@ private fun WorkoutDial(
     LaunchedEffect(lifting, startedAtElapsedMillis, holdGoal) {
         if (!lifting || holdGoal <= 0 || startedAtElapsedMillis <= 0L) return@LaunchedEffect
         val goalDeadline = RestTimer.deadlineFrom(startedAtElapsedMillis, holdGoal)
-        restController.arm(goalDeadline, "")
+        restController.arm(goalDeadline, holdGoal)
         while (!RestTimer.isExpired(goalDeadline, SystemClock.elapsedRealtime())) {
             delay(LIVE_TICK_MILLIS)
         }
@@ -276,8 +326,26 @@ private fun WorkoutDial(
         latestTick()
     }
 
+    // The crown reads the screen it's on: exercises on Today, rounds in a session,
+    // nothing where there is nothing to look through (§6).
+    val crown = rememberCrownModifier(enabled = state.crown != DialCrown.NONE) { detents ->
+        when (state.crown) {
+            DialCrown.SELECT_EXERCISE ->
+                selectedExercise = ExerciseSelection.move(exerciseIndex, detents, snap.day.exercises.size)
+            DialCrown.PEEK -> peek = PeekScrub.turn(
+                current = peek,
+                currentRoundIndex = roundIndex,
+                detents = detents,
+                roundCount = exercise?.sets?.size ?: 0,
+                nowElapsedMillis = SystemClock.elapsedRealtime(),
+            )
+            DialCrown.NONE -> Unit
+        }
+    }
+
     Dial(
         state = state,
+        modifier = crown,
         onTap = {
             when (state.tap) {
                 DialTap.BEGIN_EXERCISE -> begun = true
@@ -294,8 +362,15 @@ private fun WorkoutDial(
                 DialTap.NONE -> Unit
             }
         },
+        onHoldComplete = { index -> undo(index) },
     )
 }
+
+/** [SetTimeMemory] rides a saved-instance bundle as its own one-line encoding. */
+private val SetTimeMemorySaver = Saver<SetTimeMemory, String>(
+    save = { it.encode() },
+    restore = { SetTimeMemory.decode(it) },
+)
 
 /**
  * Drives the OngoingActivity re-entry chip off the snapshot (redesign §1.4 / R6).

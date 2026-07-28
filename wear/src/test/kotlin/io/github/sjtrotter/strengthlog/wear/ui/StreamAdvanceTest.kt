@@ -82,26 +82,4 @@ class StreamAdvanceTest {
         val oneUndone = snapshot(listOf(exercise(1, listOf(true, false)), exercise(2, listOf(true))))
         assertFalse(allExercisesDone(oneUndone))
     }
-
-    // --- nextExerciseLabel: the "next" name the day-list rest pill shows (issue #81) ---
-
-    @Test
-    fun `next label is the first later exercise that still has an undone set`() {
-        val snap = snapshot(listOf(exercise(1, listOf(true, true)), exercise(2, listOf(false))))
-        assertEquals("Ex2", nextExerciseLabel(snap, justFinishedExerciseId = 1))
-    }
-
-    @Test
-    fun `the just-finished exercise is excluded even if its optimistic flags read undone`() {
-        // Exercise 1's flags still show an undone set (optimism lag), but it's the one
-        // we just left — the next is the first OTHER undone exercise.
-        val snap = snapshot(listOf(exercise(1, listOf(true, false)), exercise(2, listOf(false))))
-        assertEquals("Ex2", nextExerciseLabel(snap, justFinishedExerciseId = 1))
-    }
-
-    @Test
-    fun `next label is blank when every other exercise is already done`() {
-        val snap = snapshot(listOf(exercise(1, listOf(true)), exercise(2, listOf(true, true))))
-        assertEquals("", nextExerciseLabel(snap, justFinishedExerciseId = 1))
-    }
 }

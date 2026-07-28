@@ -81,10 +81,19 @@ fun DayEditSheet(
     var pickingPattern by rememberSaveable { mutableStateOf(false) }
     var addPatternName by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmingReset by rememberSaveable { mutableStateOf(false) }
+    var optionsSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var ssSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var ssPatternName by rememberSaveable { mutableStateOf<String?>(null) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Surface) {
         val swapSlot = state.slots.firstOrNull { it.programExerciseId == swapSlotId }
+        val ssSlot = state.slots.firstOrNull { it.programExerciseId == ssSlotId }
+        val optionsSlot = state.slots.firstOrNull { it.programExerciseId == optionsSlotId }
         when {
+            // Swap and the superset pickers layer above the options page so
+            // "swap, then add a superset" reads as one continuous flow — they
+            // never clear optionsSlotId, so finishing (or backing out of) one
+            // lands back on the options page rather than the slot list.
             swapSlot != null && swapSlot.pattern != null -> ExercisePickerScreen(
                 key = "swap-${swapSlot.programExerciseId}",
                 title = "Swap — ${swapSlot.title}",
@@ -96,7 +105,47 @@ fun DayEditSheet(
                 onBack = { swapSlotId = null },
                 onCreateExercise = onCreateExercise,
             )
+            ssSlot != null && ssPatternName == null -> {
+                // Same-pattern assistance pairings (pull-up + assisted pull-up)
+                // are the common case, so the current partner's pattern (or the
+                // slot's own pattern, when adding a first partner) is ranked first.
+                val referencePattern = ssSlot.partnerExerciseId
+                    ?.let { state.catalog.find(it)?.pattern }
+                    ?: ssSlot.pattern
+                val patterns = state.catalog.entries.map { it.pattern }.distinct().sortedBy { it.ordinal }
+                val ordered = if (referencePattern != null) {
+                    listOf(referencePattern) + patterns.filter { it != referencePattern }
+                } else {
+                    patterns
+                }
+                PatternPickerScreen(
+                    title = "Superset — pick a pattern",
+                    patterns = ordered,
+                    onPick = { pattern -> ssPatternName = pattern.name },
+                    onBack = { ssSlotId = null },
+                )
+            }
+            ssSlot != null && ssPatternName != null -> {
+                val pattern = MovementPattern.valueOf(ssPatternName!!)
+                ExercisePickerScreen(
+                    key = "ss-${ssSlot.programExerciseId}-$ssPatternName",
+                    title = "Superset — ${ssSlot.title}",
+                    pattern = pattern,
+                    candidates = state.catalog.byPattern(pattern)
+                        .filter { it.id != ssSlot.exerciseId && it.id != ssSlot.partnerExerciseId },
+                    defaultEquipment = state.defaultEquipmentFilter,
+                    accent = accent,
+                    onPick = { entry ->
+                        actions.onSetSuperset(ssSlot.position, entry.id)
+                        ssSlotId = null
+                        ssPatternName = null
+                    },
+                    onBack = { ssPatternName = null },
+                    onCreateExercise = onCreateExercise,
+                )
+            }
             pickingPattern -> PatternPickerScreen(
+                title = "Add exercise — pick a pattern",
                 patterns = state.catalog.entries.map { it.pattern }.distinct().sortedBy { it.ordinal },
                 onPick = { pattern -> addPatternName = pattern.name; pickingPattern = false },
                 onBack = { pickingPattern = false },
@@ -115,10 +164,17 @@ fun DayEditSheet(
                     onCreateExercise = onCreateExercise,
                 )
             }
+            optionsSlot != null -> SlotOptionsScreen(
+                slot = optionsSlot,
+                onBack = { optionsSlotId = null },
+                onSwapClick = { swapSlotId = optionsSlot.programExerciseId },
+                onSupersetClick = { ssSlotId = optionsSlot.programExerciseId },
+                onRemoveSupersetClick = { actions.onRemoveSuperset(optionsSlot.position) },
+            )
             else -> DaySlotList(
                 state = state,
                 accent = accent,
-                onSwapClick = { slotId -> swapSlotId = slotId },
+                onEditClick = { slotId -> optionsSlotId = slotId },
                 onRemoveClick = actions.onRemove,
                 onAddClick = { pickingPattern = true },
                 onResetClick = { confirmingReset = true },
@@ -140,7 +196,7 @@ fun DayEditSheet(
 private fun DaySlotList(
     state: DayEditUiState,
     accent: Color,
-    onSwapClick: (Long) -> Unit,
+    onEditClick: (Long) -> Unit,
     onRemoveClick: (Int) -> Unit,
     onAddClick: () -> Unit,
     onResetClick: () -> Unit,
@@ -157,7 +213,7 @@ private fun DaySlotList(
                     slot = slot,
                     canRemove = state.canRemove,
                     accent = accent,
-                    onSwapClick = { onSwapClick(slot.programExerciseId) },
+                    onEditClick = { onEditClick(slot.programExerciseId) },
                     onRemoveClick = { onRemoveClick(slot.position) },
                 )
             }
@@ -176,7 +232,7 @@ private fun DaySlotRow(
     slot: DayEditSlotState,
     canRemove: Boolean,
     accent: Color,
-    onSwapClick: () -> Unit,
+    onEditClick: () -> Unit,
     onRemoveClick: () -> Unit,
 ) {
     AppCard {
@@ -184,24 +240,65 @@ private fun DaySlotRow(
             Column(Modifier.weight(1f)) {
                 Text(slot.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge.copy(fontSize = 17.sp))
                 Text(
-                    if (slot.isSuperset) "superset" else slot.pattern?.let { patternLabel(it) } ?: "unknown exercise",
+                    if (slot.isSuperset) "SS with ${slot.partnerTitle}" else slot.pattern?.let { patternLabel(it) } ?: "unknown exercise",
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            SheetButton("Swap", onClick = onSwapClick, enabled = slot.pattern != null, compact = true)
+            SheetButton("Edit", onClick = onEditClick, compact = true)
             Spacer(Modifier.size(8.dp))
             SheetButton("Remove", onClick = onRemoveClick, enabled = canRemove, compact = true, textColor = Error)
         }
     }
 }
 
-// --- page 2: pick a pattern (add flow only) -----------------------------------
+// --- page: per-slot options (#93) ----------------------------------------------
 
 @Composable
-private fun PatternPickerScreen(patterns: List<MovementPattern>, onPick: (MovementPattern) -> Unit, onBack: () -> Unit) {
+private fun SlotOptionsScreen(
+    slot: DayEditSlotState,
+    onBack: () -> Unit,
+    onSwapClick: () -> Unit,
+    onSupersetClick: () -> Unit,
+    onRemoveSupersetClick: () -> Unit,
+) {
+    val title = slot.title + (slot.partnerTitle?.let { " + $it" } ?: "")
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-        PickerHeader(title = "Add exercise — pick a pattern", onBack = onBack)
+        PickerHeader(title = title, onBack = onBack)
+        Spacer(Modifier.size(12.dp))
+        SheetButton(
+            "Swap exercise",
+            onClick = onSwapClick,
+            enabled = slot.pattern != null,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.size(8.dp))
+        if (slot.partnerExerciseId == null) {
+            SheetButton("Add superset", onClick = onSupersetClick, modifier = Modifier.fillMaxWidth())
+        } else {
+            SheetButton("Swap superset partner", onClick = onSupersetClick, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.size(8.dp))
+            SheetButton(
+                "Remove superset",
+                onClick = onRemoveSupersetClick,
+                textColor = Error,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+// --- page 2: pick a pattern (add flow and superset flow) ----------------------
+
+@Composable
+private fun PatternPickerScreen(
+    title: String,
+    patterns: List<MovementPattern>,
+    onPick: (MovementPattern) -> Unit,
+    onBack: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+        PickerHeader(title = title, onBack = onBack)
         Spacer(Modifier.size(8.dp))
         LazyColumn(modifier = Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(patterns) { pattern ->

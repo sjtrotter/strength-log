@@ -221,6 +221,35 @@ open class TrackerRepository(
         }
     }
 
+    /**
+     * Attaches [partnerExerciseId] to the slot at [position] as its superset
+     * partner (#93) — the same call covers adding a partner to a plain slot and
+     * swapping an existing one.
+     *
+     * Only the SS track is cleared, so the new partner reseeds from its own GOAL
+     * on the next observation while the slot's MAIN track — the lifter's living
+     * record, possibly with weeks of edits and extra sets on it — survives
+     * untouched. Deliberately NOT [ProgramDao.deleteLogsForExercise], which would
+     * nuke both tracks.
+     */
+    suspend fun setSupersetPartner(dayId: String, position: Int, partnerExerciseId: String) {
+        db.withTransaction {
+            val row = programDao.exerciseAt(dayId, position) ?: return@withTransaction
+            programDao.setSupersetExerciseId(row.id, partnerExerciseId)
+            programDao.deleteLogForSlot(dayId, row.id, Slot.SS)
+        }
+    }
+
+    /** Drops the slot's superset partner and its SS track (#93), leaving the MAIN
+     *  track alone for the same reason [setSupersetPartner] does. */
+    suspend fun removeSupersetPartner(dayId: String, position: Int) {
+        db.withTransaction {
+            val row = programDao.exerciseAt(dayId, position) ?: return@withTransaction
+            programDao.setSupersetExerciseId(row.id, null)
+            programDao.deleteLogForSlot(dayId, row.id, Slot.SS)
+        }
+    }
+
     /** Regenerates one day from the stored wizard answers (spec §8.3), leaving the
      *  other days untouched. No-op if answers regenerate no such day. */
     suspend fun resetDayToTemplate(dayId: String) {

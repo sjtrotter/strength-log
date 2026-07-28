@@ -42,13 +42,18 @@ object DayScreenBuilder {
 
     /**
      * Which slots still need their ACTUAL log seeded from GOAL — every slot whose
-     * (id, track) pair isn't already in [existing]. "Seeded once, then persists":
-     * a slot with a stored log is never reseeded, so a changed GOAL never rewrites
-     * a lifter's living record (spec principle 2).
+     * (id, track) pair isn't already a key of [existing]. "Seeded once, then
+     * persists": a slot with a stored log is never reseeded, so a changed GOAL
+     * never rewrites a lifter's living record (spec principle 2).
+     *
+     * [existing] maps each stored track to its current row count, which the
+     * partner path needs: a partner added to a lived-in slot (#93) must seed
+     * row-aligned to the LIVE main track — the lifter may have added EXTRA sets
+     * to it — not to the freshly computed seed.
      */
     fun seedPlan(
         slots: List<ProgramSlot>,
-        existing: Set<Pair<Long, String>>,
+        existing: Map<Pair<Long, String>, Int>,
         cfg: LifterConfig,
         catalog: ExerciseCatalog,
     ): List<SeedWrite> {
@@ -63,10 +68,11 @@ object DayScreenBuilder {
             val partner = pe.superset
             if (partner != null && slot.programExerciseId to Slot.SS !in existing) {
                 val partnerEntry = catalog.find(partner.exerciseId) ?: continue
+                val rows = existing[slot.programExerciseId to Slot.MAIN] ?: mainSeed.size
                 writes += SeedWrite(
                     slot.programExerciseId,
                     Slot.SS,
-                    SetSeeder.seedPartner(mainSeed.size, GoalCalculator.targetFor(partnerEntry, cfg)),
+                    SetSeeder.seedPartner(rows, GoalCalculator.targetFor(partnerEntry, cfg)),
                 )
             }
         }

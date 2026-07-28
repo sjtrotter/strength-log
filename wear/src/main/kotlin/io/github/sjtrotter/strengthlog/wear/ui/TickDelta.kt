@@ -31,5 +31,26 @@ fun buildTickDelta(
     completedAtMillis = completedAtMillis,
 )
 
+/**
+ * The other direction: a deliberate long-press takes a set back (brief §6). It
+ * carries `done = false` and **no stamps** — an untick retracts the tick's facts
+ * rather than restating them, and the phone clears the row's start/complete millis
+ * on a `done = false` delta for exactly that reason (the same rule the daily
+ * checkmark reset applies to a stale check).
+ */
+fun buildUndoDelta(
+    dayId: String,
+    programExerciseId: Long,
+    setIndex: Int,
+    editedAtMillis: Long,
+): SetEditDelta = SetEditDelta(
+    dayId = dayId,
+    programExerciseId = programExerciseId,
+    slot = SLOT_MAIN,
+    setIndex = setIndex,
+    done = false,
+    editedAtMillis = editedAtMillis,
+)
+
 /** The watch only ever ticks the main track; a superset partner follows its round. */
 private const val SLOT_MAIN = "main"

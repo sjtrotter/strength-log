@@ -46,4 +46,16 @@ class TickDeltaTest {
         val delta = buildTickDelta("A", 1L, 0, startedAtMillis = 1L, completedAtMillis = 2L)
         assertTrue(delta.weightLb == null && delta.reps == null && delta.seconds == null)
     }
+
+    @Test
+    fun `an undo unticks the set and carries no stamps at all`() {
+        val delta = buildUndoDelta(dayId = "A", programExerciseId = 7L, setIndex = 2, editedAtMillis = 500L)
+        assertEquals(false, delta.done)
+        assertNull(delta.startedAtMillis)
+        assertNull(delta.completedAtMillis)
+        assertEquals(500L, delta.editedAtMillis)
+        assertEquals("main", delta.slot)
+        assertEquals(2, delta.setIndex)
+        assertTrue(delta.weightLb == null && delta.reps == null && delta.seconds == null)
+    }
 }

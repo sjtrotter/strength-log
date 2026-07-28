@@ -14,8 +14,8 @@ package io.github.sjtrotter.strengthlog.wear.ui
  */
 
 /** One item of the inner ring — a round of the current exercise, or (on the
- *  "today" screen) a whole exercise. `PEEKED` is the crown-scrub marker; the
- *  crown layer (brief §6) isn't wired yet, but the vocabulary is fixed. */
+ *  "today" screen) a whole exercise. `PEEKED` is the crown-scrub marker: white,
+ *  "you are looking here", distinct from the accent "you are here" (§4). */
 enum class RoundState { DONE, CURRENT, UPCOMING, PEEKED }
 
 /** An arc in Compose `drawArc` terms: 0° is 3 o'clock, sweeping clockwise. */
@@ -40,6 +40,9 @@ object DialGeometry {
 
     /** The rest-over halo's width (§8). */
     const val BLOOM_WIDTH = 10f
+
+    /** The undo hold's progress ring, drawn on the disc's own edge (§6). */
+    const val HOLD_RING_STROKE = 4f
 
     /** ~4° between segments (§4). */
     const val SEGMENT_GAP_DEG = 4f
@@ -110,12 +113,22 @@ object DialGeometry {
      * on is the single accent segment, the rest are track. [currentIndex] earns
      * the accent only if it isn't already done, so "exactly one accent segment,
      * ever" (§4) holds even when everything is finished.
+     *
+     * [peekedIndex] is the crown's white scrub marker, and it is checked *after*
+     * the accent: where the lifter is looking may coincide with where they are,
+     * and in that case the accent stays — the peek marker is a second reading of
+     * the ring, never a replacement for the first.
      */
-    fun roundStates(doneFlags: List<Boolean>, currentIndex: Int): List<RoundState> =
+    fun roundStates(
+        doneFlags: List<Boolean>,
+        currentIndex: Int,
+        peekedIndex: Int? = null,
+    ): List<RoundState> =
         doneFlags.mapIndexed { i, done ->
             when {
+                i == currentIndex && !done -> RoundState.CURRENT
+                i == peekedIndex -> RoundState.PEEKED
                 done -> RoundState.DONE
-                i == currentIndex -> RoundState.CURRENT
                 else -> RoundState.UPCOMING
             }
         }

@@ -48,6 +48,16 @@ data class BandContent(
 /** What tapping the disc does — the dial's one tap target (§1). */
 enum class DialTap { NONE, BEGIN_EXERCISE, START_SET, TICK, SKIP_REST, DISMISS }
 
+/** What turning the crown does on this screen (§6). */
+enum class DialCrown { NONE, SELECT_EXERCISE, PEEK }
+
+/**
+ * What a 700ms hold on the disc does (§6) — undo the round at [roundIndex]. Null
+ * when there is nothing logged to take back. [disc] is what the disc says while
+ * the hold fills; the fill itself is the disc's own ring, drawn by the composable.
+ */
+data class DialHold(val roundIndex: Int, val disc: DiscContent)
+
 data class DialUiState(
     val screen: DialScreen,
     val accentIndex: Int,
@@ -68,4 +78,6 @@ data class DialUiState(
      *  bloom fires on the transition into it and decays (§8). */
     val bloom: Boolean,
     val tap: DialTap,
+    val crown: DialCrown = DialCrown.NONE,
+    val hold: DialHold? = null,
 )

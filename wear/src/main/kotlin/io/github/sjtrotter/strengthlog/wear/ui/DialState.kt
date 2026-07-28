@@ -51,6 +51,11 @@ data class DialInputs(
     val liftingElapsedMillis: Long = 0L,
     val nowElapsedMillis: Long = 0L,
     val session: SessionStamps = SessionStamps(),
+    /** The round the crown is peeking at (§6), or null when nobody is browsing. */
+    val peekRoundIndex: Int? = null,
+    /** How long that round took, from the watch's own session memory
+     *  ([SetTimeMemory]) — null when this watch never observed it. */
+    val peekTookSeconds: Int? = null,
 )
 
 /**
@@ -117,7 +122,9 @@ fun dialUiState(inputs: DialInputs): DialUiState {
         !inputs.begun && doneSets == 0 -> context.today()
         else -> context.ready()
     }
-    return state.withQueuedStatus(inputs.pendingCount)
+    return state
+        .withPeek(context, inputs.peekRoundIndex, inputs.peekTookSeconds)
+        .withQueuedStatus(inputs.pendingCount)
 }
 
 /** Everything the seven screen builders share, so each reads as its brief entry. */
@@ -149,6 +156,8 @@ private class ScreenContext(
         bottomBand: BandContent?,
         disc: DiscContent,
         tap: DialTap,
+        crown: DialCrown = DialCrown.NONE,
+        hold: DialHold? = null,
         bloom: Boolean = false,
         dayProgressOverride: Float? = null,
     ) = DialUiState(
@@ -162,6 +171,8 @@ private class ScreenContext(
         disc = disc,
         bloom = bloom,
         tap = tap,
+        crown = crown,
+        hold = hold,
     )
 
     fun today(): DialUiState {
@@ -195,6 +206,10 @@ private class ScreenContext(
                 ),
             ),
             tap = DialTap.BEGIN_EXERCISE,
+            // The inner ring is exercises here, so the crown picks one of those —
+            // and the tap begins the one the crown left the accent on, which is
+            // not necessarily the first with work left (§5.1).
+            crown = DialCrown.SELECT_EXERCISE,
         )
     }
 
@@ -209,6 +224,8 @@ private class ScreenContext(
         bottomBand = BandContent(setOfLine(), DialTone.TERTIARY),
         disc = startDisc(),
         tap = DialTap.START_SET,
+        crown = DialCrown.PEEK,
+        hold = undoHold(),
     )
 
     fun lifting(): DialUiState = base(
@@ -229,6 +246,7 @@ private class ScreenContext(
             ),
         ),
         tap = DialTap.TICK,
+        crown = DialCrown.PEEK,
     )
 
     fun timedHold(): DialUiState {
@@ -279,6 +297,7 @@ private class ScreenContext(
                 ),
             ),
             tap = DialTap.SKIP_REST,
+            crown = DialCrown.PEEK,
         )
     }
 
@@ -299,6 +318,8 @@ private class ScreenContext(
         ),
         disc = startDisc(),
         tap = DialTap.START_SET,
+        crown = DialCrown.PEEK,
+        hold = undoHold(),
         bloom = true,
     )
 
@@ -340,6 +361,48 @@ private class ScreenContext(
         return (if (parts.isEmpty()) listOf("$doneSetCount sets") else parts).joinToString(" · ").uppercase()
     }
 
+    /**
+     * The undo a 700ms hold offers, or null when nothing of this exercise is
+     * logged (§6). One confident tap locks a set in — this is the deliberate way
+     * back out, and it is offered only on the two screens where the lifter is
+     * *between* sets and can see what they'd be taking back.
+     */
+    fun undoHold(): DialHold? {
+        val index = UndoTarget.of(exercise.sets.map { it.done }) ?: return null
+        return DialHold(
+            roundIndex = index,
+            disc = DiscContent(
+                style = DiscStyle.FLAT,
+                lines = listOf(
+                    DiscLine("undo".uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY),
+                    DiscLine("set ${index + 1}".uppercase(), DialTextRole.BAND, DialTone.SECONDARY),
+                ),
+            ),
+        )
+    }
+
+    /** The peeked round as the disc reads it: the result, and how long it took. */
+    fun peekDisc(roundIndex: Int, tookSeconds: Int?): DiscContent = DiscContent(
+        style = DiscStyle.DIMMED,
+        lines = listOfNotNull(
+            DiscLine(
+                stream.rounds.getOrNull(roundIndex)?.let(::roundLabel).orEmpty(),
+                DialTextRole.DISC_LABEL,
+                DialTone.PRIMARY,
+            ),
+            tookSeconds?.let {
+                DiscLine(
+                    "took ${DialFormat.clock(it.toLong())}".uppercase(),
+                    DialTextRole.BAND,
+                    DialTone.SECONDARY,
+                )
+            },
+        ),
+    )
+
+    fun peekedRoundStates(peekedIndex: Int): List<RoundState> =
+        DialGeometry.roundStates(exercise.sets.map { it.done }, roundIndex, peekedIndex)
+
     private fun startDisc() = DiscContent(
         style = DiscStyle.FILLED,
         lines = listOf(
@@ -372,6 +435,35 @@ private class ScreenContext(
             BandContent("hold to undo".uppercase(), DialTone.TERTIARY)
         }
     }
+}
+
+/**
+ * Crown-peek, laid over whatever screen the lifter is actually on (§6): the ring
+ * grows a second, white marker where they're looking, the disc dims to read-only
+ * and shows that round's result, and the tap goes away — browsing must never be
+ * one slip away from logging.
+ *
+ * A peek during a rest un-melts the ring back into segments. The white marker has
+ * nowhere to live on a continuous arc, and the rest is deadline-anchored, so the
+ * clock loses nothing by being invisible for the second the lifter is looking
+ * elsewhere — the countdown is right where they left it when the peek returns.
+ */
+private fun DialUiState.withPeek(
+    context: ScreenContext,
+    peekRoundIndex: Int?,
+    tookSeconds: Int?,
+): DialUiState {
+    if (peekRoundIndex == null || crown != DialCrown.PEEK || rounds.isEmpty()) return this
+    val index = peekRoundIndex.coerceIn(rounds.indices)
+    return copy(
+        rounds = context.peekedRoundStates(index),
+        arc = null,
+        bottomBand = BandContent("↺ release to return".uppercase(), DialTone.TERTIARY),
+        disc = context.peekDisc(index, tookSeconds),
+        bloom = false,
+        tap = DialTap.NONE,
+        hold = null,
+    )
 }
 
 /**

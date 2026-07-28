@@ -79,6 +79,8 @@ class DialStateTest {
         liftingElapsedMillis: Long = 0L,
         nowElapsedMillis: Long = 0L,
         session: SessionStamps = SessionStamps(),
+        peekRoundIndex: Int? = null,
+        peekTookSeconds: Int? = null,
     ) = DialInputs(
         snapshot = snapshot,
         exerciseIndex = exerciseIndex,
@@ -90,6 +92,8 @@ class DialStateTest {
         liftingElapsedMillis = liftingElapsedMillis,
         nowElapsedMillis = nowElapsedMillis,
         session = session,
+        peekRoundIndex = peekRoundIndex,
+        peekTookSeconds = peekTookSeconds,
     )
 
     private fun DialUiState.discText(): List<String> =
@@ -349,6 +353,95 @@ class DialStateTest {
         val state = dialUiState(inputs(snapshot = snapshot()))
         assertEquals(DiscStyle.DASHED, state.disc.style)
         assertEquals(DialTap.NONE, state.tap)
+    }
+
+    // --- crown: peek (§6) ---------------------------------------------------------
+
+    @Test
+    fun `the crown picks exercises on today and rounds inside a session`() {
+        assertEquals(DialCrown.SELECT_EXERCISE, dialUiState(inputs(begun = false)).crown)
+        assertEquals(DialCrown.PEEK, dialUiState(inputs()).crown)
+        assertEquals(DialCrown.PEEK, dialUiState(inputs(phase = SetPhase.LIFTING)).crown)
+        assertEquals(DialCrown.PEEK, dialUiState(inputs(restedSeconds = 150)).crown)
+        assertEquals(DialCrown.NONE, dialUiState(inputs(snapshot = allDone())).crown)
+    }
+
+    @Test
+    fun `a peek is read-only, white where you're looking and accent where you are`() {
+        val logged = snapshot(
+            squat.copy(sets = listOf(set(done = true), set(done = true), set())),
+            press,
+        )
+        val state = dialUiState(inputs(snapshot = logged, peekRoundIndex = 0, peekTookSeconds = 52))
+        assertEquals(
+            listOf(RoundState.PEEKED, RoundState.DONE, RoundState.CURRENT),
+            state.rounds,
+        )
+        assertEquals(1, state.rounds.count { it == RoundState.CURRENT })
+        assertEquals(DiscStyle.DIMMED, state.disc.style)
+        assertEquals(listOf("235 × 5", "TOOK 0:52"), state.discText())
+        assertEquals("↺ RELEASE TO RETURN", state.bottomBand?.text)
+        assertEquals(DialTap.NONE, state.tap)
+        assertNull(state.hold)
+    }
+
+    @Test
+    fun `a round this watch never timed peeks without a TOOK line`() {
+        val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
+        val state = dialUiState(inputs(snapshot = logged, peekRoundIndex = 0))
+        assertEquals(listOf("235 × 5"), state.discText())
+    }
+
+    @Test
+    fun `peeking at where you already are keeps the accent, not the white marker`() {
+        val state = dialUiState(inputs(peekRoundIndex = 0))
+        assertEquals(RoundState.CURRENT, state.rounds[0])
+        assertFalse(state.rounds.contains(RoundState.PEEKED))
+    }
+
+    @Test
+    fun `a peek during a rest brings the segments back so the marker has somewhere to sit`() {
+        val rest = RestState(deadlineElapsedMillis = 90_000L, totalSeconds = 150, betweenExercises = false)
+        val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
+        val state = dialUiState(
+            inputs(snapshot = logged, rest = rest, nowElapsedMillis = 6_000L, peekRoundIndex = 0),
+        )
+        assertNull(state.arc)
+        assertEquals(RoundState.PEEKED, state.rounds[0])
+        assertEquals(DialTap.NONE, state.tap)
+    }
+
+    @Test
+    fun `there is nothing to peek at before the day starts`() {
+        val state = dialUiState(inputs(begun = false, peekRoundIndex = 1))
+        assertEquals(DialScreen.TODAY, state.screen)
+        assertEquals(DiscStyle.FILLED, state.disc.style)
+        assertEquals(DialTap.BEGIN_EXERCISE, state.tap)
+    }
+
+    // --- crown: undo (§6) ---------------------------------------------------------
+
+    @Test
+    fun `a hold offers the most recently logged set, between sets only`() {
+        val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
+        val ready = dialUiState(inputs(snapshot = logged))
+        assertEquals(0, ready.hold?.roundIndex)
+        assertEquals(listOf("UNDO", "SET 1"), ready.hold?.disc?.lines?.map { it.spans.single().text })
+
+        val restOver = dialUiState(inputs(snapshot = logged, restedSeconds = 150))
+        assertEquals(0, restOver.hold?.roundIndex)
+    }
+
+    @Test
+    fun `there is nothing to undo before the first set is logged`() {
+        assertNull(dialUiState(inputs()).hold)
+        assertNull(dialUiState(inputs(begun = false)).hold)
+    }
+
+    @Test
+    fun `a set in progress is not a set to undo — it hasn't been locked in yet`() {
+        val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
+        assertNull(dialUiState(inputs(snapshot = logged, phase = SetPhase.LIFTING)).hold)
     }
 
     // --- formatting --------------------------------------------------------------

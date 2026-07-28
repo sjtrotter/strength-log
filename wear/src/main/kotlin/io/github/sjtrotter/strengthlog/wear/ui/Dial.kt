@@ -11,7 +11,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,7 +39,12 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +62,7 @@ import io.github.sjtrotter.strengthlog.wear.theme.dayAccent
 import io.github.sjtrotter.strengthlog.wear.theme.dialTypography
 import io.github.sjtrotter.strengthlog.wear.theme.onDayAccent
 import kotlin.math.min
+import kotlinx.coroutines.launch
 
 /**
  * The dial: two concentric rings, two label bands and one centre disc, and with
@@ -69,7 +76,12 @@ import kotlin.math.min
  * which keeps them describable — and testable — as one value.
  */
 @Composable
-fun Dial(state: DialUiState, onTap: () -> Unit, modifier: Modifier = Modifier) {
+fun Dial(
+    state: DialUiState,
+    onTap: () -> Unit,
+    modifier: Modifier = Modifier,
+    onHoldComplete: (Int) -> Unit = {},
+) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val density = LocalDensity.current
         val diameterDp = min(maxWidth.value, maxHeight.value).dp
@@ -99,6 +111,7 @@ fun Dial(state: DialUiState, onTap: () -> Unit, modifier: Modifier = Modifier) {
                 scaleFactor = motion.discScale.value,
                 accent = accent,
                 onTap = onTap,
+                onHoldComplete = onHoldComplete,
                 modifier = Modifier.align(Alignment.Center),
             )
             Band(
@@ -282,7 +295,8 @@ private fun roundColor(round: RoundState, accent: Color): Color = when (round) {
     RoundState.PEEKED -> TextPrimary
 }
 
-private fun DrawScope.drawRingArc(
+/** One ring arc, centred on the face — shared with the ambient and loading dials. */
+internal fun DrawScope.drawRingArc(
     color: Color,
     arc: DialArc,
     radiusPx: Float,
@@ -309,27 +323,35 @@ private fun Disc(
     scaleFactor: Float,
     accent: Color,
     onTap: () -> Unit,
+    onHoldComplete: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
     val discDp = with(density) { DialGeometry.px(DialGeometry.DISC_DIAMETER, diameterPx).toDp() }
     val borderPx = DialGeometry.px(2f, diameterPx)
-    val fill = when (state.disc.style) {
+    val holdFill = remember { Animatable(0f) }
+    // While the hold fills, the disc says what it is about to do and nothing else.
+    val disc = state.hold?.takeIf { holdFill.value > 0f }?.disc ?: state.disc
+    val fill = when (disc.style) {
         DiscStyle.FILLED -> accent
         DiscStyle.FILLED_GREEN -> Done
-        DiscStyle.DIMMED -> Surface.copy(alpha = 0.62f)
         DiscStyle.DASHED -> Background
-        DiscStyle.OUTLINED, DiscStyle.FLAT -> Surface
+        DiscStyle.DIMMED, DiscStyle.OUTLINED, DiscStyle.FLAT -> Surface
     }
 
     Box(
         modifier = modifier
             .size(discDp)
-            .graphicsLayer { scaleX = scaleFactor; scaleY = scaleFactor }
+            .graphicsLayer {
+                scaleX = scaleFactor
+                scaleY = scaleFactor
+                // Read-only browsing reads as one dimmed object, type included (§4).
+                alpha = if (disc.style == DiscStyle.DIMMED) DIMMED_ALPHA else 1f
+            }
             .clip(CircleShape)
             .background(fill, CircleShape)
             .drawBehind {
-                when (state.disc.style) {
+                when (disc.style) {
                     DiscStyle.OUTLINED -> drawCircle(
                         color = accent,
                         radius = size.minDimension / 2f - borderPx / 2f,
@@ -347,19 +369,88 @@ private fun Disc(
                     )
                     else -> Unit
                 }
+                // The hold's progress is the disc's own ring closing on itself —
+                // no second shape, no new vocabulary (§6).
+                if (holdFill.value > 0f) {
+                    val strokePx = DialGeometry.px(DialGeometry.HOLD_RING_STROKE, diameterPx)
+                    val radius = size.minDimension / 2f - strokePx / 2f
+                    drawArc(
+                        color = accent,
+                        startAngle = DialGeometry.TOP_ANGLE_DEG,
+                        sweepAngle = 360f * holdFill.value,
+                        useCenter = false,
+                        topLeft = Offset(center.x - radius, center.y - radius),
+                        size = Size(radius * 2f, radius * 2f),
+                        style = Stroke(width = strokePx, cap = StrokeCap.Butt),
+                    )
+                }
             }
-            .clickable(enabled = state.tap != DialTap.NONE, onClick = onTap)
+            .discGestures(state, holdFill, onTap, onHoldComplete)
             .padding(horizontal = discDp * DISC_TEXT_INSET),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            state.disc.lines.forEach { line -> DiscLineRow(line, state, type) }
+            disc.lines.forEach { line -> DiscLineRow(line, disc.style, state.accentIndex, type) }
         }
     }
 }
 
+/**
+ * The disc's two gestures in one handler, deliberately: a tap and a hold on the
+ * same 176px target can't be split across two independent detectors without the
+ * completed hold *also* arriving as a tap on release — which would undo a set and
+ * immediately start the next one.
+ *
+ * So the press is followed through by hand: the fill runs while the finger is
+ * down, completing it fires the undo there and then (the fill reaching the top is
+ * the confirmation), and any release before that is the ordinary tap. A cancelled
+ * press — finger dragged off the disc — is neither.
+ */
 @Composable
-private fun DiscLineRow(line: DiscLine, state: DialUiState, type: DialTypography) {
+private fun Modifier.discGestures(
+    state: DialUiState,
+    holdFill: Animatable<Float, *>,
+    onTap: () -> Unit,
+    onHoldComplete: (Int) -> Unit,
+): Modifier {
+    val scope = rememberCoroutineScope()
+    // The gesture is hand-rolled, so the button semantics `clickable` would have
+    // given TalkBack are declared explicitly rather than lost.
+    val accessibleTap = if (state.tap == DialTap.NONE) {
+        Modifier
+    } else {
+        Modifier.semantics {
+            role = Role.Button
+            onClick { onTap(); true }
+        }
+    }
+    return this.then(accessibleTap).pointerInput(state.tap, state.hold) {
+        if (state.tap == DialTap.NONE && state.hold == null) return@pointerInput
+        detectTapGestures(
+            onPress = {
+                val hold = state.hold
+                var completed = false
+                val filling = hold?.let {
+                    scope.launch {
+                        holdFill.snapTo(0f)
+                        holdFill.animateTo(1f, tween(HOLD_MILLIS, easing = LinearEasing))
+                        completed = true
+                        onHoldComplete(it.roundIndex)
+                    }
+                }
+                val released = tryAwaitRelease()
+                // Releasing early cancels: the fill drops away at once and the
+                // disc it was drawn over is back, untouched.
+                filling?.cancel()
+                if (holdFill.value != 0f) scope.launch { holdFill.snapTo(0f) }
+                if (released && !completed && state.tap != DialTap.NONE) onTap()
+            },
+        )
+    }
+}
+
+@Composable
+private fun DiscLineRow(line: DiscLine, style: DiscStyle, accentIndex: Int, type: DialTypography) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.Bottom,
@@ -368,7 +459,7 @@ private fun DiscLineRow(line: DiscLine, state: DialUiState, type: DialTypography
             Text(
                 text = span.text,
                 style = type.style(span.role),
-                color = discToneColor(span.tone, state),
+                color = discToneColor(span.tone, style, accentIndex),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -429,10 +520,10 @@ private fun bandToneColor(tone: DialTone, accentIndex: Int): Color = when (tone)
 }
 
 /** [DialTone.ON_DISC] resolves against the disc's own fill — one description, six fills. */
-private fun discToneColor(tone: DialTone, state: DialUiState): Color = when {
-    tone != DialTone.ON_DISC -> bandToneColor(tone, state.accentIndex)
-    state.disc.style == DiscStyle.FILLED -> onDayAccent(state.accentIndex)
-    state.disc.style == DiscStyle.FILLED_GREEN -> Background
+private fun discToneColor(tone: DialTone, style: DiscStyle, accentIndex: Int): Color = when {
+    tone != DialTone.ON_DISC -> bandToneColor(tone, accentIndex)
+    style == DiscStyle.FILLED -> onDayAccent(accentIndex)
+    style == DiscStyle.FILLED_GREEN -> Background
     else -> TextPrimary
 }
 
@@ -441,3 +532,9 @@ private class Holder<T>(var value: T)
 
 /** Horizontal breathing room inside the disc, as a fraction of its diameter. */
 private const val DISC_TEXT_INSET = 0.08f
+
+/** The deliberate length of an undo (§6) — long enough that nothing about it is accidental. */
+private const val HOLD_MILLIS = 700
+
+/** Read-only browsing, at the brief's 62% (§4). */
+private const val DIMMED_ALPHA = 0.62f

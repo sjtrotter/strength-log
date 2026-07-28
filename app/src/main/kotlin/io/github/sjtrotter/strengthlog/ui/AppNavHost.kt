@@ -199,6 +199,8 @@ private fun DayRoute(
             onSwap = viewModel::swapDaySlot,
             onAdd = viewModel::addDaySlot,
             onRemove = viewModel::removeDaySlot,
+            onSetSuperset = viewModel::setDaySlotSuperset,
+            onRemoveSuperset = viewModel::removeDaySlotSuperset,
             onResetToTemplate = viewModel::resetDayToTemplate,
         ),
     )

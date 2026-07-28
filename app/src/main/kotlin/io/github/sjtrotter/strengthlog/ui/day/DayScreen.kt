@@ -977,6 +977,8 @@ private fun DayScreenPreviewContent() {
                 onSwap = { _, _ -> },
                 onAdd = {},
                 onRemove = {},
+                onSetSuperset = { _, _ -> },
+                onRemoveSuperset = {},
                 onResetToTemplate = {},
             ),
         )

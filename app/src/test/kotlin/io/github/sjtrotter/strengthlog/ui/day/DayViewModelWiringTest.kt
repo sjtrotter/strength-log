@@ -429,6 +429,114 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
+    @Test
+    fun swapDaySlotClearsTheManualCollapseOverride() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        vm.toggleCollapse(squatId)
+        advanceUntilIdle()
+        assertTrue(
+            "manual override should collapse the card",
+            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
+        )
+
+        val position = vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.position
+        vm.swapDaySlot(position, "hack_squat")
+        advanceUntilIdle()
+        assertFalse(
+            "the stale override must not follow the slot onto the swapped-in exercise (#95)",
+            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
+        )
+
+        val sets = track(squatId, Slot.MAIN)!!.size
+        repeat(sets) { i -> vm.toggleDone(squatId, index = i, checked = true, isSuperset = false) }
+        advanceUntilIdle()
+        assertTrue(
+            "auto-collapse must still work on the swapped-in exercise",
+            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
+        )
+
+        collectUi.cancel()
+        collectEdit.cancel()
+    }
+
+    // --- superset partner editing (#93) ---
+
+    @Test
+    fun setDaySlotSupersetSeedsThePartnerAlignedToTheLiveMainTrack() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        // Grow the main track past its seeded 6 rows before attaching a partner.
+        vm.addSet(squatId, isSuperset = false)
+        advanceUntilIdle()
+        val mainBefore = track(squatId, Slot.MAIN)!!
+        assertEquals(7, mainBefore.size)
+
+        val position = vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.position
+        vm.setDaySlotSuperset(position, "rope_pushdown")
+        advanceUntilIdle()
+
+        val slot = vm.dayEditState.value.slots.first { it.programExerciseId == squatId }
+        assertTrue(slot.isSuperset)
+        assertEquals("rope_pushdown", slot.partnerExerciseId)
+        // Row-aligned to the LIVE main track, extra set and all.
+        assertEquals(7, track(squatId, Slot.SS)!!.size)
+        assertEquals(mainBefore, track(squatId, Slot.MAIN))
+        collect.cancel()
+    }
+
+    @Test
+    fun setDaySlotSupersetOnAnExistingSupersetReseedsOnlyThePartnerTrack() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val curlId = slotId("ez_curl")
+        assertEquals(listOf(50.0, 50.0), track(curlId, Slot.SS)!!.map { it.weightLb })
+
+        val position = vm.dayEditState.value.slots.first { it.programExerciseId == curlId }.position
+        vm.setDaySlotSuperset(position, "face_pull")
+        advanceUntilIdle()
+
+        assertEquals(
+            "face_pull",
+            vm.dayEditState.value.slots.first { it.programExerciseId == curlId }.partnerExerciseId,
+        )
+        // Reseeded from the new partner's own GOAL — none of rope_pushdown's 50s left.
+        assertEquals(listOf(40.0, 40.0), track(curlId, Slot.SS)!!.map { it.weightLb })
+        assertEquals(listOf(60.0, 60.0), track(curlId, Slot.MAIN)!!.map { it.weightLb })
+        collect.cancel()
+    }
+
+    @Test
+    fun removeDaySlotSupersetDropsThePartnerTrackAndKeepsTheMain() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val curlId = slotId("ez_curl")
+
+        val position = vm.dayEditState.value.slots.first { it.programExerciseId == curlId }.position
+        vm.removeDaySlotSuperset(position)
+        advanceUntilIdle()
+
+        val slot = vm.dayEditState.value.slots.first { it.programExerciseId == curlId }
+        assertFalse(slot.isSuperset)
+        assertNull(slot.partnerExerciseId)
+        assertNull(track(curlId, Slot.SS))
+        assertEquals(listOf(60.0, 60.0), track(curlId, Slot.MAIN)!!.map { it.weightLb })
+        collect.cancel()
+    }
+
     // --- collapse overrides survive process death (PLAN.md A6) -------------------
 
     @Test

@@ -290,6 +290,22 @@ class DayViewModel @Inject constructor(
         }
     }
 
+    /** Picking a superset partner for a slot (#93) — the same intent whether the
+     *  slot had no partner or is swapping the one it had. The repository clears
+     *  only the SS track so the new partner seeds fresh from its own GOAL on the
+     *  next observation while the main track's history stays put. */
+    fun setDaySlotSuperset(position: Int, partnerExerciseId: String) {
+        val day = currentDay() ?: return
+        mutate { repo.setSupersetPartner(day, position, partnerExerciseId) }
+    }
+
+    /** Breaking a superset back into a plain slot (#93): the partner and its SS
+     *  track go, the main track stays. */
+    fun removeDaySlotSuperset(position: Int) {
+        val day = currentDay() ?: return
+        mutate { repo.removeSupersetPartner(day, position) }
+    }
+
     /** The reset-day-to-template escape hatch (spec §8.3): regenerates this one
      *  day from the stored wizard answers; other days are untouched. */
     fun resetDayToTemplate() {
@@ -312,7 +328,8 @@ class DayViewModel @Inject constructor(
     }
 
     private suspend fun ensureSeeded(dayId: String, slots: List<ProgramSlot>) = mutationLock.withLock {
-        val existing = repo.logFlow(dayId).first().map { it.programExerciseId to it.slot }.toSet()
+        val existing = repo.logFlow(dayId).first()
+            .associate { (it.programExerciseId to it.slot) to it.sets.size }
         val cfg = repo.configFlow.first()
         val catalog = repo.catalogFlow.first()
         DayScreenBuilder.seedPlan(slots, existing, cfg, catalog).forEach { write ->
@@ -456,6 +473,7 @@ class DayViewModel @Inject constructor(
         val rows = slots.map { slot ->
             val pe = slot.exercise
             val entry = catalog.find(pe.exerciseId)
+            val partnerId = pe.superset?.exerciseId
             DayEditSlotState(
                 programExerciseId = slot.programExerciseId,
                 position = slot.position,
@@ -463,6 +481,8 @@ class DayViewModel @Inject constructor(
                 title = entry?.name ?: pe.exerciseId,
                 pattern = entry?.pattern,
                 isSuperset = pe.superset != null,
+                partnerExerciseId = partnerId,
+                partnerTitle = partnerId?.let { catalog.find(it)?.name ?: it },
             )
         }
         return DayEditUiState(

@@ -45,7 +45,7 @@ class DayScreenBuilderTest {
                 superset = SupersetPartner("rope_pushdown"),
             ),
         )
-        val plan = DayScreenBuilder.seedPlan(listOf(slot), existing = emptySet(), cfg = cfg, catalog = catalog)
+        val plan = DayScreenBuilder.seedPlan(listOf(slot), existing = emptyMap(), cfg = cfg, catalog = catalog)
 
         assertEquals(2, plan.size)
         val main = plan.first { it.slot == Slot.MAIN }
@@ -60,8 +60,30 @@ class DayScreenBuilderTest {
     @Test
     fun seedPlan_never_reseeds_an_existing_slot() {
         val slot = ProgramSlot(2, 0, ProgramExercise(exerciseId = "ez_curl", targetSets = 3))
-        val existing = setOf(2L to Slot.MAIN)
+        val existing = mapOf((2L to Slot.MAIN) to 3)
         assertTrue(DayScreenBuilder.seedPlan(listOf(slot), existing, cfg, catalog).isEmpty())
+    }
+
+    @Test
+    fun seedPlan_aligns_a_late_added_partner_to_the_live_main_track_not_the_seed() {
+        // A partner attached to a slot the lifter has been training (#93): the main
+        // track has grown to 4 rows with EXTRA sets, while a fresh seed would be 2.
+        val slot = ProgramSlot(
+            programExerciseId = 9,
+            position = 0,
+            exercise = ProgramExercise(
+                exerciseId = "ez_curl",
+                targetSets = 2,
+                superset = SupersetPartner("rope_pushdown"),
+            ),
+        )
+        val existing = mapOf((9L to Slot.MAIN) to 4)
+        val plan = DayScreenBuilder.seedPlan(listOf(slot), existing, cfg, catalog)
+
+        val partner = plan.single()
+        assertEquals(Slot.SS, partner.slot)
+        assertEquals(4, partner.sets.size)
+        assertTrue(partner.sets.all { it.weightLb == 50.0 })
     }
 
     // A catalog carrying synthetic REPS/TIMED entries (P2 will reclassify real
@@ -77,7 +99,7 @@ class DayScreenBuilderTest {
     @Test
     fun seedPlan_routes_a_REPS_entry_through_targetFor_without_throwing() {
         val slot = ProgramSlot(3, 0, ProgramExercise("custom_pullup", targetSets = 3))
-        val plan = DayScreenBuilder.seedPlan(listOf(slot), emptySet(), cfg, trackingCatalog)
+        val plan = DayScreenBuilder.seedPlan(listOf(slot), emptyMap(), cfg, trackingCatalog)
         // No goalFor error() branch: all-WORK rows at the rep target, zero weight/seconds.
         assertEquals(List(3) { LoggedSet(0.0, 6, SetKind.WORK, seconds = 0) }, plan.single().sets)
     }
@@ -90,7 +112,7 @@ class DayScreenBuilderTest {
             4, 0,
             ProgramExercise("ez_curl", targetSets = 3, superset = SupersetPartner("custom_plank")),
         )
-        val plan = DayScreenBuilder.seedPlan(listOf(slot), emptySet(), cfg, trackingCatalog)
+        val plan = DayScreenBuilder.seedPlan(listOf(slot), emptyMap(), cfg, trackingCatalog)
         val partner = plan.first { it.slot == Slot.SS }
         assertEquals(List(3) { LoggedSet(25.0, 0, SetKind.WORK, seconds = 45) }, partner.sets)
     }
@@ -101,7 +123,7 @@ class DayScreenBuilderTest {
         // the old goalFor->seed path for a WEIGHTED slot.
         val pe = ProgramExercise("bb_back_squat", isMain = true, targetSets = 6)
         val slot = ProgramSlot(1, 0, pe)
-        val routed = DayScreenBuilder.seedPlan(listOf(slot), emptySet(), cfg, catalog).single().sets
+        val routed = DayScreenBuilder.seedPlan(listOf(slot), emptyMap(), cfg, catalog).single().sets
         val direct = SetSeeder.seed(pe, GoalCalculator.goalFor(catalog.get("bb_back_squat"), cfg), cfg)
         assertEquals(direct, routed)
     }
@@ -109,7 +131,7 @@ class DayScreenBuilderTest {
     @Test
     fun seedPlan_seeds_main_lift_full_ramp_sequence() {
         val slot = ProgramSlot(1, 0, ProgramExercise(exerciseId = "bb_back_squat", isMain = true, targetSets = 6))
-        val plan = DayScreenBuilder.seedPlan(listOf(slot), emptySet(), cfg, catalog)
+        val plan = DayScreenBuilder.seedPlan(listOf(slot), emptyMap(), cfg, catalog)
         val weights = plan.single().sets.map { it.weightLb }
         // Pinned §11 squat seed: 130/165/190/210 · TOP 235 · B/O 175.
         assertEquals(listOf(130.0, 165.0, 190.0, 210.0, 235.0, 175.0), weights)

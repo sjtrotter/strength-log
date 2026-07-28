@@ -30,6 +30,10 @@ data class DayEditSlotState(
      *  so the sheet disables Swap for that row; Remove still works. */
     val pattern: MovementPattern?,
     val isSuperset: Boolean,
+    val partnerExerciseId: String? = null,
+    /** The partner's catalog name, falling back to its raw id when the id
+     *  doesn't resolve — same rule as [title]. */
+    val partnerTitle: String? = null,
 )
 
 /** Callbacks the day-edit sheet forwards to [DayViewModel]. */
@@ -37,5 +41,8 @@ data class DayEditActions(
     val onSwap: (position: Int, newExerciseId: String) -> Unit,
     val onAdd: (exerciseId: String) -> Unit,
     val onRemove: (position: Int) -> Unit,
+    /** Adds a partner to a plain slot, or swaps the one it already has (#93). */
+    val onSetSuperset: (position: Int, partnerExerciseId: String) -> Unit,
+    val onRemoveSuperset: (position: Int) -> Unit,
     val onResetToTemplate: () -> Unit,
 )

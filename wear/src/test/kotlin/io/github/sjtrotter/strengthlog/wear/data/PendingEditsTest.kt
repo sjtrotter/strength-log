@@ -45,6 +45,8 @@ class PendingEditsTest {
         dayId: String = "A",
         slot: String = "main",
         editedAtMillis: Long = 1L,
+        startedAtMillis: Long? = null,
+        completedAtMillis: Long? = null,
     ) = SetEditDelta(
         dayId = dayId,
         programExerciseId = 1L,
@@ -54,6 +56,8 @@ class PendingEditsTest {
         reps = reps,
         done = done,
         editedAtMillis = editedAtMillis,
+        startedAtMillis = startedAtMillis,
+        completedAtMillis = completedAtMillis,
     )
 
     @Test
@@ -136,6 +140,91 @@ class PendingEditsTest {
         // Field-aware: the reps-only edit doesn't carry the weight, so the weight
         // edit must survive until the snapshot reflects it.
         assertEquals(listOf(weightEdit, repsEdit), PendingEdits.reconcile(listOf(weightEdit, repsEdit), snapshot()))
+    }
+
+    // --- per-field settling of multi-field deltas (#85) -------------------------
+
+    @Test
+    fun `a multi-field delta stays queued until every field it carries is reflected`() {
+        // The dial's tick: done plus the round's start/complete facts, one delta.
+        val tick = delta(setIndex = 0, done = true, startedAtMillis = 1_000L, completedAtMillis = 1_045L)
+        // Nothing reflected yet.
+        assertEquals(listOf(tick), PendingEdits.reconcile(listOf(tick), snapshot()))
+        // The tick landed: the snapshot shows done, which is the ack for the whole
+        // delta — the phone wrote the stamps in the same transaction.
+        val reflected = snapshot(
+            sets = listOf(WatchSet(235.0, 5, "TOP", done = true), WatchSet(175.0, 8, "BACKOFF", done = false)),
+        )
+        assertTrue(PendingEdits.reconcile(listOf(tick), reflected).isEmpty())
+    }
+
+    @Test
+    fun `a delta carrying weight and done needs both reflected, not either`() {
+        val both = delta(setIndex = 0, weightLb = 245.0, done = true)
+        // done landed, weight didn't → still queued (the old whole-delta check
+        // happened to agree here; the next case is where it didn't).
+        val doneOnly = snapshot(
+            sets = listOf(WatchSet(235.0, 5, "TOP", done = true), WatchSet(175.0, 8, "BACKOFF", done = false)),
+        )
+        assertEquals(listOf(both), PendingEdits.reconcile(listOf(both), doneOnly))
+        // Weight landed, done didn't → still queued.
+        val weightOnly = snapshot(
+            sets = listOf(WatchSet(245.0, 5, "TOP", done = false), WatchSet(175.0, 8, "BACKOFF", done = false)),
+        )
+        assertEquals(listOf(both), PendingEdits.reconcile(listOf(both), weightOnly))
+        // Both landed → drains.
+        val all = snapshot(
+            sets = listOf(WatchSet(245.0, 5, "TOP", done = true), WatchSet(175.0, 8, "BACKOFF", done = false)),
+        )
+        assertTrue(PendingEdits.reconcile(listOf(both), all).isEmpty())
+    }
+
+    @Test
+    fun `a multi-field delta settles per field - one reflected, one overwritten`() {
+        // The case the old whole-delta check got wrong: the weight of the older
+        // multi-field edit can never be reflected (a newer pending edit overwrote
+        // it), while its reps did land. Per-field, both are accounted for.
+        val older = delta(setIndex = 0, weightLb = 200.0, reps = 5, editedAtMillis = 1L)
+        val newer = delta(setIndex = 0, weightLb = 210.0, editedAtMillis = 2L)
+        val reflected = snapshot(
+            sets = listOf(WatchSet(210.0, 5, "TOP", done = false), WatchSet(175.0, 8, "BACKOFF", done = false)),
+        )
+        assertTrue(PendingEdits.reconcile(listOf(older, newer), reflected).isEmpty())
+    }
+
+    @Test
+    fun `a tick undone by a newer pending tick drains instead of re-sending forever`() {
+        // Tick, then long-press undo, both queued; the snapshot has caught up with
+        // the tick only. The undo carries no stamps, so the tick drops on per-field
+        // accounting alone — its `done` is reflected and the stamps ride with it —
+        // while the unconfirmed undo keeps re-sending.
+        val tick = delta(setIndex = 0, done = true, editedAtMillis = 1L, startedAtMillis = 1_000L, completedAtMillis = 1_045L)
+        val undo = delta(setIndex = 0, done = false, editedAtMillis = 2L)
+        val tickLanded = snapshot(
+            sets = listOf(WatchSet(235.0, 5, "TOP", done = true), WatchSet(175.0, 8, "BACKOFF", done = false)),
+        )
+        assertEquals(listOf(undo), PendingEdits.reconcile(listOf(tick, undo), tickLanded))
+
+        // Re-ticked after an undo, nothing confirmed yet: the newer tick carries the
+        // older one's only visible field, so the older could never be acked (the
+        // phone drops it as stale) — it must not re-send forever.
+        val reTick = delta(setIndex = 0, done = true, editedAtMillis = 3L, startedAtMillis = 2_000L, completedAtMillis = 2_040L)
+        assertEquals(listOf(reTick), PendingEdits.reconcile(listOf(tick, undo, reTick), snapshot()))
+    }
+
+    @Test
+    fun `a newer tick does not swallow a pending reps edit to the same row`() {
+        val repsEdit = delta(setIndex = 0, reps = 6, editedAtMillis = 1L)
+        val tick = delta(setIndex = 0, done = true, editedAtMillis = 2L, startedAtMillis = 1_000L, completedAtMillis = 1_045L)
+        assertEquals(listOf(repsEdit, tick), PendingEdits.reconcile(listOf(repsEdit, tick), snapshot()))
+    }
+
+    @Test
+    fun `an edit to a row the snapshot does not carry stays queued`() {
+        // Index past the end of the published track: nothing can be confirmed, so
+        // the edit must not settle by accident.
+        val edit = delta(setIndex = 5, done = true, startedAtMillis = 1_000L, completedAtMillis = 1_045L)
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), snapshot()))
     }
 
     // --- monotonic stamp issue (PR #63 review finding 2) -----------------------

@@ -2,15 +2,12 @@ package io.github.sjtrotter.strengthlog.wear.ui
 
 import android.Manifest
 import android.os.SystemClock
+import android.view.HapticFeedbackConstants
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -24,60 +21,50 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import androidx.wear.compose.material.Text
-import androidx.wear.compose.navigation.SwipeDismissableNavHost
-import androidx.wear.compose.navigation.composable
-import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import io.github.sjtrotter.strengthlog.domain.sync.SetEditDelta
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
 import io.github.sjtrotter.strengthlog.wear.OngoingWorkoutChip
 import io.github.sjtrotter.strengthlog.wear.data.WatchTrackerClient
 import io.github.sjtrotter.strengthlog.wear.theme.Background
 import io.github.sjtrotter.strengthlog.wear.theme.WearTrackerTheme
-import io.github.sjtrotter.strengthlog.wear.theme.accentSoft
-import io.github.sjtrotter.strengthlog.wear.theme.dayAccent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val ROUTE_DAY_LIST = "dayList"
-private const val ROUTE_EXERCISE = "exercise/{id}/{round}"
-private const val ROUTE_DONE = "done"
-private const val ARG_ID = "id"
-private const val ARG_ROUND = "round"
-private const val UPDATED_PILL_MILLIS = 2_800L
+/** No rest, and no rest just ended — the sentinel for both saveable ints. */
+private const val NO_REST = -1
 
-// How often the between-exercise rest effect wakes to check its deadline (issue #81).
-// Only gates when the pill *clears*, not the numeral (the pill repaints itself), so a
-// coarse ~4×/s is plenty and keeps the effect cheap.
-private const val LIST_REST_TICK_MILLIS = 250L
+/** How often a live screen re-reads the clock: fine enough for a draining arc,
+ *  coarse enough to be free. The lifting elapsed timer only needs seconds. */
+private const val LIVE_TICK_MILLIS = 200L
+private const val LIFTING_TICK_MILLIS = 1_000L
 
-// An inbound snapshot within this long of the lifter's last local edit is the
-// phone echoing that edit back (its cascade/seeding) — not a genuine phone-side
-// change — so the "updated from phone" pill stays quiet. Comfortably longer than
-// a normal watch->phone->watch round-trip, shorter than any deliberate follow-up.
-private const val UPDATED_PILL_SUPPRESS_MILLIS = 3_500L
+/** Room for the goal buzz to be heard before the auto-tick follows it. */
+private const val GOAL_BUZZ_SETTLE_MILLIS = 250L
+
+/** The screens with a clock on them — the only ones that need a repaint ticker. */
+private val LIVE_SCREENS = setOf(DialScreen.LIFTING, DialScreen.TIMED_HOLD, DialScreen.REST)
 
 /**
- * Root composable: owns navigation, keeps the screen on while logging (A8),
- * swaps in [AmbientScreen] while the system reports ambient mode, and
- * translates screen intents into [SetEditDelta]s.
+ * Root composable: keeps the screen on while logging (A8), swaps in
+ * [AmbientScreen] while the system reports ambient mode, and otherwise shows
+ * the dial — the one screen the whole workout happens on (brief §1).
  *
- * Every branch sits on a root [Background]-filled [Box] so no screen — even
- * one whose own Scaffold doesn't fill the round face — can show the system's
- * light default window through a gap (bug 2's other half; the manifest theme
- * fixes the launch flash, this fixes everything after).
+ * There is no navigation. The dial's state changes in place; a swipe dismisses
+ * the activity, which is the platform's own behaviour and the only "back" the
+ * watch has.
  */
 @Composable
-fun WearApp(client: WatchTrackerClient, isAmbient: Boolean, ambientTick: Int = 0) {
+fun WearApp(
+    client: WatchTrackerClient,
+    isAmbient: Boolean,
+    ambientTick: Int = 0,
+    onDismiss: () -> Unit = {},
+) {
     val snapshot by client.snapshotFlow().collectAsState(initial = null)
     val pendingCount by client.pendingCountFlow().collectAsState(initial = 0)
-    val navController = rememberSwipeDismissableNavController()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     // The rest-timer buzz + wake lock live here, at the root, so they outlive the
@@ -97,149 +84,217 @@ fun WearApp(client: WatchTrackerClient, isAmbient: Boolean, ambientTick: Int = 0
                 snap == null -> LoadingScreen()
                 isAmbient -> AmbientScreen(snap, ambientTick, restLabel = restController.activeRest?.nextLabel)
                 snap.day.exercises.isEmpty() -> EmptyScreen()
-                else -> InteractiveContent(
+                else -> WorkoutDial(
                     snap = snap,
                     pendingCount = pendingCount,
-                    navController = navController,
                     restController = restController,
                     sendEdit = { scope.launch { client.sendEdit(it) } },
+                    onDismiss = onDismiss,
                 )
             }
         }
     }
 }
 
+/**
+ * The workout, as local state over the snapshot. Which exercise and which round
+ * the lifter is on are *derived* (the client echoes a tick optimistically, so the
+ * ring moves the moment it is tapped); only what the phone cannot know is held
+ * here — has this set been started, is a rest running, when did the session begin.
+ *
+ * All of it is [rememberSaveable] and deadline-anchored, so a process death
+ * mid-set or mid-rest restores to exactly the same dial (write-on-mutation).
+ */
 @Composable
-private fun BoxScope.InteractiveContent(
+private fun WorkoutDial(
     snap: WatchSnapshot,
     pendingCount: Int,
-    navController: NavHostController,
     restController: RestTimerController,
     sendEdit: (SetEditDelta) -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    // Stamp when the lifter last sent an edit (a tick). The "updated from phone"
-    // pill uses it to tell the phone re-publishing our own edit from a genuine
-    // phone-side change. rememberSaveable so a restore right after an edit still
-    // suppresses the echo; elapsedRealtime dodges wall-clock jumps.
-    var lastLocalEditAtMillis by rememberSaveable { mutableLongStateOf(Long.MIN_VALUE / 2) }
-    val trackedSendEdit: (SetEditDelta) -> Unit = { delta ->
-        lastLocalEditAtMillis = SystemClock.elapsedRealtime()
-        sendEdit(delta)
+    val view = LocalView.current
+    // Keyed on the day: a rollover to tomorrow's workout starts a fresh session
+    // rather than inheriting yesterday's stamps and a rest nobody is taking.
+    val dayId = snap.day.dayId
+    var begun by rememberSaveable(dayId) { mutableStateOf(false) }
+    var lifting by rememberSaveable(dayId) { mutableStateOf(false) }
+    var startedAtWallMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var startedAtElapsedMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var restDeadlineMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var restTotalSeconds by rememberSaveable(dayId) { mutableIntStateOf(0) }
+    var restBetweenExercises by rememberSaveable(dayId) { mutableStateOf(false) }
+    var restNextLabel by rememberSaveable(dayId) { mutableStateOf("") }
+    var restedSeconds by rememberSaveable(dayId) { mutableIntStateOf(NO_REST) }
+    var sessionStartedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var sessionEndedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var nowElapsedMillis by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+
+    val exerciseIndex = currentExerciseIndex(snap)
+    val exercise = snap.day.exercises.getOrNull(exerciseIndex)
+    val roundIndex = exercise?.let(::currentRoundIndex) ?: 0
+    val stream = exercise?.toStreamUiState(watchUnit(snap.unit), snap.day.dayId, snap.day.accentIndex)
+    val holdGoal = exercise?.let { holdGoalSeconds(it, roundIndex) } ?: 0
+
+    fun startRest(seconds: Int, betweenExercises: Boolean, nextLabel: String) {
+        restTotalSeconds = seconds
+        restBetweenExercises = betweenExercises
+        restNextLabel = nextLabel
+        restDeadlineMillis = RestTimer.deadlineFrom(SystemClock.elapsedRealtime(), seconds)
     }
 
-    // Between-exercise rest — the day-list countdown pill (issue #81). Both are
-    // rememberSaveable primitives so an in-flight rest survives recomposition,
-    // ambient, and process death (write-on-mutation), mirroring the stream route's
-    // within-exercise rest. [listRestDeadline] is the deadline-anchor (an
-    // elapsedRealtime() instant; 0L = not resting); the label is the next exercise's
-    // name. Set together when an exercise's last set is ticked (see onBackToListRest).
-    var listRestDeadline by rememberSaveable { mutableLongStateOf(0L) }
-    var listRestNextLabel by rememberSaveable { mutableStateOf("") }
-
-    // Arm the single buzz for this deadline and hold the pill until it passes, then
-    // clear (the controller owns the buzz; the pill just stops showing). Keyed on the
-    // deadline so it re-arms after process death from the restored value and, if that
-    // value is already past, arm() no-ops and the loop clears the stale state at once.
-    LaunchedEffect(listRestDeadline) {
-        if (listRestDeadline <= 0L) return@LaunchedEffect
-        restController.arm(listRestDeadline, listRestNextLabel)
-        while (!RestTimer.isExpired(listRestDeadline, SystemClock.elapsedRealtime())) {
-            delay(LIST_REST_TICK_MILLIS)
-        }
-        listRestDeadline = 0L
-        listRestNextLabel = ""
+    fun clearRest() {
+        restDeadlineMillis = 0L
+        restTotalSeconds = 0
+        restBetweenExercises = false
+        restNextLabel = ""
     }
 
-    val onSkipRest = {
-        // Tap-to-skip (or starting the next exercise early): cancel the pending buzz
-        // and clear the pill. No haptic — skip is silent by design.
+    fun startSet() {
+        begun = true
+        lifting = true
+        restedSeconds = NO_REST
+        val wallNow = System.currentTimeMillis()
+        startedAtWallMillis = wallNow
+        startedAtElapsedMillis = SystemClock.elapsedRealtime()
+        if (sessionStartedAtMillis == 0L) sessionStartedAtMillis = wallNow
+        nowElapsedMillis = SystemClock.elapsedRealtime()
+        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+    }
+
+    fun tick() {
+        val ex = exercise ?: return
+        val set = ex.sets.getOrNull(roundIndex) ?: return
+        if (set.done) return
+        val completedAtMillis = System.currentTimeMillis()
+        // A timed hold's goal buzz belongs to the set that is ending; never let it
+        // land during the rest that follows.
         restController.skip()
-        listRestDeadline = 0L
-        listRestNextLabel = ""
-    }
-    val onBackToListRest = { restSeconds: Int, nextLabel: String ->
-        listRestNextLabel = nextLabel
-        listRestDeadline = RestTimer.deadlineFrom(SystemClock.elapsedRealtime(), restSeconds)
-    }
-    val restPill = listRestPill(
-        hoistedDeadline = listRestDeadline,
-        hoistedLabel = listRestNextLabel,
-        controllerRest = restController.activeRest,
-        nowElapsedMillis = SystemClock.elapsedRealtime(),
-    )
+        sendEdit(
+            buildTickDelta(
+                dayId = dayId,
+                programExerciseId = ex.programExerciseId,
+                setIndex = roundIndex,
+                startedAtMillis = startedAtWallMillis,
+                completedAtMillis = completedAtMillis,
+            ),
+        )
+        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        lifting = false
+        startedAtWallMillis = 0L
+        startedAtElapsedMillis = 0L
+        restedSeconds = NO_REST
+        if (sessionStartedAtMillis == 0L) sessionStartedAtMillis = completedAtMillis
+        sessionEndedAtMillis = completedAtMillis
 
-    WearNavHost(
-        snap = snap,
-        navController = navController,
-        restController = restController,
-        restPill = restPill,
-        onSkipRest = onSkipRest,
-        onBackToListRest = onBackToListRest,
-        sendEdit = trackedSendEdit,
-    )
-
-    val updatedPillVisible = rememberUpdatedFromPhonePill(snap) {
-        SystemClock.elapsedRealtime() - lastLocalEditAtMillis
-    }
-    val syncedPillVisible = rememberSyncedPill(pendingCount)
-
-    // Every sync indicator lives at the TOP of the face, below the "‹ day X" back
-    // button, as a compact, non-interactive column. It never sits over the tick
-    // button (which used to be covered and un-tappable) and has no `clickable`, so
-    // touches fall straight through to the content and the tick beneath it.
-    Column(
-        modifier = Modifier.align(Alignment.TopCenter).padding(top = 30.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        when {
-            pendingCount > 0 -> QueuedPill(pendingCount)
-            syncedPillVisible -> SyncedPill()
+        // Post-tick flags for this exercise (optimistic: the tick just marked this
+        // round done) and for the day, so the advance decision matches what the
+        // snapshot is about to say.
+        val postTickFlags = ex.sets.mapIndexed { i, s -> i == roundIndex || s.done }
+        val othersDone = snap.day.exercises.all { other ->
+            other.programExerciseId == ex.programExerciseId || other.sets.all { it.done }
         }
-        if (updatedPillVisible) {
-            UpdatedFromPhonePill(
-                accentColor = dayAccent(snap.day.accentIndex),
-                accentSoftColor = accentSoft(snap.day.accentIndex),
+        val advance = decideStreamAdvance(postTickFlags, postTickFlags.all { it } && othersDone)
+        when {
+            RestTimer.shouldRest(advance, set.restAfterSeconds) -> startRest(
+                seconds = set.restAfterSeconds,
+                betweenExercises = false,
+                nextLabel = stream?.rounds?.getOrNull((advance as StreamAdvance.NextRound).index)
+                    ?.let(::roundLabel).orEmpty(),
+            )
+            RestTimer.shouldRestAfterExercise(advance, set.restAfterSeconds) -> startRest(
+                seconds = set.restAfterSeconds,
+                betweenExercises = true,
+                nextLabel = nextExerciseLabel(snap, ex.programExerciseId),
             )
         }
     }
-}
 
-/**
- * Flashes true for [UPDATED_PILL_MILLIS] on a *genuine* phone-side content change
- * (design digest §1.1). [elapsedSinceLocalEdit] lets [shouldFlashUpdatedFromPhone]
- * suppress the phone's re-publish of the lifter's own watch edit.
- */
-@Composable
-private fun rememberUpdatedFromPhonePill(snap: WatchSnapshot, elapsedSinceLocalEdit: () -> Long): Boolean {
-    var previous by remember { mutableStateOf<WatchSnapshot?>(null) }
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(snap) {
-        if (shouldFlashUpdatedFromPhone(previous, snap, elapsedSinceLocalEdit(), UPDATED_PILL_SUPPRESS_MILLIS)) {
-            visible = true
-            delay(UPDATED_PILL_MILLIS)
-            visible = false
-        }
-        previous = snap
-    }
-    return visible
-}
+    val state = dialUiState(
+        DialInputs(
+            snapshot = snap,
+            exerciseIndex = exerciseIndex,
+            phase = if (lifting) SetPhase.LIFTING else SetPhase.READY,
+            begun = begun,
+            pendingCount = pendingCount,
+            rest = if (restDeadlineMillis > 0L) {
+                RestState(restDeadlineMillis, restTotalSeconds, restBetweenExercises)
+            } else {
+                null
+            },
+            restedSeconds = restedSeconds.takeIf { it != NO_REST },
+            liftingElapsedMillis = if (lifting) {
+                (nowElapsedMillis - startedAtElapsedMillis).coerceAtLeast(0L)
+            } else {
+                0L
+            },
+            nowElapsedMillis = nowElapsedMillis,
+            session = SessionStamps(sessionStartedAtMillis, sessionEndedAtMillis),
+        ),
+    )
 
-/** Tracks the pending-edit count transition and flashes true for ~2s when it settles to zero (digest §3). */
-@Composable
-private fun rememberSyncedPill(pendingCount: Int): Boolean {
-    var previousCount by remember { mutableIntStateOf(0) }
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(pendingCount) {
-        val kind = syncPillKind(previousCount, pendingCount)
-        previousCount = pendingCount
-        if (kind == SyncPillKind.SYNCED) {
-            visible = true
-            delay(2_000L)
-            visible = false
+    // Repaint ticker: only while something on screen is counting.
+    LaunchedEffect(state.screen) {
+        if (state.screen !in LIVE_SCREENS) return@LaunchedEffect
+        val cadence = if (state.screen == DialScreen.LIFTING) LIFTING_TICK_MILLIS else LIVE_TICK_MILLIS
+        while (true) {
+            nowElapsedMillis = SystemClock.elapsedRealtime()
+            delay(cadence)
         }
     }
-    return visible
+
+    // The rest. The controller owns the single buzz (and the wake lock that keeps
+    // it punctual in ambient); this effect only re-segments the dial afterwards.
+    // Keyed on the deadline so it re-arms from the restored value after process
+    // death — and if that value is already past, clears the stale rest at once.
+    LaunchedEffect(restDeadlineMillis) {
+        if (restDeadlineMillis <= 0L) return@LaunchedEffect
+        restController.arm(restDeadlineMillis, restNextLabel)
+        while (!RestTimer.isExpired(restDeadlineMillis, SystemClock.elapsedRealtime())) {
+            delay(LIVE_TICK_MILLIS)
+        }
+        // A rest between exercises hands straight over to the next exercise's Ready;
+        // a rest between sets earns the "✓ RESTED" badge and the halo bloom (§5.5).
+        restedSeconds = if (restBetweenExercises) NO_REST else restTotalSeconds
+        clearRest()
+        nowElapsedMillis = SystemClock.elapsedRealtime()
+    }
+
+    // A timed hold buzzes once at its goal and ticks itself (§5.6). Same controller,
+    // so it is the same single-buzz guarantee, and a manual tick cancels it.
+    val latestTick by rememberUpdatedState({ tick() })
+    LaunchedEffect(lifting, startedAtElapsedMillis, holdGoal) {
+        if (!lifting || holdGoal <= 0 || startedAtElapsedMillis <= 0L) return@LaunchedEffect
+        val goalDeadline = RestTimer.deadlineFrom(startedAtElapsedMillis, holdGoal)
+        restController.arm(goalDeadline, "")
+        while (!RestTimer.isExpired(goalDeadline, SystemClock.elapsedRealtime())) {
+            delay(LIVE_TICK_MILLIS)
+        }
+        // Let the goal buzz land before the tick fires its own confirm haptic —
+        // the brief's order is one long buzz, *then* the auto-tick (§8).
+        delay(GOAL_BUZZ_SETTLE_MILLIS)
+        latestTick()
+    }
+
+    Dial(
+        state = state,
+        onTap = {
+            when (state.tap) {
+                DialTap.BEGIN_EXERCISE -> begun = true
+                DialTap.START_SET -> startSet()
+                DialTap.TICK -> tick()
+                DialTap.SKIP_REST -> {
+                    // Skipping is silent by design: cancel the pending buzz, drop
+                    // straight to the next set. No "rested" badge — nothing rested.
+                    restController.skip()
+                    clearRest()
+                    restedSeconds = NO_REST
+                }
+                DialTap.DISMISS -> onDismiss()
+                DialTap.NONE -> Unit
+            }
+        },
+    )
 }
 
 /**
@@ -248,8 +303,8 @@ private fun rememberSyncedPill(pendingCount: Int): Boolean {
  * The chip's whole lifecycle is [isSessionActive]: post while a workout is
  * underway, clear otherwise. Because that is a pure function of the snapshot,
  * the effect also **reconciles on launch** — first composition (snapshot still
- * loading ⇒ inactive) cancels any chip a killed process left behind, and DayDone
- * / day-change / all-undone flip it back to `clear()` with no extra bookkeeping.
+ * loading ⇒ inactive) cancels any chip a killed process left behind, and a
+ * finished day flips it back to `clear()` with no extra bookkeeping.
  *
  * [POST_NOTIFICATIONS][Manifest.permission.POST_NOTIFICATIONS] is requested
  * **contextually** — once, the moment a session first becomes active (API 33+
@@ -290,195 +345,3 @@ private fun KeepScreenOn(enabled: Boolean) {
         onDispose { view.keepScreenOn = false }
     }
 }
-
-@Composable
-private fun WearNavHost(
-    snap: WatchSnapshot,
-    navController: NavHostController,
-    restController: RestTimerController,
-    restPill: ListRestPill?,
-    onSkipRest: () -> Unit,
-    onBackToListRest: (restSeconds: Int, nextLabel: String) -> Unit,
-    sendEdit: (SetEditDelta) -> Unit,
-) {
-    SwipeDismissableNavHost(navController = navController, startDestination = ROUTE_DAY_LIST) {
-        composable(ROUTE_DAY_LIST) {
-            DayListScreen(
-                state = snap.toDayListUiState(),
-                onExerciseClick = { id, round ->
-                    // Starting the next exercise early IS the skip: cancel the pending
-                    // buzz and clear the pill so it never fires mid-set later.
-                    onSkipRest()
-                    navController.navigate("exercise/$id/$round")
-                },
-                rest = restPill,
-                onSkipRest = onSkipRest,
-            )
-        }
-        composable(ROUTE_EXERCISE) { backStackEntry ->
-            val id = backStackEntry.arguments?.getString(ARG_ID)?.toLongOrNull()
-            val startRound = backStackEntry.arguments?.getString(ARG_ROUND)?.toIntOrNull() ?: 0
-            val exercise = snap.day.exercises.firstOrNull { it.programExerciseId == id }
-            if (exercise == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Not found")
-                }
-            } else {
-                ExerciseStreamRoute(
-                    snap = snap,
-                    programExerciseId = exercise.programExerciseId,
-                    startRoundIndex = startRound,
-                    restController = restController,
-                    onBack = { navController.popBackStack() },
-                    onBackToListRest = onBackToListRest,
-                    onDayDone = {
-                        navController.navigate(ROUTE_DONE) {
-                            popUpTo(ROUTE_DAY_LIST) { inclusive = true }
-                        }
-                    },
-                    sendEdit = sendEdit,
-                )
-            }
-        }
-        composable(ROUTE_DONE) {
-            DayDoneScreen(state = snap.toDayDoneUiState())
-        }
-    }
-}
-
-/**
- * Owns the exercise-stream screen's local navigation state. [currentIndex] is
- * which round is focused (a pure UI-navigation concept outside [WatchSnapshot]).
- *
- * The watch is read-only (redesign §1.1): the only outbound edit is the tick's
- * `done` delta ([buildDelta]), built and sent immediately on tap — there is no
- * coalescing window, no local pending-edit overlay, and nothing to flush on
- * stop. The client (`DataLayerWatchClient`/`FakeWatchClient`) already echoes
- * the tick into [WatchTrackerClient.snapshotFlow] optimistically via
- * `WatchEditOptimism`, so [exercise] read straight off [snap] is always the
- * value to render.
- */
-@Composable
-private fun ExerciseStreamRoute(
-    snap: WatchSnapshot,
-    programExerciseId: Long,
-    startRoundIndex: Int,
-    restController: RestTimerController,
-    onBack: () -> Unit,
-    onBackToListRest: (restSeconds: Int, nextLabel: String) -> Unit,
-    onDayDone: () -> Unit,
-    sendEdit: (SetEditDelta) -> Unit,
-) {
-    val exercise = snap.day.exercises.first { it.programExerciseId == programExerciseId }
-    val unit = watchUnit(snap.unit)
-    var currentIndex by rememberSaveable(programExerciseId) { mutableIntStateOf(startRoundIndex) }
-    val boundedIndex = currentIndex.coerceIn(0, (exercise.sets.size - 1).coerceAtLeast(0))
-    val latestSnap by rememberUpdatedState(snap)
-    val scope = rememberCoroutineScope()
-
-    // Rest-countdown state. All three are rememberSaveable primitives so an
-    // in-flight rest survives recomposition, ambient, rotation, and process death
-    // (write-on-mutation principle). [restDeadline] is the deadline-anchor: an
-    // elapsedRealtime() instant, never a mutable counter, so a late wake never
-    // drifts. NO_REST means "not resting"; the whole rest state clears together.
-    var restToIndex by rememberSaveable(programExerciseId) { mutableIntStateOf(NO_REST) }
-    var restDeadline by rememberSaveable(programExerciseId) { mutableLongStateOf(0L) }
-    var restTotalSeconds by rememberSaveable(programExerciseId) { mutableIntStateOf(0) }
-
-    val streamState = exercise.toStreamUiState(unit, snap.day.dayId, snap.day.accentIndex)
-
-    fun finishRest() {
-        val target = restToIndex
-        restToIndex = NO_REST
-        restDeadline = 0L
-        restTotalSeconds = 0
-        if (target in streamState.rounds.indices) currentIndex = target
-    }
-
-    val resting = restToIndex != NO_REST && restDeadline > 0L
-    if (resting) {
-        val nextLabel = streamState.rounds.getOrNull(restToIndex)?.let(::nextRoundLabel).orEmpty()
-        // Arm (or re-arm after process death) the buzz + wake lock for this
-        // deadline; idempotent, so recomposition doesn't restart it.
-        LaunchedEffect(restDeadline, nextLabel) { restController.arm(restDeadline, nextLabel) }
-        RestCountdownScreen(
-            deadlineMillis = restDeadline,
-            totalSeconds = restTotalSeconds,
-            accentIndex = snap.day.accentIndex,
-            nextLabel = nextLabel,
-            onComplete = { finishRest() },
-            onSkip = {
-                restController.skip()
-                finishRest()
-            },
-        )
-        return
-    }
-
-    ExerciseStreamScreen(
-        state = streamState,
-        currentIndex = boundedIndex,
-        onBack = onBack,
-        onTick = {
-            val nowDone = !exercise.sets[boundedIndex].done
-            val restSeconds = exercise.sets[boundedIndex].restAfterSeconds
-            sendEdit(buildDelta(snap, programExerciseId, boundedIndex, done = nowDone))
-            if (nowDone) {
-                // Post-tick done flags for THIS exercise (optimistic: the tick just
-                // set boundedIndex done). A rest runs only when this advances to a
-                // next round within the exercise AND that set carries a rest.
-                val postTickFlags = exercise.sets.mapIndexed { i, s -> i == boundedIndex || s.done }
-                val localAdvance = decideStreamAdvance(postTickFlags, allExercisesDoneAfterThisTick = false)
-                if (RestTimer.shouldRest(localAdvance, restSeconds)) {
-                    restToIndex = (localAdvance as StreamAdvance.NextRound).index
-                    restTotalSeconds = restSeconds
-                    restDeadline = RestTimer.deadlineFrom(SystemClock.elapsedRealtime(), restSeconds)
-                } else {
-                    // No rest: the existing 380ms confirm + advance handles
-                    // back-to-list, day-done, and a no-rest next round unchanged.
-                    scope.launch {
-                        delay(380)
-                        val latest = latestSnap
-                        val ex = latest.day.exercises.first { it.programExerciseId == programExerciseId }
-                        when (val advance = decideStreamAdvance(ex.sets.map { it.done }, allExercisesDone(latest))) {
-                            is StreamAdvance.NextRound -> currentIndex = advance.index
-                            StreamAdvance.BackToList -> {
-                                // Finished this exercise's last set with work still to
-                                // go: hand a between-exercise rest to the day-list pill
-                                // (issue #81), then drop back. DayDone never rests.
-                                if (RestTimer.shouldRestAfterExercise(advance, restSeconds)) {
-                                    onBackToListRest(restSeconds, nextExerciseLabel(latest, programExerciseId))
-                                }
-                                onBack()
-                            }
-                            StreamAdvance.DayDone -> onDayDone()
-                        }
-                    }
-                }
-            }
-        },
-    )
-}
-
-/** Sentinel for [ExerciseStreamRoute]'s rest state — no rest in progress. */
-private const val NO_REST = -1
-
-/** The compact one-line label for the round the lifter rests before — the §1.2
- *  read-only display strings joined ("190 × 5", "×12", "45s", "185×5"). */
-private fun nextRoundLabel(round: RoundUiState): String =
-    listOf(round.heroDisplay, round.secondaryDisplay).filter { it.isNotBlank() }.joinToString(" ")
-
-/** The watch's one outbound mutation (redesign §1.1): a done/undone tick on the "main" track. */
-private fun buildDelta(
-    snap: WatchSnapshot,
-    programExerciseId: Long,
-    index: Int,
-    done: Boolean,
-): SetEditDelta = SetEditDelta(
-    dayId = snap.day.dayId,
-    programExerciseId = programExerciseId,
-    slot = "main",
-    setIndex = index,
-    done = done,
-    editedAtMillis = System.currentTimeMillis(),
-)

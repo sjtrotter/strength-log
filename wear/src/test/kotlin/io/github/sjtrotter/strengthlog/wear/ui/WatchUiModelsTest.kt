@@ -200,13 +200,6 @@ class WatchUiModelsTest {
     }
 
     @Test
-    fun `day-done rounds-logged sums every exercise's round count`() {
-        val doneState = snapshot.toDayDoneUiState()
-        assertEquals(7, doneState.roundsLogged) // 6 squat rounds + 1 press round
-        assertEquals("A", doneState.dayId)
-    }
-
-    @Test
     fun `watchUnit parses the wire string case-insensitively and defaults to LB`() {
         assertEquals(WeightUnit.KG, watchUnit("kg"))
         assertEquals(WeightUnit.LB, watchUnit("LB"))

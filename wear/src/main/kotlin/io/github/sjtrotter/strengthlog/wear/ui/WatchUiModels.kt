@@ -186,18 +186,6 @@ private fun kindLabels(sets: List<WatchSet>): List<String> {
     }
 }
 
-data class DayDoneUiState(
-    val dayId: String,
-    val accentIndex: Int,
-    val roundsLogged: Int,
-)
-
-fun WatchSnapshot.toDayDoneUiState(): DayDoneUiState = DayDoneUiState(
-    dayId = day.dayId,
-    accentIndex = day.accentIndex,
-    roundsLogged = day.exercises.sumOf { it.sets.size },
-)
-
 /** [WatchSnapshot.unit] ("lb"/"kg") parsed to the domain enum; defaults to LB on anything else. */
 fun watchUnit(unit: String): WeightUnit = WeightUnit.entries.firstOrNull {
     it.name.equals(unit, ignoreCase = true)

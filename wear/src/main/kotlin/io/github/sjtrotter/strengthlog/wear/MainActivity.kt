@@ -47,7 +47,13 @@ class MainActivity : ComponentActivity() {
 
         val client = (application as StrengthLogWearApp).watchClient
         setContent {
-            WearApp(client = client, isAmbient = isAmbient, ambientTick = ambientTick)
+            WearApp(
+                client = client,
+                isAmbient = isAmbient,
+                ambientTick = ambientTick,
+                // The day-done disc's tap is a dismiss — the same exit a swipe gives.
+                onDismiss = ::finish,
+            )
         }
     }
 }

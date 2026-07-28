@@ -61,7 +61,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.wear.compose.material)
     implementation(libs.androidx.wear.compose.foundation)
-    implementation(libs.androidx.wear.compose.navigation)
     implementation(libs.androidx.wear.ambient)
     // Wear OngoingActivity: wraps the "workout in progress" notification so the
     // watch face shows a one-tap re-entry chip after a stem press / ambient
@@ -73,14 +72,6 @@ dependencies {
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.horologist.compose.layout) {
-        // horologist-compose-layout depends on the full androidx ui-tooling artifact
-        // (not debug-scoped), which ships androidx.compose.ui.tooling.PreviewActivity
-        // (exported, unguarded) into the release APK's manifest. We don't use
-        // horologist's tooling/preview surface, and ui-tooling is separately pulled in
-        // below as debugImplementation, so drop this transitive copy entirely.
-        exclude(group = "androidx.compose.ui", module = "ui-tooling")
-    }
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.ui.tooling.preview)
 

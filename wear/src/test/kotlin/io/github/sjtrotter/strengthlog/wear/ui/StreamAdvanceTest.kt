@@ -7,7 +7,6 @@ import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** The 2a tick/advance decision (design digest appendix `advanceD`), pulled out pure. */
@@ -104,47 +103,5 @@ class StreamAdvanceTest {
     fun `next label is blank when every other exercise is already done`() {
         val snap = snapshot(listOf(exercise(1, listOf(true)), exercise(2, listOf(true, true))))
         assertEquals("", nextExerciseLabel(snap, justFinishedExerciseId = 1))
-    }
-
-    // --- listRestPill: which rest the day-list pill surfaces (issue #81) ---
-
-    @Test
-    fun `the hoisted between-exercise rest wins over a controller fallback`() {
-        val controller = RestTimerController.ActiveRest(deadlineMillis = 20_000L, nextLabel = "within")
-        val pill = listRestPill(
-            hoistedDeadline = 30_000L,
-            hoistedLabel = "Bench",
-            controllerRest = controller,
-            nowElapsedMillis = 0L,
-        )
-        assertEquals(ListRestPill(30_000L, "Bench"), pill)
-    }
-
-    @Test
-    fun `a swipe-dismissed within-exercise rest surfaces when there is no hoisted rest`() {
-        val controller = RestTimerController.ActiveRest(deadlineMillis = 20_000L, nextLabel = "190 × 5")
-        val pill = listRestPill(
-            hoistedDeadline = 0L,
-            hoistedLabel = "",
-            controllerRest = controller,
-            nowElapsedMillis = 0L,
-        )
-        assertEquals(ListRestPill(20_000L, "190 × 5"), pill)
-    }
-
-    @Test
-    fun `an expired deadline shows no pill`() {
-        val pill = listRestPill(
-            hoistedDeadline = 30_000L,
-            hoistedLabel = "Bench",
-            controllerRest = null,
-            nowElapsedMillis = 30_000L,
-        )
-        assertNull(pill)
-    }
-
-    @Test
-    fun `no rest at all shows no pill`() {
-        assertNull(listRestPill(hoistedDeadline = 0L, hoistedLabel = "", controllerRest = null, nowElapsedMillis = 0L))
     }
 }

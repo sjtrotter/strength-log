@@ -31,7 +31,9 @@ import kotlinx.coroutines.sync.withLock
  * A delta may also carry the wrist-observed start/complete millis for its round
  * (#85). Those are persisted verbatim onto the row (and onto the aligned partner
  * row when the tick pairs) — the phone stores the facts and derives active time and
- * actual rest from them later; neither side computes a duration to store.
+ * actual rest from them later; neither side computes a duration to store. A
+ * `done = false` delta (the watch's long-press undo, #88) clears them again: an
+ * untick retracts the tick's facts along with the tick.
  *
  * Three guards before any write:
  *  - **Validation** — the day, slot (programExerciseId + main/ss track) and set
@@ -154,14 +156,22 @@ class SetEditApplier(
      *  facts, not tracked fields, so no [TrackingType] strips them ([guardedFor]) and
      *  they land whatever else the delta carries — in practice they ride with the
      *  tick that produced them. Null keeps the stored value, the same
-     *  "null means unchanged" rule every other delta field follows. */
+     *  "null means unchanged" rule every other delta field follows.
+     *
+     *  An **untick is the exception**: `done = false` retracts the tick, and the
+     *  stamps are facts *about that tick*. They clear with it, whether or not the
+     *  delta carries any (the watch's undo carries none) — the same rule
+     *  `CheckmarkReset` applies when a stale check clears at the day boundary.
+     *  Leaving a start/complete pair on a row that now reads unchecked would let a
+     *  duration nobody performed ride into the day's derived active time. */
     private fun List<LoggedSet>.stamped(delta: SetEditDelta): List<LoggedSet> {
-        if (delta.startedAtMillis == null && delta.completedAtMillis == null) return this
+        val unticking = delta.done == false
+        if (!unticking && delta.startedAtMillis == null && delta.completedAtMillis == null) return this
         return mapIndexed { i, s ->
-            if (i != delta.setIndex) {
-                s
-            } else {
-                s.copy(
+            when {
+                i != delta.setIndex -> s
+                unticking -> s.copy(startedAtMillis = null, completedAtMillis = null)
+                else -> s.copy(
                     startedAtMillis = delta.startedAtMillis ?: s.startedAtMillis,
                     completedAtMillis = delta.completedAtMillis ?: s.completedAtMillis,
                 )

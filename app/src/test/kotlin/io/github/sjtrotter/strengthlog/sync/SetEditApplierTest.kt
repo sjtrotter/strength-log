@@ -592,6 +592,89 @@ class SetEditApplierTest {
     }
 
     @Test
+    fun `an untick clears the timing the tick wrote`() = runTest {
+        seedProgram()
+        val id = squatId()
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                done = true, editedAtMillis = 1L, startedAtMillis = 10L, completedAtMillis = 70L,
+            ),
+        )
+
+        // The watch's long-press undo (#88): done=false, and no stamps of its own.
+        val outcome = applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                done = false, editedAtMillis = 2L,
+            ),
+        )
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        val row = track(id, Slot.MAIN)!![0]
+        assertFalse(row.done)
+        assertEquals(null, row.startedAtMillis)
+        assertEquals(null, row.completedAtMillis)
+        // Weights and reps are untouched — an untick retracts the tick, not the set.
+        assertEquals(130.0, row.weightLb, 0.0)
+        assertEquals(5, row.reps)
+    }
+
+    @Test
+    fun `an untick clears the partner round's timing too - one round, one pair of facts`() = runTest {
+        seedProgram()
+        val id = curlId()
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
+                done = true, editedAtMillis = 1L, startedAtMillis = 500L, completedAtMillis = 560L,
+            ),
+        )
+
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
+                done = false, editedAtMillis = 2L,
+            ),
+        )
+
+        assertFalse(track(id, Slot.MAIN)!![1].done)
+        assertEquals(null, track(id, Slot.MAIN)!![1].startedAtMillis)
+        assertFalse(track(id, Slot.SS)!![1].done)
+        assertEquals(null, track(id, Slot.SS)!![1].startedAtMillis)
+        assertEquals(null, track(id, Slot.SS)!![1].completedAtMillis)
+    }
+
+    @Test
+    fun `a re-tick after an untick stamps the set afresh`() = runTest {
+        seedProgram()
+        val id = squatId()
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                done = true, editedAtMillis = 1L, startedAtMillis = 10L, completedAtMillis = 70L,
+            ),
+        )
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                done = false, editedAtMillis = 2L,
+            ),
+        )
+        applier.apply(
+            SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                done = true, editedAtMillis = 3L, startedAtMillis = 800L, completedAtMillis = 860L,
+            ),
+        )
+
+        val row = track(id, Slot.MAIN)!![0]
+        assertTrue(row.done)
+        assertEquals(800L, row.startedAtMillis)
+        assertEquals(860L, row.completedAtMillis)
+    }
+
+    @Test
     fun `the dedupe stamp still rules - a replayed tick with new timing is dropped`() = runTest {
         seedProgram()
         val id = squatId()

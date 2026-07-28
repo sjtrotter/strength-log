@@ -439,7 +439,12 @@ private fun ExerciseStreamRoute(
                     scope.launch {
                         delay(380)
                         val latest = latestSnap
-                        val ex = latest.day.exercises.first { it.programExerciseId == programExerciseId }
+                        // The day can flip under this delay (phone DONE — advance
+                        // republishes a snapshot whose day carries different row
+                        // ids); a vanished exercise means there is no advance
+                        // decision left to make (#96).
+                        val ex = latest.day.exercises.firstOrNull { it.programExerciseId == programExerciseId }
+                            ?: return@launch
                         when (val advance = decideStreamAdvance(ex.sets.map { it.done }, allExercisesDone(latest))) {
                             is StreamAdvance.NextRound -> currentIndex = advance.index
                             StreamAdvance.BackToList -> {

@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.ui.log
 
+import android.content.Intent
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -16,12 +17,14 @@ import io.github.sjtrotter.strengthlog.transfer.health.BodyweightPrompt
 import io.github.sjtrotter.strengthlog.transfer.health.ExternalSessionFormatter
 import io.github.sjtrotter.strengthlog.transfer.health.ExternalSessionRow
 import io.github.sjtrotter.strengthlog.transfer.health.HealthConnectReader
+import io.github.sjtrotter.strengthlog.ui.log.share.ShareCardService
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -55,6 +58,7 @@ import kotlinx.coroutines.launch
 class LogViewModel @Inject constructor(
     private val repo: TrackerRepository,
     private val healthReader: HealthConnectReader,
+    private val shareCardService: ShareCardService,
     private val savedState: SavedStateHandle,
     private val clock: Clock,
 ) : ViewModel() {
@@ -63,6 +67,19 @@ class LogViewModel @Inject constructor(
     private val expandedSets = MutableStateFlow<Map<Long, List<SessionSetEntity>>>(emptyMap())
     private val bodyweightDismissed: StateFlow<Boolean> = savedState.getStateFlow(KEY_BW_DISMISSED, false)
     private val healthData = MutableStateFlow(HealthData())
+
+    /**
+     * The share card's ACTION_SEND intent, ready for the UI to launch — a bare
+     * field, deliberately not [SavedStateHandle] (same reasoning as
+     * [io.github.sjtrotter.strengthlog.ui.day.DayViewModel]'s cascade
+     * ceremony): a rendered [Intent] can't cross process death anyway, and
+     * losing it there loses nothing the user typed — a re-tap of SHARE
+     * regenerates the same card. Set only by [shareSession]; cleared by
+     * [shareHandled] once the UI has launched it, so a rotation never
+     * re-fires the chooser.
+     */
+    private val _pendingShare = MutableStateFlow<Intent?>(null)
+    val pendingShare: StateFlow<Intent?> = _pendingShare.asStateFlow()
 
     /** Months back from the current one, never positive (journal §1.3). */
     private val calendarOffset: StateFlow<Int> = savedState.getStateFlow(KEY_MONTH_OFFSET, 0)
@@ -129,6 +146,23 @@ class LogViewModel @Inject constructor(
         val next = if (expandedSessionId.value == sessionId) null else sessionId
         savedState[KEY_EXPANDED] = next
         if (next != null) fetchExpandedSets(next)
+    }
+
+    /**
+     * The SHARE tap (docs/briefs/session-share.md §1/§4 acceptance #1) — the
+     * only path that ever produces a share intent. Rendering runs off the
+     * main thread inside [ShareCardService]; once it's back, [pendingShare]
+     * carries the built intent for the UI to launch.
+     */
+    fun shareSession(sessionId: Long) {
+        viewModelScope.launch {
+            shareCardService.buildShareIntent(sessionId)?.let { _pendingShare.value = it }
+        }
+    }
+
+    /** Called once the UI has launched [pendingShare], so it doesn't fire again. */
+    fun shareHandled() {
+        _pendingShare.value = null
     }
 
     private fun fetchExpandedSets(sessionId: Long) {

@@ -79,6 +79,24 @@
         </activity-alias>
 
         <!--
+          Session share card provider (#103, docs/briefs/session-share.md §3).
+          Unexported and grants read access only to the render it just wrote —
+          @xml/file_paths scopes the exposed tree to cache/shares/ alone, so
+          this can never serve any other file in the app's cache or storage.
+          No new permission: the share sheet itself is the boundary, and
+          ACTION_SEND is how every other app already receives shared content.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!--
           Wear Data Layer receiver (#20). Google Play Services binds this service
           to deliver watch->phone set-edit messages, waking the app process if it
           was dead so an edit made while the phone app wasn't running still lands.

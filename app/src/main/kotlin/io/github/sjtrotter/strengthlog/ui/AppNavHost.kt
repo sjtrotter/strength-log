@@ -322,6 +322,18 @@ private fun LogRoute(onBack: () -> Unit, viewModel: LogViewModel = hiltViewModel
     val permissionLauncher = rememberLauncherForActivityResult(remember { viewModel.permissionContract() }) {
         viewModel.refreshHealth()
     }
+    // The SHARE tap's payoff (session-share brief §3): LogViewModel only ever
+    // builds the Intent, never launches it — this is the one call site that
+    // hands a rendered share card to the system chooser, and it fires exactly
+    // once per render (shareHandled clears pendingShare right after).
+    val context = LocalContext.current
+    val pendingShare by viewModel.pendingShare.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingShare) {
+        pendingShare?.let { intent ->
+            context.startActivity(intent)
+            viewModel.shareHandled()
+        }
+    }
     LogScreen(
         state = state,
         actions = LogActions(
@@ -331,6 +343,7 @@ private fun LogRoute(onBack: () -> Unit, viewModel: LogViewModel = hiltViewModel
             onConnectHealth = { permissionLauncher.launch(viewModel.requestedPermissions) },
             onApplyBodyweight = viewModel::applyBodyweightPrompt,
             onDismissBodyweight = viewModel::dismissBodyweightPrompt,
+            onShare = viewModel::shareSession,
         ),
     )
 }

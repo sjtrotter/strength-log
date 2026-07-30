@@ -39,19 +39,26 @@ object SetFormatter {
     }
 
     /**
-     * The set's VALUE-driven summary — for surfaces that can't trust the
-     * exercise's *current* [TrackingType] (design risk #3, P3 advisory #2): a
-     * `session_set` history row logged before a reclassification can be legacy
-     * reps-shaped even though the exercise tracks TIMED today, because the P3
-     * fixup only ever touched live `exercise_log` rows, never history. Reads
-     * the values themselves instead of the catalog: a hold (`seconds > 0`) is
-     * always a hold; a zero-weight rep count is always reps; everything else
-     * is weight×reps. This is what keeps a legacy plank "Best" from ever
-     * reading "0s" — it reads its logged rep count instead.
+     * The [TrackingType] implied by a performed set's own logged values, for
+     * surfaces that can't trust the exercise's *current* tracking type (design
+     * risk #3, P3 advisory #2): a `session_set` history row logged before a
+     * reclassification can be legacy reps-shaped even though the exercise
+     * tracks TIMED today, because the P3 fixup only ever touched live
+     * `exercise_log` rows, never history. A hold (`seconds > 0`) is always a
+     * hold; a zero-weight rep count is always reps; everything else is
+     * weight×reps. This is what keeps a legacy plank "Best" from ever reading
+     * "0s" — it reads its logged rep count instead. Exposed on its own (not
+     * just inlined in [summaryOfValues]) so a caller that needs the
+     * classification without a formatted string — the session share card
+     * picking a lift's "heaviest" set — shares this same rule (SSOT).
      */
-    fun summaryOfValues(weightLb: Double, reps: Int, seconds: Int, unit: WeightUnit): String = when {
-        seconds > 0 -> summary(TrackingType.TIMED, weightLb, reps, seconds, unit)
-        weightLb == 0.0 && reps > 0 -> summary(TrackingType.REPS, weightLb, reps, seconds, unit)
-        else -> summary(TrackingType.WEIGHTED, weightLb, reps, seconds, unit)
+    fun trackingOfValues(weightLb: Double, reps: Int, seconds: Int): TrackingType = when {
+        seconds > 0 -> TrackingType.TIMED
+        weightLb == 0.0 && reps > 0 -> TrackingType.REPS
+        else -> TrackingType.WEIGHTED
     }
+
+    /** The set's VALUE-driven summary — see [trackingOfValues] for the classification rule. */
+    fun summaryOfValues(weightLb: Double, reps: Int, seconds: Int, unit: WeightUnit): String =
+        summary(trackingOfValues(weightLb, reps, seconds), weightLb, reps, seconds, unit)
 }

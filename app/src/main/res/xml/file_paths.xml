@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Scopes the session-share FileProvider (docs/briefs/session-share.md §3) to
+  exactly cache/shares/ — Context.getCacheDir()/shares — and nothing wider in
+  the app's cache. ShareCardService is the only writer of that directory.
+-->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="shares" path="shares/" />
+</paths>

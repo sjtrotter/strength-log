@@ -398,4 +398,59 @@ class DayScreenBuilderTest {
     fun weightSwapAffordance_is_null_for_an_unresolved_entry() {
         assertNull(DayScreenBuilder.weightSwapAffordance(null, catalog))
     }
+
+    // --- "Plates: …" line (docs/briefs/plate-math.md §2) ---------------------
+
+    private val barbellEquipment = catalog.get("bb_back_squat").equipment
+
+    @Test
+    fun plateLine_shows_the_load_for_a_barbell_exercise() {
+        val main = listOf(work(235.0, 5))
+        assertEquals("Plates: 45 + 45 + 5 a side", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+    }
+
+    @Test
+    fun plateLine_is_null_for_a_non_barbell_exercise() {
+        val main = listOf(work(60.0, 8))
+        val ezBarEquipment = catalog.get("ez_curl").equipment
+        assertNull(DayScreenBuilder.plateLine(main, ezBarEquipment, WeightUnit.LB))
+    }
+
+    @Test
+    fun plateLine_follows_the_first_undone_set_through_a_ramp() {
+        val main = listOf(
+            work(130.0, 5, done = true),
+            work(165.0, 5, done = true),
+            work(190.0, 3),
+            work(210.0, 1),
+        )
+        // First two ramp sets are ticked, so the line reads the next one (190), not the TOP.
+        assertEquals("Plates: 45 + 25 + 2.5 a side", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+    }
+
+    @Test
+    fun plateLine_updates_when_the_next_sets_weight_is_edited() {
+        val main = listOf(work(235.0, 5))
+        assertEquals("Plates: 45 + 45 + 5 a side", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        val edited = listOf(work(245.0, 5))
+        assertEquals("Plates: 45 + 45 + 10 a side", DayScreenBuilder.plateLine(edited, barbellEquipment, WeightUnit.LB))
+    }
+
+    @Test
+    fun plateLine_reads_empty_bar_at_bar_weight() {
+        val main = listOf(work(45.0, 5))
+        assertEquals("Plates: empty bar", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+    }
+
+    @Test
+    fun plateLine_is_null_when_every_set_is_done() {
+        val main = listOf(work(235.0, 5, done = true))
+        assertNull(DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+    }
+
+    @Test
+    fun plateLine_is_null_when_the_weight_cannot_be_loaded_exactly() {
+        val main = listOf(work(137.0, 5))
+        assertNull(DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+    }
 }

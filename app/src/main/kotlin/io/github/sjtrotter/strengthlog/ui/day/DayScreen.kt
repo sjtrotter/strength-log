@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.ui.day
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -111,6 +112,8 @@ fun DayScreen(
     actions: DayActions,
     dayEditState: DayEditUiState,
     dayEditActions: DayEditActions,
+    cascadeCeremony: CascadeCeremony? = null,
+    onDismissCascade: () -> Unit = {},
 ) {
     KeepScreenOn(state.keepScreenOn)
     val accent = dayAccent(state.dayIndex)
@@ -159,6 +162,13 @@ fun DayScreen(
             onDismiss = { showEditSheet = false },
             onCreateExercise = actions.onCreateExercise,
         )
+    }
+
+    // Above everything, including the edit sheet: the cascade only ever arrives
+    // straight off a DONE, when nothing else is open (journal brief §2).
+    cascadeCeremony?.let {
+        BackHandler(onBack = onDismissCascade)
+        CascadeScrim(it, onDismissCascade)
     }
 }
 

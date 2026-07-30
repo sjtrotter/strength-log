@@ -52,6 +52,29 @@ class DayAccentTest {
     }
 
     @Test
+    fun `every bright accent is legible as a mark on the near-black background`() {
+        // docs/briefs/journal.md §0: the raw accents are identity fills and four
+        // of the seven sit near 2:1 on Background — unusable for a chart line or
+        // the cascade scrim's numeral. accentBright lifts each toward TextPrimary
+        // to clear AA text contrast (well past the 3:1 a graphic mark needs).
+        for (dayIndex in 0..6) {
+            val ratio = contrastRatio(accentBright(dayIndex), Background)
+            assertTrue(
+                ratio >= 4.5,
+                "Day index $dayIndex bright accent contrast on Background is $ratio, below WCAG AA's 4.5:1",
+            )
+        }
+    }
+
+    @Test
+    fun `a bright accent is still its own day's hue, not a shared grey`() {
+        val bright = (0..6).map { accentBright(it) }
+        assertEquals(bright.size, bright.distinct().size)
+        for (dayIndex in 0..6) assertNotEquals(dayAccent(dayIndex), accentBright(dayIndex))
+        assertEquals(accentBright(0), accentBright(7), "brightening cycles with the accent it derives from")
+    }
+
+    @Test
     fun `error and on-error pairing is the recolored crimson and meets WCAG AA`() {
         // Design-pass recolor (docs/design-handoff/tokens/colors.css): Error moved
         // off the M3 default 0xFFB3261E to a cooler crimson so it never reads as

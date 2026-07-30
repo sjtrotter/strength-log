@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.db.dao.SessionSummaryRow
+import io.github.sjtrotter.strengthlog.data.db.dao.SessionTonnageRow
+import io.github.sjtrotter.strengthlog.data.db.dao.TopSetRow
 import io.github.sjtrotter.strengthlog.data.db.entity.SessionSetEntity
 import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
@@ -14,6 +16,8 @@ import io.github.sjtrotter.strengthlog.transfer.health.BodyweightPrompt
 import io.github.sjtrotter.strengthlog.transfer.health.ExternalSessionFormatter
 import io.github.sjtrotter.strengthlog.transfer.health.ExternalSessionRow
 import io.github.sjtrotter.strengthlog.transfer.health.HealthConnectReader
+import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,14 +30,22 @@ import kotlinx.coroutines.launch
 
 /**
  * The Log screen ViewModel (PLAN.md A1, issue #14; #17 Health Connect read
- * path). A read-only, reverse-chronological view of the user's own session
- * history, plus a Health Connect section that lists other apps' strength
- * sessions (marked external) and surfaces the bodyweight-GOAL prompt.
+ * path; journal sections per docs/briefs/journal.md). A read-only,
+ * reverse-chronological view of the user's own session history, now led by the
+ * three derived journal sections, plus a Health Connect section that lists
+ * other apps' strength sessions (marked external) and surfaces the
+ * bodyweight-GOAL prompt.
  *
  * Own-history: a session's sets are fetched lazily on expand and cached in
- * [expandedSets]. Which session is expanded, and whether the bodyweight prompt
- * was dismissed, live in [SavedStateHandle] (PLAN.md A6: ephemeral UI state
- * survives rotation/process death).
+ * [expandedSets]. Which session is expanded, which month the calendar is
+ * showing, and whether the bodyweight prompt was dismissed live in
+ * [SavedStateHandle] (PLAN.md A6: ephemeral UI state survives rotation/process
+ * death).
+ *
+ * The journal sections cost two aggregate queries for the whole screen
+ * ([TrackerRepository.topSetHistoryFlow], [TrackerRepository.sessionTonnageFlow])
+ * plus the session list the screen already streams — never one query per card.
+ * All of their shaping is [JournalBuilder]'s.
  *
  * The Health Connect reads are entirely degrade-safe: with no provider or no
  * permission [healthData] stays empty and the section hides itself, so the Log
@@ -44,12 +56,16 @@ class LogViewModel @Inject constructor(
     private val repo: TrackerRepository,
     private val healthReader: HealthConnectReader,
     private val savedState: SavedStateHandle,
+    private val clock: Clock,
 ) : ViewModel() {
 
     private val expandedSessionId: StateFlow<Long?> = savedState.getStateFlow(KEY_EXPANDED, null)
     private val expandedSets = MutableStateFlow<Map<Long, List<SessionSetEntity>>>(emptyMap())
     private val bodyweightDismissed: StateFlow<Boolean> = savedState.getStateFlow(KEY_BW_DISMISSED, false)
     private val healthData = MutableStateFlow(HealthData())
+
+    /** Months back from the current one, never positive (journal §1.3). */
+    private val calendarOffset: StateFlow<Int> = savedState.getStateFlow(KEY_MONTH_OFFSET, 0)
 
     private val ownSessions = combine(
         repo.sessionSummariesFlow,
@@ -60,17 +76,42 @@ class LogViewModel @Inject constructor(
         summaries.map { summary -> buildItem(summary, unit, expandedId, setsCache[summary.session.id]) }
     }
 
+    private val mainLifts = combine(
+        repo.programFlow,
+        repo.catalogFlow,
+        repo.configFlow,
+    ) { program, catalog, config -> JournalBuilder.mainLifts(program, catalog, config) }
+
+    private val journalHistory = combine(
+        repo.topSetHistoryFlow,
+        repo.sessionTonnageFlow,
+        repo.sessionSummariesFlow,
+        repo.unitFlow,
+        ::JournalHistory,
+    )
+
+    private val journal = combine(journalHistory, mainLifts, calendarOffset) { history, mains, offset ->
+        val today = LocalDate.now(clock)
+        JournalUiState(
+            trajectories = JournalBuilder.trajectories(mains, history.topSets, history.unit, clock.zone),
+            volume = JournalBuilder.volume(history.tonnage, history.unit, today, clock.zone),
+            calendar = JournalBuilder.calendar(history.sessions, offset, today, clock.zone),
+        )
+    }
+
+    private val healthUi = combine(
+        healthData,
+        repo.configFlow,
+        repo.unitFlow,
+        bodyweightDismissed,
+    ) { health, config, unit, dismissed -> buildHealthUi(health, config.bodyweightLb, unit, dismissed) }
+
     val uiState: StateFlow<LogUiState> = combine(
         ownSessions,
-        repo.unitFlow,
-        repo.configFlow,
-        healthData,
-        bodyweightDismissed,
-    ) { sessions, unit, config, health, dismissed ->
-        LogUiState(
-            sessions = sessions,
-            health = buildHealthUi(health, config.bodyweightLb, unit, dismissed),
-        )
+        journal,
+        healthUi,
+    ) { sessions, journalState, health ->
+        LogUiState(sessions = sessions, journal = journalState, health = health)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogUiState())
 
     init {
@@ -96,6 +137,12 @@ class LogViewModel @Inject constructor(
             val sets = repo.sessionSets(sessionId)
             expandedSets.update { it + (sessionId to sets) }
         }
+    }
+
+    /** Pages the calendar by [delta] months, clamped at the current month —
+     *  there is nothing to show ahead of today (journal §1.3). */
+    fun pageCalendar(delta: Int) {
+        savedState[KEY_MONTH_OFFSET] = (calendarOffset.value + delta).coerceAtMost(0)
     }
 
     /** The Health Connect permission-request contract for the screen's launcher
@@ -193,6 +240,15 @@ class LogViewModel @Inject constructor(
         )
     }
 
+    /** The three history reads the journal sections share, kept together so the
+     *  section builders run off one combine rather than one per card. */
+    private data class JournalHistory(
+        val topSets: List<TopSetRow>,
+        val tonnage: List<SessionTonnageRow>,
+        val sessions: List<SessionSummaryRow>,
+        val unit: WeightUnit,
+    )
+
     /** The raw Health Connect read snapshot, before display formatting. */
     private data class HealthData(
         val available: Boolean = false,
@@ -204,6 +260,7 @@ class LogViewModel @Inject constructor(
     private companion object {
         const val KEY_EXPANDED = "log_expanded_session"
         const val KEY_BW_DISMISSED = "log_bodyweight_dismissed"
+        const val KEY_MONTH_OFFSET = "log_calendar_month_offset"
         const val STOP_TIMEOUT_MS = 5_000L
     }
 }

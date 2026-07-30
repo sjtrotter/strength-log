@@ -20,6 +20,10 @@ import io.github.sjtrotter.strengthlog.domain.library.TrackingType
  * | REPS     | drop     | keep | drop    |
  * | TIMED    | drop     | drop | keep    |
  *
+ * [SetEditDelta.startedAtMillis]/[SetEditDelta.completedAtMillis] survive every type:
+ * they are facts the watch *observed* (when the set was started and ticked), not
+ * fields a track does or doesn't log, so there is no type that shouldn't keep them.
+ *
  * TIMED drops `weightLb` deliberately: a weighted hold's added load is a phone-side
  * setup value, not a wrist edit, and — crucially — an old watch's bogus plank-weight
  * delta is indistinguishable from a "real" one, so the only safe rule is to never

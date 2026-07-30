@@ -392,4 +392,28 @@ class BackupCodecTest {
         val second = codec.encode(codec.decode(first).toSnapshot().toDocument())
         assertEquals(first, second)
     }
+
+    @Test
+    fun `per-set timing survives a full export-import cycle`() {
+        val stamped = SessionSetEntity(
+            11, 7, "bb_back_squat", "Barbell Back Squat", "main", 0, "TOP", 235.0, 5, true,
+            seconds = 0, startedAtMillis = 1_700_000_000_000L, completedAtMillis = 1_700_000_045_000L,
+        )
+        val snapshot = FullSnapshot(
+            answers = WizardAnswers(),
+            unit = WeightUnit.LB,
+            wizardComplete = true,
+            suggestedDay = "A",
+            customExercises = emptyList(),
+            days = listOf(ProgramDayEntity("A", 0, "Day A", "Squat-focused", null)),
+            exercises = listOf(ProgramExerciseEntity(1, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
+            logs = emptyList(),
+            sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210)),
+            sessionSets = listOf(stamped),
+        )
+
+        val restored = codec.decode(codec.encode(snapshot.toDocument())).toSnapshot()
+
+        assertEquals(listOf(stamped), restored.sessionSets)
+    }
 }

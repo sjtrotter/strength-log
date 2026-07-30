@@ -23,9 +23,23 @@ data class SetDto(
     // with the codec's encodeDefaults off — a WEIGHTED/REPS set (seconds 0) still
     // serializes byte-identically to before. TIMED sets carry a non-zero value.
     val seconds: Int = 0,
+    // Per-set timing (#85), null-defaulted for the same two reasons as [seconds]:
+    // a row written before per-set timing existed decodes as "not observed", and
+    // — encodeDefaults being off — a set with no stamps serializes byte-identically
+    // to before, so this change rewrites no stored log.
+    val startedAtMillis: Long? = null,
+    val completedAtMillis: Long? = null,
 ) {
     fun toDomain(): LoggedSet =
-        LoggedSet(weightLb = weightLb, reps = reps, kind = SetKind.valueOf(kind), done = done, seconds = seconds)
+        LoggedSet(
+            weightLb = weightLb,
+            reps = reps,
+            kind = SetKind.valueOf(kind),
+            done = done,
+            seconds = seconds,
+            startedAtMillis = startedAtMillis,
+            completedAtMillis = completedAtMillis,
+        )
 
     companion object {
         fun of(set: LoggedSet): SetDto =
@@ -35,6 +49,8 @@ data class SetDto(
                 kind = set.kind.name,
                 done = set.done,
                 seconds = set.seconds,
+                startedAtMillis = set.startedAtMillis,
+                completedAtMillis = set.completedAtMillis,
             )
     }
 }

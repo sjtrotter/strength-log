@@ -64,11 +64,10 @@ class DataLayerWatchClient(
         val stamped = delta.copy(editedAtMillis = queue.issueStamp(delta.editedAtMillis))
         // Echo the edit on-wrist immediately (spec §9); the phone's next snapshot —
         // with cascade/seeding applied — overwrites this and is the real ack.
-        // INVARIANT: the optimistic echo must NOT bump `revision`. The "updated
-        // from phone" pill fires only on a revision *increase* with a content
-        // delta (see ui/SnapshotChanges.isUpdatedFromPhone); if this echo bumped
-        // revision, the watch would flash "updated from phone" on the lifter's
-        // own edit. Only the phone's inbound snapshot advances revision.
+        // INVARIANT: the optimistic echo must NOT bump `revision`. Revision means
+        // "the phone has said something new"; an echo that advanced it would let
+        // the lifter's own edit pass itself off as a phone-side change. Only the
+        // phone's inbound snapshot advances revision.
         snapshots.value?.let { current ->
             snapshots.value = current.copy(
                 day = current.day.copy(exercises = WatchEditOptimism.apply(current.day.exercises, stamped)),

@@ -1,3 +1,8 @@
+> **Superseded for UI (2026-07-28):** the watch UI this brief describes was
+> replaced by the dial redesign — see `wear-dial-redesign.md` (#84) and PLAN
+> A12. The wire-protocol decision (D6) and phone-is-source-of-truth stance
+> below still stand; the DTO field lists are historical.
+
 # M5 briefs — #19 Wear UI, #20 Data Layer sync
 
 Order: #19 first, built against a small in-module `WatchTrackerClient`

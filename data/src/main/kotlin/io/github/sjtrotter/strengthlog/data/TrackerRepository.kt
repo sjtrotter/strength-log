@@ -499,6 +499,8 @@ open class TrackerRepository(
                         reps = s.reps,
                         done = s.done,
                         seconds = s.seconds,
+                        startedAtMillis = s.startedAtMillis,
+                        completedAtMillis = s.completedAtMillis,
                     )
                 }
             }

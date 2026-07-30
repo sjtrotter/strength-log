@@ -23,7 +23,7 @@ import io.github.sjtrotter.strengthlog.data.db.entity.WorkoutSessionEntity
         SessionSetEntity::class,
         CustomExerciseEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class StrengthDatabase : RoomDatabase() {
@@ -43,7 +43,7 @@ abstract class StrengthDatabase : RoomDatabase() {
         fun build(context: Context): StrengthDatabase =
             Room.databaseBuilder(context.applicationContext, StrengthDatabase::class.java, NAME)
                 .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }

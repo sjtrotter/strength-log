@@ -34,4 +34,16 @@ data class SetEditDelta(
     val seconds: Int? = null,
     /** Last-write-wins tiebreaker and dedupe key on the phone side. */
     val editedAtMillis: Long,
+    /** Wall-clock millis the lifter started this set (the dial's START), as *observed
+     *  on the wrist* — a fact, not a calculation: the phone derives active time
+     *  (`completedAtMillis - startedAtMillis`) and actual rest (the gap to the next
+     *  set's `startedAtMillis`). Distinct from [editedAtMillis], which stays the
+     *  LWW/dedupe stamp and says nothing about when the set was performed.
+     *  Additive/backward-compatible: null means "the watch didn't observe it" — a
+     *  pre-dial watch never sets it and an older phone ignores the unknown key. */
+    val startedAtMillis: Long? = null,
+    /** Wall-clock millis the tick landed, same fact-not-calculation rule and same
+     *  null-means-old-behavior default as [startedAtMillis]. Rides with the `done`
+     *  tick that produced it (see PendingEdits' settling rule). */
+    val completedAtMillis: Long? = null,
 )

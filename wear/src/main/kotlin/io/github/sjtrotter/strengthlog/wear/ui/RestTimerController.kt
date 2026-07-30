@@ -22,8 +22,8 @@ import kotlinx.coroutines.launch
  * (redesign §2.3 / R5, Fable risk #2). It lives at the [WearApp] root — above the
  * ambient screen swap — so its countdown coroutine is *not* torn down when the
  * system drops into ambient and disposes the interactive tree; the visual
- * countdown is a separate, disposable composable ([RestCountdownScreen]) that this
- * controller does not depend on.
+ * countdown is a separate, disposable composable (the dial, or [AmbientDial]) that
+ * this controller does not depend on.
  *
  * Pure timing/decisions live in [RestTimer]; this class only does the Android IO
  * (Vibrator, PowerManager) and hosts the coroutine.
@@ -44,13 +44,13 @@ class RestTimerController(
     private val scope: CoroutineScope,
 ) {
 
-    /** The rest currently pending, or null when idle. Read by [WearApp] to render
-     *  the dim ambient REST line — survives the ambient swap because this
-     *  controller does. */
+    /** The rest currently pending, or null when idle. Read by [WearApp] to draw the
+     *  ambient countdown — survives the ambient swap because this controller does.
+     *  [totalSeconds] is what the arc drains *of*; the deadline alone can't say. */
     var activeRest by mutableStateOf<ActiveRest?>(null)
         private set
 
-    data class ActiveRest(val deadlineMillis: Long, val nextLabel: String)
+    data class ActiveRest(val deadlineMillis: Long, val totalSeconds: Int)
 
     private var job: Job? = null
 
@@ -62,7 +62,7 @@ class RestTimerController(
      * [rememberSaveable][androidx.compose.runtime.saveable.rememberSaveable]
      * deadline re-arms the buzz for whatever time is left.
      */
-    fun arm(deadlineMillis: Long, nextLabel: String) {
+    fun arm(deadlineMillis: Long, totalSeconds: Int) {
         if (job?.isActive == true && activeRest?.deadlineMillis == deadlineMillis) return
         job?.cancel()
         job = null
@@ -75,7 +75,7 @@ class RestTimerController(
             return
         }
 
-        activeRest = ActiveRest(deadlineMillis, nextLabel)
+        activeRest = ActiveRest(deadlineMillis, totalSeconds)
         // Acquire the lock as a LOCAL and release that same instance in this job's
         // own finally — never a shared field. Replacing a still-active job only
         // *queues* the old coroutine's cancellation, so its finally runs after this

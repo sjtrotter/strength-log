@@ -31,10 +31,6 @@ val AmbientClock = Color(0xFF6B6B73)
 
 val Done = Color(0xFF3E8E5A)
 
-// "Phone away" queued-edit pill (digest §0/§3).
-val QueuedPillBg = Color(0xFF1D1D22)
-val QueuedPillBorder = Color(0xFF3A3A42)
-
 /** Day accent for [accentIndex] — reads the pinned hexes from `:domain` (SSOT with `:app`). */
 fun dayAccent(accentIndex: Int): Color = Color(DayAccentColors.hex(accentIndex))
 
@@ -42,11 +38,36 @@ fun dayAccent(accentIndex: Int): Color = Color(DayAccentColors.hex(accentIndex))
 fun onDayAccent(accentIndex: Int): Color = Color(DayAccentColors.onAccentHex(accentIndex))
 
 /**
- * The day accent at 14% alpha (digest §0 `accentSoft`) — the "up next" row fill
- * and the "updated from phone" pill fill. Derived here, not stored: alpha is a
- * UI presentation concern, the hex itself stays SSOT in `:domain`.
+ * The day accent at 14% alpha (digest §0 `accentSoft`) — soft accent fills.
+ * Derived here, not stored: alpha is a UI presentation concern, the hex itself
+ * stays SSOT in `:domain`.
  */
 fun accentSoft(accentIndex: Int): Color = dayAccent(accentIndex).copy(alpha = 0.14f)
+
+/**
+ * The text-on-dark variant of the day accent (dial brief §3 "accent bright") —
+ * the same hue lifted [BRIGHT_LIFT] in lightness, because the full-strength
+ * accent doesn't carry a 13px band label on near-black. Derived rather than
+ * listed: the accent hexes stay SSOT in `:domain`, and a brightened *table*
+ * would be a second place to keep in step with them.
+ */
+fun accentBright(accentIndex: Int): Color = dayAccent(accentIndex).lightened(BRIGHT_LIFT)
+
+private const val BRIGHT_LIFT = 0.15f
+
+/** Raises HSL lightness by [amount], keeping hue and saturation — a lift, not a white wash. */
+private fun Color.lightened(amount: Float): Color {
+    val max = maxOf(red, green, blue)
+    val min = minOf(red, green, blue)
+    val lightness = (max + min) / 2f
+    val target = (lightness + amount).coerceIn(0f, 1f)
+    if (max == min) return Color(target, target, target, alpha)
+    // Scale the spread around the midpoint so lightness lands on [target] while the
+    // ratios between the channels — the hue — survive.
+    val factor = if (target > lightness) (1f - target) / (1f - lightness) else target / lightness
+    fun lift(channel: Float) = (target + (channel - lightness) * factor).coerceIn(0f, 1f)
+    return Color(lift(red), lift(green), lift(blue), alpha)
+}
 
 @Composable
 fun WearTrackerTheme(content: @Composable () -> Unit) {

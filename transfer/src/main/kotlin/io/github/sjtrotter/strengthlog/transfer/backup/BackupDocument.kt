@@ -144,4 +144,9 @@ data class SessionSetBackup(
     /** Defaulted so a v1 document (no `seconds` key) restores each set at 0 —
      *  its exact v1 meaning of weight×reps. */
     val seconds: Int = 0,
+    /** The set's wrist-observed start/complete millis (#85). Null-defaulted so an
+     *  older document restores them as "not observed" — which is what those sets
+     *  are. The live logs need no counterpart: they carry `setsJson` verbatim. */
+    val startedAtMillis: Long? = null,
+    val completedAtMillis: Long? = null,
 )

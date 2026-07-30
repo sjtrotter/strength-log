@@ -118,6 +118,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         reps = set.reps,
                         done = set.done,
                         seconds = set.seconds,
+                        startedAtMillis = set.startedAtMillis,
+                        completedAtMillis = set.completedAtMillis,
                     )
                 },
             )
@@ -208,6 +210,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 reps = set.reps,
                 done = set.done,
                 seconds = set.seconds,
+                startedAtMillis = set.startedAtMillis,
+                completedAtMillis = set.completedAtMillis,
             )
         }
     }

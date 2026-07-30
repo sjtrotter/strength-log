@@ -460,6 +460,7 @@ class DayViewModel @Inject constructor(
             partnerTimedShowsWeight = partnerTimedShowsWeight,
             lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, unit),
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[pe.exerciseId], lastPerformed, unit),
+            plateLine = DayScreenBuilder.plateLine(main, entry?.equipment.orEmpty(), unit),
             allDone = DayScreenBuilder.allDone(main),
             collapsed = DayScreenBuilder.collapsed(main, collapse[id]),
             collapsedSummary = DayScreenBuilder.collapsedSummary(

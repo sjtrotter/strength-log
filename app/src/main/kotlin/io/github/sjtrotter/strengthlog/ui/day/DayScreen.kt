@@ -452,6 +452,15 @@ private fun ExerciseCard(
                     Text(DayScreenBuilder.SUPERSET_HELPER, color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
                 }
 
+                card.plateLine?.let {
+                    Text(
+                        it,
+                        color = TextFaint,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = rowInset.padding(bottom = 3.dp),
+                    )
+                }
+
                 Spacer(Modifier.size(4.dp))
                 var cascadeOrdinal = 0
                 card.rows.forEach { row ->

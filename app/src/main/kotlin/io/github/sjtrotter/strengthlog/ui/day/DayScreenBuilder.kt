@@ -7,12 +7,15 @@ import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
 import io.github.sjtrotter.strengthlog.domain.library.TrackingType
+import io.github.sjtrotter.strengthlog.domain.model.Equipment
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.seeding.SetSeeder
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
 import io.github.sjtrotter.strengthlog.domain.standards.SetFormatter
+import io.github.sjtrotter.strengthlog.domain.units.PlateMath
+import io.github.sjtrotter.strengthlog.domain.units.WeightStepper
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 
 /**
@@ -188,6 +191,25 @@ object DayScreenBuilder {
         val bodyweightId = catalog.bodyweightPairFor(entry.id) ?: return null
         val target = catalog.find(bodyweightId) ?: return null
         return WeightSwapAffordance(bodyweightId, target.name, isRemove = true)
+    }
+
+    /**
+     * The "Plates: …" line (docs/briefs/plate-math.md §2): the bar load for
+     * the first undone MAIN-slot set — the one the lifter loads next, so it
+     * tracks a ramp set by set. Silent (`null`) whenever there's nothing
+     * useful to say: not a barbell exercise, every set is already done, or
+     * [PlateMath.perSide] can't load the weight exactly. Superset partners
+     * aren't considered (spec: main slot only in v1).
+     */
+    fun plateLine(main: List<LoggedSet>, equipment: List<Equipment>, unit: WeightUnit): String? {
+        if (Equipment.BARBELL !in equipment) return null
+        val next = main.firstOrNull { !it.done } ?: return null
+        val perSide = PlateMath.perSide(unit.fromLb(next.weightLb), unit) ?: return null
+        return if (perSide.isEmpty()) {
+            "Plates: empty bar"
+        } else {
+            "Plates: ${perSide.joinToString(" + ") { WeightStepper.format(it) }} a side"
+        }
     }
 
     /** True once every round is ticked — drives the green chip and auto-collapse. */

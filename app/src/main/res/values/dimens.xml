@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pre-31 hosts expose no widget radius; 16dp matches what those launchers
+         mask to. API 31+ overrides this with the system value (values-v31). -->
+    <dimen name="widget_corner_radius">16dp</dimen>
+</resources>

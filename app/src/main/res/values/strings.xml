@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">strength.log</string>
+
+    <string name="widget_today_label">Today</string>
+    <string name="widget_today_description">Today\'s day, its lifts and how far through the sets you are.</string>
+    <!-- Mirrors TodayWidgetContent's no-program line: the initial layout is
+         inflated by the host before any Kotlin runs, so it can't ask for it. -->
+    <string name="widget_no_program">SET UP YOUR PROGRAM</string>
 </resources>

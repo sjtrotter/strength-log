@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.sync.SetEditApplier
+import io.github.sjtrotter.strengthlog.sync.TodaySnapshotSource
 import io.github.sjtrotter.strengthlog.sync.WearSyncPublisher
 import io.github.sjtrotter.strengthlog.sync.WearSyncStore
 import javax.inject.Singleton
@@ -21,9 +22,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
 /**
- * Object graph for the phone-side wear sync (D6). Kept separate from [DataModule]
- * (the training-data graph) because this is transport wiring; the sync classes are
- * plain constructors (framework-free, like `:data`/`:transfer`) assembled here.
+ * Object graph for the phone-side wear sync (D6), plus the [TodaySnapshotSource]
+ * the publisher shares with the home-screen widget ([WidgetModule]). Kept separate
+ * from [DataModule] (the training-data graph) because this is transport wiring; the
+ * sync classes are plain constructors (framework-free, like `:data`/`:transfer`)
+ * assembled here.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -46,15 +49,22 @@ object WearSyncModule {
     fun setEditApplier(repo: TrackerRepository, store: WearSyncStore): SetEditApplier =
         SetEditApplier(repo, store)
 
+    /** One source, every glance surface: the widget observer reads this same
+     *  instance (glance-surfaces.md §4.2). */
+    @Provides
+    @Singleton
+    fun todaySnapshotSource(repo: TrackerRepository): TodaySnapshotSource =
+        TodaySnapshotSource(repo)
+
     @Provides
     @Singleton
     fun wearSyncPublisher(
-        repo: TrackerRepository,
+        source: TodaySnapshotSource,
         store: WearSyncStore,
         dataClient: DataClient,
     ): WearSyncPublisher =
         WearSyncPublisher(
-            repo = repo,
+            source = source,
             store = store,
             dataClient = dataClient,
             parentScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),

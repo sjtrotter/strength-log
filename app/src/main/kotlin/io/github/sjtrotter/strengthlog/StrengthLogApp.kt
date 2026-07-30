@@ -9,6 +9,7 @@ import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.sync.WearSyncPublisher
+import io.github.sjtrotter.strengthlog.widget.TodayWidgetUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,6 +37,15 @@ class StrengthLogApp : Application() {
         fun trackerRepository(): TrackerRepository
     }
 
+    /** The widget's observer rides the same lifetime and the same source as the
+     *  publisher above (glance-surfaces.md §4.2) — it just paints RemoteViews
+     *  instead of writing a DataItem. It is inert while no widget is placed. */
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface WidgetEntryPoint {
+        fun todayWidgetUpdater(): TodayWidgetUpdater
+    }
+
     /** App-scope background jobs (the one-shot startup fixup). Not cancelled — it
      *  lives as long as the process; a [SupervisorJob] keeps one failure from
      *  tearing down the others. */
@@ -45,6 +55,9 @@ class StrengthLogApp : Application() {
         super.onCreate()
         EntryPointAccessors.fromApplication(this, WearSyncEntryPoint::class.java)
             .wearSyncPublisher()
+            .start()
+        EntryPointAccessors.fromApplication(this, WidgetEntryPoint::class.java)
+            .todayWidgetUpdater()
             .start()
 
         // One-shot on first launch of the tracking-types build: reinterpret the

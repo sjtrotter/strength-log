@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home-screen widget (glance-surfaces.md §1). Read-only: two lines of type and a
+  progress hairline, the whole thing one tap target. Static values here are the
+  no-program face, so the seconds between placement and the first push are never
+  blank — TodayWidgetContent paints the real state over them.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:background="@drawable/widget_background"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp">
+
+    <TextView
+        android:id="@+id/widget_day_line"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="1dp"
+        android:fontFamily="@font/barlow_condensed_semibold"
+        android:textSize="13sp"
+        android:letterSpacing="0.09"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="@color/widget_text_secondary"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/widget_stat_line"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/barlow_condensed_bold"
+        android:textSize="30sp"
+        android:fontFeatureSettings="tnum"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="@color/widget_text_secondary"
+        android:text="@string/widget_no_program" />
+
+    <!--
+      The progress bar is an ImageView over a track, not a ProgressBar: only a
+      RemoteViews on API 31+ can tint a ProgressBar, while setColorFilter +
+      setImageLevel drive a clip drawable on every supported API. Shown only
+      mid-session.
+    -->
+    <FrameLayout
+        android:id="@+id/widget_progress"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginTop="9dp"
+        android:background="@drawable/widget_progress_track"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/widget_progress_fill"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_progress_fill"
+            android:contentDescription="@null" />
+    </FrameLayout>
+</LinearLayout>

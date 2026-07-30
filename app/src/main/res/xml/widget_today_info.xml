@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  updatePeriodMillis="0": the widget is pushed from the app-scope observer over
+  TodaySnapshotSource (glance-surfaces.md §1), so there is nothing to poll for.
+  No configuration activity — the widget has nothing to configure.
+-->
+<!--
+  targetCell*/previewLayout/description are read only on API 31+; older hosts
+  fall back to minWidth/minHeight and the launcher icon, which is why the
+  UnusedAttribute warning is suppressed rather than the attributes dropped.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="UnusedAttribute"
+    android:minWidth="250dp"
+    android:minHeight="60dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="40dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_today"
+    android:previewLayout="@layout/widget_today"
+    android:description="@string/widget_today_description" />

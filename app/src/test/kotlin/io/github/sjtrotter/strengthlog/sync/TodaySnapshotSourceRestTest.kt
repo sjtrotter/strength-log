@@ -14,11 +14,8 @@ import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.standards.RestCategory
-import com.google.android.gms.wearable.DataClient
-import com.google.android.gms.wearable.Wearable
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -34,16 +31,17 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The publisher folds [SettingsStore.restSettingsFlow] into its content combine, so
- * a Setup rest edit changes the projected snapshot content — the byte change that,
- * via distinctUntilChanged + publish's nextRevision (WearSyncStoreTest), spends a
- * fresh revision. R8 risk #3 flags forgetting this combine as the real bug; this
- * test is that checklist item. Real repo + Room + DataStore on the test dispatcher.
+ * The shared today-state source folds [SettingsStore.restSettingsFlow] into its
+ * content combine, so a Setup rest edit changes the projected snapshot — the byte
+ * change that, via the publisher's distinctUntilChanged + nextRevision
+ * (WearSyncStoreTest), spends a fresh revision. R8 risk #3 flags forgetting this
+ * combine as the real bug; this test is that checklist item. Real repo + Room +
+ * DataStore on the test dispatcher.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class WearSyncPublisherRestTest {
+class TodaySnapshotSourceRestTest {
 
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
@@ -51,14 +49,9 @@ class WearSyncPublisherRestTest {
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
 
-    // snapshotContent() never touches the DataClient; a real (unconnected) one lets
-    // us construct the publisher without a GMS fake and is never invoked here.
-    private lateinit var neverCalledDataClient: DataClient
-
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        neverCalledDataClient = Wearable.getDataClient(context)
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
             .allowMainThreadQueries()
             .setQueryCoroutineContext(dispatcher)
@@ -83,15 +76,6 @@ class WearSyncPublisherRestTest {
         storeScope.cancel()
     }
 
-    private fun newPublisher(): WearSyncPublisher {
-        val syncStore = WearSyncStore(
-            PreferenceDataStoreFactory.create(scope = storeScope) {
-                File.createTempFile("pub-rest-sync", ".preferences_pb")
-            },
-        )
-        return WearSyncPublisher(repo, syncStore, neverCalledDataClient, storeScope)
-    }
-
     @Test
     fun `a rest-settings edit changes the projected snapshot content`() = runTest(dispatcher) {
         repo.replaceProgram(
@@ -101,20 +85,20 @@ class WearSyncPublisherRestTest {
         val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
         repo.updateSets("A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
 
-        val publisher = newPublisher()
+        val source = TodaySnapshotSource(repo)
 
         // Default (master on, no overrides): TOP rests its 180s default.
-        val before = publisher.snapshotContent().first { it != null }!!
+        val before = source.snapshots.first { it != null }!!
         assertEquals(180, before.day.exercises.single().sets.single().restAfterSeconds)
 
         // Editing the TOP override republishes with the new number.
         settings.setRestOverride(RestCategory.TOP, 210)
-        val afterOverride = publisher.snapshotContent().first { it != null }!!
+        val afterOverride = source.snapshots.first { it != null }!!
         assertEquals(210, afterOverride.day.exercises.single().sets.single().restAfterSeconds)
 
         // Master toggle off zeroes it — a distinct content again.
         settings.setRestTimerEnabled(false)
-        val afterOff = publisher.snapshotContent().first { it != null }!!
+        val afterOff = source.snapshots.first { it != null }!!
         assertEquals(0, afterOff.day.exercises.single().sets.single().restAfterSeconds)
     }
 }

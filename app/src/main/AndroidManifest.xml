@@ -100,6 +100,27 @@
         </service>
 
         <!--
+          Home-screen widget (glance-surfaces.md §1). exported="true" is what the
+          AppWidget contract requires — the system's AppWidgetService is what
+          broadcasts APPWIDGET_UPDATE, and it can only reach an exported receiver.
+          That is also the only filter declared: no custom action any other app
+          could fire, and the receiver reads state without accepting a single
+          value from the intent, so the widest possible caller can do no more
+          than ask us to repaint what the app already shows.
+        -->
+        <receiver
+            android:name=".widget.TodayWidgetProvider"
+            android:label="@string/widget_today_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+
+        <!--
           Day-swapping launcher icon (#22): one alias per rotation day, one
           icon each. DayIconManager enables the alias for the current
           suggested day and disables the rest via PackageManager component

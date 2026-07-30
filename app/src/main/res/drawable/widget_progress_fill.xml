@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- White so the day accent lands unmixed through setColorFilter; the fill
+     fraction is the drawable's level (0..10000), set per update. -->
+<clip xmlns:android="http://schemas.android.com/apk/res/android"
+    android:clipOrientation="horizontal"
+    android:gravity="start">
+    <shape android:shape="rectangle">
+        <solid android:color="#FFFFFFFF" />
+        <corners android:radius="2dp" />
+    </shape>
+</clip>

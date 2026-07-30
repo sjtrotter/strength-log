@@ -190,7 +190,7 @@ private class ScreenContext(
                 tone = DialTone.ACCENT_BRIGHT,
             ),
             bottomBand = BandContent(
-                text = "${day.exercises.size} exercises · $setCount sets".uppercase(),
+                text = "${day.exercises.size} lifts · $setCount sets".uppercase(),
                 tone = DialTone.TERTIARY,
                 role = DialTextRole.BAND_SECONDARY,
             ),
@@ -242,7 +242,7 @@ private class ScreenContext(
             style = DiscStyle.OUTLINED,
             lines = listOf(
                 DiscLine(numeralGroup()),
-                DiscLine("tap when racked".uppercase(), DialTextRole.BAND, DialTone.ACCENT_BRIGHT),
+                DiscLine("tap to log".uppercase(), DialTextRole.BAND, DialTone.ACCENT_BRIGHT),
             ),
         ),
         tap = DialTap.TICK,
@@ -338,17 +338,19 @@ private class ScreenContext(
         ),
         disc = DiscContent(
             style = DiscStyle.FILLED_GREEN,
-            lines = listOf(
-                DiscLine("done".uppercase(), DialTextRole.NUMERAL, DialTone.ON_DISC),
-                DiscLine(dayDoneStats(), DialTextRole.BAND, DialTone.ON_DISC),
-            ),
+            lines = listOf(DiscLine("done".uppercase(), DialTextRole.NUMERAL, DialTone.ON_DISC)) +
+                dayDoneStats().map { DiscLine(it, DialTextRole.BAND, DialTone.ON_DISC) },
         ),
         tap = DialTap.DISMISS,
         dayProgressOverride = 1f,
     )
 
-    /** "38 MIN · 12,450 LB" — real logged work, never a placeholder (§5.7). */
-    fun dayDoneStats(): String {
+    /**
+     * "38 MIN", "12,450 LB" — real logged work, never a placeholder (§5.7), one
+     * line each: joined with a separator they overflow the disc at BAND size,
+     * which is the whole reason this returns parts (v2 §4).
+     */
+    fun dayDoneStats(): List<String> {
         val minutes = DialFormat.wholeMinutes(
             inputs.session.firstStartedAtMillis,
             inputs.session.lastCompletedAtMillis,
@@ -358,7 +360,7 @@ private class ScreenContext(
             if (minutes > 0) add("$minutes min")
             if (volume > 0) add("${DialFormat.grouped(volume)} ${unit.name}")
         }
-        return (if (parts.isEmpty()) listOf("$doneSetCount sets") else parts).joinToString(" · ").uppercase()
+        return parts.ifEmpty { listOf("$doneSetCount sets") }.map { it.uppercase() }
     }
 
     /**
@@ -443,10 +445,10 @@ private class ScreenContext(
  * and shows that round's result, and the tap goes away — browsing must never be
  * one slip away from logging.
  *
- * A peek during a rest un-melts the ring back into segments. The white marker has
- * nowhere to live on a continuous arc, and the rest is deadline-anchored, so the
- * clock loses nothing by being invisible for the second the lifter is looking
- * elsewhere — the countdown is right where they left it when the peek returns.
+ * A peek during a rest keeps the countdown: the white marker lives on the exercise
+ * ring, the clock has a ring of its own on the disc rim (v2 §3), and neither has to
+ * give way for the other. The clock dims with the disc, so the centre still reads
+ * as one read-only object.
  */
 private fun DialUiState.withPeek(
     context: ScreenContext,
@@ -457,7 +459,6 @@ private fun DialUiState.withPeek(
     val index = peekRoundIndex.coerceIn(rounds.indices)
     return copy(
         rounds = context.peekedRoundStates(index),
-        arc = null,
         bottomBand = BandContent("↺ release to return".uppercase(), DialTone.TERTIARY),
         disc = context.peekDisc(index, tookSeconds),
         bloom = false,

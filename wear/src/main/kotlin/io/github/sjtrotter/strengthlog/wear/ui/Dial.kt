@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,7 +39,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -47,6 +47,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Text
 import io.github.sjtrotter.strengthlog.wear.theme.Background
@@ -65,9 +67,13 @@ import kotlin.math.min
 import kotlinx.coroutines.launch
 
 /**
- * The dial: two concentric rings, two label bands and one centre disc, and with
+ * The dial: three concentric rings, two label bands and one centre disc, and with
  * them every screen of the workout (brief §9). There is no navigation and there
  * are no lists — state changes re-render this in place.
+ *
+ * The rings nest by timescale and never transform into one another: the day ring
+ * moves over an hour, the exercise ring over minutes, and the clock ring — on the
+ * disc's own rim, drawn only while a clock runs — over seconds (v2 §3).
  *
  * Layout is layout only: what to say lives in [DialUiState], what a tap means
  * lives in [DialUiState.tap], and every position here is derived from the
@@ -94,40 +100,48 @@ fun Dial(
 
         DialRings(state, motion, accent, diameterPx)
 
-        val sideInset = with(density) { DialGeometry.px(DialGeometry.BAND_SIDE_INSET, diameterPx).toDp() }
-        Box(Modifier.fillMaxSize().padding(horizontal = sideInset)) {
-            Band(
-                content = state.topBand,
-                type = type,
-                accentIndex = state.accentIndex,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = with(density) { DialGeometry.px(DialGeometry.TOP_BAND_INSET, diameterPx).toDp() }),
-            )
-            Disc(
-                state = state,
-                type = type,
-                diameterPx = diameterPx,
-                scaleFactor = motion.discScale.value,
-                accent = accent,
-                onTap = onTap,
-                onHoldComplete = onHoldComplete,
-                modifier = Modifier.align(Alignment.Center),
-            )
-            Band(
-                content = state.bottomBand,
-                type = type,
-                accentIndex = state.accentIndex,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(
-                        bottom = with(density) {
-                            DialGeometry.px(DialGeometry.BOTTOM_BAND_INSET, diameterPx).toDp()
-                        },
-                    ),
-            )
-        }
+        Band(
+            content = state.topBand,
+            type = type,
+            accentIndex = state.accentIndex,
+            maxWidth = bandMaxWidthDp(DialGeometry.TOP_BAND_INSET, diameterPx, density),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = with(density) { DialGeometry.px(DialGeometry.TOP_BAND_INSET, diameterPx).toDp() }),
+        )
+        Disc(
+            state = state,
+            type = type,
+            diameterPx = diameterPx,
+            scaleFactor = motion.discScale.value,
+            accent = accent,
+            onTap = onTap,
+            onHoldComplete = onHoldComplete,
+            modifier = Modifier.align(Alignment.Center),
+        )
+        Band(
+            content = state.bottomBand,
+            type = type,
+            accentIndex = state.accentIndex,
+            maxWidth = bandMaxWidthDp(DialGeometry.BOTTOM_BAND_INSET, diameterPx, density),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    bottom = with(density) {
+                        DialGeometry.px(DialGeometry.BOTTOM_BAND_INSET, diameterPx).toDp()
+                    },
+                ),
+        )
     }
+}
+
+/**
+ * A band row's width limit: the chord at the row's outer edge, which is exactly
+ * [bandInset] from the pole it hangs off. Text ellipsizes inside it, so a long
+ * name is cut rather than clipped by the bezel (v2 §2).
+ */
+internal fun bandMaxWidthDp(bandInset: Float, diameterPx: Float, density: Density): Dp = with(density) {
+    DialGeometry.bandMaxWidthPx(diameterPx, DialGeometry.px(bandInset, diameterPx)).toDp()
 }
 
 /**
@@ -140,7 +154,8 @@ private class DialMotion(
     val discScale: Animatable<Float, *>,
     val newestDoneSweep: Animatable<Float, *>,
     val bloom: Animatable<Float, *>,
-    val melt: Float,
+    /** 0..1 as the clock ring sweeps in; it is the ring's *presence*, not its value. */
+    val clockSweep: Float,
     val innerScale: Float,
     val dayProgress: Float,
     val rounds: List<RoundState>,
@@ -201,10 +216,10 @@ private fun rememberDialMotion(state: DialUiState): DialMotion {
         discScale = discScale,
         newestDoneSweep = newestDoneSweep,
         bloom = bloom,
-        melt = animateFloatAsState(
+        clockSweep = animateFloatAsState(
             targetValue = if (state.arc != null) 1f else 0f,
             animationSpec = tween(180, easing = LinearEasing),
-            label = "melt",
+            label = "clockSweep",
         ).value,
         innerScale = animateFloatAsState(
             targetValue = if (state.rounds.isEmpty()) 0f else 1f,
@@ -236,7 +251,20 @@ private fun DialRings(state: DialUiState, motion: DialMotion, accent: Color, dia
         }
 
         if (motion.innerScale > 0f && motion.rounds.isNotEmpty()) {
-            drawExerciseRing(state, motion, accent, diameterPx)
+            drawExerciseRing(motion, accent, diameterPx)
+        }
+
+        val clockFraction = state.arc
+        if (clockFraction != null && motion.clockSweep > 0f) {
+            val clock = DialGeometry.clockRing(diameterPx)
+            drawRingArc(
+                // A peek dims the whole centre as one object, clock included (v2 §3).
+                color = accent.copy(alpha = if (state.disc.style == DiscStyle.DIMMED) DIMMED_ALPHA else 1f),
+                arc = DialGeometry.proportionArc(clockFraction * motion.clockSweep),
+                radiusPx = clock.radiusPx,
+                strokePx = clock.strokePx,
+                cap = StrokeCap.Butt,
+            )
         }
 
         if (motion.bloom.value > 0f) {
@@ -251,39 +279,29 @@ private fun DialRings(state: DialUiState, motion: DialMotion, accent: Color, dia
 }
 
 /**
- * One code path draws both inner-ring forms. As [DialMotion.melt] runs, the gaps
- * close and the segment colours converge on the accent, so the segmented ring
- * *becomes* the continuous arc — the shape change is the signal that a clock is
- * running (§5.4), and there is no second shape to cross-fade with.
+ * The rounds, always as segments. A running clock never reshapes this ring — it
+ * has its own on the disc rim (v2 §3) — so the count stays readable through a
+ * rest, which is exactly when the lifter wants to know what's left. The only
+ * motion here is the newest DONE segment sweeping green.
  */
-private fun DrawScope.drawExerciseRing(
-    state: DialUiState,
-    motion: DialMotion,
-    accent: Color,
-    diameterPx: Float,
-) {
+private fun DrawScope.drawExerciseRing(motion: DialMotion, accent: Color, diameterPx: Float) {
     val ring = DialGeometry.exerciseRing(diameterPx)
-    val melt = motion.melt
-    val fraction = state.arc ?: 1f
     val newestDoneIndex = motion.rounds.indexOfLast { it == RoundState.DONE }
-    val arcs = DialGeometry.segments(motion.rounds.size, DialGeometry.SEGMENT_GAP_DEG * (1f - melt))
-    val cap = if (melt > 0.5f) StrokeCap.Butt else StrokeCap.Round
 
-    arcs.forEachIndexed { index, arc ->
-        val trimmed = if (melt > 0f) DialGeometry.trimToFraction(arc, fraction) else arc
+    DialGeometry.segments(motion.rounds.size).forEachIndexed { index, arc ->
         val swept = if (index == newestDoneIndex) {
-            trimmed.copy(sweepAngleDeg = trimmed.sweepAngleDeg * motion.newestDoneSweep.value)
+            arc.copy(sweepAngleDeg = arc.sweepAngleDeg * motion.newestDoneSweep.value)
         } else {
-            trimmed
+            arc
         }
         if (swept.sweepAngleDeg <= 0f) return@forEachIndexed
-        val color = lerp(roundColor(motion.rounds[index], accent), accent, melt)
+        val color = roundColor(motion.rounds[index], accent)
         drawRingArc(
             color = color.copy(alpha = color.alpha * motion.innerScale),
             arc = swept,
             radiusPx = ring.radiusPx * motion.innerScale,
             strokePx = ring.strokePx,
-            cap = cap,
+            cap = StrokeCap.Round,
         )
     }
 }
@@ -314,7 +332,7 @@ internal fun DrawScope.drawRingArc(
     )
 }
 
-/** The dial's one tap target: 176px across at the reference size, centred (§1). */
+/** The dial's one tap target: 204px across at the reference size, centred (§1). */
 @Composable
 private fun Disc(
     state: DialUiState,
@@ -369,19 +387,20 @@ private fun Disc(
                     )
                     else -> Unit
                 }
-                // The hold's progress is the disc's own ring closing on itself —
-                // no second shape, no new vocabulary (§6).
+                // The hold is a clock, so it is the clock ring — same radius, same
+                // stroke as a rest or a hold, and it can never collide with one:
+                // an undo is offered only on READY and REST_OVER, which carry no
+                // arc (v2 §3).
                 if (holdFill.value > 0f) {
-                    val strokePx = DialGeometry.px(DialGeometry.HOLD_RING_STROKE, diameterPx)
-                    val radius = size.minDimension / 2f - strokePx / 2f
+                    val clock = DialGeometry.clockRing(diameterPx)
                     drawArc(
                         color = accent,
                         startAngle = DialGeometry.TOP_ANGLE_DEG,
                         sweepAngle = 360f * holdFill.value,
                         useCenter = false,
-                        topLeft = Offset(center.x - radius, center.y - radius),
-                        size = Size(radius * 2f, radius * 2f),
-                        style = Stroke(width = strokePx, cap = StrokeCap.Butt),
+                        topLeft = Offset(center.x - clock.radiusPx, center.y - clock.radiusPx),
+                        size = Size(clock.radiusPx * 2f, clock.radiusPx * 2f),
+                        style = Stroke(width = clock.strokePx, cap = StrokeCap.Butt),
                     )
                 }
             }
@@ -397,7 +416,7 @@ private fun Disc(
 
 /**
  * The disc's two gestures in one handler, deliberately: a tap and a hold on the
- * same 176px target can't be split across two independent detectors without the
+ * same 204px target can't be split across two independent detectors without the
  * completed hold *also* arriving as a tap on release — which would undo a set and
  * immediately start the next one.
  *
@@ -469,17 +488,18 @@ private fun DiscLineRow(line: DiscLine, style: DiscStyle, accentIndex: Int, type
     }
 }
 
-/** One line of caps, never two (§2). */
+/** One line of caps, never two (§2), inside the chord it can reach (v2 §2). */
 @Composable
 private fun Band(
     content: BandContent?,
     type: DialTypography,
     accentIndex: Int,
+    maxWidth: Dp,
     modifier: Modifier = Modifier,
 ) {
     if (content == null) return
     Row(
-        modifier = modifier,
+        modifier = modifier.widthIn(max = maxWidth),
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

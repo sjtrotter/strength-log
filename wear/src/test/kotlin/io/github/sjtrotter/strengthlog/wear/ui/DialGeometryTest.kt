@@ -29,8 +29,18 @@ class DialGeometryTest {
     }
 
     @Test
-    fun `the disc is 176px across at the reference size`() {
-        assertEquals(88f, DialGeometry.discRadiusPx(384f), tolerance)
+    fun `the disc is 204px across at the reference size`() {
+        assertEquals(102f, DialGeometry.discRadiusPx(384f), tolerance)
+    }
+
+    @Test
+    fun `the clock ring sits on the disc's rim, inside the exercise ring`() {
+        val clock = DialGeometry.clockRing(384f)
+        assertEquals(7f, clock.strokePx, tolerance)
+        assertEquals(102f - 3.5f, clock.radiusPx, tolerance)
+        assertTrue(clock.radiusPx < DialGeometry.exerciseRing(384f).radiusPx)
+        // Wholly inside the disc, so the undo fill and a rest share one rim.
+        assertTrue(clock.radiusPx + clock.strokePx / 2f <= DialGeometry.discRadiusPx(384f) + tolerance)
     }
 
     @Test
@@ -40,7 +50,8 @@ class DialGeometryTest {
         assertEquals(5f * scale, DialGeometry.dayRing(454f).strokePx, tolerance)
         assertEquals(159f * scale, DialGeometry.exerciseRing(454f).radiusPx, tolerance)
         assertEquals(14f * scale, DialGeometry.exerciseRing(454f).strokePx, tolerance)
-        assertEquals(88f * scale, DialGeometry.discRadiusPx(454f), tolerance)
+        assertEquals(102f * scale, DialGeometry.discRadiusPx(454f), tolerance)
+        assertEquals(7f * scale, DialGeometry.clockRing(454f).strokePx, tolerance)
     }
 
     @Test
@@ -83,21 +94,64 @@ class DialGeometryTest {
         assertEquals(0f, DialGeometry.proportionArc(-1f).sweepAngleDeg, tolerance)
     }
 
+    // --- bands are chord-constrained, not inset-constrained (v2 §2) ---------------
+
     @Test
-    fun `trimming keeps whole segments inside the fraction and drops the ones past it`() {
-        val segments = DialGeometry.segments(4, gapDeg = 0f)
-        // Half the circle: the first two segments survive, the last two vanish.
-        val trimmed = segments.map { DialGeometry.trimToFraction(it, 0.5f) }
-        assertEquals(90f, trimmed[0].sweepAngleDeg, tolerance)
-        assertEquals(90f, trimmed[1].sweepAngleDeg, tolerance)
-        assertEquals(0f, trimmed[2].sweepAngleDeg, tolerance)
-        assertEquals(0f, trimmed[3].sweepAngleDeg, tolerance)
+    fun `a row across the equator gets the whole diameter, less the safety margin`() {
+        assertEquals(384f - 8f, DialGeometry.bandMaxWidthPx(384f, 192f), tolerance)
     }
 
     @Test
-    fun `trimming cuts the segment the fraction lands inside`() {
-        val segments = DialGeometry.segments(4, gapDeg = 0f)
-        assertEquals(45f, DialGeometry.trimToFraction(segments[1], 0.375f).sweepAngleDeg, tolerance)
+    fun `a row hard against the pole gets nothing`() {
+        assertEquals(0f, DialGeometry.bandMaxWidthPx(384f, 0f), tolerance)
+        assertTrue(DialGeometry.bandMaxWidthPx(384f, 1f) < 40f)
+    }
+
+    @Test
+    fun `the chord is symmetric about the equator`() {
+        listOf(4f, 44f, 48f, 130f).forEach { y ->
+            assertEquals(
+                DialGeometry.bandMaxWidthPx(384f, y),
+                DialGeometry.bandMaxWidthPx(384f, 384f - y),
+                tolerance,
+                "asymmetric at y=$y",
+            )
+        }
+    }
+
+    @Test
+    fun `the chord only widens as a row moves off the pole`() {
+        var previous = -1f
+        (0..192).forEach { y ->
+            val width = DialGeometry.bandMaxWidthPx(384f, y.toFloat())
+            assertTrue(width >= previous, "chord narrowed at y=$y")
+            previous = width
+        }
+    }
+
+    @Test
+    fun `both bands fit their zone and stay clear of the bezel`() {
+        // Top band 48 from the top, bottom band 44 from the bottom (v2 §2).
+        val top = DialGeometry.bandMaxWidthPx(384f, DialGeometry.TOP_BAND_INSET)
+        val bottom = DialGeometry.bandMaxWidthPx(384f, DialGeometry.BOTTOM_BAND_INSET)
+        assertEquals(246f, top, 1f)
+        assertEquals(237f, bottom, 1f)
+        // Half the row still has to sit inside the circle at that height.
+        listOf(DialGeometry.TOP_BAND_INSET to top, DialGeometry.BOTTOM_BAND_INSET to bottom)
+            .forEach { (inset, width) ->
+                val dy = 192f - inset
+                assertTrue(width / 2f * (width / 2f) + dy * dy < 192f * 192f, "row escapes at inset $inset")
+            }
+    }
+
+    @Test
+    fun `the chord scales with the measured face`() {
+        val scale = 454f / 384f
+        assertEquals(
+            DialGeometry.bandMaxWidthPx(384f, 48f) * scale,
+            DialGeometry.bandMaxWidthPx(454f, 48f * scale),
+            tolerance,
+        )
     }
 
     // --- exactly one accent segment, ever (§4) -----------------------------------

@@ -28,7 +28,7 @@ enum class DialTone { PRIMARY, SECONDARY, TERTIARY, ACCENT_BRIGHT, SUCCESS, ON_D
 /** A run of text inside a disc line; several spans sit on one baseline. */
 data class DialSpan(val text: String, val role: DialTextRole, val tone: DialTone)
 
-/** One line of the disc, top to bottom. Two lines max, and only in the disc (§2). */
+/** One line of the disc, top to bottom. Multiple lines live only in the disc (§2). */
 data class DiscLine(val spans: List<DialSpan>) {
     constructor(text: String, role: DialTextRole, tone: DialTone) :
         this(listOf(DialSpan(text, role, tone)))
@@ -66,9 +66,10 @@ data class DialUiState(
     /** Inner ring segments; empty means the inner ring is gone (day done, §5.7). */
     val rounds: List<RoundState>,
     /**
-     * Non-null turns the inner ring into one continuous arc of this fraction:
-     * a rest draining (§5.4) or a timed hold filling (§5.6). The [rounds] stay
-     * populated so the composable can melt between the two forms (§8).
+     * A clock running right now, as a fraction: a rest draining (§5.4) or a timed
+     * hold filling (§5.6). It is its own ring on the disc's rim, so it neither
+     * reshapes nor replaces [rounds] — the round count stays readable through a
+     * rest, which is when the lifter most wants it (v2 §3).
      */
     val arc: Float?,
     val topBand: BandContent?,

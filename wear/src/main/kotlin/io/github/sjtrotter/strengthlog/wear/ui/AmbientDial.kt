@@ -3,10 +3,10 @@ package io.github.sjtrotter.strengthlog.wear.ui
 import android.os.SystemClock
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -77,54 +77,59 @@ fun AmbientDial(
                     cap = StrokeCap.Butt,
                 )
             }
+            // The clock nests where the lit dial nests it — on the disc's rim, as
+            // an outline arc (v2 §3). Ambient draws no disc, but moving the ring
+            // would make the same countdown mean a different radius asleep.
             state.restFraction?.let { fraction ->
-                val exerciseRing = DialGeometry.exerciseRing(diameterPx)
+                val clock = DialGeometry.clockRing(diameterPx)
                 drawRingArc(
                     color = AmbientDim,
                     arc = DialGeometry.proportionArc(fraction),
-                    radiusPx = exerciseRing.radiusPx,
-                    strokePx = exerciseRing.strokePx,
+                    radiusPx = clock.radiusPx,
+                    strokePx = clock.strokePx,
                     cap = StrokeCap.Butt,
                 )
             }
         }
 
-        val sideInset = with(density) { DialGeometry.px(DialGeometry.BAND_SIDE_INSET, diameterPx).toDp() }
-        Box(Modifier.fillMaxSize().padding(horizontal = sideInset)) {
+        Text(
+            text = state.topText,
+            style = type.band,
+            color = AmbientDim,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = with(density) { DialGeometry.px(DialGeometry.TOP_BAND_INSET, diameterPx).toDp() })
+                .widthIn(max = bandMaxWidthDp(DialGeometry.TOP_BAND_INSET, diameterPx, density)),
+        )
+        Text(
+            text = state.centerText,
+            style = type.numeral,
+            color = AmbientClock,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .align(Alignment.Center)
+                // The centre numeral gets the disc's zone, lit or asleep.
+                .widthIn(max = with(density) { DialGeometry.px(DialGeometry.DISC_DIAMETER, diameterPx).toDp() }),
+        )
+        state.bottomText?.let { bottom ->
             Text(
-                text = state.topText,
+                text = bottom,
                 style = type.band,
                 color = AmbientDim,
                 maxLines = 1,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = with(density) { DialGeometry.px(DialGeometry.TOP_BAND_INSET, diameterPx).toDp() }),
+                    .align(Alignment.BottomCenter)
+                    .padding(
+                        bottom = with(density) {
+                            DialGeometry.px(DialGeometry.BOTTOM_BAND_INSET, diameterPx).toDp()
+                        },
+                    )
+                    .widthIn(max = bandMaxWidthDp(DialGeometry.BOTTOM_BAND_INSET, diameterPx, density)),
             )
-            Text(
-                text = state.centerText,
-                style = type.numeral,
-                color = AmbientClock,
-                maxLines = 1,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.Center),
-            )
-            state.bottomText?.let { bottom ->
-                Text(
-                    text = bottom,
-                    style = type.band,
-                    color = AmbientDim,
-                    maxLines = 1,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(
-                            bottom = with(density) {
-                                DialGeometry.px(DialGeometry.BOTTOM_BAND_INSET, diameterPx).toDp()
-                            },
-                        ),
-                )
-            }
         }
     }
 }

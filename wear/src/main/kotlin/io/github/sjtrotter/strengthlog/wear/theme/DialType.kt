@@ -18,9 +18,15 @@ import io.github.sjtrotter.strengthlog.wear.ui.DialTextRole
  * *measured* face, like every other dial measurement, so type keeps its
  * proportion on a 41mm and a 45mm watch. That deliberately pins the dial to
  * physical size instead of the system font scale: the layout's guarantee is that
- * nothing escapes its zone (§2, acceptance 1), and a 1.3× font scale on a 176px
+ * nothing escapes its zone (§2, acceptance 1), and a 1.3× font scale on a 204px
  * disc breaks that guarantee outright. Body text elsewhere in the app is
  * unaffected — the watch's only screen is this dial.
+ *
+ * The reference px are twice what the v1 brief drew because the 384px canvas maps
+ * 1:1 to *physical* pixels on a Pixel Watch — a density-2.0 face, where a 13px
+ * reference landed at 6.5sp on the wrist. Every step below is chosen so that face
+ * lands on the sp column, and the smallest of them is 12sp: nothing on the dial
+ * may render below that (dial v2 §1).
  */
 @Immutable
 data class DialTypography(
@@ -61,13 +67,13 @@ fun dialTypography(scale: Float, density: Density): DialTypography {
         fontFeatureSettings = TABULAR,
     )
     return DialTypography(
-        numeralLarge = numeral(58f),
-        numeral = numeral(44f),
-        // 3px tracking is the START label's, and START is what this step is for (§5.2).
-        discLabel = numeral(25f, tracking = 3f),
-        discLabelSmall = numeral(21f),
-        band = band(13f, tracking = 2f),
-        bandSecondary = band(11f, tracking = 1.5f),
+        numeralLarge = numeral(72f),
+        numeral = numeral(60f),
+        // The tracking is the START label's, and START is what this step is for (§5.2).
+        discLabel = numeral(36f, tracking = 6f),
+        discLabelSmall = numeral(30f),
+        band = band(26f, tracking = 4f),
+        bandSecondary = band(24f, tracking = 3f),
     )
 }
 

@@ -17,7 +17,7 @@ import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
 data class AmbientDialState(
     /** Outer ring: sets logged today / sets today, as an outline arc. */
     val dayProgress: Float,
-    /** Inner ring: the rest still to run, or null when no clock is running. */
+    /** Clock ring: the rest still to run, or null when no clock is running. */
     val restFraction: Float?,
     /** "DAY A · 12/21" — the top band. */
     val topText: String,

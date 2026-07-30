@@ -109,7 +109,7 @@ class DialStateTest {
         assertEquals(2, state.rounds.size) // exercises, not sets
         assertEquals(1, state.rounds.count { it == RoundState.CURRENT })
         assertEquals("DAY A · LOWER", state.topBand?.text)
-        assertEquals("2 EXERCISES · 5 SETS", state.bottomBand?.text)
+        assertEquals("2 LIFTS · 5 SETS", state.bottomBand?.text)
         assertEquals(DiscStyle.FILLED, state.disc.style)
         assertEquals(listOf("SQUAT", "BEGIN · 3 SETS"), state.discText())
         assertEquals(DialTap.BEGIN_EXERCISE, state.tap)
@@ -150,7 +150,7 @@ class DialStateTest {
         assertEquals(DiscStyle.OUTLINED, state.disc.style)
         assertEquals("0:47", state.topBand?.text)
         assertNotNull(state.topBand?.dotTone)
-        assertEquals(listOf("235 ×5", "TAP WHEN RACKED"), state.discText())
+        assertEquals(listOf("235 ×5", "TAP TO LOG"), state.discText())
         assertEquals("HOLD TO UNDO", state.bottomBand?.text)
         assertEquals(DialTap.TICK, state.tap)
         // The elapsed timer is never near the disc numeral (§5.3).
@@ -175,7 +175,7 @@ class DialStateTest {
     // --- 4 · Rest ----------------------------------------------------------------
 
     @Test
-    fun `rest melts the ring into a draining arc and offers a skip`() {
+    fun `rest drains the clock ring and offers a skip`() {
         val rest = RestState(deadlineElapsedMillis = 90_000L, totalSeconds = 150, betweenExercises = false)
         val state = dialUiState(inputs(rest = rest, nowElapsedMillis = 6_000L))
         assertEquals(DialScreen.REST, state.screen)
@@ -185,8 +185,9 @@ class DialStateTest {
         assertEquals(listOf("1:24", "NEXT 235 × 5"), state.discText())
         assertEquals("TAP TO SKIP", state.bottomBand?.text)
         assertEquals(DialTap.SKIP_REST, state.tap)
-        // The segments survive the melt so the ring has a shape to morph from.
+        // The clock is its own ring, so the rounds stay countable through the rest.
         assertEquals(3, state.rounds.size)
+        assertEquals(1, state.rounds.count { it == RoundState.CURRENT })
     }
 
     @Test
@@ -244,6 +245,54 @@ class DialStateTest {
         assertEquals(28f / 45f, state.arc!!)
         assertEquals("SET 1 OF 3", state.bottomBand?.text)
         assertEquals(DialTap.TICK, state.tap)
+        // The exercise ring is untouched by the fill — the clock has its own ring.
+        assertEquals(3, state.rounds.size)
+        assertEquals(1, state.rounds.count { it == RoundState.CURRENT })
+    }
+
+    // --- the clock ring nests, it never transforms another ring (v2 §3) -----------
+
+    @Test
+    fun `every screen but day done keeps a countable exercise ring`() {
+        val rest = RestState(deadlineElapsedMillis = 90_000L, totalSeconds = 150, betweenExercises = false)
+        val plank = exercise(
+            id = 4L,
+            name = "Plank",
+            sets = List(3) { set(weight = 0.0, reps = 0, seconds = 45, kind = "WORK") },
+            tracking = "timed",
+        )
+        val screens = listOf(
+            inputs(begun = false),
+            inputs(),
+            inputs(phase = SetPhase.LIFTING),
+            inputs(rest = rest, nowElapsedMillis = 6_000L),
+            inputs(restedSeconds = 150),
+            inputs(snapshot = snapshot(plank), phase = SetPhase.LIFTING, liftingElapsedMillis = 28_000L),
+        ).map(::dialUiState)
+        screens.forEach { assertTrue(it.rounds.isNotEmpty(), "${it.screen} lost its exercise ring") }
+        assertTrue(dialUiState(inputs(snapshot = allDone())).rounds.isEmpty())
+    }
+
+    @Test
+    fun `a clock ring exists exactly when a clock is running`() {
+        val rest = RestState(deadlineElapsedMillis = 90_000L, totalSeconds = 150, betweenExercises = false)
+        val plank = exercise(
+            id = 4L,
+            name = "Plank",
+            sets = List(3) { set(weight = 0.0, reps = 0, seconds = 45, kind = "WORK") },
+            tracking = "timed",
+        )
+        assertNotNull(dialUiState(inputs(rest = rest, nowElapsedMillis = 6_000L)).arc)
+        assertNotNull(
+            dialUiState(
+                inputs(snapshot = snapshot(plank), phase = SetPhase.LIFTING, liftingElapsedMillis = 28_000L),
+            ).arc,
+        )
+        // The screens that offer an undo carry no arc, so the two never share the rim.
+        assertNull(dialUiState(inputs()).arc)
+        assertNull(dialUiState(inputs(restedSeconds = 150)).arc)
+        assertNull(dialUiState(inputs(begun = false)).arc)
+        assertNull(dialUiState(inputs(phase = SetPhase.LIFTING)).arc)
     }
 
     @Test
@@ -279,13 +328,14 @@ class DialStateTest {
             ),
         )
         // 3 × 235 × 5 + 2 × 120 × 8 = 3525 + 1920 = 5445
-        assertEquals(listOf("DONE", "38 MIN · 5,445 LB"), state.discText())
+        // One stat per line: joined, they don't fit the disc at BAND size (v2 §4).
+        assertEquals(listOf("DONE", "38 MIN", "5,445 LB"), state.discText())
     }
 
     @Test
     fun `day-done stats fall back to the set count when the watch logged none of it`() {
         val state = dialUiState(inputs(snapshot = allDone(weight = 0.0)))
-        assertEquals("5 SETS", state.discText()[1])
+        assertEquals(listOf("DONE", "5 SETS"), state.discText())
     }
 
     @Test
@@ -400,14 +450,15 @@ class DialStateTest {
     }
 
     @Test
-    fun `a peek during a rest brings the segments back so the marker has somewhere to sit`() {
+    fun `a peek during a rest keeps the countdown running on its own ring`() {
         val rest = RestState(deadlineElapsedMillis = 90_000L, totalSeconds = 150, betweenExercises = false)
         val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
         val state = dialUiState(
             inputs(snapshot = logged, rest = rest, nowElapsedMillis = 6_000L, peekRoundIndex = 0),
         )
-        assertNull(state.arc)
+        assertEquals(84f / 150f, state.arc!!)
         assertEquals(RoundState.PEEKED, state.rounds[0])
+        assertEquals(DiscStyle.DIMMED, state.disc.style)
         assertEquals(DialTap.NONE, state.tap)
     }
 

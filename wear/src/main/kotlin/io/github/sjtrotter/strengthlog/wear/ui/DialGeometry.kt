@@ -1,7 +1,5 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
-import kotlin.math.sqrt
-
 /**
  * The dial's layout, as pure math (redesign brief §2, amended by dial v2 §2).
  * Every number below is a logical px on the brief's 384px reference face; nothing
@@ -26,6 +24,16 @@ data class DialArc(val startAngleDeg: Float, val sweepAngleDeg: Float)
 /** A ring's centreline radius and stroke width, in real px for the measured face. */
 data class DialRing(val radiusPx: Float, val strokePx: Float)
 
+/**
+ * The annulus a label band is laid along, in real px: the free ring between the
+ * exercise ring's inner edge and the disc's rim. The glyph row is centred in it,
+ * so [radiusPx] is both the annulus's mid-radius and the row's centreline.
+ *
+ * [insetPx] is what a `CurvedLayout` is padded by — it lays its children against
+ * its own outer radius, so shrinking the layout is how the band is placed.
+ */
+data class DialBand(val radiusPx: Float, val thicknessPx: Float, val insetPx: Float)
+
 object DialGeometry {
 
     /** The brief's design canvas; every constant here is px at this diameter. */
@@ -36,8 +44,6 @@ object DialGeometry {
     const val EXERCISE_RING_INSET = 26f
     const val EXERCISE_RING_STROKE = 14f
     const val DISC_DIAMETER = 204f
-    const val TOP_BAND_INSET = 48f
-    const val BOTTOM_BAND_INSET = 44f
 
     /** The rest-over halo's width (§8). */
     const val BLOOM_WIDTH = 10f
@@ -49,14 +55,26 @@ object DialGeometry {
      */
     const val CLOCK_RING_STROKE = 7f
 
-    /** Keeps a band row's far corners clear of the curve (v2 §2). */
-    private const val BAND_SAFETY = 4f
+    /**
+     * How far a band may run either side of its pole, together: ±60°, i.e. from
+     * 10 o'clock to 2 o'clock. Past that a glyph is tilted more than 60° off
+     * upright and stops reading as part of a word, and the two bands would start
+     * closing on each other at the equator. Text longer than this ellipsizes.
+     */
+    const val BAND_MAX_SWEEP_DEG = 120f
+
+    /** The pulsing status dot and the angular slot it rides in; the slack is the
+     *  gap to the text, half of it either side (curved rows have no "start"). */
+    const val BAND_DOT_DIAMETER = 10f
+    const val BAND_DOT_SLOT = 24f
 
     /** ~4° between segments (§4). */
     const val SEGMENT_GAP_DEG = 4f
 
     /** 12 o'clock, where every ring starts (§4). */
     const val TOP_ANGLE_DEG = -90f
+
+    private const val PI = kotlin.math.PI.toFloat()
 
     /** How much bigger (or smaller) the real face is than the reference canvas. */
     fun scale(diameterPx: Float): Float = diameterPx / REFERENCE_DIAMETER
@@ -93,18 +111,26 @@ object DialGeometry {
     }
 
     /**
-     * The widest a horizontal row may be, given [rowFarEdgeYPx] — the distance
-     * from the nearer pole to the row's outer edge, which is the narrowest chord
-     * the row touches. A fixed side inset cannot express this: at a band's height
-     * the visible screen *is* a chord, so an inset wide enough to clear the curve
-     * there throws away the middle of the face everywhere else (v2 §2).
+     * Where a label band lives: the free annulus between the exercise ring's
+     * inner edge and the disc's rim. On a round face that space is an arc, so the
+     * band is an arc — there is no width to bound and no chord to clear, and the
+     * row can no longer reach the bezel at any length (curved-bands brief §1).
      */
-    fun bandMaxWidthPx(diameterPx: Float, rowFarEdgeYPx: Float): Float {
-        val radius = diameterPx / 2f
-        val depth = rowFarEdgeYPx.coerceIn(0f, diameterPx)
-        val halfChord = sqrt((radius * radius - (radius - depth) * (radius - depth)).coerceAtLeast(0f))
-        return (2f * halfChord - 2f * px(BAND_SAFETY, diameterPx)).coerceAtLeast(0f)
+    fun bandArc(diameterPx: Float): DialBand {
+        val ring = exerciseRing(diameterPx)
+        val outer = ring.radiusPx - ring.strokePx / 2f
+        val inner = discRadiusPx(diameterPx)
+        return DialBand(
+            radiusPx = (outer + inner) / 2f,
+            thicknessPx = outer - inner,
+            insetPx = diameterPx / 2f - outer,
+        )
     }
+
+    /** The angle an arc of [arcLengthPx] subtends on a circle of [radiusPx] — how
+     *  a length budget becomes a sweep budget, which is all a curved row bounds. */
+    fun bandSweepDeg(arcLengthPx: Float, radiusPx: Float): Float =
+        if (radiusPx <= 0f) 0f else (arcLengthPx / radiusPx) * 180f / PI
 
     /**
      * [count] evenly spaced segments starting at 12 o'clock, each shrunk by

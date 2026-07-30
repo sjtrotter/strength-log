@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
+import kotlin.math.PI
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -94,64 +95,70 @@ class DialGeometryTest {
         assertEquals(0f, DialGeometry.proportionArc(-1f).sweepAngleDeg, tolerance)
     }
 
-    // --- bands are chord-constrained, not inset-constrained (v2 §2) ---------------
+    // --- bands are arcs through their annulus (curved-bands §1) -------------------
 
     @Test
-    fun `a row across the equator gets the whole diameter, less the safety margin`() {
-        assertEquals(384f - 8f, DialGeometry.bandMaxWidthPx(384f, 192f), tolerance)
+    fun `the band annulus is the free ring between the exercise ring and the disc`() {
+        val band = DialGeometry.bandArc(384f)
+        // Exercise ring inner edge 159 - 7 = 152; disc rim 102.
+        assertEquals(50f, band.thicknessPx, tolerance)
+        assertEquals(127f, band.radiusPx, tolerance) // centred in it
+        assertEquals(40f, band.insetPx, tolerance) // 192 - 152
     }
 
     @Test
-    fun `a row hard against the pole gets nothing`() {
-        assertEquals(0f, DialGeometry.bandMaxWidthPx(384f, 0f), tolerance)
-        assertTrue(DialGeometry.bandMaxWidthPx(384f, 1f) < 40f)
-    }
-
-    @Test
-    fun `the chord is symmetric about the equator`() {
-        listOf(4f, 44f, 48f, 130f).forEach { y ->
-            assertEquals(
-                DialGeometry.bandMaxWidthPx(384f, y),
-                DialGeometry.bandMaxWidthPx(384f, 384f - y),
-                tolerance,
-                "asymmetric at y=$y",
+    fun `a band row cannot reach either neighbour, let alone the bezel`() {
+        listOf(324f, 384f, 454f).forEach { diameter ->
+            val band = DialGeometry.bandArc(diameter)
+            val ring = DialGeometry.exerciseRing(diameter)
+            assertTrue(
+                band.radiusPx + band.thicknessPx / 2f <= ring.radiusPx - ring.strokePx / 2f + tolerance,
+                "band overlaps the exercise ring at $diameter",
+            )
+            assertTrue(
+                band.radiusPx - band.thicknessPx / 2f >= DialGeometry.discRadiusPx(diameter) - tolerance,
+                "band overlaps the disc at $diameter",
             )
         }
     }
 
     @Test
-    fun `the chord only widens as a row moves off the pole`() {
-        var previous = -1f
-        (0..192).forEach { y ->
-            val width = DialGeometry.bandMaxWidthPx(384f, y.toFloat())
-            assertTrue(width >= previous, "chord narrowed at y=$y")
-            previous = width
-        }
-    }
-
-    @Test
-    fun `both bands fit their zone and stay clear of the bezel`() {
-        // Top band 48 from the top, bottom band 44 from the bottom (v2 §2).
-        val top = DialGeometry.bandMaxWidthPx(384f, DialGeometry.TOP_BAND_INSET)
-        val bottom = DialGeometry.bandMaxWidthPx(384f, DialGeometry.BOTTOM_BAND_INSET)
-        assertEquals(246f, top, 1f)
-        assertEquals(237f, bottom, 1f)
-        // Half the row still has to sit inside the circle at that height.
-        listOf(DialGeometry.TOP_BAND_INSET to top, DialGeometry.BOTTOM_BAND_INSET to bottom)
-            .forEach { (inset, width) ->
-                val dy = 192f - inset
-                assertTrue(width / 2f * (width / 2f) + dy * dy < 192f * 192f, "row escapes at inset $inset")
-            }
-    }
-
-    @Test
-    fun `the chord scales with the measured face`() {
+    fun `the band annulus scales with the measured face`() {
         val scale = 454f / 384f
-        assertEquals(
-            DialGeometry.bandMaxWidthPx(384f, 48f) * scale,
-            DialGeometry.bandMaxWidthPx(454f, 48f * scale),
-            tolerance,
-        )
+        val band = DialGeometry.bandArc(454f)
+        assertEquals(127f * scale, band.radiusPx, tolerance)
+        assertEquals(50f * scale, band.thicknessPx, tolerance)
+        assertEquals(40f * scale, band.insetPx, tolerance)
+    }
+
+    @Test
+    fun `an arc as long as its circle sweeps the whole circle`() {
+        val radius = 127f
+        assertEquals(360f, DialGeometry.bandSweepDeg(2f * PI.toFloat() * radius, radius), tolerance)
+        assertEquals(180f, DialGeometry.bandSweepDeg(PI.toFloat() * radius, radius), tolerance)
+        assertEquals(0f, DialGeometry.bandSweepDeg(0f, radius), tolerance)
+    }
+
+    @Test
+    fun `a wider face turns the same arc length into a smaller sweep`() {
+        val small = DialGeometry.bandSweepDeg(100f, DialGeometry.bandArc(384f).radiusPx)
+        val large = DialGeometry.bandSweepDeg(100f, DialGeometry.bandArc(454f).radiusPx)
+        assertTrue(large < small)
+    }
+
+    @Test
+    fun `the two bands cannot meet at the equator`() {
+        // Each runs half its sweep either side of its pole; 90° apart is the most
+        // either may travel before they touch.
+        assertTrue(DialGeometry.BAND_MAX_SWEEP_DEG / 2f < 90f)
+    }
+
+    @Test
+    fun `the dot's slot leaves the text most of the band`() {
+        val band = DialGeometry.bandArc(384f)
+        val slot = DialGeometry.bandSweepDeg(DialGeometry.px(DialGeometry.BAND_DOT_SLOT, 384f), band.radiusPx)
+        assertTrue(slot > 0f)
+        assertTrue(DialGeometry.BAND_MAX_SWEEP_DEG - slot > 100f, "the dot ate ${slot}° of the band")
     }
 
     // --- exactly one accent segment, ever (§4) -----------------------------------

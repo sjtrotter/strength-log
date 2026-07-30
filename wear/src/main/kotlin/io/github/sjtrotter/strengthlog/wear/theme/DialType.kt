@@ -1,11 +1,13 @@
 package io.github.sjtrotter.strengthlog.wear.theme
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
+import androidx.wear.compose.foundation.CurvedTextStyle
 import io.github.sjtrotter.strengthlog.wear.ui.DialTextRole
 
 /**
@@ -45,6 +47,20 @@ data class DialTypography(
         DialTextRole.BAND -> band
         DialTextRole.BAND_SECONDARY -> bandSecondary
     }
+
+    /**
+     * The same step, on an arc. There is no second scale: [CurvedTextStyle] is
+     * built from the straight [TextStyle] this role already resolves to, so a
+     * curved band and a straight one are the same type by construction — family,
+     * size, weight and tracking all ride across.
+     *
+     * The one attribute that cannot is `fontFeatureSettings`: the curved renderer
+     * paints glyphs itself and has no hook for it, so arced text gets Barlow's
+     * proportional figures rather than the tabular ones. It costs the LIFTING
+     * clock a pixel of re-centring per digit and buys the whole band its arc.
+     */
+    fun curved(role: DialTextRole, color: Color): CurvedTextStyle =
+        CurvedTextStyle(style(role).copy(color = color))
 }
 
 /** Reference-canvas sizes; [scale] is measured diameter / 384. */

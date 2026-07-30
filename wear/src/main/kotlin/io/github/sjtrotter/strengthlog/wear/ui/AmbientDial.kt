@@ -5,7 +5,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -29,7 +28,9 @@ import kotlin.math.min
 /**
  * The dial in ambient mode (brief §7): the same geometry, and everything the
  * screen can do to stay off an OLED — true black behind, outline arcs only, no
- * accent anywhere, no filled shape, no motion, dim gray type.
+ * accent anywhere, no filled shape, no motion, dim gray type. The bands are the
+ * lit dial's own [CurvedBand], so a label sits on the same arc awake or asleep;
+ * only the centre numeral stays straight, because it lives in the disc's zone.
  *
  * It repaints only when [ambientTick] changes, which
  * [io.github.sjtrotter.strengthlog.wear.MainActivity] bumps from the system's own
@@ -92,16 +93,11 @@ fun AmbientDial(
             }
         }
 
-        Text(
+        CurvedBand(
             text = state.topText,
-            style = type.band,
-            color = AmbientDim,
-            maxLines = 1,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = with(density) { DialGeometry.px(DialGeometry.TOP_BAND_INSET, diameterPx).toDp() })
-                .widthIn(max = bandMaxWidthDp(DialGeometry.TOP_BAND_INSET, diameterPx, density)),
+            style = type.curved(DialTextRole.BAND, AmbientDim),
+            pole = BandPole.TOP,
+            diameterPx = diameterPx,
         )
         Text(
             text = state.centerText,
@@ -115,20 +111,11 @@ fun AmbientDial(
                 .widthIn(max = with(density) { DialGeometry.px(DialGeometry.DISC_DIAMETER, diameterPx).toDp() }),
         )
         state.bottomText?.let { bottom ->
-            Text(
+            CurvedBand(
                 text = bottom,
-                style = type.band,
-                color = AmbientDim,
-                maxLines = 1,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(
-                        bottom = with(density) {
-                            DialGeometry.px(DialGeometry.BOTTOM_BAND_INSET, diameterPx).toDp()
-                        },
-                    )
-                    .widthIn(max = bandMaxWidthDp(DialGeometry.BOTTOM_BAND_INSET, diameterPx, density)),
+                style = type.curved(DialTextRole.BAND, AmbientDim),
+                pole = BandPole.BOTTOM,
+                diameterPx = diameterPx,
             )
         }
     }

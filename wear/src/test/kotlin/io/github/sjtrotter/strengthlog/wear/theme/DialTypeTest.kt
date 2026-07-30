@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.wear.theme
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import io.github.sjtrotter.strengthlog.wear.ui.DialGeometry
 import io.github.sjtrotter.strengthlog.wear.ui.DialTextRole
@@ -56,6 +57,20 @@ class DialTypeTest {
         val type = dialTypography(referenceScale, cranked)
         assertEquals(26f, with(cranked) { type.band.fontSize.toPx() }, TOLERANCE)
         assertEquals(72f, with(cranked) { type.numeralLarge.fontSize.toPx() }, TOLERANCE)
+    }
+
+    @Test
+    fun `a curved band is the same type as a straight one`() {
+        val type = dialTypography(referenceScale, pixelWatch)
+        listOf(DialTextRole.BAND, DialTextRole.BAND_SECONDARY).forEach { role ->
+            val straight = type.style(role)
+            val curved = type.curved(role, Color.Red)
+            assertEquals(straight.fontFamily, curved.fontFamily, "$role changed face on the arc")
+            assertEquals(straight.fontSize, curved.fontSize, "$role changed size on the arc")
+            assertEquals(straight.fontWeight, curved.fontWeight, "$role changed weight on the arc")
+            assertEquals(straight.letterSpacing, curved.letterSpacing, "$role lost its tracking on the arc")
+            assertEquals(Color.Red, curved.color)
+        }
     }
 
     private companion object {

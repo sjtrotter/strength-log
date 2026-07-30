@@ -18,6 +18,7 @@ import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.transfer.health.HealthConnectReader
+import io.github.sjtrotter.strengthlog.ui.log.share.ShareCardService
 import java.io.File
 import java.time.Clock
 import java.time.Instant
@@ -105,8 +106,10 @@ class LogViewModelTest {
     // Fixed so the journal's "which week / which month is now" is deterministic.
     private val clock = Clock.fixed(Instant.parse("2026-07-15T12:00:00Z"), ZoneOffset.UTC)
 
+    private val shareCardService by lazy { ShareCardService(ApplicationProvider.getApplicationContext(), repo) }
+
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): LogViewModel =
-        LogViewModel(repo, healthReader, handle, clock).also { vms += it }
+        LogViewModel(repo, healthReader, shareCardService, handle, clock).also { vms += it }
 
     private fun session(dayId: String, dayTitle: String, completedAt: Long) =
         WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
@@ -334,5 +337,25 @@ class LogViewModelTest {
 
         assertEquals("JUNE 2026", restored.uiState.value.journal.calendar?.title)
         collect.cancel()
+    }
+
+    // --- share (#103, docs/briefs/session-share.md) --------------------------
+    //
+    // The happy path — render, write, build the ACTION_SEND intent — is
+    // [io.github.sjtrotter.strengthlog.ui.log.share.ShareCardServiceTest]'s
+    // job under a plain `runBlocking`: [ShareCardService.buildShareIntent]
+    // hops onto Dispatchers.IO internally (§3's "off the main thread"), which
+    // is invisible to this class's virtual-time `TestDispatcher` and its
+    // `advanceUntilIdle`, so it can't be asserted deterministically here. This
+    // pins the one thing that *is* this class's concern: a miss leaves
+    // [LogViewModel.pendingShare] untouched rather than crashing or firing a
+    // stale intent.
+
+    @Test
+    fun shareSessionOfAnUnknownSessionLeavesPendingShareNull() = runVmTest {
+        val vm = newViewModel()
+        vm.shareSession(999L)
+        advanceUntilIdle()
+        assertNull(vm.pendingShare.value)
     }
 }

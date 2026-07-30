@@ -6,6 +6,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +53,7 @@ import io.github.sjtrotter.strengthlog.ui.theme.TabLetter
 import io.github.sjtrotter.strengthlog.ui.theme.TextFaint
 import io.github.sjtrotter.strengthlog.ui.theme.TextPrimary
 import io.github.sjtrotter.strengthlog.ui.theme.TextSecondary
+import io.github.sjtrotter.strengthlog.ui.theme.dayAccent
 import kotlinx.coroutines.launch
 
 /**
@@ -118,7 +122,11 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                     }
                 } else {
                     items(state.sessions, key = { it.sessionId }) { session ->
-                        SessionCard(session, onToggle = { actions.onToggleExpanded(session.sessionId) })
+                        SessionCard(
+                            session,
+                            onToggle = { actions.onToggleExpanded(session.sessionId) },
+                            onShare = { actions.onShare(session.sessionId) },
+                        )
                     }
                 }
 
@@ -184,7 +192,7 @@ private fun BackButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun SessionCard(item: SessionListItem, onToggle: () -> Unit) {
+private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: () -> Unit) {
     val chevronRotation by animateFloatAsState(if (item.expanded) 180f else 0f, tween(200), label = "logChevron")
     AppCard(
         modifier = Modifier
@@ -217,6 +225,8 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit) {
                     Text("Loading…", color = TextFaint, style = MaterialTheme.typography.bodySmall)
                 } else {
                     item.exerciseGroups.forEach { group -> ExerciseGroupRow(group) }
+                    Spacer(Modifier.size(4.dp))
+                    ShareButton(dayIndex = item.dayIndex, onClick = onShare)
                 }
             }
         }
@@ -231,6 +241,35 @@ private fun ExerciseGroupRow(group: SessionExerciseGroup) {
             group.sets.joinToString(" · ") { "${it.kindLabel}: ${it.weightRepsDisplay}" },
             color = TextSecondary,
             style = SummaryLine,
+        )
+    }
+}
+
+/**
+ * The share affordance (#103, docs/briefs/session-share.md §1): one quiet
+ * text button in the expanded row's action register, caps, pressed = that
+ * day's accent — no icon, no fill, nothing on a collapsed row. A nested
+ * `clickable` inside the card's own expand/collapse `clickable` consumes the
+ * tap before it reaches the card, so SHARE never also toggles the row.
+ */
+@Composable
+private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Text(
+            "SHARE",
+            color = if (pressed) dayAccent(dayIndex) else TextSecondary,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClickLabel = "Share session",
+                    role = Role.Button,
+                    onClick = onClick,
+                )
+                .padding(vertical = 6.dp, horizontal = 2.dp),
         )
     }
 }
@@ -310,6 +349,7 @@ data class LogActions(
     val onConnectHealth: () -> Unit,
     val onApplyBodyweight: () -> Unit,
     val onDismissBodyweight: () -> Unit,
+    val onShare: (Long) -> Unit,
 )
 
 @Preview(showBackground = true, heightDp = 700, backgroundColor = 0xFF0D0D0F)
@@ -424,6 +464,7 @@ private fun LogScreenPreview() {
                 onConnectHealth = {},
                 onApplyBodyweight = {},
                 onDismissBodyweight = {},
+                onShare = {},
             ),
         )
     }

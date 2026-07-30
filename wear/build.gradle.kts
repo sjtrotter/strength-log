@@ -72,6 +72,19 @@ dependencies {
     // watch face shows a one-tap re-entry chip after a stem press / ambient
     // timeout (redesign §1.4 / R6). Local-only; no INTERNET implication.
     implementation(libs.androidx.wear.ongoing)
+    // The two glance surfaces (glance-surfaces brief §2/§3): a tile rendered with
+    // ProtoLayout and a watch-face complication. Both read the snapshot DataItem the
+    // Data Layer already persists here, so neither adds state or a permission.
+    // protolayout-material is deliberately absent — the tile is one hand-built layout
+    // in this app's own vocabulary, and the Material component set would only drag in
+    // a look we don't use.
+    implementation(libs.androidx.wear.tiles)
+    implementation(libs.androidx.wear.protolayout)
+    implementation(libs.androidx.wear.watchface.complications.data.source.ktx)
+    // SuspendToFutureAdapter: TileService hands back a ListenableFuture and the
+    // snapshot read is a suspend function. Already a transitive runtime dep of
+    // tiles; declared so it's on the compile classpath too.
+    implementation(libs.androidx.concurrent.futures.ktx)
     // Wear Data Layer client (#20): read snapshots, send set-edit deltas; the
     // play-services adapter gives Task.await(). The pending-edit queue persists to
     // a Preferences DataStore.

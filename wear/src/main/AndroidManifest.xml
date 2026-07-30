@@ -35,6 +35,64 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          The day on the watch face (glance-surfaces brief §2). Exported because the
+          watch-face process binds it; locked to BIND_COMPLICATION_PROVIDER, which
+          only the system holds, so nothing else can call in. No UPDATE_PERIOD_SECONDS
+          metadata on purpose — refreshes are pushed by GlanceUpdateService, never
+          timed.
+        -->
+        <service
+            android:name=".glance.DayComplicationService"
+            android:exported="true"
+            android:label="@string/glance_complication_label"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="RANGED_VALUE,SHORT_TEXT" />
+        </service>
+
+        <!--
+          The day in the tile carousel (glance-surfaces brief §3). Same posture: the
+          system binds it, BIND_TILE_PROVIDER keeps everyone else out.
+        -->
+        <service
+            android:name=".glance.DayTileService"
+            android:exported="true"
+            android:label="@string/glance_tile_label"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/tile_preview_day" />
+        </service>
+
+        <!--
+          Data Layer listener that pokes the two surfaces when a new snapshot lands.
+          exported="true" with no permission is the required posture for a
+          WearableListenerService — Play Services is the caller and it binds by
+          intent filter (same declaration as the phone's
+          StrengthLogWearListenerService). The filter is scoped to /strengthlog, so
+          only our own paths can start it, and onDataChanged reads bytes it treats
+          as untrusted.
+        -->
+        <service
+            android:name=".glance.GlanceUpdateService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/strengthlog"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

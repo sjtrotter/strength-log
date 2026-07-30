@@ -36,9 +36,8 @@ android {
 
     buildTypes {
         release {
-            // R8 on for the shipping build (M6 #23/A9); :wear stays unminified
-            // (its build.gradle.kts) since it's a small watch face-adjacent app
-            // and shrinking there hasn't earned its keep yet.
+            // R8 on for the shipping build (M6 #23/A9); :wear shrinks too
+            // (its build.gradle.kts) — the unminified watch APK hit 25 MB.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

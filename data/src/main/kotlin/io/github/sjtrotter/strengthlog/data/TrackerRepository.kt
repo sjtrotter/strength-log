@@ -8,6 +8,8 @@ import io.github.sjtrotter.strengthlog.data.db.dao.CustomExerciseDao
 import io.github.sjtrotter.strengthlog.data.db.dao.ProgramDao
 import io.github.sjtrotter.strengthlog.data.db.dao.SessionDao
 import io.github.sjtrotter.strengthlog.data.db.dao.SessionSummaryRow
+import io.github.sjtrotter.strengthlog.data.db.dao.SessionTonnageRow
+import io.github.sjtrotter.strengthlog.data.db.dao.TopSetRow
 import io.github.sjtrotter.strengthlog.data.db.entity.CustomExerciseEntity
 import io.github.sjtrotter.strengthlog.data.db.entity.ExerciseLogEntity
 import io.github.sjtrotter.strengthlog.data.db.entity.ProgramDayEntity
@@ -33,6 +35,7 @@ import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.MovementPattern
 import io.github.sjtrotter.strengthlog.domain.model.Program
 import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
+import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.domain.standards.RestCategory
 import io.github.sjtrotter.strengthlog.domain.standards.RestSettings
 import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
@@ -396,6 +399,13 @@ open class TrackerRepository(
     /** The Log screen's list (#14): every session newest-first, with its total
      *  set count pre-aggregated (no per-row query as history grows). */
     val sessionSummariesFlow: Flow<List<SessionSummaryRow>> = sessionDao.observeSessionSummaries()
+
+    /** Every session's heaviest completed TOP set per lift, oldest first — the
+     *  journal's trajectory series and the cascade ceremony's before-picture. */
+    val topSetHistoryFlow: Flow<List<TopSetRow>> = sessionDao.observeTopSets(SetKind.TOP.name)
+
+    /** Completed tonnage per session, oldest first — the journal's weekly bars. */
+    val sessionTonnageFlow: Flow<List<SessionTonnageRow>> = sessionDao.observeSessionTonnage()
 
     /** One session's sets, fetched on demand when the Log screen expands a row
      *  (#14) — not part of [sessionSummariesFlow] because most rows stay collapsed. */

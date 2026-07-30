@@ -19,11 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -48,25 +50,54 @@ import io.github.sjtrotter.strengthlog.ui.theme.TabLetter
 import io.github.sjtrotter.strengthlog.ui.theme.TextFaint
 import io.github.sjtrotter.strengthlog.ui.theme.TextPrimary
 import io.github.sjtrotter.strengthlog.ui.theme.TextSecondary
+import kotlinx.coroutines.launch
 
 /**
- * The History Log screen (PLAN.md A1, issue #14): a read-only, reverse-
- * chronological list of completed sessions. Expanding a row shows that
- * session's sets grouped by exercise. No charts (deferred to v2, PLAN.md A10).
- * Stateless in the Compose sense, matching [io.github.sjtrotter.strengthlog
- * .ui.day.DayScreen] — [state] renders, [actions] carries every intent back
- * to [LogViewModel].
+ * The journal (PLAN.md A1, issue #14; docs/briefs/journal.md): the three
+ * derived sections — trajectory, volume, calendar — over the read-only,
+ * reverse-chronological list of completed sessions that has always lived here.
+ * Expanding a row shows that session's sets grouped by exercise. Stateless in
+ * the Compose sense, matching [io.github.sjtrotter.strengthlog.ui.day.DayScreen]
+ * — [state] renders, [actions] carries every intent back to [LogViewModel].
  */
 @Composable
 fun LogScreen(state: LogUiState, actions: LogActions) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
             LogHeader(actions.onBack)
             LazyColumn(
+                state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
+
+                if (state.journal.trajectories.isNotEmpty()) {
+                    item(key = "trajectory-header") { LogSectionHeader("TRAJECTORY") }
+                    items(state.journal.trajectories, key = { "traj-${it.exerciseId}" }) { card ->
+                        TrajectoryCardView(card)
+                    }
+                }
+                state.journal.volume?.let { volume ->
+                    item(key = "volume-header") { LogSectionHeader("VOLUME") }
+                    item(key = "volume") { VolumeCardView(volume) }
+                }
+                state.journal.calendar?.let { calendar ->
+                    item(key = "calendar-header") { LogSectionHeader("CALENDAR") }
+                    item(key = "calendar") {
+                        CalendarCardView(
+                            month = calendar,
+                            onPage = actions.onPageCalendar,
+                            onSelectSession = { sessionId ->
+                                sessionRowIndex(state, sessionId)?.let { index ->
+                                    scope.launch { listState.animateScrollToItem(index) }
+                                }
+                            },
+                        )
+                    }
+                }
 
                 state.health.bodyweightPrompt?.let { prompt ->
                     item(key = "bw-prompt") {
@@ -92,7 +123,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 }
 
                 if (state.health.externalSessions.isNotEmpty()) {
-                    item(key = "external-header") { ExternalSectionHeader() }
+                    item(key = "external-header") { LogSectionHeader("FROM OTHER APPS") }
                     items(state.health.externalSessions, key = { "ext-${it.title}-${it.dateDisplay}-${it.sourceLabel}" }) { row ->
                         ExternalSessionCard(row)
                     }
@@ -102,6 +133,24 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
             }
         }
     }
+}
+
+/**
+ * The LazyColumn index of [sessionId]'s row, counting the items emitted above it
+ * — the best-effort target for a calendar tap (§1.3: no new state, no scroll
+ * bookkeeping). Must be kept in step with the item order in [LogScreen] above;
+ * an unknown session simply yields null and the tap does nothing.
+ */
+private fun sessionRowIndex(state: LogUiState, sessionId: Long): Int? {
+    val position = state.sessions.indexOfFirst { it.sessionId == sessionId }
+    if (position < 0) return null
+    var index = 1 // leading spacer
+    if (state.journal.trajectories.isNotEmpty()) index += 1 + state.journal.trajectories.size
+    if (state.journal.volume != null) index += 2
+    if (state.journal.calendar != null) index += 2
+    if (state.health.bodyweightPrompt != null) index += 1
+    if (state.health.available && !state.health.connected) index += 1
+    return index + position
 }
 
 @Composable
@@ -238,15 +287,6 @@ private fun ConnectHealthCard(onConnect: () -> Unit) {
     }
 }
 
-@Composable
-private fun ExternalSectionHeader() {
-    Column(Modifier.padding(top = 8.dp)) {
-        Text("FROM OTHER APPS", color = TextFaint, style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.size(2.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
-    }
-}
-
 /** One external strength session from Health Connect — clearly labeled so it's
  *  never confused with the user's own logged history. */
 @Composable
@@ -266,6 +306,7 @@ private fun ExternalSessionCard(row: ExternalSessionRow) {
 data class LogActions(
     val onBack: () -> Unit,
     val onToggleExpanded: (Long) -> Unit,
+    val onPageCalendar: (Int) -> Unit,
     val onConnectHealth: () -> Unit,
     val onApplyBodyweight: () -> Unit,
     val onDismissBodyweight: () -> Unit,
@@ -311,6 +352,66 @@ private fun LogScreenPreview() {
                 expanded = false,
             ),
         ),
+        journal = JournalUiState(
+            trajectories = listOf(
+                TrajectoryCard(
+                    exerciseId = "bb_back_squat",
+                    exerciseName = "Barbell Back Squat",
+                    dayIndex = 0,
+                    points = listOf(
+                        TrajectoryPoint(205f, newHigh = true),
+                        TrajectoryPoint(205f, newHigh = false),
+                        TrajectoryPoint(215f, newHigh = true),
+                        TrajectoryPoint(215f, newHigh = false),
+                        TrajectoryPoint(225f, newHigh = true),
+                        TrajectoryPoint(235f, newHigh = true),
+                    ),
+                    goalValue = 235f,
+                    goalLabel = "GOAL 235",
+                    goalMet = true,
+                    latestLabel = "235",
+                    caption = "6 SESSIONS · SINCE MAY 4",
+                    axisMin = 200f,
+                    axisMax = 240f,
+                    gridlines = listOf(TrajectoryGridline(205f, "205"), TrajectoryGridline(235f, "235")),
+                ),
+            ),
+            volume = VolumeChart(
+                bars = listOf(0.4f, 0.6f, 0f, 0.7f, 0.9f, 1f, 0.8f, 0f, 0.5f, 0.7f, 0.85f, 0.62f)
+                    .mapIndexed { i, fraction ->
+                        VolumeBar(
+                            fraction = fraction,
+                            trained = fraction > 0f,
+                            label = when (i) {
+                                5 -> "19.8K"
+                                11 -> "12.4K"
+                                else -> null
+                            },
+                        )
+                    },
+            ),
+            calendar = CalendarMonth(
+                title = "JULY 2026",
+                monthOffset = 0,
+                canPageBack = true,
+                canPageForward = false,
+                leadingBlanks = 2,
+                days = (1..31).map { day ->
+                    CalendarDay(
+                        dayOfMonth = day,
+                        dayLetter = when (day % 7) {
+                            1 -> "A"
+                            3 -> "B"
+                            5 -> "C"
+                            else -> null
+                        },
+                        dayIndex = day % 3,
+                        sessionId = day.toLong(),
+                        isToday = day == 6,
+                    )
+                },
+            ),
+        ),
     )
 
     AppTheme {
@@ -319,6 +420,7 @@ private fun LogScreenPreview() {
             actions = LogActions(
                 onBack = {},
                 onToggleExpanded = {},
+                onPageCalendar = {},
                 onConnectHealth = {},
                 onApplyBodyweight = {},
                 onDismissBodyweight = {},

@@ -27,8 +27,10 @@ import io.github.sjtrotter.strengthlog.domain.units.WeightUnit
 import io.github.sjtrotter.strengthlog.transfer.health.SessionPublisher
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -129,6 +131,17 @@ class DayViewModel @Inject constructor(
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
+
+    /**
+     * The cascade scrim (journal brief §2). Intentionally a bare ViewModel field
+     * and NOT [SavedStateHandle] — the one piece of UI state in this app that
+     * must *not* survive process death (CLAUDE.md's rule guards state the user
+     * would lose; this is a moment they already had). It is written only by
+     * [completeDay]'s before/after comparison, so no restore, re-collection, or
+     * re-entry can produce it.
+     */
+    private val _cascadeCeremony = MutableStateFlow<CascadeCeremony?>(null)
+    val cascadeCeremony: StateFlow<CascadeCeremony?> = _cascadeCeremony.asStateFlow()
 
     init {
         seedMissingLogs()
@@ -249,15 +262,33 @@ class DayViewModel @Inject constructor(
      *  suggested day, then hand the just-written session to Health Connect
      *  (#17/D7 trigger point). The publish is fired after `advanceDay` returns
      *  and never blocks or fails the completion — [SessionPublisher] swallows
-     *  every failure path, and the no-op binding covers devices without HC. */
+     *  every failure path, and the no-op binding covers devices without HC.
+     *
+     *  The all-time top-set highs are read *before* the advance appends to
+     *  history; comparing them with what the session actually recorded is the
+     *  whole cascade-ceremony trigger (journal brief §2). Nothing about the
+     *  ceremony is stored, so it can only ever fire on this transition. */
     fun completeDay() {
         val day = currentDay() ?: return
         mutate {
+            val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
+            val dayIndex = repo.programFlow.first().days.indexOfFirst { it.id == day }
             val sessionId = repo.advanceDay(day)
             savedState[KEY_COLLAPSE] = emptyMap<Long, Boolean>()
             savedState[KEY_VIEW_DAY] = null
+            _cascadeCeremony.value = CascadeCeremonyBuilder.from(
+                previousHighs = previousHighs,
+                sessionSets = repo.sessionSets(sessionId),
+                dayIndex = dayIndex.coerceAtLeast(0),
+                unit = repo.unitFlow.first(),
+            )
             viewModelScope.launch { sessionPublisher.publish(sessionId) }
         }
+    }
+
+    /** Dismisses the scrim (tap anywhere, or back). */
+    fun dismissCascadeCeremony() {
+        _cascadeCeremony.value = null
     }
 
     // --- day-edit sheet intents (#11, spec §8.3) ------------------------------

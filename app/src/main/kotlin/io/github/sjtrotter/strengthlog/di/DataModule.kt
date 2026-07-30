@@ -11,6 +11,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.sjtrotter.strengthlog.data.TrackerRepository
 import io.github.sjtrotter.strengthlog.data.db.StrengthDatabase
 import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
+import java.time.Clock
 import javax.inject.Singleton
 
 /**
@@ -38,14 +39,22 @@ object DataModule {
             ),
         )
 
+    /** One device clock for the whole process: the daily checkmark reset and the
+     *  journal's "which week/month is now" read the same wall clock, and tests
+     *  can substitute a fixed one. */
     @Provides
     @Singleton
-    fun trackerRepository(db: StrengthDatabase, settings: SettingsStore): TrackerRepository =
+    fun clock(): Clock = Clock.systemDefaultZone()
+
+    @Provides
+    @Singleton
+    fun trackerRepository(db: StrengthDatabase, settings: SettingsStore, clock: Clock): TrackerRepository =
         TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
+            clock = clock,
         )
 }

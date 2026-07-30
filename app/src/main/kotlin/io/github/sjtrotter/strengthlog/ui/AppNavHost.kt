@@ -176,6 +176,7 @@ private fun DayRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
+    val cascadeCeremony by viewModel.cascadeCeremony.collectAsStateWithLifecycle()
     DayScreen(
         state = state,
         actions = DayActions(
@@ -203,6 +204,8 @@ private fun DayRoute(
             onRemoveSuperset = viewModel::removeDaySlotSuperset,
             onResetToTemplate = viewModel::resetDayToTemplate,
         ),
+        cascadeCeremony = cascadeCeremony,
+        onDismissCascade = viewModel::dismissCascadeCeremony,
     )
 }
 
@@ -324,6 +327,7 @@ private fun LogRoute(onBack: () -> Unit, viewModel: LogViewModel = hiltViewModel
         actions = LogActions(
             onBack = onBack,
             onToggleExpanded = viewModel::toggleExpanded,
+            onPageCalendar = viewModel::pageCalendar,
             onConnectHealth = { permissionLauncher.launch(viewModel.requestedPermissions) },
             onApplyBodyweight = viewModel::applyBodyweightPrompt,
             onDismissBodyweight = viewModel::dismissBodyweightPrompt,

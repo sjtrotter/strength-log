@@ -3,9 +3,10 @@ package io.github.sjtrotter.strengthlog.ui.log
 import io.github.sjtrotter.strengthlog.transfer.health.ExternalSessionRow
 
 /** Immutable render model for the Log screen (PLAN.md A1, issue #14, extended by
- *  the #17 Health Connect read path). */
+ *  the #17 Health Connect read path and the journal sections, docs/briefs/journal.md). */
 data class LogUiState(
     val sessions: List<SessionListItem> = emptyList(),
+    val journal: JournalUiState = JournalUiState(),
     val health: HealthSectionUi = HealthSectionUi(),
 )
 

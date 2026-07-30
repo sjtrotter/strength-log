@@ -81,3 +81,18 @@ fun accentBorder(dayIndex: Int): Color {
     val fraction = if (isDarkerAccent(dayIndex)) 0.60f else 0.55f
     return lerp(Border, dayAccent(dayIndex), fraction)
 }
+
+/** How far a day accent is lifted toward [TextPrimary] to become legible as a
+ *  foreground mark on [Background] — see [accentBright]. */
+private const val BRIGHT_LIFT = 0.35f
+
+/**
+ * The day accent as a *foreground* color on [Background]: chart lines, markers
+ * and the cascade scrim's new number (docs/briefs/journal.md §0). The raw
+ * accents are identity fills, chosen for on-accent contrast, and four of the
+ * seven (B/D/E/F) sit at 2.1–2.8:1 against the near-black — unreadable as a
+ * hairline mark. Lifting each toward [TextPrimary] by [BRIGHT_LIFT] keeps the
+ * hue and clears 5:1 for all seven ([DayAccentTest] pins the floor). Derived,
+ * never a second hex table: the accents stay SSOT in `:domain`.
+ */
+fun accentBright(dayIndex: Int): Color = lerp(dayAccent(dayIndex), TextPrimary, BRIGHT_LIFT)

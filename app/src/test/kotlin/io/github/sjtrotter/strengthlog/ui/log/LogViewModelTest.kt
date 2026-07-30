@@ -13,9 +13,15 @@ import io.github.sjtrotter.strengthlog.data.db.entity.SessionSetEntity
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.data.db.entity.WorkoutSessionEntity
 import io.github.sjtrotter.strengthlog.data.prefs.SettingsStore
+import io.github.sjtrotter.strengthlog.domain.model.Program
+import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
+import io.github.sjtrotter.strengthlog.domain.model.ProgramExercise
 import io.github.sjtrotter.strengthlog.domain.model.SetKind
 import io.github.sjtrotter.strengthlog.transfer.health.HealthConnectReader
 import java.io.File
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,6 +37,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -40,11 +47,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [LogViewModel] wiring (issue #14): the reverse-chronological list shape, and
- * the lazy expand-fetches-once-then-caches behavior. The pure grouping/format
- * logic itself is [LogScreenBuilderTest]'s job — this is the Robolectric +
- * in-memory Room seam, same pattern as [io.github.sjtrotter.strengthlog.ui.day
- * .DayViewModelWiringTest].
+ * [LogViewModel] wiring (issue #14; journal sections per docs/briefs/journal.md):
+ * the reverse-chronological list shape, the lazy expand-fetches-once-then-caches
+ * behavior, and that the journal sections come off real history — including
+ * collapsing to nothing on a fresh install. The pure grouping/format/derivation
+ * logic itself is [LogScreenBuilderTest]'s and [JournalBuilderTest]'s job — this
+ * is the Robolectric + in-memory Room seam, same pattern as
+ * [io.github.sjtrotter.strengthlog.ui.day.DayViewModelWiringTest].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -93,8 +102,11 @@ class LogViewModelTest {
     // (and keeping androidx.health entirely out of :app's test classpath).
     private val healthReader = HealthConnectReader.unavailable()
 
+    // Fixed so the journal's "which week / which month is now" is deterministic.
+    private val clock = Clock.fixed(Instant.parse("2026-07-15T12:00:00Z"), ZoneOffset.UTC)
+
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): LogViewModel =
-        LogViewModel(repo, healthReader, handle).also { vms += it }
+        LogViewModel(repo, healthReader, handle, clock).also { vms += it }
 
     private fun session(dayId: String, dayTitle: String, completedAt: Long) =
         WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
@@ -213,6 +225,114 @@ class LogViewModelTest {
         val expanded = vm.uiState.value.sessions.first { it.sessionId == upperId }
         assertTrue(expanded.expanded)
         assertEquals(listOf("Barbell Bench Press", "Barbell Row"), expanded.exerciseGroups?.map { it.exerciseName })
+        collect.cancel()
+    }
+
+    // --- journal sections (docs/briefs/journal.md) ---------------------------
+
+    /** Day A with the squat as its ramped main, so the trajectory section has a
+     *  lift to draw and the calendar has a day letter to carry. */
+    private suspend fun insertProgram() {
+        repo.replaceProgram(
+            Program(
+                listOf(
+                    ProgramDay(
+                        id = "A",
+                        title = "Lower",
+                        emphasisLine = "",
+                        exercises = listOf(ProgramExercise("bb_back_squat", isMain = true, targetSets = 6)),
+                        cardio = null,
+                    ),
+                ),
+            ),
+        )
+    }
+
+    private fun topSet(weightLb: Double) = SessionSetEntity(
+        id = 0, sessionId = 0, exerciseId = "bb_back_squat", exerciseName = "Barbell Back Squat",
+        slot = Slot.MAIN, setIndex = 0, kind = SetKind.TOP.name, weightLb = weightLb, reps = 5, done = true,
+    )
+
+    /** Two squat sessions inside the fixed clock's twelve-week window. */
+    private suspend fun seedSquatHistory() {
+        val july1 = 1_782_907_200_000L // 2026-07-01T12:00:00Z
+        val july8 = 1_783_512_000_000L // 2026-07-08T12:00:00Z
+        repo.importSessionHistory(
+            listOf(
+                ImportedSession(session("A", "Lower", july1), listOf(topSet(225.0))),
+                ImportedSession(session("A", "Lower", july8), listOf(topSet(235.0))),
+            ),
+            newCustomExercises = emptyList(),
+        )
+    }
+
+    @Test
+    fun journalDerivesTrajectoryVolumeAndCalendarFromHistory() = runVmTest {
+        insertProgram()
+        seedSquatHistory()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        val journal = vm.uiState.value.journal
+        val trajectory = journal.trajectories.single()
+        assertEquals("Barbell Back Squat", trajectory.exerciseName)
+        assertEquals(listOf(225f, 235f), trajectory.points.map { it.value })
+        assertTrue("235 is the pinned squat GOAL", trajectory.goalMet)
+
+        val volume = journal.volume
+        assertNotNull(volume)
+        assertEquals(2, volume!!.bars.count { it.trained })
+
+        val calendar = journal.calendar
+        assertNotNull(calendar)
+        assertEquals("JULY 2026", calendar!!.title)
+        assertEquals("A", calendar.days.single { it.dayOfMonth == 8 }.dayLetter)
+        collect.cancel()
+    }
+
+    @Test
+    fun journalIsEmptyOnAFreshInstall() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        val journal = vm.uiState.value.journal
+        assertTrue(journal.trajectories.isEmpty())
+        assertNull(journal.volume)
+        assertNull(journal.calendar)
+        collect.cancel()
+    }
+
+    @Test
+    fun pagingTheCalendarWalksBackwardAndNeverPastTheCurrentMonth() = runVmTest {
+        insertProgram()
+        seedSquatHistory()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.pageCalendar(-1)
+        advanceUntilIdle()
+        assertEquals("JUNE 2026", vm.uiState.value.journal.calendar?.title)
+
+        vm.pageCalendar(1)
+        vm.pageCalendar(1)
+        advanceUntilIdle()
+        assertEquals("JULY 2026", vm.uiState.value.journal.calendar?.title)
+        collect.cancel()
+    }
+
+    @Test
+    fun theCalendarMonthSurvivesProcessDeath() = runVmTest {
+        insertProgram()
+        seedSquatHistory()
+        val restored = newViewModel(SavedStateHandle(mapOf("log_calendar_month_offset" to -1)))
+        val collect = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals("JUNE 2026", restored.uiState.value.journal.calendar?.title)
         collect.cancel()
     }
 }

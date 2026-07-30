@@ -43,6 +43,30 @@ data class PersonalRecordRow(
     val seconds: Int = 0,
 )
 
+/**
+ * One session's heaviest completed TOP set for one exercise — the journal's
+ * trajectory series (docs/briefs/journal.md §1.1) and the cascade ceremony's
+ * "what was the all-time high before this advance" read. Aggregated in SQL so
+ * the whole trajectory section costs one query, never one per lift.
+ */
+data class TopSetRow(
+    val sessionId: Long,
+    val completedAt: Long,
+    val exerciseId: String,
+    val topWeightLb: Double,
+)
+
+/**
+ * One session's total completed tonnage (Σ weight × reps) — the journal's
+ * weekly volume bars (docs/briefs/journal.md §1.2). Bucketing into ISO weeks
+ * happens in Kotlin; SQL only collapses sets to sessions.
+ */
+data class SessionTonnageRow(
+    val sessionId: Long,
+    val completedAt: Long,
+    val tonnageLb: Double,
+)
+
 /** Append-only workout history (PLAN.md A1). Rows are inserted, never updated. */
 @Dao
 interface SessionDao {
@@ -118,6 +142,41 @@ interface SessionDao {
         """,
     )
     suspend fun personalRecordRows(exerciseIds: List<String>): List<PersonalRecordRow>
+
+    /**
+     * The trajectory series for every ramped lift at once (journal §1.1),
+     * oldest session first. [topKind] is passed in rather than spelled `'TOP'`
+     * here so the stored [io.github.sjtrotter.strengthlog.domain.model.SetKind]
+     * name has exactly one source. Only ramped mains ever log a TOP set, so no
+     * exercise-id filter is needed — the result is a couple of rows per session.
+     */
+    @Query(
+        """
+        SELECT ss.sessionId AS sessionId, ws.completedAt AS completedAt,
+               ss.exerciseId AS exerciseId, MAX(ss.weightLb) AS topWeightLb
+        FROM session_set ss
+        INNER JOIN workout_session ws ON ws.id = ss.sessionId
+        WHERE ss.done = 1 AND ss.kind = :topKind
+        GROUP BY ss.sessionId, ss.exerciseId
+        ORDER BY ws.completedAt ASC
+        """,
+    )
+    fun observeTopSets(topKind: String): Flow<List<TopSetRow>>
+
+    /** Completed tonnage per session, oldest first (journal §1.2) — one row per
+     *  session, so the twelve-week volume chart is one query, not twelve. */
+    @Query(
+        """
+        SELECT ss.sessionId AS sessionId, ws.completedAt AS completedAt,
+               SUM(ss.weightLb * ss.reps) AS tonnageLb
+        FROM session_set ss
+        INNER JOIN workout_session ws ON ws.id = ss.sessionId
+        WHERE ss.done = 1
+        GROUP BY ss.sessionId
+        ORDER BY ws.completedAt ASC
+        """,
+    )
+    fun observeSessionTonnage(): Flow<List<SessionTonnageRow>>
 
     /** Whole history in a stable order (backup export, A2). */
     @Query("SELECT * FROM workout_session ORDER BY id")

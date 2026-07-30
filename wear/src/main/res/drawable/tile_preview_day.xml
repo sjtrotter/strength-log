@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The tile's picker preview: the dial, at a glance and with no text. Near-black
+  face, the border-gray day track, and a run of success green from twelve o'clock.
+  Colors are the tokens in wear/theme/WearTheme.kt — a preview is the one place a
+  drawable can't read them, so keep the two in step by hand.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <path
+        android:fillColor="#0D0D0F"
+        android:pathData="M0,0 H48 V48 H0 Z" />
+
+    <path
+        android:pathData="M24,4 A20,20 0 0 1 24,44 A20,20 0 0 1 24,4"
+        android:strokeColor="#2A2A30"
+        android:strokeWidth="2.5" />
+
+    <path
+        android:pathData="M24,4 A20,20 0 1 1 17.16,42.79"
+        android:strokeColor="#3E8E5A"
+        android:strokeWidth="2.5" />
+
+</vector>

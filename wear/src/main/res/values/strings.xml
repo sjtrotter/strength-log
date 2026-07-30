@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">strength.log</string>
+
+    <!-- How the two glance surfaces name themselves in the complication picker and
+         the tile carousel — what they show, not who ships them. -->
+    <string name="glance_complication_label">Today\'s sets</string>
+    <string name="glance_tile_label">Today</string>
 </resources>

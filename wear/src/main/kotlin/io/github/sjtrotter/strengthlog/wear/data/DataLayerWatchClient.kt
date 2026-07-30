@@ -1,6 +1,5 @@
 package io.github.sjtrotter.strengthlog.wear.data
 
-import android.net.Uri
 import android.util.Log
 import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataEvent
@@ -80,10 +79,7 @@ class DataLayerWatchClient(
     /** The last snapshot the Data Layer cached on this node (survives restarts). */
     private suspend fun prime() {
         try {
-            val items = dataClient.dataItems.await()
-            val latest = items.firstOrNull { it.uri.path == WearSyncPaths.SNAPSHOT }
-            latest?.let { snapshots.value = SyncCodec.decodeSnapshot(it.data ?: ByteArray(0)) }
-            items.release()
+            SnapshotItem.latest(dataClient)?.let { snapshots.value = it }
         } catch (e: Exception) {
             Log.w(TAG, "priming snapshot failed", e)
         }
@@ -93,17 +89,12 @@ class DataLayerWatchClient(
     private fun snapshotChanges(): Flow<WatchSnapshot?> = callbackFlow {
         val listener = DataClient.OnDataChangedListener { events ->
             events.forEach { event ->
-                if (event.type == DataEvent.TYPE_CHANGED && event.dataItem.uri.path == WearSyncPaths.SNAPSHOT) {
-                    val decoded = runCatching {
-                        SyncCodec.decodeSnapshot(event.dataItem.data ?: ByteArray(0))
-                    }.getOrNull()
-                    if (decoded != null) trySend(decoded)
-                }
+                if (event.type != DataEvent.TYPE_CHANGED) return@forEach
+                SnapshotItem.decode(event.dataItem)?.let { trySend(it) }
             }
             events.release()
         }
-        val uri = Uri.Builder().scheme("wear").path(WearSyncPaths.SNAPSHOT).build()
-        dataClient.addListener(listener, uri, DataClient.FILTER_LITERAL).await()
+        dataClient.addListener(listener, SnapshotItem.uri, DataClient.FILTER_LITERAL).await()
         awaitClose { dataClient.removeListener(listener) }
     }
 

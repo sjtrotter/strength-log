@@ -25,7 +25,13 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 on (ledger item ":wear R8"): the unminified wear APK weighed
+            // 25 MB, which made every wireless-adb deploy to the watch a
+            // multi-minute affair; shrunk it is a few MB. Rules mirror :app's
+            // (kotlinx.serialization only — see wear/proguard-rules.pro).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 

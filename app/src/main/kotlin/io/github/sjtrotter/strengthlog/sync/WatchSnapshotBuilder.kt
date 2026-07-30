@@ -5,6 +5,7 @@ import io.github.sjtrotter.strengthlog.data.ProgramSlot
 import io.github.sjtrotter.strengthlog.data.catalog.ExerciseCatalog
 import io.github.sjtrotter.strengthlog.data.db.entity.Slot
 import io.github.sjtrotter.strengthlog.domain.model.LifterConfig
+import io.github.sjtrotter.strengthlog.domain.library.ExerciseEntry
 import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.library.tracking
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
@@ -107,7 +108,7 @@ object WatchSnapshotBuilder {
             // dropped) because the DTO shape is frozen; a future schemaVersion can
             // retire it (see report).
             slot = Slot.MAIN,
-            name = entry?.name ?: pe.exerciseId,
+            name = entry?.watchName ?: pe.exerciseId,
             goal = goalLb,
             goalLabel = target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
             // Enum name lowercased; the watch parses it back to pick a per-type control.
@@ -116,13 +117,22 @@ object WatchSnapshotBuilder {
             // Same encoding, for the superset partner (meaningless without one).
             ssTracking = (partnerEntry?.tracking ?: TrackingType.WEIGHTED).name.lowercase(),
             perHand = entry?.perHand == true,
-            supersetPartnerName = partnerEntry?.name,
+            supersetPartnerName = partnerEntry?.watchName,
             // Main track carries the round's rest; the partner rows carry 0 so the
             // wire holds exactly one rest per round (the watch never tie-breaks).
             sets = main.map { it.toWatchSet(restAfterSecondsFor(it, tracking, restSettings)) },
             ssSets = ss.map { it.toWatchSet(restAfterSeconds = 0) },
         )
     }
+
+    /**
+     * The name the watch shows — the colloquial one where the catalog has it,
+     * because a band on a round face is an arc a few words wide and a lifter says
+     * "deadlift", not "conventional deadlift" (curved-bands brief §2). Both stamp
+     * points go through here; the phone and every export keep the full name, and
+     * custom exercises have no short form and fall back to theirs.
+     */
+    private val ExerciseEntry.watchName: String get() = shortName ?: name
 
     /** The gated rest for one main-track set: 0 when the master toggle is off,
      *  else the one [RestPolicy] resolver (no rest is computed anywhere else). */

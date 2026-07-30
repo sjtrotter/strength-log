@@ -53,4 +53,14 @@ data class ExerciseEntry(
      *  the unloaded side (e.g. pullup → weighted_pullup). The reverse lookup is
      *  derived at library init — see [buildWeightedPairIndex]. */
     val weightedPairId: String? = null,
+    /**
+     * What a lifter calls this at the gym, when that differs from [name]: a
+     * conventional deadlift is "deadlift", a Romanian one is "RDL". Set only
+     * where the short form is what people actually say — most entries leave it
+     * null, and nothing here is an abbreviation someone invented for the app.
+     *
+     * Display only, and only on the watch, where a label band is an arc a few
+     * words wide. The phone, history, exports and Health Connect all keep [name].
+     */
+    val shortName: String? = null,
 )

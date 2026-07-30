@@ -281,6 +281,44 @@ class ExerciseLibraryTest {
         }
     }
 
+    // --- colloquial short names (curved-bands brief §2) --------------------
+
+    @Test
+    fun `every short name is a real, shorter alternative to the full name`() {
+        val shortened = ExerciseLibrary.entries.filter { it.shortName != null }
+        assertTrue(shortened.isNotEmpty())
+        for (entry in shortened) {
+            val short = entry.shortName!!
+            assertTrue(short.isNotBlank(), "${entry.id} has a blank shortName")
+            assertEquals(short.trim(), short, "${entry.id}'s shortName has stray whitespace")
+            assertTrue(short.length <= 20, "${entry.id}'s shortName is ${short.length} chars: $short")
+            assertTrue(short.length < entry.name.length, "${entry.id}'s shortName is no shorter than its name")
+        }
+    }
+
+    @Test
+    fun `no two entries answer to the same short name`() {
+        val shortNames = ExerciseLibrary.entries.mapNotNull { it.shortName }
+        assertEquals(shortNames.size, shortNames.toSet().size, "a short name is claimed twice")
+    }
+
+    @Test
+    fun `the names the brief calls out read the way a lifter says them`() {
+        val expected = mapOf(
+            "conv_dl" to "Deadlift",
+            "bb_back_squat" to "Squat",
+            "bb_bench" to "Bench Press",
+            "ohp" to "Overhead Press",
+            "rdl" to "RDL",
+        )
+        for ((id, short) in expected) {
+            assertEquals(short, ExerciseLibrary.get(id).shortName, "unexpected shortName for $id")
+        }
+        // Anything already short enough to say out loud keeps one name.
+        assertEquals(null, ExerciseLibrary.get("hack_squat").shortName)
+        assertEquals(null, ExerciseLibrary.get("face_pull").shortName)
+    }
+
     @Test
     fun `RECLASSIFIED_TO_TIMED_IDS is the exact legacy-fixup set and all members are TIMED`() {
         val expected = setOf("plank", "hollow_hold", "weighted_plank", "suitcase_carry")

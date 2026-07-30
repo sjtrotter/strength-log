@@ -174,6 +174,54 @@ class WatchSnapshotBuilderTest {
         assertEquals(50.0, ex.ssSets.first().weightLb)
     }
 
+    // --- the watch gets the name a lifter says (curved-bands brief §2) ------
+
+    @Test
+    fun `an entry with a colloquial name sends it, and the phone keeps the full one`() {
+        val pe = ProgramExercise("conv_dl", isMain = true)
+        val slots = listOf(ProgramSlot(40L, 0, pe))
+        val program = Program(listOf(ProgramDay("A", "Pull", "", listOf(pe), cardio = null)))
+
+        val ex = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog,
+            unit = WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+
+        assertEquals("Deadlift", ex.name)
+        assertEquals("Conventional Deadlift", catalog.get("conv_dl").name)
+    }
+
+    @Test
+    fun `an entry without one keeps its full name, custom exercises included`() {
+        val pe = ProgramExercise("hack_squat", isMain = true)
+        val custom = ProgramExercise("custom_pullup", isMain = true)
+        val slots = listOf(ProgramSlot(41L, 0, pe), ProgramSlot(42L, 1, custom))
+        val program = Program(listOf(ProgramDay("A", "Legs", "", listOf(pe, custom), cardio = null)))
+
+        val exercises = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = emptyList(), cfg = cfg, catalog = trackingCatalog,
+            unit = WeightUnit.LB, revision = 1L,
+        )!!.day.exercises
+
+        assertEquals("Hack Squat", exercises[0].name)
+        assertEquals("Pull-up", exercises[1].name)
+    }
+
+    @Test
+    fun `the superset partner is shortened at the same stamp point`() {
+        val pe = ProgramExercise("ez_curl", superset = SupersetPartner("oh_tri_ext"))
+        val slots = listOf(ProgramSlot(43L, 0, pe))
+        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe), cardio = null)))
+
+        val ex = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog,
+            unit = WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+
+        assertEquals("EZ-Bar Curl", ex.name) // no short form; unchanged
+        assertEquals("Overhead Extension", ex.supersetPartnerName)
+    }
+
     @Test
     fun `stamps ssTracking from the superset partner's own entry`() {
         val pe = ProgramExercise("ez_curl", superset = SupersetPartner("custom_pullup"))

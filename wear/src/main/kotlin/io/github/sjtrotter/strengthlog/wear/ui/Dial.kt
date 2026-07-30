@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,9 +46,19 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.wear.compose.foundation.CurvedAlignment
+import androidx.wear.compose.foundation.CurvedDirection
+import androidx.wear.compose.foundation.CurvedLayout
+import androidx.wear.compose.foundation.CurvedModifier
+import androidx.wear.compose.foundation.CurvedTextStyle
+import androidx.wear.compose.foundation.angularSizeDp
+import androidx.wear.compose.foundation.basicCurvedText
+import androidx.wear.compose.foundation.curvedComposable
+import androidx.wear.compose.foundation.curvedRow
+import androidx.wear.compose.foundation.radialSize
+import androidx.wear.compose.foundation.sizeIn
 import androidx.wear.compose.material.Text
 import io.github.sjtrotter.strengthlog.wear.theme.Background
 import io.github.sjtrotter.strengthlog.wear.theme.Border
@@ -100,15 +109,7 @@ fun Dial(
 
         DialRings(state, motion, accent, diameterPx)
 
-        Band(
-            content = state.topBand,
-            type = type,
-            accentIndex = state.accentIndex,
-            maxWidth = bandMaxWidthDp(DialGeometry.TOP_BAND_INSET, diameterPx, density),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = with(density) { DialGeometry.px(DialGeometry.TOP_BAND_INSET, diameterPx).toDp() }),
-        )
+        Band(state.topBand, BandPole.TOP, type, state.accentIndex, diameterPx)
         Disc(
             state = state,
             type = type,
@@ -119,29 +120,8 @@ fun Dial(
             onHoldComplete = onHoldComplete,
             modifier = Modifier.align(Alignment.Center),
         )
-        Band(
-            content = state.bottomBand,
-            type = type,
-            accentIndex = state.accentIndex,
-            maxWidth = bandMaxWidthDp(DialGeometry.BOTTOM_BAND_INSET, diameterPx, density),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(
-                    bottom = with(density) {
-                        DialGeometry.px(DialGeometry.BOTTOM_BAND_INSET, diameterPx).toDp()
-                    },
-                ),
-        )
+        Band(state.bottomBand, BandPole.BOTTOM, type, state.accentIndex, diameterPx)
     }
-}
-
-/**
- * A band row's width limit: the chord at the row's outer edge, which is exactly
- * [bandInset] from the pole it hangs off. Text ellipsizes inside it, so a long
- * name is cut rather than clipped by the bezel (v2 §2).
- */
-internal fun bandMaxWidthDp(bandInset: Float, diameterPx: Float, density: Density): Dp = with(density) {
-    DialGeometry.bandMaxWidthPx(diameterPx, DialGeometry.px(bandInset, diameterPx)).toDp()
 }
 
 /**
@@ -488,35 +468,89 @@ private fun DiscLineRow(line: DiscLine, style: DiscStyle, accentIndex: Int, type
     }
 }
 
-/** One line of caps, never two (§2), inside the chord it can reach (v2 §2). */
+/** One line of caps, never two (§2), on the arc its annulus describes. */
 @Composable
 private fun Band(
     content: BandContent?,
+    pole: BandPole,
     type: DialTypography,
     accentIndex: Int,
-    maxWidth: Dp,
-    modifier: Modifier = Modifier,
+    diameterPx: Float,
 ) {
     if (content == null) return
-    Row(
-        modifier = modifier.widthIn(max = maxWidth),
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        content.dotTone?.let { BandDot(bandToneColor(it, accentIndex)) }
-        Text(
-            text = content.text,
-            style = type.style(content.role),
-            color = bandToneColor(content.tone, accentIndex),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-        )
+    CurvedBand(
+        text = content.text,
+        style = type.curved(content.role, bandToneColor(content.tone, accentIndex)),
+        pole = pole,
+        diameterPx = diameterPx,
+        dot = content.dotTone?.let { tone ->
+            { BandDot(bandToneColor(tone, accentIndex), it) }
+        },
+    )
+}
+
+/**
+ * A label band as an arc through its annulus, concentric with the rings (§1).
+ *
+ * The top band reads clockwise over 12 o'clock and the bottom one
+ * counter-clockwise under 6, which is what stands its glyphs upright rather than
+ * on their heads. Shared with [AmbientDial] so a band doesn't move when the
+ * screen dims — same radius, same sweep, different colours.
+ */
+@Composable
+internal fun CurvedBand(
+    text: String,
+    style: CurvedTextStyle,
+    pole: BandPole,
+    diameterPx: Float,
+    dot: (@Composable (Dp) -> Unit)? = null,
+) {
+    val density = LocalDensity.current
+    val band = DialGeometry.bandArc(diameterPx)
+    val dotSlotPx = DialGeometry.px(DialGeometry.BAND_DOT_SLOT, diameterPx)
+    val dotSlotDeg = if (dot == null) 0f else DialGeometry.bandSweepDeg(dotSlotPx, band.radiusPx)
+    with(density) {
+        CurvedLayout(
+            modifier = Modifier.fillMaxSize().padding(band.insetPx.toDp()),
+            anchor = pole.anchorDeg,
+            angularDirection = pole.direction,
+        ) {
+            curvedRow(
+                modifier = CurvedModifier.radialSize(band.thicknessPx.toDp()),
+                radialAlignment = CurvedAlignment.Radial.Center,
+            ) {
+                if (dot != null) {
+                    curvedComposable(modifier = CurvedModifier.angularSizeDp(dotSlotPx.toDp())) {
+                        dot(DialGeometry.px(DialGeometry.BAND_DOT_DIAMETER, diameterPx).toDp())
+                    }
+                }
+                // Overflow is measured against the sweep the row hands down, so the
+                // cap has to sit on the text itself — the ellipsis is what keeps a
+                // long name from running down the side of the face.
+                basicCurvedText(
+                    text = text,
+                    modifier = CurvedModifier.sizeIn(
+                        maxSweepDegrees = DialGeometry.BAND_MAX_SWEEP_DEG - dotSlotDeg,
+                    ),
+                    overflow = TextOverflow.Ellipsis,
+                ) { style }
+            }
+        }
     }
 }
 
+/** Which pole a band hangs off, and which way it has to run to read upright. */
+internal enum class BandPole(val anchorDeg: Float) {
+    TOP(270f),
+    BOTTOM(90f),
+    ;
+
+    val direction: CurvedDirection.Angular
+        get() = if (this == TOP) CurvedDirection.Angular.Clockwise else CurvedDirection.Angular.CounterClockwise
+}
+
 @Composable
-private fun BandDot(color: Color) {
+private fun BandDot(color: Color, size: Dp) {
     val transition = rememberInfiniteTransition(label = "bandDot")
     val alpha by transition.animateFloat(
         initialValue = 0.3f,
@@ -527,7 +561,7 @@ private fun BandDot(color: Color) {
         ),
         label = "bandDotAlpha",
     )
-    Box(Modifier.size(5.dp).background(color.copy(alpha = alpha), CircleShape))
+    Box(Modifier.size(size).background(color.copy(alpha = alpha), CircleShape))
 }
 
 private fun bandToneColor(tone: DialTone, accentIndex: Int): Color = when (tone) {

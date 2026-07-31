@@ -56,10 +56,12 @@ class DialStateTest {
         suggestedDayId = "A",
         day = WatchDay(
             dayId = "A",
-            title = "Day A",
+            title = "Lower",
+            // Realistically long on purpose: the band must never show this —
+            // an arc reading "FLAT PRE…" was the on-wrist bug this pins.
+            emphasisLine = "flat press · vertical pull · hinge · quad",
             accentIndex = 0,
             exercises = exercises.toList(),
-            emphasisLine = "lower",
         ),
         unit = "lb",
     )

@@ -180,7 +180,10 @@ private class ScreenContext(
             doneFlags = day.exercises.map { ex -> ex.sets.isNotEmpty() && ex.sets.all { it.done } },
             currentIndex = day.exercises.indexOf(exercise),
         )
-        val subtitle = day.emphasisLine.takeIf { it.isNotBlank() }
+        // The day's short title ("Lower"), never its emphasis line — that is a
+        // five-clause sentence, and an arc that shows "FLAT PRE…" says less than
+        // one that shows nothing. The widget and tile made the same call.
+        val subtitle = day.title.takeIf { it.isNotBlank() }
         return base(
             screen = DialScreen.TODAY,
             rounds = exerciseStates,

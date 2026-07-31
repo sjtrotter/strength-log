@@ -219,6 +219,42 @@ class WatchSnapshotTest {
     }
 
     @Test
+    fun `the cycle defaults to empty for a publisher that doesn't send one`() {
+        assertEquals(emptyList(), sample.cycle)
+    }
+
+    @Test
+    fun `a snapshot carrying the program's cycle round-trips it in order`() {
+        val withCycle = sample.copy(
+            cycle = listOf(
+                WatchCycleDay("A", "Day A — Squat Focus", listOf(WatchCycleExercise("Squat", 6))),
+                WatchCycleDay("B", "Day B — Hinge", listOf(WatchCycleExercise("Deadlift", 4))),
+            ),
+        )
+        val decoded = json.decodeFromString(
+            WatchSnapshot.serializer(),
+            json.encodeToString(WatchSnapshot.serializer(), withCycle),
+        )
+        assertEquals(withCycle, decoded)
+        assertEquals(listOf("A", "B"), decoded.cycle.map { it.dayId })
+        assertEquals(6, decoded.cycle.first().exercises.single().setCount)
+    }
+
+    @Test
+    fun `an old snapshot without the cycle key decodes to an empty one (today alone)`() {
+        // A pre-v3 wire: no `cycle`. It must decode as empty, which the watch renders
+        // as the single full-circle segment its outer ring always was — no
+        // schemaVersion gate, same posture as restAfterSeconds.
+        val lenient = Json { ignoreUnknownKeys = true }
+        val oldWire = """
+            {"schemaVersion":1,"revision":2,"suggestedDayId":"A","unit":"lb",
+             "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[]}}
+        """.trimIndent()
+        val decoded = lenient.decodeFromString(WatchSnapshot.serializer(), oldWire)
+        assertEquals(emptyList(), decoded.cycle)
+    }
+
+    @Test
     fun `decoding tolerates an unknown future field (forward migration)`() {
         val lenient = Json { ignoreUnknownKeys = true }
         val withExtra = """

@@ -69,12 +69,16 @@ fun AmbientDial(
             // Progress only — the gray track a lit dial draws would be pixels burned
             // for something the lifter already knows (the ring is a whole circle).
             if (state.dayProgress > 0f) {
-                val dayRing = DialGeometry.dayRing(diameterPx)
+                // The lit dial's outer ring carries the cycle in segments and type;
+                // ambient keeps v2's hairline arc in its place. Segments, labels and
+                // accents are pixels burned for something the lifter can wake the
+                // watch to read (v3 §1).
+                val outer = DialGeometry.ambientRing(diameterPx)
                 drawRingArc(
                     color = AmbientDim,
                     arc = DialGeometry.proportionArc(state.dayProgress),
-                    radiusPx = dayRing.radiusPx,
-                    strokePx = dayRing.strokePx,
+                    radiusPx = outer.radiusPx,
+                    strokePx = outer.strokePx,
                     cap = StrokeCap.Butt,
                 )
             }

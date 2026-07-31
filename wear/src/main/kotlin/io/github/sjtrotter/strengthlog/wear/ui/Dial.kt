@@ -11,6 +11,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,11 +42,13 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -72,17 +77,18 @@ import io.github.sjtrotter.strengthlog.wear.theme.accentBright
 import io.github.sjtrotter.strengthlog.wear.theme.dayAccent
 import io.github.sjtrotter.strengthlog.wear.theme.dialTypography
 import io.github.sjtrotter.strengthlog.wear.theme.onDayAccent
+import kotlin.math.abs
 import kotlin.math.min
 import kotlinx.coroutines.launch
 
 /**
  * The dial: three concentric rings, two label bands and one centre disc, and with
- * them every screen of the workout (brief §9). There is no navigation and there
- * are no lists — state changes re-render this in place.
+ * them every screen of the workout (brief §9). There are two faces and no lists —
+ * state changes re-render this in place.
  *
- * The rings nest by timescale and never transform into one another: the day ring
- * moves over an hour, the exercise ring over minutes, and the clock ring — on the
- * disc's own rim, drawn only while a clock runs — over seconds (v2 §3).
+ * The rings nest by timescale and never transform into one another: the cycle ring
+ * moves over days, the exercise ring over minutes, and the clock ring — on the
+ * disc's own rim, drawn only while a clock runs — over seconds (v2 §3, v3 §1).
  *
  * Layout is layout only: what to say lives in [DialUiState], what a tap means
  * lives in [DialUiState.tap], and every position here is derived from the
@@ -108,6 +114,7 @@ fun Dial(
         val motion = rememberDialMotion(state)
 
         DialRings(state, motion, accent, diameterPx)
+        CycleLabels(state.cycle, type, diameterPx)
 
         Band(state.topBand, BandPole.TOP, type, state.accentIndex, diameterPx)
         Disc(
@@ -218,17 +225,7 @@ private fun rememberDialMotion(state: DialUiState): DialMotion {
 @Composable
 private fun DialRings(state: DialUiState, motion: DialMotion, accent: Color, diameterPx: Float) {
     Canvas(Modifier.fillMaxSize()) {
-        val dayRing = DialGeometry.dayRing(diameterPx)
-        drawRingArc(Border, DialGeometry.proportionArc(1f), dayRing.radiusPx, dayRing.strokePx, StrokeCap.Butt)
-        if (motion.dayProgress > 0f) {
-            drawRingArc(
-                color = Done,
-                arc = DialGeometry.proportionArc(motion.dayProgress),
-                radiusPx = dayRing.radiusPx,
-                strokePx = dayRing.strokePx,
-                cap = StrokeCap.Round,
-            )
-        }
+        drawCycleRing(state.cycle, motion.dayProgress, diameterPx)
 
         if (motion.innerScale > 0f && motion.rounds.isNotEmpty()) {
             drawExerciseRing(motion, accent, diameterPx)
@@ -250,12 +247,49 @@ private fun DialRings(state: DialUiState, motion: DialMotion, accent: Color, dia
         if (motion.bloom.value > 0f) {
             val bloomWidth = DialGeometry.px(DialGeometry.BLOOM_WIDTH, diameterPx)
             drawCircle(
-                color = accent.copy(alpha = 0.5f * motion.bloom.value),
+                // The bloom belongs to the disc it blooms from, so it wears the
+                // disc's colour, not the day's (v3 §2).
+                color = TextPrimary.copy(alpha = 0.5f * motion.bloom.value),
                 radius = DialGeometry.discRadiusPx(diameterPx) + bloomWidth / 2f,
                 style = Stroke(width = bloomWidth),
             )
         }
     }
+}
+
+/**
+ * The program cycle: one segment per day in program order, today's in its own
+ * accent at full strength and every other day's dimmed to a hint of itself (v3
+ * §1). Today's progress rides the inner edge of today's segment, so "which day"
+ * and "how far through it" are one glance at one place — and when the day is
+ * finished the segment simply reads green, progress and all.
+ */
+private fun DrawScope.drawCycleRing(cycle: List<CycleSegment>, dayProgress: Float, diameterPx: Float) {
+    if (cycle.isEmpty()) return
+    val ring = DialGeometry.cycleRing(diameterPx)
+    val segments = DialGeometry.segments(cycle.size)
+    val done = dayProgress >= 1f
+
+    segments.forEachIndexed { index, arc ->
+        val segment = cycle[index]
+        val color = when (segment.mark) {
+            CycleMark.TODAY -> if (done) Done else dayAccent(segment.accentIndex)
+            CycleMark.BROWSED -> TextPrimary
+            CycleMark.OTHER -> dayAccent(segment.accentIndex).copy(alpha = CYCLE_DIM_ALPHA)
+        }
+        drawRingArc(color, arc, ring.radiusPx, ring.strokePx, StrokeCap.Butt)
+    }
+
+    if (done || dayProgress <= 0f) return
+    val today = cycle.indexOfFirst { it.mark == CycleMark.TODAY }.takeIf { it >= 0 } ?: return
+    val progress = DialGeometry.cycleProgressRing(diameterPx)
+    drawRingArc(
+        color = Done,
+        arc = DialGeometry.progressWithin(segments[today], dayProgress),
+        radiusPx = progress.radiusPx,
+        strokePx = progress.strokePx,
+        cap = StrokeCap.Butt,
+    )
 }
 
 /**
@@ -291,6 +325,86 @@ private fun roundColor(round: RoundState, accent: Color): Color = when (round) {
     RoundState.CURRENT -> accent
     RoundState.UPCOMING -> Border
     RoundState.PEEKED -> TextPrimary
+}
+
+/**
+ * The cycle's labels, each on its own segment's arc (v3 §1). Which form a segment
+ * gets — "DAY C", "C", or nothing — is decided by measuring both against the sweep
+ * that segment actually has, so a 7-day program on a 41mm watch drops to letters
+ * (or to colour alone) without anyone tuning a breakpoint per day count.
+ *
+ * Labels stay at BAND_SECONDARY: the 12sp floor is the floor everywhere (v2 §1).
+ */
+@Composable
+private fun CycleLabels(cycle: List<CycleSegment>, type: DialTypography, diameterPx: Float) {
+    if (cycle.isEmpty()) return
+    val measurer = rememberTextMeasurer()
+    val band = DialGeometry.cycleLabelBand(diameterPx)
+    val labelStyle = type.style(DialTextRole.BAND_SECONDARY)
+    val segments = DialGeometry.segments(cycle.size)
+
+    val labels = remember(cycle, labelStyle, band.radiusPx) {
+        fun sweepOf(text: String) = DialGeometry.bandSweepDeg(
+            arcLengthPx = measurer.measure(text, labelStyle).size.width.toFloat(),
+            radiusPx = band.radiusPx,
+        )
+        cycle.mapIndexed { index, segment ->
+            val full = "day ${segment.dayLabel}".uppercase()
+            when (
+                DialGeometry.cycleLabelFit(
+                    segmentSweepDeg = segments[index].sweepAngleDeg,
+                    fullSweepDeg = sweepOf(full),
+                    shortSweepDeg = sweepOf(segment.dayLabel),
+                )
+            ) {
+                CycleLabelFit.FULL -> full
+                CycleLabelFit.SHORT -> segment.dayLabel
+                CycleLabelFit.NONE -> null
+            }
+        }
+    }
+
+    labels.forEachIndexed { index, text ->
+        if (text == null) return@forEachIndexed
+        CycleLabel(
+            text = text,
+            style = type.curved(DialTextRole.BAND_SECONDARY, cycleLabelColor(cycle[index])),
+            anchorDeg = DialGeometry.midAngleDeg(segments[index]),
+            band = band,
+        )
+    }
+}
+
+/** One day's label, laid along its own segment and turned upright at the bottom. */
+@Composable
+private fun CycleLabel(text: String, style: CurvedTextStyle, anchorDeg: Float, band: DialBand) {
+    val density = LocalDensity.current
+    with(density) {
+        CurvedLayout(
+            modifier = Modifier.fillMaxSize().padding(band.insetPx.toDp()),
+            anchor = anchorDeg,
+            angularDirection = if (DialGeometry.isBottomHalf(anchorDeg)) {
+                CurvedDirection.Angular.CounterClockwise
+            } else {
+                CurvedDirection.Angular.Clockwise
+            },
+        ) {
+            curvedRow(
+                modifier = CurvedModifier.radialSize(band.thicknessPx.toDp()),
+                radialAlignment = CurvedAlignment.Radial.Center,
+            ) {
+                basicCurvedText(text) { style }
+            }
+        }
+    }
+}
+
+/** Today's label reads on its own accent; every other day's is a quiet caption —
+ *  the colour is doing the talking there, and the word is only naming it. */
+private fun cycleLabelColor(segment: CycleSegment): Color = when (segment.mark) {
+    CycleMark.TODAY -> onDayAccent(segment.accentIndex)
+    CycleMark.BROWSED -> Background
+    CycleMark.OTHER -> TextTertiary
 }
 
 /** One ring arc, centred on the face — shared with the ambient and loading dials. */
@@ -330,8 +444,10 @@ private fun Disc(
     val holdFill = remember { Animatable(0f) }
     // While the hold fills, the disc says what it is about to do and nothing else.
     val disc = state.hold?.takeIf { holdFill.value > 0f }?.disc ?: state.disc
+    // The disc is the machine's controls, and controls don't borrow the day's
+    // colour (v3 §2) — the rings and bands carry identity, this carries action.
     val fill = when (disc.style) {
-        DiscStyle.FILLED -> accent
+        DiscStyle.FILLED -> TextPrimary
         DiscStyle.FILLED_GREEN -> Done
         DiscStyle.DASHED -> Background
         DiscStyle.DIMMED, DiscStyle.OUTLINED, DiscStyle.FLAT -> Surface
@@ -351,7 +467,7 @@ private fun Disc(
             .drawBehind {
                 when (disc.style) {
                     DiscStyle.OUTLINED -> drawCircle(
-                        color = accent,
+                        color = TextPrimary,
                         radius = size.minDimension / 2f - borderPx / 2f,
                         style = Stroke(width = borderPx),
                     )
@@ -370,7 +486,8 @@ private fun Disc(
                 // The hold is a clock, so it is the clock ring — same radius, same
                 // stroke as a rest or a hold, and it can never collide with one:
                 // an undo is offered only on READY and REST_OVER, which carry no
-                // arc (v2 §3).
+                // arc (v2 §3). It keeps the day accent along with the rest of the
+                // clock ring: time passing is the day's, not the control's (v3 §2).
                 if (holdFill.value > 0f) {
                     val clock = DialGeometry.clockRing(diameterPx)
                     drawArc(
@@ -445,6 +562,44 @@ private fun Modifier.discGestures(
                 if (released && !completed && state.tap != DialTap.NONE) onTap()
             },
         )
+    }
+}
+
+/**
+ * The leftward half of the dial's two horizontal gestures (v3 §3). Rightward is
+ * the platform's own dismiss and is never touched here: this detector watches a
+ * press it may not have started (the disc consumes the down for its tap), and
+ * bails the moment the finger travels right, leaving those events unconsumed for
+ * the swipe-to-dismiss box above.
+ *
+ * Consuming the leftward drag is what cancels the disc's pending tap, which is the
+ * behaviour we want — a swipe that starts on the disc is a swipe, not a tap.
+ */
+@Composable
+internal fun Modifier.swipeLeft(enabled: Boolean, onSwipeLeft: () -> Unit): Modifier {
+    // The handler is read through a holder so the detector is never restarted
+    // mid-gesture just because the screen it reads recomposed.
+    val latest by rememberUpdatedState(onSwipeLeft)
+    if (!enabled) return this
+    return pointerInput(Unit) {
+        val slop = viewConfiguration.touchSlop
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false)
+            var horizontal = 0f
+            var vertical = 0f
+            while (true) {
+                val change = awaitPointerEvent().changes.firstOrNull() ?: break
+                if (!change.pressed) break
+                horizontal += change.positionChange().x
+                vertical += abs(change.positionChange().y)
+                if (horizontal > slop) break
+                if (-horizontal > slop && -horizontal > vertical) {
+                    change.consume()
+                    latest()
+                    break
+                }
+            }
+        }
     }
 }
 
@@ -573,11 +728,14 @@ private fun bandToneColor(tone: DialTone, accentIndex: Int): Color = when (tone)
     DialTone.ON_DISC -> TextPrimary
 }
 
-/** [DialTone.ON_DISC] resolves against the disc's own fill — one description, six fills. */
+/**
+ * [DialTone.ON_DISC] resolves against the disc's own fill — one description, six
+ * fills. Since the fills stopped following the day (v3 §2) this resolves without
+ * the accent: what reads on a control is decided by the control.
+ */
 private fun discToneColor(tone: DialTone, style: DiscStyle, accentIndex: Int): Color = when {
     tone != DialTone.ON_DISC -> bandToneColor(tone, accentIndex)
-    style == DiscStyle.FILLED -> onDayAccent(accentIndex)
-    style == DiscStyle.FILLED_GREEN -> Background
+    style == DiscStyle.FILLED || style == DiscStyle.FILLED_GREEN -> Background
     else -> TextPrimary
 }
 
@@ -592,3 +750,6 @@ private const val HOLD_MILLIS = 700
 
 /** Read-only browsing, at the brief's 62% (§4). */
 private const val DIMMED_ALPHA = 0.62f
+
+/** A day that isn't today, on the cycle ring: its own colour, said quietly (v3 §1). */
+private const val CYCLE_DIM_ALPHA = 0.3f

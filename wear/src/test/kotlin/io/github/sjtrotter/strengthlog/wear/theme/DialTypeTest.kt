@@ -74,6 +74,16 @@ class DialTypeTest {
     }
 
     @Test
+    fun `a band row still fits the annulus the wider cycle ring leaves it`() {
+        // The cycle ring took 14 reference px off the band annulus (v3 §1). A band
+        // is one line of caps, so what has to fit is its line box: 36px of annulus
+        // against a 13sp row on a density-2 face.
+        val type = dialTypography(referenceScale, pixelWatch)
+        val row = with(pixelWatch) { type.curved(DialTextRole.BAND, Color.Red).lineHeight.toPx() }
+        assertTrue(row <= DialGeometry.bandArc(384f).thicknessPx, "the band row (${row}px) overflows its annulus")
+    }
+
+    @Test
     fun `a curved style carries no em units, which the arc renderer cannot convert`() {
         // The curved renderer px-converts every dimension it draws with, and a
         // TextUnit only survives that as Sp — an em lineHeight crashed the watch

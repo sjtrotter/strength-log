@@ -9,8 +9,15 @@ package io.github.sjtrotter.strengthlog.wear.ui
  * JVM-tested, and the composable does layout only.
  */
 
-/** The brief's seven screens (§5). */
-enum class DialScreen { TODAY, READY, LIFTING, REST, REST_OVER, TIMED_HOLD, DAY_DONE }
+/**
+ * The two faces the watch has, and never a third (v3 §3): the overview the app
+ * opens on, and the workout you tap into. The platform dismiss gesture moves
+ * between them; nothing else does.
+ */
+enum class DialFace { OVERVIEW, WORKOUT }
+
+/** The dial's screens (§5): the overview, and the six of the workout face. */
+enum class DialScreen { OVERVIEW, READY, LIFTING, REST, REST_OVER, TIMED_HOLD, DAY_DONE }
 
 /** Disc grammar (§4) — the fill states the mode, and the mode states what a tap does. */
 enum class DiscStyle { FILLED, OUTLINED, FLAT, DASHED, DIMMED, FILLED_GREEN }
@@ -46,10 +53,24 @@ data class BandContent(
 )
 
 /** What tapping the disc does — the dial's one tap target (§1). */
-enum class DialTap { NONE, BEGIN_EXERCISE, START_SET, TICK, SKIP_REST, DISMISS }
+enum class DialTap { NONE, OPEN_WORKOUT, START_SET, TICK, SKIP_REST, DISMISS }
 
 /** What turning the crown does on this screen (§6). */
 enum class DialCrown { NONE, SELECT_EXERCISE, PEEK }
+
+/**
+ * What a leftward swipe does here (v3 §3). It is contextual and it is rare: only
+ * where the lifter is *between* efforts, never under the bar or mid-rest, where a
+ * brushed sleeve would cost them a set.
+ */
+enum class DialSwipe { NONE, NEXT_EXERCISE, BROWSE_DAY }
+
+/** How a day's segment of the cycle ring reads (v3 §1): the accent is "you are
+ *  here", the white marker is "you are looking here" (the peek vocabulary, §4). */
+enum class CycleMark { TODAY, OTHER, BROWSED }
+
+/** One day of the program, as one segment of the outer ring. */
+data class CycleSegment(val dayLabel: String, val accentIndex: Int, val mark: CycleMark)
 
 /**
  * What a 700ms hold on the disc does (§6) — undo the round at [roundIndex]. Null
@@ -61,7 +82,9 @@ data class DialHold(val roundIndex: Int, val disc: DiscContent)
 data class DialUiState(
     val screen: DialScreen,
     val accentIndex: Int,
-    /** Outer ring: sets logged today / sets today, 0f..1f. */
+    /** Outer ring: the program's days in order, clockwise from 12 (v3 §1). */
+    val cycle: List<CycleSegment>,
+    /** Sets logged today / sets today, 0f..1f — drawn inside today's own segment. */
     val dayProgress: Float,
     /** Inner ring segments; empty means the inner ring is gone (day done, §5.7). */
     val rounds: List<RoundState>,
@@ -80,5 +103,6 @@ data class DialUiState(
     val bloom: Boolean,
     val tap: DialTap,
     val crown: DialCrown = DialCrown.NONE,
+    val swipe: DialSwipe = DialSwipe.NONE,
     val hold: DialHold? = null,
 )

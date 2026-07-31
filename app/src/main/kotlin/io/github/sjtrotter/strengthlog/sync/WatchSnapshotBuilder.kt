@@ -10,11 +10,14 @@ import io.github.sjtrotter.strengthlog.domain.library.TrackingType
 import io.github.sjtrotter.strengthlog.domain.library.tracking
 import io.github.sjtrotter.strengthlog.domain.model.LoggedSet
 import io.github.sjtrotter.strengthlog.domain.model.Program
+import io.github.sjtrotter.strengthlog.domain.model.ProgramDay
 import io.github.sjtrotter.strengthlog.domain.standards.GoalCalculator
 import io.github.sjtrotter.strengthlog.domain.standards.GoalFormatter
 import io.github.sjtrotter.strengthlog.domain.standards.GoalTarget
 import io.github.sjtrotter.strengthlog.domain.standards.RestPolicy
 import io.github.sjtrotter.strengthlog.domain.standards.RestSettings
+import io.github.sjtrotter.strengthlog.domain.sync.WatchCycleDay
+import io.github.sjtrotter.strengthlog.domain.sync.WatchCycleExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchDay
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
@@ -71,8 +74,26 @@ object WatchSnapshotBuilder {
                 emphasisLine = day.emphasisLine,
             ),
             unit = unit.name.lowercase(),
+            cycle = program.days.map { it.toCycleDay(catalog) },
         )
     }
+
+    /**
+     * A day as the watch's cycle ring reads it (dial v3 §1): its identity plus the
+     * lifts it holds, from the *program*, not from logged slots — the watch previews
+     * every day but only ever logs against the suggested one, so a preview needs no
+     * sets and must not cost a query per day.
+     */
+    private fun ProgramDay.toCycleDay(catalog: ExerciseCatalog): WatchCycleDay = WatchCycleDay(
+        dayId = id,
+        title = title,
+        exercises = exercises.map { pe ->
+            WatchCycleExercise(
+                name = catalog.find(pe.exerciseId)?.watchName ?: pe.exerciseId,
+                setCount = pe.targetSets,
+            )
+        },
+    )
 
     private fun buildExercise(
         slot: ProgramSlot,

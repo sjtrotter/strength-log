@@ -1,5 +1,6 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
+import io.github.sjtrotter.strengthlog.domain.sync.WatchCycleDay
 import io.github.sjtrotter.strengthlog.domain.sync.WatchDay
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
@@ -82,6 +83,49 @@ class CrownLayerTest {
         assertEquals(2, ExerciseSelection.move(fromIndex = 0, detents = 5, exerciseCount = 3))
         assertEquals(0, ExerciseSelection.move(fromIndex = 1, detents = -4, exerciseCount = 3))
         assertEquals(0, ExerciseSelection.move(fromIndex = 0, detents = 1, exerciseCount = 0))
+    }
+
+    // --- swipe: the next lift (v3 §3) ---------------------------------------------
+
+    @Test
+    fun `a swipe moves to the next lift and wraps round the day`() {
+        val workLeft = listOf(true, true, true)
+        assertEquals(1, ExerciseSelection.next(fromIndex = 0, hasWorkLeft = workLeft))
+        assertEquals(0, ExerciseSelection.next(fromIndex = 2, hasWorkLeft = workLeft))
+    }
+
+    @Test
+    fun `a swipe skips lifts with nothing left to do`() {
+        assertEquals(2, ExerciseSelection.next(fromIndex = 0, hasWorkLeft = listOf(true, false, true)))
+        // Nowhere else to go: the swipe stays put rather than pretending to move.
+        assertEquals(1, ExerciseSelection.next(fromIndex = 1, hasWorkLeft = listOf(false, true, false)))
+        assertEquals(0, ExerciseSelection.next(fromIndex = 0, hasWorkLeft = emptyList()))
+    }
+
+    // --- swipe: browsing the program's days (v3 §3) -------------------------------
+
+    private val cycle = snapshot(exercise(1L, listOf(false))).copy(
+        cycle = listOf(
+            WatchCycleDay("A", "Lower"),
+            WatchCycleDay("B", "Upper"),
+            WatchCycleDay("C", "Full"),
+        ),
+    )
+
+    @Test
+    fun `browsing walks forward from today and wraps back to it`() {
+        assertEquals(1, CycleBrowse.next(current = null, snapshot = cycle))
+        assertEquals(2, CycleBrowse.next(current = 1, snapshot = cycle))
+        // Round to today again, which is "not browsing" — a glance, not a place.
+        assertNull(CycleBrowse.next(current = 2, snapshot = cycle))
+    }
+
+    @Test
+    fun `there is nothing to browse without a cycle to walk`() {
+        assertNull(CycleBrowse.next(current = null, snapshot = cycle.copy(cycle = emptyList())))
+        assertNull(CycleBrowse.next(current = null, snapshot = cycle.copy(cycle = listOf(WatchCycleDay("A", "Lower")))))
+        // A cycle that doesn't contain today is a cycle the watch can't place itself in.
+        assertNull(CycleBrowse.next(current = null, snapshot = cycle.copy(cycle = listOf(WatchCycleDay("Z", "Other")))))
     }
 
     // --- peek --------------------------------------------------------------------

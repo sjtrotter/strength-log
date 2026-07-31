@@ -65,6 +65,19 @@ class SyncCodecTest {
     }
 
     @Test
+    fun `snapshot round-trips the program's cycle through the wire bytes`() {
+        val withCycle = snapshot.copy(
+            cycle = listOf(
+                WatchCycleDay("A", "Day A — Squat", listOf(WatchCycleExercise("Squat", 6))),
+                WatchCycleDay("B", "Day B — Hinge", listOf(WatchCycleExercise("Deadlift", 4))),
+            ),
+        )
+        val decoded = SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(withCycle))
+        assertEquals(withCycle, decoded)
+        assertEquals(listOf("A", "B"), decoded.cycle.map { it.dayId })
+    }
+
+    @Test
     fun `delta round-trips through the wire bytes`() {
         assertEquals(delta, SyncCodec.decodeDelta(SyncCodec.encodeDelta(delta)))
     }

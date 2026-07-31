@@ -1,5 +1,7 @@
 package io.github.sjtrotter.strengthlog.wear.ui
 
+import io.github.sjtrotter.strengthlog.domain.sync.WatchCycleDay
+import io.github.sjtrotter.strengthlog.domain.sync.WatchCycleExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchDay
 import io.github.sjtrotter.strengthlog.domain.sync.WatchExercise
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSet
@@ -13,10 +15,10 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The seven screens (brief §5) and the transitions between them, as a pure
- * mapping. This is the watch's only device-free verification of the workout
- * flow, so each of the brief's screens gets its own case and each transition
- * is a state pair rather than a click.
+ * The two faces (v3 §3), the screens within them (brief §5) and the transitions
+ * between them, as a pure mapping. This is the watch's only device-free
+ * verification of the workout flow, so each screen gets its own case and each
+ * transition is a state pair rather than a click.
  */
 class DialStateTest {
 
@@ -64,6 +66,11 @@ class DialStateTest {
             exercises = exercises.toList(),
         ),
         unit = "lb",
+        cycle = listOf(
+            WatchCycleDay("A", "Lower", listOf(WatchCycleExercise("Squat", 3))),
+            WatchCycleDay("B", "Upper", listOf(WatchCycleExercise("Bench", 4), WatchCycleExercise("Row", 3))),
+            WatchCycleDay("C", "Full Body", listOf(WatchCycleExercise("Deadlift", 2))),
+        ),
     )
 
     private val squat = exercise(1L, "Squat", List(3) { set() })
@@ -74,26 +81,28 @@ class DialStateTest {
         snapshot: WatchSnapshot = day,
         exerciseIndex: Int = currentExerciseIndex(snapshot),
         phase: SetPhase = SetPhase.READY,
-        begun: Boolean = true,
+        face: DialFace = DialFace.WORKOUT,
         pendingCount: Int = 0,
         rest: RestState? = null,
         restedSeconds: Int? = null,
         liftingElapsedMillis: Long = 0L,
         nowElapsedMillis: Long = 0L,
         session: SessionStamps = SessionStamps(),
+        browseDayIndex: Int? = null,
         peekRoundIndex: Int? = null,
         peekTookSeconds: Int? = null,
     ) = DialInputs(
         snapshot = snapshot,
         exerciseIndex = exerciseIndex,
         phase = phase,
-        begun = begun,
+        face = face,
         pendingCount = pendingCount,
         rest = rest,
         restedSeconds = restedSeconds,
         liftingElapsedMillis = liftingElapsedMillis,
         nowElapsedMillis = nowElapsedMillis,
         session = session,
+        browseDayIndex = browseDayIndex,
         peekRoundIndex = peekRoundIndex,
         peekTookSeconds = peekTookSeconds,
     )
@@ -101,26 +110,148 @@ class DialStateTest {
     private fun DialUiState.discText(): List<String> =
         disc.lines.map { line -> line.spans.joinToString(" ") { it.text } }
 
-    // --- 1 · Today ---------------------------------------------------------------
+    // --- 1 · Overview (v3 §3) -----------------------------------------------------
+
+    private fun overview(
+        snapshot: WatchSnapshot = day,
+        browseDayIndex: Int? = null,
+        rest: RestState? = null,
+        nowElapsedMillis: Long = 0L,
+    ) = dialUiState(
+        inputs(
+            snapshot = snapshot,
+            face = DialFace.OVERVIEW,
+            browseDayIndex = browseDayIndex,
+            rest = rest,
+            nowElapsedMillis = nowElapsedMillis,
+        ),
+    )
 
     @Test
-    fun `today previews the day with one segment per exercise`() {
-        val state = dialUiState(inputs(begun = false))
-        assertEquals(DialScreen.TODAY, state.screen)
+    fun `the overview shows the day with one segment per exercise and one way in`() {
+        val state = overview()
+        assertEquals(DialScreen.OVERVIEW, state.screen)
         assertEquals(0f, state.dayProgress)
         assertEquals(2, state.rounds.size) // exercises, not sets
         assertEquals(1, state.rounds.count { it == RoundState.CURRENT })
-        assertEquals("DAY A · LOWER", state.topBand?.text)
+        // The day's identity is on the ring now, so the band is the title alone.
+        assertEquals("LOWER", state.topBand?.text)
         assertEquals("2 LIFTS · 5 SETS", state.bottomBand?.text)
         assertEquals(DiscStyle.FILLED, state.disc.style)
-        assertEquals(listOf("SQUAT", "BEGIN · 3 SETS"), state.discText())
-        assertEquals(DialTap.BEGIN_EXERCISE, state.tap)
+        assertEquals(listOf("START", "SQUAT"), state.discText())
+        assertEquals(DialTap.OPEN_WORKOUT, state.tap)
+        assertEquals(DialSwipe.BROWSE_DAY, state.swipe)
     }
 
     @Test
-    fun `today is gone the moment anything is logged, begun or not`() {
+    fun `the overview says CONTINUE, and where, once anything is logged`() {
         val started = snapshot(squat.copy(sets = listOf(set(done = true)) + squat.sets.drop(1)), press)
-        assertEquals(DialScreen.READY, dialUiState(inputs(snapshot = started, begun = false)).screen)
+        assertEquals(listOf("CONTINUE", "SET 2 OF 3"), overview(started).discText())
+    }
+
+    @Test
+    fun `the tap into the workout lands on the set in front of the lifter`() {
+        val opened = dialUiState(inputs(face = DialFace.WORKOUT))
+        assertEquals(DialScreen.READY, opened.screen)
+        assertEquals(DialTap.START_SET, opened.tap)
+    }
+
+    @Test
+    fun `a cold launch opens on the face the day implies`() {
+        assertEquals(DialFace.OVERVIEW, impliedFace(day))
+        val started = snapshot(squat.copy(sets = listOf(set(done = true)) + squat.sets.drop(1)), press)
+        assertEquals(DialFace.WORKOUT, impliedFace(started))
+    }
+
+    @Test
+    fun `the overview keeps a running rest on the clock ring`() {
+        val rest = RestState(deadlineElapsedMillis = 90_000L, totalSeconds = 150, betweenExercises = false)
+        val state = overview(rest = rest, nowElapsedMillis = 6_000L)
+        assertEquals(DialScreen.OVERVIEW, state.screen)
+        assertEquals(84f / 150f, state.arc!!)
+    }
+
+    // --- the cycle ring (v3 §1) ---------------------------------------------------
+
+    @Test
+    fun `the ring is the program's days in order, today's in the accent`() {
+        val cycle = dialUiState(inputs()).cycle
+        assertEquals(listOf("A", "B", "C"), cycle.map { it.dayLabel })
+        assertEquals(listOf(0, 1, 2), cycle.map { it.accentIndex }) // accent by position
+        assertEquals(listOf(CycleMark.TODAY, CycleMark.OTHER, CycleMark.OTHER), cycle.map { it.mark })
+    }
+
+    @Test
+    fun `the ring stays the same on both faces and through the day's end`() {
+        val screens = listOf(
+            overview(),
+            dialUiState(inputs()),
+            dialUiState(inputs(phase = SetPhase.LIFTING)),
+            dialUiState(inputs(snapshot = allDone())),
+        )
+        screens.forEach { assertEquals(3, it.cycle.size, "${it.screen} lost the cycle ring") }
+    }
+
+    @Test
+    fun `a phone that publishes no cycle still gets a ring — one segment, today`() {
+        val old = day.copy(cycle = emptyList())
+        val cycle = dialUiState(inputs(snapshot = old)).cycle
+        assertEquals(1, cycle.size)
+        assertEquals(CycleMark.TODAY, cycle.single().mark)
+        assertEquals("A", cycle.single().dayLabel)
+        assertEquals(0, cycle.single().accentIndex)
+    }
+
+    @Test
+    fun `a cycle that has lost today falls back rather than losing the accent`() {
+        val stale = day.copy(cycle = day.cycle.drop(1))
+        assertEquals(listOf(CycleMark.TODAY), dialUiState(inputs(snapshot = stale)).cycle.map { it.mark })
+    }
+
+    // --- day browse (v3 §3) -------------------------------------------------------
+
+    @Test
+    fun `browsing another day is read-only, in that day's own colours`() {
+        val state = overview(browseDayIndex = 1)
+        assertEquals(DialScreen.OVERVIEW, state.screen)
+        assertEquals(1, state.accentIndex) // day B's accent, not today's
+        assertEquals("UPPER", state.topBand?.text)
+        assertEquals("2 LIFTS · 7 SETS", state.bottomBand?.text)
+        assertEquals(2, state.rounds.size) // one segment per lift of the browsed day
+        assertTrue(state.rounds.all { it == RoundState.UPCOMING })
+        assertEquals(DiscStyle.DIMMED, state.disc.style)
+        assertEquals(listOf("DAY B", "BENCH"), state.discText())
+        assertEquals(DialTap.NONE, state.tap)
+        assertEquals(DialCrown.NONE, state.crown)
+        assertEquals(DialSwipe.BROWSE_DAY, state.swipe)
+    }
+
+    @Test
+    fun `the browsed day is marked white while the accent stays on today`() {
+        val cycle = overview(browseDayIndex = 2).cycle
+        assertEquals(listOf(CycleMark.TODAY, CycleMark.OTHER, CycleMark.BROWSED), cycle.map { it.mark })
+        assertEquals(1, cycle.count { it.mark == CycleMark.TODAY })
+    }
+
+    @Test
+    fun `today's progress keeps riding today's segment while another day is browsed`() {
+        val partly = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
+        assertEquals(1f / 5f, overview(partly, browseDayIndex = 1).dayProgress)
+    }
+
+    @Test
+    fun `a browse position the program no longer has falls back to the live overview`() {
+        val state = overview(browseDayIndex = 9)
+        assertEquals(DiscStyle.FILLED, state.disc.style)
+        assertEquals(DialTap.OPEN_WORKOUT, state.tap)
+    }
+
+    @Test
+    fun `browsing is an overview gesture — the workout face never sees it`() {
+        val state = dialUiState(inputs(face = DialFace.WORKOUT, browseDayIndex = 1))
+        assertEquals(DialScreen.READY, state.screen)
+        assertEquals(0, state.accentIndex)
+        assertEquals(listOf(CycleMark.TODAY, CycleMark.OTHER, CycleMark.OTHER), state.cycle.map { it.mark })
     }
 
     // --- 2 · Ready ---------------------------------------------------------------
@@ -264,7 +395,7 @@ class DialStateTest {
             tracking = "timed",
         )
         val screens = listOf(
-            inputs(begun = false),
+            inputs(face = DialFace.OVERVIEW),
             inputs(),
             inputs(phase = SetPhase.LIFTING),
             inputs(rest = rest, nowElapsedMillis = 6_000L),
@@ -293,7 +424,7 @@ class DialStateTest {
         // The screens that offer an undo carry no arc, so the two never share the rim.
         assertNull(dialUiState(inputs()).arc)
         assertNull(dialUiState(inputs(restedSeconds = 150)).arc)
-        assertNull(dialUiState(inputs(begun = false)).arc)
+        assertNull(dialUiState(inputs(face = DialFace.OVERVIEW)).arc)
         assertNull(dialUiState(inputs(phase = SetPhase.LIFTING)).arc)
     }
 
@@ -411,7 +542,7 @@ class DialStateTest {
 
     @Test
     fun `the crown picks exercises on today and rounds inside a session`() {
-        assertEquals(DialCrown.SELECT_EXERCISE, dialUiState(inputs(begun = false)).crown)
+        assertEquals(DialCrown.SELECT_EXERCISE, dialUiState(inputs(face = DialFace.OVERVIEW)).crown)
         assertEquals(DialCrown.PEEK, dialUiState(inputs()).crown)
         assertEquals(DialCrown.PEEK, dialUiState(inputs(phase = SetPhase.LIFTING)).crown)
         assertEquals(DialCrown.PEEK, dialUiState(inputs(restedSeconds = 150)).crown)
@@ -465,11 +596,29 @@ class DialStateTest {
     }
 
     @Test
-    fun `there is nothing to peek at before the day starts`() {
-        val state = dialUiState(inputs(begun = false, peekRoundIndex = 1))
-        assertEquals(DialScreen.TODAY, state.screen)
+    fun `the crown's peek belongs to the workout face, not the overview`() {
+        val state = dialUiState(inputs(face = DialFace.OVERVIEW, peekRoundIndex = 1))
+        assertEquals(DialScreen.OVERVIEW, state.screen)
         assertEquals(DiscStyle.FILLED, state.disc.style)
-        assertEquals(DialTap.BEGIN_EXERCISE, state.tap)
+        assertEquals(DialTap.OPEN_WORKOUT, state.tap)
+    }
+
+    // --- swipe left, and only where nothing is under way (v3 §3) -------------------
+
+    @Test
+    fun `a set's start is the only place on the workout face a swipe changes lifts`() {
+        val rest = RestState(deadlineElapsedMillis = 90_000L, totalSeconds = 150, betweenExercises = false)
+        assertEquals(DialSwipe.NEXT_EXERCISE, dialUiState(inputs()).swipe)
+        assertEquals(DialSwipe.NEXT_EXERCISE, dialUiState(inputs(restedSeconds = 150)).swipe)
+        assertEquals(DialSwipe.NONE, dialUiState(inputs(phase = SetPhase.LIFTING)).swipe)
+        assertEquals(DialSwipe.NONE, dialUiState(inputs(rest = rest, nowElapsedMillis = 6_000L)).swipe)
+        assertEquals(DialSwipe.NONE, dialUiState(inputs(snapshot = allDone())).swipe)
+    }
+
+    @Test
+    fun `a swipe means nothing while the crown is peeking`() {
+        val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
+        assertEquals(DialSwipe.NONE, dialUiState(inputs(snapshot = logged, peekRoundIndex = 0)).swipe)
     }
 
     // --- crown: undo (§6) ---------------------------------------------------------
@@ -488,7 +637,7 @@ class DialStateTest {
     @Test
     fun `there is nothing to undo before the first set is logged`() {
         assertNull(dialUiState(inputs()).hold)
-        assertNull(dialUiState(inputs(begun = false)).hold)
+        assertNull(dialUiState(inputs(face = DialFace.OVERVIEW)).hold)
     }
 
     @Test

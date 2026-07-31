@@ -9,14 +9,15 @@ import kotlin.math.roundToLong
 /**
  * The whole workout flow as a pure function: snapshot + the watch's own local
  * timer/phase state in, one [DialUiState] out (brief §5). Every screen the
- * lifter sees is decided here, so the seven states and the transitions between
- * them are JVM-testable without a device.
+ * lifter sees is decided here, so both faces, the states within them and the
+ * transitions between them are JVM-testable without a device.
  *
  * Local state is deliberately minimal — which exercise and which round are
  * *derived* from the snapshot's done flags (the client echoes a tick
  * optimistically, so the ring moves the instant it's tapped), and only what the
- * snapshot genuinely cannot know is passed in: has the lifter started this set,
- * is a rest running, and when did this session's first set begin.
+ * snapshot genuinely cannot know is passed in: which face the lifter is on, has
+ * the lifter started this set, is a rest running, and when did this session's
+ * first set begin.
  */
 
 /** Whether the lifter has started the set in front of them. */
@@ -41,8 +42,8 @@ data class DialInputs(
     val snapshot: WatchSnapshot,
     val exerciseIndex: Int,
     val phase: SetPhase,
-    /** True once the lifter has tapped through the "today" preview (§5.1). */
-    val begun: Boolean,
+    /** Which of the two faces the lifter is on (v3 §3). */
+    val face: DialFace,
     val pendingCount: Int,
     val rest: RestState?,
     /** The rest that just ended, in seconds — drives the "✓ RESTED 2:30" badge
@@ -51,12 +52,55 @@ data class DialInputs(
     val liftingElapsedMillis: Long = 0L,
     val nowElapsedMillis: Long = 0L,
     val session: SessionStamps = SessionStamps(),
+    /** The cycle day the overview is previewing (v3 §3), or null when it is showing
+     *  today. Like the crown's peek, it is a glance — never restored. */
+    val browseDayIndex: Int? = null,
     /** The round the crown is peeking at (§6), or null when nobody is browsing. */
     val peekRoundIndex: Int? = null,
     /** How long that round took, from the watch's own session memory
      *  ([SetTimeMemory]) — null when this watch never observed it. */
     val peekTookSeconds: Int? = null,
 )
+
+/**
+ * The face a cold launch belongs on: whatever the day itself implies (v3 §3). A
+ * workout with something logged in it opens on the workout face; an untouched day
+ * opens on the overview. Nothing is stored for this — the sets are the record.
+ */
+fun impliedFace(snapshot: WatchSnapshot): DialFace =
+    if (snapshot.day.exercises.any { ex -> ex.sets.any { it.done } }) {
+        DialFace.WORKOUT
+    } else {
+        DialFace.OVERVIEW
+    }
+
+/**
+ * The outer ring: the program's days in order, today's segment carrying the accent
+ * and the browsed one the white marker (v3 §1). The marks are checked in that
+ * order for the same reason the exercise ring checks CURRENT before PEEKED —
+ * where you're looking never overwrites where you are.
+ *
+ * A snapshot from a phone that doesn't publish a cycle yet — or one whose cycle
+ * has lost today — falls back to a single segment for today, which is exactly the
+ * whole-circle ring the dial had before the cycle existed.
+ */
+fun cycleSegments(snapshot: WatchSnapshot, browseDayIndex: Int? = null): List<CycleSegment> {
+    val day = snapshot.day
+    val days = snapshot.cycle.takeIf { cycle -> cycle.any { it.dayId == day.dayId } }
+        ?: return listOf(CycleSegment(day.dayId.uppercase(), day.accentIndex, CycleMark.TODAY))
+    return days.mapIndexed { index, cycleDay ->
+        CycleSegment(
+            dayLabel = cycleDay.dayId.uppercase(),
+            // Accent by position, the rule every other surface uses.
+            accentIndex = index,
+            mark = when {
+                cycleDay.dayId == day.dayId -> CycleMark.TODAY
+                index == browseDayIndex -> CycleMark.BROWSED
+                else -> CycleMark.OTHER
+            },
+        )
+    }
+}
 
 /**
  * The exercise the dial is on: the first with work left. The watch never
@@ -91,7 +135,8 @@ fun roundLabel(round: RoundUiState): String =
 
 fun dialUiState(inputs: DialInputs): DialUiState {
     val day = inputs.snapshot.day
-    if (day.exercises.isEmpty()) return noProgram(day.accentIndex)
+    if (day.exercises.isEmpty()) return noProgram(inputs.snapshot)
+    val browsing = inputs.browseDayIndex?.takeIf { inputs.face == DialFace.OVERVIEW }
 
     val unit = watchUnit(inputs.snapshot.unit)
     val exercise = day.exercises[inputs.exerciseIndex.coerceIn(day.exercises.indices)]
@@ -111,15 +156,18 @@ fun dialUiState(inputs: DialInputs): DialUiState {
         setCount = allSets.size,
         doneSetCount = doneSets,
         unit = unit,
+        cycle = cycleSegments(inputs.snapshot, browsing),
     )
 
     val state = when {
         dayDone -> context.dayDone()
+        // The overview is a face, not a step: it stays available with a rest
+        // running, and the clock keeps its ring there too (v3 §3).
+        inputs.face == DialFace.OVERVIEW -> context.overview(restRunning, browsing)
         restRunning != null -> context.rest(restRunning)
         inputs.restedSeconds != null && inputs.phase == SetPhase.READY -> context.restOver(inputs.restedSeconds)
         inputs.phase == SetPhase.LIFTING && holdGoalSeconds(exercise, roundIndex) > 0 -> context.timedHold()
         inputs.phase == SetPhase.LIFTING -> context.lifting()
-        !inputs.begun && doneSets == 0 -> context.today()
         else -> context.ready()
     }
     return state
@@ -137,6 +185,7 @@ private class ScreenContext(
     val setCount: Int,
     val doneSetCount: Int,
     val unit: WeightUnit,
+    val cycle: List<CycleSegment>,
 ) {
     val day get() = inputs.snapshot.day
     val round: RoundUiState? get() = stream.rounds.getOrNull(roundIndex)
@@ -157,12 +206,15 @@ private class ScreenContext(
         disc: DiscContent,
         tap: DialTap,
         crown: DialCrown = DialCrown.NONE,
+        swipe: DialSwipe = DialSwipe.NONE,
         hold: DialHold? = null,
         bloom: Boolean = false,
         dayProgressOverride: Float? = null,
+        accentOverride: Int? = null,
     ) = DialUiState(
         screen = screen,
-        accentIndex = day.accentIndex,
+        accentIndex = accentOverride ?: day.accentIndex,
+        cycle = cycle,
         dayProgress = dayProgressOverride ?: dayProgress,
         rounds = rounds,
         arc = arc,
@@ -172,26 +224,32 @@ private class ScreenContext(
         bloom = bloom,
         tap = tap,
         crown = crown,
+        swipe = swipe,
         hold = hold,
     )
 
-    fun today(): DialUiState {
+    /**
+     * The face the app opens on (v3 §3): the cycle on the rim, the day's lifts on
+     * the exercise ring, and one way in. The disc says what the tap does and the
+     * ring says where the day is — the old "begin" gate is gone, because tapping
+     * the disc no longer changes the copy, it changes the face.
+     */
+    fun overview(rest: RestState?, browseDayIndex: Int?): DialUiState {
+        if (browseDayIndex != null) browse(browseDayIndex)?.let { return it }
         val exerciseStates = DialGeometry.roundStates(
             doneFlags = day.exercises.map { ex -> ex.sets.isNotEmpty() && ex.sets.all { it.done } },
             currentIndex = day.exercises.indexOf(exercise),
         )
-        // The day's short title ("Lower"), never its emphasis line — that is a
-        // five-clause sentence, and an arc that shows "FLAT PRE…" says less than
-        // one that shows nothing. The widget and tile made the same call.
-        val subtitle = day.title.takeIf { it.isNotBlank() }
+        val started = doneSetCount > 0
         return base(
-            screen = DialScreen.TODAY,
+            screen = DialScreen.OVERVIEW,
             rounds = exerciseStates,
-            arc = null,
-            topBand = BandContent(
-                text = listOfNotNull("day ${day.dayId}", subtitle).joinToString(" · ").uppercase(),
-                tone = DialTone.ACCENT_BRIGHT,
-            ),
+            arc = rest?.let {
+                RestTimer.remainingFraction(it.deadlineElapsedMillis, inputs.nowElapsedMillis, it.totalSeconds)
+            },
+            // The title alone: which day this is now lives on the ring, and the
+            // emphasis line is a five-clause sentence an arc can only truncate.
+            topBand = dayTitleBand(day.title),
             bottomBand = BandContent(
                 text = "${day.exercises.size} lifts · $setCount sets".uppercase(),
                 tone = DialTone.TERTIARY,
@@ -200,21 +258,75 @@ private class ScreenContext(
             disc = DiscContent(
                 style = DiscStyle.FILLED,
                 lines = listOf(
-                    DiscLine(exercise.name.uppercase(), DialTextRole.DISC_LABEL_SMALL, DialTone.ON_DISC),
                     DiscLine(
-                        "begin · ${exercise.sets.size} sets".uppercase(),
-                        DialTextRole.BAND,
+                        (if (started) "continue" else "start").uppercase(),
+                        DialTextRole.DISC_LABEL,
+                        DialTone.ON_DISC,
+                    ),
+                    DiscLine(
+                        if (started) setOfLine() else exercise.name.uppercase(),
+                        DialTextRole.DISC_LABEL_SMALL,
                         DialTone.ON_DISC,
                     ),
                 ),
             ),
-            tap = DialTap.BEGIN_EXERCISE,
+            tap = DialTap.OPEN_WORKOUT,
             // The inner ring is exercises here, so the crown picks one of those —
-            // and the tap begins the one the crown left the accent on, which is
-            // not necessarily the first with work left (§5.1).
+            // and the tap opens the one the crown left the accent on, which is not
+            // necessarily the first with work left (§5.1).
             crown = DialCrown.SELECT_EXERCISE,
+            swipe = DialSwipe.BROWSE_DAY,
         )
     }
+
+    /**
+     * Another day of the program, read-only (v3 §3): its own accent, its own title,
+     * one ring segment per lift it holds. The disc is dimmed and does nothing —
+     * looking at Wednesday must never be one slip away from starting it — and the
+     * white marker on its cycle segment says which day is being looked at while the
+     * accent stays on today.
+     *
+     * Null when the index doesn't name a day, which is how a stale browse position
+     * (the program changed under it) falls back to the live overview.
+     */
+    private fun browse(index: Int): DialUiState? {
+        val browsed = inputs.snapshot.cycle.getOrNull(index) ?: return null
+        return base(
+            screen = DialScreen.OVERVIEW,
+            rounds = List(browsed.exercises.size) { RoundState.UPCOMING },
+            arc = null,
+            topBand = dayTitleBand(browsed.title),
+            bottomBand = BandContent(
+                text = "${browsed.exercises.size} lifts · ${browsed.exercises.sumOf { it.setCount }} sets"
+                    .uppercase(),
+                tone = DialTone.TERTIARY,
+                role = DialTextRole.BAND_SECONDARY,
+            ),
+            disc = DiscContent(
+                style = DiscStyle.DIMMED,
+                lines = listOfNotNull(
+                    DiscLine(
+                        "day ${browsed.dayId}".uppercase(),
+                        DialTextRole.DISC_LABEL,
+                        DialTone.PRIMARY,
+                    ),
+                    browsed.exercises.firstOrNull()?.let {
+                        DiscLine(it.name.uppercase(), DialTextRole.BAND, DialTone.SECONDARY)
+                    },
+                ),
+            ),
+            tap = DialTap.NONE,
+            // The crown picks *today's* exercises; there is nothing here for it to
+            // move, and a dimmed face that still responds isn't read-only.
+            crown = DialCrown.NONE,
+            swipe = DialSwipe.BROWSE_DAY,
+            accentOverride = index,
+        )
+    }
+
+    /** The day's name on the top band, in whichever accent the face is wearing. */
+    private fun dayTitleBand(title: String): BandContent? =
+        title.takeIf { it.isNotBlank() }?.let { BandContent(it.uppercase(), DialTone.ACCENT_BRIGHT) }
 
     fun ready(): DialUiState = base(
         screen = DialScreen.READY,
@@ -228,6 +340,9 @@ private class ScreenContext(
         disc = startDisc(),
         tap = DialTap.START_SET,
         crown = DialCrown.PEEK,
+        // A set's start is the one moment on this face where changing lifts costs
+        // nothing — nothing is under way to lose (v3 §3).
+        swipe = DialSwipe.NEXT_EXERCISE,
         hold = undoHold(),
     )
 
@@ -322,6 +437,7 @@ private class ScreenContext(
         disc = startDisc(),
         tap = DialTap.START_SET,
         crown = DialCrown.PEEK,
+        swipe = DialSwipe.NEXT_EXERCISE,
         hold = undoHold(),
         bloom = true,
     )
@@ -466,6 +582,7 @@ private fun DialUiState.withPeek(
         disc = context.peekDisc(index, tookSeconds),
         bloom = false,
         tap = DialTap.NONE,
+        swipe = DialSwipe.NONE,
         hold = null,
     )
 }
@@ -487,9 +604,10 @@ private fun DialUiState.withQueuedStatus(pendingCount: Int): DialUiState {
 }
 
 /** The phone hasn't generated a program yet (§7): a dashed disc and nothing to act on. */
-private fun noProgram(accentIndex: Int) = DialUiState(
-    screen = DialScreen.TODAY,
-    accentIndex = accentIndex,
+private fun noProgram(snapshot: WatchSnapshot) = DialUiState(
+    screen = DialScreen.OVERVIEW,
+    accentIndex = snapshot.day.accentIndex,
+    cycle = cycleSegments(snapshot),
     dayProgress = 0f,
     rounds = emptyList(),
     arc = null,

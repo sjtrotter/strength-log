@@ -7,6 +7,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.CurvedTextStyle
 import io.github.sjtrotter.strengthlog.wear.ui.DialTextRole
 
@@ -59,8 +60,18 @@ data class DialTypography(
      * proportional figures rather than the tabular ones. It costs the LIFTING
      * clock a pixel of re-centring per digit and buys the whole band its arc.
      */
-    fun curved(role: DialTextRole, color: Color): CurvedTextStyle =
-        CurvedTextStyle(style(role).copy(color = color))
+    fun curved(role: DialTextRole, color: Color): CurvedTextStyle {
+        val base = style(role)
+        // The curved renderer px-converts lineHeight, and only Sp survives that
+        // ("Only Sp can convert to Px", on-wrist crash 2026-07-31) — the straight
+        // styles carry it in em, so it is resolved against the font size here.
+        val lineHeight = if (base.lineHeight.isEm) {
+            (base.fontSize.value * base.lineHeight.value).sp
+        } else {
+            base.lineHeight
+        }
+        return CurvedTextStyle(base.copy(color = color, lineHeight = lineHeight))
+    }
 }
 
 /** Reference-canvas sizes; [scale] is measured diameter / 384. */

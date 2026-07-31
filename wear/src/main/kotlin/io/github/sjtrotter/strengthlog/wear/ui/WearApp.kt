@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.wear.compose.foundation.BasicSwipeToDismissBox
 import io.github.sjtrotter.strengthlog.domain.sync.SetEditDelta
 import io.github.sjtrotter.strengthlog.domain.sync.WatchSnapshot
 import io.github.sjtrotter.strengthlog.wear.OngoingWorkoutChip
@@ -58,9 +59,10 @@ private val LIVE_SCREENS = setOf(DialScreen.LIFTING, DialScreen.TIMED_HOLD, Dial
  *
  * Every state the watch can be in is that same dial: waiting for the phone
  * ([LoadingDial]), a day with no program yet (the dashed disc [dialUiState]
- * already produces), the workout, and ambient. There is no navigation. The dial's
- * state changes in place; a swipe dismisses the activity, which is the platform's
- * own behaviour and the only "back" the watch has.
+ * already produces), the workout, and ambient. There are no lists and no
+ * destinations — the dial re-renders in place — but there are two faces (v3 §3),
+ * and the platform's own dismiss gesture is what moves between them: back out of
+ * the workout face, then out of the app.
  */
 @Composable
 fun WearApp(
@@ -109,9 +111,11 @@ fun WearApp(
  * which exercise did the crown pick, and how long each set actually took.
  *
  * All of it is [rememberSaveable] and deadline-anchored, so a process death
- * mid-set or mid-rest restores to exactly the same dial (write-on-mutation). The
- * one deliberate exception is the peek: a glance at another round is not a place
- * the watch should ever restore into.
+ * mid-set or mid-rest restores to exactly the same dial (write-on-mutation) — the
+ * face included, seeded from what the day itself implies ([impliedFace]) on a cold
+ * launch. The deliberate exceptions are the two glances: the crown's peek at
+ * another round, and the overview's preview of another day. Neither is a place the
+ * watch should ever restore into.
  */
 @Composable
 private fun WorkoutDial(
@@ -125,7 +129,7 @@ private fun WorkoutDial(
     // Keyed on the day: a rollover to tomorrow's workout starts a fresh session
     // rather than inheriting yesterday's stamps and a rest nobody is taking.
     val dayId = snap.day.dayId
-    var begun by rememberSaveable(dayId) { mutableStateOf(false) }
+    var face by rememberSaveable(dayId) { mutableStateOf(impliedFace(snap)) }
     var lifting by rememberSaveable(dayId) { mutableStateOf(false) }
     var startedAtWallMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
     var startedAtElapsedMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
@@ -140,6 +144,7 @@ private fun WorkoutDial(
         mutableStateOf(SetTimeMemory.EMPTY)
     }
     var peek by remember(dayId) { mutableStateOf<PeekState?>(null) }
+    var browseDay by remember(dayId) { mutableStateOf<Int?>(null) }
     var nowElapsedMillis by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
 
     val exerciseIndex = ExerciseSelection.resolve(snap, selectedExercise.takeIf { it >= 0 })
@@ -160,7 +165,6 @@ private fun WorkoutDial(
     }
 
     fun startSet() {
-        begun = true
         lifting = true
         restedSeconds = NO_REST
         val wallNow = System.currentTimeMillis()
@@ -247,32 +251,32 @@ private fun WorkoutDial(
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
 
-    val state = dialUiState(
-        DialInputs(
-            snapshot = snap,
-            exerciseIndex = exerciseIndex,
-            phase = if (lifting) SetPhase.LIFTING else SetPhase.READY,
-            begun = begun,
-            pendingCount = pendingCount,
-            rest = if (restDeadlineMillis > 0L) {
-                RestState(restDeadlineMillis, restTotalSeconds, restBetweenExercises)
-            } else {
-                null
-            },
-            restedSeconds = restedSeconds.takeIf { it != NO_REST },
-            liftingElapsedMillis = if (lifting) {
-                (nowElapsedMillis - startedAtElapsedMillis).coerceAtLeast(0L)
-            } else {
-                0L
-            },
-            nowElapsedMillis = nowElapsedMillis,
-            session = SessionStamps(sessionStartedAtMillis, sessionEndedAtMillis),
-            peekRoundIndex = peek?.roundIndex,
-            peekTookSeconds = peek?.let { p ->
-                exercise?.let { setTimes.secondsFor(it.programExerciseId, p.roundIndex) }
-            },
-        ),
+    val inputs = DialInputs(
+        snapshot = snap,
+        exerciseIndex = exerciseIndex,
+        phase = if (lifting) SetPhase.LIFTING else SetPhase.READY,
+        face = face,
+        pendingCount = pendingCount,
+        rest = if (restDeadlineMillis > 0L) {
+            RestState(restDeadlineMillis, restTotalSeconds, restBetweenExercises)
+        } else {
+            null
+        },
+        restedSeconds = restedSeconds.takeIf { it != NO_REST },
+        liftingElapsedMillis = if (lifting) {
+            (nowElapsedMillis - startedAtElapsedMillis).coerceAtLeast(0L)
+        } else {
+            0L
+        },
+        nowElapsedMillis = nowElapsedMillis,
+        session = SessionStamps(sessionStartedAtMillis, sessionEndedAtMillis),
+        browseDayIndex = browseDay,
+        peekRoundIndex = peek?.roundIndex,
+        peekTookSeconds = peek?.let { p ->
+            exercise?.let { setTimes.secondsFor(it.programExerciseId, p.roundIndex) }
+        },
     )
+    val state = dialUiState(inputs)
 
     // Repaint ticker: only while something on screen is counting.
     LaunchedEffect(state.screen) {
@@ -326,8 +330,8 @@ private fun WorkoutDial(
         latestTick()
     }
 
-    // The crown reads the screen it's on: exercises on Today, rounds in a session,
-    // nothing where there is nothing to look through (§6).
+    // The crown reads the screen it's on: exercises on the overview, rounds in a
+    // session, nothing where there is nothing to look through (§6).
     val crown = rememberCrownModifier(enabled = state.crown != DialCrown.NONE) { detents ->
         when (state.crown) {
             DialCrown.SELECT_EXERCISE ->
@@ -343,27 +347,59 @@ private fun WorkoutDial(
         }
     }
 
-    Dial(
-        state = state,
-        modifier = crown,
-        onTap = {
-            when (state.tap) {
-                DialTap.BEGIN_EXERCISE -> begun = true
-                DialTap.START_SET -> startSet()
-                DialTap.TICK -> tick()
-                DialTap.SKIP_REST -> {
-                    // Skipping is silent by design: cancel the pending buzz, drop
-                    // straight to the next set. No "rested" badge — nothing rested.
-                    restController.skip()
-                    clearRest()
-                    restedSeconds = NO_REST
+    // Leftward is contextual and only where nothing is under way (v3 §3); rightward
+    // is the platform's, below.
+    val swipeLeft = crown.swipeLeft(enabled = state.swipe != DialSwipe.NONE) {
+        when (state.swipe) {
+            DialSwipe.NEXT_EXERCISE -> selectedExercise = ExerciseSelection.next(
+                fromIndex = exerciseIndex,
+                hasWorkLeft = snap.day.exercises.map { ex -> ex.sets.any { !it.done } },
+            )
+            DialSwipe.BROWSE_DAY -> browseDay = CycleBrowse.next(browseDay, snap)
+            DialSwipe.NONE -> Unit
+        }
+    }
+
+    // Two-level dismiss: out of the workout face to the overview, then out of the
+    // app. DONE is terminal — a swipe there means the same thing its tap does, so
+    // the gesture is handed back to the system.
+    val backToOverview = face == DialFace.WORKOUT && state.screen != DialScreen.DAY_DONE
+    BasicSwipeToDismissBox(
+        onDismissed = { face = DialFace.OVERVIEW },
+        // Off on the overview: the gesture then belongs to the system, which is
+        // how the second level (out of the app) stays the platform's own.
+        userSwipeEnabled = backToOverview,
+    ) { isBackground ->
+        // What the swipe pulls the face off is the dial's own near-black, not a
+        // second live dial: the overview arrives when the gesture lands, and a
+        // whole dial composed underneath a rest would repaint five times a second
+        // for something nobody sees.
+        if (isBackground) {
+            Box(Modifier.fillMaxSize().background(Background))
+            return@BasicSwipeToDismissBox
+        }
+        Dial(
+            state = state,
+            modifier = Modifier.fillMaxSize().background(Background).then(swipeLeft),
+            onTap = {
+                when (state.tap) {
+                    DialTap.OPEN_WORKOUT -> face = DialFace.WORKOUT
+                    DialTap.START_SET -> startSet()
+                    DialTap.TICK -> tick()
+                    DialTap.SKIP_REST -> {
+                        // Skipping is silent by design: cancel the pending buzz, drop
+                        // straight to the next set. No "rested" badge — nothing rested.
+                        restController.skip()
+                        clearRest()
+                        restedSeconds = NO_REST
+                    }
+                    DialTap.DISMISS -> onDismiss()
+                    DialTap.NONE -> Unit
                 }
-                DialTap.DISMISS -> onDismiss()
-                DialTap.NONE -> Unit
-            }
-        },
-        onHoldComplete = { index -> undo(index) },
-    )
+            },
+            onHoldComplete = { index -> undo(index) },
+        )
+    }
 }
 
 /** [SetTimeMemory] rides a saved-instance bundle as its own one-line encoding. */

@@ -35,6 +35,41 @@ object ExerciseSelection {
         if (exerciseCount <= 0) return 0
         return (fromIndex + detents).coerceIn(0, exerciseCount - 1)
     }
+
+    /**
+     * The next lift a swipe moves to (v3 §3): the following one with work left,
+     * wrapping through the day's own order. Finished lifts are skipped because
+     * [resolve] would bounce straight off them, and a swipe that visibly does
+     * nothing is worse than no swipe at all. Returns [fromIndex] when the day
+     * holds nothing else to go to.
+     */
+    fun next(fromIndex: Int, hasWorkLeft: List<Boolean>): Int {
+        if (hasWorkLeft.isEmpty()) return fromIndex
+        for (step in 1..hasWorkLeft.size) {
+            val index = Math.floorMod(fromIndex + step, hasWorkLeft.size)
+            if (hasWorkLeft[index]) return index
+        }
+        return fromIndex
+    }
+}
+
+/**
+ * Browsing the program's other days from the overview (v3 §3) — the same "a glance
+ * is not a place" rule as the crown's peek, one axis out: it moves forward only,
+ * and coming back round to today is how it ends, which is why today is `null`
+ * rather than an index. Nothing about it is persisted.
+ */
+object CycleBrowse {
+
+    /** The day after [current] (today when it is null), or null once that is today
+     *  again. Null too when there is no cycle worth walking. */
+    fun next(current: Int?, snapshot: WatchSnapshot): Int? {
+        val days = snapshot.cycle
+        val today = days.indexOfFirst { it.dayId == snapshot.day.dayId }
+        if (today < 0 || days.size <= 1) return null
+        val index = ((current ?: today) + 1) % days.size
+        return index.takeIf { it != today }
+    }
 }
 
 /** A peek in flight: which round is being looked at, and when the crown last moved. */

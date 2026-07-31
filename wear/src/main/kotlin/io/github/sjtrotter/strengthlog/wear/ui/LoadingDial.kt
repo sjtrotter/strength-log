@@ -54,12 +54,13 @@ fun LoadingDial() {
         )
 
         Canvas(Modifier.fillMaxSize()) {
-            val dayRing = DialGeometry.dayRing(diameterPx)
+            // The cycle ring with no cycle in it yet: one segment, going round.
+            val rim = DialGeometry.cycleRing(diameterPx)
             drawRingArc(
                 color = accent,
                 arc = DialArc(DialGeometry.TOP_ANGLE_DEG + angle, SWEEP_DEG),
-                radiusPx = dayRing.radiusPx,
-                strokePx = dayRing.strokePx,
+                radiusPx = rim.radiusPx,
+                strokePx = rim.strokePx,
                 cap = StrokeCap.Round,
             )
         }

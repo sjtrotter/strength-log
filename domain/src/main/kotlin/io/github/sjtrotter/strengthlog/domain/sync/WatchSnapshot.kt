@@ -20,7 +20,30 @@ data class WatchSnapshot(
     val day: WatchDay,
     /** "lb" or "kg" — matches [io.github.sjtrotter.strengthlog.domain.units.WeightUnit].name, lowercased. */
     val unit: String,
+    /**
+     * The program's days in order — what the watch's outer ring draws itself as
+     * (dial v3 §1). Only what a read-only preview needs: no sets, no weights, no
+     * done flags, because the watch logs against [day] and nothing else.
+     *
+     * Additive, appended last, defaulting to empty so an older publisher decodes
+     * fine (mirrors [WatchDay.emphasisLine] / [WatchSet.restAfterSeconds]); an
+     * empty list makes the ring one segment — today — which is what the whole
+     * dial was before this field existed.
+     */
+    val cycle: List<WatchCycleDay> = emptyList(),
 )
+
+/** One day of the program as the cycle ring and its day-browse preview read it. */
+@Serializable
+data class WatchCycleDay(
+    val dayId: String,
+    val title: String,
+    val exercises: List<WatchCycleExercise> = emptyList(),
+)
+
+/** One lift of a previewed day: the name a lifter says, and how many rounds of it. */
+@Serializable
+data class WatchCycleExercise(val name: String, val setCount: Int)
 
 @Serializable
 data class WatchDay(

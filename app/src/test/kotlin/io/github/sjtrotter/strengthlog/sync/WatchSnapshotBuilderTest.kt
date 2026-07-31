@@ -155,6 +155,33 @@ class WatchSnapshotBuilderTest {
         assertEquals(195.0, snapshot.day.exercises.single().goal) // bench GOAL 195 (§11)
     }
 
+    // --- the cycle the watch's outer ring draws (dial v3 §1) ---------------
+
+    @Test
+    fun `stamps every day of the program, in order, with the names the watch says`() {
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val snapshot = WatchSnapshotBuilder.build(
+            program, "A", slots,
+            logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
+        )!!
+
+        assertEquals(listOf("A", "B"), snapshot.cycle.map { it.dayId })
+        assertEquals(listOf("Day A — Squat", "Day B — Bench"), snapshot.cycle.map { it.title })
+        val squat = snapshot.cycle.first().exercises.single()
+        assertEquals("Squat", squat.name) // the colloquial name, as the bands use
+        assertEquals(3, squat.setCount) // the day's target, not a logged count
+    }
+
+    @Test
+    fun `the cycle is the program, not the suggested day — it doesn't move with it`() {
+        val slots = listOf(ProgramSlot(20L, 0, ProgramExercise("bb_bench", isMain = true)))
+        val fromB = WatchSnapshotBuilder.build(
+            program, "B", slots,
+            logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
+        )!!
+        assertEquals(listOf("A", "B"), fromB.cycle.map { it.dayId })
+    }
+
     @Test
     fun `carries a superset partner's aligned rows and name`() {
         val pe = ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown"))

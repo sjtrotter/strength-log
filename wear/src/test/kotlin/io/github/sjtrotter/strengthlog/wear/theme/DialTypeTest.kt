@@ -73,6 +73,20 @@ class DialTypeTest {
         }
     }
 
+    @Test
+    fun `a curved style carries no em units, which the arc renderer cannot convert`() {
+        // The curved renderer px-converts every dimension it draws with, and a
+        // TextUnit only survives that as Sp — an em lineHeight crashed the watch
+        // on launch ("Only Sp can convert to Px", 2026-07-31).
+        val type = dialTypography(referenceScale, pixelWatch)
+        DialTextRole.entries.forEach { role ->
+            val curved = type.curved(role, Color.Red)
+            assertTrue(!curved.lineHeight.isEm, "$role's curved lineHeight is em")
+            assertTrue(!curved.letterSpacing.isEm, "$role's curved letterSpacing is em")
+            assertTrue(!curved.fontSize.isEm, "$role's curved fontSize is em")
+        }
+    }
+
     private companion object {
         const val TOLERANCE = 0.01f
     }

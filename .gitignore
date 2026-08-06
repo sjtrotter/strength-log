@@ -16,6 +16,9 @@ keystore.properties
 *.jks
 *.keystore
 
+# Claude Code session state (agent worktrees live in here)
+.claude/
+
 # Kotlin
 .kotlin/
 

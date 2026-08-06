@@ -1,0 +1,72 @@
+package cloud.trotter.log.strength.domain.seeding
+
+import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.GoalTarget
+import cloud.trotter.log.strength.domain.standards.StrengthStandards
+
+/** Seeds the initial ACTUAL log rows from a GOAL (spec §4). */
+object SetSeeder {
+
+    private const val ACCESSORY_REPS = 10
+
+    /**
+     * Type-aware seeding routed by the resolved [GoalTarget] (§2.2). WEIGHTED
+     * reuses the exact weighted sequence; REPS/TIMED seed `targetSets` all-WORK
+     * rows at their target, so the TOP-keyed cascade is unreachable for them by
+     * construction.
+     */
+    fun seed(pe: ProgramExercise, target: GoalTarget, cfg: LifterConfig): List<LoggedSet> =
+        when (target) {
+            is GoalTarget.Weight -> seed(pe, target.lb, cfg)
+            is GoalTarget.Reps ->
+                List(pe.targetSets) { LoggedSet(0.0, target.reps, SetKind.WORK) }
+            is GoalTarget.Time ->
+                List(pe.targetSets) { LoggedSet(target.addedLb, 0, SetKind.WORK, seconds = target.seconds) }
+        }
+
+    fun seed(pe: ProgramExercise, goal: Double, cfg: LifterConfig): List<LoggedSet> {
+        if (!pe.isMain) {
+            return List(pe.targetSets) { LoggedSet(goal, ACCESSORY_REPS, SetKind.WORK) }
+        }
+        val topReps = StrengthStandards.topSetReps(cfg.emphasis)
+        val ramps = StrengthStandards.RAMP_PCTS.mapIndexed { i, p ->
+            LoggedSet(
+                GoalCalculator.round5(goal * p),
+                if (i == StrengthStandards.RAMP_PCTS.lastIndex) 3 else 5, // last ramp is a lighter triple
+                SetKind.RAMP,
+            )
+        }
+        return ramps +
+            LoggedSet(goal, topReps, SetKind.TOP) +
+            LoggedSet(
+                GoalCalculator.round5(goal * StrengthStandards.BACKOFF),
+                StrengthStandards.BACKOFF_REPS,
+                SetKind.BACKOFF,
+            )
+    }
+
+    /**
+     * Superset partner track: same row count as the primary, seeded from the
+     * partner's own [GoalTarget], all [SetKind.WORK] (spec §4). Type-aware so a
+     * reclassified REPS/TIMED partner never routes through the weighted path.
+     */
+    fun seedPartner(primaryCount: Int, target: GoalTarget): List<LoggedSet> =
+        when (target) {
+            is GoalTarget.Weight -> seedPartner(primaryCount, target.lb)
+            is GoalTarget.Reps ->
+                List(primaryCount) { LoggedSet(0.0, target.reps, SetKind.WORK) }
+            is GoalTarget.Time ->
+                List(primaryCount) { LoggedSet(target.addedLb, 0, SetKind.WORK, seconds = target.seconds) }
+        }
+
+    /**
+     * Superset partner track: same row count as the primary, seeded from the
+     * partner's own GOAL, all [SetKind.WORK] (spec §4).
+     */
+    fun seedPartner(primaryCount: Int, partnerGoal: Double): List<LoggedSet> =
+        List(primaryCount) { LoggedSet(partnerGoal, ACCESSORY_REPS, SetKind.WORK) }
+}

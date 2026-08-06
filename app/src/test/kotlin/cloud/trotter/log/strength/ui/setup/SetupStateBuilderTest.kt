@@ -1,0 +1,192 @@
+package cloud.trotter.log.strength.ui.setup
+
+import cloud.trotter.log.strength.domain.generator.AnchorScheme
+import cloud.trotter.log.strength.domain.generator.DeadliftVariant
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.domain.standards.RestSettings
+import cloud.trotter.log.strength.domain.units.SecondsStepper
+import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+/**
+ * [SetupStateBuilder] is the pure logic behind the setup screen's live GOAL
+ * preview and unit-aware bodyweight display. These tests prove it *delegates*
+ * rather than reimplements: every GOAL preview number must equal
+ * [GoalCalculator.goalFor] computed independently, and every display
+ * conversion must equal [WeightUnit]'s own conversion — never a second lb/kg
+ * formula living in the UI layer.
+ */
+class SetupStateBuilderTest {
+
+    // --- goalPreview delegates to GoalCalculator (SSOT) -----------------------
+
+    @Test
+    fun goalPreview_matches_spec_pinned_defaults() {
+        // spec §11: LifterConfig(bodyweightLb=235, age=40, INTERMEDIATE, BALANCED)
+        // -> Squat 235, Bench 195, Trap-bar DL 255, Incline DB 75/hand.
+        val cfg = LifterConfig(bodyweightLb = 235, age = 40, level = ExperienceLevel.INTERMEDIATE, emphasis = GoalEmphasis.BALANCED)
+        val preview = SetupStateBuilder.goalPreview(cfg, WizardAnswers(), WeightUnit.LB)
+
+        assertEquals(4, preview.size)
+        assertEquals("235", preview[0].display) // squat
+        assertEquals("195", preview[1].display) // bench
+        assertEquals("255", preview[2].display) // trap-bar deadlift
+        assertEquals("75", preview[3].display) // incline DB
+        assertEquals(true, preview[3].perHand)
+    }
+
+    @Test
+    fun goalPreview_never_reimplements_goal_math_for_arbitrary_configs() {
+        val configs = listOf(
+            LifterConfig(bodyweightLb = 180, age = 25, level = ExperienceLevel.NOVICE, emphasis = GoalEmphasis.STRENGTH),
+            LifterConfig(bodyweightLb = 210, age = 55, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.PHYSIQUE),
+            LifterConfig(bodyweightLb = 300, age = 40, level = ExperienceLevel.INTERMEDIATE, emphasis = GoalEmphasis.BALANCED),
+        )
+        val answersVariants = listOf(
+            WizardAnswers(anchorScheme = AnchorScheme.PROTOTYPE, deadliftVariant = DeadliftVariant.TRAP_BAR),
+            WizardAnswers(anchorScheme = AnchorScheme.BIG_4, deadliftVariant = DeadliftVariant.CONVENTIONAL),
+            WizardAnswers(anchorScheme = AnchorScheme.FIVE_THREE_ONE, deadliftVariant = DeadliftVariant.SUMO),
+        )
+        configs.forEach { cfg ->
+            answersVariants.forEach { answers ->
+                val preview = SetupStateBuilder.goalPreview(cfg, answers, WeightUnit.LB)
+                val expectedIds = ProgramGenerator.anchorIds(answers)
+                assertEquals(expectedIds.size, preview.size)
+                expectedIds.forEachIndexed { i, id ->
+                    val entry = ExerciseLibrary.get(id)
+                    val expectedGoalLb = GoalCalculator.goalFor(entry, cfg)
+                    assertEquals(WeightStepper.format(expectedGoalLb), preview[i].display)
+                    assertEquals(entry.name, preview[i].name)
+                    assertEquals(entry.perHand, preview[i].perHand)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun goalPreview_changes_with_every_config_input_live() {
+        val base = LifterConfig(bodyweightLb = 200, age = 30, level = ExperienceLevel.INTERMEDIATE, emphasis = GoalEmphasis.BALANCED)
+        val basePreview = SetupStateBuilder.goalPreview(base, WizardAnswers(), WeightUnit.LB)
+
+        val heavier = SetupStateBuilder.goalPreview(base.copy(bodyweightLb = 260), WizardAnswers(), WeightUnit.LB)
+        val older = SetupStateBuilder.goalPreview(base.copy(age = 60), WizardAnswers(), WeightUnit.LB)
+        val advanced = SetupStateBuilder.goalPreview(base.copy(level = ExperienceLevel.ADVANCED), WizardAnswers(), WeightUnit.LB)
+        val physique = SetupStateBuilder.goalPreview(base.copy(emphasis = GoalEmphasis.PHYSIQUE), WizardAnswers(), WeightUnit.LB)
+
+        assertEquals(false, basePreview == heavier)
+        assertEquals(false, basePreview == older)
+        assertEquals(false, basePreview == advanced)
+        assertEquals(false, basePreview == physique)
+    }
+
+    // --- unit-toggle display conversion delegates to :domain WeightUnit ------
+
+    @Test
+    fun bodyweightDisplay_delegates_to_WeightUnit_conversion() {
+        val cfg = LifterConfig(bodyweightLb = 220)
+        assertEquals(220.0, SetupStateBuilder.bodyweightDisplay(cfg, WeightUnit.LB))
+        assertEquals(WeightUnit.KG.fromLb(220.0), SetupStateBuilder.bodyweightDisplay(cfg, WeightUnit.KG))
+    }
+
+    @Test
+    fun bodyweightLb_round_trips_through_WeightUnit_conversion() {
+        assertEquals(220, SetupStateBuilder.bodyweightLb(220.0, WeightUnit.LB))
+        val kgDisplay = WeightUnit.KG.fromLb(220.0)
+        assertEquals(220, SetupStateBuilder.bodyweightLb(kgDisplay, WeightUnit.KG))
+    }
+
+    @Test
+    fun goalPreview_display_switches_with_unit_via_WeightUnit_and_WeightStepper() {
+        val cfg = LifterConfig(bodyweightLb = 235, age = 40, level = ExperienceLevel.INTERMEDIATE, emphasis = GoalEmphasis.BALANCED)
+        val lbPreview = SetupStateBuilder.goalPreview(cfg, WizardAnswers(), WeightUnit.LB)
+        val kgPreview = SetupStateBuilder.goalPreview(cfg, WizardAnswers(), WeightUnit.KG)
+
+        val squatGoalLb = GoalCalculator.goalFor(ExerciseLibrary.get("bb_back_squat"), cfg)
+        assertEquals(WeightStepper.format(squatGoalLb), lbPreview[0].display)
+        assertEquals(WeightStepper.format(WeightUnit.KG.fromLb(squatGoalLb)), kgPreview[0].display)
+    }
+
+    // --- buildUiState wires everything together -------------------------------
+
+    @Test
+    fun buildUiState_assembles_config_cardio_unit_and_preview() {
+        val cfg = LifterConfig(bodyweightLb = 235, age = 40)
+        val cardio = CardioPrefs()
+        val state = SetupStateBuilder.buildUiState(cfg, cardio, WeightUnit.LB, WizardAnswers())
+
+        assertEquals(cfg, state.config)
+        assertEquals(cardio, state.cardio)
+        assertEquals(WeightUnit.LB, state.unit)
+        assertEquals(235.0, state.bodyweightDisplay)
+        assertEquals(4, state.goalPreview.size)
+    }
+
+    // --- rest-timer editor state mapping (watch W2c) --------------------------
+
+    @Test
+    fun restCategoryRows_shows_RestPolicy_default_when_no_override_exists() {
+        val rows = SetupStateBuilder.restCategoryRows(RestSettings(overrides = emptyMap()))
+
+        assertEquals(RestCategory.entries.size, rows.size)
+        RestCategory.entries.forEachIndexed { index, category ->
+            assertEquals(category, rows[index].category)
+            assertEquals(RestPolicy.defaultSeconds(category), rows[index].seconds)
+        }
+    }
+
+    @Test
+    fun restCategoryRows_shows_the_override_when_one_is_set() {
+        val rows = SetupStateBuilder.restCategoryRows(RestSettings(overrides = mapOf(RestCategory.TOP to 210)))
+
+        assertEquals(210, rows.first { it.category == RestCategory.TOP }.seconds)
+        // Every other bucket is untouched and still reads its RestPolicy default.
+        assertEquals(RestPolicy.defaultSeconds(RestCategory.RAMP), rows.first { it.category == RestCategory.RAMP }.seconds)
+    }
+
+    @Test
+    fun restCategoryRows_shows_a_zero_override_verbatim() {
+        val rows = SetupStateBuilder.restCategoryRows(RestSettings(overrides = mapOf(RestCategory.LIGHT to 0)))
+
+        assertEquals(0, rows.first { it.category == RestCategory.LIGHT }.seconds)
+    }
+
+    @Test
+    fun restTimerLabel_renders_zero_as_OFF_and_delegates_otherwise_to_SecondsStepper() {
+        assertEquals("OFF", SetupStateBuilder.restTimerLabel(0))
+        assertEquals(SecondsStepper.format(90), SetupStateBuilder.restTimerLabel(90))
+        assertEquals(SecondsStepper.format(180), SetupStateBuilder.restTimerLabel(180))
+    }
+
+    @Test
+    fun buildUiState_wires_restSettings_into_restTimerEnabled_and_restCategories() {
+        val cfg = LifterConfig(bodyweightLb = 235, age = 40)
+        val restSettings = RestSettings(enabled = false, overrides = mapOf(RestCategory.WORK to 45))
+
+        val state = SetupStateBuilder.buildUiState(cfg, CardioPrefs(), WeightUnit.LB, WizardAnswers(), restSettings)
+
+        assertEquals(false, state.restTimerEnabled)
+        assertEquals(45, state.restCategories.first { it.category == RestCategory.WORK }.seconds)
+    }
+
+    @Test
+    fun buildUiState_defaults_restSettings_to_enabled_with_no_overrides() {
+        val cfg = LifterConfig(bodyweightLb = 235, age = 40)
+        val state = SetupStateBuilder.buildUiState(cfg, CardioPrefs(), WeightUnit.LB, WizardAnswers())
+
+        assertEquals(true, state.restTimerEnabled)
+        RestCategory.entries.forEach { category ->
+            assertEquals(RestPolicy.defaultSeconds(category), state.restCategories.first { it.category == category }.seconds)
+        }
+    }
+}

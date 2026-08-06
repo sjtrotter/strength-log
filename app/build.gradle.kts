@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.sjtrotter.strengthlog"
+    namespace = "cloud.trotter.log.strength"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "io.github.sjtrotter.strengthlog"
+        applicationId = "cloud.trotter.log.strength"
         minSdk = 26
         targetSdk = 37
         versionCode = 1

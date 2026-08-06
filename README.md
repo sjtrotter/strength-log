@@ -15,11 +15,19 @@ with minimal taps — steppers not keyboards, checkmarks not forms.
 
 ## Status
 
-Pre-alpha — planning complete, implementation starting. See
-[`STRENGTH_TRACKER_SPEC.md`](STRENGTH_TRACKER_SPEC.md) for the product spec and
-[`docs/PLAN.md`](docs/PLAN.md) for the delivery plan.
+In daily use on the developer's own phone and watch; preparing a Play Store
+release. See [`STRENGTH_TRACKER_SPEC.md`](STRENGTH_TRACKER_SPEC.md) for the
+product spec and [`docs/PLAN.md`](docs/PLAN.md) for the delivery plan.
 
 ## Stack
 
 Kotlin, Jetpack Compose (phone + Wear), MVVM/UDF, Hilt, Room, DataStore.
 Pure-Kotlin `:domain` module with pinned verification tests.
+
+## License
+
+Copyright © 2026 Stephen Trotter. GPL-3.0-or-later — see [`LICENSE`](LICENSE).
+Fork it, build it, learn from it; derivatives stay under the same license.
+
+The strength.log name and launcher icon are not part of the license grant. If
+you distribute a fork, give it its own name and icon.

@@ -889,7 +889,15 @@ private fun KeepScreenOnSwitch(
             // toggleable(role = Switch) (A7): TalkBack gets the switch role and
             // on/off state for free; [label] is real Text, so it merges into
             // the accessible name without a separate contentDescription.
-            .pressableToggleable(value = checked, onValueChange = onCheckedChange, role = Role.Switch),
+            .pressableToggleable(
+                value = checked,
+                onValueChange = onCheckedChange,
+                role = Role.Switch,
+                // A label-plus-track row is row-shaped, so it takes the row
+                // radius; without it the veil would square off the one control
+                // on this screen that isn't a chip.
+                shape = RoundedCornerShape(12.dp),
+            ),
     ) {
         Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         val trackColor by animateColorAsState(if (checked) accent else Surface2, tween(200), label = "switchTrack")

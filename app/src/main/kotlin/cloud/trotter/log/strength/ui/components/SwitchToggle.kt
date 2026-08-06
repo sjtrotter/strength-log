@@ -59,7 +59,14 @@ fun SwitchToggle(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
             .minimumInteractiveComponentSize()
-            .pressableToggleable(value = checked, onValueChange = onCheckedChange, role = Role.Switch),
+            .pressableToggleable(
+                value = checked,
+                onValueChange = onCheckedChange,
+                role = Role.Switch,
+                // Label plus track is a row, not a chip: it takes the row radius
+                // so the veil clips like every other row-shaped pressable.
+                shape = RoundedCornerShape(12.dp),
+            ),
     ) {
         Text(label, color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
         val trackColor by animateColorAsState(if (checked) accent else Surface2, tween(200), label = "switchTrack")

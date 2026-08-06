@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
@@ -182,8 +183,18 @@ private class PressFeedbackNode(
         drawContent()
         val pressed = veil.value
         if (pressed <= 0f && !focused) return
-        val outline = shape.createOutline(size, layoutDirection, this)
-        if (pressed > 0f) drawOutline(outline, PressVeil, alpha = pressed)
-        if (focused) drawOutline(outline, FocusRing, style = Stroke(FocusRingWidth.toPx()))
+        if (pressed > 0f) {
+            drawOutline(shape.createOutline(size, layoutDirection, this), PressVeil, alpha = pressed)
+        }
+        if (focused) {
+            // A stroke straddles the path it follows, so drawing the ring on the
+            // node's own outline would spill half its width past the bounds and
+            // lose it to the first ancestor that clips. Inset by half and the
+            // whole ring lands inside.
+            val width = FocusRingWidth.toPx()
+            inset(width / 2f) {
+                drawOutline(shape.createOutline(size, layoutDirection, this), FocusRing, style = Stroke(width))
+            }
+        }
     }
 }

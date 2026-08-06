@@ -6,7 +6,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.TouchTargets.assertEveryTouchTargetIsAtLeast48dp
-import cloud.trotter.log.strength.ui.TouchTargets.assertNoOverlappingTouchTargets
+import cloud.trotter.log.strength.ui.TouchTargets.assertOverlappingTouchTargetsAreExactly
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Rule
 import org.junit.Test
@@ -37,17 +37,21 @@ class TouchTargetTest {
      * at 411dp that is ~100dp more than the card has. Measured against `main`
      * at fefbc96 the numbers are identical to the ones here, so the squeeze
      * predates #123 and belongs to whoever re-budgets the row: today the ✓ is
-     * clipped to 13dp of card and the × is off it entirely. Named rather than
-     * silently skipped, so the next overlap to appear still fails this test.
+     * clipped to 13dp of card and the × is off it entirely (#136).
+     *
+     * Pinned by identity *and* count — one occurrence per weighted row in the
+     * fixture, and nothing else. A third row, a different pair, or the same pair
+     * appearing anywhere new all fail; so does fixing #136, which is how it
+     * should be, because the record then needs updating.
      */
-    private val preExistingSetRowSqueeze = setOf(setOf("Increase reps", "Set done"))
+    private val issue136SetRowSqueeze = mapOf(setOf("Increase reps", "Set done") to 2)
 
     @Test
     fun theDayScreenGivesEveryControlItsOwn48dp() {
         setDayContent()
 
         composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
-        composeTestRule.assertNoOverlappingTouchTargets(preExistingSetRowSqueeze)
+        composeTestRule.assertOverlappingTouchTargetsAreExactly(issue136SetRowSqueeze)
     }
 
     /**
@@ -59,7 +63,7 @@ class TouchTargetTest {
     fun theHeaderTabsChipAndSwitchDoNotShareAnyPixels() {
         setDayContent(state = fixture(tabCount = 4))
 
-        composeTestRule.assertNoOverlappingTouchTargets(preExistingSetRowSqueeze)
+        composeTestRule.assertOverlappingTouchTargetsAreExactly(issue136SetRowSqueeze)
     }
 
     /**
@@ -80,7 +84,7 @@ class TouchTargetTest {
             },
         )
 
-        composeTestRule.assertNoOverlappingTouchTargets(preExistingSetRowSqueeze)
+        composeTestRule.assertOverlappingTouchTargetsAreExactly(issue136SetRowSqueeze)
         composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
     }
 

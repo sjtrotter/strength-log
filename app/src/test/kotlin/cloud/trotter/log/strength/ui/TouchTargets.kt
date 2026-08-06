@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 
 /**
@@ -64,30 +65,47 @@ object TouchTargets {
      * sits on top of it, and Compose resolves that by depth. What this catches
      * is the failure from PR #134: a *sibling* whose 48dp target was never given
      * 48dp of layout and so quietly annexed the control next to it.
-     *
-     * [knownOverlaps] names pairs that already collided before this check
-     * existed. Listing one is a statement that it is someone else's bug, not
-     * that it is acceptable — see the call site for which issue owns it.
      */
-    fun ComposeContentTestRule.assertNoOverlappingTouchTargets(
-        knownOverlaps: Set<Set<String>> = emptySet(),
-    ) {
+    private fun ComposeContentTestRule.overlappingTouchTargets(): Map<Set<String>, Int> {
         val nodes = interactiveNodes()
+        val found = mutableMapOf<Set<String>, Int>()
         for (i in nodes.indices) {
             for (j in i + 1 until nodes.size) {
                 val a = nodes[i]
                 val b = nodes[j]
                 if (a.isWithin(b) || b.isWithin(a)) continue
-                if (setOf(a.describe(), b.describe()) in knownOverlaps) continue
-                assertTrue(
-                    "touch targets overlap: '${a.describe()}' touch=${a.touchBoundsInRoot} " +
-                        "layout=${a.boundsInRoot} vs '${b.describe()}' touch=${b.touchBoundsInRoot} " +
-                        "layout=${b.boundsInRoot}",
-                    !a.touchBoundsInRoot.overlaps(b.touchBoundsInRoot),
-                )
+                if (!a.touchBoundsInRoot.overlaps(b.touchBoundsInRoot)) continue
+                val pair = setOf(a.describe(), b.describe())
+                found[pair] = (found[pair] ?: 0) + 1
             }
         }
+        return found
     }
+
+    /**
+     * The exact set of collisions on screen, by name and by count.
+     *
+     * Not a skip-list: an expected pair tolerates only the geometry that is
+     * already known and documented, and any *other* overlapping pair — or one
+     * more occurrence of a known one — fails. A collision that gets fixed fails
+     * too, which is the point; the expectation is a record of the screen, not a
+     * licence for a shape of bug.
+     */
+    fun ComposeContentTestRule.assertOverlappingTouchTargetsAreExactly(expected: Map<Set<String>, Int>) {
+        val actual = overlappingTouchTargets()
+        assertEquals(
+            "overlapping touch targets changed — expected ${render(expected)}, found ${render(actual)}",
+            expected,
+            actual,
+        )
+    }
+
+    /** No control may sit on another's target. */
+    fun ComposeContentTestRule.assertNoOverlappingTouchTargets() =
+        assertOverlappingTouchTargetsAreExactly(emptyMap())
+
+    private fun render(pairs: Map<Set<String>, Int>): String =
+        if (pairs.isEmpty()) "none" else pairs.entries.joinToString { "${it.key} x${it.value}" }
 
     /** Every reachable control answers to at least 48dp in both axes. */
     fun ComposeContentTestRule.assertEveryTouchTargetIsAtLeast48dp(allowUnder48: Set<String> = emptySet()) {

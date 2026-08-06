@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -261,7 +260,7 @@ private fun RemoveButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .clickable(onClickLabel = "Remove set", role = Role.Button, onClick = onClick)
+            .pressable(onClickLabel = "Remove set", role = Role.Button, onClick = onClick)
             .semantics { contentDescription = "Remove set" },
         contentAlignment = Alignment.Center,
     ) {

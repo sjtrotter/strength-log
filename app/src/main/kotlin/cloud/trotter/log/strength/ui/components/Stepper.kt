@@ -1,10 +1,7 @@
 package cloud.trotter.log.strength.ui.components
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -46,7 +43,6 @@ import cloud.trotter.log.strength.ui.theme.StepperGlyph
 import cloud.trotter.log.strength.ui.theme.StepperRepsValue
 import cloud.trotter.log.strength.ui.theme.StepperValue
 import cloud.trotter.log.strength.ui.theme.Surface2
-import cloud.trotter.log.strength.ui.theme.Surface3
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
@@ -159,11 +155,6 @@ fun Stepper(
 private fun StepSegment(symbol: String, contentDescription: String, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val background by animateColorAsState(
-        targetValue = if (pressed) Surface3 else Color.Transparent,
-        animationSpec = tween(120),
-        label = "stepSegmentPress",
-    )
     var repeated by remember { mutableStateOf(false) }
     LaunchedEffect(pressed) {
         if (!pressed) return@LaunchedEffect
@@ -178,9 +169,8 @@ private fun StepSegment(symbol: String, contentDescription: String, onClick: () 
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .clickable(
+            .pressable(
                 interactionSource = interactionSource,
-                indication = null,
                 onClickLabel = contentDescription,
                 onClick = { if (!repeated) onClick() },
             )
@@ -191,7 +181,7 @@ private fun StepSegment(symbol: String, contentDescription: String, onClick: () 
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier.width(32.dp).fillMaxHeight().background(background),
+            modifier = Modifier.width(32.dp).fillMaxHeight(),
             contentAlignment = Alignment.Center,
         ) {
             Text(text = symbol, color = TextSecondary, style = StepperGlyph, modifier = Modifier.clearAndSetSemantics {})

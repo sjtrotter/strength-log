@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -169,10 +170,16 @@ private fun TodayHeader(actions: TodayActions) {
 private fun LogButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .height(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Open log", role = Role.Button, onClick = onClick)
+            .pressable(
+                onClickLabel = "Open log",
+                role = Role.Button,
+                shape = RoundedCornerShape(10.dp),
+                onClick = onClick,
+            )
             .semantics { contentDescription = "Open log" }
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
@@ -185,10 +192,16 @@ private fun LogButton(onClick: () -> Unit) {
 private fun SettingsButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .size(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Settings", role = Role.Button, onClick = onClick)
+            .pressable(
+                onClickLabel = "Settings",
+                role = Role.Button,
+                shape = RoundedCornerShape(10.dp),
+                onClick = onClick,
+            )
             .semantics { contentDescription = "Settings" },
         contentAlignment = Alignment.Center,
     ) {
@@ -264,11 +277,11 @@ private fun StartButton(actionLabel: String, accent: Color, onAccent: Color, onC
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .heightIn(min = 56.dp)
             .background(accent, RoundedCornerShape(12.dp))
-            .clickable(
+            .pressable(
                 interactionSource = interactionSource,
-                indication = null,
                 onClickLabel = actionLabel,
                 role = Role.Button,
+                shape = RoundedCornerShape(12.dp),
                 onClick = onClick,
             )
             .padding(vertical = 8.dp),

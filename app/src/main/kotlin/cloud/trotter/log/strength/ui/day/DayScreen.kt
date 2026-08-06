@@ -9,7 +9,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -29,9 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -82,7 +79,11 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.CardShape
 import cloud.trotter.log.strength.ui.components.SetRow
+import cloud.trotter.log.strength.ui.components.pressable
+import cloud.trotter.log.strength.ui.components.pressableSelectable
+import cloud.trotter.log.strength.ui.components.pressableToggleable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -277,10 +278,16 @@ private fun TopBar(
 private fun EditDayButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .size(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Edit day", role = Role.Button, onClick = onClick)
+            .pressable(
+                onClickLabel = "Edit day",
+                role = Role.Button,
+                shape = RoundedCornerShape(10.dp),
+                onClick = onClick,
+            )
             .semantics { contentDescription = "Edit day" },
         contentAlignment = Alignment.Center,
     ) {
@@ -322,6 +329,10 @@ internal fun DayTab(tab: DayTab, onClick: () -> Unit) {
     val description = "Day ${tab.dayId}" + if (showSuggestedRing) ", suggested next" else ""
     Box(
         modifier = Modifier
+            // Reserves the 48dp target around a 40dp tab, which also gives the
+            // suggested-next ring and dot (drawn 2-6dp outside the tab) room
+            // inside the tab's own slot instead of over its neighbour's.
+            .minimumInteractiveComponentSize()
             .size(40.dp)
             .drawBehind {
                 if (showSuggestedRing) {
@@ -345,7 +356,12 @@ internal fun DayTab(tab: DayTab, onClick: () -> Unit) {
             // selectable (A7), not plain clickable: the day tabs are a mutually-
             // exclusive group (selectableGroup wraps them, see TopBar) so
             // TalkBack announces "Day A, suggested next, tab, selected" etc.
-            .selectable(selected = tab.isSelected, onClick = onClick, role = Role.Tab)
+            .pressableSelectable(
+                selected = tab.isSelected,
+                onClick = onClick,
+                role = Role.Tab,
+                shape = RoundedCornerShape(10.dp),
+            )
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
@@ -411,7 +427,7 @@ private fun ExerciseCard(
             Column(
                 Modifier
                     .weight(1f)
-                    .clickable(
+                    .pressable(
                         onClickLabel = if (displayCollapsed) "Expand" else "Collapse",
                         role = Role.Button,
                         onClick = { actions.onToggleCollapse(card.programExerciseId) },
@@ -419,12 +435,18 @@ private fun ExerciseCard(
                     .semantics { stateDescription = if (displayCollapsed) "Collapsed" else "Expanded" },
             ) {
                 Text(card.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 5.dp)) {
+                // Centered, because the swap pill reserves a 48dp target (#123)
+                // and so sets this row's height whenever one is present; the
+                // badges beside it must stay on the pill's centre line.
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 5.dp),
+                ) {
                     if (card.isMain) Badge("MAIN", accent, onAccent)
                     if (card.hasWarmupHint) Badge("+1 WARM-UP", Color.Transparent, TextSecondary, outlined = true)
                     if (card.allDone) Badge("✓", Done, Background, description = "All sets done")
                     card.weightSwap?.let { swap ->
-                        // Target still smaller than 48dp — #123 owns card touch targets.
                         WeightSwapPill(swap, accent, onClick = { pendingSwap = swap })
                     }
                 }
@@ -578,6 +600,14 @@ private fun ExerciseCard(
  * a filled badge (spec §8.5: not a generic Material button) so it reads as an
  * affordance, not a status chip like [Badge]. `internal`, not `private` (A7
  * pattern, see `DayTab`): a UI test taps this composable directly.
+ *
+ * The pill draws ~20dp tall but has to answer to a finger, so
+ * [minimumInteractiveComponentSize] reserves the 48dp target *in the layout*
+ * (#123). That is the point: the pill lives inside the card's collapse toggle,
+ * and an unreserved 48dp target would silently claim 28dp of card header where
+ * the user sees nothing but header and expects a collapse. Reserving instead
+ * grows the badge row on the cards that show a pill — the one place this change
+ * moves a pixel — and every dp the target claims is the pill's own row.
  */
 @Composable
 internal fun WeightSwapPill(swap: WeightSwapAffordance, accent: Color, onClick: () -> Unit) {
@@ -586,8 +616,14 @@ internal fun WeightSwapPill(swap: WeightSwapAffordance, accent: Color, onClick: 
     val textColor = if (swap.isRemove) TextSecondary else accent
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .border(1.dp, borderColor, RoundedCornerShape(50))
-            .clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
+            .pressable(
+                onClickLabel = label,
+                role = Role.Button,
+                shape = RoundedCornerShape(50),
+                onClick = onClick,
+            )
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(label, color = textColor, style = MaterialTheme.typography.labelSmall)
@@ -620,7 +656,12 @@ internal fun SwapExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier
     Box(
         modifier = modifier
             .minimumInteractiveComponentSize()
-            .clickable(onClickLabel = "Swap exercise", role = Role.Button, onClick = onClick)
+            .pressable(
+                onClickLabel = "Swap exercise",
+                role = Role.Button,
+                shape = RoundedCornerShape(50),
+                onClick = onClick,
+            )
             .semantics { contentDescription = "Swap exercise" },
         contentAlignment = Alignment.Center,
     ) {
@@ -688,15 +729,13 @@ private fun Badge(text: String, fill: Color, textColor: Color, outlined: Boolean
 
 @Composable
 private fun AddSetButton(modifier: Modifier = Modifier, isSuperset: Boolean, onClick: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
     Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .fillMaxWidth()
             .padding(top = 8.dp)
             .dashedBorder(Border, radius = 8.dp)
-            .background(if (pressed) Surface2 else Color.Transparent, RoundedCornerShape(8.dp))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .pressable(onClick = onClick, shape = RoundedCornerShape(8.dp))
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -717,7 +756,11 @@ private fun CardioCard(cardio: CardioSuggestion) {
     val chevronRotation by animateFloatAsState(if (open) 180f else 0f, tween(200), label = "cardioChevron")
     AppCard(
         modifier = Modifier
-            .clickable(onClickLabel = if (open) "Collapse" else "Expand", role = Role.Button) { open = !open }
+            .pressable(
+                onClickLabel = if (open) "Collapse" else "Expand",
+                role = Role.Button,
+                shape = CardShape,
+            ) { open = !open }
             .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -781,7 +824,14 @@ private fun DoneButton(nextDayId: String?, accent: Color, onAccent: Color, onCli
             // overflowing the fixed-height pill.
             .heightIn(min = 56.dp)
             .background(accent, RoundedCornerShape(12.dp))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            // The scale spring above is this button's own signature; the veil
+            // underneath it is the app's shared one (#123) — one system, one
+            // emphasis, not two dialects.
+            .pressable(
+                interactionSource = interactionSource,
+                shape = RoundedCornerShape(12.dp),
+                onClick = onClick,
+            )
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -811,13 +861,11 @@ private fun Footer(actions: DayActions) {
 
 @Composable
 private fun QuietButton(onClick: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .border(1.dp, Border, RoundedCornerShape(50))
-            .background(if (pressed) Surface2 else Color.Transparent, RoundedCornerShape(50))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .pressable(onClick = onClick, shape = RoundedCornerShape(50))
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
         // The one labelLarge element the reference leaves mixed-case (no caps).
@@ -841,7 +889,7 @@ private fun KeepScreenOnSwitch(
             // toggleable(role = Switch) (A7): TalkBack gets the switch role and
             // on/off state for free; [label] is real Text, so it merges into
             // the accessible name without a separate contentDescription.
-            .toggleable(value = checked, onValueChange = onCheckedChange, role = Role.Switch),
+            .pressableToggleable(value = checked, onValueChange = onCheckedChange, role = Role.Switch),
     ) {
         Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         val trackColor by animateColorAsState(if (checked) accent else Surface2, tween(200), label = "switchTrack")

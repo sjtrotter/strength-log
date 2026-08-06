@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +59,7 @@ fun SwitchToggle(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
             .minimumInteractiveComponentSize()
-            .toggleable(value = checked, onValueChange = onCheckedChange, role = Role.Switch),
+            .pressableToggleable(value = checked, onValueChange = onCheckedChange, role = Role.Switch),
     ) {
         Text(label, color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
         val trackColor by animateColorAsState(if (checked) accent else Surface2, tween(200), label = "switchTrack")

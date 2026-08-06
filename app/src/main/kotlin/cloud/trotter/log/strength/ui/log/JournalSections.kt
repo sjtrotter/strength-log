@@ -3,7 +3,6 @@ package cloud.trotter.log.strength.ui.log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +36,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.StepperRepsValue
@@ -302,10 +303,20 @@ internal fun CalendarCardView(
 private fun MonthChevron(glyph: String, label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            // 28dp of chevron, 48dp of reserved target — the 6dp between the two
+            // chevrons survives, because the reservation grows the header row
+            // rather than letting ‹ and › expand into each other (#123).
+            .minimumInteractiveComponentSize()
             .size(28.dp)
             .background(Surface2, RoundedCornerShape(8.dp))
             .border(1.dp, Border, RoundedCornerShape(8.dp))
-            .then(if (enabled) Modifier.clickable(onClickLabel = label, onClick = onClick) else Modifier)
+            .then(
+                if (enabled) {
+                    Modifier.pressable(onClickLabel = label, shape = RoundedCornerShape(8.dp), onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
@@ -318,8 +329,16 @@ private fun MonthChevron(glyph: String, label: String, enabled: Boolean, onClick
     }
 }
 
-/** A trained day is an accent pill carrying its day *letter* — the letter is the
- *  identity, the accent only the flavor (§0: color is never the only carrier). */
+/**
+ * A trained day is an accent pill carrying its day *letter* — the letter is the
+ * identity, the accent only the flavor (§0: color is never the only carrier).
+ *
+ * The one interactive element in the app that does not reach 48dp (#123): seven
+ * columns inside a card leave ~42dp per cell on a 360dp screen, so a 48dp target
+ * would have to overlap its neighbours — which is worse than a small one, and is
+ * exactly why WCAG 2.2's target-size rule exempts cells in a grid. The cells sit
+ * flush with no dead space between them, so nothing is unreachable.
+ */
 @Composable
 private fun CalendarCell(day: CalendarDay, onSelectSession: (Long) -> Unit) {
     val trained = day.dayLetter != null
@@ -333,7 +352,9 @@ private fun CalendarCell(day: CalendarDay, onSelectSession: (Long) -> Unit) {
             .then(todayRing)
             .then(
                 if (day.sessionId != null) {
-                    Modifier.clickable(onClickLabel = "Show session") { onSelectSession(day.sessionId) }
+                    Modifier.pressable(onClickLabel = "Show session", shape = RoundedCornerShape(8.dp)) {
+                        onSelectSession(day.sessionId)
+                    }
                 } else {
                     Modifier
                 },

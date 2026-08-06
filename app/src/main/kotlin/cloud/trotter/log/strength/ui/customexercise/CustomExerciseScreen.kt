@@ -2,7 +2,6 @@ package cloud.trotter.log.strength.ui.customexercise
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +23,6 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -43,6 +41,8 @@ import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
+import cloud.trotter.log.strength.ui.components.disabledAlpha
+import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -96,7 +96,7 @@ private fun Header(actions: CustomExerciseActions) {
         Box(
             modifier = Modifier
                 .minimumInteractiveComponentSize()
-                .clickable(onClickLabel = "Cancel", role = Role.Button, onClick = actions.onCancel)
+                .pressable(onClickLabel = "Cancel", role = Role.Button, onClick = actions.onCancel)
                 .semantics { contentDescription = "Cancel" },
             contentAlignment = Alignment.Center,
         ) {
@@ -336,10 +336,10 @@ private fun FooterButton(
 ) {
     Box(
         modifier = modifier
+            .disabledAlpha(enabled)
             .heightIn(min = 52.dp)
-            .alpha(if (enabled) 1f else 0.4f)
             .background(fill, RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled, onClick = onClick)
+            .pressable(enabled = enabled, shape = RoundedCornerShape(12.dp), onClick = onClick)
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {

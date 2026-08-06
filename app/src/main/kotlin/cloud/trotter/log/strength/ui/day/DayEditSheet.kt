@@ -3,7 +3,6 @@ package cloud.trotter.log.strength.ui.day
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,6 +49,8 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.components.disabledAlpha
+import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.Error
@@ -464,9 +466,10 @@ private fun PickerHeader(title: String, onBack: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
+                .minimumInteractiveComponentSize()
                 .size(32.dp)
                 .background(Surface2, RoundedCornerShape(8.dp))
-                .clickable(onClickLabel = "Back", role = Role.Button, onClick = onBack)
+                .pressable(onClickLabel = "Back", role = Role.Button, onClick = onBack, shape = RoundedCornerShape(8.dp))
                 .semantics { contentDescription = "Back" },
             contentAlignment = Alignment.Center,
         ) {
@@ -517,10 +520,11 @@ private fun EquipmentFilterRow(
             val isOn = equip in selected
             Box(
                 modifier = Modifier
+                    .minimumInteractiveComponentSize()
                     .clip(RoundedCornerShape(50))
                     .background(if (isOn) accent.copy(alpha = 0.18f) else Surface2, RoundedCornerShape(50))
                     .border(1.dp, if (isOn) accent else Border, RoundedCornerShape(50))
-                    .clickable { onToggle(equip) }
+                    .pressable(onClick = { onToggle(equip) }, shape = RoundedCornerShape(50))
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
                 Text(equipmentLabel(equip), color = if (isOn) accent else TextSecondary, style = MaterialTheme.typography.labelSmall)
@@ -555,16 +559,17 @@ private fun SheetButton(
     compact: Boolean = false,
     textColor: Color = Done,
 ) {
-    val alpha = if (enabled) 1f else 0.4f
     Box(
         modifier = modifier
+            .disabledAlpha(enabled)
+            .minimumInteractiveComponentSize()
             .then(if (outlined) Modifier.border(1.dp, Border, RoundedCornerShape(8.dp)) else Modifier)
             .background(if (outlined) Color.Transparent else Surface2, RoundedCornerShape(8.dp))
-            .clickable(enabled = enabled, onClick = onClick)
+            .pressable(enabled = enabled, onClick = onClick, shape = RoundedCornerShape(8.dp))
             .padding(horizontal = if (compact) 12.dp else 14.dp, vertical = if (compact) 8.dp else 12.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, color = textColor.copy(alpha = alpha), style = MaterialTheme.typography.labelLarge)
+        Text(text, color = textColor, style = MaterialTheme.typography.labelLarge)
     }
 }
 

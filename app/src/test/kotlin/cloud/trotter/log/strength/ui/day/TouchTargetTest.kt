@@ -18,9 +18,10 @@ import org.robolectric.annotation.Config
 
 /**
  * Pins issue #123 on the busiest screen in the app: the day screen carries the
- * tab strip, the ✎ chip, the keep-screen-on switch, a card header with three
- * competing affordances, and set rows of steppers, ticks and remove glyphs.
- * If a 48dp target can collide with a neighbour anywhere, it collides here.
+ * tab strip, the ✎ chip, a card header with three competing affordances, set
+ * rows of steppers, ticks and remove glyphs, and a bottom bar where DONE now
+ * shares a line with the keep-screen-on switch (#125). If a 48dp target can
+ * collide with a neighbour anywhere, it collides here.
  *
  * Sized to a real phone window rather than Robolectric's default: the day
  * screen's fixed bottom bar sits directly under the scrolling list, and on a
@@ -48,6 +49,22 @@ class TouchTargetTest {
      */
     private val issue136SetRowSqueeze = mapOf(setOf("Increase reps", "Set done") to 2)
 
+    /**
+     * Re-checked when keep-screen-on moved from the header into the bottom bar
+     * (#125). The record above is deliberately unchanged: DONE took `weight(1f)`
+     * and the switch a `widthIn(min = 48.dp)` slot beside it, so the switch's
+     * 48dp comes out of DONE's width rather than out of DONE. Had it been dropped
+     * in without reserving that width, this map would have grown a
+     * {DONE, KEEP ON} pair — which is the whole reason the expectation is exact.
+     */
+    @Test
+    fun theBottomBarSwitchTakesItsWidthFromDoneAndNotFromDonesTarget() {
+        setDayContent()
+
+        composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
+        composeTestRule.assertOverlappingTouchTargetsAreExactly(issue136SetRowSqueeze)
+    }
+
     @Test
     fun theDayScreenGivesEveryControlItsOwn48dp() {
         setDayContent()
@@ -58,11 +75,12 @@ class TouchTargetTest {
 
     /**
      * The header restructure from PR #134 plus this issue's tab/chip growth:
-     * four day tabs 8dp apart, then ✎ and the keep-on switch sharing a row.
-     * Every one of those was 40dp or less before #123.
+     * four day tabs 8dp apart, then the ✎ chip on the title row. Every one of
+     * those was 40dp or less before #123. (The keep-on switch used to share that
+     * row; #125 moved it to the bottom bar, which is what left the tabs room.)
      */
     @Test
-    fun theHeaderTabsChipAndSwitchDoNotShareAnyPixels() {
+    fun theHeaderTabsAndChipDoNotShareAnyPixels() {
         setDayContent(state = fixture(tabCount = 4))
 
         composeTestRule.assertOverlappingTouchTargetsAreExactly(issue136SetRowSqueeze)

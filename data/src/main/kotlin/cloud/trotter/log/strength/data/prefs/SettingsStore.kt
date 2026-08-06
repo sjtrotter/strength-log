@@ -76,6 +76,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val REST_BACKOFF_SECONDS = intPreferencesKey("rest_backoff_seconds")
         val REST_WORK_SECONDS = intPreferencesKey("rest_work_seconds")
         val REST_LIGHT_SECONDS = intPreferencesKey("rest_light_seconds")
+
+        /** Whether the phone screen stays awake while the app is in front (#125).
+         *  Absent means off: a screen that never sleeps is a battery decision, so
+         *  the user has to ask for it, and having asked once they keep it. */
+        val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
     }
 
     /** Maps each overridable rest category to its DataStore key (SSOT for the
@@ -146,6 +151,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         )
     }
 
+    /** Whether the screen is held awake while the app is in front (#125).
+     *  Defaults off — the wake costs battery, so it is opt-in. */
+    val keepScreenOnFlow: Flow<Boolean> =
+        dataStore.data.map { it[Keys.KEEP_SCREEN_ON] ?: false }
+
     // --- writes --------------------------------------------------------------
 
     suspend fun setConfig(config: LifterConfig) = dataStore.edit { it.writeConfig(config) }
@@ -191,6 +201,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setUnit(unit: WeightUnit) =
         dataStore.edit { it[Keys.WEIGHT_UNIT] = unit.name }
 
+    /** Flips the keep-screen-on preference (the day screen's bottom-bar switch). */
+    suspend fun setKeepScreenOn(on: Boolean) =
+        dataStore.edit { it[Keys.KEEP_SCREEN_ON] = on }
+
     /** Stamps [nowMillis]/[today] as the in-progress session's start, unless a
      *  stamp for [today] already exists. A stamp carrying any other date is
      *  treated as absent and overwritten: it belonged to an abandoned session
@@ -217,7 +231,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     /**
      * Replaces every preference in one atomic [edit] (backup restore, A2). The
      * leading [clear] drops any key not overwritten below, so a restore can't
-     * leave a stale value behind; because these four inputs together own every
+     * leave a stale value behind; because these inputs together own every
      * key this store defines, nothing is orphaned. A single edit means a crash
      * mid-restore leaves either the whole old preference set or the whole new one
      * — never a mix. The session-start stamp keys ([Keys.SESSION_STARTED_AT]
@@ -235,6 +249,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         wizardComplete: Boolean,
         suggestedDay: String?,
         restSettings: RestSettings,
+        keepScreenOn: Boolean,
     ) = dataStore.edit { prefs ->
         prefs.clear()
         prefs.writeConfig(answers.config)
@@ -251,6 +266,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         restSettings.overrides.forEach { (category, seconds) ->
             prefs[restOverrideKeys.getValue(category)] = seconds.coerceIn(0, RestPolicy.MAX_REST_SECONDS)
         }
+        prefs[Keys.KEEP_SCREEN_ON] = keepScreenOn
     }
 
     // --- read/write helpers --------------------------------------------------

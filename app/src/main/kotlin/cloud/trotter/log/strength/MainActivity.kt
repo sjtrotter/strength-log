@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -45,6 +46,32 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 repository.suggestedDayFlow.collect { iconDayId = it }
+            }
+        }
+
+        // Keep-screen-on (#125) is held here, on the window, and not by a
+        // DisposableEffect on the day screen. A per-screen effect releases the
+        // wake the moment that screen leaves the composition, which is exactly
+        // what happened walking Day → Log mid-workout: the phone went dark
+        // between sets because the user had *navigated*, which is not a reason
+        // to stop waiting for them.
+        //
+        // Scope is the whole app while the preference is on, not "workout
+        // surfaces only". Two reasons: any list of workout surfaces has to be
+        // maintained forever and re-introduces the same seam at its edges; and
+        // the wake is now something the user asked for out loud, so honouring it
+        // everywhere is the honest reading of the switch. It costs nothing when
+        // they are elsewhere — FLAG_KEEP_SCREEN_ON only applies while this
+        // window is visible, so backgrounding the app releases it for free.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                repository.keepScreenOnFlow.collect { on ->
+                    if (on) {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    } else {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
+                }
             }
         }
     }

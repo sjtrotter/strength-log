@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -466,6 +467,26 @@ class BackupCodecTest {
 
         assertEquals(partly, restored.restSettings)
         assertEquals(setOf(RestCategory.TOP), restored.restSettings.overrides.keys)
+    }
+
+    // --- keep-screen-on (schema v4) -----------------------------------------
+
+    @Test
+    fun `keep-screen-on survives a full export-import cycle`() {
+        val on = restSnapshot(RestSettings()).copy(keepScreenOn = true)
+
+        val restored = codec.decode(codec.encode(on.toDocument())).toSnapshot()
+
+        assertTrue(restored.keepScreenOn)
+    }
+
+    @Test
+    fun `keep-screen-on off round-trips as off`() {
+        val off = restSnapshot(RestSettings())
+
+        val restored = codec.decode(codec.encode(off.toDocument())).toSnapshot()
+
+        assertFalse(restored.keepScreenOn)
     }
 
     @Test

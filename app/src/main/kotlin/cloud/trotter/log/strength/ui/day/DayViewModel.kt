@@ -78,7 +78,6 @@ class DayViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
-    private val keepScreenOn: StateFlow<Boolean> = savedState.getStateFlow(KEY_KEEP_ON, false)
     private val manualCollapse: StateFlow<Map<Long, Boolean>> =
         savedState.getStateFlow(KEY_COLLAPSE, emptyMap())
 
@@ -96,7 +95,7 @@ class DayViewModel @Inject constructor(
             repo.programFlow,
             repo.suggestedDayFlow,
             effectiveDayId,
-            keepScreenOn,
+            repo.keepScreenOnFlow,
             ::PartialContext,
         ).let { partial ->
             combine(partial, repo.configFlow, repo.unitFlow, repo.catalogFlow) { p, cfg, unit, catalog ->
@@ -337,8 +336,11 @@ class DayViewModel @Inject constructor(
         savedState[KEY_COLLAPSE] = manualCollapse.value + (programExerciseId to !card.collapsed)
     }
 
+    /** Writes the keep-screen-on preference (#125). It lives in DataStore, not
+     *  [SavedStateHandle], so it outlives the process the way every other thing
+     *  the user chose does — and the activity, not this screen, applies it. */
     fun setKeepScreenOn(on: Boolean) {
-        savedState[KEY_KEEP_ON] = on
+        viewModelScope.launch { repo.setKeepScreenOn(on) }
     }
 
     fun clearChecks() {
@@ -649,7 +651,6 @@ class DayViewModel @Inject constructor(
 
     private companion object {
         const val KEY_VIEW_DAY = "day_view_override"
-        const val KEY_KEEP_ON = "day_keep_screen_on"
         const val KEY_COLLAPSE = "day_collapse_overrides"
         const val STOP_TIMEOUT_MS = 5_000L
 

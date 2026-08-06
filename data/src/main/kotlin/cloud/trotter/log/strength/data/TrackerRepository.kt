@@ -543,6 +543,7 @@ open class TrackerRepository(
         unit = settings.unitFlow.first(),
         wizardComplete = settings.wizardCompleteFlow.first(),
         suggestedDay = settings.suggestedDayFlow.first(),
+        restSettings = settings.restSettingsFlow.first(),
         customExercises = customExerciseDao.allOrdered(),
         days = programDao.allDays(),
         exercises = programDao.allExercises(),
@@ -584,7 +585,13 @@ open class TrackerRepository(
             sessionDao.insertSessions(snapshot.sessions)
             sessionDao.insertSets(snapshot.sessionSets)
         }
-        settings.restore(snapshot.answers, snapshot.unit, snapshot.wizardComplete, snapshot.suggestedDay)
+        settings.restore(
+            answers = snapshot.answers,
+            unit = snapshot.unit,
+            wizardComplete = snapshot.wizardComplete,
+            suggestedDay = snapshot.suggestedDay,
+            restSettings = snapshot.restSettings,
+        )
     }
 
     // --- CSV history export/import (#16) --------------------------------------

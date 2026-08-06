@@ -351,8 +351,17 @@ private fun LogRoute(onBack: () -> Unit, viewModel: LogViewModel = hiltViewModel
 @Composable
 private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // A first-run restore leaves the wizard the same way finishing it does: the
+    // ViewModel flips isComplete once the import lands on a backup that was
+    // itself past the wizard. A backup taken mid-first-run leaves it false and
+    // we stay here, now showing the restored answers.
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) onFinished()
+    }
+    // Same picker and mime type the Backup screen uses; a null Uri (the user
+    // backed out) is a silent no-op, not an error.
+    val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::restoreFromBackup)
     }
     // System back steps the wizard backward; on the first step it's disabled so
     // back falls through (exiting a fresh install is fine — the draft is in
@@ -375,6 +384,7 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
             onAgeChange = viewModel::setAge,
             onLevelChange = viewModel::setLevel,
             onEquipmentToggle = viewModel::toggleEquipment,
+            onRestoreFromBackup = { restoreLauncher.launch(arrayOf("application/json")) },
         ),
     )
 }

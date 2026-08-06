@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.standards.RestPolicy
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import kotlinx.serialization.SerializationException
@@ -76,12 +77,14 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
         val document = when (version) {
-            // v1 and v2 share one decoder: v2 only *added* defaulted fields
-            // (session-set `seconds`, custom-exercise tracking/targets), so a v1
-            // document decodes byte-for-byte into the same shape with those fields
-            // at their defaults — a v1 backup must always restore. A newer version
-            // is still rejected loudly rather than silently misread.
-            1, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
+            // Every version so far shares one decoder, because every bump only
+            // *added* defaulted fields: v2 added session-set `seconds` and the
+            // custom-exercise tracking/targets, v3 added the rest-timer prefs. An
+            // older document therefore decodes into the current shape with the
+            // newer fields at their defaults, which is their old meaning — an old
+            // backup must always restore. A newer version is still rejected loudly
+            // rather than silently misread.
+            1, 2, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -131,6 +134,11 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             throw BackupError.Inconsistent("bodyweightLb must be positive: ${settings.bodyweightLb}")
         }
         if (settings.age < 0) throw BackupError.Inconsistent("age must not be negative: ${settings.age}")
+        settings.restOverrides().forEach { (category, seconds) ->
+            if (seconds !in 0..RestPolicy.MAX_REST_SECONDS) {
+                throw BackupError.Inconsistent("rest override for $category out of range: $seconds")
+            }
+        }
     }
 
     private fun validateCustomExercises(customs: List<CustomExerciseBackup>): Set<String> {

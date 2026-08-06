@@ -20,6 +20,8 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -65,6 +67,9 @@ class BackupRoundTripTest : BackupTestHarness() {
         repository.setWizardAnswers(wizardAnswers)
         repository.setWizardComplete(true)
         repository.setUnit(WeightUnit.KG)
+        repository.setRestTimerEnabled(false)
+        repository.setRestOverride(RestCategory.TOP, 210)
+        repository.setRestOverride(RestCategory.LIGHT, 30)
 
         val customId = repository.addCustomExercise(
             name = "Cable Hack Squat",
@@ -112,6 +117,9 @@ class BackupRoundTripTest : BackupTestHarness() {
         assertTrue(repository.sessionsFlow.first().isEmpty())
         assertTrue(repository.catalogFlow.first().entries.none { it.id == customId })
         assertEquals(null, repository.suggestedDayFlow.first())
+        // The wipe backup predates nothing — it simply carries no rest keys, so
+        // the tuned buckets must fall back to RestPolicy's defaults, not linger.
+        assertEquals(RestSettings(), repository.restSettingsFlow.first())
 
         // --- import the real backup and compare deep-equal --------------------
         service.import(backup)
@@ -135,6 +143,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         val unit: WeightUnit,
         val wizardComplete: Boolean,
         val suggestedDay: String?,
+        val restSettings: RestSettings,
     )
 
     private suspend fun captureState(): State {
@@ -150,6 +159,7 @@ class BackupRoundTripTest : BackupTestHarness() {
             unit = repository.unitFlow.first(),
             wizardComplete = repository.wizardCompleteFlow.first(),
             suggestedDay = repository.suggestedDayFlow.first(),
+            restSettings = repository.restSettingsFlow.first(),
         )
     }
 }

@@ -68,7 +68,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         /** Rest-timer prefs (W2a). The master gate defaults ON when absent; each
          *  per-category override is absent-means-default (RestPolicy owns the
          *  numbers, so we never pre-write a default and can't drift from it).
-         *  Device-local: deliberately excluded from the backup payload (see
+         *  Carried by the backup since schema v3, absences and all (see
          *  [restore]). */
         val REST_TIMER_ENABLED = booleanPreferencesKey("rest_timer_enabled")
         val REST_RAMP_SECONDS = intPreferencesKey("rest_ramp_seconds")
@@ -222,17 +222,19 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * mid-restore leaves either the whole old preference set or the whole new one
      * — never a mix. The session-start stamp keys ([Keys.SESSION_STARTED_AT]
      * and [Keys.SESSION_STARTED_DATE]) are deliberately left cleared: a restore
-     * can't be "mid-workout". The rest-timer keys ([Keys.REST_TIMER_ENABLED] and
-     * the five `rest_*_seconds` overrides) are likewise not in the backup payload
-     * (v2 schema untouched — rest prefs are device-local settings, not workout
-     * data), so a restore reverts them to defaults; folding them into a later
-     * backup version is additive.
+     * can't be "mid-workout".
+     *
+     * [restSettings] only writes the override keys the backup actually carries
+     * (schema v3): a bucket the user never pinned stays absent here too, so a
+     * restored device keeps following [RestPolicy]'s defaults rather than being
+     * frozen at whatever they were the day the backup was written.
      */
     suspend fun restore(
         answers: WizardAnswers,
         unit: WeightUnit,
         wizardComplete: Boolean,
         suggestedDay: String?,
+        restSettings: RestSettings,
     ) = dataStore.edit { prefs ->
         prefs.clear()
         prefs.writeConfig(answers.config)
@@ -245,6 +247,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         prefs[Keys.WEIGHT_UNIT] = unit.name
         prefs[Keys.WIZARD_COMPLETE] = wizardComplete
         if (suggestedDay != null) prefs[Keys.SUGGESTED_DAY] = suggestedDay
+        prefs[Keys.REST_TIMER_ENABLED] = restSettings.enabled
+        restSettings.overrides.forEach { (category, seconds) ->
+            prefs[restOverrideKeys.getValue(category)] = seconds.coerceIn(0, RestPolicy.MAX_REST_SECONDS)
+        }
     }
 
     // --- read/write helpers --------------------------------------------------

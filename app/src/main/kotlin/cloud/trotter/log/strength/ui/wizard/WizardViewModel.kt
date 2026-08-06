@@ -1,9 +1,12 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -17,7 +20,12 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.transfer.backup.BackupError
+import cloud.trotter.log.strength.transfer.backup.BackupService
+import cloud.trotter.log.strength.ui.backup.TransferErrorMessages
+import java.io.IOException
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,6 +34,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Setup wizard ViewModel (spec §6.1, PLAN.md A4). Every field of the
@@ -44,15 +53,28 @@ import kotlinx.coroutines.launch
  * seeds the draft from whatever is already stored, which is the spec default
  * on first run (an empty DataStore reads back [WizardAnswers] defaults) and
  * the lifter's last answers on a re-run.
+ *
+ * [Restore from backup][restoreFromBackup] is the other way out of the wizard,
+ * offered on the first step of a genuine first run only — see [Keys.FIRST_RUN].
  */
 @HiltViewModel
 class WizardViewModel @Inject constructor(
     private val repo: TrackerRepository,
     private val savedState: SavedStateHandle,
+    @ApplicationContext private val context: Context,
+    private val backupService: BackupService,
 ) : ViewModel() {
 
     private object Keys {
         const val INITIALIZED = "wizard_initialized"
+
+        /** Whether this wizard was entered with nothing on the device yet
+         *  (latched from `wizardComplete` in [init], never re-read). It gates
+         *  the restore-from-backup entry: on a Setup re-run the device already
+         *  holds a program and a history, and Data/Backup owns import there
+         *  behind a confirm-overwrite dialog — a second, unguarded destructive
+         *  path off a setup screen is exactly the accident worth designing out. */
+        const val FIRST_RUN = "wizard_first_run"
         const val STEP = "wizard_step"
         const val DAYS = "wizard_days"
         const val SPLIT = "wizard_split"
@@ -89,6 +111,16 @@ class WizardViewModel @Inject constructor(
         savedState.getStateFlow(Keys.EQUIPMENT, defaults.equipment.map { it.name })
 
     private val isComplete = MutableStateFlow(false)
+
+    private val firstRun: StateFlow<Boolean> = savedState.getStateFlow(Keys.FIRST_RUN, false)
+
+    /** In-flight/failed state of a restore. Not in [SavedStateHandle] on purpose:
+     *  it is progress, not truth — the import is one atomic all-or-nothing call,
+     *  so process death mid-restore leaves the device either untouched or fully
+     *  restored, and the user simply picks the file again. */
+    private val restoreProgress = MutableStateFlow(RestoreProgress())
+
+    private data class RestoreProgress(val inFlight: Boolean = false, val error: String? = null)
 
     private data class SplitGroup(val days: Int, val split: SplitTemplate, val anchors: AnchorScheme, val deadlift: DeadliftVariant)
     private data class CardioGroup(val mode: CardioMode, val placement: CardioPlacement, val fiveK: Boolean)
@@ -137,14 +169,20 @@ class WizardViewModel @Inject constructor(
     )
 
     val uiState: StateFlow<WizardUiState> =
-        combine(stepIndex, answersFlow, isComplete) { step, answers, complete ->
-            WizardStateBuilder.buildUiState(step, answers, complete)
+        combine(stepIndex, answersFlow, isComplete, firstRun, restoreProgress) { step, answers, complete, offered, progress ->
+            WizardStateBuilder.buildUiState(
+                stepIndex = step,
+                answers = answers,
+                isComplete = complete,
+                restore = WizardRestoreState(offered = offered, inFlight = progress.inFlight, error = progress.error),
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), WizardUiState())
 
     init {
         if (savedState.get<Boolean>(Keys.INITIALIZED) != true) {
             viewModelScope.launch {
                 applyAnswers(repo.wizardAnswersFlow.first())
+                savedState[Keys.FIRST_RUN] = !repo.wizardCompleteFlow.first()
                 savedState[Keys.INITIALIZED] = true
             }
         }
@@ -257,6 +295,48 @@ class WizardViewModel @Inject constructor(
             repo.replaceProgram(ProgramGenerator.generate(answers).program)
             repo.setWizardComplete(true)
             isComplete.value = true
+        }
+    }
+
+    // --- restore from backup (first run only) ----------------------------------
+
+    /**
+     * Restores the picked backup instead of answering the wizard. No confirm
+     * dialog: this is only reachable on a first run (see [Keys.FIRST_RUN]), so
+     * there is nothing on the device to overwrite. [BackupService] validates the
+     * whole file before it writes a byte, so a bad file leaves a fresh install
+     * fresh and only puts a message on the screen.
+     *
+     * Where it lands is the *restored document's* call, not ours. A backup taken
+     * mid-first-run carries `wizardComplete = false` and no generated program —
+     * leaving for the day screen there would strand it on "Preparing your
+     * program…", the same trap [finish]'s write order avoids. So on that one
+     * document we stay in the wizard, re-seeded with whatever answers the backup
+     * did carry, and the lifter finishes setup from there.
+     */
+    fun restoreFromBackup(uri: Uri) {
+        if (!firstRun.value || restoreProgress.value.inFlight) return
+        restoreProgress.value = RestoreProgress(inFlight = true)
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { backupService.importFrom(it) }
+                        ?: throw IOException("no input stream for $uri")
+                }
+                applyAnswers(repo.wizardAnswersFlow.first())
+                if (repo.wizardCompleteFlow.first()) {
+                    isComplete.value = true
+                } else {
+                    restoreProgress.value = RestoreProgress()
+                }
+            } catch (e: BackupError) {
+                restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
+            } catch (e: IOException) {
+                restoreProgress.value = RestoreProgress(error = "Couldn't access that file: ${e.message}")
+            } catch (e: SecurityException) {
+                // A revoked/expired SAF grant surfaces here, not as a crash.
+                restoreProgress.value = RestoreProgress(error = "No permission to access that file anymore.")
+            }
         }
     }
 

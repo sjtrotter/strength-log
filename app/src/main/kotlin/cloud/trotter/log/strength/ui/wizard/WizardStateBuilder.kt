@@ -28,7 +28,12 @@ object WizardStateBuilder {
     }
 
     /** Assembles the screen's full render state for one step of [answers]. */
-    fun buildUiState(stepIndex: Int, answers: WizardAnswers, isComplete: Boolean): WizardUiState {
+    fun buildUiState(
+        stepIndex: Int,
+        answers: WizardAnswers,
+        isComplete: Boolean,
+        restore: WizardRestoreState = WizardRestoreState(),
+    ): WizardUiState {
         val clamped = stepIndex.coerceIn(0, WizardStep.entries.lastIndex)
         return WizardUiState(
             stepIndex = clamped,
@@ -37,6 +42,7 @@ object WizardStateBuilder {
             splitOptions = SplitDefaults.optionsFor(answers.daysPerWeek),
             activeAnchorIds = ProgramGenerator.activeAnchorIds(answers),
             isComplete = isComplete,
+            restore = restore,
         )
     }
 }

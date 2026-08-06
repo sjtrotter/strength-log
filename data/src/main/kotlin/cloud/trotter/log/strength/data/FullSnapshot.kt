@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /**
@@ -29,6 +30,7 @@ data class FullSnapshot(
     val unit: WeightUnit,
     val wizardComplete: Boolean,
     val suggestedDay: String?,
+    val restSettings: RestSettings,
     val customExercises: List<CustomExerciseEntity>,
     val days: List<ProgramDayEntity>,
     val exercises: List<ProgramExerciseEntity>,

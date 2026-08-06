@@ -22,7 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -48,6 +47,7 @@ import cloud.trotter.log.strength.transfer.csv.PreviewSession
 import cloud.trotter.log.strength.transfer.csv.PreviewSet
 import cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -248,8 +248,8 @@ private fun RestoreConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
                     "with what's in the file. This can't be undone.",
             )
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Replace all data", color = Error) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+        confirmButton = { DialogAction("Replace all data", Error, onConfirm) },
+        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
     )
 }
 

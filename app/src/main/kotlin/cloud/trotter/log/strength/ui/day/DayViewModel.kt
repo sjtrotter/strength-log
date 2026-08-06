@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -146,15 +147,21 @@ class DayViewModel @Inject constructor(
     val cascadeCeremony: StateFlow<CascadeCeremony?> = _cascadeCeremony.asStateFlow()
 
     /**
-     * The standing undo offer for a removed set (#124). A bare field for the
-     * same reason as [_cascadeCeremony]: this is a [UNDO_WINDOW_MS]-long
-     * courtesy, not user data, and an offer restored after process death would
-     * put a row back into a workout the user had already moved on from. The
-     * window closes on the timeout, on taking the undo, or on anything that
-     * changes what the screen is showing — a day switch or a DONE.
+     * The standing undo offers for removed sets (#124), oldest first — a
+     * bounded LIFO stack, because each entry's index describes the track *as it
+     * was when that row left it*. Only the last entry's index still means
+     * anything against the current list, so only the last entry can be taken;
+     * popping it makes the one beneath it current again.
+     *
+     * A bare field for the same reason as [_cascadeCeremony]: this is a
+     * [UNDO_WINDOW_MS]-long courtesy, not user data, and an offer restored
+     * after process death would put a row back into a workout the user had
+     * already moved on from. One shared window covers the whole stack; it
+     * restarts whenever the stack changes, and running out clears all of it.
+     * A day switch or a DONE clears it outright.
      */
-    private val _removedSet = MutableStateFlow<RemovedSet?>(null)
-    val removedSet: StateFlow<RemovedSet?> = _removedSet.asStateFlow()
+    private val _removedSets = MutableStateFlow<List<RemovedSet>>(emptyList())
+    val removedSets: StateFlow<List<RemovedSet>> = _removedSets.asStateFlow()
     private var undoWindowJob: Job? = null
 
     init {
@@ -254,13 +261,10 @@ class DayViewModel @Inject constructor(
             // so nothing is offered back.
             if (main.size <= 1) return@mutate
             val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else emptyList()
-            if (partner.isNotEmpty()) {
-                val (newMain, newPartner) = SetEditor.removeSetPaired(main, partner, index)
-                repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
-            } else {
-                repo.updateSets(day, programExerciseId, Slot.MAIN, SetEditor.removeSet(main, index))
-            }
-            openUndoWindow(
+            // Offered before the write lands: removing the last unfinished row
+            // finishes the card, and the screen has to know the offer is open
+            // before it decides whether to fold that card away.
+            pushUndo(
                 RemovedSet(
                     programExerciseId = programExerciseId,
                     index = index,
@@ -269,14 +273,21 @@ class DayViewModel @Inject constructor(
                     partner = partner.getOrNull(index),
                 ),
             )
+            if (partner.isNotEmpty()) {
+                val (newMain, newPartner) = SetEditor.removeSetPaired(main, partner, index)
+                repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
+            } else {
+                repo.updateSets(day, programExerciseId, Slot.MAIN, SetEditor.removeSet(main, index))
+            }
         }
     }
 
-    /** Puts the removed row back where it was, kind and tick included. A no-op
-     *  once the window has closed, so a stale tap can't resurrect anything. */
+    /** Takes the newest offer: puts that row back where it was, kind and tick
+     *  included, and makes the offer beneath it current. A no-op once the window
+     *  has closed, so a stale tap can't resurrect anything. */
     fun undoRemoveSet() {
-        val removed = _removedSet.value ?: return
-        closeUndoWindow()
+        val removed = _removedSets.value.lastOrNull() ?: return
+        popUndo()
         mutate {
             val day = currentDay() ?: return@mutate
             if (day != removed.dayId) return@mutate
@@ -293,19 +304,32 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    private fun openUndoWindow(removed: RemovedSet) {
+    private fun pushUndo(removed: RemovedSet) {
+        // Bounded: past [UNDO_STACK_LIMIT] the oldest entry is dropped. Its
+        // index was the most stale, and it was never the one on offer.
+        _removedSets.update { (it + removed).takeLast(UNDO_STACK_LIMIT) }
+        restartUndoWindow()
+    }
+
+    private fun popUndo() {
+        _removedSets.update { it.dropLast(1) }
+        // The window is shared, so it restarts rather than running down: an
+        // offer revealed by a pop must be as reachable as one just pushed.
+        if (_removedSets.value.isEmpty()) closeUndoWindow() else restartUndoWindow()
+    }
+
+    private fun restartUndoWindow() {
         undoWindowJob?.cancel()
-        _removedSet.value = removed
         undoWindowJob = viewModelScope.launch {
             delay(UNDO_WINDOW_MS)
-            _removedSet.value = null
+            _removedSets.value = emptyList()
         }
     }
 
     private fun closeUndoWindow() {
         undoWindowJob?.cancel()
         undoWindowJob = null
-        _removedSet.value = null
+        _removedSets.value = emptyList()
     }
 
     fun toggleCollapse(programExerciseId: Long) {
@@ -633,5 +657,10 @@ class DayViewModel @Inject constructor(
          *  the row vanish and reach for it, short enough that the offer is gone
          *  before the next set is logged. */
         const val UNDO_WINDOW_MS = 5_000L
+
+        /** How many removals one shared window will hold. Five seconds is not
+         *  long enough to deliberately stack more than a couple, so this is a
+         *  ceiling on a runaway finger, not a feature. */
+        const val UNDO_STACK_LIMIT = 5
     }
 }

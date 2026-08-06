@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,6 +48,7 @@ import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
@@ -490,8 +490,8 @@ private fun RerunConfirmDialog(
         textContentColor = TextSecondary,
         title = { Text("Re-run setup wizard?") },
         text = { Text("This replaces your current program from scratch. Your workout history isn't touched.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Re-run", color = Error) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+        confirmButton = { DialogAction("Re-run", Error, onConfirm) },
+        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
     )
 }
 
@@ -508,8 +508,8 @@ private fun RestDefaultsConfirmDialog(
         textContentColor = TextSecondary,
         title = { Text("Reset rest timers?") },
         text = { Text("Every per-category rest length goes back to the built-in default. The rest timer stays on.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Reset", color = Error) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+        confirmButton = { DialogAction("Reset", Error, onConfirm) },
+        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
     )
 }
 

@@ -24,7 +24,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -48,6 +47,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.disabledAlpha
 import cloud.trotter.log.strength.ui.components.pressable
@@ -542,8 +542,8 @@ private fun ResetToTemplateDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) 
         textContentColor = TextSecondary,
         title = { Text("Reset day to template?") },
         text = { Text("This regenerates the day from your setup wizard answers. Any swaps, adds, or removes you made here are discarded — logged history is not affected.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Reset", color = Error) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+        confirmButton = { DialogAction("Reset", Error, onConfirm) },
+        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
     )
 }
 

@@ -34,7 +34,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -80,6 +79,7 @@ import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.CardShape
+import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SetRow
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.components.pressableSelectable
@@ -118,7 +118,7 @@ fun DayScreen(
     dayEditActions: DayEditActions,
     cascadeCeremony: CascadeCeremony? = null,
     onDismissCascade: () -> Unit = {},
-    removedSet: RemovedSet? = null,
+    removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
 ) {
     KeepScreenOn(state.keepScreenOn)
@@ -134,6 +134,10 @@ fun DayScreen(
     // Rare enough to be worth a question (#124) — unlike the × on a set row,
     // which is frequent enough to be worth an undo instead.
     var confirmingClearChecks by rememberSaveable { mutableStateOf(false) }
+    // Only the newest removal is on offer: an older entry's index describes a
+    // list that no longer exists, so drawing its line would point at the wrong
+    // gap. Taking this one reveals the next (see DayViewModel.removedSets).
+    val openOffer = removedSets.lastOrNull()
     // A card offers ⇄ only when its slot resolves to a pattern to rank
     // substitutes against — the same rule that disables Swap in the sheet.
     val swappableSlotIds = remember(dayEditState.slots) {
@@ -169,7 +173,7 @@ fun DayScreen(
                         onSwapWeight = dayEditActions.onSwap,
                         canSwapExercise = card.programExerciseId in swappableSlotIds,
                         onSwapExercise = { swapCardSlotId = card.programExerciseId },
-                        undoSlotIndex = removedSet?.takeIf { it.programExerciseId == card.programExerciseId }?.index,
+                        undoSlotIndex = openOffer?.takeIf { it.programExerciseId == card.programExerciseId }?.index,
                         onUndoRemoveSet = onUndoRemoveSet,
                     )
                 }
@@ -414,18 +418,27 @@ private fun ExerciseCard(
     // discards the slot's live rows, the same courtesy other destructive day
     // actions get (ResetToTemplateDialog).
     var pendingSwap by remember { mutableStateOf<WeightSwapAffordance?>(null) }
-    LaunchedEffect(card.collapsed, card.allDone) {
+    val undoOnOffer = undoSlotIndex != null
+    LaunchedEffect(card.collapsed, card.allDone, undoOnOffer) {
         val justFinished = card.allDone && !previousAllDone
         previousAllDone = card.allDone
-        if (card.collapsed && justFinished) {
-            // Auto-collapse only (the last tick just landed): let the ✓ chip and
-            // green edge register before the card folds — an animation-layer
-            // delay, not a change to DayScreenBuilder's (already-tested) collapse
-            // decision. A manual header tap collapses/expands instantly (below).
-            delay(420)
-            displayCollapsed = true
-        } else {
-            displayCollapsed = card.collapsed
+        when {
+            // Removing the last unfinished row is itself a way to finish a card,
+            // and the collapsed card has no rows to hang the undo offer on. So
+            // the auto-fold waits for the window to close (#124) — at which
+            // point this effect re-runs and folds without the ceremony delay,
+            // which by then it has already had five seconds of.
+            card.collapsed && justFinished && undoOnOffer -> displayCollapsed = false
+            card.collapsed && justFinished -> {
+                // Auto-collapse only (the last tick just landed): let the ✓ chip
+                // and green edge register before the card folds — an
+                // animation-layer delay, not a change to DayScreenBuilder's
+                // (already-tested) collapse decision. A manual header tap
+                // collapses/expands instantly (below).
+                delay(420)
+                displayCollapsed = true
+            }
+            else -> displayCollapsed = card.collapsed
         }
     }
 
@@ -720,8 +733,8 @@ internal fun WeightSwapConfirmDialog(swap: WeightSwapAffordance, onConfirm: () -
         textContentColor = TextSecondary,
         title = { Text("Switch to ${swap.targetName}?") },
         text = { Text("Your sets reseed from its goal.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Switch", color = Done) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+        confirmButton = { DialogAction("Switch", Done, onConfirm) },
+        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
     )
 }
 
@@ -931,8 +944,8 @@ private fun ClearChecksConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Uni
         textContentColor = TextSecondary,
         title = { Text("Clear today's checkmarks?") },
         text = { Text("Every ✓ on this day comes off. The weights and reps you logged stay where they are.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Clear", color = Error) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+        confirmButton = { DialogAction("Clear", Error, onConfirm) },
+        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
     )
 }
 

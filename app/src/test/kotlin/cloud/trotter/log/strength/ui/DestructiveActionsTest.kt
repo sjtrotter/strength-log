@@ -1,8 +1,14 @@
 package cloud.trotter.log.strength.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -33,6 +39,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDialog
 
 /**
  * Issue #124's second half: the three destructive actions that used to fire on
@@ -91,15 +98,7 @@ class DestructiveActionsTest {
     @Test
     fun theUndoOfferIsOneTapBackToTheRow() {
         var undone = 0
-        setDayContent(
-            removedSet = RemovedSet(
-                programExerciseId = 1L,
-                index = 0,
-                dayId = "A",
-                main = LoggedSet(210.0, 5, SetKind.WORK),
-            ),
-            onUndoRemoveSet = { undone++ },
-        )
+        setDayContent(removedSets = listOf(offer(index = 0)), onUndoRemoveSet = { undone++ })
 
         composeTestRule.onNodeWithText("UNDO").performClick()
 
@@ -108,16 +107,98 @@ class DestructiveActionsTest {
 
     @Test
     fun noUndoOfferShowsOnACardThatDidNotLoseARow() {
-        setDayContent(
-            removedSet = RemovedSet(
-                programExerciseId = 99L,
-                index = 0,
-                dayId = "A",
-                main = LoggedSet(210.0, 5, SetKind.WORK),
-            ),
-        )
+        setDayContent(removedSets = listOf(offer(programExerciseId = 99L)))
 
         composeTestRule.onNodeWithText("UNDO").assertDoesNotExist()
+    }
+
+    /**
+     * Only the newest removal is on offer: an older entry's index describes a
+     * list that no longer exists, so exactly one line shows however deep the
+     * stack goes.
+     */
+    @Test
+    fun onlyTheNewestRemovalIsOffered() {
+        setDayContent(removedSets = listOf(offer(index = 0), offer(index = 0)))
+
+        composeTestRule.onAllNodesWithText("UNDO").assertCountEquals(1)
+    }
+
+    /**
+     * The case that would have made the five-second promise a lie: removing the
+     * last unfinished row finishes the card, which asks it to fold — taking the
+     * offer with it, because a collapsed card renders a summary and no rows.
+     * The fold has to wait for the window.
+     */
+    @Test
+    fun aRemovalThatFinishesTheCardKeepsItOpenUntilTheOfferIsGone() {
+        var state by mutableStateOf(dayState())
+        var offers by mutableStateOf(emptyList<RemovedSet>())
+        composeTestRule.setContent {
+            AppTheme {
+                DayScreen(
+                    state = state,
+                    actions = noopActions(onClearChecks = {}, onRemoveSet = {}),
+                    dayEditState = dayEditState(),
+                    dayEditActions = noopEditActions(),
+                    removedSets = offers,
+                    onUndoRemoveSet = {},
+                )
+            }
+        }
+
+        // Same order the ViewModel writes them in: the offer opens, then the
+        // shortened track lands and the card reads as finished.
+        offers = listOf(offer(index = 1))
+        state = state.copy(
+            exercises = listOf(state.exercises.single().copy(allDone = true, collapsed = true)),
+        )
+        composeTestRule.onNodeWithText("UNDO").assertIsDisplayed()
+
+        offers = emptyList()
+        composeTestRule.onNodeWithText("UNDO").assertDoesNotExist()
+        composeTestRule.onNodeWithText("5 sets · GOAL 235").assertIsDisplayed()
+    }
+
+    // --- dismissing a confirm is not taking it --------------------------------
+    //
+    // Back is the route worth pinning and the one this issue was about: before
+    // the conversion it popped the whole screen, and the overlay stayed. It is
+    // also the same `onDismissRequest` a tap on the scrim runs, so these cover
+    // both — the scrim tap itself is a window-level touch Robolectric does not
+    // route, so it stays an on-device check rather than a simulated one.
+
+    @Test
+    fun systemBackDismissesTheClearDialogWithoutClearingAnything() {
+        var cleared = 0
+        setDayContent(onClearChecks = { cleared++ })
+
+        composeTestRule.onNodeWithText("Clear today's checkmarks").performClick()
+        composeTestRule.onNodeWithText("Clear").assertIsDisplayed()
+
+        composeTestRule.runOnIdle { ShadowDialog.getLatestDialog().onBackPressed() }
+
+        assertEquals(0, cleared)
+        composeTestRule.onNodeWithText("Clear").assertDoesNotExist()
+    }
+
+    @Test
+    fun systemBackDismissesTheRestTimerDialogWithoutResettingAnything() {
+        var reset = 0
+        composeTestRule.setContent {
+            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions(onRestOverridesReset = { reset++ })) }
+        }
+
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("RESET DEFAULTS"))
+        composeTestRule.onNodeWithText("RESET DEFAULTS").performClick()
+        composeTestRule.onNodeWithText("Reset").assertIsDisplayed()
+
+        composeTestRule.runOnIdle { ShadowDialog.getLatestDialog().onBackPressed() }
+
+        assertEquals(0, reset)
+        composeTestRule.onNodeWithText("Reset").assertDoesNotExist()
+        // The screen behind it is still the screen, not a popped route.
+        composeTestRule.onNodeWithText("RESET DEFAULTS").assertIsDisplayed()
     }
 
     // --- rest-timer RESET DEFAULTS (setup) ------------------------------------
@@ -154,7 +235,7 @@ class DestructiveActionsTest {
     // --- fixtures --------------------------------------------------------------
 
     private fun setDayContent(
-        removedSet: RemovedSet? = null,
+        removedSets: List<RemovedSet> = emptyList(),
         onClearChecks: () -> Unit = {},
         onRemoveSet: () -> Unit = {},
         onUndoRemoveSet: () -> Unit = {},
@@ -166,12 +247,19 @@ class DestructiveActionsTest {
                     actions = noopActions(onClearChecks = onClearChecks, onRemoveSet = onRemoveSet),
                     dayEditState = dayEditState(),
                     dayEditActions = noopEditActions(),
-                    removedSet = removedSet,
+                    removedSets = removedSets,
                     onUndoRemoveSet = onUndoRemoveSet,
                 )
             }
         }
     }
+
+    private fun offer(programExerciseId: Long = 1L, index: Int = 0) = RemovedSet(
+        programExerciseId = programExerciseId,
+        index = index,
+        dayId = "A",
+        main = LoggedSet(210.0, 5, SetKind.WORK),
+    )
 
     /**
      * One short card, so the footer is composed without scrolling the list, and

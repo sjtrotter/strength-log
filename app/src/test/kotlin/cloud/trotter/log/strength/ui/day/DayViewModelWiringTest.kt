@@ -35,7 +35,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -762,7 +761,7 @@ class DayViewModelWiringTest {
         advanceTimeBy(1_000)
 
         assertEquals(before.size - 1, track(squatId, Slot.MAIN)!!.size)
-        val offer = vm.removedSet.value!!
+        val offer = vm.removedSets.value.last()
         assertEquals(squatId, offer.programExerciseId)
         assertEquals(1, offer.index)
 
@@ -771,7 +770,80 @@ class DayViewModelWiringTest {
 
         // Whole-row equality: kind, weight, reps, seconds and the tick.
         assertEquals(before, track(squatId, Slot.MAIN)!!)
-        assertNull("taking the undo closes the offer", vm.removedSet.value)
+        assertTrue("taking the undo closes the offer", vm.removedSets.value.isEmpty())
+    }
+
+    @Test
+    fun undoOfTheTopRowRestoresTheCascadedTrackUntouched() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+        // §11's cascade: the TOP edit re-derives every RAMP and the BACK-OFF.
+        vm.changeWeight(squatId, Slot.MAIN, index = 4, newDisplayWeight = 245.0)
+        advanceUntilIdle()
+        val cascaded = track(squatId, Slot.MAIN)!!
+        assertEquals(listOf(135.0, 170.0, 195.0, 220.0, 245.0, 185.0), cascaded.map { it.weightLb })
+
+        vm.removeSet(squatId, index = 4, isSuperset = false) // the TOP row itself
+        advanceTimeBy(1_000)
+        assertEquals(listOf(135.0, 170.0, 195.0, 220.0, 185.0), track(squatId, Slot.MAIN)!!.map { it.weightLb })
+
+        vm.undoRemoveSet()
+        advanceTimeBy(1_000)
+
+        // Nothing re-derived on the way out or back: removing a row is not an
+        // edit, so the cascaded weights are exactly where they were.
+        assertEquals(cascaded, track(squatId, Slot.MAIN)!!)
+    }
+
+    @Test
+    fun twoRemovalsUndoInReverseOrderBackToTheOriginalList() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+        val original = track(squatId, Slot.MAIN)!!
+
+        // The second removal sits *after* the first, so its captured index is an
+        // index into the already-shortened list — which is exactly what a strict
+        // LIFO undo needs it to be.
+        vm.removeSet(squatId, index = 1, isSuperset = false)
+        advanceTimeBy(500)
+        vm.removeSet(squatId, index = 3, isSuperset = false)
+        advanceTimeBy(500)
+
+        assertEquals(original.size - 2, track(squatId, Slot.MAIN)!!.size)
+        assertEquals(listOf(1, 3), vm.removedSets.value.map { it.index })
+
+        vm.undoRemoveSet()
+        advanceTimeBy(500)
+        assertEquals(listOf(1), vm.removedSets.value.map { it.index })
+
+        vm.undoRemoveSet()
+        advanceTimeBy(500)
+
+        assertEquals(original, track(squatId, Slot.MAIN)!!)
+        assertTrue(vm.removedSets.value.isEmpty())
+    }
+
+    @Test
+    fun aSecondRemovalDoesNotOrphanTheFirstOffer() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        vm.removeSet(squatId, index = 0, isSuperset = false)
+        advanceTimeBy(500)
+        vm.removeSet(squatId, index = 0, isSuperset = false)
+        advanceTimeBy(500)
+
+        assertEquals("both removals are still on the stack", 2, vm.removedSets.value.size)
+        // The shared window restarted on the second push, so the stack outlives
+        // the deadline the first removal had set (t=5000; we are now at 5400).
+        advanceTimeBy(4_400)
+        assertEquals(2, vm.removedSets.value.size)
     }
 
     @Test
@@ -804,11 +876,11 @@ class DayViewModelWiringTest {
 
         vm.removeSet(squatId, index = 0, isSuperset = false)
         advanceTimeBy(1_000)
-        assertNotNull(vm.removedSet.value)
+        assertEquals(1, vm.removedSets.value.size)
         val afterRemove = track(squatId, Slot.MAIN)!!
 
         advanceUntilIdle() // past the 5s window
-        assertNull("the offer must expire on its own", vm.removedSet.value)
+        assertTrue("the offer must expire on its own", vm.removedSets.value.isEmpty())
 
         vm.undoRemoveSet()
         advanceUntilIdle()
@@ -830,6 +902,6 @@ class DayViewModelWiringTest {
         advanceTimeBy(1_000)
 
         assertEquals(1, track(curlId, Slot.MAIN)!!.size)
-        assertNull("nothing was removed, so nothing is offered back", vm.removedSet.value)
+        assertTrue("nothing was removed, so nothing is offered back", vm.removedSets.value.isEmpty())
     }
 }

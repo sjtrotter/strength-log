@@ -97,7 +97,7 @@ class TouchTargetTest {
      */
     @Test
     fun theRemovedSetUndoOfferTakesItsOwn48dpAndNoOnesElse() {
-        setDayContent(removedSet = RemovedSet(1L, 1, "A", LoggedSet(210.0, 5, SetKind.WORK)))
+        setDayContent(removedSets = listOf(RemovedSet(1L, 1, "A", LoggedSet(210.0, 5, SetKind.WORK))))
 
         composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
         composeTestRule.assertOverlappingTouchTargetsAreExactly(issue136SetRowSqueeze)
@@ -138,12 +138,12 @@ class TouchTargetTest {
         ),
     )
 
-    private fun setDayContent(state: DayUiState = fixture(), removedSet: RemovedSet? = null) {
+    private fun setDayContent(state: DayUiState = fixture(), removedSets: List<RemovedSet> = emptyList()) {
         composeTestRule.setContent {
             AppTheme {
                 DayScreen(
                     state = state,
-                    removedSet = removedSet,
+                    removedSets = removedSets,
                     actions = noopActions(),
                     dayEditState = DayEditUiState(
                         catalog = ExerciseCatalog.CODE_ONLY,

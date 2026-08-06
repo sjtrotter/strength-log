@@ -429,6 +429,59 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
+    /**
+     * The card's ⇄ chip (#122) end to end: [ExerciseCardState.position] through
+     * the very [DayEditActions.onSwap] `SlotSwapSheet` invokes, down to
+     * [TrackerRepository.swapExercise]. The slot row survives the swap (same
+     * programExerciseId, so history stays keyed to it), its live sets are
+     * discarded, and the seed pass refills from the new exercise's GOAL (§8.3).
+     */
+    @Test
+    fun swappingFromACardKeepsTheSlotIdDropsItsLiveSetsAndReseedsFromTheNewGoal() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        vm.changeWeight(squatId, Slot.MAIN, index = 0, newDisplayWeight = 999.0)
+        advanceUntilIdle()
+        assertEquals(999.0, track(squatId, Slot.MAIN)!!.first().weightLb, 0.0)
+
+        // Exactly what the chip does: the card's own position, handed to the
+        // action DayScreen binds to the ViewModel.
+        val card = vm.uiState.value.exercises.first { it.programExerciseId == squatId }
+        val onSwap = DayEditActions(
+            onSwap = vm::swapDaySlot,
+            onAdd = {},
+            onRemove = {},
+            onSetSuperset = { _, _ -> },
+            onRemoveSuperset = {},
+            onResetToTemplate = {},
+        ).onSwap
+        onSwap(card.position, "hack_squat")
+        advanceUntilIdle()
+
+        assertEquals(
+            "the swap must reuse the slot row, not replace it",
+            squatId,
+            slotId("hack_squat"),
+        )
+        assertEquals(
+            "hack_squat",
+            vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.exerciseId,
+        )
+        // A fresh ramp off Hack Squat's own GOAL of 180 — the squat's 235 ramp
+        // and the 999 edit on top of it are both gone.
+        assertEquals(
+            listOf(100.0, 125.0, 145.0, 160.0, 180.0, 135.0),
+            track(squatId, Slot.MAIN)!!.map { it.weightLb },
+        )
+        collectUi.cancel()
+        collectEdit.cancel()
+    }
+
     @Test
     fun swapDaySlotClearsTheManualCollapseOverride() = runVmTest {
         insertProgram()

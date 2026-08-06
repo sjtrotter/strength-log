@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -405,29 +404,29 @@ private fun ExerciseCard(
         // carry only AppCard's hairline border (reference: no muted strip).
         if (doneEdge > 0f) drawRect(color = Done.copy(alpha = doneEdge), size = Size(3.dp.toPx(), size.height))
     }) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
-                    onClickLabel = if (displayCollapsed) "Expand" else "Collapse",
-                    role = Role.Button,
-                    onClick = { actions.onToggleCollapse(card.programExerciseId) },
-                )
-                .semantics { stateDescription = if (displayCollapsed) "Collapsed" else "Expanded" },
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(Modifier.weight(1f)) {
+        // The collapse toggle covers the title block only, never the trailing
+        // controls: a control's touch target must not sit on top of a different
+        // action's, and the ⇄ chip's 48dp target is bigger than the chip.
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clickable(
+                        onClickLabel = if (displayCollapsed) "Expand" else "Collapse",
+                        role = Role.Button,
+                        onClick = { actions.onToggleCollapse(card.programExerciseId) },
+                    )
+                    .semantics { stateDescription = if (displayCollapsed) "Collapsed" else "Expanded" },
+            ) {
                 Text(card.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 5.dp)) {
                     if (card.isMain) Badge("MAIN", accent, onAccent)
                     if (card.hasWarmupHint) Badge("+1 WARM-UP", Color.Transparent, TextSecondary, outlined = true)
                     if (card.allDone) Badge("✓", Done, Background, description = "All sets done")
                     card.weightSwap?.let { swap ->
+                        // Target still smaller than 48dp — #123 owns card touch targets.
                         WeightSwapPill(swap, accent, onClick = { pendingSwap = swap })
                     }
-                    // Last in the strip, so it sits closest to the GOAL block
-                    // without taking GOAL's contractual top-right spot (§8.2).
-                    if (!displayCollapsed && canSwapExercise) SwapExerciseChip(onClick = onSwapExercise)
                 }
                 // History bonus (PLAN.md A1): the exercise's last completed
                 // performance, when one exists — silent otherwise (no "never
@@ -453,7 +452,18 @@ private fun ExerciseCard(
                     )
                 }
             }
-            if (!displayCollapsed) GoalBlock(card.goalDisplay, card.perHand, accent)
+            // Trailing controls, outside the collapse toggle. The chip rides
+            // GoalBlock's height so its 48dp target costs the card nothing, and
+            // GOAL keeps the top-right corner it is owed (spec §8.2).
+            if (!displayCollapsed) {
+                if (canSwapExercise) {
+                    SwapExerciseChip(
+                        onClick = onSwapExercise,
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                    )
+                }
+                GoalBlock(card.goalDisplay, card.perHand, accent)
+            }
         }
 
         // Widen this section 10dp into the card gutter so the TOP row can bleed
@@ -587,50 +597,45 @@ internal fun WeightSwapPill(swap: WeightSwapAffordance, accent: Color, onClick: 
 // --- swap-this-exercise chip (#122) ------------------------------------------
 
 /** Visible size of the ⇄ chip. The height is a filled [Badge]'s (labelSmall's
- *  14sp line plus 3dp above and below), so the chip sits on the badge strip's
- *  existing rhythm instead of retuning the card header. */
+ *  14sp line plus 3dp above and below), so the chip carries the card header's
+ *  existing rhythm rather than introducing a new one. */
 private val SwapChipWidth = 30.dp
 private val SwapChipHeight = 20.dp
 
 /**
- * The ⇄ chip on an expanded card's badge strip: opens the ranked substitute
- * picker for this slot directly ([SlotSwapSheet], issue #122), instead of the
- * four taps through the day-edit sheet. Bordered like [WeightSwapPill] — a
- * control, not a status [Badge] — and glyph-only, so the accessible name lives
- * on the clickable parent while [clearAndSetSemantics] silences the glyph (A7).
+ * The ⇄ chip on an expanded card, left of the GOAL block: opens the ranked
+ * substitute picker for this slot directly ([SlotSwapSheet], issue #122),
+ * instead of the four taps through the day-edit sheet. Bordered like
+ * [WeightSwapPill] — a control, not a status [Badge] — and glyph-only, so the
+ * accessible name lives on the clickable parent while [clearAndSetSemantics]
+ * silences the glyph (A7).
  *
- * The touch target is Material's 48dp minimum, but the chip only *reports*
- * [SwapChipWidth] × [SwapChipHeight] to the badge strip: `wrapContentSize` with
- * `unbounded` lets the oversized target spill over the card's dead space rather
- * than making every expanded card 28dp taller.
+ * [minimumInteractiveComponentSize] grows the layout box, not just the touch
+ * target, so the chip claims a real 48dp slot rather than spilling an invisible
+ * one over its neighbours. It costs the card no height: [GoalBlock] beside it
+ * is taller, and the chip only ever renders next to it.
  */
 @Composable
-internal fun SwapExerciseChip(onClick: () -> Unit) {
+internal fun SwapExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
-            .size(width = SwapChipWidth, height = SwapChipHeight)
-            .wrapContentSize(align = Alignment.Center, unbounded = true),
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .clickable(onClickLabel = "Swap exercise", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Swap exercise" },
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .minimumInteractiveComponentSize()
-                .clickable(onClickLabel = "Swap exercise", role = Role.Button, onClick = onClick)
-                .semantics { contentDescription = "Swap exercise" },
+                .size(width = SwapChipWidth, height = SwapChipHeight)
+                .border(1.dp, Border, RoundedCornerShape(50)),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(width = SwapChipWidth, height = SwapChipHeight)
-                    .border(1.dp, Border, RoundedCornerShape(50)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "⇄",
-                    color = TextSecondary,
-                    style = TabLetter.copy(fontSize = 13.sp),
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
-            }
+            Text(
+                "⇄",
+                color = TextSecondary,
+                style = TabLetter.copy(fontSize = 13.sp),
+                modifier = Modifier.clearAndSetSemantics {},
+            )
         }
     }
 }

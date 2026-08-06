@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -10,6 +11,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -103,6 +105,31 @@ class CardSwapTest {
         composeTestRule.onNodeWithText(target.name).performClick()
 
         assertEquals(listOf(0 to target.id, 0 to target.id), swaps)
+    }
+
+    /**
+     * The chip's touch target is Material's 48dp minimum, which is larger than
+     * the chip. It must claim that space, not borrow it: a tap on the ADD
+     * WEIGHT pill, or anywhere on the collapse toggle, has to do what it looks
+     * like it does.
+     */
+    @Test
+    fun theSwapChipsTouchTargetOverlapsNeitherTheWeightPillNorTheCollapseToggle() {
+        val state = dayState.copy(
+            exercises = listOf(
+                dayState.exercises.single().copy(
+                    weightSwap = WeightSwapAffordance("weighted_plank", "Weighted Plank", isRemove = false),
+                ),
+            ),
+        )
+        setDayContent(dayState = state)
+
+        val chip = composeTestRule.onNodeWithContentDescription("Swap exercise").fetchSemanticsNode().boundsInRoot
+        val pill = composeTestRule.onNodeWithText("+ ADD WEIGHT").fetchSemanticsNode().boundsInRoot
+        val collapse = composeTestRule.onNode(hasStateDescription("Expanded")).fetchSemanticsNode().boundsInRoot
+
+        assertFalse("the chip's target reaches the ADD WEIGHT pill", chip.overlaps(pill))
+        assertFalse("the chip's target sits on the collapse toggle", chip.overlaps(collapse))
     }
 
     @Test

@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import cloud.trotter.log.strength.transfer.csv.PreviewSet
 import cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -133,10 +135,16 @@ private fun BackupHeader(onBack: () -> Unit) {
 private fun BackChevron(onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .size(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Back", role = Role.Button, onClick = onClick)
+            .pressable(
+                onClickLabel = "Back",
+                role = Role.Button,
+                onClick = onClick,
+                shape = RoundedCornerShape(10.dp),
+            )
             .semantics { contentDescription = "Back" },
         contentAlignment = Alignment.Center,
     ) {
@@ -188,7 +196,7 @@ private fun SectionButton(
                     Modifier.background(accent, shape)
                 },
             )
-            .clickable(enabled = enabled, onClick = onClick)
+            .pressable(enabled = enabled, onClick = onClick, shape = shape)
             .padding(vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -210,7 +218,7 @@ private fun MessageBanner(message: StatusMessage, onDismiss: () -> Unit) {
             .fillMaxWidth()
             .background(color.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
             .border(1.dp, color, RoundedCornerShape(10.dp))
-            .clickable(onClick = onDismiss)
+            .pressable(onClick = onDismiss, shape = RoundedCornerShape(10.dp))
             .padding(14.dp),
     ) {
         Text(message.text, color = color, style = MaterialTheme.typography.bodySmall)
@@ -225,7 +233,10 @@ private fun RestoreConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(Background.copy(alpha = 0.85f))
-            .clickable(onClick = onDismiss),
+            // Deliberately not `pressable`: a dismiss scrim is a surface, not a
+            // control, and flashing the press veil across the whole screen would
+            // read as the dialog reacting rather than closing.
+            .clickable(interactionSource = null, indication = null, onClick = onDismiss),
         contentAlignment = Alignment.Center,
     ) {
         Box(modifier = Modifier.padding(24.dp).clickable(enabled = false) {}) {
@@ -260,7 +271,7 @@ private fun DialogButton(
         modifier = modifier
             .heightIn(min = 48.dp)
             .background(fill, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
             .padding(vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -356,7 +367,10 @@ private fun PatternPickerOverlay(current: MovementPattern, onPick: (MovementPatt
         modifier = Modifier
             .fillMaxSize()
             .background(Background.copy(alpha = 0.9f))
-            .clickable(onClick = onDismiss),
+            // Deliberately not `pressable`: a dismiss scrim is a surface, not a
+            // control, and flashing the press veil across the whole screen would
+            // read as the dialog reacting rather than closing.
+            .clickable(interactionSource = null, indication = null, onClick = onDismiss),
         contentAlignment = Alignment.Center,
     ) {
         Box(modifier = Modifier.padding(24.dp).clickable(enabled = false) {}) {
@@ -394,7 +408,11 @@ private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
                     .weight(2f)
                     .height(48.dp)
                     .background(if (canCommit) Done else Surface2, RoundedCornerShape(12.dp))
-                    .clickable(enabled = canCommit, onClick = actions.onConfirmCsvImport),
+                    .pressable(
+                        enabled = canCommit,
+                        onClick = actions.onConfirmCsvImport,
+                        shape = RoundedCornerShape(12.dp),
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Text("IMPORT", color = if (canCommit) Background else TextFaint, style = DoneButtonLabel.copy(fontSize = 13.sp))

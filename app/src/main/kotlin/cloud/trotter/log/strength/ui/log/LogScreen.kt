@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +24,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -41,7 +41,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.CardShape
 import cloud.trotter.log.strength.ui.components.DayBadge
+import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -180,10 +182,16 @@ private fun LogHeader(onBack: () -> Unit) {
 private fun BackButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .size(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Back", role = Role.Button, onClick = onClick)
+            .pressable(
+                onClickLabel = "Back",
+                role = Role.Button,
+                shape = RoundedCornerShape(10.dp),
+                onClick = onClick,
+            )
             .semantics { contentDescription = "Back" },
         contentAlignment = Alignment.Center,
     ) {
@@ -196,7 +204,12 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: ()
     val chevronRotation by animateFloatAsState(if (item.expanded) 180f else 0f, tween(200), label = "logChevron")
     AppCard(
         modifier = Modifier
-            .clickable(onClickLabel = if (item.expanded) "Collapse" else "Expand", role = Role.Button, onClick = onToggle)
+            .pressable(
+                onClickLabel = if (item.expanded) "Collapse" else "Expand",
+                role = Role.Button,
+                shape = CardShape,
+                onClick = onToggle,
+            )
             .semantics { stateDescription = if (item.expanded) "Expanded" else "Collapsed" },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -251,20 +264,29 @@ private fun ExerciseGroupRow(group: SessionExerciseGroup) {
  * day's accent — no icon, no fill, nothing on a collapsed row. A nested
  * `clickable` inside the card's own expand/collapse `clickable` consumes the
  * tap before it reaches the card, so SHARE never also toggles the row.
+ *
+ * Because it is nested, its 48dp target (#123) has to be *reserved* rather than
+ * borrowed: [minimumInteractiveComponentSize] grows this row, so the target
+ * lands on the row's own air instead of quietly claiming a band of card that
+ * still reads as "tap to collapse".
  */
 @Composable
 private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             "SHARE",
             color = if (pressed) dayAccent(dayIndex) else TextSecondary,
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier
-                .clickable(
+                .minimumInteractiveComponentSize()
+                .pressable(
                     interactionSource = interactionSource,
-                    indication = null,
                     onClickLabel = "Share session",
                     role = Role.Button,
                     onClick = onClick,
@@ -302,9 +324,10 @@ private fun BodyweightPromptCard(prompt: BodyweightPromptUi, onApply: () -> Unit
 private fun PromptButton(text: String, emphasized: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .background(if (emphasized) Surface3 else Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, if (emphasized) BorderStrong else Border, RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
+            .pressable(shape = RoundedCornerShape(10.dp), onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 10.dp),
     ) {
         Text(text, color = if (emphasized) TextPrimary else TextSecondary, style = MaterialTheme.typography.labelLarge)
@@ -315,7 +338,7 @@ private fun PromptButton(text: String, emphasized: Boolean, onClick: () -> Unit)
  *  the lazy, user-initiated permission entry point. */
 @Composable
 private fun ConnectHealthCard(onConnect: () -> Unit) {
-    AppCard(modifier = Modifier.clickable(onClick = onConnect)) {
+    AppCard(modifier = Modifier.pressable(shape = CardShape, onClick = onConnect)) {
         Text("Connect Health Connect", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.size(4.dp))
         Text(

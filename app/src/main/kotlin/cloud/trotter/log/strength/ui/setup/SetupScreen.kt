@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +51,7 @@ import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
+import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -132,10 +134,16 @@ private fun SetupHeader(onBack: () -> Unit) {
 private fun BackButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .size(40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Back", role = Role.Button, onClick = onClick)
+            .pressable(
+                onClickLabel = "Back",
+                role = Role.Button,
+                onClick = onClick,
+                shape = RoundedCornerShape(10.dp),
+            )
             .semantics { contentDescription = "Back" },
         contentAlignment = Alignment.Center,
     ) {
@@ -367,9 +375,9 @@ private fun ResetRestDefaultsRow(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 44.dp)
+            .heightIn(min = 48.dp)
             .border(1.dp, Border, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
             .padding(vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -388,7 +396,7 @@ private fun CreateCustomExerciseButton(accent: Color, onClick: () -> Unit) {
             // two lines at large fontScale instead of overflowing the button.
             .heightIn(min = 52.dp)
             .border(1.dp, accent, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -405,7 +413,7 @@ private fun DataBackupButton(accent: Color, onClick: () -> Unit) {
             .fillMaxWidth()
             .heightIn(min = 52.dp)
             .border(1.dp, accent, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -422,7 +430,7 @@ private fun LicensesButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .height(52.dp)
             .border(1.dp, Border, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center,
     ) {
         Text("OSS LICENSES", color = TextSecondary, style = DoneButtonLabel)
@@ -438,7 +446,7 @@ private fun RerunWizardButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .heightIn(min = 52.dp)
             .border(1.dp, Error, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -455,7 +463,10 @@ private fun RerunConfirmDialog(
         modifier = Modifier
             .fillMaxSize()
             .background(Background.copy(alpha = 0.85f))
-            .clickable(onClick = onDismiss),
+            // Deliberately not `pressable`: a dismiss scrim is a surface, not a
+            // control, and flashing the press veil across the whole screen would
+            // read as the dialog reacting rather than closing.
+            .clickable(interactionSource = null, indication = null, onClick = onDismiss),
         contentAlignment = Alignment.Center,
     ) {
         Box(modifier = Modifier.padding(24.dp).clickable(enabled = false) {}) {
@@ -474,7 +485,7 @@ private fun RerunConfirmDialog(
                             .weight(1f)
                             .height(48.dp)
                             .background(Surface2, RoundedCornerShape(12.dp))
-                            .clickable(onClick = onDismiss),
+                            .pressable(onClick = onDismiss, shape = RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text("CANCEL", color = TextPrimary, style = DoneButtonLabel)
@@ -484,7 +495,7 @@ private fun RerunConfirmDialog(
                             .weight(1f)
                             .height(48.dp)
                             .background(Error, RoundedCornerShape(12.dp))
-                            .clickable(onClick = onConfirm),
+                            .pressable(onClick = onConfirm, shape = RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text("RE-RUN", color = TextPrimary, style = DoneButtonLabel)

@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -34,6 +35,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -737,5 +739,97 @@ class DayViewModelWiringTest {
         assertEquals(stampedAt, session.startedAt)
         assertNull("advanceDay must consume the stamp", repo.sessionStartedAtFlow.first())
         collect.cancel()
+    }
+
+    // --- the remove-set undo window (#124) ------------------------------------
+    //
+    // Time matters here, so these advance the virtual clock deliberately:
+    // `advanceUntilIdle` would run past the 5s window and close the offer.
+
+    @Test
+    fun undoPutsTheRemovedRowBackExactlyWhereItWas() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+        // Give the row something of its own to lose: edited reps and a tick.
+        vm.changeReps(squatId, Slot.MAIN, index = 1, newReps = 9)
+        vm.toggleDone(squatId, index = 1, checked = true, isSuperset = false)
+        advanceUntilIdle()
+        val before = track(squatId, Slot.MAIN)!!
+
+        vm.removeSet(squatId, index = 1, isSuperset = false)
+        advanceTimeBy(1_000)
+
+        assertEquals(before.size - 1, track(squatId, Slot.MAIN)!!.size)
+        val offer = vm.removedSet.value!!
+        assertEquals(squatId, offer.programExerciseId)
+        assertEquals(1, offer.index)
+
+        vm.undoRemoveSet()
+        advanceTimeBy(1_000)
+
+        // Whole-row equality: kind, weight, reps, seconds and the tick.
+        assertEquals(before, track(squatId, Slot.MAIN)!!)
+        assertNull("taking the undo closes the offer", vm.removedSet.value)
+    }
+
+    @Test
+    fun undoReinstatesBothTracksOfASuperset() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val curlId = slotId("ez_curl")
+        val mainBefore = track(curlId, Slot.MAIN)!!
+        val partnerBefore = track(curlId, Slot.SS)!!
+
+        vm.removeSet(curlId, index = 0, isSuperset = true)
+        advanceTimeBy(1_000)
+        assertEquals(1, track(curlId, Slot.MAIN)!!.size)
+        assertEquals(1, track(curlId, Slot.SS)!!.size)
+
+        vm.undoRemoveSet()
+        advanceTimeBy(1_000)
+
+        assertEquals(mainBefore, track(curlId, Slot.MAIN)!!)
+        assertEquals(partnerBefore, track(curlId, Slot.SS)!!)
+    }
+
+    @Test
+    fun theOfferExpiresAndAStaleUndoChangesNothing() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        vm.removeSet(squatId, index = 0, isSuperset = false)
+        advanceTimeBy(1_000)
+        assertNotNull(vm.removedSet.value)
+        val afterRemove = track(squatId, Slot.MAIN)!!
+
+        advanceUntilIdle() // past the 5s window
+        assertNull("the offer must expire on its own", vm.removedSet.value)
+
+        vm.undoRemoveSet()
+        advanceUntilIdle()
+        assertEquals(afterRemove, track(squatId, Slot.MAIN)!!)
+    }
+
+    @Test
+    fun refusingToRemoveTheLastRowOffersNothingToUndo() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val curlId = slotId("ez_curl")
+
+        vm.removeSet(curlId, index = 0, isSuperset = true)
+        advanceUntilIdle() // let that offer expire so it can't be mistaken for the next one
+        assertEquals(1, track(curlId, Slot.MAIN)!!.size)
+
+        vm.removeSet(curlId, index = 0, isSuperset = true)
+        advanceTimeBy(1_000)
+
+        assertEquals(1, track(curlId, Slot.MAIN)!!.size)
+        assertNull("nothing was removed, so nothing is offered back", vm.removedSet.value)
     }
 }

@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /** Immutable render model for the whole day screen (UDF: the ViewModel's single output). */
@@ -95,6 +96,28 @@ data class SetRowState(
     val partner: PartnerRowState? = null,
     /** TIMED tracks only; 0 (ignored) for WEIGHTED/REPS (§2.2). */
     val seconds: Int = 0,
+)
+
+/**
+ * The row a × just took off a card, for as long as the undo offer stands
+ * (#124). The screen reads [programExerciseId] and [index] to draw the offer in
+ * the slot the row left; [DayViewModel] reads the rest to put the row back
+ * exactly as it was, rather than appending a fresh copy.
+ *
+ * Deliberately not persisted (same reasoning as [CascadeCeremony]): a
+ * five-second courtesy is not user data, and an offer that came back from the
+ * dead after process death would be a worse bug than the one it fixes.
+ */
+data class RemovedSet(
+    val programExerciseId: Long,
+    /** Where the row sat, and where undo puts it back. */
+    val index: Int,
+    /** The day it was removed from — undo after a day switch must not write
+     *  the row into whatever day the user moved to. */
+    val dayId: String,
+    val main: LoggedSet,
+    /** The superset partner's row for the same round, when there was one. */
+    val partner: LoggedSet? = null,
 )
 
 /** The superset partner's independent weight/reps for one round (no own tick). */

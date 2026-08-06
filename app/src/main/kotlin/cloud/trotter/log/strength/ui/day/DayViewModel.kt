@@ -27,6 +27,8 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -143,6 +145,18 @@ class DayViewModel @Inject constructor(
     private val _cascadeCeremony = MutableStateFlow<CascadeCeremony?>(null)
     val cascadeCeremony: StateFlow<CascadeCeremony?> = _cascadeCeremony.asStateFlow()
 
+    /**
+     * The standing undo offer for a removed set (#124). A bare field for the
+     * same reason as [_cascadeCeremony]: this is a [UNDO_WINDOW_MS]-long
+     * courtesy, not user data, and an offer restored after process death would
+     * put a row back into a workout the user had already moved on from. The
+     * window closes on the timeout, on taking the undo, or on anything that
+     * changes what the screen is showing — a day switch or a DONE.
+     */
+    private val _removedSet = MutableStateFlow<RemovedSet?>(null)
+    val removedSet: StateFlow<RemovedSet?> = _removedSet.asStateFlow()
+    private var undoWindowJob: Job? = null
+
     init {
         seedMissingLogs()
     }
@@ -150,6 +164,7 @@ class DayViewModel @Inject constructor(
     // --- user intents --------------------------------------------------------
 
     fun selectDay(dayId: String) {
+        closeUndoWindow()
         savedState[KEY_VIEW_DAY] = dayId
     }
 
@@ -227,11 +242,17 @@ class DayViewModel @Inject constructor(
         }
     }
 
+    /** The × on a set row. Low-friction by design (mid-workout, high frequency),
+     *  so it stays one tap and offers [undoRemoveSet] afterwards instead of
+     *  asking first — see [_removedSet]. */
     fun removeSet(programExerciseId: Long, index: Int, isSuperset: Boolean) {
         val day = currentDay() ?: return
         mutate {
             val main = trackFor(day, programExerciseId, Slot.MAIN)
             if (index !in main.indices) return@mutate
+            // SetEditor's floor: the last row never goes. Nothing was removed,
+            // so nothing is offered back.
+            if (main.size <= 1) return@mutate
             val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else emptyList()
             if (partner.isNotEmpty()) {
                 val (newMain, newPartner) = SetEditor.removeSetPaired(main, partner, index)
@@ -239,7 +260,52 @@ class DayViewModel @Inject constructor(
             } else {
                 repo.updateSets(day, programExerciseId, Slot.MAIN, SetEditor.removeSet(main, index))
             }
+            openUndoWindow(
+                RemovedSet(
+                    programExerciseId = programExerciseId,
+                    index = index,
+                    dayId = day,
+                    main = main[index],
+                    partner = partner.getOrNull(index),
+                ),
+            )
         }
+    }
+
+    /** Puts the removed row back where it was, kind and tick included. A no-op
+     *  once the window has closed, so a stale tap can't resurrect anything. */
+    fun undoRemoveSet() {
+        val removed = _removedSet.value ?: return
+        closeUndoWindow()
+        mutate {
+            val day = currentDay() ?: return@mutate
+            if (day != removed.dayId) return@mutate
+            val main = trackFor(day, removed.programExerciseId, Slot.MAIN)
+            val partner = trackFor(day, removed.programExerciseId, Slot.SS)
+            if (removed.partner != null && partner.isNotEmpty()) {
+                val (newMain, newPartner) =
+                    SetEditor.insertSetPaired(main, partner, removed.index, removed.main, removed.partner)
+                repo.updateSetsPaired(day, removed.programExerciseId, newMain, newPartner)
+            } else {
+                val restored = SetEditor.insertSet(main, removed.index, removed.main)
+                repo.updateSets(day, removed.programExerciseId, Slot.MAIN, restored)
+            }
+        }
+    }
+
+    private fun openUndoWindow(removed: RemovedSet) {
+        undoWindowJob?.cancel()
+        _removedSet.value = removed
+        undoWindowJob = viewModelScope.launch {
+            delay(UNDO_WINDOW_MS)
+            _removedSet.value = null
+        }
+    }
+
+    private fun closeUndoWindow() {
+        undoWindowJob?.cancel()
+        undoWindowJob = null
+        _removedSet.value = null
     }
 
     fun toggleCollapse(programExerciseId: Long) {
@@ -270,6 +336,7 @@ class DayViewModel @Inject constructor(
      *  ceremony is stored, so it can only ever fire on this transition. */
     fun completeDay() {
         val day = currentDay() ?: return
+        closeUndoWindow()
         mutate {
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
             val dayIndex = repo.programFlow.first().days.indexOfFirst { it.id == day }
@@ -561,5 +628,10 @@ class DayViewModel @Inject constructor(
         const val KEY_KEEP_ON = "day_keep_screen_on"
         const val KEY_COLLAPSE = "day_collapse_overrides"
         const val STOP_TIMEOUT_MS = 5_000L
+
+        /** How long a removed set stays undoable (#124). Long enough to notice
+         *  the row vanish and reach for it, short enough that the offer is gone
+         *  before the next set is logged. */
+        const val UNDO_WINDOW_MS = 5_000L
     }
 }

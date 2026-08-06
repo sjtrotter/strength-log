@@ -3,7 +3,9 @@ package cloud.trotter.log.strength.ui.day
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.TouchTargets.assertEveryTouchTargetIsAtLeast48dp
 import cloud.trotter.log.strength.ui.TouchTargets.assertOverlappingTouchTargetsAreExactly
@@ -88,6 +90,19 @@ class TouchTargetTest {
         composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
     }
 
+    /**
+     * The remove-set undo offer (#124) drops a full-width control *between* two
+     * set rows, in a card already short of room — the one place a new target
+     * would take its 48dp out of a neighbour's.
+     */
+    @Test
+    fun theRemovedSetUndoOfferTakesItsOwn48dpAndNoOnesElse() {
+        setDayContent(removedSet = RemovedSet(1L, 1, "A", LoggedSet(210.0, 5, SetKind.WORK)))
+
+        composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
+        composeTestRule.assertOverlappingTouchTargetsAreExactly(issue136SetRowSqueeze)
+    }
+
     private fun fixture(tabCount: Int = 1) = DayUiState(
         hasProgram = true,
         tabs = List(tabCount) { index ->
@@ -123,11 +138,12 @@ class TouchTargetTest {
         ),
     )
 
-    private fun setDayContent(state: DayUiState = fixture()) {
+    private fun setDayContent(state: DayUiState = fixture(), removedSet: RemovedSet? = null) {
         composeTestRule.setContent {
             AppTheme {
                 DayScreen(
                     state = state,
+                    removedSet = removedSet,
                     actions = noopActions(),
                     dayEditState = DayEditUiState(
                         catalog = ExerciseCatalog.CODE_ONLY,

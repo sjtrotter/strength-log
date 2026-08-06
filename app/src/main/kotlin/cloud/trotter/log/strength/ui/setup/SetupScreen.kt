@@ -2,7 +2,6 @@ package cloud.trotter.log.strength.ui.setup
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,8 +16,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,6 +59,7 @@ import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
+import cloud.trotter.log.strength.ui.theme.Surface
 import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TabLetter
 import cloud.trotter.log.strength.ui.theme.TextFaint
@@ -76,6 +78,7 @@ import cloud.trotter.log.strength.ui.theme.dayAccent
 @Composable
 fun SetupScreen(state: SetupUiState, actions: SetupActions) {
     var showRerunConfirm by rememberSaveable { mutableStateOf(false) }
+    var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
     val accent = dayAccent(0)
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
@@ -93,7 +96,14 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 item { EmphasisSection(state.config.emphasis, actions.onEmphasisChange) }
                 item { CardioSection(state.cardio, actions) }
                 item { UnitCard(state.unit, actions.onUnitToggle) }
-                item { RestTimerSection(state.restTimerEnabled, state.restCategories, actions) }
+                item {
+                    RestTimerSection(
+                        state.restTimerEnabled,
+                        state.restCategories,
+                        actions,
+                        onResetDefaults = { showRestResetConfirm = true },
+                    )
+                }
                 item { CreateCustomExerciseButton(accent, actions.onCreateCustomExercise) }
                 item { DataBackupButton(accent, actions.onOpenBackup) }
                 item { LicensesButton(actions.onOpenLicenses) }
@@ -110,6 +120,15 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                     actions.onRerunWizard()
                 },
                 onDismiss = { showRerunConfirm = false },
+            )
+        }
+        if (showRestResetConfirm) {
+            RestDefaultsConfirmDialog(
+                onConfirm = {
+                    showRestResetConfirm = false
+                    actions.onRestOverridesReset()
+                },
+                onDismiss = { showRestResetConfirm = false },
             )
         }
     }
@@ -313,7 +332,12 @@ private fun UnitCard(unit: WeightUnit, onToggle: (WeightUnit) -> Unit) {
 // --- rest timer (watch W2c: master toggle + per-category overrides) ----------
 
 @Composable
-private fun RestTimerSection(enabled: Boolean, categories: List<RestCategoryUiState>, actions: SetupActions) {
+private fun RestTimerSection(
+    enabled: Boolean,
+    categories: List<RestCategoryUiState>,
+    actions: SetupActions,
+    onResetDefaults: () -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("REST TIMER", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         AppCard {
@@ -330,7 +354,7 @@ private fun RestTimerSection(enabled: Boolean, categories: List<RestCategoryUiSt
                     if (index != categories.lastIndex) Spacer(Modifier.size(10.dp))
                 }
             }
-            ResetRestDefaultsRow(actions.onRestOverridesReset)
+            ResetRestDefaultsRow(onResetDefaults)
         }
     }
 }
@@ -459,51 +483,34 @@ private fun RerunConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background.copy(alpha = 0.85f))
-            // Deliberately not `pressable`: a dismiss scrim is a surface, not a
-            // control, and flashing the press veil across the whole screen would
-            // read as the dialog reacting rather than closing.
-            .clickable(interactionSource = null, indication = null, onClick = onDismiss),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(modifier = Modifier.padding(24.dp).clickable(enabled = false) {}) {
-            AppCard {
-                Text("Re-run setup wizard?", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.size(8.dp))
-                Text(
-                    "This replaces your current program from scratch. Your workout history isn't touched.",
-                    color = TextFaint,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Spacer(Modifier.size(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .background(Surface2, RoundedCornerShape(12.dp))
-                            .pressable(onClick = onDismiss, shape = RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("CANCEL", color = TextPrimary, style = DoneButtonLabel)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .background(Error, RoundedCornerShape(12.dp))
-                            .pressable(onClick = onConfirm, shape = RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("RE-RUN", color = TextPrimary, style = DoneButtonLabel)
-                    }
-                }
-            }
-        }
-    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Surface,
+        titleContentColor = TextPrimary,
+        textContentColor = TextSecondary,
+        title = { Text("Re-run setup wizard?") },
+        text = { Text("This replaces your current program from scratch. Your workout history isn't touched.") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Re-run", color = Error) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+    )
+}
+
+/** Confirms the destructive reset of all per-category rest overrides. */
+@Composable
+private fun RestDefaultsConfirmDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Surface,
+        titleContentColor = TextPrimary,
+        textContentColor = TextSecondary,
+        title = { Text("Reset rest timers?") },
+        text = { Text("Every per-category rest length goes back to the built-in default. The rest timer stays on.") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Reset", color = Error) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+    )
 }
 
 @Preview(showBackground = true, heightDp = 1400, backgroundColor = 0xFF0D0D0F)

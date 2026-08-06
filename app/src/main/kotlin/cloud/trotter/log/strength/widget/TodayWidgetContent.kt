@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.widget
 
+import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /** Which of the widget's four faces to paint; drives colour, not text. */
@@ -62,19 +63,11 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
     }
 
     return TodayWidgetContent(
-        dayLine = listOf("DAY ${day.dayId.uppercase()}", day.title.uppercase())
-            .filter { it.isNotBlank() }
-            .joinToString(" · "),
-        statLine = when (state) {
-            TodayWidgetState.BEFORE -> "${count(day.exercises.size, "LIFT")} · ${count(total, "SET")}"
-            TodayWidgetState.IN_PROGRESS -> "$done / ${count(total, "SET")}"
-            else -> "DONE · ${count(total, "SET")}"
-        },
+        dayLine = GlanceLines.dayLine(day.dayId, day.title),
+        statLine = GlanceLines.statLine(day.exercises.size, done, total),
         state = state,
         accentIndex = day.accentIndex,
         setsDone = done,
         totalSets = total,
     )
 }
-
-private fun count(n: Int, noun: String) = if (n == 1) "1 $noun" else "$n ${noun}S"

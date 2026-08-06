@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -85,7 +86,33 @@ fun DayEditSheet(
     var ssSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     var ssPatternName by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // One back action for the ← chip and the system back button (#122): pop the
+    // deepest open page, and only let a back press through to dismiss the sheet
+    // once we're on the root slot list.
+    val backTarget = dayEditBackTarget(
+        swapping = swapSlotId != null,
+        supersetSlot = ssSlotId != null,
+        supersetPatternPicked = ssPatternName != null,
+        pickingPattern = pickingPattern,
+        addingFromPattern = addPatternName != null,
+        options = optionsSlotId != null,
+    )
+    val onBack = {
+        when (backTarget) {
+            DayEditPage.SWAP -> swapSlotId = null
+            DayEditPage.SUPERSET_EXERCISE -> ssPatternName = null
+            DayEditPage.SUPERSET_PATTERN -> ssSlotId = null
+            DayEditPage.ADD_PATTERN -> pickingPattern = false
+            DayEditPage.ADD_EXERCISE -> addPatternName = null
+            DayEditPage.OPTIONS -> optionsSlotId = null
+            null -> Unit
+        }
+    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Surface) {
+        // Inside the sheet's content, so the handler lands on the sheet dialog's
+        // own back dispatcher (M3 hosts the sheet in a ComponentDialog) ahead of
+        // the dismiss-on-back callback the dialog registers for itself.
+        BackHandler(enabled = backTarget != null, onBack = onBack)
         val swapSlot = state.slots.firstOrNull { it.programExerciseId == swapSlotId }
         val ssSlot = state.slots.firstOrNull { it.programExerciseId == ssSlotId }
         val optionsSlot = state.slots.firstOrNull { it.programExerciseId == optionsSlotId }
@@ -94,15 +121,13 @@ fun DayEditSheet(
             // "swap, then add a superset" reads as one continuous flow — they
             // never clear optionsSlotId, so finishing (or backing out of) one
             // lands back on the options page rather than the slot list.
-            swapSlot != null && swapSlot.pattern != null -> ExercisePickerScreen(
-                key = "swap-${swapSlot.programExerciseId}",
-                title = "Swap — ${swapSlot.title}",
+            swapSlot != null && swapSlot.pattern != null -> SwapPickerPage(
+                slot = swapSlot,
                 pattern = swapSlot.pattern,
-                candidates = state.catalog.substitutionsFor(swapSlot.exerciseId),
-                defaultEquipment = state.defaultEquipmentFilter,
+                state = state,
                 accent = accent,
                 onPick = { entry -> actions.onSwap(swapSlot.position, entry.id); swapSlotId = null },
-                onBack = { swapSlotId = null },
+                onBack = onBack,
                 onCreateExercise = onCreateExercise,
             )
             ssSlot != null && ssPatternName == null -> {
@@ -122,7 +147,7 @@ fun DayEditSheet(
                     title = "Superset — pick a pattern",
                     patterns = ordered,
                     onPick = { pattern -> ssPatternName = pattern.name },
-                    onBack = { ssSlotId = null },
+                    onBack = onBack,
                 )
             }
             ssSlot != null && ssPatternName != null -> {
@@ -140,7 +165,7 @@ fun DayEditSheet(
                         ssSlotId = null
                         ssPatternName = null
                     },
-                    onBack = { ssPatternName = null },
+                    onBack = onBack,
                     onCreateExercise = onCreateExercise,
                 )
             }
@@ -148,7 +173,7 @@ fun DayEditSheet(
                 title = "Add exercise — pick a pattern",
                 patterns = state.catalog.entries.map { it.pattern }.distinct().sortedBy { it.ordinal },
                 onPick = { pattern -> addPatternName = pattern.name; pickingPattern = false },
-                onBack = { pickingPattern = false },
+                onBack = onBack,
             )
             addPatternName != null -> {
                 val pattern = MovementPattern.valueOf(addPatternName!!)
@@ -160,13 +185,13 @@ fun DayEditSheet(
                     defaultEquipment = state.defaultEquipmentFilter,
                     accent = accent,
                     onPick = { entry -> actions.onAdd(entry.id); addPatternName = null },
-                    onBack = { addPatternName = null },
+                    onBack = onBack,
                     onCreateExercise = onCreateExercise,
                 )
             }
             optionsSlot != null -> SlotOptionsScreen(
                 slot = optionsSlot,
-                onBack = { optionsSlotId = null },
+                onBack = onBack,
                 onSwapClick = { swapSlotId = optionsSlot.programExerciseId },
                 onSupersetClick = { ssSlotId = optionsSlot.programExerciseId },
                 onRemoveSupersetClick = { actions.onRemoveSuperset(optionsSlot.position) },
@@ -305,6 +330,72 @@ private fun PatternPickerScreen(
                 SelectionCard(title = patternLabel(pattern), selected = false, onClick = { onPick(pattern) })
             }
         }
+    }
+}
+
+// --- the swap page, wherever it is reached from (#122) ------------------------
+
+/**
+ * The ranked same-pattern substitution picker for one slot — the page the
+ * sheet's Edit → Swap lands on, and the page an exercise card's ⇄ chip opens
+ * directly ([SlotSwapSheet]). One definition so both routes rank, filter and
+ * title identically.
+ */
+@Composable
+private fun SwapPickerPage(
+    slot: DayEditSlotState,
+    pattern: MovementPattern,
+    state: DayEditUiState,
+    accent: Color,
+    onPick: (ExerciseEntry) -> Unit,
+    onBack: () -> Unit,
+    onCreateExercise: (MovementPattern) -> Unit,
+) {
+    ExercisePickerScreen(
+        key = "swap-${slot.programExerciseId}",
+        title = "Swap — ${slot.title}",
+        pattern = pattern,
+        candidates = state.catalog.substitutionsFor(slot.exerciseId),
+        defaultEquipment = state.defaultEquipmentFilter,
+        accent = accent,
+        onPick = onPick,
+        onBack = onBack,
+        onCreateExercise = onCreateExercise,
+    )
+}
+
+/**
+ * The swap picker on its own sheet, opened from an exercise card's ⇄ chip
+ * (issue #122) instead of walking the slot list and options pages. It has no
+ * parent page, so ← and system back both just close it — no [BackHandler]
+ * needed, the sheet dialog's own dismiss-on-back is exactly right.
+ *
+ * [onSwap] is the same [DayEditActions.onSwap] the sheet's swap page calls, so
+ * the mutation (log kept keyed by programExerciseId, new exercise reseeded from
+ * its GOAL — spec §8.3) is identical whichever route the user took.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SlotSwapSheet(
+    slot: DayEditSlotState,
+    pattern: MovementPattern,
+    state: DayEditUiState,
+    accent: Color,
+    onSwap: (position: Int, newExerciseId: String) -> Unit,
+    onDismiss: () -> Unit,
+    onCreateExercise: (MovementPattern) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Surface) {
+        SwapPickerPage(
+            slot = slot,
+            pattern = pattern,
+            state = state,
+            accent = accent,
+            onPick = { entry -> onSwap(slot.position, entry.id); onDismiss() },
+            onBack = onDismiss,
+            onCreateExercise = onCreateExercise,
+        )
     }
 }
 

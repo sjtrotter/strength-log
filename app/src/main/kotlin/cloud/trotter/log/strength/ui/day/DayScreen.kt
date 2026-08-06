@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -124,6 +125,14 @@ fun DayScreen(
     // The day-edit sheet (#11) is not a nav route (brief D1): it lives entirely
     // as local UI state here, sharing this screen's DayViewModel-derived data.
     var showEditSheet by rememberSaveable { mutableStateOf(false) }
+    // The slot whose ⇄ chip was tapped (#122) — the same swap picker the sheet
+    // hosts, opened straight from the card instead of through two pages.
+    var swapCardSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
+    // A card offers ⇄ only when its slot resolves to a pattern to rank
+    // substitutes against — the same rule that disables Swap in the sheet.
+    val swappableSlotIds = remember(dayEditState.slots) {
+        dayEditState.slots.filter { it.pattern != null }.mapTo(mutableSetOf()) { it.programExerciseId }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         if (!state.hasProgram) {
@@ -144,7 +153,17 @@ fun DayScreen(
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
                 items(state.exercises, key = { it.programExerciseId }) { card ->
-                    ExerciseCard(card, state.unit, accent, onAccent, soft, actions, onSwapWeight = dayEditActions.onSwap)
+                    ExerciseCard(
+                        card = card,
+                        unit = state.unit,
+                        accent = accent,
+                        onAccent = onAccent,
+                        accentSoftColor = soft,
+                        actions = actions,
+                        onSwapWeight = dayEditActions.onSwap,
+                        canSwapExercise = card.programExerciseId in swappableSlotIds,
+                        onSwapExercise = { swapCardSlotId = card.programExerciseId },
+                    )
                 }
                 state.cardio?.let { cardio ->
                     item { CardioCard(cardio) }
@@ -162,6 +181,19 @@ fun DayScreen(
             actions = dayEditActions,
             accent = accent,
             onDismiss = { showEditSheet = false },
+            onCreateExercise = actions.onCreateExercise,
+        )
+    }
+
+    val swapSlot = dayEditState.slots.firstOrNull { it.programExerciseId == swapCardSlotId }
+    if (swapSlot != null && swapSlot.pattern != null) {
+        SlotSwapSheet(
+            slot = swapSlot,
+            pattern = swapSlot.pattern,
+            state = dayEditState,
+            accent = accent,
+            onSwap = dayEditActions.onSwap,
+            onDismiss = { swapCardSlotId = null },
             onCreateExercise = actions.onCreateExercise,
         )
     }
@@ -338,6 +370,8 @@ private fun ExerciseCard(
     accentSoftColor: Color,
     actions: DayActions,
     onSwapWeight: (position: Int, targetExerciseId: String) -> Unit,
+    canSwapExercise: Boolean,
+    onSwapExercise: () -> Unit,
 ) {
     var previousAllDone by remember { mutableStateOf(card.allDone) }
     var displayCollapsed by remember { mutableStateOf(card.collapsed) }
@@ -391,6 +425,9 @@ private fun ExerciseCard(
                     card.weightSwap?.let { swap ->
                         WeightSwapPill(swap, accent, onClick = { pendingSwap = swap })
                     }
+                    // Last in the strip, so it sits closest to the GOAL block
+                    // without taking GOAL's contractual top-right spot (§8.2).
+                    if (!displayCollapsed && canSwapExercise) SwapExerciseChip(onClick = onSwapExercise)
                 }
                 // History bonus (PLAN.md A1): the exercise's last completed
                 // performance, when one exists — silent otherwise (no "never
@@ -544,6 +581,57 @@ internal fun WeightSwapPill(swap: WeightSwapAffordance, accent: Color, onClick: 
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(label, color = textColor, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+// --- swap-this-exercise chip (#122) ------------------------------------------
+
+/** Visible size of the ⇄ chip. The height is a filled [Badge]'s (labelSmall's
+ *  14sp line plus 3dp above and below), so the chip sits on the badge strip's
+ *  existing rhythm instead of retuning the card header. */
+private val SwapChipWidth = 30.dp
+private val SwapChipHeight = 20.dp
+
+/**
+ * The ⇄ chip on an expanded card's badge strip: opens the ranked substitute
+ * picker for this slot directly ([SlotSwapSheet], issue #122), instead of the
+ * four taps through the day-edit sheet. Bordered like [WeightSwapPill] — a
+ * control, not a status [Badge] — and glyph-only, so the accessible name lives
+ * on the clickable parent while [clearAndSetSemantics] silences the glyph (A7).
+ *
+ * The touch target is Material's 48dp minimum, but the chip only *reports*
+ * [SwapChipWidth] × [SwapChipHeight] to the badge strip: `wrapContentSize` with
+ * `unbounded` lets the oversized target spill over the card's dead space rather
+ * than making every expanded card 28dp taller.
+ */
+@Composable
+internal fun SwapExerciseChip(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(width = SwapChipWidth, height = SwapChipHeight)
+            .wrapContentSize(align = Alignment.Center, unbounded = true),
+    ) {
+        Box(
+            modifier = Modifier
+                .minimumInteractiveComponentSize()
+                .clickable(onClickLabel = "Swap exercise", role = Role.Button, onClick = onClick)
+                .semantics { contentDescription = "Swap exercise" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = SwapChipWidth, height = SwapChipHeight)
+                    .border(1.dp, Border, RoundedCornerShape(50)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "⇄",
+                    color = TextSecondary,
+                    style = TabLetter.copy(fontSize = 13.sp),
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+            }
+        }
     }
 }
 
@@ -964,7 +1052,18 @@ private fun DayScreenPreviewContent() {
                 onDone = {},
                 onCreateExercise = {},
             ),
-            dayEditState = DayEditUiState(),
+            // Slots for the four cards above: the preview needs them or no card
+            // shows its ⇄ chip (#122), which is exactly what the font-scale
+            // audit previews below are here to catch.
+            dayEditState = DayEditUiState(
+                slots = listOf(
+                    DayEditSlotState(1, 0, "bb_back_squat", "Barbell Back Squat", MovementPattern.SQUAT_BILATERAL, isSuperset = false),
+                    DayEditSlotState(2, 1, "ez_curl", "EZ-Bar Curl", MovementPattern.BICEPS, isSuperset = true, partnerTitle = "Rope Pushdown"),
+                    DayEditSlotState(3, 2, "seated_curl", "Seated Leg Curl", MovementPattern.KNEE_FLEXION, isSuperset = false),
+                    DayEditSlotState(4, 3, "plank", "Plank / Side Plank", MovementPattern.CORE_ANTI_EXT, isSuperset = false),
+                ),
+                canRemove = true,
+            ),
             dayEditActions = DayEditActions(
                 onSwap = { _, _ -> },
                 onAdd = {},

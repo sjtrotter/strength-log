@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.wizard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,7 @@ import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
+import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
@@ -114,7 +117,7 @@ private fun stepTitle(step: WizardStep): String = when (step) {
 private fun StepContent(state: WizardUiState, actions: WizardActions) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         when (state.step) {
-            WizardStep.EMPHASIS -> EmphasisStep(state.answers, actions)
+            WizardStep.EMPHASIS -> EmphasisStep(state, actions)
             WizardStep.DAYS_PER_WEEK -> DaysPerWeekStep(state.answers, actions)
             WizardStep.SPLIT -> SplitStep(state, actions)
             WizardStep.ANCHORS -> AnchorsStep(state, actions)
@@ -128,7 +131,7 @@ private fun StepContent(state: WizardUiState, actions: WizardActions) {
 // --- step 1: emphasis --------------------------------------------------------
 
 @Composable
-private fun EmphasisStep(answers: WizardAnswers, actions: WizardActions) {
+private fun EmphasisStep(state: WizardUiState, actions: WizardActions) {
     val options = listOf(
         GoalEmphasis.STRENGTH to ("Strength-leaning" to "Fewer reps, more weight on the mains."),
         GoalEmphasis.BALANCED to ("Balanced strength + muscle" to "The default — even mix of heavy work and volume."),
@@ -138,9 +141,40 @@ private fun EmphasisStep(answers: WizardAnswers, actions: WizardActions) {
         SelectionCard(
             title = copy.first,
             subtitle = copy.second,
-            selected = answers.config.emphasis == value,
+            selected = state.answers.config.emphasis == value,
             onClick = { actions.onEmphasisChange(value) },
         )
+    }
+    if (state.restore.offered) RestoreFromBackupEntry(state.restore, actions.onRestoreFromBackup)
+}
+
+/**
+ * The way back in for someone who already has a backup: quiet, below the
+ * question, and only on a first run (see [WizardRestoreState]). Deliberately not
+ * a card — it is an escape hatch from the wizard, not a fourth answer to it.
+ */
+@Composable
+private fun RestoreFromBackupEntry(restore: WizardRestoreState, onClick: () -> Unit) {
+    Spacer(Modifier.size(6.dp))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 44.dp)
+            .border(1.dp, Border, RoundedCornerShape(12.dp))
+            .clickable(enabled = !restore.inFlight, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            if (restore.inFlight) "RESTORING…" else "HAVE A BACKUP? RESTORE IT",
+            color = TextSecondary,
+            style = DoneButtonLabel,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
+    }
+    restore.error?.let { message ->
+        Text(message, color = Error, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -428,12 +462,18 @@ private fun FooterButton(
 private fun WizardScreenPreview() {
     AppTheme {
         WizardScreen(
-            state = WizardStateBuilder.buildUiState(0, WizardAnswers(), false),
+            state = WizardStateBuilder.buildUiState(
+                stepIndex = 0,
+                answers = WizardAnswers(),
+                isComplete = false,
+                restore = WizardRestoreState(offered = true),
+            ),
             actions = WizardActions(
                 onNext = {}, onBack = {}, onEmphasisChange = {}, onDaysPerWeekChange = {},
                 onSplitChange = {}, onAnchorSchemeChange = {}, onDeadliftVariantChange = {},
                 onCardioModeChange = {}, onCardioPlacementChange = {}, onFiveKChange = {},
                 onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEquipmentToggle = {},
+                onRestoreFromBackup = {},
             ),
         )
     }

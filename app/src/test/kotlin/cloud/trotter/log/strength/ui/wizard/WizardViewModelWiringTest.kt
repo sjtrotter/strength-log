@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.DayViewModel
 import java.io.File
@@ -56,6 +57,7 @@ import org.robolectric.annotation.Config
 class WizardViewModelWiringTest {
 
     private val dispatcher = StandardTestDispatcher()
+    private lateinit var context: Context
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
@@ -65,7 +67,7 @@ class WizardViewModelWiringTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        val context = ApplicationProvider.getApplicationContext<Context>()
+        context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
             .allowMainThreadQueries()
             .setQueryCoroutineContext(dispatcher)
@@ -136,7 +138,7 @@ class WizardViewModelWiringTest {
         handle: SavedStateHandle = SavedStateHandle(),
         repository: TrackerRepository = repo,
     ): WizardViewModel =
-        WizardViewModel(repository, handle).also { vm ->
+        WizardViewModel(repository, handle, context, BackupService(repository)).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -318,5 +320,58 @@ class WizardViewModelWiringTest {
 
         assertEquals(3, vm.uiState.value.answers.daysPerWeek)
         assertEquals(190, vm.uiState.value.answers.config.bodyweightLb)
+    }
+
+    // --- restore from backup: offered on a first run only ------------------------
+
+    @Test
+    fun firstRun_offers_the_restore_from_backup_entry() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.restore.offered)
+    }
+
+    @Test
+    fun reRun_doesNotOfferRestore_becauseDataBackupOwnsImportThere() = runVmTest {
+        repo.setWizardComplete(true)
+
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.restore.offered)
+    }
+
+    @Test
+    fun reRun_ignores_a_restore_request_outright() = runVmTest {
+        // Not just hidden in the UI: the ViewModel refuses too, so no stray
+        // launcher result can wipe a live device from the wizard route.
+        repo.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
+        repo.setWizardComplete(true)
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.restoreFromBackup(android.net.Uri.parse("content://nowhere/backup.json"))
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.restore.inFlight)
+        assertEquals(null, vm.uiState.value.restore.error)
+        assertEquals(3, repo.wizardAnswersFlow.first().daysPerWeek)
+    }
+
+    @Test
+    fun theFirstRunLatch_survives_view_model_recreation() = runVmTest {
+        val handle = SavedStateHandle()
+        newViewModel(handle)
+        advanceUntilIdle()
+
+        // The wizard finishing flips wizardComplete; the latch must not follow it,
+        // or a process death right after finish() would re-offer a destructive
+        // import against data that now exists.
+        repo.setWizardComplete(true)
+        val revived = newViewModel(handle)
+        advanceUntilIdle()
+
+        assertTrue(revived.uiState.value.restore.offered)
     }
 }

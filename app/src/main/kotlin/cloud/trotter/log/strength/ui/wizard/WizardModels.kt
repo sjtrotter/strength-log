@@ -39,11 +39,27 @@ data class WizardUiState(
     val splitOptions: SplitDefaults.Options = SplitDefaults.optionsFor(WizardAnswers().daysPerWeek),
     val activeAnchorIds: List<String> = emptyList(),
     val isComplete: Boolean = false,
+    val restore: WizardRestoreState = WizardRestoreState(),
 ) {
     val totalSteps: Int get() = WizardStep.entries.size
     val isFirstStep: Boolean get() = stepIndex == 0
     val isLastStep: Boolean get() = stepIndex == totalSteps - 1
 }
+
+/**
+ * The "have a backup?" entry on the wizard's first step. [offered] is latched at
+ * wizard entry from `wizardComplete`, so it is true only on a genuine first run:
+ * a Setup re-run reaches the same route with data already on the device, and
+ * Data/Backup owns import there behind its confirm-overwrite dialog. On a first
+ * run there is nothing to overwrite, so the picker commits directly and only
+ * [error] (already user-facing copy from
+ * [cloud.trotter.log.strength.ui.backup.TransferErrorMessages]) can come back.
+ */
+data class WizardRestoreState(
+    val offered: Boolean = false,
+    val inFlight: Boolean = false,
+    val error: String? = null,
+)
 
 /** Callbacks the screen forwards to [WizardViewModel] — mirrors [cloud.trotter.log.strength.ui.day.DayActions]. */
 data class WizardActions(
@@ -61,4 +77,5 @@ data class WizardActions(
     val onAgeChange: (Int) -> Unit,
     val onLevelChange: (ExperienceLevel) -> Unit,
     val onEquipmentToggle: (Equipment) -> Unit,
+    val onRestoreFromBackup: () -> Unit,
 )

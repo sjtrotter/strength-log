@@ -5,18 +5,18 @@ plugins {
 }
 
 android {
-    namespace = "io.github.sjtrotter.strengthlog.wear"
+    namespace = "cloud.trotter.log.strength.wear"
     compileSdk = 37
 
     defaultConfig {
-        // MUST equal the phone's applicationId (io.github.sjtrotter.strengthlog),
+        // MUST equal the phone's applicationId (cloud.trotter.log.strength),
         // not the wear namespace above. The Wearable Data Layer only delivers
         // DataItems/messages to an app with the same installed package name (+
         // signature) on the paired node — a mismatched suffix here silently
         // breaks all phone<->watch sync (the watch never receives a snapshot and
         // sits frozen on the loading screen). `namespace` stays wear-suffixed;
         // components are resolved relative to it and are unaffected.
-        applicationId = "io.github.sjtrotter.strengthlog"
+        applicationId = "cloud.trotter.log.strength"
         minSdk = 30
         targetSdk = 37
         versionCode = 1

@@ -221,6 +221,7 @@ private fun DayRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
     val cascadeCeremony by viewModel.cascadeCeremony.collectAsStateWithLifecycle()
+    val removedSets by viewModel.removedSets.collectAsStateWithLifecycle()
     DayScreen(
         state = state,
         actions = DayActions(
@@ -248,6 +249,8 @@ private fun DayRoute(
         ),
         cascadeCeremony = cascadeCeremony,
         onDismissCascade = viewModel::dismissCascadeCeremony,
+        removedSets = removedSets,
+        onUndoRemoveSet = viewModel::undoRemoveSet,
     )
 }
 

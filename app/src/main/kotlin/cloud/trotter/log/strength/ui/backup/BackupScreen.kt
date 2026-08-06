@@ -2,7 +2,6 @@ package cloud.trotter.log.strength.ui.backup
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,13 +17,17 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,12 +39,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.transfer.csv.CsvImportPreview
 import cloud.trotter.log.strength.transfer.csv.PreviewSession
 import cloud.trotter.log.strength.transfer.csv.PreviewSet
 import cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -50,6 +56,7 @@ import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
+import cloud.trotter.log.strength.ui.theme.Surface
 import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TabLetter
 import cloud.trotter.log.strength.ui.theme.TextFaint
@@ -229,34 +236,21 @@ private fun MessageBanner(message: StatusMessage, onDismiss: () -> Unit) {
 
 @Composable
 private fun RestoreConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background.copy(alpha = 0.85f))
-            // Deliberately not `pressable`: a dismiss scrim is a surface, not a
-            // control, and flashing the press veil across the whole screen would
-            // read as the dialog reacting rather than closing.
-            .clickable(interactionSource = null, indication = null, onClick = onDismiss),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(modifier = Modifier.padding(24.dp).clickable(enabled = false) {}) {
-            AppCard {
-                Text("Restore this backup?", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.size(8.dp))
-                Text(
-                    "This replaces everything on this device — program, logs, custom exercises, and history — " +
-                        "with what's in the file. This can't be undone.",
-                    color = TextFaint,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Spacer(Modifier.size(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    DialogButton("CANCEL", Surface2, TextPrimary, Modifier.weight(1f), onDismiss)
-                    DialogButton("REPLACE ALL DATA", Error, TextPrimary, Modifier.weight(1f), onConfirm)
-                }
-            }
-        }
-    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Surface,
+        titleContentColor = TextPrimary,
+        textContentColor = TextSecondary,
+        title = { Text("Restore this backup?") },
+        text = {
+            Text(
+                "This replaces everything on this device — program, logs, custom exercises, and history — " +
+                    "with what's in the file. This can't be undone.",
+            )
+        },
+        confirmButton = { DialogAction("Replace all data", Error, onConfirm) },
+        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
+    )
 }
 
 @Composable
@@ -283,48 +277,53 @@ private fun DialogButton(
 
 @Composable
 private fun CsvImportPreviewOverlay(state: CsvImportUiState, actions: BackupActions) {
-    var editingName by remember { mutableStateOf<String?>(null) }
+    var editingName by rememberSaveable { mutableStateOf<String?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize().background(Background)) {
-        Column(Modifier.fillMaxSize().systemBarsPadding()) {
-            BackupHeader(actions.onCancelCsvImport)
-            LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item { Spacer(Modifier.size(4.dp)) }
-                item { CsvPreviewSummary(state) }
-                if (state.preview.unmatchedNames.isNotEmpty()) {
-                    item {
-                        Text(
-                            "UNMATCHED EXERCISES — CONFIRM A PATTERN",
-                            color = TextSecondary,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
+    Dialog(
+        onDismissRequest = actions.onCancelCsvImport,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(modifier = Modifier.fillMaxSize().background(Background)) {
+            Column(Modifier.fillMaxSize().systemBarsPadding()) {
+                BackupHeader(actions.onCancelCsvImport)
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    item { Spacer(Modifier.size(4.dp)) }
+                    item { CsvPreviewSummary(state) }
+                    if (state.preview.unmatchedNames.isNotEmpty()) {
+                        item {
+                            Text(
+                                "UNMATCHED EXERCISES — CONFIRM A PATTERN",
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        items(state.preview.unmatchedNames, key = { it.name }) { unmatched ->
+                            UnmatchedNameRow(
+                                unmatched = unmatched,
+                                selected = state.approvedPatterns[unmatched.name] ?: unmatched.suggestedPattern,
+                                onClick = { editingName = unmatched.name },
+                            )
+                        }
                     }
-                    items(state.preview.unmatchedNames, key = { it.name }) { unmatched ->
-                        UnmatchedNameRow(
-                            unmatched = unmatched,
-                            selected = state.approvedPatterns[unmatched.name] ?: unmatched.suggestedPattern,
-                            onClick = { editingName = unmatched.name },
-                        )
-                    }
+                    item { Spacer(Modifier.size(8.dp)) }
                 }
-                item { Spacer(Modifier.size(8.dp)) }
+                CsvImportFooter(canCommit = state.canCommit, actions = actions)
             }
-            CsvImportFooter(canCommit = state.canCommit, actions = actions)
-        }
-        editingName?.let { name ->
-            val current = state.approvedPatterns[name]
-                ?: state.preview.unmatchedNames.first { it.name == name }.suggestedPattern
-            PatternPickerOverlay(
-                current = current,
-                onPick = { pattern ->
-                    actions.onUnmatchedPatternChange(name, pattern)
-                    editingName = null
-                },
-                onDismiss = { editingName = null },
-            )
+            editingName?.let { name ->
+                val current = state.approvedPatterns[name]
+                    ?: state.preview.unmatchedNames.first { it.name == name }.suggestedPattern
+                PatternPickerSheet(
+                    current = current,
+                    onPick = { pattern ->
+                        actions.onUnmatchedPatternChange(name, pattern)
+                        editingName = null
+                    },
+                    onDismiss = { editingName = null },
+                )
+            }
         }
     }
 }
@@ -361,33 +360,26 @@ private fun UnmatchedNameRow(unmatched: UnmatchedExerciseName, selected: Movemen
     )
 }
 
+/**
+ * The 19 movement patterns, as a sheet rather than a dialog: it is a list to
+ * scroll, and the day-edit sheet's pattern picker (`DayEditSheet`) is the same
+ * gesture on the same content — down to the 420dp list cap.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PatternPickerOverlay(current: MovementPattern, onPick: (MovementPattern) -> Unit, onDismiss: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background.copy(alpha = 0.9f))
-            // Deliberately not `pressable`: a dismiss scrim is a surface, not a
-            // control, and flashing the press veil across the whole screen would
-            // read as the dialog reacting rather than closing.
-            .clickable(interactionSource = null, indication = null, onClick = onDismiss),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(modifier = Modifier.padding(24.dp).clickable(enabled = false) {}) {
-            AppCard {
-                Text("Movement pattern", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.size(10.dp))
-                LazyColumn(
-                    modifier = Modifier.height(360.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(MovementPattern.entries) { pattern ->
-                        SelectionCard(
-                            title = patternLabel(pattern),
-                            selected = pattern == current,
-                            onClick = { onPick(pattern) },
-                        )
-                    }
+private fun PatternPickerSheet(current: MovementPattern, onPick: (MovementPattern) -> Unit, onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Surface) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+            Text("Movement pattern", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.size(10.dp))
+            LazyColumn(modifier = Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(MovementPattern.entries) { pattern ->
+                    SelectionCard(
+                        title = patternLabel(pattern),
+                        selected = pattern == current,
+                        onClick = { onPick(pattern) },
+                    )
                 }
             }
         }

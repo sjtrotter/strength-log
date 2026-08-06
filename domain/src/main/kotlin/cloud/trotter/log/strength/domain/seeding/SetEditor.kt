@@ -54,6 +54,17 @@ object SetEditor {
         if (sets.size <= 1) sets else sets.filterIndexed { i, _ -> i != index }
 
     /**
+     * Put a row back at [index] — the exact inverse of [removeSet], so an undo
+     * reinstates the row it took, kind and done-flag included, rather than a
+     * fresh EXTRA copied off the tail. [index] is clamped: the track it came
+     * from may have shrunk again before the undo lands.
+     */
+    fun insertSet(sets: List<LoggedSet>, index: Int, set: LoggedSet): List<LoggedSet> {
+        val at = index.coerceIn(0, sets.size)
+        return sets.subList(0, at) + set + sets.subList(at, sets.size)
+    }
+
+    /**
      * Superset add: append an EXTRA row to both tracks so rounds stay aligned
      * index-for-index (spec §4).
      */
@@ -68,4 +79,14 @@ object SetEditor {
     ): Pair<List<LoggedSet>, List<LoggedSet>> =
         if (primary.size <= 1) primary to partner
         else removeSet(primary, index) to removeSet(partner, index)
+
+    /** Superset undo: put both tracks' rows back at [index], still aligned. */
+    fun insertSetPaired(
+        primary: List<LoggedSet>,
+        partner: List<LoggedSet>,
+        index: Int,
+        primarySet: LoggedSet,
+        partnerSet: LoggedSet,
+    ): Pair<List<LoggedSet>, List<LoggedSet>> =
+        insertSet(primary, index, primarySet) to insertSet(partner, index, partnerSet)
 }

@@ -69,4 +69,35 @@ class SetEditingTest {
         assertEquals(3, p3.size)
         assertEquals(3, s3.size)
     }
+
+    // --- undo of a remove (#124) ---------------------------------------------
+
+    @Test
+    fun `insert set undoes a remove exactly`() {
+        val seeded = squat()
+        val ticked = SetEditor.editReps(seeded, 2, 7).mapIndexed { i, s -> if (i == 2) s.copy(done = true) else s }
+        val removed = ticked[2]
+
+        val after = SetEditor.removeSet(ticked, 2)
+        assertEquals(ticked, SetEditor.insertSet(after, 2, removed))
+    }
+
+    @Test
+    fun `insert set clamps an index the track has since outgrown`() {
+        val sets = listOf(LoggedSet(100.0, 10, SetKind.WORK))
+        val put = SetEditor.insertSet(sets, 9, LoggedSet(50.0, 5, SetKind.EXTRA))
+        assertEquals(2, put.size)
+        assertEquals(50.0, put.last().weightLb, 1e-9)
+    }
+
+    @Test
+    fun `paired insert undoes a paired remove on both tracks`() {
+        val primary = SetSeeder.seed(ProgramExercise("ez_curl", targetSets = 3), 60.0, cfg)
+        val partner = SetSeeder.seedPartner(primary.size, 50.0)
+
+        val (p2, s2) = SetEditor.removeSetPaired(primary, partner, 1)
+        val (p3, s3) = SetEditor.insertSetPaired(p2, s2, 1, primary[1], partner[1])
+        assertEquals(primary, p3)
+        assertEquals(partner, s3)
+    }
 }

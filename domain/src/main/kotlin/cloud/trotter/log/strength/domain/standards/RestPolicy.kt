@@ -77,8 +77,8 @@ object RestPolicy {
  * The user's rest-timer preferences as one domain-pure value: the master
  * [enabled] gate plus per-category [overrides] (absent key ⇒ the RestPolicy
  * default). Read from [cloud.trotter.log.strength.data.prefs.SettingsStore]
- * and fed to the snapshot builder; device-local (not part of the backup payload)
- * for now.
+ * and fed to the snapshot builder, and carried by the full backup (schema v3)
+ * with the absences intact.
  */
 data class RestSettings(
     val enabled: Boolean = true,

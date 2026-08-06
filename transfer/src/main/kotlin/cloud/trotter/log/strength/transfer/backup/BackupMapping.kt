@@ -18,6 +18,8 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /**
@@ -54,6 +56,12 @@ fun FullSnapshot.toDocument(): BackupDocument {
             weightUnit = unit.name,
             wizardComplete = wizardComplete,
             suggestedDay = suggestedDay,
+            restTimerEnabled = restSettings.enabled,
+            restRampSeconds = restSettings.overrides[RestCategory.RAMP],
+            restTopSeconds = restSettings.overrides[RestCategory.TOP],
+            restBackoffSeconds = restSettings.overrides[RestCategory.BACKOFF],
+            restWorkSeconds = restSettings.overrides[RestCategory.WORK],
+            restLightSeconds = restSettings.overrides[RestCategory.LIGHT],
         ),
         customExercises = customExercises.map {
             CustomExerciseBackup(
@@ -221,6 +229,10 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         unit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
         wizardComplete = settings.wizardComplete,
         suggestedDay = settings.suggestedDay,
+        restSettings = RestSettings(
+            enabled = settings.restTimerEnabled,
+            overrides = settings.restOverrides(),
+        ),
         customExercises = customExercises.map {
             CustomExerciseEntity(
                 id = it.id,
@@ -240,6 +252,20 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         sessions = sessionEntities,
         sessionSets = sessionSetEntities,
     )
+}
+
+/**
+ * The document's five nullable rest fields as the domain's override map. A null
+ * field is simply omitted — absent means "use the [cloud.trotter.log.strength.domain.standards.RestPolicy]
+ * default", the same rule `SettingsStore` reads and writes — so this is the one
+ * place the field↔category pairing is spelled out.
+ */
+fun SettingsBackup.restOverrides(): Map<RestCategory, Int> = buildMap {
+    restRampSeconds?.let { put(RestCategory.RAMP, it) }
+    restTopSeconds?.let { put(RestCategory.TOP, it) }
+    restBackoffSeconds?.let { put(RestCategory.BACKOFF, it) }
+    restWorkSeconds?.let { put(RestCategory.WORK, it) }
+    restLightSeconds?.let { put(RestCategory.LIGHT, it) }
 }
 
 private inline fun <reified E : Enum<E>> enumOrDefault(name: String, default: E): E =

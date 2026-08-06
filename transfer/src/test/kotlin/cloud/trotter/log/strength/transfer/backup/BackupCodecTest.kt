@@ -9,6 +9,9 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -370,6 +373,7 @@ class BackupCodecTest {
             unit = WeightUnit.KG,
             wizardComplete = true,
             suggestedDay = "A",
+            restSettings = RestSettings(enabled = false, overrides = mapOf(RestCategory.TOP to 210)),
             customExercises = listOf(
                 CustomExerciseEntity(custom.id, custom.name, custom.pattern, custom.equipmentCsv, custom.perHand, custom.goalStartLb),
             ),
@@ -404,6 +408,7 @@ class BackupCodecTest {
             unit = WeightUnit.LB,
             wizardComplete = true,
             suggestedDay = "A",
+            restSettings = RestSettings(),
             customExercises = emptyList(),
             days = listOf(ProgramDayEntity("A", 0, "Day A", "Squat-focused", null)),
             exercises = listOf(ProgramExerciseEntity(1, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
@@ -415,5 +420,60 @@ class BackupCodecTest {
         val restored = codec.decode(codec.encode(snapshot.toDocument())).toSnapshot()
 
         assertEquals(listOf(stamped), restored.sessionSets)
+    }
+
+    // --- rest-timer prefs (schema v3) ---------------------------------------
+
+    private fun restSnapshot(restSettings: RestSettings) = FullSnapshot(
+        answers = WizardAnswers(),
+        unit = WeightUnit.LB,
+        wizardComplete = true,
+        suggestedDay = "A",
+        restSettings = restSettings,
+        customExercises = emptyList(),
+        days = listOf(ProgramDayEntity("A", 0, "Day A", "Squat-focused", null)),
+        exercises = listOf(ProgramExerciseEntity(1, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
+        logs = emptyList(),
+        sessions = emptyList(),
+        sessionSets = emptyList(),
+    )
+
+    @Test
+    fun `the rest-timer prefs survive a full export-import cycle`() {
+        val tuned = RestSettings(
+            enabled = false,
+            overrides = mapOf(
+                RestCategory.RAMP to 45,
+                RestCategory.TOP to 240,
+                RestCategory.BACKOFF to 105,
+                RestCategory.WORK to 75,
+                RestCategory.LIGHT to 0,
+            ),
+        )
+
+        val restored = codec.decode(codec.encode(restSnapshot(tuned).toDocument())).toSnapshot()
+
+        assertEquals(tuned, restored.restSettings)
+    }
+
+    @Test
+    fun `an unpinned rest bucket round-trips as absent, not as today's default`() {
+        // The absence is the setting: RestPolicy supplies the number, so a
+        // restored device keeps following defaults shipped in a later update.
+        val partly = RestSettings(enabled = true, overrides = mapOf(RestCategory.TOP to 210))
+
+        val restored = codec.decode(codec.encode(restSnapshot(partly).toDocument())).toSnapshot()
+
+        assertEquals(partly, restored.restSettings)
+        assertEquals(setOf(RestCategory.TOP), restored.restSettings.overrides.keys)
+    }
+
+    @Test
+    fun `an out-of-range rest override is rejected`() {
+        val doc = document(settings = settings().copy(restTopSeconds = RestPolicy.MAX_REST_SECONDS + 1))
+        assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(doc)) }
+
+        val negative = document(settings = settings().copy(restLightSeconds = -1))
+        assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(negative)) }
     }
 }

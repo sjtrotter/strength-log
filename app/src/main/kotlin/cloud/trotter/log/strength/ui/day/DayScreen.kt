@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
@@ -185,25 +187,33 @@ private fun TopBar(
 ) {
     Column {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SettingsTab(actions.onOpenSettings)
-                Row(
-                    modifier = Modifier.selectableGroup(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    state.tabs.forEach { tab ->
-                        DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
-                    }
+            // Day selection is the only thing left in this row (#121: ⚙ and LOG
+            // moved to Today), and it scrolls — a 6-day program overflows 360dp.
+            // The 16dp gutter is content padding *inside* the scroll viewport,
+            // not on it, so the suggested-next ring and dot [DayTab] draws 2-6dp
+            // outside a tab are never clipped at the viewport's edge.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .selectableGroup()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                state.tabs.forEach { tab ->
+                    DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
                 }
-                Spacer(Modifier.weight(1f))
-                LogTab(actions.onOpenLog)
             }
             // Keep-screen-on rides the title row (not the tab row) so it can't
             // push a fifth+ day tab or the switch off a narrow screen's edge.
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     state.viewDayId?.let {
                         Text(text = "DAY ${it.uppercase()}", color = accent, style = MaterialTheme.typography.labelSmall)
@@ -216,9 +226,8 @@ private fun TopBar(
                     }
                 }
                 // Opens the day-edit sheet (#11, spec §8.3: "a gear icon in the
-                // day header"). Distinct glyph from SettingsTab's ⚙ — that tab is
-                // the app-wide Setup destination (brief D2), this one edits only
-                // the day being viewed.
+                // day header"). The only chrome left on this screen: app-wide
+                // Setup and the Log both live on Today now (#121).
                 EditDayButton(onClick = onEditDay)
                 KeepScreenOnSwitch(
                     checked = state.keepScreenOn,
@@ -268,38 +277,6 @@ private fun OverridePill(accent: Color, accentSoftColor: Color, suggestedDayId: 
             .padding(horizontal = 10.dp, vertical = 4.dp),
     ) {
         Text(text = text, color = accent, style = MaterialTheme.typography.labelSmall)
-    }
-}
-
-@Composable
-private fun SettingsTab(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .background(Surface2, RoundedCornerShape(10.dp))
-            .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Settings", role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = "Settings" },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("⚙", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
-    }
-}
-
-/** Trailing tab that opens the history Log (brief D2 — a plain navigation, not a day-selection). */
-@Composable
-private fun LogTab(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .height(40.dp)
-            .background(Surface2, RoundedCornerShape(10.dp))
-            .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Open log", role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = "Open log" }
-            .padding(horizontal = 12.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("LOG", color = TextSecondary, style = TabLetter.copy(fontSize = 13.sp), modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
@@ -838,8 +815,6 @@ data class DayActions(
     val onKeepScreenOnChange: (Boolean) -> Unit,
     val onClearChecks: () -> Unit,
     val onDone: () -> Unit,
-    val onOpenSettings: () -> Unit,
-    val onOpenLog: () -> Unit,
     val onCreateExercise: (MovementPattern) -> Unit,
 )
 
@@ -987,8 +962,6 @@ private fun DayScreenPreviewContent() {
                 onKeepScreenOnChange = {},
                 onClearChecks = {},
                 onDone = {},
-                onOpenSettings = {},
-                onOpenLog = {},
                 onCreateExercise = {},
             ),
             dayEditState = DayEditUiState(),

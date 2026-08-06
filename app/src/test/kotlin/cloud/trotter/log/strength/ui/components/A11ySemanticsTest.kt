@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -254,5 +255,98 @@ class A11ySemanticsTest {
         }
 
         composeTestRule.onNodeWithContentDescription("Day A").assertIsSelected()
+    }
+
+    // --- Today took the app-wide chrome off Day (#121) ---------------------------
+
+    /** Pins #121: Settings and "Open log" left the day header for Today, and the
+     *  day-tab cluster became horizontally scrollable so a 6-day program still
+     *  fits — every tab must still render, just not all in the viewport. */
+    @Test
+    fun dayScreenScrollsAllDayTabsAndNoLongerHostsSettingsOrLog() {
+        val state = DayUiState(
+            hasProgram = true,
+            tabs = listOf(
+                DayTab("A", 0, isSuggested = false, isSelected = true),
+                DayTab("B", 1, isSuggested = false, isSelected = false),
+                DayTab("C", 2, isSuggested = false, isSelected = false),
+                DayTab("D", 3, isSuggested = false, isSelected = false),
+                DayTab("E", 4, isSuggested = false, isSelected = false),
+                DayTab("F", 5, isSuggested = false, isSelected = false),
+            ),
+            viewDayId = "A",
+            dayIndex = 0,
+            dayTitle = "Lower — squat focus",
+            emphasisLine = "hip-hinge hamstrings · gastroc calves",
+            unit = WeightUnit.LB,
+            suggestedDayId = "A",
+            nextDayId = "B",
+            exercises = listOf(
+                ExerciseCardState(
+                    programExerciseId = 1,
+                    position = 0,
+                    title = "Barbell Back Squat",
+                    isMain = true,
+                    isSuperset = false,
+                    hasWarmupHint = true,
+                    goalDisplay = "235",
+                    perHand = false,
+                    allDone = false,
+                    collapsed = false,
+                    collapsedSummary = "5 sets · GOAL 235",
+                    rows = listOf(
+                        SetRowState(0, "R1", isTop = false, weightDisplay = 130.0, reps = 5, done = false),
+                        SetRowState(1, "TOP", isTop = true, weightDisplay = 235.0, reps = 5, done = false),
+                    ),
+                ),
+            ),
+            keepScreenOn = false,
+        )
+
+        composeTestRule.setContent {
+            AppTheme {
+                DayScreen(
+                    state = state,
+                    actions = DayActions(
+                        onSelectDay = {},
+                        onWeightChange = { _, _, _, _ -> },
+                        onRepsChange = { _, _, _, _ -> },
+                        onSecondsChange = { _, _, _, _ -> },
+                        onToggleDone = { _, _, _, _ -> },
+                        onAddSet = { _, _ -> },
+                        onRemoveSet = { _, _, _ -> },
+                        onToggleCollapse = {},
+                        onKeepScreenOnChange = {},
+                        onClearChecks = {},
+                        onDone = {},
+                        onCreateExercise = {},
+                    ),
+                    dayEditState = DayEditUiState(),
+                    dayEditActions = DayEditActions(
+                        onSwap = { _, _ -> },
+                        onAdd = {},
+                        onRemove = {},
+                        onSetSuperset = { _, _ -> },
+                        onRemoveSuperset = {},
+                        onResetToTemplate = {},
+                    ),
+                )
+            }
+        }
+
+        listOf("A", "B", "C", "D", "E", "F").forEach {
+            composeTestRule.onNodeWithContentDescription("Day $it").assertExists()
+        }
+
+        assertTrue(
+            "Settings must not reappear on Day — it moved to Today (#121)",
+            composeTestRule.onAllNodesWithContentDescription("Settings").fetchSemanticsNodes().isEmpty(),
+        )
+        assertTrue(
+            "Open log must not reappear on Day — it moved to Today (#121)",
+            composeTestRule.onAllNodesWithContentDescription("Open log").fetchSemanticsNodes().isEmpty(),
+        )
+
+        composeTestRule.onNodeWithContentDescription("Edit day").assertExists()
     }
 }

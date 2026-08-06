@@ -43,6 +43,9 @@ import cloud.trotter.log.strength.ui.setup.SetupActions
 import cloud.trotter.log.strength.ui.setup.SetupScreen
 import cloud.trotter.log.strength.ui.setup.SetupViewModel
 import cloud.trotter.log.strength.ui.theme.Background
+import cloud.trotter.log.strength.ui.today.TodayActions
+import cloud.trotter.log.strength.ui.today.TodayScreen
+import cloud.trotter.log.strength.ui.today.TodayViewModel
 import cloud.trotter.log.strength.ui.wizard.WizardActions
 import cloud.trotter.log.strength.ui.wizard.WizardScreen
 import cloud.trotter.log.strength.ui.wizard.WizardViewModel
@@ -56,11 +59,11 @@ import kotlinx.coroutines.flow.take
 
 /**
  * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / re-run),
- * `day` (home), `setup` (the gear, #12), `customExercise` (creation, #13), and
- * `log` (history, #14, D2 — reached from a trailing tab once the header wires
- * it up).
+ * `today` (home, #121), `day` (the workout screen, pushed from Today), `setup`
+ * (the gear, #12), `customExercise` (creation, #13), and `log` (history, #14, D2).
  */
 object Routes {
+    const val TODAY = "today"
     const val DAY = "day"
     const val WIZARD = "wizard"
     const val SETUP = "setup"
@@ -84,23 +87,29 @@ object Routes {
 }
 
 /**
- * Resolves whether the app opens on [Routes.WIZARD] or [Routes.DAY] from
+ * Resolves whether the app opens on [Routes.WIZARD] or [Routes.TODAY] from
  * [TrackerRepository.wizardCompleteFlow] (D1). `null` means "not resolved
  * yet" — [AppNavHost] renders nothing but the app background until then, so
  * the graph is never built with the wrong start destination and then
  * re-navigated (no flicker-navigation after compose).
  *
+ * Every way into the app — launcher, a day-specific launcher alias, the
+ * home-screen widget's tap target — is a plain ACTION_MAIN launch of
+ * [cloud.trotter.log.strength.MainActivity] with no route extra, so they all
+ * land wherever this resolves. #121 moved that landing from the workout screen
+ * to Today: orientation first, the editor a tap away.
+ *
  * [take] latches the *first* resolved value: this is only the initial
  * screen, and after that explicit navigation drives every transition. Without
  * the latch, first-run finish() flipping wizardComplete false→true would
  * rebuild the NavHost with a new start destination (resetting the back stack)
- * at the same instant [WizardRoute] explicitly navigates to the day screen —
- * the double-navigation D1 warns against.
+ * at the same instant [WizardRoute] explicitly navigates away — the
+ * double-navigation D1 warns against.
  */
 @HiltViewModel
 class StartDestinationViewModel @Inject constructor(repo: TrackerRepository) : ViewModel() {
     val startDestination: StateFlow<String?> = repo.wizardCompleteFlow
-        .map { complete -> if (complete) Routes.DAY else Routes.WIZARD }
+        .map { complete -> if (complete) Routes.TODAY else Routes.WIZARD }
         .take(1)
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 }
@@ -116,10 +125,20 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
 
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = start) {
-        composable(Routes.DAY) {
-            DayRoute(
+        composable(Routes.TODAY) {
+            TodayRoute(
+                // launchSingleTop: a double-tap on START is one workout, not two
+                // stacked copies of it to back out of.
+                onStart = { navController.navigate(Routes.DAY) { launchSingleTop = true } },
                 onOpenSettings = { navController.navigate(Routes.SETUP) },
                 onOpenLog = { navController.navigate(Routes.LOG) },
+            )
+        }
+        // Pushed from Today, never the start destination (#121), so system back
+        // out of the workout screen is a plain pop to Today — no BackHandler,
+        // no popUpTo, just the stack doing its job.
+        composable(Routes.DAY) {
+            DayRoute(
                 onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
             )
         }
@@ -127,14 +146,18 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
             WizardRoute(
                 onFinished = {
                     // graph.startDestinationId only clears back to WIZARD on a
-                    // first-run finish (stack [wizard] -> [day]). It latches for
-                    // the process lifetime (see StartDestinationViewModel), so a
-                    // Setup re-run reaches here with stack [day, setup, wizard]
-                    // and startDestinationId is still WIZARD, not DAY — popping
-                    // to it would leave [day, setup, day]. Popping the whole
-                    // back stack (id 0) is correct for both paths: first-run
-                    // [wizard] -> [day], re-run [day, setup, wizard] -> [day].
-                    navController.navigate(Routes.DAY) {
+                    // first-run finish (stack [wizard] -> [today]). It latches
+                    // for the process lifetime (see StartDestinationViewModel),
+                    // so a Setup re-run reaches here with stack
+                    // [today, setup, wizard] and startDestinationId is still
+                    // WIZARD, not TODAY — popping to it would leave
+                    // [today, setup, today]. Popping the whole back stack (id 0)
+                    // is correct for both paths: first-run [wizard] -> [today],
+                    // re-run [today, setup, wizard] -> [today]. A re-run also
+                    // regenerates the program, so landing on Today rather than
+                    // straight in the editor is the honest result: the wizard
+                    // changed what "next" means, and Today is what says so.
+                    navController.navigate(Routes.TODAY) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
@@ -167,10 +190,31 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
     }
 }
 
+/**
+ * The orientation screen (#121) and the app's home: it says what day is next and
+ * what is in it, then hands off. It owns no mutations — [TodayViewModel] reads,
+ * [DayViewModel] writes — so the only thing that leaves here is a navigation.
+ */
 @Composable
-private fun DayRoute(
+private fun TodayRoute(
+    onStart: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenLog: () -> Unit,
+    viewModel: TodayViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    TodayScreen(
+        state = state,
+        actions = TodayActions(
+            onStart = onStart,
+            onOpenSettings = onOpenSettings,
+            onOpenLog = onOpenLog,
+        ),
+    )
+}
+
+@Composable
+private fun DayRoute(
     onCreateExercise: (MovementPattern) -> Unit,
     viewModel: DayViewModel = hiltViewModel(),
 ) {
@@ -191,8 +235,6 @@ private fun DayRoute(
             onKeepScreenOnChange = viewModel::setKeepScreenOn,
             onClearChecks = viewModel::clearChecks,
             onDone = viewModel::completeDay,
-            onOpenSettings = onOpenSettings,
-            onOpenLog = onOpenLog,
             onCreateExercise = onCreateExercise,
         ),
         dayEditState = dayEditState,

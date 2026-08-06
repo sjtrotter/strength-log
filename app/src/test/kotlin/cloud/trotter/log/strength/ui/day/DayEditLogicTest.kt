@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DayEditLogicTest {
@@ -108,5 +109,48 @@ class DayEditLogicTest {
     fun canRemove_is_true_above_the_minimum() {
         assertTrue(DayEditRules.canRemove(4))
         assertTrue(DayEditRules.canRemove(6))
+    }
+
+    // --- the sheet's back stack (#122) ------------------------------------------
+
+    private fun backTarget(
+        swapping: Boolean = false,
+        supersetSlot: Boolean = false,
+        supersetPatternPicked: Boolean = false,
+        pickingPattern: Boolean = false,
+        addingFromPattern: Boolean = false,
+        options: Boolean = false,
+    ) = dayEditBackTarget(swapping, supersetSlot, supersetPatternPicked, pickingPattern, addingFromPattern, options)
+
+    @Test
+    fun back_on_the_root_slot_list_has_no_page_to_pop_so_the_sheet_dismisses() {
+        assertNull(backTarget())
+    }
+
+    @Test
+    fun back_from_the_swap_picker_pops_the_picker_not_the_sheet() {
+        // Reached as slot list -> options -> swap, so the options page is still
+        // live underneath: back must land there, not dismiss.
+        assertEquals(DayEditPage.SWAP, backTarget(swapping = true, options = true))
+    }
+
+    @Test
+    fun back_from_the_options_page_pops_to_the_slot_list() {
+        assertEquals(DayEditPage.OPTIONS, backTarget(options = true))
+    }
+
+    @Test
+    fun back_walks_the_superset_flow_one_page_at_a_time() {
+        assertEquals(
+            DayEditPage.SUPERSET_EXERCISE,
+            backTarget(supersetSlot = true, supersetPatternPicked = true, options = true),
+        )
+        assertEquals(DayEditPage.SUPERSET_PATTERN, backTarget(supersetSlot = true, options = true))
+    }
+
+    @Test
+    fun back_walks_the_add_flow_one_page_at_a_time() {
+        assertEquals(DayEditPage.ADD_EXERCISE, backTarget(addingFromPattern = true))
+        assertEquals(DayEditPage.ADD_PATTERN, backTarget(pickingPattern = true))
     }
 }

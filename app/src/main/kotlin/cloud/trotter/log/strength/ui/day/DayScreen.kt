@@ -124,6 +124,14 @@ fun DayScreen(
     // The day-edit sheet (#11) is not a nav route (brief D1): it lives entirely
     // as local UI state here, sharing this screen's DayViewModel-derived data.
     var showEditSheet by rememberSaveable { mutableStateOf(false) }
+    // The slot whose ⇄ chip was tapped (#122) — the same swap picker the sheet
+    // hosts, opened straight from the card instead of through two pages.
+    var swapCardSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
+    // A card offers ⇄ only when its slot resolves to a pattern to rank
+    // substitutes against — the same rule that disables Swap in the sheet.
+    val swappableSlotIds = remember(dayEditState.slots) {
+        dayEditState.slots.filter { it.pattern != null }.mapTo(mutableSetOf()) { it.programExerciseId }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         if (!state.hasProgram) {
@@ -144,7 +152,17 @@ fun DayScreen(
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
                 items(state.exercises, key = { it.programExerciseId }) { card ->
-                    ExerciseCard(card, state.unit, accent, onAccent, soft, actions, onSwapWeight = dayEditActions.onSwap)
+                    ExerciseCard(
+                        card = card,
+                        unit = state.unit,
+                        accent = accent,
+                        onAccent = onAccent,
+                        accentSoftColor = soft,
+                        actions = actions,
+                        onSwapWeight = dayEditActions.onSwap,
+                        canSwapExercise = card.programExerciseId in swappableSlotIds,
+                        onSwapExercise = { swapCardSlotId = card.programExerciseId },
+                    )
                 }
                 state.cardio?.let { cardio ->
                     item { CardioCard(cardio) }
@@ -162,6 +180,19 @@ fun DayScreen(
             actions = dayEditActions,
             accent = accent,
             onDismiss = { showEditSheet = false },
+            onCreateExercise = actions.onCreateExercise,
+        )
+    }
+
+    val swapSlot = dayEditState.slots.firstOrNull { it.programExerciseId == swapCardSlotId }
+    if (swapSlot != null && swapSlot.pattern != null) {
+        SlotSwapSheet(
+            slot = swapSlot,
+            pattern = swapSlot.pattern,
+            state = dayEditState,
+            accent = accent,
+            onSwap = dayEditActions.onSwap,
+            onDismiss = { swapCardSlotId = null },
             onCreateExercise = actions.onCreateExercise,
         )
     }
@@ -338,6 +369,8 @@ private fun ExerciseCard(
     accentSoftColor: Color,
     actions: DayActions,
     onSwapWeight: (position: Int, targetExerciseId: String) -> Unit,
+    canSwapExercise: Boolean,
+    onSwapExercise: () -> Unit,
 ) {
     var previousAllDone by remember { mutableStateOf(card.allDone) }
     var displayCollapsed by remember { mutableStateOf(card.collapsed) }
@@ -371,24 +404,27 @@ private fun ExerciseCard(
         // carry only AppCard's hairline border (reference: no muted strip).
         if (doneEdge > 0f) drawRect(color = Done.copy(alpha = doneEdge), size = Size(3.dp.toPx(), size.height))
     }) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
-                    onClickLabel = if (displayCollapsed) "Expand" else "Collapse",
-                    role = Role.Button,
-                    onClick = { actions.onToggleCollapse(card.programExerciseId) },
-                )
-                .semantics { stateDescription = if (displayCollapsed) "Collapsed" else "Expanded" },
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(Modifier.weight(1f)) {
+        // The collapse toggle covers the title block only, never the trailing
+        // controls: a control's touch target must not sit on top of a different
+        // action's, and the ⇄ chip's 48dp target is bigger than the chip.
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clickable(
+                        onClickLabel = if (displayCollapsed) "Expand" else "Collapse",
+                        role = Role.Button,
+                        onClick = { actions.onToggleCollapse(card.programExerciseId) },
+                    )
+                    .semantics { stateDescription = if (displayCollapsed) "Collapsed" else "Expanded" },
+            ) {
                 Text(card.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 5.dp)) {
                     if (card.isMain) Badge("MAIN", accent, onAccent)
                     if (card.hasWarmupHint) Badge("+1 WARM-UP", Color.Transparent, TextSecondary, outlined = true)
                     if (card.allDone) Badge("✓", Done, Background, description = "All sets done")
                     card.weightSwap?.let { swap ->
+                        // Target still smaller than 48dp — #123 owns card touch targets.
                         WeightSwapPill(swap, accent, onClick = { pendingSwap = swap })
                     }
                 }
@@ -416,7 +452,18 @@ private fun ExerciseCard(
                     )
                 }
             }
-            if (!displayCollapsed) GoalBlock(card.goalDisplay, card.perHand, accent)
+            // Trailing controls, outside the collapse toggle. The chip rides
+            // GoalBlock's height so its 48dp target costs the card nothing, and
+            // GOAL keeps the top-right corner it is owed (spec §8.2).
+            if (!displayCollapsed) {
+                if (canSwapExercise) {
+                    SwapExerciseChip(
+                        onClick = onSwapExercise,
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                    )
+                }
+                GoalBlock(card.goalDisplay, card.perHand, accent)
+            }
         }
 
         // Widen this section 10dp into the card gutter so the TOP row can bleed
@@ -544,6 +591,52 @@ internal fun WeightSwapPill(swap: WeightSwapAffordance, accent: Color, onClick: 
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(label, color = textColor, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+// --- swap-this-exercise chip (#122) ------------------------------------------
+
+/** Visible size of the ⇄ chip. The height is a filled [Badge]'s (labelSmall's
+ *  14sp line plus 3dp above and below), so the chip carries the card header's
+ *  existing rhythm rather than introducing a new one. */
+private val SwapChipWidth = 30.dp
+private val SwapChipHeight = 20.dp
+
+/**
+ * The ⇄ chip on an expanded card, left of the GOAL block: opens the ranked
+ * substitute picker for this slot directly ([SlotSwapSheet], issue #122),
+ * instead of the four taps through the day-edit sheet. Bordered like
+ * [WeightSwapPill] — a control, not a status [Badge] — and glyph-only, so the
+ * accessible name lives on the clickable parent while [clearAndSetSemantics]
+ * silences the glyph (A7).
+ *
+ * [minimumInteractiveComponentSize] grows the layout box, not just the touch
+ * target, so the chip claims a real 48dp slot rather than spilling an invisible
+ * one over its neighbours. It costs the card no height: [GoalBlock] beside it
+ * is taller, and the chip only ever renders next to it.
+ */
+@Composable
+internal fun SwapExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .clickable(onClickLabel = "Swap exercise", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Swap exercise" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = SwapChipWidth, height = SwapChipHeight)
+                .border(1.dp, Border, RoundedCornerShape(50)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "⇄",
+                color = TextSecondary,
+                style = TabLetter.copy(fontSize = 13.sp),
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+        }
     }
 }
 
@@ -964,7 +1057,18 @@ private fun DayScreenPreviewContent() {
                 onDone = {},
                 onCreateExercise = {},
             ),
-            dayEditState = DayEditUiState(),
+            // Slots for the four cards above: the preview needs them or no card
+            // shows its ⇄ chip (#122), which is exactly what the font-scale
+            // audit previews below are here to catch.
+            dayEditState = DayEditUiState(
+                slots = listOf(
+                    DayEditSlotState(1, 0, "bb_back_squat", "Barbell Back Squat", MovementPattern.SQUAT_BILATERAL, isSuperset = false),
+                    DayEditSlotState(2, 1, "ez_curl", "EZ-Bar Curl", MovementPattern.BICEPS, isSuperset = true, partnerTitle = "Rope Pushdown"),
+                    DayEditSlotState(3, 2, "seated_curl", "Seated Leg Curl", MovementPattern.KNEE_FLEXION, isSuperset = false),
+                    DayEditSlotState(4, 3, "plank", "Plank / Side Plank", MovementPattern.CORE_ANTI_EXT, isSuperset = false),
+                ),
+                canRemove = true,
+            ),
             dayEditActions = DayEditActions(
                 onSwap = { _, _ -> },
                 onAdd = {},

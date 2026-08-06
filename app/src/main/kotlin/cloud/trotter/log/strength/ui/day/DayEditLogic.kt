@@ -41,3 +41,32 @@ object DayEditRules {
 
     fun canRemove(slotCount: Int): Boolean = slotCount > MIN_EXERCISES_PER_DAY
 }
+
+/** A page of the day-edit sheet above its root slot list (issue #122). */
+enum class DayEditPage { SWAP, SUPERSET_PATTERN, SUPERSET_EXERCISE, ADD_PATTERN, ADD_EXERCISE, OPTIONS }
+
+/**
+ * Which page a back press pops, given which of the sheet's page states are
+ * live — deepest first, the same order `DayEditSheet` picks what to show. Null
+ * means the sheet is on its root slot list, where back dismisses the sheet
+ * rather than stepping (issue #122).
+ *
+ * Both the ← chip and the system back button route through this, so they can't
+ * drift apart.
+ */
+fun dayEditBackTarget(
+    swapping: Boolean,
+    supersetSlot: Boolean,
+    supersetPatternPicked: Boolean,
+    pickingPattern: Boolean,
+    addingFromPattern: Boolean,
+    options: Boolean,
+): DayEditPage? = when {
+    swapping -> DayEditPage.SWAP
+    supersetSlot && supersetPatternPicked -> DayEditPage.SUPERSET_EXERCISE
+    supersetSlot -> DayEditPage.SUPERSET_PATTERN
+    pickingPattern -> DayEditPage.ADD_PATTERN
+    addingFromPattern -> DayEditPage.ADD_EXERCISE
+    options -> DayEditPage.OPTIONS
+    else -> null
+}

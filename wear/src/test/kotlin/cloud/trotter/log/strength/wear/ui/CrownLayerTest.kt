@@ -54,6 +54,23 @@ class CrownLayerTest {
     }
 
     @Test
+    fun `an undo puts the dial back on the lift it reopened`() {
+        val afterUndo = snapshot(
+            exercise(1L, listOf(true, false)),
+            exercise(2L, listOf(false, false)),
+        )
+        assertEquals(0, ExerciseSelection.resolve(afterUndo, selectedIndex = 0))
+
+        val skipped = snapshot(
+            exercise(1L, listOf(false, false)),
+            exercise(2L, listOf(false)),
+            exercise(3L, listOf(true, false)),
+        )
+        assertEquals(2, ExerciseSelection.resolve(skipped, selectedIndex = 2))
+        assertEquals(0, ExerciseSelection.resolve(skipped, selectedIndex = null))
+    }
+
+    @Test
     fun `the choice survives beginning it — the derived rule must not yank the dial back`() {
         val partlyLogged = snapshot(
             exercise(1L, listOf(false, false)),
@@ -166,15 +183,148 @@ class CrownLayerTest {
 
     // --- undo target -------------------------------------------------------------
 
+    // Three lifts; the first and the third each have their opening round logged. Which
+    // of the two was logged LAST is a fact the done flags cannot carry — only the
+    // watch's own ledger can.
+    private val twoLogged = listOf(
+        exercise(1L, listOf(true, false)),
+        exercise(2L, listOf(false)),
+        exercise(3L, listOf(true, false)),
+    )
+    private val aThenC = TickMemory.EMPTY.record(1L, 0, 40).record(3L, 0, 30)
+    private val cThenA = TickMemory.EMPTY.record(3L, 0, 30).record(1L, 0, 40)
+
     @Test
-    fun `a hold takes back the most recently logged round`() {
-        assertEquals(1, UndoTarget.of(listOf(true, true, false, false)))
-        assertEquals(3, UndoTarget.of(listOf(true, true, true, true)))
+    fun `the newest tick wins, and the done flags cannot tell you which that is`() {
+        assertEquals(UndoTarget(2, 0), UndoTarget.of(twoLogged, 0, aThenC))
+        assertEquals(UndoTarget(0, 0), UndoTarget.of(twoLogged, 0, cThenA))
+    }
+
+    @Test
+    fun `where the lifter is looking does not change which set comes back`() {
+        listOf(0, 1, 2).forEach { assertEquals(UndoTarget(2, 0), UndoTarget.of(twoLogged, it, aThenC)) }
+        listOf(0, 1, 2).forEach { assertEquals(UndoTarget(0, 0), UndoTarget.of(twoLogged, it, cThenA)) }
+    }
+
+    @Test
+    fun `re-ticking a round makes it the one that comes back`() {
+        val retick = aThenC.record(1L, 0, 45)
+        assertEquals(UndoTarget(0, 0), UndoTarget.of(twoLogged, 2, retick))
+    }
+
+    @Test
+    fun `a tick the phone has already taken back is not offered again`() {
+        val phoneUnticked = listOf(
+            exercise(1L, listOf(true, false)),
+            exercise(2L, listOf(false)),
+            exercise(3L, listOf(false, false)),
+        )
+        assertEquals(UndoTarget(0, 0), UndoTarget.of(phoneUnticked, 0, aThenC))
+    }
+
+    @Test
+    fun `a lift the program no longer holds is skipped`() {
+        val gone = TickMemory.EMPTY.record(99L, 0, 20)
+        assertEquals(UndoTarget(0, 0), UndoTarget.of(twoLogged, 0, gone))
+    }
+
+    @Test
+    fun `with nothing remembered it falls back to the nearest logged round looking back`() {
+        val phoneOnly = listOf(
+            exercise(1L, listOf(false, false)),
+            exercise(2L, listOf(true, true)),
+        )
+        assertEquals(UndoTarget(1, 1), UndoTarget.of(phoneOnly, 1, TickMemory.EMPTY))
+        assertEquals(UndoTarget(1, 1), UndoTarget.of(phoneOnly, 0, TickMemory.EMPTY))
+        assertEquals(
+            UndoTarget(0, 1),
+            UndoTarget.of(listOf(exercise(1L, listOf(true, true, false))), 0, TickMemory.EMPTY),
+        )
     }
 
     @Test
     fun `nothing logged, nothing to take back`() {
-        assertNull(UndoTarget.of(listOf(false, false)))
-        assertNull(UndoTarget.of(emptyList()))
+        assertNull(UndoTarget.of(listOf(exercise(1L, listOf(false, false))), 0, TickMemory.EMPTY))
+        assertNull(UndoTarget.of(emptyList(), 0, aThenC))
+        assertNull(UndoTarget.of(listOf(exercise(1L, listOf(false))), 0, aThenC))
+    }
+
+    // --- the crown's choice is forgotten, not just ignored ----------------------
+
+    @Test
+    fun `a choice the day still honours is not stale`() {
+        assertFalse(ExerciseSelection.isStale(day, 2))
+        assertFalse(ExerciseSelection.isStale(day, null))
+    }
+
+    @Test
+    fun `finishing the chosen lift makes the choice stale`() {
+        val finished = snapshot(
+            exercise(1L, listOf(false, false)),
+            exercise(2L, listOf(false, false)),
+            exercise(3L, listOf(true)),
+        )
+        assertTrue(ExerciseSelection.isStale(finished, 2))
+        assertTrue(ExerciseSelection.isStale(finished, 7))
+    }
+
+    /**
+     * The emission sequence a cross-lift undo actually sees. The lifter skipped ahead
+     * to lift 2L, finished it, and held to take its last set back; lift 1L is still
+     * untouched, so the derived rule would send the dial there the moment the choice
+     * is forgotten.
+     */
+    @Test
+    fun `a snapshot that predates an in-flight undo must not cost the lifter their place`() {
+        fun day(secondLift: List<Boolean>, revision: Long) = snapshot(
+            exercise(1L, listOf(false, false)),
+            exercise(2L, secondLift),
+        ).copy(revision = revision)
+
+        // The undo has fired: the echo reopened 2L on the wrist and pointed the
+        // selection at it, with the delta still queued.
+        val echoed = day(listOf(true, false), revision = 5L)
+        assertFalse(ExerciseSelection.shouldForget(echoed, 1, setOf(2L)))
+
+        // Now the phone publishes something newer that predates the undo — an
+        // unrelated edit, or its publisher restarting. Installed wholesale, it says
+        // 2L is finished again, and staleness alone would forget the choice here.
+        val predatesUndo = day(listOf(true, true), revision = 6L)
+        assertTrue(ExerciseSelection.isStale(predatesUndo, 1))
+        assertFalse(ExerciseSelection.shouldForget(predatesUndo, 1, setOf(2L)))
+
+        // The confirming snapshot lands and the delta settles. The choice survived,
+        // so the dial is on the set just taken back — not on the untouched first lift.
+        val confirmed = day(listOf(true, false), revision = 7L)
+        assertFalse(ExerciseSelection.shouldForget(confirmed, 1, emptySet()))
+        assertEquals(1, ExerciseSelection.resolve(confirmed, selectedIndex = 1))
+        assertEquals(0, ExerciseSelection.resolve(confirmed, selectedIndex = null))
+
+        // Finishing 2L again for real, with nothing in flight, forgets it as before.
+        val finishedAgain = day(listOf(true, true), revision = 8L)
+        assertTrue(ExerciseSelection.shouldForget(finishedAgain, 1, emptySet()))
+    }
+
+    @Test
+    fun `an edit against some other lift does not hold the clear off`() {
+        val finished = snapshot(exercise(1L, listOf(false, false)), exercise(2L, listOf(true, true)))
+        assertTrue(ExerciseSelection.shouldForget(finished, 1, setOf(1L)))
+        assertTrue(ExerciseSelection.shouldForget(finished, 1, emptySet()))
+        // A choice the day still honours is never forgotten, in flight or not.
+        assertFalse(ExerciseSelection.shouldForget(finished, 0, emptySet()))
+        assertFalse(ExerciseSelection.shouldForget(finished, null, setOf(2L)))
+        // A choice pointing past the end of the day can have nothing in flight.
+        assertTrue(ExerciseSelection.shouldForget(finished, 7, setOf(1L, 2L)))
+    }
+
+    @Test
+    fun `an undo that reopens the chosen lift must not clear it`() {
+        val reopened = snapshot(
+            exercise(1L, listOf(false, false)),
+            exercise(2L, listOf(false, false)),
+            exercise(3L, listOf(false)),
+        )
+        assertFalse(ExerciseSelection.isStale(reopened, 2))
+        assertEquals(2, ExerciseSelection.resolve(reopened, 2))
     }
 }

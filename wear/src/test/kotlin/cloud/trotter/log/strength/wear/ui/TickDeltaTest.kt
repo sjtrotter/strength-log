@@ -58,4 +58,23 @@ class TickDeltaTest {
         assertEquals(2, delta.setIndex)
         assertTrue(delta.weightLb == null && delta.reps == null && delta.seconds == null)
     }
+
+    @Test
+    fun `an undo addresses its own lift, so reaching across the day needs no new wire field`() {
+        val squat = buildUndoDelta(dayId = "A", programExerciseId = 7L, setIndex = 2, editedAtMillis = 500L)
+        val press = buildUndoDelta(dayId = "A", programExerciseId = 9L, setIndex = 1, editedAtMillis = 500L)
+
+        // Cross-lift undo rides (dayId, programExerciseId, slot, setIndex), so an old phone sees an ordinary untick.
+        listOf(squat to 7L, press to 9L).forEach { (delta, programExerciseId) ->
+            assertEquals(programExerciseId, delta.programExerciseId)
+            assertEquals("main", delta.slot)
+            assertEquals(false, delta.done)
+            assertEquals(1, delta.schemaVersion)
+            assertNull(delta.weightLb)
+            assertNull(delta.reps)
+            assertNull(delta.seconds)
+            assertNull(delta.startedAtMillis)
+            assertNull(delta.completedAtMillis)
+        }
+    }
 }

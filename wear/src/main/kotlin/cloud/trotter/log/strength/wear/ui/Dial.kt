@@ -101,7 +101,7 @@ fun Dial(
     state: DialUiState,
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
-    onHoldComplete: (Int) -> Unit = {},
+    onHoldComplete: (UndoTarget) -> Unit = {},
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -435,7 +435,7 @@ private fun Disc(
     scaleFactor: Float,
     accent: Color,
     onTap: () -> Unit,
-    onHoldComplete: (Int) -> Unit,
+    onHoldComplete: (UndoTarget) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -485,8 +485,8 @@ private fun Disc(
                 }
                 // The hold is a clock, so it is the clock ring — same radius, same
                 // stroke as a rest or a hold, and it can never collide with one:
-                // an undo is offered only on READY and REST_OVER, which carry no
-                // arc (v2 §3). It keeps the day accent along with the rest of the
+                // an undo is offered only on READY, REST_OVER and DAY_DONE, none of
+                // which carries an arc (v2 §3). It keeps the day accent with the
                 // clock ring: time passing is the day's, not the control's (v3 §2).
                 if (holdFill.value > 0f) {
                     val clock = DialGeometry.clockRing(diameterPx)
@@ -527,7 +527,7 @@ private fun Modifier.discGestures(
     state: DialUiState,
     holdFill: Animatable<Float, *>,
     onTap: () -> Unit,
-    onHoldComplete: (Int) -> Unit,
+    onHoldComplete: (UndoTarget) -> Unit,
 ): Modifier {
     val scope = rememberCoroutineScope()
     // The gesture is hand-rolled, so the button semantics `clickable` would have
@@ -551,7 +551,7 @@ private fun Modifier.discGestures(
                         holdFill.snapTo(0f)
                         holdFill.animateTo(1f, tween(HOLD_MILLIS, easing = LinearEasing))
                         completed = true
-                        onHoldComplete(it.roundIndex)
+                        onHoldComplete(it.target)
                     }
                 }
                 val released = tryAwaitRelease()

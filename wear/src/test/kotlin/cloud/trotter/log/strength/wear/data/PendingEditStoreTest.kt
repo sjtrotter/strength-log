@@ -72,6 +72,24 @@ class PendingEditStoreTest {
     )
 
     @Test
+    fun `the queue can say which lifts have an edit still in flight`() = runTest {
+        assertEquals(emptySet(), store.exerciseIdsFlow().first())
+
+        store.enqueue(delta(setIndex = 0, done = true, stamp = 1L))
+        store.enqueue(delta(setIndex = 1, done = true, stamp = 2L))
+        // Two edits, one lift — the question is which lifts, not how many edits.
+        assertEquals(setOf(1L), store.exerciseIdsFlow().first())
+        assertEquals(2, store.countFlow().first())
+
+        store.enqueue(delta(setIndex = 0, done = true, stamp = 3L).copy(programExerciseId = 9L))
+        assertEquals(setOf(1L, 9L), store.exerciseIdsFlow().first())
+
+        // Settling row 0 of lift 1 leaves lift 1 in flight on row 1's account.
+        store.reconcileAgainst(snapshot)
+        assertEquals(setOf(1L, 9L), store.exerciseIdsFlow().first())
+    }
+
+    @Test
     fun `reconcileAgainst drops settled deltas and preserves the rest`() = runTest {
         val settled = delta(setIndex = 0, done = true, stamp = 1L) // snapshot shows row 0 done
         val pending = delta(setIndex = 1, done = true, stamp = 2L) // row 1 still un-done

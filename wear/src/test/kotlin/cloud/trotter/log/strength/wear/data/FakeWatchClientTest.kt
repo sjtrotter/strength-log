@@ -45,6 +45,40 @@ class FakeWatchClientTest {
     }
 
     @Test
+    fun `an untick on the main track also releases the aligned superset partner round`() = runTest {
+        val client = FakeWatchClient()
+        client.sendEdit(
+            SetEditDelta(
+                dayId = "A",
+                programExerciseId = 2L,
+                slot = "main",
+                setIndex = 0,
+                done = true,
+                editedAtMillis = 1L,
+            ),
+        )
+        val logged = client.snapshotFlow().first().day.exercises.single { it.programExerciseId == 2L }
+        assertTrue(logged.sets[0].done)
+        assertTrue(logged.ssSets[0].done)
+
+        client.sendEdit(
+            SetEditDelta(
+                dayId = "A",
+                programExerciseId = 2L,
+                slot = "main",
+                setIndex = 0,
+                done = false,
+                editedAtMillis = 2L,
+            ),
+        )
+        val press = client.snapshotFlow().first().day.exercises.single { it.programExerciseId == 2L }
+        assertEquals(false, press.sets[0].done)
+        assertEquals(false, press.ssSets[0].done)
+        assertEquals(false, press.sets[1].done)
+        assertEquals(false, press.ssSets[1].done)
+    }
+
+    @Test
     fun `a done edit on the partner track does not flip the main track`() = runTest {
         val client = FakeWatchClient()
         client.sendEdit(

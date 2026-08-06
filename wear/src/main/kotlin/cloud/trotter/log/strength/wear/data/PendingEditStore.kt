@@ -35,9 +35,17 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
     suspend fun all(): List<SetEditDelta> =
         SyncCodec.decodeDeltaQueue(dataStore.data.first()[QUEUE].orEmpty())
 
+    /** The queue itself, live — the one decode the projections below share. */
+    fun queueFlow(): Flow<List<SetEditDelta>> =
+        dataStore.data.map { prefs -> SyncCodec.decodeDeltaQueue(prefs[QUEUE].orEmpty()) }
+
     /** Live queue depth — the wire behind [WatchTrackerClient.pendingCountFlow]. */
-    fun countFlow(): Flow<Int> =
-        dataStore.data.map { prefs -> SyncCodec.decodeDeltaQueue(prefs[QUEUE].orEmpty()).size }
+    fun countFlow(): Flow<Int> = queueFlow().map { it.size }
+
+    /** Which exercises have an edit still unacked — the wire behind
+     *  [WatchTrackerClient.pendingExercisesFlow]. */
+    fun exerciseIdsFlow(): Flow<Set<Long>> =
+        queueFlow().map { deltas -> deltas.mapTo(mutableSetOf()) { it.programExerciseId } }
 
     suspend fun enqueue(delta: SetEditDelta) {
         dataStore.edit { prefs ->

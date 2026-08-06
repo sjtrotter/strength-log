@@ -73,11 +73,12 @@ enum class CycleMark { TODAY, OTHER, BROWSED }
 data class CycleSegment(val dayLabel: String, val accentIndex: Int, val mark: CycleMark)
 
 /**
- * What a 700ms hold on the disc does (§6) — undo the round at [roundIndex]. Null
- * when there is nothing logged to take back. [disc] is what the disc says while
- * the hold fills; the fill itself is the disc's own ring, drawn by the composable.
+ * What a 700ms hold on the disc does (§6) — untick [target], which is the day's
+ * most recent tick and so not always a round of the lift on screen. Null when
+ * nothing is logged to take back. [disc] is what the disc says while the hold
+ * fills; the fill itself is the disc's own ring, drawn by the composable.
  */
-data class DialHold(val roundIndex: Int, val disc: DiscContent)
+data class DialHold(val target: UndoTarget, val disc: DiscContent)
 
 data class DialUiState(
     val screen: DialScreen,

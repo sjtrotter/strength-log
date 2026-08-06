@@ -25,6 +25,15 @@ interface WatchTrackerClient {
     fun pendingCountFlow(): Flow<Int>
 
     /**
+     * The `programExerciseId`s with an edit still unacked. Narrower than the queue
+     * itself on purpose: the UI never needs the deltas, only the answer to "is
+     * anything of mine still in flight against this lift?" — which is how a local
+     * decision about a lift avoids being made against a snapshot that hasn't
+     * caught up with the edit yet.
+     */
+    fun pendingExercisesFlow(): Flow<Set<Long>>
+
+    /**
      * Sends an edit toward the phone. This call does not itself update
      * [snapshotFlow] — cascade/seeding run phone-side only, so the caller
      * renders optimistically and reconciles against the next snapshot

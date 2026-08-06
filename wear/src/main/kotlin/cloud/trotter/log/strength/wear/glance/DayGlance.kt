@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.glance
 
+import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /**
@@ -12,12 +13,9 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
  * Glance, which this app deliberately doesn't use.
  *
  * Two facts are borrowed rather than re-decided: progress counts the main track's
- * sets only (the same rule the dial's day ring uses), and the lines are character
- * for character the phone widget's [cloud.trotter.log.strength.widget]
- * `todayWidgetContent`, so one day reads identically on the wrist and on the home
- * screen. That parity is currently held by hand — the two builders live in
- * modules that share only `:domain`, and hoisting the line logic there is a
- * follow-up worth doing now that both surfaces exist.
+ * sets only (the same rule the dial's day ring uses), and the lines come from
+ * [GlanceLines] in `:domain`, the same object the phone widget reads, so one day
+ * is character for character the same on the wrist and on the home screen.
  */
 data class DayGlance(
     val hasProgram: Boolean,
@@ -51,16 +49,14 @@ data class DayGlance(
         get() = if (!hasProgram) {
             "no program".uppercase()
         } else {
-            listOf("day $dayLetter", dayTitle).filter { it.isNotBlank() }.joinToString(" · ").uppercase()
+            GlanceLines.dayLine(dayLetter, dayTitle)
         }
 
     /** The hero line: "3 LIFTS · 21 SETS", "12 / 21 SETS", "DONE · 21 SETS". */
     val setLine: String
         get() = when {
             !hasProgram -> "SET UP ON YOUR PHONE"
-            done -> "DONE · ${count(totalSets, "SET")}"
-            doneSets == 0 -> "${count(exerciseCount, "LIFT")} · ${count(totalSets, "SET")}"
-            else -> "$doneSets / ${count(totalSets, "SET")}"
+            else -> GlanceLines.statLine(exerciseCount, doneSets, totalSets)
         }
 
     /** The complication's short text: the day letter, or an em dash with no program. */
@@ -116,6 +112,3 @@ data class DayGlance(
         }
     }
 }
-
-/** "1 LIFT", "3 LIFTS" — the widget's pluraliser, kept in step with it by hand. */
-private fun count(n: Int, noun: String) = if (n == 1) "1 $noun" else "$n ${noun}S"

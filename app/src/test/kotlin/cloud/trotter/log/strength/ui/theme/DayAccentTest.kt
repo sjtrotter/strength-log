@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import cloud.trotter.log.strength.domain.theme.DayAccentColors
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -55,14 +56,26 @@ class DayAccentTest {
     fun `every bright accent is legible as a mark on the near-black background`() {
         // docs/briefs/journal.md §0: the raw accents are identity fills and four
         // of the seven sit near 2:1 on Background — unusable for a chart line or
-        // the cascade scrim's numeral. accentBright lifts each toward TextPrimary
-        // to clear AA text contrast (well past the 3:1 a graphic mark needs).
+        // the cascade scrim's numeral. The lift toward TextPrimary clears AA text
+        // contrast (well past the 3:1 a graphic mark needs). Measured from the
+        // phone's own colors even though the rule is now in :domain — this floor
+        // is what the phone promises its own screens.
         for (dayIndex in 0..6) {
             val ratio = contrastRatio(accentBright(dayIndex), Background)
             assertTrue(
                 ratio >= 4.5,
                 "Day index $dayIndex bright accent contrast on Background is $ratio, below WCAG AA's 4.5:1",
             )
+        }
+    }
+
+    @Test
+    fun `the phone brightens with the shared rule, not one of its own`() {
+        // #150: the phone and the watch each derived their own bright variant, so
+        // the same day rendered two colors. Both read DayAccentColors now, and this
+        // is the guard against the phone quietly growing a second rule again.
+        for (dayIndex in 0..6) {
+            assertEquals(Color(DayAccentColors.brightHex(dayIndex)), accentBright(dayIndex))
         }
     }
 

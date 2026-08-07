@@ -46,28 +46,14 @@ fun accentSoft(accentIndex: Int): Color = dayAccent(accentIndex).copy(alpha = 0.
 
 /**
  * The text-on-dark variant of the day accent (dial brief §3 "accent bright") —
- * the same hue lifted [BRIGHT_LIFT] in lightness, because the full-strength
- * accent doesn't carry a 13px band label on near-black. Derived rather than
- * listed: the accent hexes stay SSOT in `:domain`, and a brightened *table*
- * would be a second place to keep in step with them.
+ * most of the dial's text, so the day is legible as a mark on near-black.
+ *
+ * Read from `:domain`, same as the hexes and same as the phone. The watch used to
+ * lift HSL lightness by a flat 0.15 of its own invention, which left day D at
+ * 3.68:1 on [Background] — under AA, and visibly not the phone's colour for the
+ * same day (#150). One brightening rule, both surfaces.
  */
-fun accentBright(accentIndex: Int): Color = dayAccent(accentIndex).lightened(BRIGHT_LIFT)
-
-private const val BRIGHT_LIFT = 0.15f
-
-/** Raises HSL lightness by [amount], keeping hue and saturation — a lift, not a white wash. */
-private fun Color.lightened(amount: Float): Color {
-    val max = maxOf(red, green, blue)
-    val min = minOf(red, green, blue)
-    val lightness = (max + min) / 2f
-    val target = (lightness + amount).coerceIn(0f, 1f)
-    if (max == min) return Color(target, target, target, alpha)
-    // Scale the spread around the midpoint so lightness lands on [target] while the
-    // ratios between the channels — the hue — survive.
-    val factor = if (target > lightness) (1f - target) / (1f - lightness) else target / lightness
-    fun lift(channel: Float) = (target + (channel - lightness) * factor).coerceIn(0f, 1f)
-    return Color(lift(red), lift(green), lift(blue), alpha)
-}
+fun accentBright(accentIndex: Int): Color = Color(DayAccentColors.brightHex(accentIndex))
 
 @Composable
 fun WearTrackerTheme(content: @Composable () -> Unit) {

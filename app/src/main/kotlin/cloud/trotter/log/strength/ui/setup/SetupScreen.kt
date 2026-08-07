@@ -89,13 +89,16 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
+                item { SectionHeader("TRAINING") }
                 item { GoalPreviewCard(state.goalPreview, accent) }
                 item { BodyweightCard(state.bodyweightDisplay, state.unit, actions.onBodyweightChange) }
                 item { AgeCard(state.config.age, actions.onAgeChange) }
                 item { LevelSection(state.config.level, actions.onLevelChange) }
                 item { EmphasisSection(state.config.emphasis, actions.onEmphasisChange) }
                 item { CardioSection(state.cardio, actions) }
+                item { SectionHeader("DISPLAY") }
                 item { UnitCard(state.unit, actions.onUnitToggle) }
+                item { SectionHeader("WATCH") }
                 item {
                     RestTimerSection(
                         state.restTimerEnabled,
@@ -104,12 +107,13 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                         onResetDefaults = { showRestResetConfirm = true },
                     )
                 }
+                item { SectionHeader("DATA") }
                 item { CreateCustomExerciseButton(accent, actions.onCreateCustomExercise) }
                 item { DataBackupButton(accent, actions.onOpenBackup) }
+                item { SectionHeader("ABOUT") }
                 item { LicensesButton(actions.onOpenLicenses) }
-                item {
-                    RerunWizardButton(onClick = { showRerunConfirm = true })
-                }
+                item { Spacer(Modifier.size(20.dp)) }
+                item { RerunWizardButton(onClick = { showRerunConfirm = true }) }
                 item { Spacer(Modifier.size(8.dp)) }
             }
         }
@@ -167,6 +171,21 @@ private fun BackButton(onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Text("‹", color = TextSecondary, style = TabLetter.copy(fontSize = 20.sp), modifier = Modifier.clearAndSetSemantics {})
+    }
+}
+
+/**
+ * A section rule: caps overline over a hairline, the same editorial divider
+ * Today uses between its blocks. Plain text — never interactive, so it adds no
+ * touch target to a screen that is otherwise all controls.
+ */
+@Composable
+private fun SectionHeader(label: String) {
+    Column(Modifier.fillMaxWidth()) {
+        Spacer(Modifier.size(8.dp))
+        Text(label, color = TextFaint, style = MaterialTheme.typography.labelSmall)
+        Spacer(Modifier.size(6.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
     }
 }
 
@@ -339,7 +358,6 @@ private fun RestTimerSection(
     onResetDefaults: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("REST TIMER", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         AppCard {
             SwitchToggle(
                 label = "Rest timer on watch",
@@ -513,7 +531,7 @@ private fun RestDefaultsConfirmDialog(
     )
 }
 
-@Preview(showBackground = true, heightDp = 1400, backgroundColor = 0xFF0D0D0F)
+@Preview(showBackground = true, heightDp = 1700, backgroundColor = 0xFF0D0D0F)
 @Composable
 private fun SetupScreenPreview() {
     AppTheme {

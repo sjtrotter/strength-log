@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -117,6 +118,9 @@ fun DayScreen(
     dayEditActions: DayEditActions,
     cascadeCeremony: CascadeCeremony? = null,
     onDismissCascade: () -> Unit = {},
+    sessionReceipt: SessionReceipt? = null,
+    onShareSession: () -> Unit = {},
+    onFinishSession: () -> Unit = {},
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
 ) {
@@ -225,6 +229,21 @@ fun DayScreen(
         )
     }
 
+    // The finished session's receipt (#126), over a day screen that has already
+    // advanced — but only once the cascade has been read. One DONE can raise
+    // both, and the order they arrive in is a composition rule, not a drawing
+    // one: a receipt merely painted *under* the scrim is still in the semantics
+    // tree, so TalkBack could reach BACK TO TODAY through the celebration and
+    // pop the route out from under it. Gating on the cascade keeps the
+    // experienced order — the news the session made, then the ledger of it,
+    // then the way out — and keeps it true after a rotation restores both.
+    if (cascadeCeremony == null) {
+        sessionReceipt?.let {
+            BackHandler(onBack = onFinishSession)
+            SessionReceiptScrim(receipt = it, onShare = onShareSession, onFinish = onFinishSession)
+        }
+    }
+
     // Above everything, including the edit sheet: the cascade only ever arrives
     // straight off a DONE, when nothing else is open (journal brief §2).
     cascadeCeremony?.let {
@@ -276,6 +295,9 @@ private fun TopBar(
                     }
                     Text(text = state.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                     Text(text = state.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    DayScreenBuilder.sessionStatusLine(state.doneSets, state.totalSets)?.let { status ->
+                        Text(text = status, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    }
                     if (state.isOverride && state.suggestedDayId != null) {
                         Spacer(Modifier.size(3.dp))
                         OverridePill(accent = accent, accentSoftColor = accentSoftColor, suggestedDayId = state.suggestedDayId)
@@ -288,7 +310,10 @@ private fun TopBar(
                 EditDayButton(onClick = onEditDay)
             }
         }
-        Hairline()
+        ProgressHairline(
+            progress = if (state.totalSets > 0) state.doneSets.toFloat() / state.totalSets else 0f,
+            accent = accent,
+        )
     }
 }
 
@@ -317,6 +342,22 @@ private fun EditDayButton(onClick: () -> Unit) {
 @Composable
 private fun Hairline() {
     Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+}
+
+/**
+ * The header's separator doing double duty as the day's progress rule
+ * (#126): the same 1dp line, with the day's accent filling the fraction of
+ * it the lifter has ticked. Deliberately no extra height — a session's
+ * progress is worth a line, not a band, and growing the rule once the first
+ * set lands would shove the whole list down mid-workout.
+ */
+@Composable
+private fun ProgressHairline(progress: Float, accent: Color) {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Border)) {
+        if (progress > 0f) {
+            Box(Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0f, 1f)).background(accent))
+        }
+    }
 }
 
 @Composable

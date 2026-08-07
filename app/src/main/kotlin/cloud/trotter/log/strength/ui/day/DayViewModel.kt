@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import android.content.Intent
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,6 +26,7 @@ import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
+import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -74,6 +76,7 @@ import kotlinx.coroutines.sync.withLock
 class DayViewModel @Inject constructor(
     private val repo: TrackerRepository,
     private val sessionPublisher: SessionPublisher,
+    private val shareCardService: ShareCardService,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
 
@@ -144,6 +147,26 @@ class DayViewModel @Inject constructor(
      */
     private val _cascadeCeremony = MutableStateFlow<CascadeCeremony?>(null)
     val cascadeCeremony: StateFlow<CascadeCeremony?> = _cascadeCeremony.asStateFlow()
+
+    /**
+     * The session receipt (#126) — the same bare-field treatment as
+     * [_cascadeCeremony], and for the same reason: everything it reports is
+     * already committed to Room by the time it exists, so losing it to process
+     * death costs the lifter nothing, while restoring it would drop a finished
+     * workout's summary over whatever they came back to. Rotation keeps it,
+     * because a ViewModel outlives a configuration change.
+     */
+    private val _sessionReceipt = MutableStateFlow<SessionReceipt?>(null)
+    val sessionReceipt: StateFlow<SessionReceipt?> = _sessionReceipt.asStateFlow()
+
+    /**
+     * The receipt's SHARE payoff, built by the one service that builds share
+     * intents anywhere in this app (session-share brief §4). Set only by
+     * [shareSession] and cleared by [shareHandled] once the screen has launched
+     * it, so a rotation mid-chooser doesn't fire a second one.
+     */
+    private val _pendingShare = MutableStateFlow<Intent?>(null)
+    val pendingShare: StateFlow<Intent?> = _pendingShare.asStateFlow()
 
     /**
      * The standing undo offers for removed sets (#124), oldest first — a
@@ -359,21 +382,47 @@ class DayViewModel @Inject constructor(
      *  The all-time top-set highs are read *before* the advance appends to
      *  history; comparing them with what the session actually recorded is the
      *  whole cascade-ceremony trigger (journal brief §2). Nothing about the
-     *  ceremony is stored, so it can only ever fire on this transition. */
+     *  ceremony is stored, so it can only ever fire on this transition.
+     *
+     *  Both post-DONE surfaces are raised here off ONE read of the just-written
+     *  session's sets: the cascade says what moved, the receipt (#126) says what
+     *  was done. Reading twice would let them describe different sessions if a
+     *  watch delta landed in between. The completed day's id, index and title
+     *  are all captured before [TrackerRepository.advanceDay] moves the pointer,
+     *  because from the next line on "the current day" means the next one. */
     fun completeDay() {
         val day = currentDay() ?: return
         closeUndoWindow()
         mutate {
+            val program = repo.programFlow.first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
-            val dayIndex = repo.programFlow.first().days.indexOfFirst { it.id == day }
+            val dayIndex = program.days.indexOfFirst { it.id == day }
+            // Rotation.next always wraps, so this is null only when the day the
+            // lifter finished is no longer in the program — a wizard re-run that
+            // landed between the tap and this read. Same guard as dayIndex's
+            // coerce below; the receipt then names no next day rather than
+            // throwing on a workout that was already committed.
+            val nextDayId = if (dayIndex >= 0) Rotation.next(program, day) else null
             val sessionId = repo.advanceDay(day)
             savedState[KEY_COLLAPSE] = emptyMap<Long, Boolean>()
             savedState[KEY_VIEW_DAY] = null
+            val unit = repo.unitFlow.first()
+            val sessionSets = repo.sessionSets(sessionId)
             _cascadeCeremony.value = CascadeCeremonyBuilder.from(
                 previousHighs = previousHighs,
-                sessionSets = repo.sessionSets(sessionId),
+                sessionSets = sessionSets,
                 dayIndex = dayIndex.coerceAtLeast(0),
-                unit = repo.unitFlow.first(),
+                unit = unit,
+            )
+            _sessionReceipt.value = SessionReceiptBuilder.from(
+                sessionId = sessionId,
+                dayId = day,
+                dayIndex = dayIndex.coerceAtLeast(0),
+                dayTitle = program.days.firstOrNull { it.id == day }?.title.orEmpty(),
+                sessionSets = sessionSets,
+                nextDayId = nextDayId,
+                nextDayTitle = program.days.firstOrNull { it.id == nextDayId }?.title.orEmpty(),
+                unit = unit,
             )
             viewModelScope.launch { sessionPublisher.publish(sessionId) }
         }
@@ -382,6 +431,27 @@ class DayViewModel @Inject constructor(
     /** Dismisses the scrim (tap anywhere, or back). */
     fun dismissCascadeCeremony() {
         _cascadeCeremony.value = null
+    }
+
+    /** Closes the receipt. The screen pairs this with the pop back to Today —
+     *  the receipt is the last thing the finished session has to say. */
+    fun dismissSessionReceipt() {
+        _sessionReceipt.value = null
+    }
+
+    /** The receipt's SHARE. Renders off the main thread inside
+     *  [ShareCardService]; a session that somehow no longer resolves simply
+     *  produces no intent and no chooser. */
+    fun shareSession() {
+        val sessionId = _sessionReceipt.value?.sessionId ?: return
+        viewModelScope.launch {
+            shareCardService.buildShareIntent(sessionId)?.let { _pendingShare.value = it }
+        }
+    }
+
+    /** Called once the screen has launched [pendingShare], so it doesn't fire again. */
+    fun shareHandled() {
+        _pendingShare.value = null
     }
 
     // --- day-edit sheet intents (#11, spec §8.3) ------------------------------

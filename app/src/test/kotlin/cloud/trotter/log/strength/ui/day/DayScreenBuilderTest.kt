@@ -453,4 +453,29 @@ class DayScreenBuilderTest {
         val main = listOf(work(137.0, 5))
         assertNull(DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
     }
+
+    // --- the in-progress status line (#126) ----------------------------------
+
+    @Test
+    fun sessionStatusLine_is_null_before_the_first_tick() {
+        assertNull(DayScreenBuilder.sessionStatusLine(doneSets = 0, totalSets = 18))
+    }
+
+    @Test
+    fun sessionStatusLine_reads_in_progress_with_the_count() {
+        assertEquals("IN PROGRESS · 4 OF 18 SETS", DayScreenBuilder.sessionStatusLine(4, 18))
+    }
+
+    /** The same phase vocabulary Today speaks — a fully ticked day is waiting
+     *  on DONE, not still in progress. */
+    @Test
+    fun sessionStatusLine_turns_over_once_every_round_is_ticked() {
+        assertEquals("READY TO FINISH · 18 OF 18 SETS", DayScreenBuilder.sessionStatusLine(18, 18))
+    }
+
+    /** An over-count reads as a finished day, matching GlanceLines' `>=` rule. */
+    @Test
+    fun sessionStatusLine_treats_an_over_count_as_finished() {
+        assertEquals("READY TO FINISH · 19 OF 18 SETS", DayScreenBuilder.sessionStatusLine(19, 18))
+    }
 }

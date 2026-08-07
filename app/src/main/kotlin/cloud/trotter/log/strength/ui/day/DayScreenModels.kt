@@ -24,6 +24,16 @@ data class DayUiState(
     /** True when the viewed day isn't the suggested-next one (spec §8.2 override note). */
     val isOverride: Boolean
         get() = suggestedDayId != null && viewDayId != null && viewDayId != suggestedDayId
+
+    /** Rounds ticked across the day's MAIN tracks — the same count the widget,
+     *  the watch and Today show, since a superset partner rides inside its
+     *  round rather than adding one (glance-surfaces.md §4.2). */
+    val doneSets: Int
+        get() = exercises.sumOf { card -> card.rows.count { it.done } }
+
+    /** Rounds this day holds in total, counted the same way as [doneSets]. */
+    val totalSets: Int
+        get() = exercises.sumOf { it.rows.size }
 }
 
 /** One entry in the day tab strip. */

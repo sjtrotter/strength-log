@@ -82,10 +82,9 @@ class TodayViewModel @Inject constructor(private val repo: TrackerRepository) : 
     ): TodayUiState {
         val day = ctx.program.days.first { it.id == dayId }
         val dayIndex = ctx.program.days.indexOfFirst { it.id == dayId }
-        // MAIN track only, the same count the widget and the watch already show:
-        // one round of the main track is one set, and a superset partner rides
-        // inside that round rather than adding to it (glance-surfaces.md §4.2).
-        val mainLogs = logs.filter { it.slot == Slot.MAIN }.associateBy { it.programExerciseId }
+        // Rounds, the same count the widget, the watch and the session receipt
+        // show — see [Slot.isRound] for why a superset partner isn't one.
+        val mainLogs = logs.filter { Slot.isRound(it.slot) }.associateBy { it.programExerciseId }
         val rowsBySlot = slots.associate { slot ->
             slot.programExerciseId to mainLogs[slot.programExerciseId]?.sets
         }

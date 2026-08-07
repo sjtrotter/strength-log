@@ -42,28 +42,17 @@ class TouchTargetTest {
      * predates #123 and belongs to whoever re-budgets the row: today the ✓ is
      * clipped to 13dp of card and the × is off it entirely (#136).
      *
+     * Re-checked when #125 put keep-screen-on beside DONE. This record is
+     * deliberately unchanged: DONE took the remaining width and the switch
+     * reserved its own slot. Without that reservation this exact map would
+     * have gained a {DONE, KEEP ON} pair.
+     *
      * Pinned by identity *and* count — one occurrence per weighted row in the
      * fixture, and nothing else. A third row, a different pair, or the same pair
      * appearing anywhere new all fail; so does fixing #136, which is how it
      * should be, because the record then needs updating.
      */
     private val issue136SetRowSqueeze = mapOf(setOf("Increase reps", "Set done") to 2)
-
-    /**
-     * Re-checked when keep-screen-on moved from the header into the bottom bar
-     * (#125). The record above is deliberately unchanged: DONE took `weight(1f)`
-     * and the switch a `widthIn(min = 48.dp)` slot beside it, so the switch's
-     * 48dp comes out of DONE's width rather than out of DONE. Had it been dropped
-     * in without reserving that width, this map would have grown a
-     * {DONE, KEEP ON} pair — which is the whole reason the expectation is exact.
-     */
-    @Test
-    fun theBottomBarSwitchTakesItsWidthFromDoneAndNotFromDonesTarget() {
-        setDayContent()
-
-        composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
-        composeTestRule.assertOverlappingTouchTargetsAreExactly(issue136SetRowSqueeze)
-    }
 
     @Test
     fun theDayScreenGivesEveryControlItsOwn48dp() {

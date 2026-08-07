@@ -1,12 +1,16 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -24,7 +28,8 @@ import org.robolectric.annotation.Config
  *
  * First: keep-screen-on now lives in the bottom bar beside DONE, and the switch
  * is a pure reflection of the persisted preference — it renders what it is given
- * and reports taps outward, with no local copy to drift.
+ * and reports taps outward, with no local copy to drift; its line also keeps
+ * both controls seated when the system font is doubled.
  *
  * Second: the swap confirmation survives a configuration change. Rotating the
  * phone with "Switch to …?" on screen used to answer the question by throwing it
@@ -93,6 +98,27 @@ class KeepScreenOnAndRotationTest {
 
         assertTrue("the switch is not on DONE's line", switch.overlaps(done.copy(left = 0f, right = 10_000f)))
         assertTrue("the switch is not to the right of DONE", switch.left >= done.right)
+    }
+
+    /** The #138 review gap: "DONE — ADVANCE TO DAY B" is the longest label in the app
+     *  and it shares its line with the keep-on switch. At 2.0x it must still wrap
+     *  inside its own pill instead of pushing the switch off the bar. */
+    @Test
+    fun theBottomBarStillSeatsBothControlsAtDoubleFontScale() {
+        setDayContent(fontScale = 2f)
+
+        val root = composeTestRule.onRoot().fetchSemanticsNode().size
+        val switch = composeTestRule.onNodeWithText("KEEP ON").fetchSemanticsNode().boundsInRoot
+        val done = composeTestRule.onNodeWithText("DONE — ADVANCE TO DAY B")
+            .fetchSemanticsNode().boundsInRoot
+
+        assertTrue("the switch is not to the right of DONE", switch.left >= done.right)
+        assertTrue("the switch ran off the right edge", switch.right <= root.width.toFloat())
+        assertTrue(
+            "the bottom bar fell off the bottom of the window",
+            switch.bottom <= root.height.toFloat(),
+        )
+        assertTrue("DONE's label lost its pill", done.height > 0f && done.width > 0f)
     }
 
     /** It moved out of the header, it did not get cloned into it. */
@@ -174,15 +200,19 @@ class KeepScreenOnAndRotationTest {
     private fun setDayContent(
         dayState: DayUiState = this.dayState,
         onKeepScreenOnChange: (Boolean) -> Unit = {},
+        fontScale: Float = 1f,
     ) {
         composeTestRule.setContent {
-            AppTheme {
-                DayScreen(
-                    state = dayState,
-                    actions = dayActions(onKeepScreenOnChange),
-                    dayEditState = dayEditState,
-                    dayEditActions = noopEditActions(),
-                )
+            val base = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(base.density, fontScale)) {
+                AppTheme {
+                    DayScreen(
+                        state = dayState,
+                        actions = dayActions(onKeepScreenOnChange),
+                        dayEditState = dayEditState,
+                        dayEditActions = noopEditActions(),
+                    )
+                }
             }
         }
     }

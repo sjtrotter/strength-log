@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,8 +54,10 @@ import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.accentBorder
+import cloud.trotter.log.strength.ui.theme.chromeVerticalPadding
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
+import cloud.trotter.log.strength.ui.theme.readableWidth
 
 /**
  * The Today screen (issue #121): an editorial glance at the next workout in
@@ -74,7 +76,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
             if (state.loading) ProgramLoadingState() else NoProgramState(actions.onSetUpProgram)
             return@Box
         }
-        Column(Modifier.fillMaxSize().systemBarsPadding()) {
+        Column(readableWidth()) {
             TodayHeader(actions)
             Column(
                 Modifier
@@ -153,9 +155,10 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
 
 @Composable
 private fun TodayHeader(actions: TodayActions) {
+    val verticalPadding = chromeVerticalPadding()
     Column {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = verticalPadding),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -173,7 +176,7 @@ private fun LogButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .height(40.dp)
+            .heightIn(min = 40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
             .pressable(
@@ -195,7 +198,7 @@ private fun SettingsButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .size(40.dp)
+            .defaultMinSize(40.dp, 40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
             .pressable(
@@ -239,7 +242,7 @@ private fun RotationChip(mark: RotationMark) {
     val shape = RoundedCornerShape(7.dp)
     Box(
         Modifier
-            .size(24.dp)
+            .defaultMinSize(24.dp, 24.dp)
             .then(
                 if (mark.isNext) Modifier.background(dayAccent(mark.dayIndex), shape)
                 else Modifier.border(1.dp, accentBorder(mark.dayIndex), shape),
@@ -256,9 +259,10 @@ private fun RotationChip(mark: RotationMark) {
 
 @Composable
 private fun StartBar(actionLabel: String, accent: Color, onAccent: Color, onStart: () -> Unit) {
+    val verticalPadding = chromeVerticalPadding()
     Column(Modifier.fillMaxWidth().background(Background)) {
         Hairline()
-        Box(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+        Box(Modifier.padding(horizontal = 16.dp, vertical = verticalPadding)) {
             StartButton(actionLabel, accent, onAccent, onStart)
         }
     }

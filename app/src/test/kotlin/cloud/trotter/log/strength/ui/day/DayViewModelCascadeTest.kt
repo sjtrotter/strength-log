@@ -201,7 +201,7 @@ class DayViewModelCascadeTest {
 
         // Process death: the SavedStateHandle survives, the ViewModel doesn't.
         // The cascade is in the history now, and history is not a trigger.
-        val restored = newViewModel(SavedStateHandle(mapOf("day_keep_screen_on" to true)))
+        val restored = newViewModel()
         advanceUntilIdle()
 
         assertNull("a restored ViewModel must not replay the moment", restored.cascadeCeremony.value)

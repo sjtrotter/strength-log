@@ -125,11 +125,9 @@ val DoneButtonLabel = TextStyle(
 )
 
 /**
- * The type scale M3 screens (#9-14) actually need: a big condensed numeral
- * for the GOAL block, a condensed label for badges/chips/buttons, a condensed
- * title for day/screen headers, a condensed caps overline/badge label, and
- * two plain-sans body sizes. Every other [Typography] role is left at the M3
- * default and is unused by this app.
+ * The M3 roles this app uses: one condensed display size, two condensed title
+ * sizes, three condensed label sizes, and three plain-sans body sizes. Every
+ * other [Typography] role stays at the M3 default and is unused here.
  */
 val AppTypography = Typography(
     displayLarge = TextStyle(
@@ -145,12 +143,25 @@ val AppTypography = Typography(
         fontSize = 22.sp,
         lineHeight = 27.sp,
     ),
+    titleMedium = TextStyle(
+        fontFamily = Condensed,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 17.sp,
+        lineHeight = 21.sp,
+    ),
     labelLarge = TextStyle(
         fontFamily = Condensed,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 18.sp,
         letterSpacing = 0.5.sp,
+    ),
+    labelMedium = TextStyle(
+        fontFamily = Condensed,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 15.sp,
+        letterSpacing = 1.0.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = Condensed,
@@ -164,6 +175,12 @@ val AppTypography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 22.sp,
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = Sans,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
     ),
     bodySmall = TextStyle(
         fontFamily = Sans,

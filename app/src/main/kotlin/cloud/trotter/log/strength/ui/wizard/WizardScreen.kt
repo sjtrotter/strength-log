@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +51,7 @@ import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
+import cloud.trotter.log.strength.ui.theme.readableWidth
 
 /**
  * The setup wizard (spec §6.1, PLAN.md A4). Stateless: renders [state] and
@@ -65,7 +65,7 @@ fun WizardScreen(state: WizardUiState, actions: WizardActions) {
     val onAccent = onDayAccent(0)
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
-        Column(Modifier.fillMaxSize().systemBarsPadding()) {
+        Column(readableWidth()) {
             WizardHeader(state, accent)
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),

@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,7 +22,7 @@ import cloud.trotter.log.strength.ui.theme.onDayAccent
 fun DayBadge(dayIndex: Int, letter: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(32.dp)
+            .defaultMinSize(32.dp, 32.dp)
             .background(dayAccent(dayIndex), RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.Center,
     ) {

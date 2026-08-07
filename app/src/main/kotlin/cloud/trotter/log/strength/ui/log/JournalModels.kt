@@ -75,10 +75,13 @@ data class CalendarMonth(
 /**
  * One calendar cell. A trained day carries [dayLetter] (identity is the letter;
  * the accent is flavor) and the [sessionId] a tap scrolls to; an untrained day
- * has neither and shows only its faint numeral.
+ * has neither and shows only its faint numeral. [label] is the spoken form,
+ * since neither visible form states the month.
  */
 data class CalendarDay(
     val dayOfMonth: Int,
+    /** The cell's whole spoken sentence (TalkBack), built by [JournalBuilder.calendar]. */
+    val label: String,
     val dayLetter: String? = null,
     val dayIndex: Int = 0,
     val sessionId: Long? = null,

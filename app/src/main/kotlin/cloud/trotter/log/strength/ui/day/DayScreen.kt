@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -83,9 +82,11 @@ import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.NoProgramState
 import cloud.trotter.log.strength.ui.components.ProgramLoadingState
 import cloud.trotter.log.strength.ui.components.SetRow
+import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.components.pressableSelectable
 import cloud.trotter.log.strength.ui.components.pressableToggleable
+import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -101,8 +102,10 @@ import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.accentBorder
 import cloud.trotter.log.strength.ui.theme.accentSoft
+import cloud.trotter.log.strength.ui.theme.chromeVerticalPadding
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
+import cloud.trotter.log.strength.ui.theme.readableWidth
 import kotlinx.coroutines.delay
 
 /**
@@ -159,7 +162,11 @@ fun DayScreen(
         // Fixed chrome top and bottom (day tabs and the day's title above, DONE
         // and keep-screen-on below); only the exercise cards scroll between them,
         // so navigation and the primary action never scroll out of reach.
-        Column(Modifier.fillMaxSize().systemBarsPadding()) {
+        //
+        // readableWidth, not fillMaxSize: a full-bleed set row on a tablet is
+        // 900dp of empty card with a stepper marooned at each end, so the column
+        // caps and centres. That is all it does — two-pane is #29.
+        Column(readableWidth()) {
             TopBar(state, accent, soft, actions, onEditDay = { showEditSheet = true })
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
@@ -241,16 +248,24 @@ fun DayScreen(
     // then the way out — and keeps it true after a rotation restores both.
     if (cascadeCeremony == null) {
         sessionReceipt?.let {
-            BackHandler(onBack = onFinishSession)
-            SessionReceiptScrim(receipt = it, onShare = onShareSession, onFinish = onFinishSession)
+            // These two get the gesture and the app's other back handlers don't:
+            // back here dismisses a surface the lifter is looking at, so the
+            // drag should show it going rather than snap it away at the end.
+            val backProgress = rememberBackGestureProgress(onBack = onFinishSession)
+            SessionReceiptScrim(
+                receipt = it,
+                onShare = onShareSession,
+                onFinish = onFinishSession,
+                modifier = Modifier.backGesturePreview { backProgress.value },
+            )
         }
     }
 
     // Above everything, including the edit sheet: the cascade only ever arrives
     // straight off a DONE, when nothing else is open (journal brief §2).
     cascadeCeremony?.let {
-        BackHandler(onBack = onDismissCascade)
-        CascadeScrim(it, onDismissCascade)
+        val backProgress = rememberBackGestureProgress(onBack = onDismissCascade)
+        CascadeScrim(it, onDismissCascade, Modifier.backGesturePreview { backProgress.value })
     }
 }
 
@@ -264,10 +279,13 @@ private fun TopBar(
     actions: DayActions,
     onEditDay: () -> Unit,
 ) {
+    val verticalPadding = chromeVerticalPadding()
     Column {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = verticalPadding),
+            // Landscape chrome once consumed over half the window before a set
+            // row; tighten its rhythm instead of shrinking the list to nothing.
+            verticalArrangement = Arrangement.spacedBy(verticalPadding),
         ) {
             // Day selection is the only thing left in this row (#121: ⚙ and LOG
             // moved to Today), and it scrolls — a 6-day program overflows 360dp.
@@ -324,7 +342,7 @@ private fun EditDayButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .size(40.dp)
+            .defaultMinSize(40.dp, 40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
             .pressable(
@@ -394,7 +412,7 @@ internal fun DayTab(tab: DayTab, onClick: () -> Unit) {
             // suggested-next ring and dot (drawn 2-6dp outside the tab) room
             // inside the tab's own slot instead of over its neighbour's.
             .minimumInteractiveComponentSize()
-            .size(40.dp)
+            .defaultMinSize(40.dp, 40.dp)
             .drawBehind {
                 if (showSuggestedRing) {
                     val ringInset = (-2).dp.toPx()
@@ -770,7 +788,7 @@ internal fun SwapExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier
     ) {
         Box(
             modifier = Modifier
-                .size(width = SwapChipWidth, height = SwapChipHeight)
+                .defaultMinSize(minWidth = SwapChipWidth, minHeight = SwapChipHeight)
                 .border(1.dp, Border, RoundedCornerShape(50)),
             contentAlignment = Alignment.Center,
         ) {
@@ -943,10 +961,11 @@ private fun BottomBar(
     keepScreenOn: Boolean,
     onKeepScreenOnChange: (Boolean) -> Unit,
 ) {
+    val verticalPadding = chromeVerticalPadding()
     Column(Modifier.fillMaxWidth().background(Background)) {
         Hairline()
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = verticalPadding),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {

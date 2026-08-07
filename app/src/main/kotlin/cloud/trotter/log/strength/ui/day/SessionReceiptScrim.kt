@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +33,7 @@ import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
+import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.StepperValue
 import cloud.trotter.log.strength.ui.theme.SummaryLine
 import cloud.trotter.log.strength.ui.theme.TextFaint
@@ -81,7 +83,13 @@ internal fun SessionReceiptScrim(
             .padding(horizontal = 28.dp, vertical = 24.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Column(Modifier.fillMaxWidth()) {
+        // Coverage and readability are two different jobs. The scrim above has
+        // to be the whole window — it is hiding one — but the ledger inside it
+        // is a column of text like any other, so it takes the same cap the day
+        // screen behind it does. Without this the receipt is the one surface
+        // that goes full-bleed on a tablet, and it arrives the instant DONE
+        // fires, right after that screen capped itself.
+        Column(Modifier.widthIn(max = ReadableWidth).fillMaxWidth()) {
             Text(
                 text = receipt.headline,
                 color = accent,

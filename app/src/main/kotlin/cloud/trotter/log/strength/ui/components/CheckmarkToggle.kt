@@ -8,7 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -92,7 +92,7 @@ fun CheckmarkToggle(
         Box(
             modifier = Modifier
                 .graphicsLayer(scaleX = scale.value, scaleY = scale.value)
-                .size(28.dp)
+                .defaultMinSize(28.dp, 28.dp)
                 .background(if (checked) Done else Surface2, ToggleShape)
                 .border(1.dp, if (checked) Done else Border, ToggleShape),
             contentAlignment = Alignment.Center,

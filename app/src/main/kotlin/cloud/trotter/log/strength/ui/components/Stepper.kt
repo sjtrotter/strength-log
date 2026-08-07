@@ -7,7 +7,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -108,7 +108,8 @@ fun Stepper(
 ) {
     Row(
         modifier = modifier
-            .height(40.dp)
+            // heightIn(min), not height (A7 font-scale): the numeral must grow past its 40dp floor.
+            .heightIn(min = 40.dp)
             .clip(CapsuleShape)
             .background(Surface2)
             .border(1.dp, Border, CapsuleShape),

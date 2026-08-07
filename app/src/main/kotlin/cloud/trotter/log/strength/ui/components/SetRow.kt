@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -264,7 +265,12 @@ private fun RemoveButton(onClick: () -> Unit) {
             .semantics { contentDescription = "Remove set" },
         contentAlignment = Alignment.Center,
     ) {
-        Box(modifier = Modifier.size(width = 24.dp, height = 48.dp), contentAlignment = Alignment.Center) {
+        // Both axes are floors: large type keeps the remove glyph whole; 1.0x
+        // keeps #136's separate row-budget problem unchanged.
+        Box(
+            modifier = Modifier.defaultMinSize(minWidth = 24.dp, minHeight = 48.dp),
+            contentAlignment = Alignment.Center,
+        ) {
             Text(text = "×", color = TextFaint, style = RemoveGlyph, modifier = Modifier.clearAndSetSemantics {})
         }
     }

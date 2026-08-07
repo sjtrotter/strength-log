@@ -7,12 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +38,7 @@ import cloud.trotter.log.strength.ui.theme.TabLetter
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
+import cloud.trotter.log.strength.ui.theme.readableWidth
 
 /** One license/notice text, read from `assets/licenses/` by the route (LicensesRoute in AppNavHost). */
 data class LicenseEntry(val title: String, val body: String)
@@ -53,7 +54,7 @@ data class LicenseEntry(val title: String, val body: String)
 @Composable
 fun LicensesScreen(entries: List<LicenseEntry>, onBack: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
-        Column(Modifier.fillMaxSize().systemBarsPadding()) {
+        Column(readableWidth()) {
             LicensesHeader(onBack)
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
@@ -89,7 +90,7 @@ private fun BackChevron(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .size(40.dp)
+            .defaultMinSize(40.dp, 40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
             .pressable(

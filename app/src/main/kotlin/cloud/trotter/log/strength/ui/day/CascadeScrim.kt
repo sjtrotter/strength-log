@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.DisplayXl
+import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.StepperValue
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextSecondary
@@ -58,7 +60,12 @@ internal fun CascadeScrim(
             .padding(32.dp),
         contentAlignment = Alignment.Center,
     ) {
+        // The scrim covers the window; the lines inside it do not. A long lift
+        // name is centre-aligned text, and uncapped it would set itself across a
+        // whole tablet — the same cap the day screen behind uses keeps the
+        // strike and the new number reading as one block.
         Column(
+            modifier = Modifier.widthIn(max = ReadableWidth),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {

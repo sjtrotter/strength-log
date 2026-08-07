@@ -12,12 +12,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -57,6 +57,7 @@ import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.dayAccent
+import cloud.trotter.log.strength.ui.theme.readableWidth
 import kotlinx.coroutines.launch
 
 /**
@@ -72,7 +73,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
-        Column(Modifier.fillMaxSize().systemBarsPadding()) {
+        Column(readableWidth()) {
             LogHeader(actions.onBack)
             LazyColumn(
                 state = listState,
@@ -184,7 +185,7 @@ private fun BackButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .size(40.dp)
+            .defaultMinSize(40.dp, 40.dp)
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
             .pressable(

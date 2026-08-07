@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -307,7 +308,7 @@ private fun MonthChevron(glyph: String, label: String, enabled: Boolean, onClick
             // chevrons survives, because the reservation grows the header row
             // rather than letting ‹ and › expand into each other (#123).
             .minimumInteractiveComponentSize()
-            .size(28.dp)
+            .defaultMinSize(28.dp, 28.dp)
             .background(Surface2, RoundedCornerShape(8.dp))
             .border(1.dp, Border, RoundedCornerShape(8.dp))
             .then(

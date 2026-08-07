@@ -16,4 +16,9 @@ object WearSyncPaths {
 
     /** MessageClient: one set-edit delta (watch -> phone). */
     const val SET_EDIT = "$PREFIX/set-edit"
+
+    /** MessageClient: one exercise-swap request (watch -> phone). Its own path so an
+     *  older phone, which filters on the path it knows, drops it silently rather than
+     *  failing to decode it as a [SetEditDelta] on every re-send. */
+    const val EXERCISE_SWAP = "$PREFIX/exercise-swap"
 }

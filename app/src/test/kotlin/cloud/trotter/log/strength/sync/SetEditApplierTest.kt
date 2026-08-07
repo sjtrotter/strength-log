@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -14,6 +15,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -747,5 +749,125 @@ class SetEditApplierTest {
 
         assertEquals(1_000L, archived.startedAtMillis)
         assertEquals(1_042L, archived.completedAtMillis)
+    }
+
+    /** The pinned §8.3 contract: the slot keeps its id, the exercise changes, and the
+     *  old log does not survive into it. Reseeding is part of the same application
+     *  here (a watch swap can land with no phone screen open to do it lazily), so the
+     *  track that comes out is the *new* exercise's fresh seed — nothing logged, and
+     *  not the squat ramp that was there. */
+    @Test
+    fun valid_swap_changes_the_exercise_keeps_the_slot_id_and_reseeds_its_log() = runTest {
+        seedProgram()
+        val id = squatId()
+        val before = track(id, Slot.MAIN)!!
+        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+
+        val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 1L))
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        val slot = repo.daySlotsFlow("A").first().first { it.programExerciseId == id }
+        assertEquals(target.id, slot.exercise.exerciseId)
+        assertEquals(id, slot.programExerciseId)
+        val after = track(id, Slot.MAIN)!!
+        assertTrue(after.isNotEmpty())
+        assertTrue(after.none { it.done })
+        assertTrue(after != before)
+    }
+
+    @Test
+    fun unprescribed_swap_is_invalid_and_changes_nothing() = runTest {
+        seedProgram()
+        val id = squatId()
+        val before = track(id, Slot.MAIN)
+
+        val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, "custom_nonexistent", "Invented", 1L))
+
+        assertEquals(SetEditApplier.Outcome.INVALID, outcome)
+        val slot = repo.daySlotsFlow("A").first().first { it.programExerciseId == id }
+        assertEquals("bb_back_squat", slot.exercise.exerciseId)
+        assertEquals(before, track(id, Slot.MAIN))
+    }
+
+    @Test
+    fun swap_for_a_slot_not_on_the_day_is_invalid() = runTest {
+        seedProgram()
+
+        val outcome = applier.apply(ExerciseSwapDelta(1, "A", 9999L, "hack_squat", "Hack Squat", 1L))
+
+        assertEquals(SetEditApplier.Outcome.INVALID, outcome)
+    }
+
+    /**
+     * The interleaving that used to lose logged work. Two things seed now — the day
+     * ViewModel lazily, and this applier eagerly after a watch swap — and the
+     * ViewModel's plan is decided from a read it may act on much later. Here it reads
+     * an empty track, the swap seeds it, the lifter logs a set against the *new*
+     * exercise, and only then does the stale plan try to write. It must no-op:
+     * `seedIfEmpty` re-checks inside its own transaction, so whoever seeds first wins
+     * and a tick landed since can never be overwritten by a decision taken before it
+     * existed.
+     */
+    @Test
+    fun a_stale_seed_plan_cannot_overwrite_work_logged_since_it_was_decided() = runTest {
+        seedProgram()
+        val id = squatId()
+        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+        // The state the day screen's seeder would have read: this slot has no track.
+        repo.swapExerciseById("A", id, "bb_back_squat")
+        val stalePlan = listOf(LoggedSet(999.0, 1, SetKind.WORK))
+
+        // The applier seeds the swapped slot...
+        applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 100L))
+        // ...the lifter logs against what it seeded...
+        val logged = track(id, Slot.MAIN)!!.mapIndexed { i, s -> if (i == 0) s.copy(done = true) else s }
+        repo.updateSets("A", id, Slot.MAIN, logged)
+        // ...and only now does the stale plan reach the database.
+        val wrote = repo.seedIfEmpty("A", id, Slot.MAIN, stalePlan)
+
+        assertFalse(wrote)
+        assertEquals(logged, track(id, Slot.MAIN))
+        assertTrue(track(id, Slot.MAIN)!![0].done)
+    }
+
+    /** A swap that lost the race — an older stamp than the one already applied to
+     *  this slot — is dropped before it can be evaluated for anything else. (A
+     *  *replay of the same* swap doesn't reach here: the slot already holds the
+     *  exercise it asks for, which the guard above answers APPLIED.) */
+    @Test
+    fun a_swap_older_than_the_one_already_applied_is_stale() = runTest {
+        seedProgram()
+        val id = squatId()
+        val candidates = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat")
+        val applied = candidates[0]
+        val late = candidates[1]
+        assertEquals(
+            SetEditApplier.Outcome.APPLIED,
+            applier.apply(ExerciseSwapDelta(1, "A", id, applied.id, applied.name, 100L)),
+        )
+
+        val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, late.id, late.name, 50L))
+
+        assertEquals(SetEditApplier.Outcome.STALE, outcome)
+        val slot = repo.daySlotsFlow("A").first().first { it.programExerciseId == id }
+        assertEquals(applied.id, slot.exercise.exerciseId)
+    }
+
+    @Test
+    fun swap_to_the_current_exercise_is_applied_without_clearing_new_logs() = runTest {
+        seedProgram()
+        val id = squatId()
+        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+        assertEquals(
+            SetEditApplier.Outcome.APPLIED,
+            applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 100L)),
+        )
+        val newLog = listOf(LoggedSet(75.0, 8, SetKind.WORK))
+        repo.updateSets("A", id, Slot.MAIN, newLog)
+
+        val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 101L))
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(newLog, track(id, Slot.MAIN))
     }
 }

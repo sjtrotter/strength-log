@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
@@ -47,7 +48,10 @@ class TodaySnapshotSource(private val repo: TrackerRepository) {
                     repo.catalogFlow,
                     repo.unitFlow,
                     repo.restSettingsFlow,
-                ) { cfg, catalog, unit, rest -> Context(cfg, catalog, unit, rest) }
+                    repo.wizardAnswersFlow,
+                ) { cfg, catalog, unit, rest, answers ->
+                    Context(cfg, catalog, unit, rest, answers.equipment)
+                }
                 combine(program, context) { (prog, slots, logs), ctx ->
                     WatchSnapshotBuilder.build(
                         program = prog,
@@ -59,6 +63,7 @@ class TodaySnapshotSource(private val repo: TrackerRepository) {
                         unit = ctx.unit,
                         revision = 0L,
                         restSettings = ctx.restSettings,
+                        equipment = ctx.equipment,
                     )
                 }
             }
@@ -71,5 +76,6 @@ class TodaySnapshotSource(private val repo: TrackerRepository) {
         val catalog: ExerciseCatalog,
         val unit: WeightUnit,
         val restSettings: RestSettings,
+        val equipment: Set<Equipment>,
     )
 }

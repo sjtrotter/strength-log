@@ -47,6 +47,14 @@ interface ProgramDao {
     @Query("SELECT * FROM exercise_log WHERE dayId = :dayId")
     suspend fun logsForDay(dayId: String): List<ExerciseLogEntity>
 
+    /** One track, read inside the transaction that is about to decide whether to
+     *  seed it (`TrackerRepository.seedIfEmpty`). Null means "never seeded". */
+    @Query(
+        "SELECT * FROM exercise_log " +
+            "WHERE dayId = :dayId AND programExerciseId = :programExerciseId AND slot = :slot LIMIT 1",
+    )
+    suspend fun logForSlot(dayId: String, programExerciseId: Long, slot: String): ExerciseLogEntity?
+
     /** Every live log across all days, in a stable order (backup export, A2). */
     @Query("SELECT * FROM exercise_log ORDER BY dayId, programExerciseId, slot")
     suspend fun allLogs(): List<ExerciseLogEntity>

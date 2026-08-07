@@ -100,7 +100,48 @@ data class WatchExercise(
      * the partner row rendered with the main's tracking type.
      */
     val ssTracking: String = "weighted",
+    /**
+     * The replacements the phone has already ranked for this lift (brief §6 "Swap",
+     * issue #90) — the *only* alternates the watch may ever offer. The watch never
+     * consults a catalog and never re-plans: it flicks through this list, echoes one
+     * back as an [ExerciseSwapDelta], and the phone applies its own §8.3 swap.
+     *
+     * Ranked best-first (`substitutionsFor`'s subRank order) and capped small: a
+     * wrist is not a picker, and an unbounded list would ride every snapshot for
+     * every lift. Empty when the slot has no same-pattern peers the lifter can
+     * actually use — and empty is also what an older publisher decodes to, which
+     * simply means no Swap is offered (mirrors [WatchDay.emphasisLine]).
+     *
+     * MAIN track only. A superset partner has no swap gesture on the dial, so
+     * prescribing alternates for one would be wire nobody reads.
+     */
+    val alternates: List<WatchAlternate> = emptyList(),
+    /**
+     * The catalog id of the exercise in this slot — the slot's *content* identity, as
+     * distinct from [programExerciseId], which identifies the slot itself and survives
+     * a swap.
+     *
+     * It exists because a swap has to be acked by identity, not by display text.
+     * Settling a pending swap on [name] alone is wrong the moment two entries can
+     * share a name (two custom exercises, or an alternate named like the lift it
+     * replaces): an old-state snapshot would then look like the phone had answered,
+     * and a swap that never landed would be dropped from the queue and never re-sent.
+     *
+     * Additive, appended last, defaulting to "" so an older publisher decodes fine.
+     * Blank means "this phone doesn't publish ids", and the watch degrades to matching
+     * on [name] — the only behavior available before this field existed.
+     */
+    val exerciseId: String = "",
 )
+
+/**
+ * One phone-prescribed replacement for a lift. [name] is what the disc shows (and
+ * what settles the swap in the outbound queue — it is the same string the next
+ * snapshot's [WatchExercise.name] will carry); [exerciseId] is the catalog id the
+ * phone acts on. Both travel because the watch displays one and echoes the other.
+ */
+@Serializable
+data class WatchAlternate(val exerciseId: String, val name: String)
 
 /** One round. [kind] mirrors [cloud.trotter.log.strength.domain.model.SetKind]'s name. */
 @Serializable

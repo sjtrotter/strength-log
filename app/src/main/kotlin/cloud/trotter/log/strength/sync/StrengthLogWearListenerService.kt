@@ -32,17 +32,33 @@ class StrengthLogWearListenerService : WearableListenerService() {
     @Inject lateinit var applier: SetEditApplier
 
     override fun onMessageReceived(event: MessageEvent) {
-        if (event.path != WearSyncPaths.SET_EDIT) return
-        val delta = try {
-            SyncCodec.decodeDelta(event.data)
+        when (event.path) {
+            WearSyncPaths.SET_EDIT ->
+                receive("set-edit", { SyncCodec.decodeDelta(event.data) }) { applier.apply(it) }
+            // Swaps ride their own path (#90) so an older phone drops them by filter
+            // rather than failing to decode them as a set edit.
+            WearSyncPaths.EXERCISE_SWAP ->
+                receive("exercise-swap", { SyncCodec.decodeSwap(event.data) }) { applier.apply(it) }
+        }
+    }
+
+    /** Decode-then-apply with the robustness contract above: neither half may throw
+     *  out of the callback, and a payload that fails either is logged and dropped. */
+    private fun <T> receive(
+        kind: String,
+        decode: () -> T,
+        apply: suspend (T) -> SetEditApplier.Outcome,
+    ) {
+        val message = try {
+            decode()
         } catch (e: Exception) {
-            Log.w(TAG, "dropping malformed set-edit payload", e)
+            Log.w(TAG, "dropping malformed $kind payload", e)
             return
         }
         try {
-            runBlocking { applier.apply(delta) }
+            runBlocking { apply(message) }
         } catch (e: Exception) {
-            Log.w(TAG, "dropping set-edit that failed to apply", e)
+            Log.w(TAG, "dropping $kind that failed to apply", e)
         }
     }
 

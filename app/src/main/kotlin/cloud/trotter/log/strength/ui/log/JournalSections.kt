@@ -360,7 +360,7 @@ private fun CalendarCell(day: CalendarDay, onSelectSession: (Long) -> Unit) {
                 },
             )
             .semantics {
-                contentDescription = if (trained) "${day.dayOfMonth}, day ${day.dayLetter}" else "${day.dayOfMonth}"
+                contentDescription = day.label
             },
         contentAlignment = Alignment.Center,
     ) {

@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -100,7 +101,12 @@ private fun BackChevron(onClick: () -> Unit) {
             .semantics { contentDescription = "Back" },
         contentAlignment = Alignment.Center,
     ) {
-        Text("‹", color = TextSecondary, style = TabLetter.copy(fontSize = 20.sp))
+        Text(
+            "‹",
+            color = TextSecondary,
+            style = TabLetter.copy(fontSize = 20.sp),
+            modifier = Modifier.clearAndSetSemantics {},
+        )
     }
 }
 

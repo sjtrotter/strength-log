@@ -360,7 +360,8 @@ private fun ExternalSessionCard(row: ExternalSessionRow) {
                 Text(row.title, color = TextPrimary, style = MaterialTheme.typography.titleMedium)
                 Text(row.dateDisplay, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
-            Text(row.sourceLabel, color = TextFaint, style = MaterialTheme.typography.labelMedium)
+            // Another app's provenance is body copy; caps overlines mark our sections.
+            Text(row.sourceLabel, color = TextFaint, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -465,14 +466,17 @@ private fun LogScreenPreview() {
                 canPageForward = false,
                 leadingBlanks = 2,
                 days = (1..31).map { day ->
+                    val dayLetter = when (day % 7) {
+                        1 -> "A"
+                        3 -> "B"
+                        5 -> "C"
+                        else -> null
+                    }
+                    val spoken = if (dayLetter != null) "day $dayLetter, 1 session" else "no session"
                     CalendarDay(
                         dayOfMonth = day,
-                        dayLetter = when (day % 7) {
-                            1 -> "A"
-                            3 -> "B"
-                            5 -> "C"
-                            else -> null
-                        },
+                        label = if (day == 6) "July $day, today, $spoken" else "July $day, $spoken",
+                        dayLetter = dayLetter,
                         dayIndex = day % 3,
                         sessionId = day.toLong(),
                         isToday = day == 6,

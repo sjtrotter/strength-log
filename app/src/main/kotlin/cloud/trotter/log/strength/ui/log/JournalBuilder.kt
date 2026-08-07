@@ -37,6 +37,7 @@ object JournalBuilder {
     // Locale.US, not the device default: these are caps display tokens next to
     // English section headers, and Locale.ROOT abbreviates "MMMM" to "Jul".
     private val MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
+    private val CELL_DATE = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
     private val CAPTION_DATE = DateTimeFormatter.ofPattern("MMM d", Locale.US)
 
     /** One ramped main lift and its read-only GOAL — the input to [trajectories]. */
@@ -221,8 +222,21 @@ object JournalBuilder {
             val date = month.atDay(dayOfMonth)
             val onDate = byDate[date]
             val first = onDate?.first()?.session
+            // The drawn cell is only a letter or a numeral; its month, its today
+            // state and its session count exist solely in this spoken label.
+            val label = buildList {
+                add(CELL_DATE.format(date))
+                if (date == today) add("today")
+                if (onDate == null) {
+                    add("no session")
+                } else {
+                    add("day ${onDate.first().session.dayId}")
+                    add(if (onDate.size == 1) "1 session" else "${onDate.size} sessions")
+                }
+            }.joinToString(", ")
             CalendarDay(
                 dayOfMonth = dayOfMonth,
+                label = label,
                 dayLetter = first?.dayId,
                 dayIndex = first?.let { LogScreenBuilder.dayIndex(it.dayId) } ?: 0,
                 sessionId = first?.id,

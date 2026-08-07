@@ -293,6 +293,52 @@ class JournalBuilderTest {
     }
 
     @Test
+    fun anUntrainedCellSaysItsDateTodayStateAndThatNothingHappenedThere() {
+        val marchToday = LocalDate.of(2026, 3, 14)
+        val month = assertNotNull(
+            JournalBuilder.calendar(
+                listOf(summary(1, "A", marchToday.minusDays(1))),
+                monthOffset = 0,
+                today = marchToday,
+                zone = zone,
+            ),
+        )
+
+        assertEquals("March 3, no session", month.days.single { it.dayOfMonth == 3 }.label)
+        assertEquals(
+            "March 14, today, no session",
+            month.days.single { it.dayOfMonth == 14 }.label,
+        )
+    }
+
+    @Test
+    fun aTrainedCellSaysItsDateDayAndSessionCount() {
+        val marchToday = LocalDate.of(2026, 3, 14)
+        val month = assertNotNull(
+            JournalBuilder.calendar(
+                listOf(
+                    summary(1, "A", LocalDate.of(2026, 3, 5)),
+                    summary(2, "B", marchToday, atHour = 7),
+                    summary(3, "C", marchToday, atHour = 12),
+                    summary(4, "D", marchToday, atHour = 18),
+                ),
+                monthOffset = 0,
+                today = marchToday,
+                zone = zone,
+            ),
+        )
+
+        assertEquals(
+            "March 5, day A, 1 session",
+            month.days.single { it.dayOfMonth == 5 }.label,
+        )
+        assertEquals(
+            "March 14, today, day B, 3 sessions",
+            month.days.single { it.dayOfMonth == 14 }.label,
+        )
+    }
+
+    @Test
     fun calendar_pages_back_to_the_first_session_and_never_forward_past_today() {
         val sessions = listOf(summary(1, "A", LocalDate.of(2026, 5, 20)), summary(2, "B", today))
 

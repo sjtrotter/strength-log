@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -21,9 +23,12 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 // does inside DayScreen.kt itself. WeightSwapPill/WeightSwapConfirmDialog/
 // WeightSwapAffordance (§4.2) resolve the same way.
 import cloud.trotter.log.strength.ui.day.*
+import cloud.trotter.log.strength.ui.licenses.LicenseEntry
+import cloud.trotter.log.strength.ui.licenses.LicensesScreen
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.accentSoft
 import cloud.trotter.log.strength.ui.theme.dayAccent
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -33,7 +38,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Semantics smoke tests (A7, issue #21): a lean Robolectric + compose-ui-test
- * pass pinning the TalkBack-facing contract the day-screen components promise
+ * pass pinning the TalkBack-facing contract promised by key app components
  * — not a full accessibility audit (that's the on-device TalkBack checklist
  * in the #21 PR description), just enough to catch a regression that strips
  * a content description or state.
@@ -349,5 +354,25 @@ class A11ySemanticsTest {
         )
 
         composeTestRule.onNodeWithContentDescription("Edit day").assertExists()
+    }
+
+    // --- License navigation ---------------------------------------------------
+
+    @Test
+    fun licensesBackButtonDoesNotExposeItsChevronGlyph() {
+        composeTestRule.setContent {
+            AppTheme {
+                LicensesScreen(
+                    entries = listOf(LicenseEntry("Barlow Condensed (SIL OFL 1.1)", "…")),
+                    onBack = {},
+                )
+            }
+        }
+
+        val back = composeTestRule.onNodeWithContentDescription("Back")
+        back.assertExists()
+        val config = back.fetchSemanticsNode().config
+        assertEquals(listOf("Back"), config.getOrNull(SemanticsProperties.ContentDescription))
+        assertTrue(config.getOrNull(SemanticsProperties.Text).isNullOrEmpty())
     }
 }

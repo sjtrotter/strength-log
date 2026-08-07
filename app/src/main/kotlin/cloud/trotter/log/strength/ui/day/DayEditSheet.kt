@@ -52,6 +52,8 @@ import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.disabledAlpha
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.Border
+import cloud.trotter.log.strength.ui.theme.CardTitle
+import cloud.trotter.log.strength.ui.theme.CardTitleSmall
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.Surface
@@ -269,7 +271,7 @@ private fun DaySlotRow(
     AppCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(slot.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge.copy(fontSize = 17.sp))
+                Text(slot.title, color = TextPrimary, style = CardTitleSmall)
                 Text(
                     if (slot.isSuperset) "SS with ${slot.partnerTitle}" else slot.pattern?.let { patternLabel(it) } ?: "unknown exercise",
                     color = TextSecondary,
@@ -480,7 +482,7 @@ private fun PickerHeader(title: String, onBack: () -> Unit) {
             Text("←", color = TextSecondary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clearAndSetSemantics {})
         }
         Spacer(Modifier.size(10.dp))
-        Text(title, color = TextPrimary, style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp))
+        Text(title, color = TextPrimary, style = CardTitle)
     }
 }
 

@@ -18,9 +18,9 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Border
+import cloud.trotter.log.strength.ui.theme.CardTitleSmall
 import cloud.trotter.log.strength.ui.theme.Surface
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
@@ -67,7 +67,7 @@ fun SelectionCard(
             Text(
                 title,
                 color = TextPrimary,
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 17.sp),
+                style = CardTitleSmall,
                 modifier = Modifier.weight(1f),
             )
             if (selected) {

@@ -23,7 +23,7 @@ val Condensed = FontFamily(
 )
 
 /** Body copy stays the platform default sans — spec only opinionates on display type. */
-private val Sans = FontFamily.Default
+internal val Sans = FontFamily.Default
 
 /**
  * Component-intrinsic sizes that don't map to one of [AppTypography]'s five
@@ -115,6 +115,31 @@ val RemoveGlyph = TextStyle(
     lineHeight = 15.sp,
 )
 
+/**
+ * Card and sheet-page titles one step under [Typography.titleLarge] — the
+ * cardio card on Day and the day-edit picker's page header. Was written at
+ * every call site as `titleLarge.copy(fontSize = 19.sp)`; same style, one home.
+ */
+val CardTitle = TextStyle(
+    fontFamily = Condensed,
+    fontWeight = FontWeight.Bold,
+    fontSize = 19.sp,
+    lineHeight = 27.sp,
+)
+
+/**
+ * The compact card title: a selection card's choice, a day-edit slot row. Also
+ * an ex-`titleLarge.copy(fontSize = 17.sp)`. It keeps [CardTitle]'s bold weight
+ * and loose leading, which is what separates it from `titleMedium` (semibold,
+ * tight) at the same 17 sp.
+ */
+val CardTitleSmall = TextStyle(
+    fontFamily = Condensed,
+    fontWeight = FontWeight.Bold,
+    fontSize = 17.sp,
+    lineHeight = 27.sp,
+)
+
 /** DONE button label — `.donebtn` in the reference. */
 val DoneButtonLabel = TextStyle(
     fontFamily = Condensed,
@@ -125,9 +150,21 @@ val DoneButtonLabel = TextStyle(
 )
 
 /**
- * The M3 roles this app uses: one condensed display size, two condensed title
- * sizes, three condensed label sizes, and three plain-sans body sizes. Every
- * other [Typography] role stays at the M3 default and is unused here.
+ * All fifteen M3 roles, spelled out. The two-face rule decides the family:
+ * display, headline, title and label are [Condensed] (the app's voice for
+ * numerals, headings and chrome); body is [Sans], because paragraphs are the
+ * one thing a condensed face reads badly at. Display roles carry `tnum` —
+ * in this app they render numbers.
+ *
+ * Six of these roles — `displayMedium`/`displaySmall`, all three headlines and
+ * `titleSmall` — no screen sets today. They are specified anyway: a stock M3
+ * component reaches for them on its own, and an unspecified role is Roboto at
+ * Material's sizes, which is exactly the sameness rule 5 forbids.
+ *
+ * The band above `titleLarge` is narrow on purpose. 22 sp is the largest type
+ * any screen actually sets, and `displayLarge` tops out at 34 rather than
+ * Material's 57, so the six roles between them step evenly by 2 sp instead of
+ * pretending to a scale this app has no room for.
  */
 val AppTypography = Typography(
     displayLarge = TextStyle(
@@ -136,6 +173,38 @@ val AppTypography = Typography(
         fontSize = 34.sp,
         lineHeight = 38.sp,
         fontFeatureSettings = "tnum",
+    ),
+    displayMedium = TextStyle(
+        fontFamily = Condensed,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        lineHeight = 36.sp,
+        fontFeatureSettings = "tnum",
+    ),
+    displaySmall = TextStyle(
+        fontFamily = Condensed,
+        fontWeight = FontWeight.Bold,
+        fontSize = 30.sp,
+        lineHeight = 34.sp,
+        fontFeatureSettings = "tnum",
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = Condensed,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 32.sp,
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = Condensed,
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        lineHeight = 30.sp,
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = Condensed,
+        fontWeight = FontWeight.Bold,
+        fontSize = 24.sp,
+        lineHeight = 28.sp,
     ),
     titleLarge = TextStyle(
         fontFamily = Condensed,
@@ -148,6 +217,12 @@ val AppTypography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 17.sp,
         lineHeight = 21.sp,
+    ),
+    titleSmall = TextStyle(
+        fontFamily = Condensed,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 15.sp,
+        lineHeight = 19.sp,
     ),
     labelLarge = TextStyle(
         fontFamily = Condensed,

@@ -63,11 +63,25 @@ a review finding can't be resolved or a change would alter pinned spec numbers.
    Compose, MVVM/UDF with `StateFlow`, Hilt, Room + DataStore, kotlinx
    coroutines/serialization, version catalog. `:domain` stays pure Kotlin — no
    Android imports, ever.
-5. **Don't design like an AI.** No purple-gradient dashboards, no emoji-strewn
-   UI, no default-Material-theme sameness, no wall-of-cards genericism. This app
-   has an opinionated look (spec §8.5: near-black, per-day earth-tone accents,
-   condensed display numerals) — keep and extend that character. Same applies to
-   writing: commit messages and docs read like a person wrote them.
+5. **Material is the component system, not the visual identity.** The app
+   conforms to Material 3 and defines its colors, typography, shapes, state
+   layers, and component defaults completely in the app theme. Prefer themed M3
+   library components whenever their public APIs can faithfully reproduce the
+   intended design and behavior; do not hand-roll conventional buttons, cards,
+   fields, dialogs, tabs, switches, or navigation controls merely to avoid
+   Material defaults. Keep custom UI only where M3 has no faithful equivalent,
+   and keep that custom layer as small as possible. The app's character remains
+   non-negotiable: near-black surfaces, per-day earth-tone accents, condensed
+   display numerals (spec §8.5), restrained copy, and authored workout
+   interactions must survive the implementation choice. No baseline-purple
+   leakage, generic dashboard styling, gratuitous gradients, emoji decoration,
+   or wall-of-cards sameness.
+
+   A bespoke component must state in its KDoc what M3 lacks; if that reason
+   stops being true, migrate it.
+
+   The same "don't design like an AI" instinct applies to writing: commit
+   messages and docs read like a person wrote them.
 
 ## Data principles
 

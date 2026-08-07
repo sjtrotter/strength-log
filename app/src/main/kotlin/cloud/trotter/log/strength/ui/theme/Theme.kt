@@ -7,16 +7,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 
 /** Container roles are their accent sunk into the card surface — dark, not pastel. */
-private fun containerOf(accent: Color) = accent.copy(alpha = 0.25f).compositeOver(Surface)
+internal fun containerOf(accent: Color) = accent.copy(alpha = 0.25f).compositeOver(Surface)
 
 /**
  * Dark-only color scheme (spec §8.5). Day A's terracotta stands in for M3's
  * generic `primary` role — the day accents themselves are looked up per-day
- * via [dayAccent], not through the color scheme. Every role a stock M3
- * component might read (tonal buttons, chips, switches, snackbars) is
- * overridden so nothing ever falls back to baseline Material lavender.
+ * via [dayAccent], not through the color scheme. All forty-eight roles are
+ * given a value here — not just the ones today's screens read — so a stock M3
+ * component introduced later cannot fall back to baseline Material lavender.
+ * `ThemeCompletenessTest` holds that line role by role.
  */
-private val AppColorScheme = darkColorScheme(
+internal val AppColorScheme = darkColorScheme(
     background = Background,
     onBackground = TextPrimary,
     surface = Surface,
@@ -57,18 +58,41 @@ private val AppColorScheme = darkColorScheme(
     outlineVariant = Border,
     inverseSurface = TextPrimary,
     inverseOnSurface = Background,
+    // Sheets and dialogs dim toward the app's own black, not the pure #000 the
+    // baseline hands out — consumers re-alpha this (the modal sheet takes it at
+    // 32%), so the role itself stays opaque.
+    scrim = Background,
+    // M3's "fixed" roles are the ones meant to survive a light/dark swap. This
+    // app is dark-only, so nothing swaps: Fixed is the accent at identity
+    // strength with its contrast-pinned on-color (DayAccentTest guards the
+    // ratio), FixedDim is that same accent sunk into the card surface, and its
+    // text is the one this scheme already uses on accent containers.
+    primaryFixed = dayAccent(0),
+    primaryFixedDim = containerOf(dayAccent(0)),
+    onPrimaryFixed = onDayAccent(0),
+    onPrimaryFixedVariant = TextPrimary,
+    secondaryFixed = TextSecondary,
+    secondaryFixedDim = containerOf(TextSecondary),
+    onSecondaryFixed = Background,
+    onSecondaryFixedVariant = TextPrimary,
+    tertiaryFixed = dayAccent(3),
+    tertiaryFixedDim = containerOf(dayAccent(3)),
+    onTertiaryFixed = onDayAccent(3),
+    onTertiaryFixedVariant = TextPrimary,
 )
 
 /**
- * App-wide theme wrapper. Applies the near-black palette and condensed
- * type scale everywhere so no screen falls back to default Material
- * (CLAUDE.md rule 5) — there is no light variant to switch to in v1.
+ * App-wide theme wrapper. Applies the near-black palette, the condensed type
+ * scale and the app's corner scale everywhere so no screen falls back to
+ * default Material (CLAUDE.md rule 5) — there is no light variant to switch
+ * to in v1.
  */
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = AppColorScheme,
         typography = AppTypography,
+        shapes = AppShapes,
         content = content,
     )
 }

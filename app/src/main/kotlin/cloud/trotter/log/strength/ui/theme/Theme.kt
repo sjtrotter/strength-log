@@ -1,8 +1,15 @@
 package cloud.trotter.log.strength.ui.theme
 
+import androidx.compose.foundation.Indication
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 
@@ -81,6 +88,29 @@ internal val AppColorScheme = darkColorScheme(
     onTertiaryFixedVariant = TextPrimary,
 )
 
+// Ripple drawing replaces the input color's alpha with the configured alpha for
+// each interaction state. AppRippleConfiguration is therefore the single source
+// of the 5% pressed, 4% hover/drag, and 0% focus values for both paths: the
+// wrapper ripple() in AppIndication and ripples created by stock M3 components.
+// Removing that configuration would restore Material's defaults, including a
+// 10% pressed alpha, so the configuration is load-bearing.
+internal val AppRippleColor = AppColorScheme.onSurfaceVariant
+internal const val AppRipplePressedAlpha = 0.05f
+internal const val AppRippleBounded = true
+internal val AppIndication: Indication = ripple(
+    bounded = AppRippleBounded,
+    color = AppRippleColor,
+)
+internal val AppRippleConfiguration = RippleConfiguration(
+    color = AppRippleColor,
+    rippleAlpha = RippleAlpha(
+        pressedAlpha = AppRipplePressedAlpha,
+        focusedAlpha = 0f,
+        hoveredAlpha = 0.04f,
+        draggedAlpha = 0.04f,
+    ),
+)
+
 /**
  * App-wide theme wrapper. Applies the near-black palette, the condensed type
  * scale and the app's corner scale everywhere so no screen falls back to
@@ -93,6 +123,11 @@ fun AppTheme(content: @Composable () -> Unit) {
         colorScheme = AppColorScheme,
         typography = AppTypography,
         shapes = AppShapes,
-        content = content,
-    )
+    ) {
+        CompositionLocalProvider(
+            LocalIndication provides AppIndication,
+            LocalRippleConfiguration provides AppRippleConfiguration,
+            content = content,
+        )
+    }
 }

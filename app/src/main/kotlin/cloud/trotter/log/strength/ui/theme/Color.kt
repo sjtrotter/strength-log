@@ -18,16 +18,6 @@ val Surface3 = Color(0xFF26262C)
 // with colors.css even though today's restyle has no dedicated focus ring).
 val BorderStrong = Color(0xFF3A3A42)
 
-/**
- * The one pressed treatment, app-wide (see `Modifier.pressable`). White at 5%
- * is what the hand-rolled flashes already were: Surface2 -> Surface3 measures
- * ~4% white, Surface -> Surface2 ~3%, and Background -> Surface2 (the quiet
- * buttons) ~6.5%. Expressing it as a veil instead of a second opaque fill is
- * what lets one treatment sit over transparent, over a raised surface and over
- * a day accent alike, without every control naming its own pressed color.
- */
-val PressVeil = Color(0xFFFFFFFF).copy(alpha = 0.05f)
-
 val TextPrimary = Color(0xFFF2F2F0)
 val TextSecondary = Color(0xFF9A9AA2)
 

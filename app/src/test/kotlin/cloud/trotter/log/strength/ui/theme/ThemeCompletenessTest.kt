@@ -75,7 +75,7 @@ class ThemeCompletenessTest {
         // or from the accent-sunk-into-surface containers derived from it.
         val named = listOf(
             Background, Surface, Surface2, Surface3, Border, BorderStrong,
-            TextPrimary, TextSecondary, TextFaint, Error, Done, PressVeil, FocusRing,
+            TextPrimary, TextSecondary, TextFaint, Error, Done, FocusRing,
         ) + (0..6).flatMap { listOf(dayAccent(it), onDayAccent(it)) }
         val palette = (named + named.map(::containerOf)).map { it.value.toLong() }.toSet()
 

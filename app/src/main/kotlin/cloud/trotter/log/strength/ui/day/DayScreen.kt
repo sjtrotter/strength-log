@@ -1035,7 +1035,7 @@ private fun DoneButton(
             // overflowing the fixed-height pill.
             .heightIn(min = 56.dp)
             .background(accent, RoundedCornerShape(12.dp))
-            // The scale spring above is this button's own signature; the veil
+            // The scale spring above is this button's own signature; the ripple
             // underneath it is the app's shared one (#123) — one system, one
             // emphasis, not two dialects.
             .pressable(
@@ -1133,7 +1133,7 @@ private fun KeepScreenOnSwitch(
                 onValueChange = onCheckedChange,
                 role = Role.Switch,
                 // A stacked block is block-shaped, so it takes the same radius
-                // the cards and DONE do; without it the veil would square off
+                // the cards and DONE do; without it the ripple would square off
                 // the one control on this screen that isn't a chip.
                 shape = RoundedCornerShape(12.dp),
             ),

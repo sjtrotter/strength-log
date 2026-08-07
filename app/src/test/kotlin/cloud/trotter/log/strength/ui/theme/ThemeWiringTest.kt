@@ -1,9 +1,13 @@
 package cloud.trotter.log.strength.ui.theme
 
+import androidx.compose.foundation.Indication
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
@@ -45,6 +49,31 @@ class ThemeWiringTest {
         assertSame(AppColorScheme, colors)
         assertEquals(AppTypography, type)
         assertEquals(AppShapes, shapes)
+    }
+
+    @Test
+    fun appThemeInstallsEqualRippleValuesForWrapperAndMaterialPaths() {
+        var indication: Indication? = null
+        var configuration: RippleConfiguration? = null
+        composeTestRule.setContent {
+            AppTheme {
+                indication = LocalIndication.current
+                configuration = LocalRippleConfiguration.current
+            }
+        }
+
+        assertSame(AppIndication, indication)
+        assertSame(AppRippleConfiguration, configuration)
+        assertEquals(AppColorScheme.onSurfaceVariant, configuration?.color)
+        assertEquals(1f, AppRippleColor.alpha)
+        // AppIndication is constructed from this opaque color and bounded flag;
+        // Indication does not expose those constructor values for inspection.
+        assertEquals(true, AppRippleBounded)
+        assertEquals(AppRipplePressedAlpha, configuration?.rippleAlpha?.pressedAlpha)
+        assertEquals(0.04f, configuration?.rippleAlpha?.hoveredAlpha)
+        assertEquals(0.04f, configuration?.rippleAlpha?.draggedAlpha)
+        // The bespoke inset ring remains the only focus treatment.
+        assertEquals(0f, configuration?.rippleAlpha?.focusedAlpha)
     }
 
     /**

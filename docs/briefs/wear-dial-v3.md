@@ -56,6 +56,16 @@ The top band stops carrying `DAY C · …` — day identity lives on the ring no
 On the overview face the top band shows the day *title* alone (`FULL BODY`);
 in-workout bands are unchanged.
 
+**Amendment, second on-wrist round (issue #152):** the labels above were built
+at BAND_SECONDARY on the assumption that "no new smaller role" was the safer
+call. On the wrist it read as too large — the segments already carry the
+identification in colour, and the word sitting on top of them only names what
+the colour already said. The owner waived the 12sp floor for this row alone
+and it got its own step, `CYCLE_LABEL` at 18 reference px (9sp on the Pixel
+Watch face). 18 isn't a taste call: the ring's stroke is 22 reference px and
+the band styles carry a 1.2em line height, so 22 / 1.2 = 18.33 — 18 is the
+largest whole step whose line box still fits inside the ring it rides.
+
 ## 2. Action colors leave the day palette
 
 The disc is the machine's controls; the rings/bands are the day's identity.

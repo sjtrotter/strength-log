@@ -15,6 +15,11 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -54,12 +59,14 @@ class ShareCardServiceTest {
     private lateinit var repo: TrackerRepository
     private lateinit var service: ShareCardService
     private lateinit var context: Context
+    private lateinit var storeScope: CoroutineScope
 
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
-        val dataStore = PreferenceDataStoreFactory.create {
+        storeScope = CoroutineScope(Dispatchers.IO + Job())
+        val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("share-service-settings", ".preferences_pb")
         }
         repo = TrackerRepository(
@@ -74,6 +81,7 @@ class ShareCardServiceTest {
 
     @After
     fun tearDown() {
+        runBlocking { storeScope.coroutineContext.job.cancelAndJoin() }
         db.close()
         File(context.cacheDir, "shares").deleteRecursively()
     }

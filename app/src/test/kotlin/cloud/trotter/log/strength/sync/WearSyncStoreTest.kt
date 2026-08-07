@@ -5,7 +5,9 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -35,12 +37,20 @@ class WearSyncStoreTest {
     }
 
     @After
-    fun tearDown() = openScopes.forEach { it.cancel() }
+    fun tearDown() = runBlocking { openScopes.forEach { it.release() } }
 
     /**
-     * A store bound to its own scope. Cancelling that scope releases DataStore's
-     * hold on the file, which is exactly how a "process restart" is simulated: the
-     * next [newStore] opens the same file fresh.
+     * Ends this store's scope the way a process death would, and waits for it:
+     * DataStore removes the file from its process-wide active set in the scope's
+     * completion handler, so a bare `cancel()` only *starts* the release and the
+     * next [newStore] on the same file can still lose the race with it.
+     */
+    private suspend fun CoroutineScope.release() = coroutineContext.job.cancelAndJoin()
+
+    /**
+     * A store bound to its own scope. [Releasing][release] that scope releases
+     * DataStore's hold on the file, which is exactly how a "process restart" is
+     * simulated: the next [newStore] opens the same file fresh.
      */
     private fun newStore(): Pair<WearSyncStore, CoroutineScope> {
         val scope = CoroutineScope(Dispatchers.IO + Job()).also { openScopes += it }
@@ -62,7 +72,7 @@ class WearSyncStoreTest {
         store1.nextRevision()
         val last = store1.nextRevision()
         assertEquals(2L, last)
-        scope1.cancel()
+        scope1.release()
 
         // A fresh store over the same file must continue above the last value.
         val resumed = newStore().first.nextRevision()

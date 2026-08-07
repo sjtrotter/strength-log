@@ -22,8 +22,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -80,9 +81,14 @@ class WizardRestoreWiringTest {
 
     @After
     fun tearDown() {
-        vms.forEach { it.viewModelScope.cancel() }
+        // Joined, not just cancelled: on real dispatchers a bare cancel() returns
+        // before the import coroutine has let go of Room, and before DataStore's
+        // completion handler has released the file.
+        runBlocking {
+            vms.forEach { it.viewModelScope.coroutineContext.job.cancelAndJoin() }
+            storeScope.coroutineContext.job.cancelAndJoin()
+        }
         db.close()
-        storeScope.cancel()
         Dispatchers.resetMain()
     }
 
@@ -156,8 +162,13 @@ class WizardRestoreWiringTest {
 
         vm.restoreFromBackup(uri)
 
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.answers.daysPerWeek == 3 } }
-        val state = vm.uiState.first()
+        // The restore lands field by field — the answers are pushed into the
+        // SavedStateHandle one key at a time and only then is inFlight cleared — so
+        // wait for the settled state and assert on *that*, not on whatever the
+        // StateFlow happens to be holding a moment after the first key changes.
+        val state = withTimeout(TIMEOUT_MS) {
+            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == 3 }
+        }
         assertFalse(state.isComplete)
         assertFalse(state.restore.inFlight)
         assertEquals(null, state.restore.error)

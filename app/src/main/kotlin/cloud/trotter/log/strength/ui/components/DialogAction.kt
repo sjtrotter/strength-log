@@ -22,7 +22,7 @@ private val DialogActionShape = RoundedCornerShape(50)
  * M3's own `TextButton` was what every dialog here reached for, and it brings
  * Material's ripple — the one press treatment #123 took out of the rest of the
  * app. Dialog *content* was simply never swept, because it lives in another
- * window. Same rhythm and label style as `TextButton`, the app's press veil and
+ * window. Same rhythm and label style as `TextButton`, the app's ripple and
  * focus ring instead, and a reserved 48dp target rather than M3's 40dp.
  *
  * The label is real text, so it is also the accessible name — no separate

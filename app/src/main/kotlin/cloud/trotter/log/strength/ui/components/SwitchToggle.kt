@@ -64,7 +64,7 @@ fun SwitchToggle(
                 onValueChange = onCheckedChange,
                 role = Role.Switch,
                 // Label plus track is a row, not a chip: it takes the row radius
-                // so the veil clips like every other row-shaped pressable.
+                // so the ripple clips like every other row-shaped pressable.
                 shape = RoundedCornerShape(12.dp),
             ),
     ) {

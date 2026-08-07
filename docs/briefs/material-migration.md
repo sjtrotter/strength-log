@@ -181,6 +181,15 @@ The audit’s recommendation was Policy A: preserve the veil, and revisit it onl
 
 **Owner decision (2026-08-07, issue #157): Policy B.** Press feedback becomes a themed M3 state layer in the app’s palette, replacing the #135 veil. Phase 2 centralizes it; `Pressable.kt` retires as conventional controls migrate. The rest of this audit still reads as if the veil survives — where it says “ripple replaces veil,” that is now the intended outcome, not a delta to be avoided.
 
+**Landed (Phase 2).** Per the owner decision, `AppTheme` now installs two ripple
+paths with equal rendered values from one shared configuration: foundation
+pressable wrappers consume `AppIndication`, while stock M3 components create
+their own ripple and read `AppRippleConfiguration`. Shape clipping, the inset 2 dp
+`TextSecondary` keyboard/D-pad focus ring, shared disabled opacity, and authored
+DONE spring/stepper flash remain intact. Issue #168 found that the old veil was
+**not** a jank source, so this is a Material-conformity change rather than a
+performance fix. The owner should frame-check the set row after this lands.
+
 ---
 
 # Component-by-component audit

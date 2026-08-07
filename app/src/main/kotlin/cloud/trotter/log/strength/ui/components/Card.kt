@@ -21,7 +21,7 @@ import cloud.trotter.log.strength.ui.theme.TextSecondary
 
 // Design-pass: card radius 10 -> 12 (docs/design-handoff/tokens/spacing.css --r-card).
 // Not private: a tappable card has to hand the same shape to `Modifier.pressable`
-// so the press veil lands on the card's corners rather than a squared box.
+// so pressed feedback lands on the card's corners rather than a squared box.
 internal val CardShape = RoundedCornerShape(12.dp)
 
 /**

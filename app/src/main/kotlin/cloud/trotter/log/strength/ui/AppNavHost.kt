@@ -3,14 +3,10 @@ package cloud.trotter.log.strength.ui
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -27,6 +23,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.backup.BackupActions
 import cloud.trotter.log.strength.ui.backup.BackupScreen
 import cloud.trotter.log.strength.ui.backup.BackupViewModel
+import cloud.trotter.log.strength.ui.components.ProgramLoadingState
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseActions
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseScreen
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseViewModel
@@ -42,7 +39,6 @@ import cloud.trotter.log.strength.ui.log.LogViewModel
 import cloud.trotter.log.strength.ui.setup.SetupActions
 import cloud.trotter.log.strength.ui.setup.SetupScreen
 import cloud.trotter.log.strength.ui.setup.SetupViewModel
-import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.today.TodayActions
 import cloud.trotter.log.strength.ui.today.TodayScreen
 import cloud.trotter.log.strength.ui.today.TodayViewModel
@@ -89,7 +85,8 @@ object Routes {
 /**
  * Resolves whether the app opens on [Routes.WIZARD] or [Routes.TODAY] from
  * [TrackerRepository.wizardCompleteFlow] (D1). `null` means "not resolved
- * yet" — [AppNavHost] renders nothing but the app background until then, so
+ * yet" — [AppNavHost] draws
+ * [cloud.trotter.log.strength.ui.components.ProgramLoadingState] until then, so
  * the graph is never built with the wrong start destination and then
  * re-navigated (no flicker-navigation after compose).
  *
@@ -119,7 +116,10 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
     val destination by startViewModel.startDestination.collectAsStateWithLifecycle()
     val start = destination
     if (start == null) {
-        Box(Modifier.fillMaxSize().background(Background))
+        // Authored rather than blank (#127) — and it stays blank anyway on the
+        // ~100ms resolve this normally takes, because the treatment holds itself
+        // back for longer than that (see ProgramLoadingState).
+        ProgramLoadingState()
         return
     }
 
@@ -132,6 +132,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onStart = { navController.navigate(Routes.DAY) { launchSingleTop = true } },
                 onOpenSettings = { navController.navigate(Routes.SETUP) },
                 onOpenLog = { navController.navigate(Routes.LOG) },
+                onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
         }
         // Pushed from Today, never the start destination (#121), so system back
@@ -140,6 +141,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         composable(Routes.DAY) {
             DayRoute(
                 onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
+                onSetUpProgram = { navController.navigate(Routes.WIZARD) },
                 // Dismissing the session receipt (#126) is the same pop system
                 // back already performs — a finished workout leaves the workout
                 // screen, and Today re-derives what the rotation now says.
@@ -188,7 +190,18 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onOpenLicenses = { navController.navigate(Routes.LICENSES) },
             )
         }
-        composable(Routes.LOG) { LogRoute(onBack = { navController.popBackStack() }) }
+        // The empty journal's START (#127) leaves nothing behind it: popping LOG
+        // before pushing DAY means backing out of the workout lands on Today,
+        // not on the empty list the lifter just left.
+        composable(Routes.LOG) {
+            LogRoute(
+                onBack = { navController.popBackStack() },
+                onStartSession = {
+                    navController.navigate(Routes.DAY) { popUpTo(Routes.TODAY) }
+                },
+                onSetUpProgram = { navController.navigate(Routes.WIZARD) },
+            )
+        }
         composable(Routes.BACKUP) { BackupRoute(onBack = { navController.popBackStack() }) }
         composable(Routes.LICENSES) { LicensesRoute(onBack = { navController.popBackStack() }) }
     }
@@ -204,6 +217,7 @@ private fun TodayRoute(
     onStart: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenLog: () -> Unit,
+    onSetUpProgram: () -> Unit,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -213,6 +227,7 @@ private fun TodayRoute(
             onStart = onStart,
             onOpenSettings = onOpenSettings,
             onOpenLog = onOpenLog,
+            onSetUpProgram = onSetUpProgram,
         ),
     )
 }
@@ -220,6 +235,7 @@ private fun TodayRoute(
 @Composable
 private fun DayRoute(
     onCreateExercise: (MovementPattern) -> Unit,
+    onSetUpProgram: () -> Unit,
     onFinishSession: () -> Unit,
     viewModel: DayViewModel = hiltViewModel(),
 ) {
@@ -254,6 +270,7 @@ private fun DayRoute(
             onClearChecks = viewModel::clearChecks,
             onDone = viewModel::completeDay,
             onCreateExercise = onCreateExercise,
+            onSetUpProgram = onSetUpProgram,
         ),
         dayEditState = dayEditState,
         dayEditActions = DayEditActions(
@@ -385,7 +402,12 @@ private fun LicensesRoute(onBack: () -> Unit) {
  * re-reads Health Connect; a denial simply leaves the section empty (A3).
  */
 @Composable
-private fun LogRoute(onBack: () -> Unit, viewModel: LogViewModel = hiltViewModel()) {
+private fun LogRoute(
+    onBack: () -> Unit,
+    onStartSession: () -> Unit,
+    onSetUpProgram: () -> Unit,
+    viewModel: LogViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val permissionLauncher = rememberLauncherForActivityResult(remember { viewModel.permissionContract() }) {
         viewModel.refreshHealth()
@@ -412,6 +434,8 @@ private fun LogRoute(onBack: () -> Unit, viewModel: LogViewModel = hiltViewModel
             onApplyBodyweight = viewModel::applyBodyweightPrompt,
             onDismissBodyweight = viewModel::dismissBodyweightPrompt,
             onShare = viewModel::shareSession,
+            onStartSession = onStartSession,
+            onSetUpProgram = onSetUpProgram,
         ),
     )
 }

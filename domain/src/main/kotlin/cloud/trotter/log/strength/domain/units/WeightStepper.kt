@@ -42,4 +42,17 @@ object WeightStepper {
         val text = String.format(Locale.ROOT, "%.2f", displayWeight)
         return text.trimEnd('0').trimEnd('.')
     }
+
+    /**
+     * [displayWeight] as the number [format] actually prints — read back off
+     * [format] itself so the two can never drift.
+     *
+     * Anything a caller does *between* two weights has to be done on these, not
+     * on the raw converted doubles: a kg conversion carries far more precision
+     * than the screen shows, so subtracting the raw values can report a
+     * difference between two loads that render as the same number (or hide one
+     * between two that don't). Comparing what is on screen is the only version
+     * a lifter can check.
+     */
+    fun toDisplayPrecision(displayWeight: Double): Double = format(displayWeight).toDouble()
 }

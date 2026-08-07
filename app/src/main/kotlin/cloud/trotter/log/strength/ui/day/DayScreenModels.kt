@@ -8,6 +8,11 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 /** Immutable render model for the whole day screen (UDF: the ViewModel's single output). */
 data class DayUiState(
     val hasProgram: Boolean = false,
+    /** True only while the program is still being read (#127). `hasProgram =
+     *  false` with this false is the *answer* "there is no program" — a state
+     *  the lifter has to act on — and the screen says so instead of preparing
+     *  forever. */
+    val loading: Boolean = false,
     val tabs: List<DayTab> = emptyList(),
     val viewDayId: String? = null,
     val dayIndex: Int = 0,
@@ -78,6 +83,10 @@ data class ExerciseCardState(
      *  1); null when there is no record, or when it equals [lastTimeDisplay] —
      *  showing the same number twice is noise, not signal. */
     val personalRecordDisplay: String? = null,
+    /** "+5 LB FROM LAST" / "MATCHED" / "FIRST LOG" over the TOP row (issue
+     *  #127); null when the card has no TOP set to compare — see
+     *  [DayScreenBuilder.topSetComparison]. */
+    val topSetComparison: String? = null,
     /** "Plates: 45 + 25 + 2.5 a side"-style line (issue #101), keyed to the
      *  first undone MAIN-slot set's weight; null for non-barbell exercises,
      *  finished cards, or an unloadable weight — see [DayScreenBuilder.plateLine]. */

@@ -320,6 +320,7 @@ class A11ySemanticsTest {
                         onClearChecks = {},
                         onDone = {},
                         onCreateExercise = {},
+                        onSetUpProgram = {},
                     ),
                     dayEditState = DayEditUiState(),
                     dayEditActions = DayEditActions(

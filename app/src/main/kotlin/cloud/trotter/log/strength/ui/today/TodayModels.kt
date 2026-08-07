@@ -3,6 +3,10 @@ package cloud.trotter.log.strength.ui.today
 /** Immutable render model for the Today screen (issue #121) — the ViewModel's single output. */
 data class TodayUiState(
     val hasProgram: Boolean = false,
+    /** True only while the program is still being read (#127) — see
+     *  [cloud.trotter.log.strength.ui.day.DayUiState.loading] for why the two
+     *  silences are worth telling apart. */
+    val loading: Boolean = false,
     val dayId: String = "",
     /** 0-based rotation position — the key into `dayAccent`/`onDayAccent`. */
     val dayIndex: Int = 0,
@@ -36,4 +40,6 @@ data class TodayActions(
     val onStart: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenLog: () -> Unit,
+    /** The recovery out of the no-program state (#127): back into the wizard. */
+    val onSetUpProgram: () -> Unit,
 )

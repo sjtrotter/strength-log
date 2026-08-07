@@ -326,6 +326,7 @@ class DestructiveActionsTest {
         onClearChecks = onClearChecks,
         onDone = {},
         onCreateExercise = {},
+        onSetUpProgram = {},
     )
 
     private fun noopEditActions() = DayEditActions(

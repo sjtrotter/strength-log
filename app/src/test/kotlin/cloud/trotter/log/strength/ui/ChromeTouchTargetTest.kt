@@ -73,7 +73,7 @@ class ChromeTouchTargetTest {
         ),
     )
 
-    private fun todayActions() = TodayActions(onStart = {}, onOpenSettings = {}, onOpenLog = {})
+    private fun todayActions() = TodayActions(onStart = {}, onOpenSettings = {}, onOpenLog = {}, onSetUpProgram = {})
 
     private fun setupActions() = SetupActions(
         onBodyweightChange = {},

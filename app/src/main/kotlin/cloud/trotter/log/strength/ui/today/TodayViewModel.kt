@@ -59,6 +59,10 @@ class TodayViewModel @Inject constructor(private val repo: TrackerRepository) : 
     val uiState: StateFlow<TodayUiState> = contextFlow.flatMapLatest { ctx ->
         val dayId = ctx.dayId
         if (dayId == null) {
+            // [contextFlow] picks the day from the same program emission, so a
+            // null day here means the program has no days — the answer, not a
+            // pause. Loading is the state before this flow emits at all, which
+            // is [uiState]'s initial value below (#127).
             flowOf(TodayUiState())
         } else {
             combine(
@@ -70,7 +74,7 @@ class TodayViewModel @Inject constructor(private val repo: TrackerRepository) : 
                 build(ctx, dayId, slots, logs, sessions, topSets)
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TodayUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TodayUiState(loading = true))
 
     private fun build(
         ctx: TodayContext,

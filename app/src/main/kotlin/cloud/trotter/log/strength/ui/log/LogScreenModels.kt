@@ -8,6 +8,14 @@ data class LogUiState(
     val sessions: List<SessionListItem> = emptyList(),
     val journal: JournalUiState = JournalUiState(),
     val health: HealthSectionUi = HealthSectionUi(),
+    /** Whether there is a program to start a session from — read only by the
+     *  empty state (#127), which must not offer a workout that would land on
+     *  NO PROGRAM YET. Defaults true because the journal is only reachable from
+     *  Today, which itself only offers it once a program has resolved: for the
+     *  frame before this screen's own flows answer, "there is one" is the
+     *  correct assumption, and the wrong one would accuse a lifter with a
+     *  perfectly good program of not having it. */
+    val hasProgram: Boolean = true,
 )
 
 /**

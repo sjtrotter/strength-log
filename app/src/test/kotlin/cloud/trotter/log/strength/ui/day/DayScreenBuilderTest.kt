@@ -32,6 +32,8 @@ class DayScreenBuilderTest {
     private fun work(w: Double, r: Int, done: Boolean = false, seconds: Int = 0) =
         LoggedSet(w, r, SetKind.WORK, done, seconds)
 
+    private fun top(w: Double, r: Int) = LoggedSet(w, r, SetKind.TOP)
+
     // --- seeding-once --------------------------------------------------------
 
     @Test
@@ -477,5 +479,86 @@ class DayScreenBuilderTest {
     @Test
     fun sessionStatusLine_treats_an_over_count_as_finished() {
         assertEquals("READY TO FINISH · 19 OF 18 SETS", DayScreenBuilder.sessionStatusLine(19, 18))
+    }
+
+    // --- TOP set comparison -------------------------------------------------
+
+    @Test
+    fun topSetComparison_shows_a_positive_weight_delta() {
+        assertEquals("+5 LB FROM LAST", DayScreenBuilder.topSetComparison(listOf(top(235.0, 5)), LastPerformed(230.0, 5), WeightUnit.LB))
+    }
+
+    @Test
+    fun topSetComparison_shows_a_negative_weight_delta() {
+        assertEquals("−5 LB FROM LAST", DayScreenBuilder.topSetComparison(listOf(top(235.0, 5)), LastPerformed(240.0, 5), WeightUnit.LB))
+    }
+
+    @Test
+    fun topSetComparison_matches_equal_weight_and_reps() {
+        assertEquals("MATCHED", DayScreenBuilder.topSetComparison(listOf(top(235.0, 5)), LastPerformed(235.0, 5), WeightUnit.LB))
+    }
+
+    @Test
+    fun topSetComparison_singularizes_a_one_rep_gain() {
+        assertEquals("+1 REP FROM LAST", DayScreenBuilder.topSetComparison(listOf(top(235.0, 6)), LastPerformed(235.0, 5), WeightUnit.LB))
+    }
+
+    @Test
+    fun topSetComparison_shows_a_multi_rep_loss() {
+        assertEquals("−2 REPS FROM LAST", DayScreenBuilder.topSetComparison(listOf(top(235.0, 3)), LastPerformed(235.0, 5), WeightUnit.LB))
+    }
+
+    @Test
+    fun topSetComparison_marks_a_top_set_without_history_as_a_first_log() {
+        assertEquals("FIRST LOG", DayScreenBuilder.topSetComparison(listOf(top(235.0, 5)), null, WeightUnit.LB))
+    }
+
+    @Test
+    fun topSetComparison_is_null_for_an_accessory_track() {
+        assertNull(DayScreenBuilder.topSetComparison(listOf(work(60.0, 10)), LastPerformed(60.0, 10), WeightUnit.LB))
+    }
+
+    @Test
+    fun topSetComparison_is_null_for_a_timed_track() {
+        assertNull(DayScreenBuilder.topSetComparison(listOf(work(0.0, 0, seconds = 45)), LastPerformed(0.0, 0, seconds = 45), WeightUnit.LB))
+    }
+
+    // 235 lb reads 106.59 kg and 230 lb reads 104.33 kg, and 106.59 − 104.33 is
+    // 2.26. The raw conversion difference is 2.2679, which would print 2.27 —
+    // a number the lifter cannot get from the two the card shows.
+    @Test
+    fun topSetComparison_converts_the_weight_delta_to_kg() {
+        assertEquals("+2.26 KG FROM LAST", DayScreenBuilder.topSetComparison(listOf(top(235.0, 5)), LastPerformed(230.0, 5), WeightUnit.KG))
+    }
+
+    @Test
+    fun topSetComparison_is_null_for_reps_shaped_history() {
+        assertNull(DayScreenBuilder.topSetComparison(listOf(top(235.0, 5)), LastPerformed(0.0, 12), WeightUnit.LB))
+    }
+
+    // The comparison has to agree with the two numbers the lifter can actually
+    // read. A kg conversion carries far more precision than the card prints, so
+    // both sides are snapped to display precision before they're subtracted.
+
+    @Test
+    fun topSetComparison_reports_no_kg_delta_between_weights_that_render_the_same() {
+        // 45.356 and 45.364 kg both print "45.36", but differ by 0.008 raw —
+        // enough to have narrated a phantom "+0.01 KG FROM LAST".
+        val lastLb = WeightUnit.KG.toLb(45.356)
+        val topLb = WeightUnit.KG.toLb(45.364)
+        assertEquals(
+            "MATCHED",
+            DayScreenBuilder.topSetComparison(listOf(top(topLb, 5)), LastPerformed(lastLb, 5), WeightUnit.KG),
+        )
+    }
+
+    @Test
+    fun topSetComparison_reports_exactly_one_step_between_weights_that_render_one_apart() {
+        val lastLb = WeightUnit.KG.toLb(45.36)
+        val topLb = WeightUnit.KG.toLb(45.37)
+        assertEquals(
+            "+0.01 KG FROM LAST",
+            DayScreenBuilder.topSetComparison(listOf(top(topLb, 5)), LastPerformed(lastLb, 5), WeightUnit.KG),
+        )
     }
 }

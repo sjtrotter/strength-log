@@ -195,6 +195,7 @@ class TouchTargetTest {
         onClearChecks = {},
         onDone = {},
         onCreateExercise = {},
+        onSetUpProgram = {},
     )
 
     private fun noopEditActions() = DayEditActions(

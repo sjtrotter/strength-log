@@ -41,6 +41,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cloud.trotter.log.strength.ui.components.NoProgramState
+import cloud.trotter.log.strength.ui.components.ProgramLoadingState
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -67,9 +69,9 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
 
     Box(Modifier.fillMaxSize().background(Background)) {
         if (!state.hasProgram) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Preparing your program…", color = TextSecondary)
-            }
+            // Two different silences (#127): one that ends on its own, and one
+            // that only ends when the lifter does something about it.
+            if (state.loading) ProgramLoadingState() else NoProgramState(actions.onSetUpProgram)
             return@Box
         }
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
@@ -347,7 +349,7 @@ private fun TodayScreenPreviewContent(inProgress: Boolean = false) {
     AppTheme {
         TodayScreen(
             state = state,
-            actions = TodayActions(onStart = {}, onOpenSettings = {}, onOpenLog = {}),
+            actions = TodayActions(onStart = {}, onOpenSettings = {}, onOpenLog = {}, onSetUpProgram = {}),
         )
     }
 }

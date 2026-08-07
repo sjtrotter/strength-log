@@ -41,13 +41,17 @@ import cloud.trotter.log.strength.ui.theme.accentBright
  * never a second scrim.
  */
 @Composable
-internal fun CascadeScrim(ceremony: CascadeCeremony, onDismiss: () -> Unit) {
+internal fun CascadeScrim(
+    ceremony: CascadeCeremony,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val haptics = LocalHapticFeedback.current
     LaunchedEffect(ceremony) { haptics.performHapticFeedback(HapticFeedbackType.Confirm) }
 
     val interaction = remember { MutableInteractionSource() }
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(Background.copy(alpha = 0.94f))
             .clickable(interaction, indication = null, onClickLabel = "Dismiss", onClick = onDismiss)

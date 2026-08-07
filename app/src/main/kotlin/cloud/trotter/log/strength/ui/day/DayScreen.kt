@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -83,9 +82,11 @@ import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.NoProgramState
 import cloud.trotter.log.strength.ui.components.ProgramLoadingState
 import cloud.trotter.log.strength.ui.components.SetRow
+import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.components.pressableSelectable
 import cloud.trotter.log.strength.ui.components.pressableToggleable
+import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -241,16 +242,24 @@ fun DayScreen(
     // then the way out — and keeps it true after a rotation restores both.
     if (cascadeCeremony == null) {
         sessionReceipt?.let {
-            BackHandler(onBack = onFinishSession)
-            SessionReceiptScrim(receipt = it, onShare = onShareSession, onFinish = onFinishSession)
+            // These two get the gesture and the app's other back handlers don't:
+            // back here dismisses a surface the lifter is looking at, so the
+            // drag should show it going rather than snap it away at the end.
+            val backProgress = rememberBackGestureProgress(onBack = onFinishSession)
+            SessionReceiptScrim(
+                receipt = it,
+                onShare = onShareSession,
+                onFinish = onFinishSession,
+                modifier = Modifier.backGesturePreview { backProgress.value },
+            )
         }
     }
 
     // Above everything, including the edit sheet: the cascade only ever arrives
     // straight off a DONE, when nothing else is open (journal brief §2).
     cascadeCeremony?.let {
-        BackHandler(onBack = onDismissCascade)
-        CascadeScrim(it, onDismissCascade)
+        val backProgress = rememberBackGestureProgress(onBack = onDismissCascade)
+        CascadeScrim(it, onDismissCascade, Modifier.backGesturePreview { backProgress.value })
     }
 }
 

@@ -1,12 +1,13 @@
 package cloud.trotter.log.strength.ui
 
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -24,6 +25,8 @@ import cloud.trotter.log.strength.ui.backup.BackupActions
 import cloud.trotter.log.strength.ui.backup.BackupScreen
 import cloud.trotter.log.strength.ui.backup.BackupViewModel
 import cloud.trotter.log.strength.ui.components.ProgramLoadingState
+import cloud.trotter.log.strength.ui.components.backGesturePreview
+import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseActions
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseScreen
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseViewModel
@@ -455,30 +458,35 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
     val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(viewModel::restoreFromBackup)
     }
-    // System back steps the wizard backward; on the first step it's disabled so
-    // back falls through (exiting a fresh install is fine — the draft is in
-    // SavedStateHandle either way).
-    BackHandler(enabled = !state.isFirstStep) { viewModel.onBack() }
-    WizardScreen(
-        state = state,
-        actions = WizardActions(
-            onNext = viewModel::onNext,
-            onBack = viewModel::onBack,
-            onEmphasisChange = viewModel::setEmphasis,
-            onDaysPerWeekChange = viewModel::setDaysPerWeek,
-            onSplitChange = viewModel::setSplit,
-            onAnchorSchemeChange = viewModel::setAnchorScheme,
-            onDeadliftVariantChange = viewModel::setDeadliftVariant,
-            onCardioModeChange = viewModel::setCardioMode,
-            onCardioPlacementChange = viewModel::setCardioPlacement,
-            onFiveKChange = viewModel::setFiveK,
-            onBodyweightChange = viewModel::setBodyweight,
-            onAgeChange = viewModel::setAge,
-            onLevelChange = viewModel::setLevel,
-            onEquipmentToggle = viewModel::toggleEquipment,
-            onRestoreFromBackup = { restoreLauncher.launch(arrayOf("application/json")) },
-        ),
-    )
+    // System back steps the wizard backward, and the current step recedes under
+    // the gesture. On the first step the handler is disabled precisely so the
+    // system runs its own back-to-home preview (exiting a fresh install is fine
+    // — the draft is in SavedStateHandle either way).
+    val backProgress = rememberBackGestureProgress(enabled = !state.isFirstStep) {
+        viewModel.onBack()
+    }
+    Box(Modifier.backGesturePreview { backProgress.value }) {
+        WizardScreen(
+            state = state,
+            actions = WizardActions(
+                onNext = viewModel::onNext,
+                onBack = viewModel::onBack,
+                onEmphasisChange = viewModel::setEmphasis,
+                onDaysPerWeekChange = viewModel::setDaysPerWeek,
+                onSplitChange = viewModel::setSplit,
+                onAnchorSchemeChange = viewModel::setAnchorScheme,
+                onDeadliftVariantChange = viewModel::setDeadliftVariant,
+                onCardioModeChange = viewModel::setCardioMode,
+                onCardioPlacementChange = viewModel::setCardioPlacement,
+                onFiveKChange = viewModel::setFiveK,
+                onBodyweightChange = viewModel::setBodyweight,
+                onAgeChange = viewModel::setAge,
+                onLevelChange = viewModel::setLevel,
+                onEquipmentToggle = viewModel::toggleEquipment,
+                onRestoreFromBackup = { restoreLauncher.launch(arrayOf("application/json")) },
+            ),
+        )
+    }
 }
 
 /**

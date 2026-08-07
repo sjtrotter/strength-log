@@ -29,6 +29,10 @@
       Auto Backup is opaque, best-effort, and skipped if the OEM transfer
       tool doesn't invoke it. dataExtractionRules covers API 31+; the
       identical fullBackupContent rules back-fill the API 26-30 floor.
+
+      Predictive back opts every BackHandler and PredictiveBackHandler into the
+      platform back-invoked API. The system can preview back to home, and app
+      handlers receive gesture progress instead of one terminal event.
     -->
     <application
         android:name=".StrengthLogApp"
@@ -37,6 +41,7 @@
         android:roundIcon="@mipmap/ic_launcher_day_a"
         android:theme="@style/Theme.StrengthLog"
         android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules">
 

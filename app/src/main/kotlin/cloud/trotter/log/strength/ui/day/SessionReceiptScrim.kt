@@ -59,10 +59,11 @@ internal fun SessionReceiptScrim(
     receipt: SessionReceipt,
     onShare: () -> Unit,
     onFinish: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val accent = dayAccent(receipt.dayIndex)
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(Background.copy(alpha = 0.97f))
             // Makes this surface the hit target for anything that lands on it,

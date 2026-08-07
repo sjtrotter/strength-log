@@ -113,7 +113,11 @@ fun DayEditSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Surface) {
         // Inside the sheet's content, so the handler lands on the sheet dialog's
         // own back dispatcher (M3 hosts the sheet in a ComponentDialog) ahead of
-        // the dismiss-on-back callback the dialog registers for itself.
+        // the dismiss-on-back callback the dialog registers for itself. M3 runs
+        // its own predictive dismissal there; page-back is only a content swap
+        // with nothing to preview, and another gesture animation would fight
+        // the sheet's. This handler only claims the press while a page can go
+        // back. Disabling it at the root returns the gesture to the sheet.
         BackHandler(enabled = backTarget != null, onBack = onBack)
         val swapSlot = state.slots.firstOrNull { it.programExerciseId == swapSlotId }
         val ssSlot = state.slots.firstOrNull { it.programExerciseId == ssSlotId }

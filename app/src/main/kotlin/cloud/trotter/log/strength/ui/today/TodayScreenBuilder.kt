@@ -30,10 +30,14 @@ object TodayScreenBuilder {
         else -> "NEXT IN ROTATION"
     }
 
+    /** "4 OF 18 SETS" — the progress phrase Today's action label and the day
+     *  screen's status line both print, so the two never drift apart. */
+    fun setsPhrase(doneSets: Int, totalSets: Int): String = "$doneSets OF $totalSets SETS"
+
     /** The one dominant action's label, in the same three phases as [overline]. */
     fun actionLabel(dayId: String, doneSets: Int, totalSets: Int): String = when {
         totalSets > 0 && doneSets >= totalSets -> "FINISH DAY ${dayId.uppercase()}"
-        doneSets > 0 -> "CONTINUE — $doneSets OF $totalSets SETS"
+        doneSets > 0 -> "CONTINUE — ${setsPhrase(doneSets, totalSets)}"
         else -> "START DAY ${dayId.uppercase()}"
     }
 

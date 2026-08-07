@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.DayViewModel
+import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -287,7 +288,8 @@ class WizardViewModelWiringTest {
         vm.onNext() // last step -> finish(): ProgramGenerator -> replaceProgram
         advanceUntilIdle()
 
-        DayViewModel(repo, SessionPublisher.NoOp, SavedStateHandle()).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle())
+            .also { vms += it }
         advanceUntilIdle() // constructing the VM triggers the day-A seed pass
 
         val squatSlotId = repo.daySlotsFlow("A").first()

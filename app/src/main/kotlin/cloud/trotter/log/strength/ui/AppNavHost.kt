@@ -140,6 +140,10 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         composable(Routes.DAY) {
             DayRoute(
                 onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
+                // Dismissing the session receipt (#126) is the same pop system
+                // back already performs — a finished workout leaves the workout
+                // screen, and Today re-derives what the rotation now says.
+                onFinishSession = { navController.popBackStack() },
             )
         }
         composable(Routes.WIZARD) {
@@ -216,12 +220,25 @@ private fun TodayRoute(
 @Composable
 private fun DayRoute(
     onCreateExercise: (MovementPattern) -> Unit,
+    onFinishSession: () -> Unit,
     viewModel: DayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
     val cascadeCeremony by viewModel.cascadeCeremony.collectAsStateWithLifecycle()
+    val sessionReceipt by viewModel.sessionReceipt.collectAsStateWithLifecycle()
     val removedSets by viewModel.removedSets.collectAsStateWithLifecycle()
+    // The receipt's SHARE, launched exactly the way the Log screen's is
+    // (session-share brief §3): the ViewModel only ever builds the Intent, and
+    // this is the call site that hands it to the chooser.
+    val context = LocalContext.current
+    val pendingShare by viewModel.pendingShare.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingShare) {
+        pendingShare?.let { intent ->
+            context.startActivity(intent)
+            viewModel.shareHandled()
+        }
+    }
     DayScreen(
         state = state,
         actions = DayActions(
@@ -249,6 +266,12 @@ private fun DayRoute(
         ),
         cascadeCeremony = cascadeCeremony,
         onDismissCascade = viewModel::dismissCascadeCeremony,
+        sessionReceipt = sessionReceipt,
+        onShareSession = viewModel::shareSession,
+        onFinishSession = {
+            viewModel.dismissSessionReceipt()
+            onFinishSession()
+        },
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
     )

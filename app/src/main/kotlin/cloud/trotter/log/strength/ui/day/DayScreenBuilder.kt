@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.PlateMath
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.today.TodayScreenBuilder
 
 /**
  * The pure §8.2 decision logic behind the day screen: set-row labels, the
@@ -211,6 +212,23 @@ object DayScreenBuilder {
             "Plates: ${perSide.joinToString(" + ") { WeightStepper.format(it) }} a side"
         }
     }
+
+    /**
+     * The day header's status line once the session is underway (#126) —
+     * "IN PROGRESS · 4 OF 18 SETS", or `null` before the first tick, when the
+     * day has nothing to report and shows no line at all.
+     *
+     * The phase vocabulary is [TodayScreenBuilder.overline]'s: the day screen
+     * speaks the same three phases Today, the widget and the watch already
+     * speak rather than inventing a fourth, so "READY TO FINISH" means the same
+     * thing everywhere it appears.
+     */
+    fun sessionStatusLine(doneSets: Int, totalSets: Int): String? =
+        if (doneSets <= 0) {
+            null
+        } else {
+            "${TodayScreenBuilder.overline(doneSets, totalSets)} · ${TodayScreenBuilder.setsPhrase(doneSets, totalSets)}"
+        }
 
     /** True once every round is ticked — drives the green chip and auto-collapse. */
     fun allDone(main: List<LoggedSet>): Boolean = main.isNotEmpty() && main.all { it.done }

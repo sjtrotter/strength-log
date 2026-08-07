@@ -11,6 +11,19 @@ object Slot {
 
     /** The superset partner's set track (present only when the slot has a partner). */
     const val SS = "ss"
+
+    /**
+     * Whether a row on this track is one of the day's *rounds* — the unit every
+     * surface that says "18 sets" is counting.
+     *
+     * One tick covers a whole round, so a superset partner rides inside its main
+     * track's row rather than adding a row of its own (glance-surfaces.md §4.2).
+     * The day header, Today, the widget, the watch and the session receipt all
+     * count rounds, and they all ask here rather than each spelling the filter
+     * out — a surface that counted partner rows too would report double what the
+     * one beside it reports for the same day.
+     */
+    fun isRound(slot: String): Boolean = slot == MAIN
 }
 
 /** One day of the user's editable program, ordered by [position] (spec §7). */

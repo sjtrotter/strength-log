@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
+import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +52,7 @@ class DayViewModelLastPerformedTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
     private lateinit var repo: TrackerRepository
+    private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<DayViewModel>()
 
@@ -73,6 +75,7 @@ class DayViewModelLastPerformedTest {
             customExerciseDao = db.customExerciseDao(),
             settings = SettingsStore(dataStore),
         )
+        shareCardService = ShareCardService(context, repo)
     }
 
     @After
@@ -86,7 +89,7 @@ class DayViewModelLastPerformedTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, handle).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle).also { vms += it }
 
     private suspend fun insertSingleDayProgram() {
         repo.replaceProgram(

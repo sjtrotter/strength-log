@@ -246,7 +246,7 @@ class WatchSnapshotBuilderTest {
         )!!.day.exercises.single()
 
         assertEquals("EZ-Bar Curl", ex.name) // no short form; unchanged
-        assertEquals("Overhead Extension", ex.supersetPartnerName)
+        assertEquals("Overhead Ext", ex.supersetPartnerName)
     }
 
     @Test

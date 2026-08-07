@@ -90,6 +90,7 @@ import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
+import cloud.trotter.log.strength.ui.theme.CardTitle
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
@@ -943,7 +944,7 @@ private fun CardioCard(cardio: CardioSuggestion) {
                 Text(
                     "Cardio finisher",
                     color = TextPrimary,
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp),
+                    style = CardTitle,
                 )
                 Spacer(Modifier.size(5.dp))
                 Badge(

@@ -664,7 +664,16 @@ private class ScreenContext(
     /**
      * A superset round is one tick for both lifts, so the partner's prescription
      * is context while lifting, not a second thing to log. Everything else gets
-     * the undo hint (the long-press itself lands with the crown layer, §6).
+     * the set position — the line READY and the timed hold already carry, and the
+     * only thing on this screen that says which set is under way.
+     *
+     * What it no longer carries is `HOLD TO UNDO`. A set in progress hasn't been
+     * locked in, so there is nothing here to take back: [undoHold] is offered on
+     * READY, REST_OVER and DAY_DONE and nowhere else, and this band was
+     * advertising a gesture that did nothing where it was written (#151, from the
+     * v1 brief's §5.3 screen list). The offer is the honest half and it stays put;
+     * the hint goes, because an undo is deliberate by design and the three screens
+     * that do offer it announce it with nothing at all.
      */
     private fun liftingBottomBand(): BandContent {
         val partner = round?.partner
@@ -674,7 +683,7 @@ private class ScreenContext(
                 tone = DialTone.SECONDARY,
             )
         } else {
-            BandContent("hold to undo".uppercase(), DialTone.TERTIARY)
+            BandContent(setOfLine(), DialTone.TERTIARY)
         }
     }
 }

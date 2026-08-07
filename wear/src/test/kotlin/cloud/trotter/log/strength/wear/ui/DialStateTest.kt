@@ -90,7 +90,7 @@ class DialStateTest {
         session: SessionStamps = SessionStamps(),
         browseDayIndex: Int? = null,
         peekRoundIndex: Int? = null,
-        peekTookSeconds: Int? = null,
+        tickMemory: TickMemory = TickMemory.EMPTY,
     ) = DialInputs(
         snapshot = snapshot,
         exerciseIndex = exerciseIndex,
@@ -104,7 +104,7 @@ class DialStateTest {
         session = session,
         browseDayIndex = browseDayIndex,
         peekRoundIndex = peekRoundIndex,
-        peekTookSeconds = peekTookSeconds,
+        tickMemory = tickMemory,
     )
 
     private fun DialUiState.discText(): List<String> =
@@ -555,7 +555,9 @@ class DialStateTest {
             squat.copy(sets = listOf(set(done = true), set(done = true), set())),
             press,
         )
-        val state = dialUiState(inputs(snapshot = logged, peekRoundIndex = 0, peekTookSeconds = 52))
+        val state = dialUiState(
+            inputs(snapshot = logged, peekRoundIndex = 0, tickMemory = TickMemory.EMPTY.record(1L, 0, 52)),
+        )
         assertEquals(
             listOf(RoundState.PEEKED, RoundState.DONE, RoundState.CURRENT),
             state.rounds,
@@ -622,16 +624,64 @@ class DialStateTest {
     }
 
     // --- crown: undo (§6) ---------------------------------------------------------
+    // The cases that pass no memory are the positional fallback: what the undo degrades
+    // to when the watch has no chronology of its own to go on.
+
+    /** The lifter took press first and squat second, so the day's last tick is squat's. */
+    private val pressThenSquat = TickMemory.EMPTY
+        .record(2L, 0, 30).record(2L, 1, 30)
+        .record(1L, 0, 40).record(1L, 1, 40).record(1L, 2, 40)
 
     @Test
     fun `a hold offers the most recently logged set, between sets only`() {
         val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
         val ready = dialUiState(inputs(snapshot = logged))
-        assertEquals(0, ready.hold?.roundIndex)
+        assertEquals(0, ready.hold?.target?.exerciseIndex)
+        assertEquals(0, ready.hold?.target?.roundIndex)
         assertEquals(listOf("UNDO", "SET 1"), ready.hold?.disc?.lines?.map { it.spans.single().text })
 
         val restOver = dialUiState(inputs(snapshot = logged, restedSeconds = 150))
-        assertEquals(0, restOver.hold?.roundIndex)
+        assertEquals(0, restOver.hold?.target?.exerciseIndex)
+        assertEquals(0, restOver.hold?.target?.roundIndex)
+    }
+
+    @Test
+    fun `the finished day can still take back the set that finished it`() {
+        val state = dialUiState(inputs(snapshot = allDone()))
+        assertEquals(DialScreen.DAY_DONE, state.screen)
+        assertEquals(DialTap.DISMISS, state.tap)
+        assertNotNull(state.hold)
+        assertEquals(UndoTarget(1, 1), state.hold?.target)
+        assertEquals(listOf("UNDO", "SET 2"), state.hold?.disc?.lines?.map { it.spans.single().text })
+    }
+
+    @Test
+    fun `a finished lift's last set is still reachable from the next lift's first`() {
+        val logged = snapshot(squat.copy(sets = List(3) { set(done = true) }), press)
+        val state = dialUiState(inputs(snapshot = logged))
+        assertEquals(DialScreen.READY, state.screen)
+        assertEquals(UndoTarget(0, 2), state.hold?.target)
+        assertEquals(
+            listOf("UNDO", "SQUAT", "SET 3"),
+            state.hold?.disc?.lines?.map { it.spans.single().text },
+        )
+    }
+
+    @Test
+    fun `undoing a cross-lift tick brings the dial back to that lift`() {
+        val reopened = snapshot(
+            squat.copy(sets = listOf(set(done = true), set(done = true), set())),
+            press,
+        )
+        val state = dialUiState(
+            inputs(
+                snapshot = reopened,
+                exerciseIndex = ExerciseSelection.resolve(reopened, selectedIndex = 0),
+            ),
+        )
+        assertEquals(DialScreen.READY, state.screen)
+        assertTrue(state.topBand?.text?.startsWith("SQUAT") == true)
+        assertEquals(UndoTarget(0, 1), state.hold?.target)
     }
 
     @Test
@@ -644,6 +694,63 @@ class DialStateTest {
     fun `a set in progress is not a set to undo — it hasn't been locked in yet`() {
         val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
         assertNull(dialUiState(inputs(snapshot = logged, phase = SetPhase.LIFTING)).hold)
+    }
+
+    @Test
+    fun `the finished day takes back the set it actually ended on, not the last in its order`() {
+        val state = dialUiState(inputs(snapshot = allDone(), tickMemory = pressThenSquat))
+        assertEquals(DialScreen.DAY_DONE, state.screen)
+        assertEquals(DialTap.DISMISS, state.tap)
+        assertEquals(UndoTarget(0, 2), state.hold?.target)
+        assertEquals(
+            listOf("UNDO", "SQUAT", "SET 3"),
+            state.hold?.disc?.lines?.map { it.spans.single().text },
+        )
+    }
+
+    @Test
+    fun `taking that set back drops the day onto the lift it reopened`() {
+        val reopened = snapshot(
+            squat.copy(sets = listOf(set(done = true), set(done = true), set())),
+            press.copy(sets = List(2) { set(weight = 120.0, reps = 8, done = true) }),
+        )
+        val after = dialUiState(
+            inputs(
+                snapshot = reopened,
+                exerciseIndex = ExerciseSelection.resolve(reopened, selectedIndex = 0),
+                tickMemory = pressThenSquat.forget(1L, 2),
+            ),
+        )
+        assertEquals(DialScreen.READY, after.screen)
+        assertTrue(after.topBand?.text?.startsWith("SQUAT") == true)
+        assertEquals(UndoTarget(0, 1), after.hold?.target)
+    }
+
+    @Test
+    fun `with nothing remembered the finished day starts its search at the day's last lift`() {
+        val state = dialUiState(inputs(snapshot = allDone()))
+        assertEquals(UndoTarget(1, 1), state.hold?.target)
+        assertEquals(listOf("UNDO", "SET 2"), state.hold?.disc?.lines?.map { it.spans.single().text })
+    }
+
+    @Test
+    fun `a remembered tick outranks the nearer one when the lifter worked out of order`() {
+        val logged = snapshot(
+            squat.copy(sets = listOf(set(done = true), set(), set())),
+            press.copy(
+                sets = listOf(
+                    set(weight = 120.0, reps = 8, done = true),
+                    set(weight = 120.0, reps = 8),
+                ),
+            ),
+        )
+        val memory = TickMemory.EMPTY.record(1L, 0, 40).record(2L, 0, 30)
+        val state = dialUiState(inputs(snapshot = logged, tickMemory = memory))
+        assertEquals(UndoTarget(1, 0), state.hold?.target)
+        assertEquals(
+            listOf("UNDO", "PRESS", "SET 1"),
+            state.hold?.disc?.lines?.map { it.spans.single().text },
+        )
     }
 
     // --- formatting --------------------------------------------------------------

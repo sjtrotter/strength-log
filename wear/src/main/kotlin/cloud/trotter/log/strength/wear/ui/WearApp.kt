@@ -73,6 +73,7 @@ fun WearApp(
 ) {
     val snapshot by client.snapshotFlow().collectAsState(initial = null)
     val pendingCount by client.pendingCountFlow().collectAsState(initial = 0)
+    val pendingExercises by client.pendingExercisesFlow().collectAsState(initial = emptySet())
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     // The rest-timer buzz + wake lock live here, at the root, so they outlive the
@@ -94,6 +95,7 @@ fun WearApp(
                 else -> WorkoutDial(
                     snap = snap,
                     pendingCount = pendingCount,
+                    pendingExercises = pendingExercises,
                     restController = restController,
                     sendEdit = { scope.launch { client.sendEdit(it) } },
                     onDismiss = onDismiss,
@@ -108,7 +110,7 @@ fun WearApp(
  * the lifter is on are *derived* (the client echoes a tick optimistically, so the
  * ring moves the moment it is tapped); only what the phone cannot know is held
  * here — has this set been started, is a rest running, when did the session begin,
- * which exercise did the crown pick, and how long each set actually took.
+ * which exercise did the crown pick, and which rounds this watch ticked, in order.
  *
  * All of it is [rememberSaveable] and deadline-anchored, so a process death
  * mid-set or mid-rest restores to exactly the same dial (write-on-mutation) — the
@@ -121,6 +123,7 @@ fun WearApp(
 private fun WorkoutDial(
     snap: WatchSnapshot,
     pendingCount: Int,
+    pendingExercises: Set<Long>,
     restController: RestTimerController,
     sendEdit: (SetEditDelta) -> Unit,
     onDismiss: () -> Unit,
@@ -140,8 +143,8 @@ private fun WorkoutDial(
     var sessionStartedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
     var sessionEndedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
     var selectedExercise by rememberSaveable(dayId) { mutableIntStateOf(NO_SELECTION) }
-    var setTimes by rememberSaveable(dayId, stateSaver = SetTimeMemorySaver) {
-        mutableStateOf(SetTimeMemory.EMPTY)
+    var tickMemory by rememberSaveable(dayId, stateSaver = TickMemorySaver) {
+        mutableStateOf(TickMemory.EMPTY)
     }
     var peek by remember(dayId) { mutableStateOf<PeekState?>(null) }
     var browseDay by remember(dayId) { mutableStateOf<Int?>(null) }
@@ -193,15 +196,19 @@ private fun WorkoutDial(
             ),
         )
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        // How long the set took, remembered on the wrist only — the wire never
-        // echoes the stamps back, so this is the peek's only source for TOOK (§6).
-        if (startedAtWallMillis > 0L) {
-            setTimes = setTimes.record(
-                programExerciseId = ex.programExerciseId,
-                roundIndex = roundIndex,
-                durationSeconds = ((completedAtMillis - startedAtWallMillis) / 1000L).toInt(),
-            )
-        }
+        // Remembered on the wrist only — the wire never echoes the stamps back, so
+        // this is the peek's only source for TOOK (§6) and the undo's only source of
+        // chronology. Recorded even when no start was seen: a set the watch didn't
+        // time still happened, and the undo has to be able to reach it.
+        tickMemory = tickMemory.record(
+            programExerciseId = ex.programExerciseId,
+            roundIndex = roundIndex,
+            durationSeconds = if (startedAtWallMillis > 0L) {
+                ((completedAtMillis - startedAtWallMillis) / 1000L).toInt()
+            } else {
+                0
+            },
+        )
         lifting = false
         startedAtWallMillis = 0L
         startedAtElapsedMillis = 0L
@@ -227,12 +234,19 @@ private fun WorkoutDial(
 
     /**
      * The deliberate way back out of a tick (§6): send the untick, forget the time
-     * it claimed, and let the derived indices walk back on their own. Whatever the
+     * it claimed, and put the dial back on the round it just reopened. Whatever the
      * tick set in motion goes with it — the rest it started was rest between two
      * sets, one of which no longer exists.
+     *
+     * [target] is the day's most recent tick and so need not be a round of the lift
+     * on screen, which is the whole point: the sets that are hardest to take back
+     * are the ones whose tick moved the dial away from them. Pointing the crown's
+     * own selection at the target is what walks the dial back — the derived rule
+     * would go to the *first* lift with work left, which after undoing a set the
+     * lifter deliberately skipped ahead to is not where they are looking.
      */
-    fun undo(index: Int) {
-        val ex = exercise ?: return
+    fun undo(target: UndoTarget) {
+        val ex = snap.day.exercises.getOrNull(target.exerciseIndex) ?: return
         restController.skip()
         clearRest()
         restedSeconds = NO_REST
@@ -243,11 +257,12 @@ private fun WorkoutDial(
             buildUndoDelta(
                 dayId = dayId,
                 programExerciseId = ex.programExerciseId,
-                setIndex = index,
+                setIndex = target.roundIndex,
                 editedAtMillis = System.currentTimeMillis(),
             ),
         )
-        setTimes = setTimes.forget(ex.programExerciseId, index)
+        tickMemory = tickMemory.forget(ex.programExerciseId, target.roundIndex)
+        selectedExercise = target.exerciseIndex
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
 
@@ -272,9 +287,7 @@ private fun WorkoutDial(
         session = SessionStamps(sessionStartedAtMillis, sessionEndedAtMillis),
         browseDayIndex = browseDay,
         peekRoundIndex = peek?.roundIndex,
-        peekTookSeconds = peek?.let { p ->
-            exercise?.let { setTimes.secondsFor(it.programExerciseId, p.roundIndex) }
-        },
+        tickMemory = tickMemory,
     )
     val state = dialUiState(inputs)
 
@@ -285,6 +298,17 @@ private fun WorkoutDial(
         while (true) {
             nowElapsedMillis = SystemClock.elapsedRealtime()
             delay(cadence)
+        }
+    }
+
+    // The crown's choice is *forgotten*, not merely ignored, once the day stops
+    // honouring it — but only once nothing of ours is still in flight against that
+    // lift ([ExerciseSelection.shouldForget]). Both keys matter: a snapshot can carry
+    // a newer revision and still predate our undo, and the queue draining is the
+    // other moment the answer can change.
+    LaunchedEffect(snap.revision, pendingExercises) {
+        if (ExerciseSelection.shouldForget(snap, selectedExercise.takeIf { it >= 0 }, pendingExercises)) {
+            selectedExercise = NO_SELECTION
         }
     }
 
@@ -397,15 +421,15 @@ private fun WorkoutDial(
                     DialTap.NONE -> Unit
                 }
             },
-            onHoldComplete = { index -> undo(index) },
+            onHoldComplete = { target -> undo(target) },
         )
     }
 }
 
-/** [SetTimeMemory] rides a saved-instance bundle as its own one-line encoding. */
-private val SetTimeMemorySaver = Saver<SetTimeMemory, String>(
+/** [TickMemory] rides a saved-instance bundle as its own one-line encoding. */
+private val TickMemorySaver = Saver<TickMemory, String>(
     save = { it.encode() },
-    restore = { SetTimeMemory.decode(it) },
+    restore = { TickMemory.decode(it) },
 )
 
 /**

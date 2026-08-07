@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.ui
 
+import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /**
@@ -27,6 +28,42 @@ object ExerciseSelection {
         val chosen = selectedIndex?.takeIf { it in exercises.indices }
         val hasWorkLeft = chosen != null && exercises[chosen].sets.any { !it.done }
         return if (chosen != null && hasWorkLeft) chosen else currentExerciseIndex(snapshot)
+    }
+
+    /**
+     * True once the day has stopped honouring [selectedIndex] — the chosen lift is
+     * finished (or gone), so [resolve] is already ignoring it.
+     *
+     * The choice must eventually be *cleared*, not merely ignored: a selection left
+     * lying around is one phone-side untick away from being honoured again, which
+     * would yank the dial back to a lift the lifter finished and walked away from.
+     * Ignoring is not forgetting. When it is safe to forget is [shouldForget].
+     */
+    fun isStale(snapshot: WatchSnapshot, selectedIndex: Int?): Boolean =
+        selectedIndex != null && resolve(snapshot, selectedIndex) != selectedIndex
+
+    /**
+     * True when the choice should be forgotten: the day has stopped honouring it
+     * **and** nothing of ours is still in flight against that lift.
+     *
+     * The settlement clause is what makes this safe mid-undo. An undo reopens its
+     * lift optimistically, but a snapshot can arrive from the phone with a newer
+     * revision and the *pre-undo* state — an unrelated edit, or the phone's
+     * publisher restarting — and is installed wholesale. Judged on staleness alone
+     * the choice would be dropped at exactly that moment, and the confirming
+     * snapshot would then land the dial on an earlier unfinished lift instead of on
+     * the set the lifter just took back. A lift with an unacked delta against it is
+     * a lift nothing has been decided about yet, so [pendingExerciseIds] holds the
+     * clear off until the phone has answered.
+     */
+    fun shouldForget(
+        snapshot: WatchSnapshot,
+        selectedIndex: Int?,
+        pendingExerciseIds: Set<Long>,
+    ): Boolean {
+        if (selectedIndex == null || !isStale(snapshot, selectedIndex)) return false
+        val chosen = snapshot.day.exercises.getOrNull(selectedIndex) ?: return true
+        return chosen.programExerciseId !in pendingExerciseIds
     }
 
     /** Where [detents] of crown from [fromIndex] land: clamped, never wrapping —
@@ -113,17 +150,66 @@ object PeekScrub {
     }
 }
 
-/** Which round a 700ms hold on the disc would untick (§6). */
-object UndoTarget {
+/**
+ * Which round of which exercise a 700ms hold on the disc would untick (§6). The
+ * exercise travels with the round because the undo reaches across the day: the set
+ * that wants taking back is often the one that *moved* the dial off its exercise.
+ */
+data class UndoTarget(val exerciseIndex: Int, val roundIndex: Int) {
 
-    /**
-     * The most recently logged round of the exercise in front of the lifter, or
-     * null when none of it is logged and there is nothing to take back.
-     *
-     * "Most recently" is read as the *last logged round in set order*: rounds are
-     * logged in order (the dial only ever offers the first undone one), so the two
-     * readings agree, and this one needs no memory of the session to be right after
-     * a process death.
-     */
-    fun of(doneFlags: List<Boolean>): Int? = doneFlags.indexOfLast { it }.takeIf { it >= 0 }
+    companion object {
+
+        /**
+         * The day's most recent tick: **the latest one this watch still remembers
+         * making**, wherever in the day it landed, and only failing that the nearest
+         * logged round looking back from [fromExerciseIndex]. Null when nothing is
+         * logged anywhere and there is nothing to take back.
+         *
+         * Recency has to come from [memory] because done flags carry no chronology —
+         * ticking round A then round C leaves a day indistinguishable from C then A,
+         * and on a destructive gesture guessing wrong removes a set the lifter did
+         * not touch. A remembered tick is only trusted while the snapshot still
+         * agrees the round is logged: a phone-side untick or edit can strip it out
+         * from under the memory, and a stale entry must not outrank a real one.
+         *
+         * **The fallback degrades honestly.** With no live remembered tick — every
+         * candidate logged on the phone, or the memory genuinely lost — it returns
+         * the positionally nearest logged round rather than the temporally latest.
+         * Within a lift the two agree (rounds are logged in order). Across lifts
+         * they can disagree, and this is the case where they do: the lifter is
+         * offered the set nearest where they are looking, which the disc names.
+         */
+        fun of(
+            exercises: List<WatchExercise>,
+            fromExerciseIndex: Int,
+            memory: TickMemory = TickMemory.EMPTY,
+        ): UndoTarget? {
+            if (exercises.isEmpty()) return null
+            return remembered(exercises, memory) ?: nearestLookingBack(exercises, fromExerciseIndex)
+        }
+
+        /** The newest remembered tick the snapshot still calls logged. */
+        private fun remembered(exercises: List<WatchExercise>, memory: TickMemory): UndoTarget? =
+            memory.newestFirst().firstNotNullOfOrNull { ref ->
+                val index = exercises.indexOfFirst { it.programExerciseId == ref.programExerciseId }
+                val stillLogged = exercises.getOrNull(index)
+                    ?.sets?.getOrNull(ref.roundIndex)?.done == true
+                if (stillLogged) UndoTarget(index, ref.roundIndex) else null
+            }
+
+        /**
+         * Position as a stand-in for time: the first logged round found walking back
+         * from [fromExerciseIndex], wrapping through the day. The wrap is what keeps
+         * a lift the crown skipped ahead to reachable once it is finished and the
+         * dial has fallen back to the first lift with work left.
+         */
+        private fun nearestLookingBack(exercises: List<WatchExercise>, fromExerciseIndex: Int): UndoTarget? {
+            for (step in exercises.indices) {
+                val index = Math.floorMod(fromExerciseIndex - step, exercises.size)
+                val round = exercises[index].sets.indexOfLast { it.done }
+                if (round >= 0) return UndoTarget(index, round)
+            }
+            return null
+        }
+    }
 }

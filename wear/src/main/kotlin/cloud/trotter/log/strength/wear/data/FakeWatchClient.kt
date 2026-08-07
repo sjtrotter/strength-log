@@ -31,6 +31,9 @@ class FakeWatchClient : WatchTrackerClient {
     // DataLayerWatchClient's PendingEditStore.
     override fun pendingCountFlow(): Flow<Int> = flowOf(0)
 
+    /** Nothing is ever in flight here: [sendEdit] stands in for the phone's ack too. */
+    override fun pendingExercisesFlow(): Flow<Set<Long>> = flowOf(emptySet())
+
     override suspend fun sendEdit(delta: SetEditDelta) {
         // NOTE ON THE REVISION BUMP — read alongside DataLayerWatchClient.sendEdit's
         // invariant. There, the optimistic *echo* must NOT bump `revision`, or the

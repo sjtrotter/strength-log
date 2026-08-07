@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -61,8 +62,33 @@ android {
     }
 }
 
+// The baselineprofile plugin adds two more release variants to this module
+// (`nonMinifiedRelease`, which the generator runs against, and
+// `benchmarkRelease`, for macrobenchmarks this repo doesn't have). `assemble`
+// would build both on every CI run and every `./gradlew build` here, for a
+// profile that is generated a handful of times a year — so they only exist when
+// asked for. Consuming the profile needs none of this: the release build reads
+// the checked-in `src/release/generated/baselineProfiles` either way.
+androidComponents {
+    val generatingProfile = providers.gradleProperty("baselineProfileGeneration").orNull == "true"
+    beforeVariants(selector().withBuildType("nonMinifiedRelease")) { it.enable = generatingProfile }
+    beforeVariants(selector().withBuildType("benchmarkRelease")) { it.enable = false }
+}
+
 kotlin {
     jvmToolchain(17)
+}
+
+// Recomposition hygiene evidence (#156): `./gradlew :app:compileDebugKotlin
+// -PcomposeMetrics=true` writes the stability/skippability reports to
+// app/build/compose-metrics. Off by default — the reports cost a full
+// non-incremental Kotlin compile, and nothing in a normal build reads them.
+composeCompiler {
+    if (providers.gradleProperty("composeMetrics").orNull == "true") {
+        val dir = layout.buildDirectory.dir("compose-metrics")
+        reportsDestination = dir
+        metricsDestination = dir
+    }
 }
 
 // Run all Hilt processing through KSP. Hilt's separate javac aggregating task
@@ -78,6 +104,13 @@ dependencies {
     // BackupService/CsvHistoryService (:transfer's Uri-free core, D9) — the
     // Data/Backup screen supplies the SAF Uri->stream plumbing on top.
     implementation(project(":transfer"))
+
+    // Installs the baseline profile below on first run for devices that don't
+    // get it from Play's cloud profiles (sideloads, and the release APK
+    // docs/RELEASE.md builds).
+    implementation(libs.androidx.profileinstaller)
+    // The generator module's output, compiled AOT into the release build (#156).
+    baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

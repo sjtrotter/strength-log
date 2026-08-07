@@ -16,4 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "strength-log"
 
-include(":domain", ":data", ":transfer", ":app", ":wear")
+include(":domain", ":data", ":transfer", ":app", ":wear", ":baselineprofile")

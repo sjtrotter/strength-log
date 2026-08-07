@@ -1,6 +1,12 @@
 package cloud.trotter.log.strength.ui.today
 
-/** Immutable render model for the Today screen (issue #121) — the ViewModel's single output. */
+import androidx.compose.runtime.Immutable
+
+/** Immutable render model for the Today screen (issue #121) — the ViewModel's
+ *  single output. [Immutable] for the reason
+ *  [cloud.trotter.log.strength.ui.day.DayUiState] carries it (#156): the two
+ *  `List` fields otherwise leave the whole screen comparing by identity. */
+@Immutable
 data class TodayUiState(
     val hasProgram: Boolean = false,
     /** True only while the program is still being read (#127) — see

@@ -1,11 +1,23 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
-/** Immutable render model for the whole day screen (UDF: the ViewModel's single output). */
+/**
+ * Immutable render model for the whole day screen (UDF: the ViewModel's single output).
+ *
+ * [Immutable] is load-bearing, not decoration (#156). Without it the Compose
+ * compiler reads `List<ExerciseCardState>` and a `:domain` value type it can't
+ * see the stability of, calls the whole class unstable, and falls back to
+ * *identity* comparison — so a rebuilt state that differs in one set's tick
+ * recomposes every card on screen. Every model in this file is built once by
+ * [DayScreenBuilder]/[DayViewModel] and never mutated, which is exactly what the
+ * annotation promises; keep it that way (no `MutableList` here, ever).
+ */
+@Immutable
 data class DayUiState(
     val hasProgram: Boolean = false,
     /** True only while the program is still being read (#127). `hasProgram =
@@ -32,13 +44,18 @@ data class DayUiState(
 
     /** Rounds ticked across the day's MAIN tracks — the same count the widget,
      *  the watch and Today show, since a superset partner rides inside its
-     *  round rather than adding one (glance-surfaces.md §4.2). */
-    val doneSets: Int
-        get() = exercises.sumOf { card -> card.rows.count { it.done } }
+     *  round rather than adding one (glance-surfaces.md §4.2).
+     *
+     *  Counted once here rather than on every read (#156): these two are read
+     *  four times over in the header alone — the status line takes both, and
+     *  the progress rule's fraction takes both again — so as `get()` accessors
+     *  they walked every row of every card four times per composition of the
+     *  chrome. They are derived from `exercises`, which cannot change under
+     *  them, so once per state is the honest number of times to count. */
+    val doneSets: Int = exercises.sumOf { card -> card.rows.count { it.done } }
 
     /** Rounds this day holds in total, counted the same way as [doneSets]. */
-    val totalSets: Int
-        get() = exercises.sumOf { it.rows.size }
+    val totalSets: Int = exercises.sumOf { it.rows.size }
 }
 
 /** One entry in the day tab strip. */
@@ -49,7 +66,9 @@ data class DayTab(
     val isSelected: Boolean,
 )
 
-/** One exercise card (spec §8.2). */
+/** One exercise card (spec §8.2). [Immutable] for the reason [DayUiState]
+ *  carries it: this is the type the LazyColumn compares per item. */
+@Immutable
 data class ExerciseCardState(
     val programExerciseId: Long,
     /** The slot's stable position in the day (spec §8.3) — the key

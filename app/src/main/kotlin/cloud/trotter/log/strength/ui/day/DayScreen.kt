@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -68,6 +67,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -172,8 +172,18 @@ fun DayScreen(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                item { Spacer(Modifier.size(4.dp)) }
-                items(state.exercises, key = { it.programExerciseId }) { card ->
+                // contentType, not just key (#156): without it every slot in this
+                // list is the same anonymous type, so a card scrolling in can be
+                // handed the recycled node tree of a spacer or the footer and has
+                // to build itself from nothing. Naming the types lets a card
+                // reuse a card — the one recycling that actually pays here, since
+                // a card is by far the most expensive thing in the list.
+                item(contentType = "spacer") { Spacer(Modifier.size(4.dp)) }
+                items(
+                    state.exercises,
+                    key = { it.programExerciseId },
+                    contentType = { "exercise" },
+                ) { card ->
                     ExerciseCard(
                         card = card,
                         unit = state.unit,
@@ -189,10 +199,10 @@ fun DayScreen(
                     )
                 }
                 state.cardio?.let { cardio ->
-                    item { CardioCard(cardio) }
+                    item(contentType = "cardio") { CardioCard(cardio) }
                 }
-                item { Footer(onClearChecks = { confirmingClearChecks = true }) }
-                item { Spacer(Modifier.size(8.dp)) }
+                item(contentType = "footer") { Footer(onClearChecks = { confirmingClearChecks = true }) }
+                item(contentType = "spacer") { Spacer(Modifier.size(8.dp)) }
             }
             BottomBar(
                 nextDayId = state.nextDayId,
@@ -370,14 +380,29 @@ private fun Hairline() {
  * it the lifter has ticked. Deliberately no extra height — a session's
  * progress is worth a line, not a band, and growing the rule once the first
  * set lands would shove the whole list down mid-workout.
+ *
+ * The fill is drawn, not laid out (#156). A child `fillMaxWidth(fraction)`
+ * made every tick re-measure a node in the fixed chrome to move a line that
+ * only ever changes colour along its length; a `drawBehind` rect is the same
+ * pixels for a draw pass. The draw scope is unaware of the reading direction
+ * the laid-out child got for free, so the anchor is worked out here: progress
+ * grows from the edge the day's title starts at, not from the left.
  */
 @Composable
 private fun ProgressHairline(progress: Float, accent: Color) {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Border)) {
-        if (progress > 0f) {
-            Box(Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0f, 1f)).background(accent))
-        }
-    }
+    val fraction = progress.coerceIn(0f, 1f)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(Border)
+            .drawBehind {
+                if (fraction <= 0f) return@drawBehind
+                val filled = size.width * fraction
+                val start = if (layoutDirection == LayoutDirection.Ltr) 0f else size.width - filled
+                drawRect(color = accent, topLeft = Offset(start, 0f), size = Size(filled, size.height))
+            },
+    )
 }
 
 @Composable

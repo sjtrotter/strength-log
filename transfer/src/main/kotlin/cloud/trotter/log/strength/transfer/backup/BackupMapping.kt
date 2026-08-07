@@ -62,6 +62,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
             restBackoffSeconds = restSettings.overrides[RestCategory.BACKOFF],
             restWorkSeconds = restSettings.overrides[RestCategory.WORK],
             restLightSeconds = restSettings.overrides[RestCategory.LIGHT],
+            keepScreenOn = keepScreenOn,
         ),
         customExercises = customExercises.map {
             CustomExerciseBackup(
@@ -233,6 +234,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             enabled = settings.restTimerEnabled,
             overrides = settings.restOverrides(),
         ),
+        keepScreenOn = settings.keepScreenOn,
         customExercises = customExercises.map {
             CustomExerciseEntity(
                 id = it.id,

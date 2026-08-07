@@ -74,6 +74,10 @@ open class TrackerRepository(
     val cardioPrefsFlow: Flow<CardioPrefs> = settings.cardioPrefsFlow
     val unitFlow: Flow<WeightUnit> = settings.unitFlow
     val restSettingsFlow: Flow<RestSettings> = settings.restSettingsFlow
+    /** The keep-screen-on preference (#125). Collected once, by the activity, so
+     *  the wake follows the app rather than whichever screen happens to be
+     *  composed — see `MainActivity`. */
+    val keepScreenOnFlow: Flow<Boolean> = settings.keepScreenOnFlow
     val wizardCompleteFlow: Flow<Boolean> = settings.wizardCompleteFlow
     val wizardAnswersFlow: Flow<WizardAnswers> = settings.wizardAnswersFlow
 
@@ -100,6 +104,11 @@ open class TrackerRepository(
 
     suspend fun setUnit(unit: WeightUnit) {
         settings.setUnit(unit)
+    }
+
+    /** Flips the keep-screen-on preference (the day screen's bottom-bar switch). */
+    suspend fun setKeepScreenOn(on: Boolean) {
+        settings.setKeepScreenOn(on)
     }
 
     /** Flips the master rest-timer gate (Setup's "Rest timer on watch" toggle). */
@@ -544,6 +553,7 @@ open class TrackerRepository(
         wizardComplete = settings.wizardCompleteFlow.first(),
         suggestedDay = settings.suggestedDayFlow.first(),
         restSettings = settings.restSettingsFlow.first(),
+        keepScreenOn = settings.keepScreenOnFlow.first(),
         customExercises = customExerciseDao.allOrdered(),
         days = programDao.allDays(),
         exercises = programDao.allExercises(),
@@ -591,6 +601,7 @@ open class TrackerRepository(
             wizardComplete = snapshot.wizardComplete,
             suggestedDay = snapshot.suggestedDay,
             restSettings = snapshot.restSettings,
+            keepScreenOn = snapshot.keepScreenOn,
         )
     }
 

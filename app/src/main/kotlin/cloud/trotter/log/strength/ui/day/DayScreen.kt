@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -36,7 +37,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +56,6 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -121,7 +120,6 @@ fun DayScreen(
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
 ) {
-    KeepScreenOn(state.keepScreenOn)
     val accent = dayAccent(state.dayIndex)
     val onAccent = onDayAccent(state.dayIndex)
     val soft = accentSoft(state.dayIndex)
@@ -152,11 +150,11 @@ fun DayScreen(
             return@Box
         }
 
-        // Fixed chrome top and bottom (day tabs / settings / keep-screen-on above,
-        // the DONE action below); only the exercise cards scroll between them, so
-        // navigation and the primary action never scroll out of reach.
+        // Fixed chrome top and bottom (day tabs and the day's title above, DONE
+        // and keep-screen-on below); only the exercise cards scroll between them,
+        // so navigation and the primary action never scroll out of reach.
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
-            TopBar(state, accent, soft, onAccent, actions, onEditDay = { showEditSheet = true })
+            TopBar(state, accent, soft, actions, onEditDay = { showEditSheet = true })
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -183,7 +181,14 @@ fun DayScreen(
                 item { Footer(onClearChecks = { confirmingClearChecks = true }) }
                 item { Spacer(Modifier.size(8.dp)) }
             }
-            BottomBar(nextDayId = state.nextDayId, accent = accent, onAccent = onAccent, onDone = actions.onDone)
+            BottomBar(
+                nextDayId = state.nextDayId,
+                accent = accent,
+                onAccent = onAccent,
+                onDone = actions.onDone,
+                keepScreenOn = state.keepScreenOn,
+                onKeepScreenOnChange = actions.onKeepScreenOnChange,
+            )
         }
     }
 
@@ -228,14 +233,13 @@ fun DayScreen(
     }
 }
 
-// --- fixed top bar: tabs, settings, keep-screen-on, day title ----------------
+// --- fixed top bar: tabs, day title, the ✎ chip ------------------------------
 
 @Composable
 private fun TopBar(
     state: DayUiState,
     accent: Color,
     accentSoftColor: Color,
-    onAccent: Color,
     actions: DayActions,
     onEditDay: () -> Unit,
 ) {
@@ -261,8 +265,6 @@ private fun TopBar(
                     DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
                 }
             }
-            // Keep-screen-on rides the title row (not the tab row) so it can't
-            // push a fifth+ day tab or the switch off a narrow screen's edge.
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.Top,
@@ -281,15 +283,9 @@ private fun TopBar(
                 }
                 // Opens the day-edit sheet (#11, spec §8.3: "a gear icon in the
                 // day header"). The only chrome left on this screen: app-wide
-                // Setup and the Log both live on Today now (#121).
+                // Setup and the Log both live on Today now (#121), and
+                // keep-screen-on moved down beside DONE (#125).
                 EditDayButton(onClick = onEditDay)
-                KeepScreenOnSwitch(
-                    checked = state.keepScreenOn,
-                    onCheckedChange = actions.onKeepScreenOnChange,
-                    accent = accent,
-                    onAccent = onAccent,
-                    label = "Keep on",
-                )
             }
         }
         Hairline()
@@ -412,12 +408,22 @@ private fun ExerciseCard(
     undoSlotIndex: Int? = null,
     onUndoRemoveSet: () -> Unit = {},
 ) {
+    // Animation-layer only, and deliberately *not* saveable: both are how the
+    // fold looks, never what it is. The fold itself is [ExerciseCardState.collapsed],
+    // which DayViewModel keeps in SavedStateHandle — so a rotation lands on the
+    // right shape via the effect below, it just doesn't replay the tween.
     var previousAllDone by remember { mutableStateOf(card.allDone) }
     var displayCollapsed by remember { mutableStateOf(card.collapsed) }
     // Confirm-before-swap (§4.2): the pill never mutates on tap alone — a swap
     // discards the slot's live rows, the same courtesy other destructive day
     // actions get (ResetToTemplateDialog).
-    var pendingSwap by remember { mutableStateOf<WeightSwapAffordance?>(null) }
+    //
+    // Saveable, because an open question is user state and rotating the phone
+    // must not answer it by dropping it (#125). Only the *asking* is stored: the
+    // affordance itself is re-read from [card] below, so there is one copy of it
+    // (SSOT), and a swap that stops being on offer while the dialog is up simply
+    // closes it rather than confirming against a stale target.
+    var confirmingSwap by rememberSaveable { mutableStateOf(false) }
     val undoOnOffer = undoSlotIndex != null
     LaunchedEffect(card.collapsed, card.allDone, undoOnOffer) {
         val justFinished = card.allDone && !previousAllDone
@@ -480,7 +486,7 @@ private fun ExerciseCard(
                     if (card.hasWarmupHint) Badge("+1 WARM-UP", Color.Transparent, TextSecondary, outlined = true)
                     if (card.allDone) Badge("✓", Done, Background, description = "All sets done")
                     card.weightSwap?.let { swap ->
-                        WeightSwapPill(swap, accent, onClick = { pendingSwap = swap })
+                        WeightSwapPill(swap, accent, onClick = { confirmingSwap = true })
                     }
                 }
                 // History bonus (PLAN.md A1): the exercise's last completed
@@ -621,14 +627,14 @@ private fun ExerciseCard(
         }
     }
 
-    pendingSwap?.let { swap ->
+    card.weightSwap?.takeIf { confirmingSwap }?.let { swap ->
         WeightSwapConfirmDialog(
             swap = swap,
             onConfirm = {
                 onSwapWeight(card.position, swap.targetExerciseId)
-                pendingSwap = null
+                confirmingSwap = false
             },
-            onDismiss = { pendingSwap = null },
+            onDismiss = { confirmingSwap = false },
         )
     }
 }
@@ -864,20 +870,55 @@ private fun CardioCard(cardio: CardioSuggestion) {
     }
 }
 
-// --- fixed bottom bar: the primary action ------------------------------------
+// --- fixed bottom bar: the primary action, and keep-screen-on ----------------
 
+/**
+ * DONE plus the keep-screen-on switch (#125). The switch sits here and not in
+ * the header because it is a *during-workout* control — you reach for it with
+ * chalked hands between sets, and the bottom edge is the only part of a 6"
+ * phone a thumb reaches without regripping. DONE keeps the width it isn't using.
+ */
 @Composable
-private fun BottomBar(nextDayId: String?, accent: Color, onAccent: Color, onDone: () -> Unit) {
+private fun BottomBar(
+    nextDayId: String?,
+    accent: Color,
+    onAccent: Color,
+    onDone: () -> Unit,
+    keepScreenOn: Boolean,
+    onKeepScreenOnChange: (Boolean) -> Unit,
+) {
     Column(Modifier.fillMaxWidth().background(Background)) {
         Hairline()
-        Box(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-            DoneButton(nextDayId = nextDayId, accent = accent, onAccent = onAccent, onClick = onDone)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            DoneButton(
+                nextDayId = nextDayId,
+                accent = accent,
+                onAccent = onAccent,
+                onClick = onDone,
+                modifier = Modifier.weight(1f),
+            )
+            KeepScreenOnSwitch(
+                checked = keepScreenOn,
+                onCheckedChange = onKeepScreenOnChange,
+                accent = accent,
+                onAccent = onAccent,
+            )
         }
     }
 }
 
 @Composable
-private fun DoneButton(nextDayId: String?, accent: Color, onAccent: Color, onClick: () -> Unit) {
+private fun DoneButton(
+    nextDayId: String?,
+    accent: Color,
+    onAccent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -886,8 +927,7 @@ private fun DoneButton(nextDayId: String?, accent: Color, onAccent: Color, onCli
         label = "doneButtonPress",
     )
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
             // heightIn(min), not height (A7 font-scale): the longer "ADVANCE TO
             // DAY B" label wraps to two lines at large fontScale instead of
@@ -963,33 +1003,40 @@ private fun QuietButton(onClick: () -> Unit) {
     }
 }
 
+/**
+ * Keep-screen-on, in the compact form the bottom bar has room for: the same
+ * 40×24 track this app has always drawn, stacked over a two-word label instead
+ * of set beside a sentence. Stacking is what buys DONE the width — the control
+ * is 48dp wide where the old label-beside-track row was closer to 110dp.
+ */
 @Composable
 private fun KeepScreenOnSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     accent: Color,
     onAccent: Color,
-    label: String = "Keep screen on",
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
         modifier = Modifier
             .minimumInteractiveComponentSize()
+            // widthIn, not width (A7 font-scale): the label sets the width at
+            // large scales instead of clipping, and DONE's weight(1f) yields.
+            .widthIn(min = 48.dp)
             // toggleable(role = Switch) (A7): TalkBack gets the switch role and
-            // on/off state for free; [label] is real Text, so it merges into
+            // on/off state for free; the label is real Text, so it merges into
             // the accessible name without a separate contentDescription.
             .pressableToggleable(
                 value = checked,
                 onValueChange = onCheckedChange,
                 role = Role.Switch,
-                // A label-plus-track row is row-shaped, so it takes the row
-                // radius; without it the veil would square off the one control
-                // on this screen that isn't a chip.
+                // A stacked block is block-shaped, so it takes the same radius
+                // the cards and DONE do; without it the veil would square off
+                // the one control on this screen that isn't a chip.
                 shape = RoundedCornerShape(12.dp),
             ),
     ) {
-        Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         val trackColor by animateColorAsState(if (checked) accent else Surface2, tween(200), label = "switchTrack")
         val thumbOffset by animateFloatAsState(if (checked) 18f else 2f, tween(200), label = "switchThumb")
         Box(
@@ -1006,19 +1053,17 @@ private fun KeepScreenOnSwitch(
                     .background(if (checked) onAccent else TextSecondary, CircleShape),
             )
         }
+        Text(
+            "KEEP ON",
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
 // --- modifiers / effects -----------------------------------------------------
-
-@Composable
-private fun KeepScreenOn(enabled: Boolean) {
-    val view = LocalView.current
-    DisposableEffect(enabled) {
-        view.keepScreenOn = enabled
-        onDispose { view.keepScreenOn = false }
-    }
-}
 
 private fun Modifier.dashedBorder(color: Color, radius: Dp): Modifier = drawBehind {
     val stroke = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 5f)))

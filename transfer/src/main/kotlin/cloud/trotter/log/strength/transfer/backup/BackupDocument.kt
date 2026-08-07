@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
  * add a `when` branch when the on-disk shape changes; no migration machinery is
  * built ahead of a real second version.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 3
+const val CURRENT_SCHEMA_VERSION: Int = 4
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -86,6 +86,11 @@ data class SettingsBackup(
     val restBackoffSeconds: Int? = null,
     val restWorkSeconds: Int? = null,
     val restLightSeconds: Int? = null,
+    /** Keep-screen-on (v4). Defaulted to the same absent-means-off meaning the
+     *  DataStore key has, so a v1-v3 document — written when this was a
+     *  session-only flag that no backup could carry — restores with the screen
+     *  behaving exactly as it does on a fresh install. */
+    val keepScreenOn: Boolean = false,
 )
 
 /** A user-created exercise (mirror of the `custom_exercise` row). The tracking

@@ -70,6 +70,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         repository.setRestTimerEnabled(false)
         repository.setRestOverride(RestCategory.TOP, 210)
         repository.setRestOverride(RestCategory.LIGHT, 30)
+        repository.setKeepScreenOn(true)
 
         val customId = repository.addCustomExercise(
             name = "Cable Hack Squat",
@@ -120,6 +121,9 @@ class BackupRoundTripTest : BackupTestHarness() {
         // The wipe backup predates nothing — it simply carries no rest keys, so
         // the tuned buckets must fall back to RestPolicy's defaults, not linger.
         assertEquals(RestSettings(), repository.restSettingsFlow.first())
+        // Same story for keep-screen-on (#125): the empty backup carries no key,
+        // so the restore must land on the absent-means-off default.
+        assertEquals(false, repository.keepScreenOnFlow.first())
 
         // --- import the real backup and compare deep-equal --------------------
         service.import(backup)
@@ -128,6 +132,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         // Spot-check a couple of load-bearing details beyond structural equality.
         assertEquals("B", repository.suggestedDayFlow.first())
         assertEquals(WeightUnit.KG, repository.unitFlow.first())
+        assertEquals(true, repository.keepScreenOnFlow.first())
         assertEquals(listOf(LoggedSet(250.0, 5, SetKind.TOP)), repository.logFlow("A").first().first { it.programExerciseId == squatId }.sets)
     }
 
@@ -144,6 +149,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         val wizardComplete: Boolean,
         val suggestedDay: String?,
         val restSettings: RestSettings,
+        val keepScreenOn: Boolean,
     )
 
     private suspend fun captureState(): State {
@@ -160,6 +166,7 @@ class BackupRoundTripTest : BackupTestHarness() {
             wizardComplete = repository.wizardCompleteFlow.first(),
             suggestedDay = repository.suggestedDayFlow.first(),
             restSettings = repository.restSettingsFlow.first(),
+            keepScreenOn = repository.keepScreenOnFlow.first(),
         )
     }
 }

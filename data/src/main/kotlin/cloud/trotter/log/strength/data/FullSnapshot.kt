@@ -31,6 +31,9 @@ data class FullSnapshot(
     val wizardComplete: Boolean,
     val suggestedDay: String?,
     val restSettings: RestSettings,
+    /** The keep-screen-on preference (#125). Defaulted off so the many fixtures
+     *  that predate it still read as the setting's absent-means-off meaning. */
+    val keepScreenOn: Boolean = false,
     val customExercises: List<CustomExerciseEntity>,
     val days: List<ProgramDayEntity>,
     val exercises: List<ProgramExerciseEntity>,

@@ -740,6 +740,62 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
+    // --- keep-screen-on, now a real preference (#125) -------------------------
+
+    @Test
+    fun theKeepScreenOnToggleReachesDataStore() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        assertFalse("absent means off", repo.keepScreenOnFlow.first())
+
+        vm.setKeepScreenOn(true)
+        advanceUntilIdle()
+
+        assertTrue(repo.keepScreenOnFlow.first())
+
+        vm.setKeepScreenOn(false)
+        advanceUntilIdle()
+
+        assertFalse(repo.keepScreenOnFlow.first())
+    }
+
+    @Test
+    fun theSwitchInTheUiStateReadsThePersistedPreference() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.keepScreenOn)
+
+        vm.setKeepScreenOn(true)
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.keepScreenOn)
+        collect.cancel()
+    }
+
+    /**
+     * The bug #125 exists to kill. The flag used to live in [SavedStateHandle],
+     * so it was scoped to one screen's one visit: a cold launch — or simply
+     * walking to the Log and back, which builds this ViewModel afresh — reset it
+     * to OFF while the lifter was still mid-workout. A new ViewModel with an
+     * empty handle must now still see ON.
+     */
+    @Test
+    fun keepScreenOnOutlivesTheViewModelThatSetIt() = runVmTest {
+        insertProgram()
+        newViewModel().setKeepScreenOn(true)
+        advanceUntilIdle()
+
+        val reborn = newViewModel(handle = SavedStateHandle())
+        val collect = launch { reborn.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertTrue(reborn.uiState.value.keepScreenOn)
+        collect.cancel()
+    }
+
     // --- the remove-set undo window (#124) ------------------------------------
     //
     // Time matters here, so these advance the virtual clock deliberately:

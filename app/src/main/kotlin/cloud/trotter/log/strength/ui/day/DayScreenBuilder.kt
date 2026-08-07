@@ -174,6 +174,48 @@ object DayScreenBuilder {
     }
 
     /**
+     * The TOP set's one-line comparison against the last time this exercise was
+     * performed (issue #127): "+5 LB FROM LAST", "MATCHED", "FIRST LOG". Derived
+     * from what the card already holds — [main] is the live log the rows render
+     * from and [last] is the read [lastTimeDisplay] already made — so narrating
+     * the number costs no extra query.
+     *
+     * Keyed to [SetKind.TOP], which is why it is silent on REPS and TIMED
+     * exercises: [cloud.trotter.log.strength.domain.seeding.SetSeeder] gives
+     * those all-WORK rows and no TOP, so there is no single set that carries the
+     * day's intent for them. It is silent for the same honesty reason when
+     * [last]'s own values aren't weight-shaped ([SetFormatter.trackingOfValues])
+     * — a legacy reps-shaped history row can't be subtracted from a load.
+     *
+     * The delta is taken between the two weights *as the screen prints them*
+     * ([WeightStepper.toDisplayPrecision]), in the display unit. Subtracting the
+     * raw converted values instead would let a kg card narrate "+0.01 KG FROM
+     * LAST" between two loads that both read 45.36 — narration that contradicts
+     * the numbers it sits under is worse than no narration.
+     */
+    fun topSetComparison(main: List<LoggedSet>, last: LastPerformed?, unit: WeightUnit): String? {
+        val top = main.firstOrNull { it.kind == SetKind.TOP } ?: return null
+        if (last == null) return "FIRST LOG"
+        if (SetFormatter.trackingOfValues(last.weightLb, last.reps, last.seconds) != TrackingType.WEIGHTED) {
+            return null
+        }
+        val topWeight = WeightStepper.toDisplayPrecision(unit.fromLb(top.weightLb))
+        val lastWeight = WeightStepper.toDisplayPrecision(unit.fromLb(last.weightLb))
+        val delta = topWeight - lastWeight
+        // Equal on screen is equal, and the reps below decide what to say about
+        // it. The epsilon only absorbs the float noise of subtracting two
+        // already-rounded values — a real difference is at least one hundredth.
+        if (delta > DISPLAY_EPSILON) return "+${WeightStepper.format(delta)} ${unit.name} FROM LAST"
+        if (delta < -DISPLAY_EPSILON) return "−${WeightStepper.format(-delta)} ${unit.name} FROM LAST"
+        val reps = top.reps - last.reps
+        return when {
+            reps > 0 -> "+$reps ${repWord(reps)} FROM LAST"
+            reps < 0 -> "−${-reps} ${repWord(-reps)} FROM LAST"
+            else -> "MATCHED"
+        }
+    }
+
+    /**
      * The ADD WEIGHT / REMOVE WEIGHT pill for [entry] (§4.2): derived, never
      * invented — a loaded variant ([ExerciseEntry.weightedPairId]) yields
      * "ADD WEIGHT" targeting it; being the loaded target of some other entry
@@ -239,4 +281,11 @@ object DayScreenBuilder {
 
     private fun setSummary(set: LoggedSet, tracking: TrackingType, unit: WeightUnit): String =
         SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, unit)
+
+    private fun repWord(count: Int): String = if (count == 1) "REP" else "REPS"
+
+    /** Half of [WeightStepper.format]'s last decimal place — the widest gap that
+     *  can only be float noise once both sides are already at display
+     *  precision. */
+    private const val DISPLAY_EPSILON = 0.005
 }

@@ -428,8 +428,11 @@ open class TrackerRepository(
      * Batches the A1 "last time" chip for a whole day into one query (#14):
      * [exerciseIds]' most recent completed performance, keyed by exercise id. An
      * id with no history is simply absent from the result.
+     *
+     * `open` for the same reason the wizard writes are: a test double slows this
+     * read down to pin what the day screen shows while it waits (#127).
      */
-    suspend fun lastPerformed(exerciseIds: List<String>): Map<String, LastPerformed> {
+    open suspend fun lastPerformed(exerciseIds: List<String>): Map<String, LastPerformed> {
         if (exerciseIds.isEmpty()) return emptyMap()
         return sessionDao.lastPerformedRows(exerciseIds).toLastPerformedByExercise()
     }

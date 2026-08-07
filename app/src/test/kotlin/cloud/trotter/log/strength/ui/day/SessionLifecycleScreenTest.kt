@@ -253,6 +253,7 @@ class SessionLifecycleScreenTest {
         onClearChecks = {},
         onDone = {},
         onCreateExercise = {},
+        onSetUpProgram = {},
     )
 
     private fun noopEditActions() = DayEditActions(

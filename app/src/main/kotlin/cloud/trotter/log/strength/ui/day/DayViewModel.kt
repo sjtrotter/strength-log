@@ -31,6 +31,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -98,18 +100,22 @@ class DayViewModel @Inject constructor(
             repo.programFlow,
             repo.suggestedDayFlow,
             effectiveDayId,
-            repo.keepScreenOnFlow,
             ::PartialContext,
         ).let { partial ->
             combine(partial, repo.configFlow, repo.unitFlow, repo.catalogFlow) { p, cfg, unit, catalog ->
-                DayContext(p.program, p.suggested, p.dayId, cfg, unit, catalog, p.keepOn)
+                DayContext(p.program, p.suggested, p.dayId, cfg, unit, catalog)
             }
         }
+            // Every DataStore-backed flow above re-emits on *any* preferences
+            // write, so without this a rest-timer or unit write rebuilt an
+            // identical context — which used to be merely a wasted history
+            // re-read and now would blank a day the lifter is standing in.
+            .distinctUntilChanged()
 
-    val uiState: StateFlow<DayUiState> = contextFlow.flatMapLatest { ctx ->
+    private val dayState: Flow<DayUiState> = contextFlow.flatMapLatest { ctx ->
         val dayId = ctx.dayId
         if (dayId == null) {
-            flowOf(DayUiState(hasProgram = false, keepScreenOn = ctx.keepOn))
+            flowOf(noDayState(ctx))
         } else {
             // Re-fetched only when the day's exercise ids change (a program edit),
             // not on every weight/rep keystroke — both history chips are prior
@@ -121,8 +127,27 @@ class DayViewModel @Inject constructor(
                 val (slots, history) = slotsAndHistory
                 buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, collapse, history)
             }
+                // flatMapLatest cancels the day the lifter just left, but nothing
+                // *publishes* that — [uiState] keeps handing out the old day's
+                // fully tickable rows until [fetchDayHistory] returns from Room
+                // (#127). So each branch declares itself unresolved before it
+                // reads anything: on the usual fast fetch the real day arrives
+                // well inside ProgramLoadingState's reveal delay and nothing is
+                // drawn, and on a slow one the lifter waits instead of ticking
+                // sets into the day they walked away from.
+                .onStart { emit(DayUiState(loading = true)) }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState())
+    }
+
+    /**
+     * Keep-screen-on rides on the outside, not through [contextFlow]: it changes
+     * nothing about which day is on screen, and threading it through the
+     * flatMapLatest would restart the whole branch — and now blank the screen —
+     * every time a lifter flips a switch mid-workout.
+     */
+    val uiState: StateFlow<DayUiState> =
+        combine(dayState, repo.keepScreenOnFlow) { state, keepOn -> state.copy(keepScreenOn = keepOn) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState(loading = true))
 
     /** Render model for the day-edit sheet (#11, spec §8.3) — a second view over
      *  the same day, kept out of [uiState] so the sheet never touches the
@@ -551,6 +576,15 @@ class DayViewModel @Inject constructor(
             .firstOrNull { it.programExerciseId == programExerciseId && it.slot == slot }
             ?.sets ?: emptyList()
 
+    /**
+     * The state for a context that resolved to no day. The program itself says
+     * which of the two that is (#127): days but no day yet is the one frame
+     * where [effectiveDayId] hasn't caught up with a program emission, and is
+     * still loading; no days at all is the answer, and gets the recovery.
+     */
+    private fun noDayState(ctx: DayContext) =
+        DayUiState(hasProgram = false, loading = ctx.program.days.isNotEmpty())
+
     private fun resolveDay(program: Program, suggested: String?, override: String?): String? {
         val ids = program.days.map { it.id }
         return override?.takeIf { it in ids } ?: suggested?.takeIf { it in ids } ?: ids.firstOrNull()
@@ -574,7 +608,7 @@ class DayViewModel @Inject constructor(
     ): DayUiState {
         val program = ctx.program
         val day = program.days.firstOrNull { it.id == dayId }
-            ?: return DayUiState(hasProgram = false, keepScreenOn = ctx.keepOn)
+            ?: return noDayState(ctx)
         val dayIndex = program.days.indexOfFirst { it.id == dayId }
         return DayUiState(
             hasProgram = true,
@@ -590,7 +624,6 @@ class DayViewModel @Inject constructor(
             nextDayId = Rotation.next(program, dayId),
             exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse, history) },
             cardio = day.cardio,
-            keepScreenOn = ctx.keepOn,
         )
     }
 
@@ -654,6 +687,7 @@ class DayViewModel @Inject constructor(
             partnerTimedShowsWeight = partnerTimedShowsWeight,
             lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, unit),
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[pe.exerciseId], lastPerformed, unit),
+            topSetComparison = DayScreenBuilder.topSetComparison(main, lastPerformed, unit),
             plateLine = DayScreenBuilder.plateLine(main, entry?.equipment.orEmpty(), unit),
             allDone = DayScreenBuilder.allDone(main),
             collapsed = DayScreenBuilder.collapsed(main, collapse[id]),
@@ -706,7 +740,6 @@ class DayViewModel @Inject constructor(
         val program: Program,
         val suggested: String?,
         val dayId: String?,
-        val keepOn: Boolean,
     )
 
     private data class DayContext(
@@ -716,7 +749,6 @@ class DayViewModel @Inject constructor(
         val cfg: LifterConfig,
         val unit: WeightUnit,
         val catalog: ExerciseCatalog,
-        val keepOn: Boolean,
     )
 
     private companion object {

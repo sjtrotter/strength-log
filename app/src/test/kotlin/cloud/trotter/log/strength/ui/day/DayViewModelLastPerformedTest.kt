@@ -152,4 +152,34 @@ class DayViewModelLastPerformedTest {
         assertEquals("235×5", card.lastTimeDisplay)
         collect2.cancel()
     }
+
+    @Test
+    fun cardComparesTheSeededTopSetWithTheMostRecentlyCompletedSession() = runVmTest {
+        insertSingleDayProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+
+        assertEquals(
+            "FIRST LOG",
+            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.topSetComparison,
+        )
+
+        vm.toggleDone(squatId, index = 4, checked = true, isSuperset = false)
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+        collect.cancel()
+
+        val vm2 = newViewModel()
+        val collect2 = launch { vm2.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(
+            "MATCHED",
+            vm2.uiState.value.exercises.first { it.programExerciseId == squatId }.topSetComparison,
+        )
+        collect2.cancel()
+    }
 }

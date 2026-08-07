@@ -203,6 +203,7 @@ class CardSwapTest {
         onClearChecks = {},
         onDone = {},
         onCreateExercise = {},
+        onSetUpProgram = {},
     )
 
     private fun swapRecorder(swaps: MutableList<Pair<Int, String>>) = DayEditActions(

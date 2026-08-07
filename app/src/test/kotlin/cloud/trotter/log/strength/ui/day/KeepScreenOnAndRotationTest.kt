@@ -200,6 +200,7 @@ class KeepScreenOnAndRotationTest {
         onClearChecks = {},
         onDone = {},
         onCreateExercise = {},
+        onSetUpProgram = {},
     )
 
     private fun noopEditActions(swaps: MutableList<Pair<Int, String>> = mutableListOf()) = DayEditActions(

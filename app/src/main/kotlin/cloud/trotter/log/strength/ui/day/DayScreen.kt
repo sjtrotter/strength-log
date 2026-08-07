@@ -80,6 +80,8 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.CardShape
 import cloud.trotter.log.strength.ui.components.DialogAction
+import cloud.trotter.log.strength.ui.components.NoProgramState
+import cloud.trotter.log.strength.ui.components.ProgramLoadingState
 import cloud.trotter.log.strength.ui.components.SetRow
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.components.pressableSelectable
@@ -148,9 +150,9 @@ fun DayScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         if (!state.hasProgram) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Preparing your program…", color = TextSecondary)
-            }
+            // Two different silences (#127): one that ends on its own, and one
+            // that only ends when the lifter does something about it.
+            if (state.loading) ProgramLoadingState() else NoProgramState(actions.onSetUpProgram)
             return@Box
         }
 
@@ -605,6 +607,19 @@ private fun ExerciseCard(
                     // The offer sits in the gap the removed row left, so undo is
                     // where the eye already is.
                     if (row.index == undoSlotIndex) UndoRemovedSetRow(accent, rowInset, onUndoRemoveSet)
+                    // The card's narration (#127) sits on the row it is about:
+                    // the TOP set is where a main lift's number actually moves,
+                    // and the ramp under it is derived from this one.
+                    if (row.isTop) {
+                        card.topSetComparison?.let {
+                            Text(
+                                it,
+                                color = TextFaint,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = rowInset.padding(top = 4.dp, bottom = 3.dp),
+                            )
+                        }
+                    }
                     SetRow(
                         kindLabel = row.kindLabel,
                         accent = accent,
@@ -1141,6 +1156,8 @@ data class DayActions(
     val onClearChecks: () -> Unit,
     val onDone: () -> Unit,
     val onCreateExercise: (MovementPattern) -> Unit,
+    /** The recovery out of the no-program state (#127): back into the wizard. */
+    val onSetUpProgram: () -> Unit,
 )
 
 // --- preview: the reference scenario (day_screen_reference.html) ------------
@@ -1199,6 +1216,7 @@ private fun DayScreenPreviewContent() {
                 perHand = false,
                 lastTimeDisplay = "230×5",
                 personalRecordDisplay = "245×5",
+                topSetComparison = "+5 LB FROM LAST",
                 allDone = false,
                 collapsed = false,
                 collapsedSummary = "5 sets · GOAL 235",
@@ -1288,6 +1306,7 @@ private fun DayScreenPreviewContent() {
                 onClearChecks = {},
                 onDone = {},
                 onCreateExercise = {},
+                onSetUpProgram = {},
             ),
             // Slots for the four cards above: the preview needs them or no card
             // shows its ⇄ chip (#122), which is exactly what the font-scale

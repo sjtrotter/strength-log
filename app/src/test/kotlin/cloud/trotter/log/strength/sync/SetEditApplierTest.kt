@@ -19,8 +19,10 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -78,8 +80,10 @@ class SetEditApplierTest {
 
     @After
     fun tearDown() {
+        // Joined, not just cancelled: DataStore releases the file from the scope's
+        // completion handler, which a bare cancel() does not wait for.
+        runBlocking { storeScope.coroutineContext.job.cancelAndJoin() }
         db.close()
-        storeScope.cancel()
     }
 
     /** Day A: a ramped squat (with a TOP row) and an arms superset. */

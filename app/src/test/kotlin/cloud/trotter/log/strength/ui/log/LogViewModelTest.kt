@@ -129,6 +129,22 @@ class LogViewModelTest {
         )
     }
 
+    /** #127: the empty journal's action depends on this, and offering to start a
+     *  session there with no program would promise a workout that lands on
+     *  NO PROGRAM YET. */
+    @Test
+    fun reportsWhetherThereIsAProgramToStartASessionFrom() = runVmTest {
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.hasProgram)
+
+        insertProgram()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.hasProgram)
+        collect.cancel()
+    }
+
     @Test
     fun listsSessionsNewestFirstWithNoGroupsUntilExpanded() = runVmTest {
         seedTwoSessions()

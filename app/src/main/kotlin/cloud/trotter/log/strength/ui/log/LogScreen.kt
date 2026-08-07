@@ -43,6 +43,7 @@ import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.CardShape
 import cloud.trotter.log.strength.ui.components.DayBadge
+import cloud.trotter.log.strength.ui.components.EmptyJournalState
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -116,10 +117,10 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
 
                 if (state.sessions.isEmpty()) {
                     item(key = "empty") {
-                        Text(
-                            "No workouts logged yet.",
-                            color = TextSecondary,
-                            modifier = Modifier.padding(vertical = 40.dp),
+                        EmptyJournalState(
+                            hasProgram = state.hasProgram,
+                            onStartSession = actions.onStartSession,
+                            onSetUpProgram = actions.onSetUpProgram,
                         )
                     }
                 } else {
@@ -373,6 +374,10 @@ data class LogActions(
     val onApplyBodyweight: () -> Unit,
     val onDismissBodyweight: () -> Unit,
     val onShare: (Long) -> Unit,
+    /** The empty journal's way out (#127): straight to the workout that will fill it. */
+    val onStartSession: () -> Unit,
+    /** The same slot's way out when there is no program to start (#127). */
+    val onSetUpProgram: () -> Unit,
 )
 
 @Preview(showBackground = true, heightDp = 700, backgroundColor = 0xFF0D0D0F)
@@ -488,6 +493,8 @@ private fun LogScreenPreview() {
                 onApplyBodyweight = {},
                 onDismissBodyweight = {},
                 onShare = {},
+                onStartSession = {},
+                onSetUpProgram = {},
             ),
         )
     }

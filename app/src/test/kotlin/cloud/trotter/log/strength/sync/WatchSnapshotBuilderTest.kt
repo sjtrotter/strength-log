@@ -334,6 +334,76 @@ class WatchSnapshotBuilderTest {
     }
 
     @Test
+    fun alternates_follow_substitution_rank_and_exclude_the_current_exercise() {
+        val expected = catalog.substitutionsFor("bb_back_squat").take(WatchSnapshotBuilder.MAX_ALTERNATES)
+
+        val alternates = WatchSnapshotBuilder.alternatesFor(
+            "bb_back_squat", catalog, Equipment.entries.toSet(),
+        )
+
+        assertEquals(expected.map { it.id }, alternates.map { it.exerciseId })
+        assertEquals(expected.map { it.subRank }, alternates.map { catalog.get(it.exerciseId).subRank })
+        assertEquals(false, alternates.any { it.exerciseId == "bb_back_squat" })
+    }
+
+    @Test
+    fun alternates_are_capped_at_the_watch_limit() {
+        val candidates = catalog.substitutionsFor("bb_back_squat")
+        assertEquals(true, candidates.size > WatchSnapshotBuilder.MAX_ALTERNATES)
+
+        val alternates = WatchSnapshotBuilder.alternatesFor(
+            "bb_back_squat", catalog, Equipment.entries.toSet(),
+        )
+
+        assertEquals(WatchSnapshotBuilder.MAX_ALTERNATES, alternates.size)
+        assertEquals(candidates.take(WatchSnapshotBuilder.MAX_ALTERNATES).map { it.id }, alternates.map { it.exerciseId })
+    }
+
+    @Test
+    fun restricted_equipment_drops_alternates_that_need_other_gear() {
+        val alternates = WatchSnapshotBuilder.alternatesFor(
+            "bb_back_squat", catalog, setOf(Equipment.BODYWEIGHT),
+        )
+
+        assertEquals(listOf("wall_sit"), alternates.map { it.exerciseId })
+        assertEquals(true, alternates.all { alternate ->
+            catalog.get(alternate.exerciseId).equipment.all { it == Equipment.BODYWEIGHT }
+        })
+    }
+
+    @Test
+    fun an_unknown_exercise_has_no_alternates_and_does_not_throw() {
+        val pe = ProgramExercise("custom_nonexistent")
+        val customProgram = Program(listOf(ProgramDay("A", "Custom", "", listOf(pe), cardio = null)))
+        val slots = listOf(ProgramSlot(50L, 0, pe))
+
+        val exercise = WatchSnapshotBuilder.build(
+            customProgram, "A", slots, emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+
+        assertEquals(emptyList(), exercise.alternates)
+    }
+
+    @Test
+    fun superset_partner_rows_do_not_contribute_alternates() {
+        val pe = ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown"))
+        val armsProgram = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe), cardio = null)))
+        val slots = listOf(ProgramSlot(30L, 0, pe))
+
+        val exercise = WatchSnapshotBuilder.build(
+            armsProgram, "A", slots, emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+
+        assertEquals(
+            WatchSnapshotBuilder.alternatesFor("ez_curl", catalog, Equipment.entries.toSet()),
+            exercise.alternates,
+        )
+        assertEquals(false, exercise.alternates.any { alternate ->
+            catalog.get(alternate.exerciseId).pattern == catalog.get("rope_pushdown").pattern
+        })
+    }
+
+    @Test
     fun `returns null when there is no suggested day or it is not in the program`() {
         assertNull(WatchSnapshotBuilder.build(program, null, emptyList(), emptyList(), cfg, catalog, WeightUnit.LB, 1L))
         assertNull(WatchSnapshotBuilder.build(program, "Z", emptyList(), emptyList(), cfg, catalog, WeightUnit.LB, 1L))

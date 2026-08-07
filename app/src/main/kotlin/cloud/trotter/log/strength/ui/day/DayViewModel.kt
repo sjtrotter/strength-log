@@ -557,8 +557,11 @@ class DayViewModel @Inject constructor(
             .associate { (it.programExerciseId to it.slot) to it.sets.size }
         val cfg = repo.configFlow.first()
         val catalog = repo.catalogFlow.first()
+        // seedIfEmpty, not updateSets: this plan was decided from a read that the
+        // watch's own post-swap seed (SetEditApplier) — and any set logged against
+        // its result — can have overtaken. A stale plan must no-op, never overwrite.
         DayScreenBuilder.seedPlan(slots, existing, cfg, catalog).forEach { write ->
-            repo.updateSets(dayId, write.programExerciseId, write.slot, write.sets)
+            repo.seedIfEmpty(dayId, write.programExerciseId, write.slot, write.sets)
         }
     }
 

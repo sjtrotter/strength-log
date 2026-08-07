@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.data
 
+import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -108,5 +109,37 @@ class FakeWatchClientTest {
         val squat = client.snapshotFlow().first().day.exercises.single { it.programExerciseId == 1L }
         assertEquals(6, squat.sets[0].reps)
         assertEquals(130.0, squat.sets[0].weightLb) // weight untouched by a reps-only delta
+    }
+
+    /**
+     * The echo changes the name and *nothing else*. Not the sets — the phone seeds,
+     * and the replaced lift's numbers under the replacement's name is the one echo
+     * that could hurt someone. Not the prescription either: an empty `alternates` is
+     * how [PendingEdits] recognises the phone refusing a swap, so an echo that
+     * blanked the list could settle a request still in flight.
+     */
+    @Test
+    fun `a swap renames only its slot and leaves its sets and prescription alone`() = runTest {
+        val client = FakeWatchClient()
+        val before = client.snapshotFlow().first().day.exercises
+        client.sendSwap(
+            ExerciseSwapDelta(
+                dayId = "A",
+                programExerciseId = 1L,
+                exerciseId = "front_squat",
+                exerciseName = "Front Squat",
+                editedAtMillis = 1L,
+            ),
+        )
+        val after = client.snapshotFlow().first().day.exercises
+        val swapped = after.single { it.programExerciseId == 1L }
+        assertEquals("Front Squat", swapped.name)
+        val original = before.single { it.programExerciseId == 1L }
+        assertEquals(original.sets, swapped.sets)
+        assertEquals(original.alternates, swapped.alternates)
+        // The ack is a slot identity only the phone can write; the echo must not
+        // forge one by claiming the slot already holds what it asked for.
+        assertEquals(original.exerciseId, swapped.exerciseId)
+        assertEquals(before.filter { it.programExerciseId != 1L }, after.filter { it.programExerciseId != 1L })
     }
 }

@@ -49,6 +49,56 @@ class SyncCodecTest {
     }
 
     @Test
+    fun snapshot_with_alternates_round_trips_through_the_wire_bytes() {
+        val withAlternates = snapshot.copy(
+            day = snapshot.day.copy(
+                exercises = listOf(
+                    snapshot.day.exercises.single().copy(
+                        alternates = listOf(
+                            WatchAlternate("conv_dl", "Deadlift"),
+                            WatchAlternate("rdl", "Romanian Deadlift"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val decoded = SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(withAlternates))
+
+        assertEquals(withAlternates, decoded)
+        assertEquals(listOf("conv_dl", "rdl"), decoded.day.exercises.single().alternates.map { it.exerciseId })
+        assertEquals(listOf("Deadlift", "Romanian Deadlift"), decoded.day.exercises.single().alternates.map { it.name })
+    }
+
+    @Test
+    fun snapshot_without_alternates_key_decodes_to_an_empty_list() {
+        val oldFormat = """
+            {"revision":1,"suggestedDayId":"A","unit":"lb",
+             "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[
+               {"programExerciseId":1,"slot":"main","name":"Squat","goal":100.0,
+                "perHand":false,"supersetPartnerName":null,"sets":[],"ssSets":[]}
+             ]}}
+        """.trimIndent()
+
+        val decoded = SyncCodec.decodeSnapshot(oldFormat.encodeToByteArray())
+
+        assertEquals(emptyList(), decoded.day.exercises.single().alternates)
+    }
+
+    @Test
+    fun snapshot_exercise_with_an_unknown_key_still_decodes() {
+        val futureFormat = """
+            {"revision":1,"suggestedDayId":"A","unit":"lb",
+             "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[
+               {"programExerciseId":1,"slot":"main","name":"Squat","goal":100.0,
+                "perHand":false,"supersetPartnerName":null,"sets":[],"ssSets":[],"somethingNewer":7}
+             ]}}
+        """.trimIndent()
+
+        assertEquals("Squat", SyncCodec.decodeSnapshot(futureFormat.encodeToByteArray()).day.exercises.single().name)
+    }
+
+    @Test
     fun `snapshot round-trips a set's restAfterSeconds through the wire bytes`() {
         val withRest = snapshot.copy(
             day = snapshot.day.copy(
@@ -173,5 +223,48 @@ class SyncCodecTest {
         val queue = listOf(delta, delta.copy(setIndex = 0, editedAtMillis = 2L))
         assertEquals(queue, SyncCodec.decodeDeltaQueue(SyncCodec.encodeDeltaQueue(queue)))
         assertEquals(emptyList(), SyncCodec.decodeDeltaQueue(""))
+    }
+
+    @Test
+    fun exercise_swap_round_trips_through_the_wire_bytes() {
+        val swap = ExerciseSwapDelta(
+            dayId = "A",
+            programExerciseId = 12L,
+            exerciseId = "hack_squat",
+            exerciseName = "Hack Squat",
+            editedAtMillis = 99L,
+        )
+
+        val decoded = SyncCodec.decodeSwap(SyncCodec.encodeSwap(swap))
+
+        assertEquals(swap, decoded)
+        assertEquals("A", decoded.dayId)
+        assertEquals(12L, decoded.programExerciseId)
+        assertEquals("hack_squat", decoded.exerciseId)
+        assertEquals("Hack Squat", decoded.exerciseName)
+        assertEquals(99L, decoded.editedAtMillis)
+    }
+
+    @Test
+    fun exercise_swap_with_an_unknown_key_and_no_schema_version_decodes() {
+        val futureFormat = """
+            {"dayId":"A","programExerciseId":12,"exerciseId":"hack_squat",
+             "exerciseName":"Hack Squat","editedAtMillis":99,"somethingNewer":7}
+        """.trimIndent()
+
+        val decoded = SyncCodec.decodeSwap(futureFormat.encodeToByteArray())
+
+        assertEquals(1, decoded.schemaVersion)
+        assertEquals("hack_squat", decoded.exerciseId)
+    }
+
+    @Test
+    fun exercise_swap_queue_round_trips_and_blank_strings_decode_to_empty() {
+        val first = ExerciseSwapDelta(1, "A", 12L, "hack_squat", "Hack Squat", 99L)
+        val queue = listOf(first, first.copy(exerciseId = "leg_press", exerciseName = "Leg Press", editedAtMillis = 100L))
+
+        assertEquals(queue, SyncCodec.decodeSwapQueue(SyncCodec.encodeSwapQueue(queue)))
+        assertEquals(emptyList(), SyncCodec.decodeSwapQueue(""))
+        assertEquals(emptyList(), SyncCodec.decodeSwapQueue("   "))
     }
 }

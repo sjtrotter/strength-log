@@ -1,7 +1,9 @@
 package cloud.trotter.log.strength.wear.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
+import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
@@ -48,6 +50,19 @@ class PendingEditStoreTest {
         editedAtMillis = stamp,
     )
 
+    private fun swap(
+        programExerciseId: Long = 1L,
+        exerciseId: String = "front_squat",
+        exerciseName: String = "Front Squat",
+        stamp: Long = 1L,
+    ) = ExerciseSwapDelta(
+        dayId = "A",
+        programExerciseId = programExerciseId,
+        exerciseId = exerciseId,
+        exerciseName = exerciseName,
+        editedAtMillis = stamp,
+    )
+
     private val snapshot = WatchSnapshot(
         revision = 5L,
         suggestedDayId = "A",
@@ -65,6 +80,11 @@ class PendingEditStoreTest {
                     supersetPartnerName = null,
                     sets = listOf(WatchSet(235.0, 5, "TOP", done = true), WatchSet(175.0, 8, "BACKOFF", done = false)),
                     ssSets = emptyList(),
+                    // Slot 1 is still the squat, and still prescribes the swap the
+                    // tests queue against it — so a pending swap here settles only by
+                    // landing, never as drift.
+                    alternates = listOf(WatchAlternate("front_squat", "Front Squat")),
+                    exerciseId = "bb_back_squat",
                 ),
             ),
         ),
@@ -114,6 +134,50 @@ class PendingEditStoreTest {
         assertEquals(2, store.countFlow().first())
         store.reconcileAgainst(snapshot) // settles setIndex 0 (already done in the snapshot)
         assertEquals(1, store.countFlow().first())
+    }
+
+    @Test
+    fun `the swap queue persists enqueued swaps`() = runTest {
+        val queued = swap()
+        store.enqueueSwap(queued)
+        assertEquals(listOf(queued), store.allSwaps())
+    }
+
+    @Test
+    fun `countFlow includes set edits and swaps`() = runTest {
+        store.enqueue(delta(setIndex = 1, done = true, stamp = 1L))
+        store.enqueueSwap(swap(stamp = 2L))
+        assertEquals(2, store.countFlow().first())
+    }
+
+    @Test
+    fun `exercise ids include a lift with only a swap in flight`() = runTest {
+        store.enqueueSwap(swap(programExerciseId = 9L))
+        assertEquals(setOf(9L), store.exerciseIdsFlow().first())
+    }
+
+    @Test
+    fun `swap exercise ids exclude lifts with only set edits`() = runTest {
+        store.enqueue(delta(setIndex = 1, done = true, stamp = 1L))
+        store.enqueueSwap(swap(programExerciseId = 9L, stamp = 2L))
+        assertEquals(setOf(9L), store.swapExerciseIdsFlow().first())
+    }
+
+    @Test
+    fun `reconcileAgainst settles both queues and preserves both pending tails`() = runTest {
+        val settledEdit = delta(setIndex = 0, done = true, stamp = 1L)
+        val pendingEdit = delta(setIndex = 1, done = true, stamp = 2L)
+        // Settles by landing: slot 1 already *is* bb_back_squat in the snapshot.
+        val settledSwap = swap(exerciseId = "bb_back_squat", exerciseName = "Squat", stamp = 3L)
+        val pendingSwap = swap(programExerciseId = 9L, stamp = 4L)
+        store.enqueue(settledEdit)
+        store.enqueue(pendingEdit)
+        store.enqueueSwap(settledSwap)
+        store.enqueueSwap(pendingSwap)
+
+        store.reconcileAgainst(snapshot)
+        assertEquals(listOf(pendingEdit), store.all())
+        assertEquals(listOf(pendingSwap), store.allSwaps())
     }
 
     @Test

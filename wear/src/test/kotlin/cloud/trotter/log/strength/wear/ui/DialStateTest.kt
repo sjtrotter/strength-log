@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.wear.ui
 
 import cloud.trotter.log.strength.domain.sync.WatchCycleDay
 import cloud.trotter.log.strength.domain.sync.WatchCycleExercise
+import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
@@ -40,6 +41,7 @@ class DialStateTest {
         tracking: String = "weighted",
         partnerName: String? = null,
         ssSets: List<WatchSet> = emptyList(),
+        alternates: List<WatchAlternate> = emptyList(),
     ) = WatchExercise(
         programExerciseId = id,
         slot = "main",
@@ -51,6 +53,7 @@ class DialStateTest {
         ssSets = ssSets,
         goalLabel = "235",
         tracking = tracking,
+        alternates = alternates,
     )
 
     private fun snapshot(vararg exercises: WatchExercise) = WatchSnapshot(
@@ -90,6 +93,8 @@ class DialStateTest {
         session: SessionStamps = SessionStamps(),
         browseDayIndex: Int? = null,
         peekRoundIndex: Int? = null,
+        swapAlternateIndex: Int? = null,
+        pendingSwapExerciseIds: Set<Long> = emptySet(),
         tickMemory: TickMemory = TickMemory.EMPTY,
     ) = DialInputs(
         snapshot = snapshot,
@@ -104,6 +109,8 @@ class DialStateTest {
         session = session,
         browseDayIndex = browseDayIndex,
         peekRoundIndex = peekRoundIndex,
+        swapAlternateIndex = swapAlternateIndex,
+        pendingSwapExerciseIds = pendingSwapExerciseIds,
         tickMemory = tickMemory,
     )
 
@@ -547,6 +554,98 @@ class DialStateTest {
         assertEquals(DialCrown.PEEK, dialUiState(inputs(phase = SetPhase.LIFTING)).crown)
         assertEquals(DialCrown.PEEK, dialUiState(inputs(restedSeconds = 150)).crown)
         assertEquals(DialCrown.NONE, dialUiState(inputs(snapshot = allDone())).crown)
+    }
+
+    @Test
+    fun `swap is offered only on an untouched ready lift with alternates`() {
+        val alternates = listOf(WatchAlternate("front_squat", "Front Squat"))
+        val offered = squat.copy(alternates = alternates)
+        assertEquals(DialCrown.SELECT_ALTERNATE, dialUiState(inputs(snapshot = snapshot(offered, press))).crown)
+
+        val logged = offered.copy(sets = listOf(set(done = true), set(), set()))
+        assertEquals(DialCrown.PEEK, dialUiState(inputs(snapshot = snapshot(logged, press))).crown)
+        assertEquals(DialCrown.PEEK, dialUiState(inputs(snapshot = snapshot(squat, press))).crown)
+    }
+
+    @Test
+    fun `swap is not offered away from ready`() {
+        val offered = squat.copy(alternates = listOf(WatchAlternate("front_squat", "Front Squat")))
+        val snap = snapshot(offered, press)
+        val rest = RestState(deadlineElapsedMillis = 90_000L, totalSeconds = 150, betweenExercises = false)
+        assertEquals(DialCrown.PEEK, dialUiState(inputs(snapshot = snap, restedSeconds = 150)).crown)
+        assertEquals(DialCrown.PEEK, dialUiState(inputs(snapshot = snap, phase = SetPhase.LIFTING)).crown)
+        assertEquals(DialCrown.PEEK, dialUiState(inputs(snapshot = snap, rest = rest, nowElapsedMillis = 6_000L)).crown)
+
+        val done = allDone().let { it.copy(day = it.day.copy(exercises = it.day.exercises.map { ex -> ex.copy(alternates = offered.alternates) })) }
+        val dayDone = dialUiState(inputs(snapshot = done))
+        assertEquals(DialScreen.DAY_DONE, dayDone.screen)
+        assertTrue(dayDone.crown != DialCrown.SELECT_ALTERNATE)
+        assertEquals(DialCrown.SELECT_EXERCISE, dialUiState(inputs(snapshot = snap, face = DialFace.OVERVIEW)).crown)
+    }
+
+    @Test
+    fun `swap preview names and counts the selected alternate without moving the rings`() {
+        val alternatives = listOf(
+            WatchAlternate("front_squat", "Front Squat"),
+            WatchAlternate("goblet_squat", "Goblet Squat"),
+        )
+        val snap = snapshot(squat.copy(alternates = alternatives), press)
+        val ready = dialUiState(inputs(snapshot = snap))
+        val first = dialUiState(inputs(snapshot = snap, swapAlternateIndex = 0))
+        assertEquals(DialTap.CONFIRM_SWAP, first.tap)
+        assertTrue(first.discText().any { "FRONT SQUAT" in it })
+        assertTrue(first.discText().any { "USE THIS" in it })
+        assertEquals("1 OF 2 ALTERNATES", first.bottomBand?.text)
+        assertNull(first.hold)
+        assertEquals(DialSwipe.NONE, first.swipe)
+        assertEquals(DiscStyle.OUTLINED, first.disc.style)
+        assertEquals(ready.rounds, first.rounds)
+
+        val second = dialUiState(inputs(snapshot = snap, swapAlternateIndex = 1))
+        assertTrue(second.discText().any { "GOBLET SQUAT" in it })
+        assertEquals("2 OF 2 ALTERNATES", second.bottomBand?.text)
+    }
+
+    /** A snapshot can shorten the prescription while a preview is up. The disc must
+     *  keep naming a real alternate — the last one left — rather than going blank or
+     *  offering a confirm that would act on nothing. */
+    @Test
+    fun `a preview that outlived its alternate names the last one left`() {
+        val shrunk = squat.copy(alternates = listOf(WatchAlternate("front_squat", "Front Squat")))
+        val state = dialUiState(inputs(snapshot = snapshot(shrunk, press), swapAlternateIndex = 2))
+
+        assertEquals(DialTap.CONFIRM_SWAP, state.tap)
+        assertTrue(state.discText().any { "FRONT SQUAT" in it })
+        assertEquals("1 OF 1 ALTERNATES", state.bottomBand?.text)
+    }
+
+    @Test
+    fun `swap preview is ignored when the crown is peeking`() {
+        val logged = squat.copy(
+            sets = listOf(set(done = true), set(), set()),
+            alternates = listOf(WatchAlternate("front_squat", "Front Squat")),
+        )
+        val normal = dialUiState(inputs(snapshot = snapshot(logged, press)))
+        val preview = dialUiState(inputs(snapshot = snapshot(logged, press), swapAlternateIndex = 0))
+        assertEquals(normal.disc, preview.disc)
+        assertEquals(DialTap.START_SET, preview.tap)
+    }
+
+    @Test
+    fun `a pending swap makes only its lift read only without trapping the lifter`() {
+        val offered = squat.copy(alternates = listOf(WatchAlternate("front_squat", "Front Squat")))
+        val snap = snapshot(offered, press)
+        val state = dialUiState(inputs(snapshot = snap, pendingSwapExerciseIds = setOf(1L)))
+        assertEquals(DialScreen.READY, state.screen)
+        assertEquals(DiscStyle.DIMMED, state.disc.style)
+        assertTrue(state.discText().any { "SWAPPING" in it })
+        assertEquals(DialTap.NONE, state.tap)
+        assertEquals(DialCrown.NONE, state.crown)
+        assertEquals(DialSwipe.NEXT_EXERCISE, state.swipe)
+
+        val other = dialUiState(inputs(snapshot = snap, pendingSwapExerciseIds = setOf(2L)))
+        assertEquals(DialCrown.SELECT_ALTERNATE, other.crown)
+        assertEquals(DialTap.START_SET, other.tap)
     }
 
     @Test

@@ -25,6 +25,8 @@ object SyncCodec {
 
     private val deltaListSerializer = ListSerializer(SetEditDelta.serializer())
 
+    private val swapListSerializer = ListSerializer(ExerciseSwapDelta.serializer())
+
     fun encodeSnapshot(snapshot: WatchSnapshot): ByteArray =
         json.encodeToString(WatchSnapshot.serializer(), snapshot).encodeToByteArray()
 
@@ -37,10 +39,23 @@ object SyncCodec {
     fun decodeDelta(bytes: ByteArray): SetEditDelta =
         json.decodeFromString(SetEditDelta.serializer(), bytes.decodeToString())
 
+    fun encodeSwap(swap: ExerciseSwapDelta): ByteArray =
+        json.encodeToString(ExerciseSwapDelta.serializer(), swap).encodeToByteArray()
+
+    fun decodeSwap(bytes: ByteArray): ExerciseSwapDelta =
+        json.decodeFromString(ExerciseSwapDelta.serializer(), bytes.decodeToString())
+
     /** The watch persists its unacked outbound deltas as one JSON array (queue). */
     fun encodeDeltaQueue(deltas: List<SetEditDelta>): String =
         json.encodeToString(deltaListSerializer, deltas)
 
     fun decodeDeltaQueue(text: String): List<SetEditDelta> =
         if (text.isBlank()) emptyList() else json.decodeFromString(deltaListSerializer, text)
+
+    /** Swaps queue beside the set edits, in their own array — see [ExerciseSwapDelta]. */
+    fun encodeSwapQueue(swaps: List<ExerciseSwapDelta>): String =
+        json.encodeToString(swapListSerializer, swaps)
+
+    fun decodeSwapQueue(text: String): List<ExerciseSwapDelta> =
+        if (text.isBlank()) emptyList() else json.decodeFromString(swapListSerializer, text)
 }

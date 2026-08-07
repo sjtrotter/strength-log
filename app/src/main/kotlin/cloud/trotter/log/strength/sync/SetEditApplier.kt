@@ -1,11 +1,13 @@
 package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.seeding.SetEditor
+import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.guardedFor
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
@@ -106,6 +108,87 @@ class SetEditApplier(
         }
         markers.markApplied(rowKey, delta.editedAtMillis)
         return Outcome.APPLIED
+    }
+
+    /**
+     * Applies a watch [ExerciseSwapDelta] — "use one of the alternates you prescribed
+     * for this slot" (#90). Runs under the same [mutationLock] as a set edit: a swap
+     * clears the slot's log, and it must not interleave with a delta writing to it.
+     *
+     * The application itself is the phone's existing §8.3 swap and nothing else
+     * ([TrackerRepository.swapExerciseById] — the slot keeps its `programExerciseId`,
+     * its live log is cleared, the new exercise reseeds from its own GOAL on the next
+     * observation). The watch contributes a choice, never a consequence.
+     *
+     * Four guards, in this order:
+     *  - **Validation** — the day must hold a slot with this `programExerciseId`.
+     *  - **Already there** — a slot already holding the requested exercise is
+     *    [Outcome.APPLIED] with no write, and it is checked before anything that
+     *    could fall through to one. This is what makes a re-send safe: the watch
+     *    re-sends until a snapshot confirms, and a blind second swap would clear a
+     *    log the lifter has since filled.
+     *  - **Dedupe** — per slot, by `editedAtMillis`, same rule as a set edit. Ahead
+     *    of the authority check because a message we have already answered is not
+     *    worth evaluating, and because a hostile far-future stamp must be rejected
+     *    *without* marking anything: the marker only advances on a real write, so a
+     *    forged stamp can never starve a legitimate swap.
+     *  - **Authority** — the requested exercise must be one of the alternates *this
+     *    phone* would prescribe for the slot right now, re-derived through the same
+     *    [WatchSnapshotBuilder.alternatesFor] that put them on the wire rather than
+     *    trusted from the message. "The watch never invents alternates" (brief §6) is
+     *    an enforced invariant, not a convention, because this arrives through an
+     *    exported service. It also rejects, correctly, a swap chosen against a
+     *    snapshot the phone has since moved past.
+     */
+    suspend fun apply(swap: ExerciseSwapDelta): Outcome = mutationLock.withLock {
+        val slots = repo.daySlotsFlow(swap.dayId).first()
+        val slot = slots.firstOrNull { it.programExerciseId == swap.programExerciseId }
+            ?: return Outcome.INVALID
+
+        if (slot.exercise.exerciseId == swap.exerciseId) return Outcome.APPLIED
+
+        val rowKey = "${swap.dayId}|${swap.programExerciseId}|swap"
+        if (swap.editedAtMillis <= markers.lastApplied(rowKey)) return Outcome.STALE
+
+        val catalog = repo.catalogFlow.first()
+        val equipment = repo.wizardAnswersFlow.first().equipment
+        val prescribed = WatchSnapshotBuilder.alternatesFor(slot.exercise.exerciseId, catalog, equipment)
+        if (prescribed.none { it.exerciseId == swap.exerciseId }) return Outcome.INVALID
+
+        repo.swapExerciseById(swap.dayId, swap.programExerciseId, swap.exerciseId)
+        seedSwappedSlot(swap.dayId, swap.programExerciseId, catalog)
+        markers.markApplied(rowKey, swap.editedAtMillis)
+        return Outcome.APPLIED
+    }
+
+    /**
+     * Seeds the slot the swap just emptied, here and now.
+     *
+     * Everywhere else in the app seeding is the day ViewModel's job, done lazily on
+     * the next observation — which works because a phone-driven swap happens with the
+     * day screen open. A watch-driven one doesn't: it can land in a service that woke
+     * a process with no screen in it, and the slot would sit with an empty track
+     * until the lifter next opened the phone. The wrist would show a lift with no
+     * sets in it, which is a worse answer than the swap they asked for.
+     *
+     * So it runs through the exact same [DayScreenBuilder.seedPlan] the day screen
+     * uses, over the whole day's slots with the existing tracks passed in — the plan
+     * only writes tracks that have none, so the emptied slot is the only thing it can
+     * touch and every other lift's living record is left alone.
+     *
+     * The write goes through [TrackerRepository.seedIfEmpty], the same conditional
+     * mutation the day screen's lazy pass uses, so the two seeders can't race: a plan
+     * decided from a read the other one has already acted on becomes a no-op rather
+     * than an overwrite of work logged in between.
+     */
+    private suspend fun seedSwappedSlot(dayId: String, programExerciseId: Long, catalog: ExerciseCatalog) {
+        val slots = repo.daySlotsFlow(dayId).first()
+        val existing = repo.logFlow(dayId).first()
+            .associate { (it.programExerciseId to it.slot) to it.sets.size }
+        val cfg = repo.configFlow.first()
+        DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
+            .filter { it.programExerciseId == programExerciseId }
+            .forEach { write -> repo.seedIfEmpty(dayId, write.programExerciseId, write.slot, write.sets) }
     }
 
     private suspend fun applyToMain(

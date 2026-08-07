@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -16,6 +17,7 @@ import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
+import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchCycleDay
 import cloud.trotter.log.strength.domain.sync.WatchCycleExercise
 import cloud.trotter.log.strength.domain.sync.WatchDay
@@ -23,6 +25,7 @@ import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.ExercisePicker
 
 /**
  * Projects the phone's live state for the *suggested* day into the wire
@@ -37,10 +40,17 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  */
 object WatchSnapshotBuilder {
 
+    /** How many alternates ride the wire per lift. A wrist is not a picker: three
+     *  is reachable in three flicks and keeps "n OF 3" honest, and the list is
+     *  already ranked best-first so a fourth candidate is one nobody would pick. */
+    const val MAX_ALTERNATES = 3
+
     /**
      * Returns the snapshot, or null when there is nothing glanceable to publish
      * (no program, or the suggested day resolves to no real day). A null result
      * means "don't publish", not "publish empty".
+     * [equipment] is the lifter's gear, so the wrist is never offered a machine
+     * they don't own — the same filter the phone's swap sheet applies.
      */
     fun build(
         program: Program,
@@ -52,6 +62,7 @@ object WatchSnapshotBuilder {
         unit: WeightUnit,
         revision: Long,
         restSettings: RestSettings = RestSettings(),
+        equipment: Set<Equipment> = Equipment.entries.toSet(),
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val dayIndex = program.days.indexOfFirst { it.id == dayId }
@@ -60,7 +71,7 @@ object WatchSnapshotBuilder {
 
         val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
         val exercises = slots.map { slot ->
-            buildExercise(slot, logsByKey, cfg, catalog, unit, restSettings)
+            buildExercise(slot, logsByKey, cfg, catalog, unit, restSettings, equipment)
         }
 
         return WatchSnapshot(
@@ -102,6 +113,7 @@ object WatchSnapshotBuilder {
         catalog: ExerciseCatalog,
         unit: WeightUnit,
         restSettings: RestSettings,
+        equipment: Set<Equipment>,
     ): WatchExercise {
         val pe = slot.exercise
         val id = slot.programExerciseId
@@ -143,7 +155,33 @@ object WatchSnapshotBuilder {
             // wire holds exactly one rest per round (the watch never tie-breaks).
             sets = main.map { it.toWatchSet(restAfterSecondsFor(it, tracking, restSettings)) },
             ssSets = ss.map { it.toWatchSet(restAfterSeconds = 0) },
+            alternates = alternatesFor(pe.exerciseId, catalog, equipment),
+            // The slot's content identity, which is what a swap is acked by — never
+            // its display name (see WatchExercise.exerciseId).
+            exerciseId = pe.exerciseId,
         )
+    }
+
+    /**
+     * The replacements the watch may offer for a slot (#90): the same ranked,
+     * equipment-filtered list the phone's own swap sheet shows, capped at
+     * [MAX_ALTERNATES].
+     *
+     * Public because [SetEditApplier] re-derives it to *check* an incoming swap
+     * against what this phone would have prescribed. Prescribing the list and
+     * enforcing it have to be the same function, or the wire could be talked into a
+     * substitution the phone would never have offered.
+     */
+    fun alternatesFor(
+        exerciseId: String,
+        catalog: ExerciseCatalog,
+        equipment: Set<Equipment>,
+    ): List<WatchAlternate> {
+        catalog.find(exerciseId) ?: return emptyList()
+        return ExercisePicker
+            .filter(catalog.substitutionsFor(exerciseId), query = "", equipment = equipment)
+            .take(MAX_ALTERNATES)
+            .map { WatchAlternate(exerciseId = it.id, name = it.watchName) }
     }
 
     /**

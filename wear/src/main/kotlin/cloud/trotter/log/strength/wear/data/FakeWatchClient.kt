@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.wear.data
 
+import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
+import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
@@ -34,6 +36,9 @@ class FakeWatchClient : WatchTrackerClient {
     /** Nothing is ever in flight here: [sendEdit] stands in for the phone's ack too. */
     override fun pendingExercisesFlow(): Flow<Set<Long>> = flowOf(emptySet())
 
+    /** Nothing is ever in flight here: [sendSwap] stands in for the phone's ack too. */
+    override fun pendingSwapsFlow(): Flow<Set<Long>> = flowOf(emptySet())
+
     override suspend fun sendEdit(delta: SetEditDelta) {
         // NOTE ON THE REVISION BUMP — read alongside DataLayerWatchClient.sendEdit's
         // invariant. There, the optimistic *echo* must NOT bump `revision`, or the
@@ -48,6 +53,16 @@ class FakeWatchClient : WatchTrackerClient {
             snapshot.copy(
                 revision = snapshot.revision + 1,
                 day = snapshot.day.copy(exercises = WatchEditOptimism.apply(snapshot.day.exercises, delta)),
+            )
+        }
+    }
+
+    override suspend fun sendSwap(swap: ExerciseSwapDelta) {
+        // As with sendEdit, the bump stands in for the phone's confirming snapshot.
+        state.update { snapshot ->
+            snapshot.copy(
+                revision = snapshot.revision + 1,
+                day = snapshot.day.copy(exercises = WatchEditOptimism.applySwap(snapshot.day.exercises, swap)),
             )
         }
     }
@@ -70,6 +85,11 @@ class FakeWatchClient : WatchTrackerClient {
                 WatchSet(175.0, 8, "BACKOFF", done = false),
             ),
             ssSets = emptyList(),
+            alternates = listOf(
+                WatchAlternate("front_squat", "Front Squat"),
+                WatchAlternate("goblet_squat", "Goblet Squat"),
+            ),
+            exerciseId = "bb_back_squat",
         )
 
         /** A superset pair, to exercise the sub-row / one-tick-per-round layout. */
@@ -90,6 +110,8 @@ class FakeWatchClient : WatchTrackerClient {
                 WatchSet(50.0, 12, "WORK", done = false),
                 WatchSet(50.0, 12, "WORK", done = false),
             ),
+            alternates = listOf(WatchAlternate("db_bench", "DB Bench")),
+            exerciseId = "incline_db_press",
         )
 
         val CANNED = WatchSnapshot(

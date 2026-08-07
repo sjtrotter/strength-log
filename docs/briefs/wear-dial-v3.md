@@ -123,7 +123,50 @@ platform gestures move between them. No third face, ever.
 - Colors: FILLED/OUTLINED resolve day-independent; clock ring still accent.
 - All existing wear tests updated; §11 untouched.
 
-## 5. On-device gate (non-negotiable, learned from #113)
+## 5. Swap, finally (issue #90 — amends redesign §6)
+
+v1 §6 said "the crown flicks between the alternates the phone already
+prescribed" and left it there, because the snapshot carried no alternates. It
+does now (`WatchExercise.alternates`, ranked by the phone's own
+`substitutionsFor` + equipment filter, capped at 3 — a wrist is not a picker).
+The gesture that grew around it:
+
+- **Offered only on a lift with nothing logged against it.** Not a mode, a
+  derived rule, and it settles two problems at once. The phone's swap *clears
+  the slot's log* (§8.3), so offering it only while there is nothing to clear
+  makes the destructive half free; and it is the same condition under which
+  the crown's peek has nothing to scrub, so the two never fight over the
+  crown. REST_OVER always follows a tick, DAY_DONE has no unlogged lift, the
+  overview keeps SELECT_EXERCISE — all of it falls out, none of it is cased.
+- **The list runs from the lift itself downward.** No preview is index −1:
+  flicking forward proposes the best-ranked replacement, flicking back off the
+  top puts the original lift back. Nothing to learn, nothing to cancel.
+- **The preview disc is OUTLINED, not FILLED.** Both would mean "the tap
+  acts", but READY's own disc is a FILLED `START` one flick away, and a swap
+  preview that looked like the start button is a mis-tap waiting to happen.
+- It ends by itself after 4s of a still crown — longer than the peek's 1.5s,
+  because a peek ends by not looking and this ends in a tap.
+- **A swap is acked by identity, not by label.** `WatchExercise.exerciseId` rides
+  the wire beside the name so the queue settles on what the slot *is*. Two
+  catalog entries may share a display name, and a name match against an unchanged
+  snapshot would drop a swap that never landed — the exact failure the queue
+  exists to prevent. Name matching survives only as the documented degradation
+  for a publisher too old to send ids.
+- **The snapshot is the authority document, so it can also say no.** When a fresh
+  snapshot's prescription for a slot no longer offers the pending swap's target —
+  a deleted custom exercise, a narrowed equipment set — the phone could only ever
+  answer INVALID, so the watch drops the request itself and gives the lift back.
+  Without that terminal condition the lift would sit read-only until the day
+  turned over, waiting for an answer that was never coming.
+- **Between confirm and the phone's answer the lift reads `SWAPPING`, DIMMED,
+  no tap.** The name is already the new one (the client echoes that much) but
+  the rows under it still belong to the exercise being replaced, and seeding is
+  phone-authoritative — drawing `235 × 5` under a lift nobody prescribed 235 for
+  is the one optimistic echo that could hurt someone. The swipe stays live, so
+  offline the lifter is never trapped: only the lift they asked to have replaced
+  is un-loggable, and the queued count in the top band says why.
+
+## 6. On-device gate (non-negotiable, learned from #113)
 
 JVM tests cannot render curved text or gestures. Before the PR is called
 done: install on the watch, launch, walk overview → workout → swipe back →

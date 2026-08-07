@@ -210,8 +210,17 @@ open class TrackerRepository(
     suspend fun swapExercise(dayId: String, position: Int, newExerciseId: String) {
         db.withTransaction {
             val row = programDao.exerciseAt(dayId, position) ?: return@withTransaction
-            programDao.setExerciseId(row.id, newExerciseId)
-            programDao.deleteLogsForExercise(dayId, row.id)
+            swapExerciseById(dayId, row.id, newExerciseId)
+        }
+    }
+
+    /** The same §8.3 swap, naming the slot by its stable row id instead of its
+     *  position — which is how the watch knows it (`programExerciseId` is the only
+     *  slot identity on the wire). One mutation body, two ways to address it. */
+    suspend fun swapExerciseById(dayId: String, programExerciseId: Long, newExerciseId: String) {
+        db.withTransaction {
+            programDao.setExerciseId(programExerciseId, newExerciseId)
+            programDao.deleteLogsForExercise(dayId, programExerciseId)
         }
     }
 
@@ -338,6 +347,33 @@ open class TrackerRepository(
      *  date, so the `done` flags it carries are "today's" checks. */
     suspend fun updateSets(dayId: String, programExerciseId: Long, slot: String, sets: List<LoggedSet>) {
         programDao.upsertLog(logEntity(dayId, programExerciseId, slot, sets))
+    }
+
+    /**
+     * Seeds a track **only if it is still unseeded when the write happens**, and
+     * reports whether it did. The one way a seed reaches the database.
+     *
+     * Seeding is decided from a read ("this slot has no track") and acted on later,
+     * and there are now two seeders — the day ViewModel's lazy pass and the watch
+     * applier's eager one after a swap. Between one of them reading an empty track
+     * and writing to it, the other can seed *and the lifter can log a set against
+     * the result*; an unconditional upsert would then overwrite real logged work
+     * with a fresh seed. Re-checking inside the same transaction makes the losing
+     * caller a no-op instead: whoever seeds first wins, and nothing that has been
+     * logged since can be clobbered by a decision taken before it existed.
+     *
+     * "Unseeded" is the absence of a row, the same fact the seed plan keys on — an
+     * empty stored track is a deliberate state and must not be re-seeded either.
+     */
+    suspend fun seedIfEmpty(
+        dayId: String,
+        programExerciseId: Long,
+        slot: String,
+        sets: List<LoggedSet>,
+    ): Boolean = db.withTransaction {
+        if (programDao.logForSlot(dayId, programExerciseId, slot) != null) return@withTransaction false
+        programDao.upsertLog(logEntity(dayId, programExerciseId, slot, sets))
+        true
     }
 
     /**

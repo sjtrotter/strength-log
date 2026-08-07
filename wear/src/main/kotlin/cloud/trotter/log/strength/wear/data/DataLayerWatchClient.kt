@@ -5,6 +5,7 @@ import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.NodeClient
+import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
@@ -58,6 +59,8 @@ class DataLayerWatchClient(
 
     override fun pendingExercisesFlow(): Flow<Set<Long>> = queue.exerciseIdsFlow()
 
+    override fun pendingSwapsFlow(): Flow<Set<Long>> = queue.swapExerciseIdsFlow()
+
     override suspend fun sendEdit(delta: SetEditDelta) {
         // Re-stamp with a strictly monotonic, persisted editedAtMillis: the caller's
         // wall clock can stamp two distinct edits into the same millisecond, and the
@@ -76,6 +79,20 @@ class DataLayerWatchClient(
         }
         queue.enqueue(stamped)
         send(stamped)
+    }
+
+    /** Same shape as [sendEdit], one path over. The echo is the name only — seeding
+     *  is the phone's (see [WatchEditOptimism.applySwap]) — and the same
+     *  don't-bump-revision invariant applies. */
+    override suspend fun sendSwap(swap: ExerciseSwapDelta) {
+        val stamped = swap.copy(editedAtMillis = queue.issueStamp(swap.editedAtMillis))
+        snapshots.value?.let { current ->
+            snapshots.value = current.copy(
+                day = current.day.copy(exercises = WatchEditOptimism.applySwap(current.day.exercises, stamped)),
+            )
+        }
+        queue.enqueueSwap(stamped)
+        sendSwapMessage(stamped)
     }
 
     /** The last snapshot the Data Layer cached on this node (survives restarts). */
@@ -109,21 +126,33 @@ class DataLayerWatchClient(
         drainQueue()
     }
 
+    /**
+     * Both queues, on every drain signal. The order between them doesn't matter and
+     * can't: the dial only offers a swap on a lift with nothing logged, and a lift
+     * with a swap in flight can't be logged against, so a set edit and a swap for the
+     * *same* slot never coexist here. Across slots they don't interact at all.
+     */
     private suspend fun drainQueue() {
         queue.all().forEach { send(it) }
+        queue.allSwaps().forEach { sendSwapMessage(it) }
     }
 
-    private suspend fun send(delta: SetEditDelta) {
+    private suspend fun send(delta: SetEditDelta) =
+        sendBytes(WearSyncPaths.SET_EDIT, SyncCodec.encodeDelta(delta))
+
+    private suspend fun sendSwapMessage(swap: ExerciseSwapDelta) =
+        sendBytes(WearSyncPaths.EXERCISE_SWAP, SyncCodec.encodeSwap(swap))
+
+    private suspend fun sendBytes(path: String, bytes: ByteArray) {
         try {
-            val bytes = SyncCodec.encodeDelta(delta)
             val nodes = nodeClient.connectedNodes.await()
             nodes.forEach { node ->
-                runCatching { messageClient.sendMessage(node.id, WearSyncPaths.SET_EDIT, bytes).await() }
+                runCatching { messageClient.sendMessage(node.id, path, bytes).await() }
             }
         } catch (e: Exception) {
-            // No reachable node right now — the delta stays queued and is re-sent
+            // No reachable node right now — the message stays queued and is re-sent
             // on the next snapshot/connectivity signal.
-            Log.w(TAG, "set-edit send failed; keeping it queued", e)
+            Log.w(TAG, "send failed on $path; keeping it queued", e)
         }
     }
 

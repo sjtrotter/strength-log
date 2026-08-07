@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.wear.ui
 
+import cloud.trotter.log.strength.domain.sync.WatchExercise
+import cloud.trotter.log.strength.domain.sync.WatchSet
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -77,5 +79,39 @@ class TickMemoryTest {
             listOf(TickRef(9L, 1), TickRef(7L, 0)),
             TickMemory.decode("7:0=40;9:1=30").newestFirst(),
         )
+    }
+
+    @Test
+    fun `forgetExercise drops every round of that lift and keeps the others`() {
+        val memory = TickMemory.EMPTY.record(1L, 0, 40).record(2L, 0, 30).record(1L, 1, 45)
+        val forgotten = memory.forgetExercise(1L)
+        assertEquals(listOf(TickRef(2L, 0)), forgotten.newestFirst())
+        assertNull(forgotten.secondsFor(1L, 0))
+        assertEquals(30, forgotten.secondsFor(2L, 0))
+    }
+
+    @Test
+    fun `forgetExercise with no matching entries leaves an equal ledger shape`() {
+        val memory = TickMemory.EMPTY.record(1L, 0, 40)
+        assertEquals(memory.encode(), memory.forgetExercise(9L).encode())
+    }
+
+    @Test
+    fun `forgetExercise survives a saved-instance round trip`() {
+        val forgotten = TickMemory.EMPTY.record(1L, 0, 40).record(2L, 1, 30).forgetExercise(1L)
+        val restored = TickMemory.decode(forgotten.encode())
+        assertEquals(listOf(TickRef(2L, 1)), restored.newestFirst())
+        assertEquals(30, restored.secondsFor(2L, 1))
+    }
+
+    @Test
+    fun `undo skips a stale remembered swap tick and reaches a live logged round`() {
+        fun exercise(id: Long, done: Boolean) = WatchExercise(
+            id, "main", "Ex$id", 100.0, false, null,
+            listOf(WatchSet(100.0, 5, "WORK", done)), emptyList(),
+        )
+        val exercises = listOf(exercise(1L, false), exercise(2L, true))
+        val memory = TickMemory.EMPTY.record(2L, 0, 30).record(1L, 0, 40)
+        assertEquals(UndoTarget(1, 0), UndoTarget.of(exercises, 0, memory))
     }
 }

@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.wear.data
 
+import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
+import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import kotlin.math.abs
@@ -45,6 +47,76 @@ object PendingEdits {
         pending.filter { delta ->
             delta.dayId == snapshot.day.dayId && !delta.isSettled(pending, snapshot)
         }
+
+    /**
+     * The swaps still worth re-sending after reconciling against [snapshot] (#90).
+     *
+     * A swap leaves the queue on any of four terminal conditions:
+     *  - **Landed** — the snapshot's slot now *is* the exercise it asked for. Judged
+     *    on [WatchExercise.exerciseId], never on the display name: two catalog entries
+     *    can share a name (two custom exercises, or an alternate named like the lift
+     *    it replaces), and a name match against an old-state snapshot would drop a
+     *    swap that never happened, which is the one failure this queue exists to
+     *    prevent. The name is only consulted when the phone publishes no id at all —
+     *    the documented degradation for a publisher older than that field.
+     *  - **Refused by drift** — see [isRefusedByDrift].
+     *  - **Superseded** — a strictly newer swap for the same slot is still queued; the
+     *    snapshot will answer that one instead.
+     *  - **Day changed** — the phone has moved on, same rule as a set edit.
+     */
+    fun reconcileSwaps(pending: List<ExerciseSwapDelta>, snapshot: WatchSnapshot): List<ExerciseSwapDelta> =
+        pending.filter { swap ->
+            swap.dayId == snapshot.day.dayId && !swap.isSettled(pending, snapshot)
+        }
+
+    private fun ExerciseSwapDelta.isSettled(
+        pending: List<ExerciseSwapDelta>,
+        snapshot: WatchSnapshot,
+    ): Boolean {
+        val slot = snapshot.day.exercises.firstOrNull { it.programExerciseId == programExerciseId }
+        val superseded = pending.any {
+            it.editedAtMillis > editedAtMillis &&
+                it.dayId == dayId &&
+                it.programExerciseId == programExerciseId
+        }
+        return hasLanded(slot) || isRefusedByDrift(slot) || superseded
+    }
+
+    /** True when [slot] is now the exercise this swap asked for. */
+    private fun ExerciseSwapDelta.hasLanded(slot: WatchExercise?): Boolean {
+        if (slot == null) return false
+        // A blank id is a publisher from before slot identity rode the wire; matching
+        // the display name is all such a snapshot can offer, and is why the ambiguity
+        // this field exists to remove is documented as a degradation, not a rule.
+        if (slot.exerciseId.isBlank()) return slot.name == exerciseName
+        return slot.exerciseId == exerciseId
+    }
+
+    /**
+     * True when a **fresh** snapshot's prescription for the slot no longer offers the
+     * exercise this swap asked for, and the swap has not landed.
+     *
+     * The snapshot is the authority document: its `alternates` are what the phone
+     * would accept for that slot right now, re-derived from the same function that
+     * validates an incoming swap. So a target that has fallen out of the list is one
+     * the phone can only ever answer INVALID — a custom alternate the lifter deleted,
+     * an equipment set they narrowed, a slot changed on the phone underneath us.
+     * Without this the request would re-send until the day turned over, and the lift
+     * would sit read-only on the wrist the whole time for an answer that is never
+     * coming.
+     *
+     * Dropping it restores the lift with no further machinery: the snapshot that
+     * revealed the drift has already replaced the local optimistic rename, and losing
+     * the queue entry un-dims the lift back onto the phone's current prescription.
+     *
+     * An empty list settles it too, and correctly: a phone with no prescription for
+     * the slot — including one too old to publish alternates, which drops the message
+     * by path filter anyway — can never say yes.
+     */
+    private fun ExerciseSwapDelta.isRefusedByDrift(slot: WatchExercise?): Boolean {
+        val prescription = slot?.alternates ?: return false
+        return prescription.none { it.exerciseId == exerciseId }
+    }
 
     /**
      * The strictly-monotonic issue rule for `editedAtMillis` (the phone's per-slot

@@ -26,7 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.wear.compose.foundation.BasicSwipeToDismissBox
+import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
+import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.wear.OngoingWorkoutChip
 import cloud.trotter.log.strength.wear.data.WatchTrackerClient
@@ -74,6 +76,7 @@ fun WearApp(
     val snapshot by client.snapshotFlow().collectAsState(initial = null)
     val pendingCount by client.pendingCountFlow().collectAsState(initial = 0)
     val pendingExercises by client.pendingExercisesFlow().collectAsState(initial = emptySet())
+    val pendingSwaps by client.pendingSwapsFlow().collectAsState(initial = emptySet())
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     // The rest-timer buzz + wake lock live here, at the root, so they outlive the
@@ -96,8 +99,10 @@ fun WearApp(
                     snap = snap,
                     pendingCount = pendingCount,
                     pendingExercises = pendingExercises,
+                    pendingSwaps = pendingSwaps,
                     restController = restController,
                     sendEdit = { scope.launch { client.sendEdit(it) } },
+                    sendSwap = { scope.launch { client.sendSwap(it) } },
                     onDismiss = onDismiss,
                 )
             }
@@ -124,8 +129,10 @@ private fun WorkoutDial(
     snap: WatchSnapshot,
     pendingCount: Int,
     pendingExercises: Set<Long>,
+    pendingSwaps: Set<Long>,
     restController: RestTimerController,
     sendEdit: (SetEditDelta) -> Unit,
+    sendSwap: (ExerciseSwapDelta) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val view = LocalView.current
@@ -154,6 +161,11 @@ private fun WorkoutDial(
     val exercise = snap.day.exercises.getOrNull(exerciseIndex)
     val roundIndex = exercise?.let(::currentRoundIndex) ?: 0
     val holdGoal = exercise?.let { holdGoalSeconds(it, roundIndex) } ?: 0
+
+    // A swap being considered is a glance like the peek — never restored through a
+    // process death, and keyed on the lift as well as the day so that leaving the
+    // lift forgets the half-made decision rather than carrying it onto the next one.
+    var swapPreview by remember(dayId, exerciseIndex) { mutableStateOf<SwapPreview?>(null) }
 
     fun startRest(seconds: Int, betweenExercises: Boolean) {
         restTotalSeconds = seconds
@@ -266,6 +278,33 @@ private fun WorkoutDial(
         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     }
 
+    /**
+     * Sends the swap and lets the phone answer (#90). The optimistic half is the
+     * client's (the name changes at once); everything the *phone* is about to clear
+     * is dropped here: this watch's recollection of ticks against the slot, because
+     * the phone's §8.3 swap clears the slot's log and a memory of work that no longer
+     * exists is a memory the undo must not be offered.
+     *
+     * The dial only reaches this on a lift with nothing logged, so there is normally
+     * nothing to forget — the call is here for the one case there can be: a round
+     * this watch ticked and the phone later untook.
+     */
+    fun confirmSwap(alternate: WatchAlternate) {
+        val ex = exercise ?: return
+        swapPreview = null
+        sendSwap(
+            ExerciseSwapDelta(
+                dayId = dayId,
+                programExerciseId = ex.programExerciseId,
+                exerciseId = alternate.exerciseId,
+                exerciseName = alternate.name,
+                editedAtMillis = System.currentTimeMillis(),
+            ),
+        )
+        tickMemory = tickMemory.forgetExercise(ex.programExerciseId)
+        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+    }
+
     val inputs = DialInputs(
         snapshot = snap,
         exerciseIndex = exerciseIndex,
@@ -287,6 +326,8 @@ private fun WorkoutDial(
         session = SessionStamps(sessionStartedAtMillis, sessionEndedAtMillis),
         browseDayIndex = browseDay,
         peekRoundIndex = peek?.roundIndex,
+        swapAlternateIndex = swapPreview?.alternateIndex,
+        pendingSwapExerciseIds = pendingSwaps,
         tickMemory = tickMemory,
     )
     val state = dialUiState(inputs)
@@ -323,6 +364,14 @@ private fun WorkoutDial(
         val current = peek ?: return@LaunchedEffect
         delay(PeekScrub.IDLE_TIMEOUT_MILLIS)
         if (PeekScrub.expired(current, SystemClock.elapsedRealtime())) peek = null
+    }
+
+    // A swap under consideration puts the lift back the same way, on its own longer
+    // clock — see SwapPicker. Nothing else cancels it; the tap is the only commit.
+    LaunchedEffect(swapPreview) {
+        val current = swapPreview ?: return@LaunchedEffect
+        delay(SwapPicker.IDLE_TIMEOUT_MILLIS)
+        if (SwapPicker.expired(current, SystemClock.elapsedRealtime())) swapPreview = null
     }
 
     LaunchedEffect(restDeadlineMillis) {
@@ -365,6 +414,12 @@ private fun WorkoutDial(
                 currentRoundIndex = roundIndex,
                 detents = detents,
                 roundCount = exercise?.sets?.size ?: 0,
+                nowElapsedMillis = SystemClock.elapsedRealtime(),
+            )
+            DialCrown.SELECT_ALTERNATE -> swapPreview = SwapPicker.turn(
+                current = swapPreview,
+                detents = detents,
+                alternateCount = exercise?.alternates?.size ?: 0,
                 nowElapsedMillis = SystemClock.elapsedRealtime(),
             )
             DialCrown.NONE -> Unit
@@ -416,6 +471,14 @@ private fun WorkoutDial(
                         restController.skip()
                         clearRest()
                         restedSeconds = NO_REST
+                    }
+                    // Resolved, not indexed raw: the prescription can shrink under a
+                    // live preview, and the confirm must act on the alternate the
+                    // disc is naming (SwapPicker.resolve) rather than silently do
+                    // nothing because the old index fell off the end.
+                    DialTap.CONFIRM_SWAP -> exercise?.let { ex ->
+                        SwapPicker.resolve(swapPreview?.alternateIndex, ex.alternates.size)
+                            ?.let { confirmSwap(ex.alternates[it]) }
                     }
                     DialTap.DISMISS -> onDismiss()
                     DialTap.NONE -> Unit

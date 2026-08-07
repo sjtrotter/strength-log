@@ -47,6 +47,20 @@ class TickMemory private constructor(private val ticks: Map<String, Tick>) {
         return TickMemory(ticks - key)
     }
 
+    /**
+     * Forgets every tick against one slot — what a swap does to this ledger (#90).
+     * The phone's swap clears the slot's live log (§8.3), so rounds this watch
+     * remembers ticking there are rounds that no longer exist; keeping them would
+     * leave the undo pointing at work the lifter cannot see. [UndoTarget] would skip
+     * them anyway (a remembered tick is only trusted while the snapshot still calls
+     * it logged), but agreeing with the phone outright beats relying on that.
+     */
+    fun forgetExercise(programExerciseId: Long): TickMemory {
+        val prefix = "$programExerciseId$KEY_SEPARATOR"
+        val kept = ticks.filterKeys { !it.startsWith(prefix) }
+        return if (kept.size == ticks.size) this else TickMemory(kept)
+    }
+
     /** How long a round took, or null when this watch never timed it. */
     fun secondsFor(programExerciseId: Long, roundIndex: Int): Int? =
         ticks[key(programExerciseId, roundIndex)]?.seconds?.takeIf { it > 0 }

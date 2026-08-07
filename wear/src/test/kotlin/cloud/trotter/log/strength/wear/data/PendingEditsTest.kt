@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.wear.data
 
+import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
+import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
@@ -16,6 +18,19 @@ import kotlin.test.assertTrue
  */
 class PendingEditsTest {
 
+    private fun swap(
+        dayId: String = "A",
+        programExerciseId: Long = 1L,
+        exerciseName: String = "Front Squat",
+        stamp: Long = 1L,
+    ) = ExerciseSwapDelta(
+        dayId = dayId,
+        programExerciseId = programExerciseId,
+        exerciseId = "front_squat",
+        exerciseName = exerciseName,
+        editedAtMillis = stamp,
+    )
+
     private fun snapshot(
         dayId: String = "A",
         sets: List<WatchSet> = listOf(
@@ -23,6 +38,12 @@ class PendingEditsTest {
             WatchSet(175.0, 8, "BACKOFF", done = false),
         ),
         ssSets: List<WatchSet> = emptyList(),
+        name: String = "Squat",
+        exerciseId: String = "bb_back_squat",
+        // The slot's live prescription. A pending swap whose target has fallen out of
+        // it is one the phone can only refuse, so the default has to carry the one
+        // `swap()` asks for or every swap case here would settle as drift.
+        alternates: List<WatchAlternate> = listOf(WatchAlternate("front_squat", "Front Squat")),
     ) = WatchSnapshot(
         revision = 1L,
         suggestedDayId = dayId,
@@ -31,7 +52,12 @@ class PendingEditsTest {
             title = "Day",
             accentIndex = 0,
             exercises = listOf(
-                WatchExercise(1L, "main", "Squat", 235.0, false, if (ssSets.isEmpty()) null else "Partner", sets, ssSets),
+                WatchExercise(
+                    1L, "main", name, 235.0, false,
+                    if (ssSets.isEmpty()) null else "Partner", sets, ssSets,
+                    alternates = alternates,
+                    exerciseId = exerciseId,
+                ),
             ),
         ),
         unit = "lb",
@@ -225,6 +251,80 @@ class PendingEditsTest {
         // the edit must not settle by accident.
         val edit = delta(setIndex = 5, done = true, startedAtMillis = 1_000L, completedAtMillis = 1_045L)
         assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), snapshot()))
+    }
+
+    @Test
+    fun `a swap stays queued until its slot becomes the exercise it asked for`() {
+        val pending = listOf(swap())
+        assertEquals(pending, PendingEdits.reconcileSwaps(pending, snapshot()))
+
+        val landed = snapshot(name = "Front Squat", exerciseId = "front_squat", alternates = emptyList())
+        assertTrue(PendingEdits.reconcileSwaps(pending, landed).isEmpty())
+    }
+
+    /**
+     * The reason settlement keys on the slot's id and not its label. Two catalog
+     * entries are allowed to share a display name — two custom exercises, or an
+     * alternate named after the lift it replaces. Settling on the name would read
+     * this *unchanged* snapshot as the phone having answered, drop the request, and
+     * leave the lifter with the lift they asked to be rid of and nothing in flight
+     * to fix it.
+     */
+    @Test
+    fun `a swap is not settled by a namesake still sitting in the slot`() {
+        val pending = listOf(swap(exerciseName = "Squat"))
+        val namesake = snapshot(
+            name = "Squat",
+            exerciseId = "bb_back_squat",
+            alternates = listOf(WatchAlternate("front_squat", "Squat")),
+        )
+
+        assertEquals(pending, PendingEdits.reconcileSwaps(pending, namesake))
+    }
+
+    /** A publisher too old to send slot ids leaves the watch only the name to go on;
+     *  that degradation is deliberate and has to keep working. */
+    @Test
+    fun `an id-less snapshot falls back to matching the name`() {
+        val pending = listOf(swap())
+        val landed = snapshot(name = "Front Squat", exerciseId = "", alternates = emptyList())
+
+        assertTrue(PendingEdits.reconcileSwaps(pending, landed).isEmpty())
+    }
+
+    /**
+     * Refused by drift. The snapshot is the authority document: its alternates are
+     * what the phone would accept for that slot right now. A target that has dropped
+     * out of the list — a deleted custom exercise, a narrowed equipment set — can only
+     * ever be answered INVALID, so re-sending it forever would hold the lift read-only
+     * on the wrist waiting for an answer that is never coming.
+     */
+    @Test
+    fun `a swap the phone can no longer accept is abandoned instead of resent forever`() {
+        val pending = listOf(swap())
+        val drifted = snapshot(alternates = listOf(WatchAlternate("goblet_squat", "Goblet Squat")))
+
+        assertTrue(PendingEdits.reconcileSwaps(pending, drifted).isEmpty())
+        // Same for a slot with no prescription at all — nothing can be accepted.
+        assertTrue(PendingEdits.reconcileSwaps(pending, snapshot(alternates = emptyList())).isEmpty())
+    }
+
+    @Test
+    fun `a swap for a day the phone has moved past is abandoned`() {
+        assertTrue(PendingEdits.reconcileSwaps(listOf(swap(dayId = "A")), snapshot(dayId = "B")).isEmpty())
+    }
+
+    @Test
+    fun `a newer swap for the same slot supersedes the older one`() {
+        val older = swap(exerciseName = "Front Squat", stamp = 1L)
+        val newer = swap(exerciseName = "Goblet Squat", stamp = 2L)
+        assertEquals(listOf(newer), PendingEdits.reconcileSwaps(listOf(older, newer), snapshot()))
+    }
+
+    @Test
+    fun `a swap for a slot the snapshot does not carry stays queued`() {
+        val pending = listOf(swap(programExerciseId = 99L))
+        assertEquals(pending, PendingEdits.reconcileSwaps(pending, snapshot()))
     }
 
     // --- monotonic stamp issue (PR #63 review finding 2) -----------------------

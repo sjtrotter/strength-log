@@ -53,10 +53,16 @@ data class BandContent(
 )
 
 /** What tapping the disc does — the dial's one tap target (§1). */
-enum class DialTap { NONE, OPEN_WORKOUT, START_SET, TICK, SKIP_REST, DISMISS }
+enum class DialTap { NONE, OPEN_WORKOUT, START_SET, TICK, SKIP_REST, CONFIRM_SWAP, DISMISS }
 
-/** What turning the crown does on this screen (§6). */
-enum class DialCrown { NONE, SELECT_EXERCISE, PEEK }
+/**
+ * What turning the crown does on this screen (§6).
+ *
+ * [SELECT_ALTERNATE] is Swap, and it takes the crown from [PEEK] on exactly the
+ * screens where [PEEK] has nothing to show: a lift with no logged rounds. The two
+ * can't collide, because a peek scrubs *results* and an untouched lift has none.
+ */
+enum class DialCrown { NONE, SELECT_EXERCISE, PEEK, SELECT_ALTERNATE }
 
 /**
  * What a leftward swipe does here (v3 §3). It is contextual and it is rare: only

@@ -181,6 +181,53 @@ class CrownLayerTest {
         assertFalse(PeekScrub.expired(null, nowElapsedMillis = Long.MAX_VALUE))
     }
 
+    @Test
+    fun `the first forward flick proposes the best ranked alternate`() {
+        assertEquals(SwapPreview(0, 100L), SwapPicker.turn(null, 1, 3, 100L))
+    }
+
+    @Test
+    fun `the swap picker advances and clamps at the last alternate`() {
+        assertEquals(SwapPreview(1, 200L), SwapPicker.turn(SwapPreview(0, 100L), 1, 3, 200L))
+        assertEquals(SwapPreview(2, 300L), SwapPicker.turn(SwapPreview(1, 200L), 9, 3, 300L))
+    }
+
+    @Test
+    fun `turning back before the first alternate keeps the prescribed lift`() {
+        assertNull(SwapPicker.turn(SwapPreview(0, 100L), -1, 3, 200L))
+        assertNull(SwapPicker.turn(null, -1, 3, 200L))
+    }
+
+    @Test
+    fun `a lift with no alternates has nothing to pick`() {
+        assertNull(SwapPicker.turn(SwapPreview(0, 100L), 1, 0, 200L))
+        assertNull(SwapPicker.turn(null, 1, 0, 200L))
+    }
+
+    /**
+     * The prescription can shrink under a live preview when a fresh snapshot lands.
+     * The disc clamps so it keeps naming something; the confirm resolves through the
+     * same function so it acts on exactly that one, rather than reading past the end
+     * of the list and silently doing nothing while the disc still offers a choice.
+     */
+    @Test
+    fun `a preview that outlived its alternate resolves onto the last one left`() {
+        assertEquals(0, SwapPicker.resolve(2, alternateCount = 1))
+        assertEquals(1, SwapPicker.resolve(2, alternateCount = 2))
+        assertEquals(2, SwapPicker.resolve(2, alternateCount = 5))
+        assertNull(SwapPicker.resolve(2, alternateCount = 0))
+        assertNull(SwapPicker.resolve(null, alternateCount = 3))
+    }
+
+    @Test
+    fun `the swap preview expires after its longer decision timeout`() {
+        val preview = SwapPreview(0, 1_000L)
+        assertFalse(SwapPicker.expired(preview, 1_000L + SwapPicker.IDLE_TIMEOUT_MILLIS - 1L))
+        assertTrue(SwapPicker.expired(preview, 1_000L + SwapPicker.IDLE_TIMEOUT_MILLIS))
+        assertFalse(SwapPicker.expired(null, Long.MAX_VALUE))
+        assertTrue(SwapPicker.IDLE_TIMEOUT_MILLIS > PeekScrub.IDLE_TIMEOUT_MILLIS)
+    }
+
     // --- undo target -------------------------------------------------------------
 
     // Three lifts; the first and the third each have their opening round logged. Which

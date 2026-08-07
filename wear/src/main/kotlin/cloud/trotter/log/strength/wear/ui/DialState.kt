@@ -57,6 +57,14 @@ data class DialInputs(
     val browseDayIndex: Int? = null,
     /** The round the crown is peeking at (§6), or null when nobody is browsing. */
     val peekRoundIndex: Int? = null,
+    /** The prescribed alternate the crown is proposing (§6 Swap, #90), or null when
+     *  the lifter is keeping the lift they were given. Like the peek, a glance —
+     *  never restored. */
+    val swapAlternateIndex: Int? = null,
+    /** The lifts with a swap the phone hasn't answered yet. Those lifts stop being
+     *  loggable until it does: their rows still describe the exercise being replaced,
+     *  and the replacement's are seeded phone-side (§8.3). */
+    val pendingSwapExerciseIds: Set<Long> = emptySet(),
     /** What this watch remembers logging today ([TickMemory]): the peek's `TOOK`
      *  line, and the chronology the undo needs to reach the *latest* tick rather
      *  than the positionally nearest one. */
@@ -175,6 +183,7 @@ fun dialUiState(inputs: DialInputs): DialUiState {
     }
     return state
         .withPeek(context, inputs.peekRoundIndex)
+        .withSwapPreview(context, inputs.swapAlternateIndex)
         .withQueuedStatus(inputs.pendingCount)
 }
 
@@ -332,22 +341,104 @@ private class ScreenContext(
     private fun dayTitleBand(title: String): BandContent? =
         title.takeIf { it.isNotBlank() }?.let { BandContent(it.uppercase(), DialTone.ACCENT_BRIGHT) }
 
-    fun ready(): DialUiState = base(
+    /**
+     * True where the dial may offer Swap: a lift the phone has ranked replacements
+     * for, with **nothing logged against it**, and no swap of ours already in flight.
+     *
+     * The "nothing logged" clause is not a nicety, it is the whole rule. The phone's
+     * swap clears the slot's live log (§8.3), so offering it only while there is
+     * nothing to clear makes the destructive half of the operation cost exactly
+     * nothing — and it is the same condition that frees the crown, because a peek
+     * scrubs logged results and an untouched lift has none. Everything else falls
+     * out of it: REST_OVER always follows a tick, DAY_DONE has no unlogged lift left,
+     * and the overview's crown keeps picking lifts.
+     */
+    val swapOffered: Boolean
+        get() = exercise.alternates.isNotEmpty() &&
+            exercise.sets.none { it.done } &&
+            !swapPending
+
+    /** A swap the phone hasn't answered yet for the lift on screen. */
+    val swapPending: Boolean
+        get() = exercise.programExerciseId in inputs.pendingSwapExerciseIds
+
+    fun ready(): DialUiState {
+        if (swapPending) return swapping()
+        return base(
+            screen = DialScreen.READY,
+            rounds = roundStates,
+            arc = null,
+            topBand = BandContent(
+                text = "${exercise.name} · ${round?.kindLabel.orEmpty()}".uppercase(),
+                tone = DialTone.SECONDARY,
+            ),
+            bottomBand = BandContent(setOfLine(), DialTone.TERTIARY),
+            disc = startDisc(),
+            tap = DialTap.START_SET,
+            // Swap takes the crown only where the peek has nothing to scrub.
+            crown = if (swapOffered) DialCrown.SELECT_ALTERNATE else DialCrown.PEEK,
+            // A set's start is the one moment on this face where changing lifts costs
+            // nothing — nothing is under way to lose (v3 §3).
+            swipe = DialSwipe.NEXT_EXERCISE,
+            hold = undoHold(),
+        )
+    }
+
+    /**
+     * The lift is waiting on the phone's answer to a swap (#90). The name is already
+     * the one the lifter asked for — the client echoes that much — but the rows under
+     * it still describe the exercise being replaced, and the replacement's are seeded
+     * phone-side from its own GOAL. So the disc goes read-only: DIMMED already means
+     * "nothing here to act on", and the alternative is drawing 235 × 5 under a lift
+     * nobody prescribed 235 for.
+     *
+     * The swipe stays live on purpose. Offline the phone may not answer for a while,
+     * and the lifter must not be trapped: only the lift they just asked to have
+     * replaced is un-loggable, and the rest of the day is one swipe away. The queued
+     * count in the top band is what says why ([withQueuedStatus] — the swap is in it).
+     */
+    fun swapping(): DialUiState = base(
         screen = DialScreen.READY,
         rounds = roundStates,
         arc = null,
-        topBand = BandContent(
-            text = "${exercise.name} · ${round?.kindLabel.orEmpty()}".uppercase(),
-            tone = DialTone.SECONDARY,
+        topBand = BandContent(exercise.name.uppercase(), DialTone.SECONDARY),
+        bottomBand = BandContent("waiting on phone".uppercase(), DialTone.TERTIARY),
+        disc = DiscContent(
+            style = DiscStyle.DIMMED,
+            lines = listOf(
+                DiscLine("swapping".uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY),
+                DiscLine(exercise.name.uppercase(), DialTextRole.BAND, DialTone.SECONDARY),
+            ),
         ),
-        bottomBand = BandContent(setOfLine(), DialTone.TERTIARY),
-        disc = startDisc(),
-        tap = DialTap.START_SET,
-        crown = DialCrown.PEEK,
-        // A set's start is the one moment on this face where changing lifts costs
-        // nothing — nothing is under way to lose (v3 §3).
+        tap = DialTap.NONE,
+        crown = DialCrown.NONE,
         swipe = DialSwipe.NEXT_EXERCISE,
-        hold = undoHold(),
+    )
+
+    /**
+     * The alternate under consideration, as the disc reads it (§6): its name, and
+     * `USE THIS` for what the tap will do.
+     *
+     * OUTLINED, not FILLED. Both mean the tap acts, but READY's own disc is a FILLED
+     * `START` and these two live one crown-flick apart — a swap preview that looked
+     * like the start button is a mis-tap waiting to happen. OUTLINED is also honest
+     * on its own terms: a decision in progress, finished by the tap.
+     */
+    fun swapDisc(alternateIndex: Int): DiscContent = DiscContent(
+        style = DiscStyle.OUTLINED,
+        lines = listOf(
+            DiscLine(
+                exercise.alternates[alternateIndex].name.uppercase(),
+                DialTextRole.DISC_LABEL,
+                DialTone.PRIMARY,
+            ),
+            DiscLine("use this".uppercase(), DialTextRole.BAND, DialTone.ACCENT_BRIGHT),
+        ),
+    )
+
+    fun swapBand(alternateIndex: Int): BandContent = BandContent(
+        text = "${alternateIndex + 1} of ${exercise.alternates.size} alternates".uppercase(),
+        tone = DialTone.TERTIARY,
     )
 
     fun lifting(): DialUiState = base(
@@ -611,6 +702,35 @@ private fun DialUiState.withPeek(
         disc = context.peekDisc(index),
         bloom = false,
         tap = DialTap.NONE,
+        swipe = DialSwipe.NONE,
+        hold = null,
+    )
+}
+
+/**
+ * The Swap layer (§6), laid over the READY disc the same way the peek is: the rings
+ * don't move — the day hasn't changed — the disc names the alternate the crown is
+ * proposing, and the bottom band counts the list off. The undo hold and the
+ * next-exercise swipe both stand down while a decision is on the disc, so the one
+ * gesture that means anything here is the tap that confirms it.
+ *
+ * Guarded on [DialCrown.SELECT_ALTERNATE], so it can only ever appear where the
+ * offer rule already put the crown ([ScreenContext.swapOffered]) — never during a
+ * peek, never on a lift with work logged against it, never on a finished day.
+ */
+private fun DialUiState.withSwapPreview(
+    context: ScreenContext,
+    alternateIndex: Int?,
+): DialUiState {
+    if (crown != DialCrown.SELECT_ALTERNATE) return this
+    // The same resolution the confirm uses, so the disc can never name one alternate
+    // while the tap acts on another (or on none).
+    val index = SwapPicker.resolve(alternateIndex, context.exercise.alternates.size) ?: return this
+    return copy(
+        bottomBand = context.swapBand(index),
+        disc = context.swapDisc(index),
+        bloom = false,
+        tap = DialTap.CONFIRM_SWAP,
         swipe = DialSwipe.NONE,
         hold = null,
     )

@@ -150,6 +150,67 @@ object PeekScrub {
     }
 }
 
+/** A swap being considered: which of the lift's prescribed alternates is on the
+ *  disc, and when the crown last moved. */
+data class SwapPreview(val alternateIndex: Int, val lastTurnElapsedMillis: Long)
+
+/**
+ * Crown-flick through the alternates the phone prescribed for the lift on screen
+ * (brief §6 "Swap"). The list the crown walks is the lift itself followed by its
+ * ranked replacements, so index `-1` — no preview at all — *is* "keep this one":
+ * flicking forward proposes the best replacement first, and flicking back off the
+ * top puts the original lift back with no gesture to learn.
+ *
+ * Like the peek it ends by itself when the crown stops, because a rotary crown has
+ * no release event. Unlike the peek it gets [IDLE_TIMEOUT_MILLIS] rather than
+ * [PeekScrub.IDLE_TIMEOUT_MILLIS]: a peek ends by not looking, and this ends in a
+ * tap. Reverting under a finger already on its way to the disc would start the set
+ * instead of swapping the lift, which is the one mistake here that costs a rep.
+ */
+object SwapPicker {
+
+    const val IDLE_TIMEOUT_MILLIS = 4_000L
+
+    /**
+     * Where [detents] of crown land, from [current] (or from the lift itself when
+     * nothing is being previewed). Clamped at the end of the list — the ranking
+     * runs out, it doesn't wrap onto itself — and null once it rolls back past the
+     * first alternate, which is the lifter keeping what they had.
+     */
+    fun turn(
+        current: SwapPreview?,
+        detents: Int,
+        alternateCount: Int,
+        nowElapsedMillis: Long,
+    ): SwapPreview? {
+        if (alternateCount <= 0) return null
+        val from = current?.alternateIndex ?: -1
+        val index = (from + detents).coerceAtMost(alternateCount - 1)
+        return if (index < 0) null else SwapPreview(index, nowElapsedMillis)
+    }
+
+    /**
+     * Which alternate a preview of [alternateIndex] actually points at, given how
+     * many the lift currently has — or null when it points at nothing.
+     *
+     * The prescription can shrink under a live preview (a fresh snapshot with a
+     * shorter list). The disc has to keep naming *something*, so it clamps; the one
+     * thing that must not happen is the confirm acting on a different alternate than
+     * the one being named, or on nothing at all while the disc still offers a choice.
+     * Both sides resolve through here, so what you see is what you confirm.
+     */
+    fun resolve(alternateIndex: Int?, alternateCount: Int): Int? {
+        if (alternateIndex == null || alternateCount <= 0) return null
+        return alternateIndex.coerceIn(0, alternateCount - 1)
+    }
+
+    /** True once the crown has sat still long enough to put the lift back. */
+    fun expired(preview: SwapPreview?, nowElapsedMillis: Long): Boolean {
+        val last = preview?.lastTurnElapsedMillis ?: return false
+        return nowElapsedMillis - last >= IDLE_TIMEOUT_MILLIS
+    }
+}
+
 /**
  * Which round of which exercise a 700ms hold on the disc would untick (§6). The
  * exercise travels with the round because the undo reaches across the day: the set

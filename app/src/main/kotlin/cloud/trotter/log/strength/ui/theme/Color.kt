@@ -99,17 +99,17 @@ fun accentBorder(dayIndex: Int): Color {
     return lerp(Border, dayAccent(dayIndex), fraction)
 }
 
-/** How far a day accent is lifted toward [TextPrimary] to become legible as a
- *  foreground mark on [Background] — see [accentBright]. */
-private const val BRIGHT_LIFT = 0.35f
-
 /**
  * The day accent as a *foreground* color on [Background]: chart lines, markers
  * and the cascade scrim's new number (docs/briefs/journal.md §0). The raw
- * accents are identity fills, chosen for on-accent contrast, and four of the
- * seven (B/D/E/F) sit at 2.1–2.8:1 against the near-black — unreadable as a
- * hairline mark. Lifting each toward [TextPrimary] by [BRIGHT_LIFT] keeps the
- * hue and clears 5:1 for all seven ([DayAccentTest] pins the floor). Derived,
- * never a second hex table: the accents stay SSOT in `:domain`.
+ * accents are identity fills, chosen for on-accent contrast, and six of the
+ * seven sit between 2.1:1 and 3.8:1 against the near-black — only C, the
+ * goldenrod, is legible unlifted, and the rest are unreadable as a hairline
+ * mark.
+ *
+ * The lift itself is `DayAccentColors.brightHex`, same as the watch's: the phone
+ * used to derive it here and the watch derived a different one of its own, so a
+ * day read one way in the pocket and another on the wrist (#150). [DayAccentTest]
+ * still pins the contrast floor from this side of the fence.
  */
-fun accentBright(dayIndex: Int): Color = lerp(dayAccent(dayIndex), TextPrimary, BRIGHT_LIFT)
+fun accentBright(dayIndex: Int): Color = Color(DayAccentColors.brightHex(dayIndex))

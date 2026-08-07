@@ -285,13 +285,19 @@ class ExerciseLibraryTest {
 
     @Test
     fun `every short name is a real, shorter alternative to the full name`() {
+        // The watch is the only consumer (WatchSnapshotBuilder.watchName = shortName
+        // ?: name), and its label band is an arc: 120 reference px of centreline
+        // radius over DialGeometry.BAND_MAX_SWEEP_DEG is ~251px, which at the BAND
+        // step (26px + 4px tracking, condensed caps) holds about 16 characters
+        // before it ellipsizes. The READY band spends six to eight of those on
+        // "· TOP", so 12 is the target and 16 is the wall (#153).
         val shortened = ExerciseLibrary.entries.filter { it.shortName != null }
         assertTrue(shortened.isNotEmpty())
         for (entry in shortened) {
             val short = entry.shortName!!
             assertTrue(short.isNotBlank(), "${entry.id} has a blank shortName")
             assertEquals(short.trim(), short, "${entry.id}'s shortName has stray whitespace")
-            assertTrue(short.length <= 20, "${entry.id}'s shortName is ${short.length} chars: $short")
+            assertTrue(short.length <= 16, "${entry.id}'s shortName is ${short.length} chars, over the wrist budget: $short")
             assertTrue(short.length < entry.name.length, "${entry.id}'s shortName is no shorter than its name")
         }
     }
@@ -308,7 +314,7 @@ class ExerciseLibraryTest {
             "conv_dl" to "Deadlift",
             "bb_back_squat" to "Squat",
             "bb_bench" to "Bench Press",
-            "ohp" to "Overhead Press",
+            "ohp" to "OHP",
             "rdl" to "RDL",
         )
         for ((id, short) in expected) {

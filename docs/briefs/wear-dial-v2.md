@@ -40,12 +40,18 @@ sized so the Pixel Watch (density 2.0) lands exactly on the sp column:
 | `DISC_LABEL_SMALL` | 21 | **30** | 15sp |
 | `BAND` | 13 | **26** | 13sp |
 | `BAND_SECONDARY` | 11 | **24** | 12sp |
+| `CYCLE_LABEL`¹ | — | **18** | 9sp |
 
 Tracking scales with the same factor (START's 3px → 6px, band 2px → 4px,
 secondary 1.5px → 3px). **Nothing on the dial may render below 12sp** — that is
 acceptance criterion 1 and a test, not a guideline. The font-scale pin
 (physical-size type, ignore system font scale) stays, with its existing
 rationale in `DialType.kt`.
+
+¹ Added in dial v3 for the cycle ring's day labels (issue #152), after the
+floor above had already shipped and been tested on-wrist. It is the one named
+exception: the ring segment's colour is the identification, the label only
+names it, and 18 is what fits inside the ring's 22px stroke.
 
 ## 2. Geometry v2
 

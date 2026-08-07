@@ -20,9 +20,13 @@ class DialTypeTest {
     private val referenceScale = DialGeometry.scale(384f)
 
     @Test
-    fun `no step of the scale renders below 12sp on a 192dp face`() {
+    fun `every step the lifter reads renders at 12sp or more on a 192dp face`() {
+        // CYCLE_LABEL is exempt: an owner-waived verdict from the on-wrist round
+        // (issue #152). The cycle ring's colour is the identification and the
+        // word only names it, so the floor that governs everything the lifter
+        // actually *reads* does not apply to it.
         val type = dialTypography(referenceScale, pixelWatch)
-        DialTextRole.entries.forEach { role ->
+        DialTextRole.entries.filter { it != DialTextRole.CYCLE_LABEL }.forEach { role ->
             val sp = type.style(role).fontSize.value
             assertTrue(sp >= 12f, "$role renders at ${sp}sp")
         }
@@ -37,6 +41,7 @@ class DialTypeTest {
         assertEquals(15f, type.discLabelSmall.fontSize.value, TOLERANCE)
         assertEquals(13f, type.band.fontSize.value, TOLERANCE)
         assertEquals(12f, type.bandSecondary.fontSize.value, TOLERANCE)
+        assertEquals(9f, type.cycleLabel.fontSize.value, TOLERANCE)
     }
 
     @Test
@@ -81,6 +86,19 @@ class DialTypeTest {
         val type = dialTypography(referenceScale, pixelWatch)
         val row = with(pixelWatch) { type.curved(DialTextRole.BAND, Color.Red).lineHeight.toPx() }
         assertTrue(row <= DialGeometry.bandArc(384f).thicknessPx, "the band row (${row}px) overflows its annulus")
+    }
+
+    @Test
+    fun `a cycle label's line box fits inside the cycle ring's own stroke`() {
+        // This is why CYCLE_LABEL is 18 reference px and not 24 (BAND_SECONDARY):
+        // the ring's stroke is 22 reference px and 22 / 1.2 (the band line-height
+        // factor) is 18.33, so 18 is the largest whole step that still fits.
+        val type = dialTypography(referenceScale, pixelWatch)
+        val row = with(pixelWatch) { type.curved(DialTextRole.CYCLE_LABEL, Color.Red).lineHeight.toPx() }
+        assertTrue(
+            row <= DialGeometry.cycleRing(384f).strokePx,
+            "the cycle label row (${row}px) overflows the ring stroke",
+        )
     }
 
     @Test

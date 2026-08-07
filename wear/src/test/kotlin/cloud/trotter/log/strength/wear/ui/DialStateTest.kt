@@ -291,7 +291,9 @@ class DialStateTest {
         assertEquals("0:47", state.topBand?.text)
         assertNotNull(state.topBand?.dotTone)
         assertEquals(listOf("235 ×5", "TAP TO LOG"), state.discText())
-        assertEquals("HOLD TO UNDO", state.bottomBand?.text)
+        // The band says which set is under way. It used to say HOLD TO UNDO, on a
+        // screen that offers no hold (#151).
+        assertEquals("SET 1 OF 3", state.bottomBand?.text)
         assertEquals(DialTap.TICK, state.tap)
         // The elapsed timer is never near the disc numeral (§5.3).
         assertTrue(state.disc.lines.none { line -> line.spans.any { it.text == "0:47" } })
@@ -792,7 +794,63 @@ class DialStateTest {
     @Test
     fun `a set in progress is not a set to undo — it hasn't been locked in yet`() {
         val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
-        assertNull(dialUiState(inputs(snapshot = logged, phase = SetPhase.LIFTING)).hold)
+        val lifting = dialUiState(inputs(snapshot = logged, phase = SetPhase.LIFTING))
+        assertNull(lifting.hold)
+        // …and with a day's worth of logged sets behind it, it still doesn't say
+        // otherwise: the hint follows the offer, not the other way round (#151).
+        assertEquals("SET 2 OF 3", lifting.bottomBand?.text)
+    }
+
+    @Test
+    fun `the undo is offered on exactly three screens, and no screen claims otherwise`() {
+        // #151, wrist-confirmed: HOLD TO UNDO rendered on LIFTING while the hold was
+        // only ever offered between efforts. Both halves are pinned here, because
+        // either one alone is worthless. "Nothing advertises a hold it doesn't
+        // offer" is vacuously true the moment no band says UNDO — READY could quietly
+        // lose its offer and that assertion would still pass. So the offer map is
+        // pinned outright, over every screen the dial builds.
+        val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
+        val plank = exercise(
+            id = 4L,
+            name = "Plank",
+            sets = List(3) { set(weight = 0.0, reps = 0, seconds = 45, kind = "WORK") },
+            tracking = "timed",
+        )
+        val states = listOf(
+            dialUiState(inputs(snapshot = logged, face = DialFace.OVERVIEW)),
+            dialUiState(inputs(snapshot = logged)),
+            dialUiState(inputs(snapshot = logged, phase = SetPhase.LIFTING)),
+            dialUiState(inputs(snapshot = logged, phase = SetPhase.LIFTING, peekRoundIndex = 0)),
+            dialUiState(
+                inputs(
+                    snapshot = logged,
+                    rest = RestState(deadlineElapsedMillis = 90_000L, totalSeconds = 150, betweenExercises = false),
+                    nowElapsedMillis = 6_000L,
+                ),
+            ),
+            dialUiState(inputs(snapshot = logged, restedSeconds = 150)),
+            dialUiState(inputs(snapshot = snapshot(plank), phase = SetPhase.LIFTING, liftingElapsedMillis = 28_000L)),
+            dialUiState(inputs(snapshot = allDone())),
+        )
+
+        // The sweep is only worth anything if it actually reaches every screen.
+        assertEquals(DialScreen.entries.toSet(), states.map { it.screen }.toSet())
+
+        // The offer: between sets, between exercises, and on the finished day —
+        // the three places nothing is under way to lose. Nowhere else.
+        assertEquals(
+            setOf(DialScreen.READY, DialScreen.REST_OVER, DialScreen.DAY_DONE),
+            states.filter { it.hold != null }.map { it.screen }.toSet(),
+            "the undo's offer map changed",
+        )
+
+        // And the hint: no band may name a hold the state it sits in doesn't offer.
+        states.forEach { state ->
+            val bands = listOfNotNull(state.topBand?.text, state.bottomBand?.text)
+            if (bands.any { "UNDO" in it }) {
+                assertNotNull(state.hold, "${state.screen} names the undo but offers no hold")
+            }
+        }
     }
 
     @Test

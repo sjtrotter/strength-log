@@ -333,14 +333,17 @@ private fun roundColor(round: RoundState, accent: Color): Color = when (round) {
  * that segment actually has, so a 7-day program on a 41mm watch drops to letters
  * (or to colour alone) without anyone tuning a breakpoint per day count.
  *
- * Labels stay at BAND_SECONDARY: the 12sp floor is the floor everywhere (v2 §1).
+ * Labels render at CYCLE_LABEL, 9sp on the reference face — below the v2 12sp
+ * floor by deliberate owner waiver, not an oversight (on-wrist verdict, issue
+ * #152): the segment's colour is the identification, the word only names it,
+ * and 18 reference px is what actually fits inside the ring's 22px stroke.
  */
 @Composable
 private fun CycleLabels(cycle: List<CycleSegment>, type: DialTypography, diameterPx: Float) {
     if (cycle.isEmpty()) return
     val measurer = rememberTextMeasurer()
     val band = DialGeometry.cycleLabelBand(diameterPx)
-    val labelStyle = type.style(DialTextRole.BAND_SECONDARY)
+    val labelStyle = type.style(DialTextRole.CYCLE_LABEL)
     val segments = DialGeometry.segments(cycle.size)
 
     val labels = remember(cycle, labelStyle, band.radiusPx) {
@@ -368,7 +371,7 @@ private fun CycleLabels(cycle: List<CycleSegment>, type: DialTypography, diamete
         if (text == null) return@forEachIndexed
         CycleLabel(
             text = text,
-            style = type.curved(DialTextRole.BAND_SECONDARY, cycleLabelColor(cycle[index])),
+            style = type.curved(DialTextRole.CYCLE_LABEL, cycleLabelColor(cycle[index])),
             anchorDeg = DialGeometry.midAngleDeg(segments[index]),
             band = band,
         )

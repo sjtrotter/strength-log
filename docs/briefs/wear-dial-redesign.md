@@ -158,7 +158,12 @@ All seven are the same composable with different data. Mock reference: option `2
   it must never be drawn over or near the disc numeral.
 - Disc: **outlined** — `235×5` as one numeral group (46px weight, `×5` at 27px in secondary),
   then `TAP WHEN RACKED` (13px, accent bright).
-- Bottom band: `HOLD TO UNDO`.
+- Bottom band: `SET 5 OF 6`. (Amended after the on-wrist round, #151. This line used to
+  read `HOLD TO UNDO`, which contradicted §6 below: the undo is a long-press *on a logged
+  set's disc*, and a set in progress isn't logged yet. The hold is offered on Ready, Rest
+  over and Day done and nowhere else, so the hint was naming a gesture that did nothing
+  where it was written. The offer is the honest half and it stayed; the hint went, and the
+  band now carries the set position the timed-hold screen already shows.)
 - Tap anywhere in the disc → stamps `completedAtMillis`, emits the delta, auto-starts rest.
 
 ### 4 · Rest (auto-started)

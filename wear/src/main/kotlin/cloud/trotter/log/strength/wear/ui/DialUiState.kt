@@ -22,8 +22,11 @@ enum class DialScreen { OVERVIEW, READY, LIFTING, REST, REST_OVER, TIMED_HOLD, D
 /** Disc grammar (§4) — the fill states the mode, and the mode states what a tap does. */
 enum class DiscStyle { FILLED, OUTLINED, FLAT, DASHED, DIMMED, FILLED_GREEN }
 
-/** The type scale (§3), three sizes with two steps each. Nothing in between. */
-enum class DialTextRole { NUMERAL_LARGE, NUMERAL, DISC_LABEL, DISC_LABEL_SMALL, BAND, BAND_SECONDARY }
+/** The type scale (§3), three sizes with two steps each, plus the cycle ring's own
+ *  smaller step (#152). Nothing in between. */
+enum class DialTextRole {
+    NUMERAL_LARGE, NUMERAL, DISC_LABEL, DISC_LABEL_SMALL, BAND, BAND_SECONDARY, CYCLE_LABEL
+}
 
 /**
  * A colour *role*, resolved against the day accent by the composable — the state

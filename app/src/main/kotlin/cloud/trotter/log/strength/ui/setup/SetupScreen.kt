@@ -2,22 +2,25 @@ package cloud.trotter.log.strength.ui.setup
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -415,85 +418,55 @@ private const val REST_STEP_SECONDS = 15.0
 
 @Composable
 private fun ResetRestDefaultsRow(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .border(1.dp, Border, RoundedCornerShape(12.dp))
-            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
-            .padding(vertical = 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("RESET DEFAULTS", color = TextSecondary, style = DoneButtonLabel)
-    }
+    SetupOutlineAction("RESET DEFAULTS", TextSecondary, 48, 6, onClick)
 }
 
 // --- create custom exercise (route #13, D1: reachable from Setup and the day-edit picker) ---
 
 @Composable
 private fun CreateCustomExerciseButton(accent: Color, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            // heightIn(min), not height (A7 font-scale): long labels wrap to
-            // two lines at large fontScale instead of overflowing the button.
-            .heightIn(min = 52.dp)
-            .border(1.dp, accent, RoundedCornerShape(12.dp))
-            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("+ CREATE CUSTOM EXERCISE", color = accent, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
-    }
+    SetupOutlineAction("+ CREATE CUSTOM EXERCISE", accent, 52, 8, onClick)
 }
 
 // --- data / backup (PLAN.md A2, brief D9's :app-side UI PR) ------------------
 
 @Composable
 private fun DataBackupButton(accent: Color, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 52.dp)
-            .border(1.dp, accent, RoundedCornerShape(12.dp))
-            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("DATA / BACKUP", color = accent, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
-    }
+    SetupOutlineAction("DATA / BACKUP", accent, 52, 8, onClick)
 }
 
 // --- OSS licenses (M6 #23: Barlow Condensed OFL + third-party notices) -------
 
 @Composable
 private fun LicensesButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .border(1.dp, Border, RoundedCornerShape(12.dp))
-            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("OSS LICENSES", color = TextSecondary, style = DoneButtonLabel)
-    }
+    SetupOutlineAction("OSS LICENSES", TextSecondary, 52, 6, onClick)
 }
 
 // --- re-run wizard (destructive escape hatch, spec §8.4) ---------------------
 
 @Composable
 private fun RerunWizardButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 52.dp)
-            .border(1.dp, Error, RoundedCornerShape(12.dp))
-            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center,
+    SetupOutlineAction("RE-RUN SETUP WIZARD", Error, 52, 8, onClick)
+}
+
+@Composable
+private fun SetupOutlineAction(
+    label: String,
+    color: Color,
+    minHeight: Int,
+    verticalPadding: Int,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        // heightIn(min), not height (A7): long labels may wrap at large font scale.
+        modifier = Modifier.fillMaxWidth().heightIn(min = minHeight.dp),
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, color),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = color),
+        contentPadding = PaddingValues(vertical = verticalPadding.dp),
     ) {
-        Text("RE-RUN SETUP WIZARD", color = Error, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
+        Text(label, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 

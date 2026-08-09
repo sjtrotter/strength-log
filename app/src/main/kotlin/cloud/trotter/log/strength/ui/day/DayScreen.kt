@@ -8,11 +8,13 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,7 +34,13 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -349,20 +357,14 @@ private fun TopBar(
 
 @Composable
 private fun EditDayButton(onClick: () -> Unit) {
-    Box(
+    OutlinedIconButton(
+        onClick = onClick,
         modifier = Modifier
-            .minimumInteractiveComponentSize()
             .defaultMinSize(40.dp, 40.dp)
-            .background(Surface2, RoundedCornerShape(10.dp))
-            .border(1.dp, Border, RoundedCornerShape(10.dp))
-            .pressable(
-                onClickLabel = "Edit day",
-                role = Role.Button,
-                shape = RoundedCornerShape(10.dp),
-                onClick = onClick,
-            )
             .semantics { contentDescription = "Edit day" },
-        contentAlignment = Alignment.Center,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, Border),
+        colors = IconButtonDefaults.outlinedIconButtonColors(containerColor = Surface2, contentColor = TextSecondary),
     ) {
         Text("✎", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
     }
@@ -872,19 +874,19 @@ private fun Badge(text: String, fill: Color, textColor: Color, outlined: Boolean
 
 @Composable
 private fun AddSetButton(modifier: Modifier = Modifier, isSuperset: Boolean, onClick: () -> Unit) {
-    Box(
+    OutlinedButton(
+        onClick = onClick,
         modifier = modifier
-            .minimumInteractiveComponentSize()
             .fillMaxWidth()
             .padding(top = 8.dp)
-            .dashedBorder(Border, radius = 8.dp)
-            .pressable(onClick = onClick, shape = RoundedCornerShape(8.dp))
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center,
+            .dashedBorder(Border, radius = 8.dp),
+        shape = MaterialTheme.shapes.small,
+        border = null,
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+        contentPadding = PaddingValues(vertical = 10.dp),
     ) {
         Text(
             if (isSuperset) "+ ADD ROUND" else "+ ADD SET",
-            color = TextSecondary,
             style = MaterialTheme.typography.labelLarge,
         )
     }
@@ -897,25 +899,21 @@ private fun AddSetButton(modifier: Modifier = Modifier, isSuperset: Boolean, onC
  * verb, on a whole-row target so taking it back is as cheap as the × was.
  *
  * Both labels are real text, so the accessible name is the line itself; the
- * click label supplies the verb TalkBack announces.
+ * visible UNDO text supplies the accessible name without a second announcement.
  */
 @Composable
 private fun UndoRemovedSetRow(accent: Color, modifier: Modifier = Modifier, onUndo: () -> Unit) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .pressable(
-                onClickLabel = "Undo remove set",
-                role = Role.Button,
-                shape = RoundedCornerShape(8.dp),
-                onClick = onUndo,
-            ),
+        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("SET REMOVED", color = TextFaint, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.weight(1f))
-        Text("UNDO", color = accent, style = DoneButtonLabel)
+        TextButton(
+            onClick = onUndo,
+            colors = ButtonDefaults.textButtonColors(contentColor = accent),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        ) { Text("UNDO", style = DoneButtonLabel) }
     }
 }
 
@@ -1025,28 +1023,21 @@ private fun DoneButton(
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
         label = "doneButtonPress",
     )
-    Box(
+    Button(
+        onClick = onClick,
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
             // heightIn(min), not height (A7 font-scale): the longer "ADVANCE TO
             // DAY B" label wraps to two lines at large fontScale instead of
             // overflowing the fixed-height pill.
-            .heightIn(min = 56.dp)
-            .background(accent, RoundedCornerShape(12.dp))
-            // The scale spring above is this button's own signature; the ripple
-            // underneath it is the app's shared one (#123) — one system, one
-            // emphasis, not two dialects.
-            .pressable(
-                interactionSource = interactionSource,
-                shape = RoundedCornerShape(12.dp),
-                onClick = onClick,
-            )
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center,
+            .heightIn(min = 56.dp),
+        interactionSource = interactionSource,
+        shape = MaterialTheme.shapes.large,
+        colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
+        contentPadding = PaddingValues(vertical = 8.dp),
     ) {
         Text(
             text = if (nextDayId != null) "DONE — ADVANCE TO DAY ${nextDayId.uppercase()}" else "DONE",
-            color = onAccent,
             style = DoneButtonLabel,
             textAlign = TextAlign.Center,
             maxLines = 2,
@@ -1087,15 +1078,15 @@ private fun ClearChecksConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Uni
 
 @Composable
 private fun QuietButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .minimumInteractiveComponentSize()
-            .border(1.dp, Border, RoundedCornerShape(50))
-            .pressable(onClick = onClick, shape = RoundedCornerShape(50))
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, Border),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
     ) {
         // The one labelLarge element the reference leaves mixed-case (no caps).
-        Text("Clear today's checkmarks", color = TextSecondary, style = MaterialTheme.typography.labelLarge)
+        Text("Clear today's checkmarks", style = MaterialTheme.typography.labelLarge)
     }
 }
 

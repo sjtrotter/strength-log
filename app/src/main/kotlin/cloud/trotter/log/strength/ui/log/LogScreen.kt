@@ -5,10 +5,12 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,8 +25,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -274,9 +280,8 @@ private fun ExerciseGroupRow(group: SessionExerciseGroup) {
  * *sibling* action, not a nested one — it never also toggles the row because
  * nothing above it is clickable at all.
  *
- * Its 48dp target (#123) is still *reserved* rather than borrowed:
- * [minimumInteractiveComponentSize] grows this row, so the target lands on the
- * row's own air instead of quietly claiming the detail lines above it.
+ * Its M3-owned 48dp target (#123) is still *reserved* rather than borrowed, so
+ * it lands on the row's own air instead of claiming the detail lines above it.
  */
 @Composable
 private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
@@ -287,20 +292,12 @@ private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            "SHARE",
-            color = if (pressed) dayAccent(dayIndex) else TextSecondary,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier
-                .minimumInteractiveComponentSize()
-                .pressable(
-                    interactionSource = interactionSource,
-                    onClickLabel = "Share session",
-                    role = Role.Button,
-                    onClick = onClick,
-                )
-                .padding(vertical = 6.dp, horizontal = 2.dp),
-        )
+        TextButton(
+            onClick = onClick,
+            interactionSource = interactionSource,
+            colors = ButtonDefaults.textButtonColors(contentColor = if (pressed) dayAccent(dayIndex) else TextSecondary),
+            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),
+        ) { Text("SHARE", style = MaterialTheme.typography.labelLarge) }
     }
 }
 
@@ -330,15 +327,25 @@ private fun BodyweightPromptCard(prompt: BodyweightPromptUi, onApply: () -> Unit
 
 @Composable
 private fun PromptButton(text: String, emphasized: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .minimumInteractiveComponentSize()
-            .background(if (emphasized) Surface3 else Surface2, RoundedCornerShape(10.dp))
-            .border(1.dp, if (emphasized) BorderStrong else Border, RoundedCornerShape(10.dp))
-            .pressable(shape = RoundedCornerShape(10.dp), onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 10.dp),
-    ) {
-        Text(text, color = if (emphasized) TextPrimary else TextSecondary, style = MaterialTheme.typography.labelLarge)
+    val content: @Composable () -> Unit = { Text(text, style = MaterialTheme.typography.labelLarge) }
+    if (emphasized) {
+        FilledTonalButton(
+            onClick = onClick,
+            shape = MaterialTheme.shapes.medium,
+            colors = ButtonDefaults.filledTonalButtonColors(containerColor = Surface3, contentColor = TextPrimary),
+            border = BorderStroke(1.dp, BorderStrong),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+            content = { content() },
+        )
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            shape = MaterialTheme.shapes.medium,
+            border = BorderStroke(1.dp, Border),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+            content = { content() },
+        )
     }
 }
 

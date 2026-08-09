@@ -3,9 +3,11 @@ package cloud.trotter.log.strength.ui.day
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -561,17 +566,44 @@ private fun SheetButton(
     compact: Boolean = false,
     textColor: Color = Done,
 ) {
-    Box(
-        modifier = modifier
-            .disabledAlpha(enabled)
-            .minimumInteractiveComponentSize()
-            .then(if (outlined) Modifier.border(1.dp, Border, RoundedCornerShape(8.dp)) else Modifier)
-            .background(if (outlined) Color.Transparent else Surface2, RoundedCornerShape(8.dp))
-            .pressable(enabled = enabled, onClick = onClick, shape = RoundedCornerShape(8.dp))
-            .padding(horizontal = if (compact) 12.dp else 14.dp, vertical = if (compact) 8.dp else 12.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, color = textColor, style = MaterialTheme.typography.labelLarge)
+    if (compact) {
+        // The slot-row Edit/Remove pair stays bespoke (audit §8's compact-row
+        // exception): an outer modifier cannot cap M3 Button's internal 58dp
+        // minimum width, so migrating would visibly widen every slot row.
+        Box(
+            modifier = modifier
+                .disabledAlpha(enabled)
+                .minimumInteractiveComponentSize()
+                .then(if (outlined) Modifier.border(1.dp, Border, RoundedCornerShape(8.dp)) else Modifier)
+                .background(if (outlined) Color.Transparent else Surface2, RoundedCornerShape(8.dp))
+                .pressable(enabled = enabled, onClick = onClick, shape = RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text, color = textColor, style = MaterialTheme.typography.labelLarge)
+        }
+        return
+    }
+    val contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
+    if (outlined) {
+        OutlinedButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier,
+            shape = MaterialTheme.shapes.small,
+            border = BorderStroke(1.dp, Border),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = textColor),
+            contentPadding = contentPadding,
+        ) { Text(text, style = MaterialTheme.typography.labelLarge) }
+    } else {
+        FilledTonalButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier,
+            shape = MaterialTheme.shapes.small,
+            colors = ButtonDefaults.filledTonalButtonColors(containerColor = Surface2, contentColor = textColor),
+            contentPadding = contentPadding,
+        ) { Text(text, style = MaterialTheme.typography.labelLarge) }
     }
 }
 

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.backup
 
+import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.csv.CsvImportError
@@ -12,9 +13,18 @@ import cloud.trotter.log.strength.transfer.csv.CsvImportPreview
  * exception the user has to interpret); [csvImport] gates the CSV
  * preview/confirm screen once a file has been parsed into a preview model.
  * Both are mutually exclusive with an in-flight [isBusy] operation.
+ *
+ * [isBusy] and [restoreInFlight] are different questions and the screen asks
+ * them separately. [isBusy] means "an operation is running": it disables the
+ * action buttons so a second file picker can't stack on the first. Only
+ * [restoreInFlight] shuts the *exits* (#172), and only a confirmed full restore
+ * sets it — that is the one operation whose two stores can end up disagreeing if
+ * the screen goes away, and gating back on every export would be a regression
+ * for operations that can't hurt anything.
  */
 data class BackupUiState(
     val isBusy: Boolean = false,
+    val restoreInFlight: Boolean = false,
     val message: StatusMessage? = null,
     val pendingRestoreConfirm: Boolean = false,
     val csvImport: CsvImportUiState? = null,
@@ -75,12 +85,19 @@ data class BackupActions(
  */
 object TransferErrorMessages {
 
-    /** A restore whose data landed but whose settings didn't
-     *  ([cloud.trotter.log.strength.data.prefs.RestoreIncompleteException]). The
-     *  journal already holds the rest, so the honest instruction is "reopen",
-     *  not "try another file". Shared with the wizard's first-run restore. */
-    const val RESTORE_INCOMPLETE =
-        "Your data restored, but your settings didn't. Reopen the app and it'll finish."
+    /** How far an interrupted restore got, in the user's terms (#172). None of
+     *  these is a problem with the file they picked — which is what the generic
+     *  I/O message used to imply — so each says what is true of the device now
+     *  and what, if anything, is left for them to do. Shared with the wizard's
+     *  first-run restore. */
+    fun of(interruption: RestoreInterruption): String = when (interruption) {
+        is RestoreInterruption.NotStarted ->
+            "Couldn't start the restore. Nothing changed — try again."
+        is RestoreInterruption.SettingsPending ->
+            "Your data restored, but your settings didn't. Reopen the app and it'll finish."
+        is RestoreInterruption.CleanupPending ->
+            "Backup restored. A bit of tidying up is left; the app will finish it."
+    }
 
     fun of(error: BackupError): String = when (error) {
         is BackupError.TooLarge ->

@@ -84,3 +84,24 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("ALTER TABLE `workout_session_new` RENAME TO `workout_session`")
     }
 }
+
+/**
+ * v4 → v5 (restore commit marker, #172): one new single-row table, purely
+ * additive. No existing table is touched, and an empty `restore_marker` is
+ * exactly what "no restore is outstanding" means, so a device arriving here has
+ * nothing to backfill.
+ *
+ * The table exists so a full restore's destructive transaction can record
+ * *itself* — the one fact Room and DataStore can agree on afterwards; see
+ * [cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity]. It is
+ * deliberately absent from the full backup: it is recovery bookkeeping about
+ * this device mid-restore, not something a user owns.
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `restore_marker` (" +
+                "`id` INTEGER NOT NULL, `nonce` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        )
+    }
+}

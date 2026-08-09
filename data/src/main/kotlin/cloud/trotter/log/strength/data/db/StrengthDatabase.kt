@@ -6,11 +6,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
+import cloud.trotter.log.strength.data.db.dao.RestoreMarkerDao
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 
@@ -22,14 +24,16 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
         WorkoutSessionEntity::class,
         SessionSetEntity::class,
         CustomExerciseEntity::class,
+        RestoreMarkerEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class StrengthDatabase : RoomDatabase() {
     abstract fun programDao(): ProgramDao
     abstract fun sessionDao(): SessionDao
     abstract fun customExerciseDao(): CustomExerciseDao
+    abstract fun restoreMarkerDao(): RestoreMarkerDao
 
     companion object {
         private const val NAME = "strength.db"
@@ -43,7 +47,7 @@ abstract class StrengthDatabase : RoomDatabase() {
         fun build(context: Context): StrengthDatabase =
             Room.databaseBuilder(context.applicationContext, StrengthDatabase::class.java, NAME)
                 .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
     }
 }

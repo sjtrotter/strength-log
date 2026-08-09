@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.data.prefs.RestoreIncompleteException
+import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -295,22 +295,28 @@ class WizardViewModel @Inject constructor(
      * delete it. [firstRun] is latched at entry, so this can only fire when the
      * flag flipped underneath us; a Setup re-run (which legitimately regenerates
      * over a complete setup) never takes this branch.
+     *
+     * That check and the writes it authorizes run under
+     * [BackupService.withRestoreLock], because the thing that flips the flag —
+     * the startup reconciliation — is asynchronous. Reading it outside the lock
+     * is a check/use race: reads false, reconcile lands, [replaceProgram] then
+     * deletes a restored program that by then exists.
      */
     private fun finish() {
         viewModelScope.launch {
-            if (firstRun.value && repo.wizardCompleteFlow.first()) {
-                isComplete.value = true
-                return@launch
+            backupService.withRestoreLock {
+                if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
+                val answers = currentAnswers()
+                repo.setWizardAnswers(answers)
+                // Taking only .program drops GeneratedProgram.cardioDays: standalone
+                // Cardio+Core day cards (spec §6.4, SEPARATE_DAYS/BOTH placements)
+                // aren't modeled in :data or the day screen yet — tracked in
+                // docs/briefs/m6-polish-ledger.md. Deliberately dropped whole here
+                // rather than half-persisted.
+                repo.replaceProgram(ProgramGenerator.generate(answers).program)
+                repo.setWizardComplete(true)
             }
-            val answers = currentAnswers()
-            repo.setWizardAnswers(answers)
-            // Taking only .program drops GeneratedProgram.cardioDays: standalone
-            // Cardio+Core day cards (spec §6.4, SEPARATE_DAYS/BOTH placements)
-            // aren't modeled in :data or the day screen yet — tracked in
-            // docs/briefs/m6-polish-ledger.md. Deliberately dropped whole here
-            // rather than half-persisted.
-            repo.replaceProgram(ProgramGenerator.generate(answers).program)
-            repo.setWizardComplete(true)
+            // Either branch leaves the device set up, so the wizard leaves.
             isComplete.value = true
         }
     }
@@ -336,23 +342,34 @@ class WizardViewModel @Inject constructor(
         restoreProgress.value = RestoreProgress(inFlight = true)
         viewModelScope.launch {
             try {
-                // App-scoped for the same reason the Data/Backup screen's restore
-                // is (#172): this ViewModel dies with the wizard, and the import
-                // must not be cut between its Room and DataStore halves.
-                appScope.async(Dispatchers.IO) {
-                    context.contentResolver.openInputStream(uri)?.use { backupService.importFrom(it) }
-                        ?: throw IOException("no input stream for $uri")
-                }.await()
+                // A note to carry down the success path: CleanupPending means the
+                // restore fully landed and only its bookkeeping is outstanding,
+                // so it must not divert us into the failure branches below.
+                var note: String? = null
+                try {
+                    // App-scoped for the same reason the Data/Backup screen's
+                    // restore is (#172): this ViewModel dies with the wizard, and
+                    // the import must not be cut between its two halves.
+                    appScope.async(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { backupService.importFrom(it) }
+                            ?: throw IOException("no input stream for $uri")
+                    }.await()
+                } catch (e: RestoreInterruption.CleanupPending) {
+                    note = TransferErrorMessages.of(e)
+                }
                 applyAnswers(repo.wizardAnswersFlow.first())
                 if (repo.wizardCompleteFlow.first()) {
+                    // Leaving for the day screen; a leftover cleanup note goes
+                    // with it. Nothing is owed the user — the app finishes the
+                    // tidying itself at the next launch.
                     isComplete.value = true
                 } else {
-                    restoreProgress.value = RestoreProgress()
+                    restoreProgress.value = RestoreProgress(error = note)
                 }
             } catch (e: BackupError) {
                 restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
-            } catch (e: RestoreIncompleteException) {
-                restoreProgress.value = RestoreProgress(error = TransferErrorMessages.RESTORE_INCOMPLETE)
+            } catch (e: RestoreInterruption) {
+                restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
             } catch (e: IOException) {
                 restoreProgress.value = RestoreProgress(error = "Couldn't access that file: ${e.message}")
             } catch (e: SecurityException) {

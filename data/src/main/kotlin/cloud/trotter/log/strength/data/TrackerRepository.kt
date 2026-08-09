@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
@@ -21,7 +22,7 @@ import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.mapping.toEntry
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
-import cloud.trotter.log.strength.data.prefs.RestoreIncompleteException
+import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -72,6 +73,12 @@ open class TrackerRepository(
     private val settings: SettingsStore,
     private val clock: Clock = Clock.systemDefaultZone(),
 ) {
+
+    /** Taken off [db] rather than injected like the other DAOs on purpose: the
+     *  restore marker is this class's own crash bookkeeping (#172) — never data
+     *  a caller supplies, reads, or would substitute — and threading it through
+     *  every construction site would claim otherwise. */
+    private val restoreMarkerDao = db.restoreMarkerDao()
 
     // --- config & preferences ------------------------------------------------
 
@@ -614,26 +621,43 @@ open class TrackerRepository(
      * Two independent stores, no shared transaction. Room and DataStore each
      * commit atomically on their own; nothing spans both. So rather than claim an
      * atomicity it can't have, this method makes the pair *recoverable* (#172):
-     * [journal] stages the settings half before anything is destroyed and is
-     * armed the moment the Room transaction commits, so if the process dies
-     * before [SettingsStore.restore] lands, the next launch replays it
-     * ([RestoreJournal.reconcile]). That interim state is not benign and is not
-     * treated as such — restored training data paired with the old device's
-     * config means every derived GOAL is wrong until the replay happens.
      *
-     * Room still goes first: the only cross-store reference is `suggestedDay`
-     * (DataStore) pointing at a `dayId` (Room), and the reverse order could
-     * publish a pointer into a program that does not exist yet. The arm-and-write
-     * tail is [NonCancellable] because the two writes are only meaningful
-     * together — the Room transaction itself is left cancellable, since rolling
-     * it back leaves the device untouched, which is a clean outcome.
+     *  1. [journal] stages the settings half under a fresh nonce, before
+     *     anything is destroyed.
+     *  2. The destructive Room transaction writes that same nonce into
+     *     `restore_marker` — *inside* the transaction, so the marker exists if
+     *     and only if the data half committed. That is the whole point: a flag
+     *     written after the transaction can be lost in the gap between two
+     *     durable commits, and losing it would discard the only copy of the
+     *     settings half.
+     *  3. The settings write lands, then the journal and the marker both clear.
      *
-     * A settings failure after the Room commit is raised as
-     * [RestoreIncompleteException], not the raw [IOException] the UI would
-     * otherwise report as a problem reading the backup file.
+     * Interrupted anywhere, the next launch reads the marker, matches it against
+     * the staged nonce, and either finishes the settings half or discards a
+     * payload whose transaction never committed ([reconcilePendingRestore]).
+     * The interim state is not benign and is not treated as such — restored
+     * training data paired with the old device's config means every derived GOAL
+     * is wrong until the replay happens.
+     *
+     * Room goes before the settings write for the reason it always did: the only
+     * cross-store reference is `suggestedDay` (DataStore) pointing at a `dayId`
+     * (Room), and the reverse order could publish a pointer into a program that
+     * does not exist yet. The tail is [NonCancellable] so a cancelled caller
+     * still *finishes* here instead of deferring to the next launch — belt to
+     * the marker's braces, not the correctness argument. The transaction itself
+     * stays cancellable: rolling it back leaves the device untouched, which is a
+     * clean outcome.
+     *
+     * Failures are reported by phase ([RestoreInterruption]) rather than as the
+     * raw [IOException] the UI would report as a problem reading the file.
      */
     suspend fun importSnapshot(snapshot: FullSnapshot, journal: RestoreJournal) {
-        journal.stage(snapshot)
+        val nonce = UUID.randomUUID().toString()
+        try {
+            journal.stage(snapshot, nonce)
+        } catch (e: IOException) {
+            throw RestoreInterruption.NotStarted(e)
+        }
         db.withTransaction {
             programDao.deleteAllLogs()
             programDao.deleteAllExercises()
@@ -648,9 +672,9 @@ open class TrackerRepository(
             programDao.insertLogs(snapshot.logs)
             sessionDao.insertSessions(snapshot.sessions)
             sessionDao.insertSets(snapshot.sessionSets)
+            restoreMarkerDao.put(RestoreMarkerEntity(nonce = nonce))
         }
         withContext(NonCancellable) {
-            journal.arm()
             try {
                 settings.restore(
                     answers = snapshot.answers,
@@ -661,9 +685,38 @@ open class TrackerRepository(
                     keepScreenOn = snapshot.keepScreenOn,
                 )
             } catch (e: IOException) {
-                throw RestoreIncompleteException(e)
+                throw RestoreInterruption.SettingsPending(e)
             }
+            clearRestoreBookkeeping(journal)
+        }
+    }
+
+    /**
+     * Finishes a restore that was cut between its Room and settings halves, and
+     * returns whether it replayed one. Run once at startup; the caller must keep
+     * it from overlapping a live restore (`:transfer` owns that lock).
+     *
+     * The marker is cleared whenever one was found, replay or not: a marker with
+     * no matching payload is the tail of a restore that already finished, and a
+     * row left lying there would outlive the journal it belonged to.
+     */
+    suspend fun reconcilePendingRestore(journal: RestoreJournal): Boolean {
+        val committed = restoreMarkerDao.nonce()
+        val replayed = journal.reconcile(committed)
+        if (committed != null) restoreMarkerDao.clear()
+        return replayed
+    }
+
+    /** Drops both halves of the restore bookkeeping. A failure here means the
+     *  restore itself fully landed and only the paperwork is outstanding — the
+     *  leftover pair replays the same values idempotently next launch — so it is
+     *  reported as that, not as a failed restore. */
+    private suspend fun clearRestoreBookkeeping(journal: RestoreJournal) {
+        try {
             journal.clear()
+            restoreMarkerDao.clear()
+        } catch (e: IOException) {
+            throw RestoreInterruption.CleanupPending(e)
         }
     }
 

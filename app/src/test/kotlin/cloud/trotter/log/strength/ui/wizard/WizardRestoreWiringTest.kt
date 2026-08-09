@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.FlakyDataStore
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
@@ -19,12 +20,15 @@ import cloud.trotter.log.strength.transfer.backup.ProgramExerciseBackup
 import cloud.trotter.log.strength.transfer.backup.SettingsBackup
 import java.io.ByteArrayInputStream
 import java.io.File
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
@@ -59,9 +63,16 @@ class WizardRestoreWiringTest {
 
     private lateinit var context: Context
     private lateinit var db: StrengthDatabase
+    private lateinit var settingsStore: FlakyDataStore
     private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var journal: RestoreJournal
+
+    /** One instance, shared by every ViewModel here, because its restore lock is
+     *  the coordination point under test — a per-ViewModel service would hand
+     *  each caller its own mutex and coordinate nothing (#172). Hilt provides it
+     *  as a `@Singleton` for the same reason. */
+    private lateinit var service: BackupService
     private lateinit var storeScope: CoroutineScope
 
     /** Stands in for the injected app scope. A [SupervisorJob] like the real one
@@ -77,10 +88,12 @@ class WizardRestoreWiringTest {
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).build()
         storeScope = CoroutineScope(Dispatchers.IO + Job())
         appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
-            File.createTempFile("wizard-restore-settings", ".preferences_pb")
-        }
-        settings = SettingsStore(dataStore)
+        settingsStore = FlakyDataStore(
+            PreferenceDataStoreFactory.create(scope = storeScope) {
+                File.createTempFile("wizard-restore-settings", ".preferences_pb")
+            },
+        )
+        settings = SettingsStore(settingsStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
@@ -94,6 +107,7 @@ class WizardRestoreWiringTest {
             },
             settings,
         )
+        service = BackupService(repo, journal)
     }
 
     @After
@@ -111,8 +125,7 @@ class WizardRestoreWiringTest {
     }
 
     private fun newViewModel(): WizardViewModel =
-        WizardViewModel(repo, SavedStateHandle(), context, BackupService(repo, journal), appScope)
-            .also { vms += it }
+        WizardViewModel(repo, SavedStateHandle(), context, service, appScope).also { vms += it }
 
     /** A minimal but valid backup: one day, one real catalog exercise, and the
      *  wizard flag the test is about. */
@@ -210,6 +223,47 @@ class WizardRestoreWiringTest {
         assertFalse(state.isComplete)
         assertFalse(repo.wizardCompleteFlow.first())
         assertTrue(repo.programFlow.first().days.isEmpty())
+    }
+
+    @Test
+    fun finishingTheWizardWaitsForAnInFlightReconcileAndThenStepsAside() = runBlocking {
+        // The check/use race in full (#172). Leave the device in the split state a
+        // killed restore produces — data in Room, settings still the old ones —
+        // so `wizardComplete` reads false and the app opens on the wizard, then
+        // let the startup reconciliation land while the wizard is being finished.
+        settingsStore.failOnUpdate = 1
+        runCatching { service.import(BackupCodec().encode(backup(wizardComplete = true))) }
+        assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
+        assertFalse("the flag the wizard reads is still the old one", repo.wizardCompleteFlow.first())
+
+        val vm = newViewModel()
+        vm.awaitOffered() // the wizard has latched firstRun = true
+
+        // Park the reconcile inside its settings write, holding the restore lock.
+        val open = CompletableDeferred<Unit>()
+        settingsStore.gateOnUpdate = 2
+        settingsStore.gate = open
+        val reconcile = storeScope.async { service.reconcilePendingRestore() }
+        withTimeout(TIMEOUT_MS) { settingsStore.gateReached.await() }
+
+        // Finish the wizard while it is parked. Outside the lock this reads
+        // wizardComplete=false and generates over the restored program.
+        repeat(WizardStep.entries.size - 1) { vm.onNext() }
+        vm.onNext()
+        delay(200)
+        assertFalse("finish must wait its turn, not read a flag mid-flip", vm.uiState.value.isComplete)
+
+        open.complete(Unit)
+        assertTrue("the reconcile had a payload to replay", withTimeout(TIMEOUT_MS) { reconcile.await() })
+        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+
+        assertEquals(
+            "the restored program must survive the wizard finishing over it",
+            listOf("A"),
+            repo.programFlow.first().days.map { it.id },
+        )
+        assertTrue(repo.wizardCompleteFlow.first())
+        assertEquals(190, repo.configFlow.first().bodyweightLb)
     }
 
     private companion object {

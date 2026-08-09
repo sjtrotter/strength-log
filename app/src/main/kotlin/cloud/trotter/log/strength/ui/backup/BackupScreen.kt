@@ -87,12 +87,14 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
     // A restore writes Room and then DataStore with no transaction spanning the
     // two, so walking out mid-write is how they end up disagreeing (#172). The
     // write itself is app-scoped now and survives, but the screen still refuses
-    // to leave while it's in flight rather than showing a result to nobody.
-    BackHandler(enabled = state.isBusy) {}
+    // to leave while it runs rather than reporting to nobody. Restore only:
+    // an export or a CSV import has nothing to tear, and gating back on every
+    // operation would just make the screen feel stuck.
+    BackHandler(enabled = state.restoreInFlight) {}
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
-            BackupHeader(actions.onBack, enabled = !state.isBusy)
+            BackupHeader(actions.onBack, enabled = !state.restoreInFlight)
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),

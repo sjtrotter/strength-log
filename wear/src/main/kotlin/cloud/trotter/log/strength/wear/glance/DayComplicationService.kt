@@ -24,8 +24,8 @@ import cloud.trotter.log.strength.wear.data.SnapshotItem
  *
  * Every request re-reads the persisted DataItem, so the answer is correct from a
  * cold process with the phone out of range. Freshness is push-only — the manifest
- * declares no update period, and [GlanceUpdateService] asks for a refresh when a
- * new snapshot arrives.
+ * declares UPDATE_PERIOD_SECONDS=0 (no schedule, deliberately), and
+ * [GlanceUpdateService] asks for a refresh when a new snapshot arrives.
  */
 class DayComplicationService : SuspendingComplicationDataSourceService() {
 

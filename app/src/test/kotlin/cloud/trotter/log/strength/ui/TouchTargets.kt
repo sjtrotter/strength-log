@@ -60,9 +60,9 @@ object TouchTargets {
     /**
      * No two independent controls may claim the same pixel.
      *
-     * Nesting is exempt: a control inside another control's clickable — SHARE
-     * inside a session card, the swap pill inside a card header — legitimately
-     * sits on top of it, and Compose resolves that by depth. What this catches
+     * Nesting is exempt: a control inside another control's clickable — the
+     * swap pill inside a card header's collapse target — legitimately sits on
+     * top of it, and Compose resolves that by depth. What this catches
      * is the failure from PR #134: a *sibling* whose 48dp target was never given
      * 48dp of layout and so quietly annexed the control next to it.
      */

@@ -269,14 +269,14 @@ private fun ExerciseGroupRow(group: SessionExerciseGroup) {
 /**
  * The share affordance (#103, docs/briefs/session-share.md §1): one quiet
  * text button in the expanded row's action register, caps, pressed = that
- * day's accent — no icon, no fill, nothing on a collapsed row. A nested
- * `clickable` inside the card's own expand/collapse `clickable` consumes the
- * tap before it reaches the card, so SHARE never also toggles the row.
+ * day's accent — no icon, no fill, nothing on a collapsed row. Since the M3
+ * card migration the disclosure lives on the header row, so SHARE is a
+ * *sibling* action, not a nested one — it never also toggles the row because
+ * nothing above it is clickable at all.
  *
- * Because it is nested, its 48dp target (#123) has to be *reserved* rather than
- * borrowed: [minimumInteractiveComponentSize] grows this row, so the target
- * lands on the row's own air instead of quietly claiming a band of card that
- * still reads as "tap to collapse".
+ * Its 48dp target (#123) is still *reserved* rather than borrowed:
+ * [minimumInteractiveComponentSize] grows this row, so the target lands on the
+ * row's own air instead of quietly claiming the detail lines above it.
  */
 @Composable
 private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {

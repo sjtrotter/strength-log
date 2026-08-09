@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -132,7 +133,7 @@ internal fun SessionReceiptScrim(
                     shape = MaterialTheme.shapes.large,
                     border = BorderStroke(1.dp, Border),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 ) {
                     ReceiptButtonLabel("SHARE")
                 }
@@ -144,7 +145,7 @@ internal fun SessionReceiptScrim(
                         containerColor = accent,
                         contentColor = onDayAccent(receipt.dayIndex),
                     ),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 ) {
                     ReceiptButtonLabel("BACK TO TODAY")
                 }

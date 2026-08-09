@@ -79,6 +79,8 @@ class RestTimerController(
     private val buzz: () -> Unit,
 ) : AutoCloseable {
 
+    private var generation = 0L
+
     /** The timer currently pending, or null when idle. */
     var activeRest by mutableStateOf<ActiveRest?>(null)
         private set
@@ -86,11 +88,24 @@ class RestTimerController(
     data class ActiveRest(val deadlineMillis: Long, val totalSeconds: Int)
 
     /**
+     * Proof that a delivered alarm is still the controller's latest completion.
+     * Re-arming or disarming invalidates it, so work scheduled after the buzz cannot
+     * tick a set that the lifter has already changed or completed manually.
+     */
+    class Firing internal constructor(private val isCurrent: () -> Boolean) {
+        fun isCurrent(): Boolean = isCurrent.invoke()
+    }
+
+    /**
      * Arms a single buzz for [deadlineMillis], an `elapsedRealtime()` instant.
      * Re-arming the same live deadline is idempotent; any other arm replaces it.
      * A deadline already reached is ignored without buzzing.
      */
-    fun arm(deadlineMillis: Long, totalSeconds: Int) {
+    fun arm(
+        deadlineMillis: Long,
+        totalSeconds: Int,
+        onFired: ((Firing) -> Unit)? = null,
+    ) {
         if (activeRest?.deadlineMillis == deadlineMillis) return
         disarm()
         if (RestTimer.isExpired(deadlineMillis, elapsedRealtime())) return
@@ -101,12 +116,20 @@ class RestTimerController(
             if (activeRest == armed) {
                 activeRest = null
                 buzz()
+                val firedGeneration = ++generation
+                onFired?.invoke(Firing { generation == firedGeneration })
             }
         }
     }
 
+    /** Invalidates settle work after the underlying workout snapshot changes. */
+    fun invalidateFiring() {
+        generation++
+    }
+
     /** Cancels the pending rest or timed-hold buzz without firing it. */
     fun disarm() {
+        generation++
         alarmScheduler.cancel()
         activeRest = null
     }

@@ -48,21 +48,47 @@ class WearSyncPublisher(
     }
 
     private suspend fun publish(content: WatchSnapshot) {
-        val snapshot = content.copy(revision = store.nextRevision())
-        val request = PutDataRequest.create(WearSyncPaths.SNAPSHOT).apply {
-            data = SyncCodec.encodeSnapshot(snapshot)
-            setUrgent()
-        }
-        try {
-            dataClient.putDataItem(request).await()
-        } catch (e: Exception) {
-            // A failed publish is not fatal: the next state change republishes, and
-            // the watch keeps rendering its cached snapshot until then.
-            Log.w(TAG, "snapshot publish failed", e)
-        }
+        publishSnapshotWithinSizeLimit(
+            content = content,
+            spendRevision = store::nextRevision,
+            publishBytes = { bytes ->
+                val request = PutDataRequest.create(WearSyncPaths.SNAPSHOT).apply {
+                    data = bytes
+                    setUrgent()
+                }
+                try {
+                    dataClient.putDataItem(request).await()
+                } catch (e: Exception) {
+                    // A failed publish is not fatal: the next state change republishes, and
+                    // the watch keeps rendering its cached snapshot until then.
+                    Log.w(TAG, "snapshot publish failed", e)
+                }
+            },
+            warnOversize = { size -> Log.w(TAG, "snapshot is $size bytes; skipping publish (limit $MAX_SNAPSHOT_BYTES)") },
+        )
     }
 
-    private companion object {
-        const val TAG = "WearSyncPublisher"
+    companion object {
+        private const val TAG = "WearSyncPublisher"
+        internal const val MAX_SNAPSHOT_BYTES = 90_000
     }
+}
+
+/** Size gate separated from Play Services so its no-revision/no-publish contract is JVM-testable. */
+internal suspend fun publishSnapshotWithinSizeLimit(
+    content: WatchSnapshot,
+    spendRevision: suspend () -> Long,
+    publishBytes: suspend (ByteArray) -> Unit,
+    warnOversize: (Int) -> Unit = {},
+): Boolean {
+    // Measure with the widest possible revision before spending the durable one.
+    val guardedBytes = SyncCodec.encodeSnapshot(content.copy(revision = Long.MAX_VALUE))
+    if (guardedBytes.size > WearSyncPublisher.MAX_SNAPSHOT_BYTES) {
+        // Stale-but-working beats a failed publish that also spends a revision.
+        warnOversize(guardedBytes.size)
+        return false
+    }
+    val bytes = SyncCodec.encodeSnapshot(content.copy(revision = spendRevision()))
+    publishBytes(bytes)
+    return true
 }

@@ -44,6 +44,14 @@ object DayScreenBuilder {
         val sets: List<LoggedSet>,
     )
 
+    /** Complete unopened-main preview policy shared by Today and snapshots. */
+    fun previewMainSets(slot: ProgramSlot, cfg: LifterConfig, catalog: ExerciseCatalog): List<LoggedSet> {
+        val entry = catalog.find(slot.exercise.exerciseId)
+            // Preserve the authored count without inventing a load or prescription.
+            ?: return List(slot.exercise.targetSets) { LoggedSet(0.0, 0, SetKind.WORK, done = false) }
+        return SetSeeder.seed(slot.exercise, GoalCalculator.targetFor(entry, cfg), cfg)
+    }
+
     /**
      * Which slots still need their ACTUAL log seeded from GOAL — every slot whose
      * (id, track) pair isn't already a key of [existing]. "Seeded once, then

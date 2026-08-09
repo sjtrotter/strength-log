@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -62,6 +63,25 @@ class WatchSnapshotBuilderTest {
         assertEquals(expected.map { it.weightLb }, sets.map { it.weightLb })
         assertEquals(expected.map { it.kind.name }, sets.map { it.kind })
         assertEquals(true, sets.all { !it.done })
+    }
+
+    @Test
+    fun `unresolved catalog id has the same Today and snapshot preview count`() {
+        val exercise = ProgramExercise("deleted_custom_id", targetSets = 3)
+        val slot = ProgramSlot(99L, 0, exercise)
+        val unresolvedProgram = Program(
+            listOf(ProgramDay("A", "Custom", "", listOf(exercise), cardio = null)),
+        )
+
+        // Today counts this shared preview policy; the snapshot must carry it verbatim.
+        val todayCount = DayScreenBuilder.previewMainSets(slot, cfg, catalog).size
+        val sets = WatchSnapshotBuilder.build(
+            unresolvedProgram, "A", listOf(slot), emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single().sets
+
+        assertEquals(3, todayCount)
+        assertEquals(todayCount, sets.size)
+        assertEquals(true, sets.all { it.weightLb == 0.0 && it.reps == 0 && it.kind == "WORK" && !it.done })
     }
 
     @Test

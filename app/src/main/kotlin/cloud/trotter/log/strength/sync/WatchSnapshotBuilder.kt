@@ -139,7 +139,8 @@ object WatchSnapshotBuilder {
         }
         val partnerEntry = pe.superset?.let { catalog.find(it.exerciseId) }
         val main = logsByKey[id to Slot.MAIN]?.sets
-            ?: previewSeeds[id to Slot.MAIN]?.sets.orEmpty()
+            ?: previewSeeds[id to Slot.MAIN]?.sets
+            ?: DayScreenBuilder.previewMainSets(slot, cfg, catalog)
         val ss = pe.superset?.let {
             logsByKey[id to Slot.SS]?.sets ?: previewSeeds[id to Slot.SS]?.sets
         }.orEmpty()

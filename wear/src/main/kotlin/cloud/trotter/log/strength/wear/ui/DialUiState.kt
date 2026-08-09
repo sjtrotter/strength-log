@@ -56,7 +56,15 @@ data class BandContent(
 )
 
 /** What tapping the disc does — the dial's one tap target (§1). */
-enum class DialTap { NONE, OPEN_WORKOUT, START_SET, TICK, SKIP_REST, CONFIRM_SWAP, DISMISS }
+enum class DialTap(val accessibilityClickLabel: String?) {
+    NONE(null),
+    OPEN_WORKOUT("open workout"),
+    START_SET("start set"),
+    TICK("log set"),
+    SKIP_REST("skip rest"),
+    CONFIRM_SWAP("confirm swap"),
+    DISMISS("dismiss"),
+}
 
 /**
  * What turning the crown does on this screen (§6).
@@ -116,3 +124,6 @@ data class DialUiState(
     val swipe: DialSwipe = DialSwipe.NONE,
     val hold: DialHold? = null,
 )
+
+/** The state machine offers undo by supplying the target the gesture will undo. */
+val DialUiState.isUndoAvailable: Boolean get() = hold != null

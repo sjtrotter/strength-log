@@ -36,6 +36,16 @@ class DialStateTest {
         assertNull(systemBackTarget(DialFace.WORKOUT, DialScreen.DAY_DONE))
     }
 
+    @Test
+    fun `every dial action has distinct terse accessibility copy`() {
+        val actions = DialTap.entries.filterNot { it == DialTap.NONE }
+        val labels = actions.map { it.accessibilityClickLabel }
+
+        assertTrue(labels.all { !it.isNullOrBlank() })
+        assertEquals(labels.size, labels.distinct().size)
+        assertNull(DialTap.NONE.accessibilityClickLabel)
+    }
+
     // --- fixtures ----------------------------------------------------------------
 
     private fun set(
@@ -853,7 +863,7 @@ class DialStateTest {
         // the three places nothing is under way to lose. Nowhere else.
         assertEquals(
             setOf(DialScreen.READY, DialScreen.REST_OVER, DialScreen.DAY_DONE),
-            states.filter { it.hold != null }.map { it.screen }.toSet(),
+            states.filter { it.isUndoAvailable }.map { it.screen }.toSet(),
             "the undo's offer map changed",
         )
 

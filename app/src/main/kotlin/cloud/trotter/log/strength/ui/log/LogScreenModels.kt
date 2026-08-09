@@ -55,7 +55,8 @@ data class SessionListItem(
     val dayIndex: Int,
     val dayTitle: String,
     val setCount: Int,
-    val bodyweightDisplay: String,
+    /** Null when the session recorded no bodyweight; the card shows no BW line. */
+    val bodyweightDisplay: String?,
     val expanded: Boolean,
     val exerciseGroups: List<SessionExerciseGroup>? = null,
 )

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 4,
+  "settings": {
+    "bodyweightLb": 235,
+    "age": 40,
+    "level": "INTERMEDIATE",
+    "emphasis": "BALANCED",
+    "cardioMode": "OUTDOOR_RUN",
+    "cardioPlacement": "FINISHERS",
+    "fiveKGoal": true,
+    "daysPerWeek": 4,
+    "split": "FULL_BODY",
+    "anchorScheme": "PROTOTYPE",
+    "deadliftVariant": "TRAP_BAR",
+    "equipment": ["BARBELL", "DUMBBELL"],
+    "weightUnit": "LB",
+    "wizardComplete": true,
+    "suggestedDay": "A",
+    "restTimerEnabled": false,
+    "restRampSeconds": null,
+    "restTopSeconds": 210,
+    "restBackoffSeconds": null,
+    "restWorkSeconds": null,
+    "restLightSeconds": null,
+    "keepScreenOn": true
+  },
+  "customExercises": [],
+  "program": [
+    {
+      "dayId": "A",
+      "title": "Day A",
+      "emphasisLine": "Squat-focused",
+      "cardioJson": null,
+      "exercises": [
+        {
+          "id": 1,
+          "exerciseId": "bb_back_squat",
+          "isMain": true,
+          "targetSets": 4,
+          "repSchemeLabel": "5/5/5/3",
+          "hasWarmupHint": true,
+          "supersetExerciseId": null,
+          "note": ""
+        }
+      ]
+    }
+  ],
+  "liveLogs": [],
+  "sessions": [
+    {
+      "id": 1,
+      "dayId": "A",
+      "dayTitle": "Day A",
+      "startedAt": 1500,
+      "completedAt": 2000,
+      "bodyweightLb": 235,
+      "sets": [
+        {
+          "id": 1,
+          "exerciseId": "bb_back_squat",
+          "exerciseName": "Barbell Back Squat",
+          "slot": "main",
+          "setIndex": 0,
+          "kind": "TOP",
+          "weightLb": 235.0,
+          "reps": 5,
+          "done": true,
+          "seconds": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "dayId": "csv:Day A",
+      "dayTitle": "Day A",
+      "startedAt": null,
+      "completedAt": 3000,
+      "bodyweightLb": 0,
+      "sets": [
+        {
+          "id": 2,
+          "exerciseId": "bb_back_squat",
+          "exerciseName": "Barbell Back Squat",
+          "slot": "main",
+          "setIndex": 0,
+          "kind": "WORK",
+          "weightLb": 225.0,
+          "reps": 5,
+          "done": true,
+          "seconds": 0
+        }
+      ]
+    }
+  ]
+}

@@ -31,6 +31,9 @@ import java.time.ZoneId
  *    ticked yesterday and finished today (see
  *    [cloud.trotter.log.strength.data.TrackerRepository.advanceDay]'s
  *    crash-ordering note) rather than one continuous session.
+ *  - **A recorded bodyweight.** CSV-imported history carries none (#171), and
+ *    kcal is directly proportional to it — substituting today's configured
+ *    weight would publish a number that session never supported.
  */
 object CaloriesRecordMapper {
 
@@ -50,12 +53,13 @@ object CaloriesRecordMapper {
         zone: ZoneId = ZoneId.systemDefault(),
     ): ActiveCaloriesBurnedRecord? {
         val startedAt = session.startedAt ?: return null
+        val bodyweightLb = session.bodyweightLb ?: return null
         val durationMillis = session.completedAt - startedAt
         if (durationMillis < SessionDurationBounds.MIN_MILLIS || durationMillis > SessionDurationBounds.MAX_MILLIS) {
             return null
         }
 
-        val bodyweightKg = WeightUnit.KG.fromLb(session.bodyweightLb.toDouble())
+        val bodyweightKg = WeightUnit.KG.fromLb(bodyweightLb.toDouble())
         val hours = durationMillis / MILLIS_PER_HOUR
         val kcal = RESISTANCE_TRAINING_MET * bodyweightKg * hours
 

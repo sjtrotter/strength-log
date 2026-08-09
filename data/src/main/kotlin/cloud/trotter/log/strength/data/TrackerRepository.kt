@@ -670,7 +670,10 @@ open class TrackerRepository(
      * The caller has already validated the file and the user has already
      * confirmed the exercise-name matches (`:transfer`'s preview/confirm
      * model) — this method performs no validation of its own and always
-     * commits what it's given.
+     * commits what it's given. That includes a null
+     * [WorkoutSessionEntity.bodyweightLb]: a CSV has no bodyweight column, so an
+     * imported session legitimately records none, and every reader downstream
+     * (backup, Health Connect, the Log screen) is required to handle it (#171).
      */
     suspend fun importSessionHistory(
         sessions: List<ImportedSession>,

@@ -61,7 +61,9 @@ object CsvHistoryImporter {
                     // window. An imported session simply has no recorded start.
                     startedAt = null,
                     completedAt = session.completedAt,
-                    bodyweightLb = 0, // CSV carries no bodyweight column
+                    // CSV carries no bodyweight column, and today's configured
+                    // bodyweight isn't what the lifter weighed back then.
+                    bodyweightLb = null,
                 ),
                 sets = session.sets.map { set ->
                     val exerciseId = set.exerciseId

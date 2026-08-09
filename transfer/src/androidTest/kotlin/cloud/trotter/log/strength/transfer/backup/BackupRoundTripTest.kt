@@ -48,19 +48,6 @@ class BackupRoundTripTest : BackupTestHarness() {
         equipment = setOf(Equipment.BARBELL, Equipment.DUMBBELL, Equipment.RACK),
     )
 
-    /** A minimal but structurally valid empty backup used to wipe the device. */
-    private fun emptyBackupJson(): String = BackupCodec().encode(
-        BackupDocument(
-            settings = SettingsBackup(
-                bodyweightLb = 235, age = 40, level = "INTERMEDIATE", emphasis = "BALANCED",
-                cardioMode = "OUTDOOR_RUN", cardioPlacement = "FINISHERS", fiveKGoal = true,
-                daysPerWeek = 4, split = "FULL_BODY", anchorScheme = "PROTOTYPE",
-                deadliftVariant = "TRAP_BAR", equipment = emptyList(), weightUnit = "LB",
-                wizardComplete = false, suggestedDay = null,
-            ),
-        ),
-    )
-
     @Test
     fun export_wipe_import_reproduces_every_piece_of_state() = runTest {
         // --- build a rich, realistic state -----------------------------------

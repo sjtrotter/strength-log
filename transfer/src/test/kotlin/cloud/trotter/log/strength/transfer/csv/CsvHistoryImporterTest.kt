@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** The commit half of the #16 preview/confirm model: building the entities
@@ -66,7 +67,9 @@ class CsvHistoryImporterTest {
 
         val session = plan.sessions.single().session
         assertEquals("Day A", session.dayTitle)
-        assertEquals(0, session.bodyweightLb)
+        // Not 0 (#171): a fabricated bodyweight poisons the calorie estimate and
+        // used to make every later full backup unrestorable.
+        assertNull(session.bodyweightLb)
         assertEquals(0L, session.id)
     }
 

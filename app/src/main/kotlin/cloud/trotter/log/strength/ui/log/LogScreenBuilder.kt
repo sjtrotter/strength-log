@@ -36,9 +36,11 @@ object LogScreenBuilder {
         return (letter - 'A').takeIf { it >= 0 } ?: 0
     }
 
-    /** Bodyweight display in [unit], matching the day screen's own convention. */
-    fun bodyweightDisplay(bodyweightLb: Int, unit: WeightUnit): String =
-        WeightStepper.format(unit.fromLb(bodyweightLb.toDouble()))
+    /** Bodyweight display in [unit], matching the day screen's own convention, or
+     *  null for a session that recorded none (imported history — #171): the row
+     *  drops the line rather than printing a placeholder. */
+    fun bodyweightDisplay(bodyweightLb: Int?, unit: WeightUnit): String? =
+        bodyweightLb?.let { WeightStepper.format(unit.fromLb(it.toDouble())) }
 
     /**
      * Groups a session's flat [sets] by exercise id, preserving first-appearance

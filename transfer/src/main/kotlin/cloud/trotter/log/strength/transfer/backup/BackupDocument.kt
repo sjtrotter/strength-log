@@ -8,10 +8,11 @@ import kotlinx.serialization.Serializable
  * dispatches on the document's `schemaVersion` field (see [BackupCodec.decode]):
  * anything other than this value is rejected loudly with
  * [BackupError.UnsupportedSchemaVersion] rather than being misread. Bump this and
- * add a `when` branch when the on-disk shape changes; no migration machinery is
- * built ahead of a real second version.
+ * add a `when` branch when the on-disk shape changes; an older document is read
+ * by the same decoder and reinterpreted only where a field's *meaning* changed
+ * (v5's session bodyweight), never by a parallel set of old model classes.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 4
+const val CURRENT_SCHEMA_VERSION: Int = 5
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -157,7 +158,10 @@ data class SessionBackup(
     val dayTitle: String,
     val startedAt: Long? = null,
     val completedAt: Long,
-    val bodyweightLb: Int,
+    /** The bodyweight the session recorded, or null when it recorded none —
+     *  CSV-imported history (v5, #171). A pre-v5 document says the same thing
+     *  with a 0, which [BackupCodec.decode] maps to null on the way in. */
+    val bodyweightLb: Int? = null,
     val sets: List<SessionSetBackup> = emptyList(),
 )
 

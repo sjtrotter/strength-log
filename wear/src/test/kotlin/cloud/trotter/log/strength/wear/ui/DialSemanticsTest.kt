@@ -51,19 +51,21 @@ class DialSemanticsTest {
     fun `undo long click exists only with a target and uses the hold callback`() {
         val target = UndoTarget(1, 2)
         val currentHold = mutableStateOf<DialHold?>(hold(target))
+        var undos = 0
         var received: UndoTarget? = null
         composeTestRule.setContent {
             WearTrackerTheme {
                 Dial(
                     state = state(DialTap.START_SET, hold = currentHold.value),
                     onTap = {},
-                    onHoldComplete = { received = it },
+                    onHoldComplete = { undos++; received = it },
                 )
             }
         }
 
         composeTestRule.onNode(hasLongClickLabel("undo last set"))
             .performSemanticsAction(SemanticsActions.OnLongClick)
+        assertEquals(1, undos)
         assertEquals(target, received)
 
         composeTestRule.runOnIdle { currentHold.value = null }

@@ -67,6 +67,12 @@ class DialGeometryTest {
     }
 
     @Test
+    fun `time pill width is clamped to the exercise ring chord`() {
+        val expected = 2f * kotlin.math.sqrt(138f * 138f - 126f * 126f)
+        assertEquals(expected, DialGeometry.timePillMaxWidthPx(384f), tolerance)
+    }
+
+    @Test
     fun `the clock ring sits on the disc's rim, inside the exercise ring`() {
         val clock = DialGeometry.clockRing(384f)
         assertEquals(7f, clock.strokePx, tolerance)

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.ui
 
+import android.text.format.DateFormat
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -48,7 +50,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.onClick
@@ -86,6 +90,7 @@ import cloud.trotter.log.strength.wear.theme.accentBright
 import cloud.trotter.log.strength.wear.theme.dayAccent
 import cloud.trotter.log.strength.wear.theme.dialTypography
 import cloud.trotter.log.strength.wear.theme.onDayAccent
+import java.time.LocalTime
 import kotlin.math.abs
 import kotlin.math.min
 import kotlinx.coroutines.delay
@@ -112,6 +117,7 @@ fun Dial(
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
     onHoldComplete: (UndoTarget) -> Unit = {},
+    timePillText: String? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -139,7 +145,11 @@ fun Dial(
         )
         Band(state.bottomBand, BandPole.BOTTOM, type, state.accentIndex, diameterPx)
         if (state.showsTimePill) {
-            TimePill(type, diameterPx, Modifier.align(Alignment.Center))
+            if (timePillText == null) {
+                TimePill(type, diameterPx, Modifier.align(Alignment.Center))
+            } else {
+                TimePill(type, diameterPx, Modifier.align(Alignment.Center), timePillText)
+            }
         }
     }
 }
@@ -150,8 +160,10 @@ internal fun TimePill(
     type: DialTypography,
     diameterPx: Float,
     modifier: Modifier = Modifier,
+    timeText: String = rememberMinuteTimeText(
+        DateFormat.is24HourFormat(LocalContext.current),
+    ),
 ) {
-    val timeText = rememberMinuteTimeText()
     val density = LocalDensity.current
     with(density) {
         Box(
@@ -159,9 +171,11 @@ internal fun TimePill(
             modifier = modifier
                 .offset(y = DialGeometry.px(DialGeometry.TIME_PILL_CENTER_RADIUS, diameterPx).toDp())
                 .height(DialGeometry.px(DialGeometry.TIME_PILL_HEIGHT, diameterPx).toDp())
+                .widthIn(max = DialGeometry.timePillMaxWidthPx(diameterPx).toDp())
                 .clip(RoundedCornerShape(percent = 50))
                 .background(Surface)
-                .padding(horizontal = DialGeometry.px(DialGeometry.TIME_PILL_HORIZONTAL_PADDING, diameterPx).toDp()),
+                .padding(horizontal = DialGeometry.px(DialGeometry.TIME_PILL_HORIZONTAL_PADDING, diameterPx).toDp())
+                .testTag(TIME_PILL_TEST_TAG),
         ) {
             Text(
                 text = timeText,
@@ -177,7 +191,7 @@ internal fun TimePill(
 }
 
 @Composable
-private fun rememberMinuteTimeText(): String {
+private fun rememberMinuteTimeText(is24Hour: Boolean): String {
     var minuteTick by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -185,8 +199,10 @@ private fun rememberMinuteTimeText(): String {
             minuteTick++
         }
     }
-    return remember(minuteTick) { wallClockTimeText() }
+    return remember(minuteTick, is24Hour) { timePillTimeText(LocalTime.now(), is24Hour) }
 }
+
+internal const val TIME_PILL_TEST_TAG = "time-pill"
 
 /**
  * Every animation the brief allows (§8) and nothing else: no slide transitions,

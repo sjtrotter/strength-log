@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
@@ -294,6 +295,7 @@ private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
     ) {
         TextButton(
             onClick = onClick,
+            modifier = Modifier.semantics { onClick(label = "Share session", action = null) },
             interactionSource = interactionSource,
             colors = ButtonDefaults.textButtonColors(contentColor = if (pressed) dayAccent(dayIndex) else TextSecondary),
             contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),

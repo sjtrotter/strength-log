@@ -589,19 +589,27 @@ private fun SheetButton(
         OutlinedButton(
             onClick = onClick,
             enabled = enabled,
-            modifier = modifier,
+            modifier = modifier.disabledAlpha(enabled),
             shape = MaterialTheme.shapes.small,
             border = BorderStroke(1.dp, Border),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = textColor),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = textColor,
+                disabledContentColor = textColor,
+            ),
             contentPadding = contentPadding,
         ) { Text(text, style = MaterialTheme.typography.labelLarge) }
     } else {
         FilledTonalButton(
             onClick = onClick,
             enabled = enabled,
-            modifier = modifier,
+            modifier = modifier.disabledAlpha(enabled),
             shape = MaterialTheme.shapes.small,
-            colors = ButtonDefaults.filledTonalButtonColors(containerColor = Surface2, contentColor = textColor),
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = Surface2,
+                contentColor = textColor,
+                disabledContainerColor = Surface2,
+                disabledContentColor = textColor,
+            ),
             contentPadding = contentPadding,
         ) { Text(text, style = MaterialTheme.typography.labelLarge) }
     }

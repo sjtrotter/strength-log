@@ -211,11 +211,14 @@ private fun SectionButton(
     }
     if (outlined) {
         OutlinedButton(onClick, modifier, enabled, shape = MaterialTheme.shapes.medium,
-            border = BorderStroke(1.dp, accent), colors = ButtonDefaults.outlinedButtonColors(contentColor = accent),
+            border = BorderStroke(1.dp, accent), colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = accent, disabledContentColor = accent),
             contentPadding = PaddingValues(vertical = 6.dp), content = { content() })
     } else {
         Button(onClick, modifier, enabled, shape = MaterialTheme.shapes.medium,
-            colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Background),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = accent, contentColor = Background,
+                disabledContainerColor = accent, disabledContentColor = Background),
             contentPadding = PaddingValues(vertical = 6.dp), content = { content() })
     }
 }
@@ -225,8 +228,9 @@ private fun MessageBanner(message: StatusMessage, onDismiss: () -> Unit) {
     val color = if (message.isError) Error else Done
     FilledTonalButton(
         onClick = onDismiss,
-        modifier = Modifier.fillMaxWidth().border(1.dp, color, MaterialTheme.shapes.medium),
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, color),
         colors = ButtonDefaults.filledTonalButtonColors(containerColor = color.copy(alpha = 0.12f), contentColor = color),
         contentPadding = PaddingValues(14.dp),
     ) {

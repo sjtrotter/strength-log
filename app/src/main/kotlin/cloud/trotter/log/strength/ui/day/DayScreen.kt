@@ -65,6 +65,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
@@ -874,19 +875,21 @@ private fun Badge(text: String, fill: Color, textColor: Color, outlined: Boolean
 
 @Composable
 private fun AddSetButton(modifier: Modifier = Modifier, isSuperset: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
+    // M3 exposes no dashed-border hook, and its Surface would put the 48dp
+    // envelope inside the dashes instead of around the bespoke visual bounds.
+    Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .fillMaxWidth()
             .padding(top = 8.dp)
-            .dashedBorder(Border, radius = 8.dp),
-        shape = MaterialTheme.shapes.small,
-        border = null,
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
-        contentPadding = PaddingValues(vertical = 10.dp),
+            .dashedBorder(Border, radius = 8.dp)
+            .pressable(onClick = onClick, shape = RoundedCornerShape(8.dp))
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             if (isSuperset) "+ ADD ROUND" else "+ ADD SET",
+            color = TextSecondary,
             style = MaterialTheme.typography.labelLarge,
         )
     }
@@ -899,21 +902,27 @@ private fun AddSetButton(modifier: Modifier = Modifier, isSuperset: Boolean, onC
  * verb, on a whole-row target so taking it back is as cheap as the × was.
  *
  * Both labels are real text, so the accessible name is the line itself; the
- * visible UNDO text supplies the accessible name without a second announcement.
+ * click label supplies the verb TalkBack announces.
  */
 @Composable
 private fun UndoRemovedSetRow(accent: Color, modifier: Modifier = Modifier, onUndo: () -> Unit) {
-    Row(
-        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    TextButton(
+        onClick = onUndo,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .semantics { onClick(label = "Undo remove set", action = null) },
+        colors = ButtonDefaults.textButtonColors(contentColor = accent),
+        contentPadding = PaddingValues(0.dp),
     ) {
-        Text("SET REMOVED", color = TextFaint, style = MaterialTheme.typography.labelSmall)
-        Spacer(Modifier.weight(1f))
-        TextButton(
-            onClick = onUndo,
-            colors = ButtonDefaults.textButtonColors(contentColor = accent),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        ) { Text("UNDO", style = DoneButtonLabel) }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("SET REMOVED", color = TextFaint, style = MaterialTheme.typography.labelSmall)
+            Spacer(Modifier.weight(1f))
+            Text("UNDO", color = accent, style = DoneButtonLabel)
+        }
     }
 }
 

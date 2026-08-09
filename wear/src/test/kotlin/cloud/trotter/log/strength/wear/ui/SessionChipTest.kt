@@ -96,6 +96,22 @@ class SessionChipTest {
     }
 
     @Test
+    fun `snapshot-active day is underway without any local start`() {
+        val snap = snapshot(listOf(exercise(1, listOf(true, false))))
+        assertTrue(isSessionUnderway(snap, localSessionStarted = false))
+    }
+
+    @Test
+    fun `no snapshot is never underway even when started locally`() {
+        assertFalse(isSessionUnderway(null, localSessionStarted = true))
+    }
+
+    @Test
+    fun `exercises with zero rounds are never underway even when started locally`() {
+        assertFalse(isSessionUnderway(snapshot(listOf(exercise(1, emptyList()))), localSessionStarted = true))
+    }
+
+    @Test
     fun `day turnover clears the local start before the new day begins`() {
         val oldDay = snapshot(listOf(exercise(1, listOf(false))))
         val newDay = snapshot(listOf(exercise(2, listOf(false))))

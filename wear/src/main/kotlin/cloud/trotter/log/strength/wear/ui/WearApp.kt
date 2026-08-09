@@ -542,9 +542,15 @@ private fun OngoingSessionChip(snapshot: WatchSnapshot?, localSessionStarted: Bo
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> hasPermission = granted }
+    // Once per install-session, not per day: a denial must stay denied across
+    // DONE/undo and day turnover, or the prompt re-fires on every reactivation.
+    var permissionRequested by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(sessionActive) {
-        if (sessionActive && !hasPermission && OngoingWorkoutChip.needsRuntimePermission()) {
+        if (sessionActive && !hasPermission && !permissionRequested &&
+            OngoingWorkoutChip.needsRuntimePermission()
+        ) {
+            permissionRequested = true
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }

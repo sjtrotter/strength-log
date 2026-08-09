@@ -13,14 +13,13 @@ import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.transfer.health.BodyweightPrompt
 import cloud.trotter.log.strength.transfer.health.ExternalSessionFormatter
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
-import java.time.Clock
-import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -56,10 +55,13 @@ import kotlinx.coroutines.launch
  * The Health Connect reads are entirely degrade-safe: with no provider [healthData]
  * stays empty and the section hides itself, so the Log screen is fully functional
  * without Health Connect (A3). What the section does *not* hide is the connection
- * itself (#158): [refreshHealth] re-reads the workout-write grant every time the
+ * itself (#158): [onResumed] re-reads the workout-write grant every time the
  * screen resumes, so a permission that was never given — or was revoked in the
  * Health Connect app — reads as "not connected" on the next visit instead of
  * looking exactly like a working export.
+ *
+ * "Today" comes from [CivilTimeSource], not from a `Clock` read when some other
+ * flow happens to emit (#176) — see [journal].
  */
 @HiltViewModel
 class LogViewModel @Inject constructor(
@@ -68,7 +70,7 @@ class LogViewModel @Inject constructor(
     private val sessionPublisher: SessionPublisher,
     private val shareCardService: ShareCardService,
     private val savedState: SavedStateHandle,
-    private val clock: Clock,
+    private val civilTimeSource: CivilTimeSource,
 ) : ViewModel() {
 
     private val expandedSessionId: StateFlow<Long?> = savedState.getStateFlow(KEY_EXPANDED, null)
@@ -120,12 +122,24 @@ class LogViewModel @Inject constructor(
         ::JournalHistory,
     )
 
-    private val journal = combine(journalHistory, mainLifts, calendarOffset) { history, mains, offset ->
-        val today = LocalDate.now(clock)
+    /**
+     * The journal's three sections all hang off *today* — the today marker, the
+     * month grid, the twelve-week window — so the civil day is an upstream flow
+     * like any other (#176). When the day turns under a parked screen, or the
+     * device changes zone, this re-emits and the sections are rebuilt in the new
+     * day and the new zone; a `Clock` read inside the lambda could only ever be
+     * as fresh as the last database change.
+     */
+    private val journal = combine(
+        journalHistory,
+        mainLifts,
+        calendarOffset,
+        civilTimeSource.civilTime,
+    ) { history, mains, offset, now ->
         JournalUiState(
-            trajectories = JournalBuilder.trajectories(mains, history.topSets, history.unit, clock.zone),
-            volume = JournalBuilder.volume(history.tonnage, history.unit, today, clock.zone),
-            calendar = JournalBuilder.calendar(history.sessions, offset, today, clock.zone),
+            trajectories = JournalBuilder.trajectories(mains, history.topSets, history.unit, now.zone),
+            volume = JournalBuilder.volume(history.tonnage, history.unit, now.date, now.zone),
+            calendar = JournalBuilder.calendar(history.sessions, offset, now.date, now.zone),
         )
     }
 
@@ -160,8 +174,8 @@ class LogViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogUiState())
 
     init {
-        // No refreshHealth() here: the route drives it on every resume (#158), so
-        // the grant is read when the screen is actually in front rather than once
+        // No onResumed() here: the route drives it on every resume (#158), so the
+        // grant is read when the screen is actually in front rather than once
         // when this ViewModel happened to be constructed.
         //
         // expandedSessionId survives process death via SavedStateHandle, but
@@ -217,6 +231,21 @@ class LogViewModel @Inject constructor(
         healthReader.permissionRequestContract()
 
     val requestedPermissions: Set<String> get() = healthReader.requestedPermissions
+
+    /**
+     * Everything this screen re-reads when it comes back in front. Both facts
+     * can have changed while it was away without anything this ViewModel
+     * observes having emitted: the Health Connect grant lives in another app,
+     * and the civil day belongs to the device (#176).
+     *
+     * Leaving the screen for longer than [STOP_TIMEOUT_MS] restarts collection
+     * and refreshes both anyway — this is what closes the shorter gap, where
+     * the user glances away and comes straight back.
+     */
+    fun onResumed() {
+        refreshHealth()
+        civilTimeSource.refresh()
+    }
 
     /** Re-reads Health Connect — on every resume of the Log screen and after a
      *  permission result. The grant is queried, never cached (#158): that is what

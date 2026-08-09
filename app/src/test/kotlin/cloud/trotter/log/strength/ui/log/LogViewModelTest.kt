@@ -17,18 +17,23 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.time.CivilTime
+import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
-import java.time.Clock
 import java.time.Instant
+import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -132,8 +137,39 @@ class LogViewModelTest {
         }
     }
 
+    /**
+     * A device clock the test moves by hand (#176). [wallClock] is what the
+     * device would say if asked right now; it only reaches the screen when the
+     * source wakes — on its own at midnight or on a time/zone broadcast
+     * ([tick]), or because the screen resumed ([refresh]). Keeping those two
+     * apart is the whole point: it is what lets a test park a screen across
+     * midnight and watch it go stale.
+     */
+    private class FakeCivilTimeSource(initial: CivilTime) : CivilTimeSource {
+        private val emissions = MutableStateFlow(initial)
+        override val civilTime: Flow<CivilTime> = emissions.asStateFlow()
+
+        var wallClock: CivilTime = initial
+            private set
+
+        fun set(instant: Instant, zone: ZoneId = wallClock.zone) {
+            wallClock = CivilTime.now(instant, zone)
+        }
+
+        /** Local midnight, or an ACTION_TIME/DATE/TIMEZONE_CHANGED broadcast. */
+        fun tick() {
+            emissions.value = wallClock
+        }
+
+        override fun refresh() {
+            emissions.value = wallClock
+        }
+    }
+
     // Fixed so the journal's "which week / which month is now" is deterministic.
-    private val clock = Clock.fixed(Instant.parse("2026-07-15T12:00:00Z"), ZoneOffset.UTC)
+    private val civilTime = FakeCivilTimeSource(
+        CivilTime.now(Instant.parse("2026-07-15T12:00:00Z"), ZoneOffset.UTC),
+    )
 
     private val shareCardService by lazy { ShareCardService(ApplicationProvider.getApplicationContext(), repo) }
 
@@ -142,7 +178,7 @@ class LogViewModelTest {
         reader: HealthConnectReader = healthReader,
         publisher: SessionPublisher = SessionPublisher.NoOp,
     ): LogViewModel =
-        LogViewModel(repo, reader, publisher, shareCardService, handle, clock).also { vms += it }
+        LogViewModel(repo, reader, publisher, shareCardService, handle, civilTime).also { vms += it }
 
     private fun session(dayId: String, dayTitle: String, completedAt: Long) =
         WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
@@ -385,6 +421,87 @@ class LogViewModelTest {
         advanceUntilIdle()
 
         assertEquals("JUNE 2026", restored.uiState.value.journal.calendar?.title)
+        collect.cancel()
+    }
+
+    // --- the civil day (#176) ------------------------------------------------
+    //
+    // Nothing in Room or DataStore changes at midnight, so before #176 the
+    // journal's "today" was whatever it was when some *other* flow last emitted:
+    // a screen left open across midnight kept yesterday's marker, month and
+    // twelve-week window, and a timezone change kept computing every boundary in
+    // the old zone until the process died.
+
+    @Test
+    fun midnightMovesTheTodayMarkerAndTheCalendarMonth() = runVmTest {
+        insertProgram()
+        seedSquatHistory()
+        civilTime.set(Instant.parse("2026-07-31T23:59:00Z"))
+        civilTime.tick()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("JULY 2026", vm.uiState.value.journal.calendar?.title)
+        assertEquals(31, vm.uiState.value.journal.calendar?.days?.single { it.isToday }?.dayOfMonth)
+
+        civilTime.set(Instant.parse("2026-08-01T00:00:00Z"))
+        civilTime.tick()
+        advanceUntilIdle()
+
+        val calendar = vm.uiState.value.journal.calendar
+        assertEquals("AUGUST 2026", calendar?.title)
+        assertEquals(1, calendar?.days?.single { it.isToday }?.dayOfMonth)
+        collect.cancel()
+    }
+
+    /** The same instant, two zones, two different civil days — the zone is
+     *  re-read per emission rather than frozen when the graph was built. */
+    @Test
+    fun aTimezoneChangeRecomputesTheDayInTheNewZone() = runVmTest {
+        insertProgram()
+        seedSquatHistory()
+        // 14:00 on July 31st in New York; 06:00 on August 1st in Auckland.
+        val instant = Instant.parse("2026-07-31T18:00:00Z")
+        civilTime.set(instant, ZoneId.of("America/New_York"))
+        civilTime.tick()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("JULY 2026", vm.uiState.value.journal.calendar?.title)
+
+        civilTime.set(instant, ZoneId.of("Pacific/Auckland"))
+        civilTime.tick()
+        advanceUntilIdle()
+
+        val calendar = vm.uiState.value.journal.calendar
+        assertEquals("AUGUST 2026", calendar?.title)
+        assertEquals(1, calendar?.days?.single { it.isToday }?.dayOfMonth)
+        collect.cancel()
+    }
+
+    /**
+     * The gap `WhileSubscribed(STOP_TIMEOUT_MS)` leaves open: away and back
+     * inside the timeout, collection never restarted, so nothing upstream
+     * re-emitted while the day turned. The resume read is what closes it.
+     */
+    @Test
+    fun aQuickResumeRereadsTheCivilDay() = runVmTest {
+        insertProgram()
+        seedSquatHistory()
+        civilTime.set(Instant.parse("2026-07-31T23:59:00Z"))
+        civilTime.tick()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        civilTime.set(Instant.parse("2026-08-01T00:00:30Z"))
+        advanceUntilIdle()
+        assertEquals("JULY 2026", vm.uiState.value.journal.calendar?.title)
+
+        vm.onResumed()
+        advanceUntilIdle()
+
+        assertEquals("AUGUST 2026", vm.uiState.value.journal.calendar?.title)
         collect.cancel()
     }
 

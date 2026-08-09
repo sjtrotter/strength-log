@@ -41,7 +41,7 @@ import kotlin.math.min
  * once-a-minute `onUpdateAmbient()` — a free-running coroutine wouldn't fire
  * reliably with the CPU suspended anyway. The one thing that *must* be punctual in
  * ambient, the buzz at the end of a rest, isn't this composable's job at all:
- * [RestTimerController] holds a wake lock for it, above the ambient swap.
+ * [RestTimerController] schedules its wakeup alarm above the ambient swap.
  */
 @Composable
 fun AmbientDial(

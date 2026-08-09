@@ -1,8 +1,10 @@
 package cloud.trotter.log.strength.wear.ui
 
+import android.app.AlarmManager
 import android.content.Context
 import android.os.Build
-import android.os.PowerManager
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -10,135 +12,127 @@ import android.os.VibratorManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+
+/** Schedules one in-process wakeup alarm at an `elapsedRealtime()` instant. */
+interface RestAlarmScheduler {
+    fun schedule(deadlineMillis: Long, onAlarm: () -> Unit)
+    fun cancel()
+}
 
 /**
- * Owns the ambient-punctual half of the rest timer: the **single** buzz at zero
- * and the bounded wake lock that keeps it on time even if the watch dozes mid-rest
- * (redesign §2.3 / R5, Fable risk #2). It lives at the [WearApp] root — above the
- * ambient screen swap — so its countdown coroutine is *not* torn down when the
- * system drops into ambient and disposes the interactive tree; the visual
- * countdown is a separate, disposable composable (the dial, or [AmbientDial]) that
- * this controller does not depend on.
+ * [AlarmManager] adapter for [RestTimerController]. The listener overload is exempt
+ * from exact-alarm permission checks and is valid only while this process lives.
+ */
+class AndroidRestAlarmScheduler(context: Context) : RestAlarmScheduler {
+    private val alarmManager = context.applicationContext
+        .getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val handler = Handler(Looper.getMainLooper())
+    private var listener: AlarmManager.OnAlarmListener? = null
+
+    override fun schedule(deadlineMillis: Long, onAlarm: () -> Unit) {
+        cancel()
+        lateinit var next: AlarmManager.OnAlarmListener
+        next = AlarmManager.OnAlarmListener {
+            // A callback already handed to the handler outlives cancel(); a
+            // stale one must not null out a NEWER listener or that alarm
+            // becomes uncancellable (it would still wake the device).
+            if (listener === next) listener = null
+            onAlarm()
+        }
+        listener = next
+        alarmManager.setExact(
+            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+            deadlineMillis,
+            ALARM_TAG,
+            next,
+            handler,
+        )
+    }
+
+    override fun cancel() {
+        listener?.let(alarmManager::cancel)
+        listener = null
+    }
+
+    private companion object {
+        const val ALARM_TAG = "strengthlog:rest-timer"
+    }
+}
+
+/**
+ * Owns the foreground-lifetime, ambient-punctual buzz used by rests and timed
+ * holds. [arm] installs one exact elapsed-realtime wakeup alarm; replacing or
+ * disarming it cancels the previous alarm. The interactive countdown is driven by
+ * composition and does not depend on this controller.
  *
- * Pure timing/decisions live in [RestTimer]; this class only does the Android IO
- * (Vibrator, PowerManager) and hosts the coroutine.
- *
- * Fire-once is structural: [arm] cancels any running timer before starting a new
- * one (one timer at a time), the coroutine buzzes exactly once when it reaches the
- * deadline, and a cancelled coroutine (skip / replace) never buzzes.
- *
- * Each job owns its wake lock as a coroutine-local and releases *that* instance in
- * its own `finally` — never a shared field. This matters when [arm] replaces a
- * still-active job: `cancel()` only queues the old coroutine's cancellation, so its
- * `finally` runs *after* the replacement has already acquired a fresh lock; a
- * shared field would let the departing job release the newcomer's lock and silently
- * void its ambient-punctuality.
+ * Delivery is guaranteed only while the app process and root [WearApp] are alive
+ * and the display is interactive or ambient (a lit or dim screen never dozes).
+ * True Doze — screen off, device still — defers setExact like any exact alarm;
+ * the departed wake-lock design fared no better there, because Doze ignores
+ * partial wake locks too. [close] is called when that root is disposed, including
+ * Activity destruction, and cancels the alarm. Delivery after process death is not
+ * part of the contract; the phone remains the workout source of truth.
  */
 class RestTimerController(
-    private val context: Context,
-    private val scope: CoroutineScope,
-) {
+    private val alarmScheduler: RestAlarmScheduler,
+    private val elapsedRealtime: () -> Long,
+    private val buzz: () -> Unit,
+) : AutoCloseable {
 
-    /** The rest currently pending, or null when idle. Read by [WearApp] to draw the
-     *  ambient countdown — survives the ambient swap because this controller does.
-     *  [totalSeconds] is what the arc drains *of*; the deadline alone can't say. */
+    /** The timer currently pending, or null when idle. */
     var activeRest by mutableStateOf<ActiveRest?>(null)
         private set
 
     data class ActiveRest(val deadlineMillis: Long, val totalSeconds: Int)
 
-    private var job: Job? = null
-
     /**
-     * Start (or idempotently keep) a deadline-anchored single-buzz timer for
-     * [deadlineMillis] (an `elapsedRealtime()` instant). Safe to call from a
-     * recomposing effect: re-arming for the same still-running deadline is a no-op,
-     * which is also how the timer resumes after process death — the restored
-     * [rememberSaveable][androidx.compose.runtime.saveable.rememberSaveable]
-     * deadline re-arms the buzz for whatever time is left.
+     * Arms a single buzz for [deadlineMillis], an `elapsedRealtime()` instant.
+     * Re-arming the same live deadline is idempotent; any other arm replaces it.
+     * A deadline already reached is ignored without buzzing.
      */
     fun arm(deadlineMillis: Long, totalSeconds: Int) {
-        if (job?.isActive == true && activeRest?.deadlineMillis == deadlineMillis) return
-        job?.cancel()
-        job = null
+        if (activeRest?.deadlineMillis == deadlineMillis) return
+        disarm()
+        if (RestTimer.isExpired(deadlineMillis, elapsedRealtime())) return
 
-        val remaining = RestTimer.remainingMillis(deadlineMillis, SystemClock.elapsedRealtime())
-        if (remaining <= 0L) {
-            // Already past (e.g. restored long after the deadline) — nothing to
-            // buzz; the caller advances the UI on its own.
-            activeRest = null
-            return
-        }
-
-        activeRest = ActiveRest(deadlineMillis, totalSeconds)
-        // Acquire the lock as a LOCAL and release that same instance in this job's
-        // own finally — never a shared field. Replacing a still-active job only
-        // *queues* the old coroutine's cancellation, so its finally runs after this
-        // new lock is already acquired; a shared field would let the old job release
-        // the new lock, silently voiding the replacement's ambient-punctuality.
-        val wakeLock = acquireWakeLock(RestTimer.wakeLockTimeoutMillis(remaining))
-        job = scope.launch {
-            try {
-                while (isActive && SystemClock.elapsedRealtime() < deadlineMillis) {
-                    val left = deadlineMillis - SystemClock.elapsedRealtime()
-                    delay(left.coerceIn(1L, 1_000L))
-                }
-                if (isActive) {
-                    vibrateOnce()
-                    if (activeRest?.deadlineMillis == deadlineMillis) activeRest = null
-                }
-            } finally {
-                releaseWakeLock(wakeLock)
+        val armed = ActiveRest(deadlineMillis, totalSeconds)
+        activeRest = armed
+        alarmScheduler.schedule(deadlineMillis) {
+            if (activeRest == armed) {
+                activeRest = null
+                buzz()
             }
         }
     }
 
-    /**
-     * Cancel the pending rest with **no** buzz (tap-to-skip, early advance, untick).
-     * The cancelled job's own `finally` releases its lock; the bounded
-     * [acquire][PowerManager.WakeLock.acquire] timeout is the backstop.
-     */
-    fun skip() {
-        job?.cancel()
-        job = null
+    /** Cancels the pending rest or timed-hold buzz without firing it. */
+    fun disarm() {
+        alarmScheduler.cancel()
         activeRest = null
     }
 
-    private fun vibrateOnce() {
-        val effect = VibrationEffect.createOneShot(BUZZ_MILLIS, VibrationEffect.DEFAULT_AMPLITUDE)
-        vibrator()?.vibrate(effect)
-    }
-
-    private fun vibrator(): Vibrator? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        }
-
-    private fun acquireWakeLock(timeoutMillis: Long): PowerManager.WakeLock? {
-        val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return null
-        val wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG).apply {
-            setReferenceCounted(false)
-        }
-        // Bounded acquire: the OS force-releases at the timeout even if a code path
-        // ever failed to — belt to the try/finally's braces.
-        wl.acquire(timeoutMillis)
-        return wl
-    }
-
-    private fun releaseWakeLock(wakeLock: PowerManager.WakeLock?) {
-        wakeLock?.let { if (it.isHeld) it.release() }
-    }
-
-    private companion object {
-        const val BUZZ_MILLIS = 400L
-        const val WAKE_LOCK_TAG = "strengthlog:rest-timer"
-    }
+    override fun close() = disarm()
 }
+
+/** Creates the Android-backed controller used by the app root. */
+fun restTimerController(context: Context): RestTimerController {
+    val appContext = context.applicationContext
+    return RestTimerController(
+        alarmScheduler = AndroidRestAlarmScheduler(appContext),
+        elapsedRealtime = SystemClock::elapsedRealtime,
+        buzz = {
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                (appContext.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
+                    ?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                appContext.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+            vibrator?.vibrate(
+                VibrationEffect.createOneShot(BUZZ_MILLIS, VibrationEffect.DEFAULT_AMPLITUDE),
+            )
+        },
+    )
+}
+
+private const val BUZZ_MILLIS = 400L

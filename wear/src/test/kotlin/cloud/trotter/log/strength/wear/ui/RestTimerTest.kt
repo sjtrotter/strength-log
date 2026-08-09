@@ -7,7 +7,7 @@ import kotlin.test.assertTrue
 
 /** Pure rest-timer arithmetic and decisions (redesign §2.3 / R5), pulled out of
  *  the composables so the deadline math, the "should a rest show" rule, the
- *  fire-once guard, and the wake-lock bound are JVM-verifiable. */
+ *  fire-once guard are JVM-verifiable. */
 class RestTimerTest {
 
     // --- shouldRest: rest only before a next round within the same exercise ---
@@ -118,24 +118,4 @@ class RestTimerTest {
         assertTrue(RestTimer.isExpired(deadlineMillis = 100L, nowElapsedMillis = 100L))
     }
 
-    // --- wake-lock bound ---
-
-    @Test
-    fun `wake lock hold is the remaining time plus slack`() {
-        assertEquals(
-            60_000L + RestTimer.WAKE_LOCK_SLACK_MILLIS,
-            RestTimer.wakeLockTimeoutMillis(remainingMillis = 60_000L),
-        )
-    }
-
-    @Test
-    fun `wake lock hold is hard-capped so a bogus deadline cannot pin the CPU`() {
-        val cap = RestTimer.MAX_REST_SECONDS * 1000L + RestTimer.WAKE_LOCK_SLACK_MILLIS
-        assertEquals(cap, RestTimer.wakeLockTimeoutMillis(remainingMillis = 10_000_000L))
-    }
-
-    @Test
-    fun `wake lock hold never goes negative`() {
-        assertEquals(RestTimer.WAKE_LOCK_SLACK_MILLIS, RestTimer.wakeLockTimeoutMillis(remainingMillis = -5_000L))
-    }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -82,11 +83,11 @@ fun WearApp(
     var localSessionStarted by rememberSaveable(dayId) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    // The rest-timer buzz + wake lock live here, at the root, so they outlive the
-    // ambient screen swap (the interactive tree is disposed in ambient, but this
-    // controller's coroutine must keep running to fire the single haptic on time).
-    val restScope = rememberCoroutineScope()
-    val restController = remember(context) { RestTimerController(context.applicationContext, restScope) }
+    // The exact-alarm listener lives at the root so it outlives the ambient swap.
+    val restController = remember(context) { restTimerController(context.applicationContext) }
+    DisposableEffect(restController) {
+        onDispose(restController::close)
+    }
     // Runs on every screen (loading/ambient/interactive) so the chip reconciles
     // even when the app relaunches straight into ambient — see OngoingSessionChip.
     OngoingSessionChip(snapshot, localSessionStarted)
@@ -217,7 +218,7 @@ private fun WorkoutDial(
         val completedAtMillis = System.currentTimeMillis()
         // A timed hold's goal buzz belongs to the set that is ending; never let it
         // land during the rest that follows.
-        restController.skip()
+        restController.disarm()
         sendEdit(
             buildTickDelta(
                 dayId = dayId,
@@ -279,7 +280,7 @@ private fun WorkoutDial(
      */
     fun undo(target: UndoTarget) {
         val ex = snap.day.exercises.getOrNull(target.exerciseIndex) ?: return
-        restController.skip()
+        restController.disarm()
         clearRest()
         restedSeconds = NO_REST
         lifting = false
@@ -373,8 +374,8 @@ private fun WorkoutDial(
         }
     }
 
-    // The rest. The controller owns the single buzz (and the wake lock that keeps
-    // it punctual in ambient); this effect only re-segments the dial afterwards.
+    // The rest. The controller owns the single buzz; this effect only re-segments
+    // the dial afterwards.
     // Keyed on the deadline so it re-arms from the restored value after process
     // death — and if that value is already past, clears the stale rest at once.
     // A peek ends when the crown stops turning: a rotary crown has no release
@@ -488,7 +489,7 @@ private fun WorkoutDial(
                     DialTap.SKIP_REST -> {
                         // Skipping is silent by design: cancel the pending buzz, drop
                         // straight to the next set. No "rested" badge — nothing rested.
-                        restController.skip()
+                        restController.disarm()
                         clearRest()
                         restedSeconds = NO_REST
                     }

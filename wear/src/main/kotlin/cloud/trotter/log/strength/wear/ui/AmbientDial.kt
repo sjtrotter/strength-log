@@ -31,7 +31,8 @@ import kotlin.math.min
 /**
  * The dial in ambient mode (brief §7): the same geometry, and everything the
  * screen can do to stay off an OLED — true black behind, outline arcs only, no
- * accent anywhere, no filled shape, no motion, dim gray type. The bands are the
+ * accent anywhere, no filled shape, no motion, dim gray type (pure white on
+ * low-bit devices, which get no grays). The bands are the
  * lit dial's own [CurvedBand], so a label sits on the same arc awake or asleep;
  * only the centre numeral stays straight, because it lives in the disc's zone.
  *
@@ -121,6 +122,49 @@ fun AmbientDial(
                 diameterPx = diameterPx,
             )
         }
+    }
+}
+
+/**
+ * Ambient with no snapshot yet: the wall clock alone on the static black
+ * field, palette- and burn-in-aware. The lit LoadingDial animates its sweep
+ * every 1.2s — motion and accent that ambient must not show (issue #161's
+ * relaunch-into-ambient path).
+ */
+@Composable
+fun AmbientLoadingDial(
+    ambientTick: Int,
+    burnInProtectionRequired: Boolean = false,
+    deviceHasLowBitAmbient: Boolean = false,
+) {
+    val timeText = remember(ambientTick) {
+        LocalTime.now().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+    }
+    val shift = if (burnInProtectionRequired) ambientPixelOffset(ambientTick) else AmbientPixelOffset.ZERO
+    val palette = ambientPalette(deviceHasLowBitAmbient)
+
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(palette.background)
+            .offset { IntOffset(shift.x, shift.y) },
+    ) {
+        val density = LocalDensity.current
+        val diameterDp = min(maxWidth.value, maxHeight.value).dp
+        val diameterPx = with(density) { diameterDp.toPx() }
+        val type = remember(diameterPx, density) {
+            dialTypography(DialGeometry.scale(diameterPx), density)
+        }
+        Text(
+            text = timeText,
+            style = type.numeral,
+            color = palette.primary,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .widthIn(max = with(density) { DialGeometry.px(DialGeometry.DISC_DIAMETER, diameterPx).toDp() }),
+        )
     }
 }
 

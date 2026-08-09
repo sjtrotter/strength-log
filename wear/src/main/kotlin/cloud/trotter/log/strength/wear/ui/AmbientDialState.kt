@@ -4,7 +4,8 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /**
  * The dial as ambient mode may draw it (brief §7): the same geometry, outline
- * arcs only, no accent, no filled shapes, dim gray type — and only three things
+ * arcs only, no accent, no filled shapes, dim gray type (pure white on low-bit
+ * devices, which get no grays) — and only three things
  * to say. Kept as a pure mapping for the same reason the interactive dial is one:
  * "what does ambient show at 12/21 while resting" is a value, testable
  * without a watch that is asleep.

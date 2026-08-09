@@ -93,6 +93,13 @@ fun WearApp(
         Box(Modifier.fillMaxSize().background(Background)) {
             val snap = snapshot
             when {
+                // Ambient outranks loading: a relaunch straight into ambient must
+                // not show LoadingDial's animated accent sweep (#161).
+                isAmbient && snap == null -> AmbientLoadingDial(
+                    ambientTick = ambientTick,
+                    burnInProtectionRequired = burnInProtectionRequired,
+                    deviceHasLowBitAmbient = deviceHasLowBitAmbient,
+                )
                 snap == null -> LoadingDial()
                 isAmbient -> AmbientDial(
                     snapshot = snap,

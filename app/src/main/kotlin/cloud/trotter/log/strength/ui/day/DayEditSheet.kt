@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -337,7 +338,10 @@ private fun PatternPickerScreen(
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
         PickerHeader(title = title, onBack = onBack)
         Spacer(Modifier.size(8.dp))
-        LazyColumn(modifier = Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(
+            modifier = Modifier.heightIn(max = 420.dp).selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             items(patterns) { pattern ->
                 SelectionCard(title = patternLabel(pattern), selected = false, onClick = { onPick(pattern) })
             }
@@ -451,7 +455,10 @@ private fun ExercisePickerScreen(
         if (results.isEmpty()) {
             Text("No matching exercises.", color = TextFaint, style = MaterialTheme.typography.bodySmall)
         } else {
-            LazyColumn(modifier = Modifier.heightIn(max = 360.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 360.dp).selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(results, key = { it.id }) { entry ->
                     SelectionCard(
                         title = entry.name,
@@ -522,6 +529,9 @@ private fun EquipmentFilterRow(
     accent: Color,
     onToggle: (Equipment) -> Unit,
 ) {
+    // Intentionally bespoke after the Phase 5 FilterChip audit. Material 3
+    // exposes a height override, but not its 16 dp-per-side label padding; this
+    // row uses 12 dp and widening every pill would change its compact geometry.
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

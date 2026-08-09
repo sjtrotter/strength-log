@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ButtonDefaults
@@ -264,7 +265,10 @@ private fun AgeCard(age: Int, onChange: (Int) -> Unit) {
 
 @Composable
 private fun LevelSection(level: ExperienceLevel, onChange: (ExperienceLevel) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        modifier = Modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Text("Experience level", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         ExperienceLevel.entries.forEach { entry ->
             SelectionCard(title = levelLabel(entry), selected = level == entry, onClick = { onChange(entry) })
@@ -285,7 +289,10 @@ private fun EmphasisSection(emphasis: GoalEmphasis, onChange: (GoalEmphasis) -> 
         GoalEmphasis.BALANCED to ("Balanced strength + muscle" to "Even mix of heavy work and volume."),
         GoalEmphasis.PHYSIQUE to ("Physique-leaning" to "More volume and isolation work."),
     )
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        modifier = Modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Text("Training emphasis", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         options.forEach { (value, copy) ->
             SelectionCard(
@@ -304,18 +311,28 @@ private fun EmphasisSection(emphasis: GoalEmphasis, onChange: (GoalEmphasis) -> 
 private fun CardioSection(cardio: CardioPrefs, actions: SetupActions) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Cardio", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        CardioMode.entries.forEach { mode ->
-            SelectionCard(title = cardioModeLabel(mode), selected = cardio.mode == mode, onClick = { actions.onCardioModeChange(mode) })
+        Column(
+            modifier = Modifier.selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            CardioMode.entries.forEach { mode ->
+                SelectionCard(title = cardioModeLabel(mode), selected = cardio.mode == mode, onClick = { actions.onCardioModeChange(mode) })
+            }
         }
         if (cardio.mode != CardioMode.NONE) {
             Spacer(Modifier.size(2.dp))
             Text("Placement", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-            CardioPlacement.entries.filter { it != CardioPlacement.NONE }.forEach { placement ->
-                SelectionCard(
-                    title = cardioPlacementLabel(placement),
-                    selected = cardio.placement == placement,
-                    onClick = { actions.onCardioPlacementChange(placement) },
-                )
+            Column(
+                modifier = Modifier.selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                CardioPlacement.entries.filter { it != CardioPlacement.NONE }.forEach { placement ->
+                    SelectionCard(
+                        title = cardioPlacementLabel(placement),
+                        selected = cardio.placement == placement,
+                        onClick = { actions.onCardioPlacementChange(placement) },
+                    )
+                }
             }
             Spacer(Modifier.size(2.dp))
             AppCard {

@@ -4,8 +4,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -83,6 +86,34 @@ class A11ySemanticsTest {
         toggle.assertIsOff()
         toggle.performClick()
         toggle.assertIsOn()
+    }
+
+    @Test
+    fun selectionCardExposesSelectedRadioButtonContract() {
+        composeTestRule.setContent {
+            AppTheme {
+                SelectionCard(title = "Balanced", selected = true, onClick = {})
+            }
+        }
+
+        composeTestRule.onNodeWithText("Balanced")
+            .assertIsSelected()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+    }
+
+    @Test
+    fun multiChoiceSelectionCardIsACheckboxNotARadioButton() {
+        // Equipment lists toggle several of many; announcing exclusivity there
+        // would promise behavior the control doesn't have.
+        composeTestRule.setContent {
+            AppTheme {
+                SelectionCard(title = "Barbell", selected = true, onClick = {}, multiChoice = true)
+            }
+        }
+
+        composeTestRule.onNodeWithText("Barbell")
+            .assertIsOn()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
     }
 
     @Test

@@ -56,10 +56,10 @@ fun SelectionCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(CardShape)
-            .background(background, CardShape)
-            .border(1.dp, border, CardShape)
-            .pressable(onClick = onClick, shape = CardShape)
+            .clip(MaterialTheme.shapes.large)
+            .background(background, MaterialTheme.shapes.large)
+            .border(1.dp, border, MaterialTheme.shapes.large)
+            .pressable(onClick = onClick, shape = MaterialTheme.shapes.large)
             .semantics { this.selected = selected }
             .padding(14.dp),
     ) {

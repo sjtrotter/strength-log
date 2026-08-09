@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,8 +24,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -278,25 +281,19 @@ private fun StartButton(actionLabel: String, accent: Color, onAccent: Color, onC
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
         label = "startButtonPress",
     )
-    Box(
+    Button(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .heightIn(min = 56.dp)
-            .background(accent, RoundedCornerShape(12.dp))
-            .pressable(
-                interactionSource = interactionSource,
-                onClickLabel = actionLabel,
-                role = Role.Button,
-                shape = RoundedCornerShape(12.dp),
-                onClick = onClick,
-            )
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center,
+            .heightIn(min = 56.dp),
+        interactionSource = interactionSource,
+        shape = MaterialTheme.shapes.large,
+        colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
+        contentPadding = PaddingValues(vertical = 8.dp),
     ) {
         Text(
             actionLabel,
-            color = onAccent,
             style = DoneButtonLabel,
             textAlign = TextAlign.Center,
             maxLines = 2,

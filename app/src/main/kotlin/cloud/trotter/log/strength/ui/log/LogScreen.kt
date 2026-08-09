@@ -42,7 +42,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.components.AppCard
-import cloud.trotter.log.strength.ui.components.CardShape
 import cloud.trotter.log.strength.ui.components.DayBadge
 import cloud.trotter.log.strength.ui.components.EmptyJournalState
 import cloud.trotter.log.strength.ui.components.pressable
@@ -205,17 +204,23 @@ private fun BackButton(onClick: () -> Unit) {
 @Composable
 private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: () -> Unit) {
     val chevronRotation by animateFloatAsState(if (item.expanded) 180f else 0f, tween(200), label = "logChevron")
-    AppCard(
-        modifier = Modifier
-            .pressable(
-                onClickLabel = if (item.expanded) "Collapse" else "Expand",
-                role = Role.Button,
-                shape = CardShape,
-                onClick = onToggle,
-            )
-            .semantics { stateDescription = if (item.expanded) "Expanded" else "Collapsed" },
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    AppCard {
+        // SHARE is a separate action when expanded, so disclosure belongs to
+        // this header region rather than the M3 card container.
+        Row(
+            modifier = Modifier
+                // Reserving the target here keeps it disjoint from the SHARE
+                // row instead of borrowing touch space from another action.
+                .minimumInteractiveComponentSize()
+                .fillMaxWidth()
+                .pressable(
+                    onClickLabel = if (item.expanded) "Collapse" else "Expand",
+                    role = Role.Button,
+                    onClick = onToggle,
+                )
+                .semantics { stateDescription = if (item.expanded) "Expanded" else "Collapsed" },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             DayBadge(dayIndex = item.dayIndex, letter = item.dayLetter)
             Spacer(Modifier.size(10.dp))
             Column(Modifier.weight(1f)) {
@@ -264,14 +269,14 @@ private fun ExerciseGroupRow(group: SessionExerciseGroup) {
 /**
  * The share affordance (#103, docs/briefs/session-share.md §1): one quiet
  * text button in the expanded row's action register, caps, pressed = that
- * day's accent — no icon, no fill, nothing on a collapsed row. A nested
- * `clickable` inside the card's own expand/collapse `clickable` consumes the
- * tap before it reaches the card, so SHARE never also toggles the row.
+ * day's accent — no icon, no fill, nothing on a collapsed row. Since the M3
+ * card migration the disclosure lives on the header row, so SHARE is a
+ * *sibling* action, not a nested one — it never also toggles the row because
+ * nothing above it is clickable at all.
  *
- * Because it is nested, its 48dp target (#123) has to be *reserved* rather than
- * borrowed: [minimumInteractiveComponentSize] grows this row, so the target
- * lands on the row's own air instead of quietly claiming a band of card that
- * still reads as "tap to collapse".
+ * Its 48dp target (#123) is still *reserved* rather than borrowed:
+ * [minimumInteractiveComponentSize] grows this row, so the target lands on the
+ * row's own air instead of quietly claiming the detail lines above it.
  */
 @Composable
 private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
@@ -341,7 +346,7 @@ private fun PromptButton(text: String, emphasized: Boolean, onClick: () -> Unit)
  *  the lazy, user-initiated permission entry point. */
 @Composable
 private fun ConnectHealthCard(onConnect: () -> Unit) {
-    AppCard(modifier = Modifier.pressable(shape = CardShape, onClick = onConnect)) {
+    AppCard(onClick = onConnect) {
         Text("Connect Health Connect", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.size(4.dp))
         Text(

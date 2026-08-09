@@ -31,7 +31,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -78,6 +77,7 @@ import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.CardShape
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.NoProgramState
 import cloud.trotter.log.strength.ui.components.ProgramLoadingState
@@ -832,11 +832,8 @@ internal fun SwapExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier
  *  same courtesy [ResetToTemplateDialog] gives other destructive day actions. */
 @Composable
 internal fun WeightSwapConfirmDialog(swap: WeightSwapAffordance, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Surface,
-        titleContentColor = TextPrimary,
-        textContentColor = TextSecondary,
         title = { Text("Switch to ${swap.targetName}?") },
         text = { Text("Your sets reseed from its goal.") },
         confirmButton = { DialogAction("Switch", Done, onConfirm) },
@@ -1078,11 +1075,8 @@ private fun Footer(onClearChecks: () -> Unit) {
  */
 @Composable
 private fun ClearChecksConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Surface,
-        titleContentColor = TextPrimary,
-        textContentColor = TextSecondary,
         title = { Text("Clear today's checkmarks?") },
         text = { Text("Every ✓ on this day comes off. The weights and reps you logged stay where they are.") },
         confirmButton = { DialogAction("Clear", Error, onConfirm) },

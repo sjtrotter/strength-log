@@ -19,10 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -46,7 +44,9 @@ import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.disabledAlpha
@@ -56,7 +56,6 @@ import cloud.trotter.log.strength.ui.theme.CardTitle
 import cloud.trotter.log.strength.ui.theme.CardTitleSmall
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.Error
-import cloud.trotter.log.strength.ui.theme.Surface
 import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
@@ -112,7 +111,7 @@ fun DayEditSheet(
             null -> Unit
         }
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Surface) {
+    AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         // Inside the sheet's content, so the handler lands on the sheet dialog's
         // own back dispatcher (M3 hosts the sheet in a ComponentDialog) ahead of
         // the dismiss-on-back callback the dialog registers for itself. M3 runs
@@ -394,7 +393,7 @@ fun SlotSwapSheet(
     onCreateExercise: (MovementPattern) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Surface) {
+    AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         SwapPickerPage(
             slot = slot,
             pattern = pattern,
@@ -541,11 +540,8 @@ private fun EquipmentFilterRow(
 
 @Composable
 private fun ResetToTemplateDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Surface,
-        titleContentColor = TextPrimary,
-        textContentColor = TextSecondary,
         title = { Text("Reset day to template?") },
         text = { Text("This regenerates the day from your setup wizard answers. Any swaps, adds, or removes you made here are discarded — logged history is not affected.") },
         confirmButton = { DialogAction("Reset", Error, onConfirm) },

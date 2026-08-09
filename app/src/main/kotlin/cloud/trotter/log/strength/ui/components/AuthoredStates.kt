@@ -7,11 +7,12 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +22,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -219,19 +221,17 @@ private fun SweepingRule() {
  */
 @Composable
 private fun PillAction(label: String, color: Color, onClick: () -> Unit, border: Color = color) {
-    Box(
+    OutlinedButton(
+        onClick = onClick,
         modifier = Modifier
             .widthIn(min = 200.dp)
-            .heightIn(min = 52.dp)
-            .border(1.dp, border, RoundedCornerShape(12.dp))
-            // No onClickLabel: the label below is real text, so it already is
-            // the accessible name — repeating it as the action verb would have
-            // TalkBack say it twice.
-            .pressable(role = Role.Button, shape = RoundedCornerShape(12.dp), onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center,
+            .heightIn(min = 52.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, border),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = color),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
     ) {
-        Text(label, color = color, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
+        Text(label, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 

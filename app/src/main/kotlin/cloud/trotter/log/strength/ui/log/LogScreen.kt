@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -176,7 +177,7 @@ private fun LogHeader(onBack: () -> Unit) {
             BackButton(onBack)
             Text("Log", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+        HorizontalDivider(thickness = 1.dp, color = Border)
     }
 }
 

@@ -32,6 +32,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -147,7 +149,14 @@ class LogViewModelTest {
      */
     private class FakeCivilTimeSource(initial: CivilTime) : CivilTimeSource {
         private val emissions = MutableStateFlow(initial)
-        override val civilTime: Flow<CivilTime> = emissions.asStateFlow()
+
+        // Mirror the production contract: a fresh collection reads the wall
+        // clock NOW (not a replayed past value), and same-(date, zone) signals
+        // stay quiet.
+        override val civilTime: Flow<CivilTime> = kotlinx.coroutines.flow.flow {
+            emissions.value = wallClock
+            emitAll(emissions)
+        }.distinctUntilChanged { a, b -> a.date == b.date && a.zone == b.zone }
 
         var wallClock: CivilTime = initial
             private set

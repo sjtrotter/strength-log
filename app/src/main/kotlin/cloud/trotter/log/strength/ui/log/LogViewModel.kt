@@ -238,9 +238,10 @@ class LogViewModel @Inject constructor(
      * observes having emitted: the Health Connect grant lives in another app,
      * and the civil day belongs to the device (#176).
      *
-     * Leaving the screen for longer than [STOP_TIMEOUT_MS] restarts collection
-     * and refreshes both anyway — this is what closes the shorter gap, where
-     * the user glances away and comes straight back.
+     * Leaving the screen for longer than [STOP_TIMEOUT_MS] restarts civil-time
+     * collection on its own; the Health Connect grant is only re-read here.
+     * This hook closes the shorter gap, where the user glances away and comes
+     * straight back.
      */
     fun onResumed() {
         refreshHealth()

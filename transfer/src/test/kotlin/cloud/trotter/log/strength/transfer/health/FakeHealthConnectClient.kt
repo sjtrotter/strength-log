@@ -53,7 +53,17 @@ class FakeHealthConnectClient(
         if (insertThrows) throw RuntimeException("provider insert failed")
         insertedRecords += records
         records.forEach { record ->
-            record.metadata.clientRecordId?.let { storedRecords[it] = record }
+            record.metadata.clientRecordId?.let { id ->
+                // Health Connect's contract: one record per client id, HIGHER
+                // version wins; an equal version is NOT promised to replace.
+                // Model the weaker guarantee so tests can't claim more.
+                val existing = storedRecords[id]
+                if (existing == null ||
+                    record.metadata.clientRecordVersion > existing.metadata.clientRecordVersion
+                ) {
+                    storedRecords[id] = record
+                }
+            }
         }
         return InsertRecordsResponse(records.map { "rec-${insertedRecords.size}" })
     }

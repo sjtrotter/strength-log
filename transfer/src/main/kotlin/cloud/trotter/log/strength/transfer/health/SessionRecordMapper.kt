@@ -32,7 +32,10 @@ object SessionRecordMapper {
 
     /**
      * A stable client record id so a retry/re-publish — including the one-shot
-     * backfill (#159) — updates rather than duplicates the Health Connect entry.
+     * backfill (#159) — deduplicates against the Health Connect entry: one record
+ * per id, and equal-version re-inserts may be ignored rather than replace.
+ * That is enough, because sessions are immutable history — a re-publish never
+ * carries different contents under the same id.
      * Every write of a session keeps [Metadata]'s default client record version
      * (0): the record a session produces is deterministic, so a second write
      * carries nothing newer, and the provider's same-id resolution leaves the

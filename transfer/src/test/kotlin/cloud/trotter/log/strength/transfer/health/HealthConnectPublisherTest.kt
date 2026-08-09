@@ -39,7 +39,7 @@ import org.robolectric.annotation.Config
  * is [SessionRecordMapperTest]'s job.
  *
  * The backfill (#159) shares that path, so its own section pins what only it
- * cares about: which sessions it writes, that a re-run upserts instead of
+ * cares about: which sessions it writes, that a re-run deduplicates instead of
  * duplicating, and that it answers honestly when a session didn't make it.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -278,7 +278,7 @@ class HealthConnectPublisherTest {
     /** Idempotency: the ids are derived from the session, not from when the
      *  publish happened, so a second backfill lands on the same records. */
     @Test
-    fun republishingTheSameSessionsUpsertsRatherThanDuplicating() = runTest {
+    fun republishingTheSameSessionsDeduplicatesByClientIdRatherThanDuplicating() = runTest {
         val ids = seedSessions(2)
         val client = grantedClient()
 

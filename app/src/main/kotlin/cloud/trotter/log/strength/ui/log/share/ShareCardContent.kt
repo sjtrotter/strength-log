@@ -136,7 +136,8 @@ object ShareCardContentBuilder {
      * fabricated duration.
      */
     private fun footerLine(session: WorkoutSessionEntity, doneSets: List<SessionSetEntity>, unit: WeightUnit): String {
-        val parts = mutableListOf("${doneSets.count { Slot.isRound(it.slot) }} SETS")
+        val rounds = doneSets.count { Slot.isRound(it.slot) }
+        val parts = mutableListOf(if (rounds == 1) "1 SET" else "$rounds SETS")
         session.startedAt?.let { startedAt ->
             val minutes = (session.completedAt - startedAt).toDouble().div(60_000.0).roundToLong()
             parts += "$minutes MIN"

@@ -24,7 +24,7 @@
 
         <meta-data
             android:name="com.google.android.wearable.standalone"
-            android:value="true" />
+            android:value="false" />
 
         <activity
             android:name=".MainActivity"
@@ -39,13 +39,14 @@
         <!--
           The day on the watch face (glance-surfaces brief §2). Exported because the
           watch-face process binds it; locked to BIND_COMPLICATION_PROVIDER, which
-          only the system holds, so nothing else can call in. No UPDATE_PERIOD_SECONDS
-          metadata on purpose — refreshes are pushed by GlanceUpdateService, never
-          timed.
+          only the system holds, so nothing else can call in. UPDATE_PERIOD_SECONDS=0
+          disables scheduled refreshes; GlanceUpdateService pushes updates when the
+          Data Layer snapshot changes.
         -->
         <service
             android:name=".glance.DayComplicationService"
             android:exported="true"
+            android:icon="@drawable/ic_day_complication"
             android:label="@string/glance_complication_label"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
@@ -54,6 +55,9 @@
             <meta-data
                 android:name="android.support.wearable.complications.SUPPORTED_TYPES"
                 android:value="RANGED_VALUE,SHORT_TEXT" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="0" />
         </service>
 
         <!--

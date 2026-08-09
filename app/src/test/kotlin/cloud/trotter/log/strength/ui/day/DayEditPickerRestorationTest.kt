@@ -6,7 +6,6 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -71,7 +70,14 @@ class DayEditPickerRestorationTest {
             AppTheme {
                 DayEditSheet(
                     state = state,
-                    actions = DayEditActions({}, {}, {}, { _, _ -> }, {}, {}),
+                    actions = DayEditActions(
+                        onSwap = { _, _ -> },
+                        onAdd = {},
+                        onRemove = {},
+                        onSetSuperset = { _, _ -> },
+                        onRemoveSuperset = {},
+                        onResetToTemplate = {},
+                    ),
                     accent = Color.White,
                     onDismiss = {},
                     onCreateExercise = {},

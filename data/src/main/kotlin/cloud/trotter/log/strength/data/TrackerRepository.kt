@@ -21,6 +21,8 @@ import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.mapping.toEntry
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
+import cloud.trotter.log.strength.data.prefs.RestoreIncompleteException
+import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
@@ -39,12 +41,15 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import java.io.IOException
 import java.time.Clock
 import java.util.UUID
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 /**
  * The single data-layer entry point (spec §7 surface, extended by PLAN.md
@@ -606,19 +611,29 @@ open class TrackerRepository(
      * (`:transfer`) has already validated the backup end-to-end; this method does
      * no validation and performs an unconditional destructive replace.
      *
-     * Atomicity across two independent stores. Room and DataStore each commit
-     * atomically on their own, but there is no transaction spanning both, so a
-     * crash can land between them. The write order makes that window safe: the
-     * only cross-store reference is `suggestedDay` (DataStore) pointing at a
-     * `dayId` (Room), so the referenced program is written *first*. A crash after
-     * the Room transaction but before the DataStore edit therefore leaves fully
-     * consistent new training data (program, logs, history and customs all swapped
-     * as one transaction) with at worst a stale rotation pointer — which is a
-     * nullable value the app already resolves against the live program, never a
-     * torn or crashing state. The reverse order could publish a pointer into a
-     * program that does not exist yet, so it is deliberately avoided.
+     * Two independent stores, no shared transaction. Room and DataStore each
+     * commit atomically on their own; nothing spans both. So rather than claim an
+     * atomicity it can't have, this method makes the pair *recoverable* (#172):
+     * [journal] stages the settings half before anything is destroyed and is
+     * armed the moment the Room transaction commits, so if the process dies
+     * before [SettingsStore.restore] lands, the next launch replays it
+     * ([RestoreJournal.reconcile]). That interim state is not benign and is not
+     * treated as such — restored training data paired with the old device's
+     * config means every derived GOAL is wrong until the replay happens.
+     *
+     * Room still goes first: the only cross-store reference is `suggestedDay`
+     * (DataStore) pointing at a `dayId` (Room), and the reverse order could
+     * publish a pointer into a program that does not exist yet. The arm-and-write
+     * tail is [NonCancellable] because the two writes are only meaningful
+     * together — the Room transaction itself is left cancellable, since rolling
+     * it back leaves the device untouched, which is a clean outcome.
+     *
+     * A settings failure after the Room commit is raised as
+     * [RestoreIncompleteException], not the raw [IOException] the UI would
+     * otherwise report as a problem reading the backup file.
      */
-    suspend fun importSnapshot(snapshot: FullSnapshot) {
+    suspend fun importSnapshot(snapshot: FullSnapshot, journal: RestoreJournal) {
+        journal.stage(snapshot)
         db.withTransaction {
             programDao.deleteAllLogs()
             programDao.deleteAllExercises()
@@ -634,14 +649,22 @@ open class TrackerRepository(
             sessionDao.insertSessions(snapshot.sessions)
             sessionDao.insertSets(snapshot.sessionSets)
         }
-        settings.restore(
-            answers = snapshot.answers,
-            unit = snapshot.unit,
-            wizardComplete = snapshot.wizardComplete,
-            suggestedDay = snapshot.suggestedDay,
-            restSettings = snapshot.restSettings,
-            keepScreenOn = snapshot.keepScreenOn,
-        )
+        withContext(NonCancellable) {
+            journal.arm()
+            try {
+                settings.restore(
+                    answers = snapshot.answers,
+                    unit = snapshot.unit,
+                    wizardComplete = snapshot.wizardComplete,
+                    suggestedDay = snapshot.suggestedDay,
+                    restSettings = snapshot.restSettings,
+                    keepScreenOn = snapshot.keepScreenOn,
+                )
+            } catch (e: IOException) {
+                throw RestoreIncompleteException(e)
+            }
+            journal.clear()
+        }
     }
 
     // --- CSV history export/import (#16) --------------------------------------

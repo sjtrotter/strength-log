@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import java.time.Clock
 import javax.inject.Singleton
@@ -25,6 +26,11 @@ object DataModule {
 
     private const val SETTINGS_FILE = "strength_settings"
 
+    /** The restore journal's own file. Separate from [SETTINGS_FILE] on purpose —
+     *  see [RestoreJournal]: a restore clears the settings store wholesale, so a
+     *  marker kept there would be erased by the write it guards. */
+    private const val RESTORE_JOURNAL_FILE = "restore_journal"
+
     @Provides
     @Singleton
     fun database(@ApplicationContext context: Context): StrengthDatabase =
@@ -37,6 +43,16 @@ object DataModule {
             PreferenceDataStoreFactory.create(
                 produceFile = { context.preferencesDataStoreFile(SETTINGS_FILE) },
             ),
+        )
+
+    @Provides
+    @Singleton
+    fun restoreJournal(@ApplicationContext context: Context, settings: SettingsStore): RestoreJournal =
+        RestoreJournal(
+            PreferenceDataStoreFactory.create(
+                produceFile = { context.preferencesDataStoreFile(RESTORE_JOURNAL_FILE) },
+            ),
+            settings,
         )
 
     /** One device clock for the whole process: the daily checkmark reset and the

@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.RestoreIncompleteException
+import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
@@ -25,7 +27,9 @@ import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.ui.backup.TransferErrorMessages
 import java.io.IOException
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,7 +38,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Setup wizard ViewModel (spec §6.1, PLAN.md A4). Every field of the
@@ -63,6 +66,7 @@ class WizardViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     @ApplicationContext private val context: Context,
     private val backupService: BackupService,
+    @ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     private object Keys {
@@ -115,9 +119,10 @@ class WizardViewModel @Inject constructor(
     private val firstRun: StateFlow<Boolean> = savedState.getStateFlow(Keys.FIRST_RUN, false)
 
     /** In-flight/failed state of a restore. Not in [SavedStateHandle] on purpose:
-     *  it is progress, not truth — the import is one atomic all-or-nothing call,
-     *  so process death mid-restore leaves the device either untouched or fully
-     *  restored, and the user simply picks the file again. */
+     *  it is progress, not truth. The import outlives this ViewModel (it runs on
+     *  the app scope) and any half of it that survives process death is finished
+     *  by the startup reconciliation (#172), so nothing here is worth persisting
+     *  — a user who comes back to a blank wizard just picks the file again. */
     private val restoreProgress = MutableStateFlow(RestoreProgress())
 
     private data class RestoreProgress(val inFlight: Boolean = false, val error: String? = null)
@@ -282,9 +287,21 @@ class WizardViewModel @Inject constructor(
      * it last means a crash before it simply re-runs the wizard (the draft
      * survives in [SavedStateHandle]). Mirrors [TrackerRepository.importSnapshot]'s
      * own write-before-flag ordering.
+     *
+     * A first-run wizard that finds `wizardComplete` already true steps aside
+     * instead of generating (#172). The app opens on the wizard whenever that
+     * flag reads false, so an interrupted restore whose settings half is still
+     * pending lands us here over a *restored* program — and generating would
+     * delete it. [firstRun] is latched at entry, so this can only fire when the
+     * flag flipped underneath us; a Setup re-run (which legitimately regenerates
+     * over a complete setup) never takes this branch.
      */
     private fun finish() {
         viewModelScope.launch {
+            if (firstRun.value && repo.wizardCompleteFlow.first()) {
+                isComplete.value = true
+                return@launch
+            }
             val answers = currentAnswers()
             repo.setWizardAnswers(answers)
             // Taking only .program drops GeneratedProgram.cardioDays: standalone
@@ -319,10 +336,13 @@ class WizardViewModel @Inject constructor(
         restoreProgress.value = RestoreProgress(inFlight = true)
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) {
+                // App-scoped for the same reason the Data/Backup screen's restore
+                // is (#172): this ViewModel dies with the wizard, and the import
+                // must not be cut between its Room and DataStore halves.
+                appScope.async(Dispatchers.IO) {
                     context.contentResolver.openInputStream(uri)?.use { backupService.importFrom(it) }
                         ?: throw IOException("no input stream for $uri")
-                }
+                }.await()
                 applyAnswers(repo.wizardAnswersFlow.first())
                 if (repo.wizardCompleteFlow.first()) {
                     isComplete.value = true
@@ -331,6 +351,8 @@ class WizardViewModel @Inject constructor(
                 }
             } catch (e: BackupError) {
                 restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
+            } catch (e: RestoreIncompleteException) {
+                restoreProgress.value = RestoreProgress(error = TransferErrorMessages.RESTORE_INCOMPLETE)
             } catch (e: IOException) {
                 restoreProgress.value = RestoreProgress(error = "Couldn't access that file: ${e.message}")
             } catch (e: SecurityException) {

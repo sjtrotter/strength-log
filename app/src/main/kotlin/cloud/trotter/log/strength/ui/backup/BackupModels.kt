@@ -75,6 +75,13 @@ data class BackupActions(
  */
 object TransferErrorMessages {
 
+    /** A restore whose data landed but whose settings didn't
+     *  ([cloud.trotter.log.strength.data.prefs.RestoreIncompleteException]). The
+     *  journal already holds the rest, so the honest instruction is "reopen",
+     *  not "try another file". Shared with the wizard's first-run restore. */
+    const val RESTORE_INCOMPLETE =
+        "Your data restored, but your settings didn't. Reopen the app and it'll finish."
+
     fun of(error: BackupError): String = when (error) {
         is BackupError.TooLarge ->
             "That file is too large to be a strength-log backup (${error.bytes} bytes)."

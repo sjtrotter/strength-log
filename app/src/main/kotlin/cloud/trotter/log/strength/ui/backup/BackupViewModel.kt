@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import cloud.trotter.log.strength.data.prefs.RestoreIncompleteException
+import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.transfer.backup.BackupCodec
 import cloud.trotter.log.strength.transfer.backup.BackupError
@@ -14,7 +16,9 @@ import cloud.trotter.log.strength.transfer.csv.CsvHistoryService
 import cloud.trotter.log.strength.transfer.csv.CsvImportError
 import java.io.IOException
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,13 +45,20 @@ import kotlinx.coroutines.launch
  * can be many megabytes (a [androidx.lifecycle.SavedStateHandle] entry rides in
  * a Bundle and risks `TransactionTooLargeException`), and losing it to process
  * death loses no user data — nothing is written to the device until the user
- * explicitly confirms, at which point it's one atomic transaction either way.
+ * explicitly confirms.
+ *
+ * A confirmed restore is the one operation here that does not belong to this
+ * ViewModel's lifetime. It writes Room and then DataStore, and this class is
+ * scoped to a nav entry, so a back press used to cancel it mid-write and leave
+ * the two stores disagreeing in silence (#172). It runs on [appScope] instead;
+ * this ViewModel only waits for it and reports.
  */
 @HiltViewModel
 class BackupViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val backupService: BackupService,
     private val csvHistoryService: CsvHistoryService,
+    @ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     private val codec = BackupCodec()
@@ -78,7 +89,11 @@ class BackupViewModel @Inject constructor(
         pendingRestoreText = null
         _uiState.update { it.copy(pendingRestoreConfirm = false) }
         runBusy {
-            backupService.import(text)
+            // Awaited, not owned: cancelling this await (the screen going away)
+            // leaves the import running to completion on the app scope. The
+            // screen still holds the exits shut while isBusy — see BackupScreen —
+            // so the normal case is that we are here to report the result.
+            appScope.async { backupService.import(text) }.await()
             postMessage("Backup restored.", isError = false)
         }
     }
@@ -153,6 +168,11 @@ class BackupViewModel @Inject constructor(
                 postMessage(TransferErrorMessages.of(e), isError = true)
             } catch (e: CsvImportError) {
                 postMessage(TransferErrorMessages.of(e), isError = true)
+            } catch (e: RestoreIncompleteException) {
+                // The file was fine and the data landed; only the settings write
+                // failed. Saying "couldn't access that file" here would send the
+                // user after the wrong problem (#172).
+                postMessage(TransferErrorMessages.RESTORE_INCOMPLETE, isError = true)
             } catch (e: IOException) {
                 postMessage("Couldn't access that file: ${e.message}", isError = true)
             } catch (e: SecurityException) {

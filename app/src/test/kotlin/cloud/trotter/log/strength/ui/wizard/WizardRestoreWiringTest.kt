@@ -9,6 +9,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.transfer.backup.BackupCodec
 import cloud.trotter.log.strength.transfer.backup.BackupDocument
@@ -22,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
@@ -57,8 +59,15 @@ class WizardRestoreWiringTest {
 
     private lateinit var context: Context
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
+    private lateinit var journal: RestoreJournal
     private lateinit var storeScope: CoroutineScope
+
+    /** Stands in for the injected app scope. A [SupervisorJob] like the real one
+     *  (AppScopeModule): a rejected file fails the restore, and that must not
+     *  take the scope — or the next test's stores — down with it. */
+    private lateinit var appScope: CoroutineScope
     private val vms = mutableListOf<androidx.lifecycle.ViewModel>()
 
     @Before
@@ -67,15 +76,23 @@ class WizardRestoreWiringTest {
         context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).build()
         storeScope = CoroutineScope(Dispatchers.IO + Job())
+        appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("wizard-restore-settings", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
+        )
+        journal = RestoreJournal(
+            PreferenceDataStoreFactory.create(scope = storeScope) {
+                File.createTempFile("wizard-restore-journal", ".preferences_pb")
+            },
+            settings,
         )
     }
 
@@ -86,6 +103,7 @@ class WizardRestoreWiringTest {
         // completion handler has released the file.
         runBlocking {
             vms.forEach { it.viewModelScope.coroutineContext.job.cancelAndJoin() }
+            appScope.coroutineContext.job.cancelAndJoin()
             storeScope.coroutineContext.job.cancelAndJoin()
         }
         db.close()
@@ -93,7 +111,8 @@ class WizardRestoreWiringTest {
     }
 
     private fun newViewModel(): WizardViewModel =
-        WizardViewModel(repo, SavedStateHandle(), context, BackupService(repo)).also { vms += it }
+        WizardViewModel(repo, SavedStateHandle(), context, BackupService(repo, journal), appScope)
+            .also { vms += it }
 
     /** A minimal but valid backup: one day, one real catalog exercise, and the
      *  wizard flag the test is about. */

@@ -8,11 +8,11 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.sync.WearSyncPublisher
+import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.widget.TodayWidgetUpdater
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /** Hilt's application root. The object graph is defined in [cloud.trotter.log.strength.di]. */
@@ -46,10 +46,22 @@ class StrengthLogApp : Application() {
         fun todayWidgetUpdater(): TodayWidgetUpdater
     }
 
-    /** App-scope background jobs (the one-shot startup fixup). Not cancelled — it
-     *  lives as long as the process; a [SupervisorJob] keeps one failure from
-     *  tearing down the others. */
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    /** The backup core, for the startup restore reconciliation below. */
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface BackupEntryPoint {
+        fun backupService(): BackupService
+    }
+
+    /** The process-lifetime scope from [cloud.trotter.log.strength.di.AppScopeModule]
+     *  — the same one an in-flight restore runs on, so startup jobs and screen-
+     *  independent work share one lifetime. */
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface AppScopeEntryPoint {
+        @ApplicationScope
+        fun appScope(): CoroutineScope
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -59,6 +71,23 @@ class StrengthLogApp : Application() {
         EntryPointAccessors.fromApplication(this, WidgetEntryPoint::class.java)
             .todayWidgetUpdater()
             .start()
+
+        val appScope = EntryPointAccessors
+            .fromApplication(this, AppScopeEntryPoint::class.java)
+            .appScope()
+
+        // Finish a restore that was cut between its Room and DataStore halves
+        // (#172). First, and before the fixup: until it lands, the device pairs
+        // restored training data with the old device's config, and `wizardComplete`
+        // is one of the values still outstanding — leave it and a first-run
+        // wizard can open over a restored program and regenerate it away.
+        val backupService = EntryPointAccessors
+            .fromApplication(this, BackupEntryPoint::class.java)
+            .backupService()
+        appScope.launch {
+            runCatching { backupService.reconcilePendingRestore() }
+                .onFailure { Log.e(TAG, "Pending restore not reconciled; will retry next launch", it) }
+        }
 
         // One-shot on first launch of the tracking-types build: reinterpret the
         // reps a user logged for now-TIMED holds (plank, ...) as seconds. Guarded

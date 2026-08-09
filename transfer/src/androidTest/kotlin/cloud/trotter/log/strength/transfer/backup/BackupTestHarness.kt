@@ -8,6 +8,7 @@ import androidx.room.RoomDatabase
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,10 +29,12 @@ abstract class BackupTestHarness {
 
     private val dbName = "backup_test.db"
     private val prefsName = "backup_test_prefs"
+    private val journalName = "backup_test_journal"
 
     protected lateinit var db: StrengthDatabase
     private lateinit var dataStoreScope: CoroutineScope
     protected lateinit var repository: TrackerRepository
+    protected lateinit var journal: RestoreJournal
     protected lateinit var service: BackupService
 
     @Before
@@ -45,14 +48,22 @@ abstract class BackupTestHarness {
             scope = dataStoreScope,
             produceFile = { context().preferencesDataStoreFile(prefsName) },
         )
+        val settings = SettingsStore(dataStore)
         repository = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
-        service = BackupService(repository)
+        journal = RestoreJournal(
+            PreferenceDataStoreFactory.create(
+                scope = dataStoreScope,
+                produceFile = { context().preferencesDataStoreFile(journalName) },
+            ),
+            settings,
+        )
+        service = BackupService(repository, journal)
     }
 
     /** A minimal but structurally valid empty backup: importing it wipes the
@@ -84,5 +95,6 @@ abstract class BackupTestHarness {
         val context = context()
         context.deleteDatabase(dbName)
         context.preferencesDataStoreFile(prefsName).delete()
+        context.preferencesDataStoreFile(journalName).delete()
     }
 }

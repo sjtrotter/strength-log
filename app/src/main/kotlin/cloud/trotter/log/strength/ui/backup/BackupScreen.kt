@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.backup
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
@@ -83,9 +84,15 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
 fun BackupScreen(state: BackupUiState, actions: BackupActions) {
     val accent = dayAccent(0)
 
+    // A restore writes Room and then DataStore with no transaction spanning the
+    // two, so walking out mid-write is how they end up disagreeing (#172). The
+    // write itself is app-scoped now and survives, but the screen still refuses
+    // to leave while it's in flight rather than showing a result to nobody.
+    BackHandler(enabled = state.isBusy) {}
+
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
-            BackupHeader(actions.onBack)
+            BackupHeader(actions.onBack, enabled = !state.isBusy)
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -131,14 +138,14 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
 }
 
 @Composable
-private fun BackupHeader(onBack: () -> Unit) {
+private fun BackupHeader(onBack: () -> Unit, enabled: Boolean = true) {
     Column {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            BackChevron(onBack)
+            BackChevron(onBack, enabled)
             Text("DATA / BACKUP", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         }
         HorizontalDivider(thickness = 1.dp, color = Border)
@@ -146,7 +153,7 @@ private fun BackupHeader(onBack: () -> Unit) {
 }
 
 @Composable
-private fun BackChevron(onClick: () -> Unit) {
+private fun BackChevron(onClick: () -> Unit, enabled: Boolean = true) {
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
@@ -154,6 +161,7 @@ private fun BackChevron(onClick: () -> Unit) {
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
             .pressable(
+                enabled = enabled,
                 onClickLabel = "Back",
                 role = Role.Button,
                 onClick = onClick,
@@ -162,7 +170,12 @@ private fun BackChevron(onClick: () -> Unit) {
             .semantics { contentDescription = "Back" },
         contentAlignment = Alignment.Center,
     ) {
-        Text("‹", color = TextSecondary, style = TabLetter.copy(fontSize = 20.sp), modifier = Modifier.clearAndSetSemantics {})
+        Text(
+            "‹",
+            color = if (enabled) TextSecondary else TextFaint,
+            style = TabLetter.copy(fontSize = 20.sp),
+            modifier = Modifier.clearAndSetSemantics {},
+        )
     }
 }
 

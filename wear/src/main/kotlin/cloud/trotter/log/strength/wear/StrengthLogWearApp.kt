@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.android.gms.wearable.Wearable
+import cloud.trotter.log.strength.wear.data.DataLayerPhoneLink
 import cloud.trotter.log.strength.wear.data.DataLayerWatchClient
 import cloud.trotter.log.strength.wear.data.PendingEditStore
 import cloud.trotter.log.strength.wear.data.WatchTrackerClient
@@ -25,13 +26,22 @@ private val Context.wearSyncDataStore: DataStore<Preferences> by preferencesData
  */
 class StrengthLogWearApp : Application() {
 
+    /**
+     * The scope every outbound edit runs on. It has no `CoroutineExceptionHandler` on
+     * purpose — there is nothing sensible to do with a failure here beyond logging it,
+     * and [DataLayerWatchClient] does that itself rather than letting anything reach
+     * the default handler, which would kill the app mid-workout (#173).
+     */
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     val watchClient: WatchTrackerClient by lazy {
         DataLayerWatchClient(
-            dataClient = Wearable.getDataClient(this),
-            messageClient = Wearable.getMessageClient(this),
-            nodeClient = Wearable.getNodeClient(this),
+            link = DataLayerPhoneLink(
+                dataClient = Wearable.getDataClient(this),
+                messageClient = Wearable.getMessageClient(this),
+                nodeClient = Wearable.getNodeClient(this),
+                capabilityClient = Wearable.getCapabilityClient(this),
+            ),
             queue = PendingEditStore(wearSyncDataStore),
             scope = appScope,
         )

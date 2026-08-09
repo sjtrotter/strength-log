@@ -44,7 +44,7 @@ class WearSyncPublisherSizeTest {
 
         val published = publishSnapshotWithinSizeLimit(
             content = snapshot(setCount = 2_000),
-            spendRevision = { revisions++; 1L },
+            spendStamp = { revisions++; SnapshotStamp(epoch = 1L, revision = 1L) },
             publishBytes = { publishes++ },
             warnOversize = { warnedSize = it },
         )
@@ -63,7 +63,7 @@ class WearSyncPublisherSizeTest {
 
         assertTrue(typicalSize < WearSyncPublisher.MAX_SNAPSHOT_BYTES / 10)
         assertTrue(
-            publishSnapshotWithinSizeLimit(normal, spendRevision = { 1L }, publishBytes = {}),
+            publishSnapshotWithinSizeLimit(normal, spendStamp = { SnapshotStamp(epoch = 1L, revision = 1L) }, publishBytes = {}),
         )
     }
 }

@@ -39,7 +39,7 @@ class FakeWatchClient : WatchTrackerClient {
     /** Nothing is ever in flight here: [sendSwap] stands in for the phone's ack too. */
     override fun pendingSwapsFlow(): Flow<Set<Long>> = flowOf(emptySet())
 
-    override suspend fun sendEdit(delta: SetEditDelta) {
+    override fun sendEdit(delta: SetEditDelta) {
         // NOTE ON THE REVISION BUMP — read alongside DataLayerWatchClient.sendEdit's
         // invariant. There, the optimistic *echo* must NOT bump `revision`, or the
         // watch would flash "updated from phone" on the lifter's own edit. Here
@@ -57,7 +57,7 @@ class FakeWatchClient : WatchTrackerClient {
         }
     }
 
-    override suspend fun sendSwap(swap: ExerciseSwapDelta) {
+    override fun sendSwap(swap: ExerciseSwapDelta) {
         // As with sendEdit, the bump stands in for the phone's confirming snapshot.
         state.update { snapshot ->
             snapshot.copy(

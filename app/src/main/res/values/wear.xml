@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The phone's Data Layer capability (#173). Play services reads this resource at
+  install time and advertises the capability to the paired watch for as long as the
+  app is installed — no service, no code running, no INTERNET.
+
+  It is the watch's only reachability signal: the phone republishes its snapshot only
+  when the day's content changes, so a phone simply coming back into range produces
+  no data event, and edits made offline used to sit queued until the lifter next
+  opened the watch app. The watch listens for this capability and drains its queue
+  when a node advertising it becomes reachable.
+
+  The literal must match PHONE_CAPABILITY in wear/.../data/PhoneLink.kt — a resource
+  can't reference a Kotlin constant, so both sides point at each other in comments.
+
+  tools:keep pins the array against resource shrinking: nothing in code references
+  it, so a build that ever turns shrinkResources on would strip it and silently kill
+  reconnect flushing.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@array/android_wear_capabilities">
+    <string-array name="android_wear_capabilities">
+        <item>strengthlog_phone</item>
+    </string-array>
+</resources>

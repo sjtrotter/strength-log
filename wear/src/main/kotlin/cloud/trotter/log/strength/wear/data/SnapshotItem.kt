@@ -36,9 +36,29 @@ object SnapshotItem {
     suspend fun latest(dataClient: DataClient): WatchSnapshot? {
         val items = dataClient.dataItems.await()
         return try {
-            items.firstNotNullOfOrNull(::decode)
+            newest(items.mapNotNull(::decode))
         } finally {
             items.release()
         }
     }
+
 }
+
+/**
+ * Which of several cached snapshots is *the* snapshot: highest epoch, then highest
+ * revision within it.
+ *
+ * There is normally exactly one item, but the cache is a set keyed by creator node and
+ * path, and nothing about the read guarantees an order — taking whichever decoded
+ * first could hand a glance surface a stale day. Revision alone can't decide it
+ * either: an item an obsolete node left behind can carry a *higher* revision than the
+ * phone's current one, because clearing the phone app's data restarts the count
+ * ([WatchSnapshot.epoch]). Comparing the epoch first is what stops that stale item
+ * from winning — on the tile, on the complication, and as the baseline the app's
+ * client primes from.
+ *
+ * Top-level rather than a member so a plain JVM test can reach it: [SnapshotItem]'s
+ * own initializer builds an `android.net.Uri`, which no unit test has.
+ */
+internal fun newest(candidates: List<WatchSnapshot>): WatchSnapshot? =
+    candidates.maxWithOrNull(compareBy({ it.epoch }, { it.revision }))

@@ -22,11 +22,14 @@ import kotlinx.coroutines.tasks.await
  * service, no lifecycle of its own.
  *
  * Conflation: identical content is published at most once ([distinctUntilChanged]
- * on the pre-revision snapshot), and only a real content change spends a new
- * [revision][WearSyncStore.nextRevision]. Because the counter is persisted and this
+ * on the unstamped snapshot), and only a real content change spends a new
+ * [stamp][WearSyncStore.nextStamp]. Because the counter is persisted and this
  * collector is fresh on every process start, the first emission after a restart
  * always publishes with a bumped revision — which is the byte change that wakes a
  * watch waiting to re-drain queued edits (§11.4).
+ *
+ * Every publish carries the epoch as well as the revision, and the two always come
+ * from the same [WearSyncStore.nextStamp] call — the watch reads them as one fact.
  */
 class WearSyncPublisher(
     private val source: TodaySnapshotSource,
@@ -48,9 +51,9 @@ class WearSyncPublisher(
     }
 
     private suspend fun publish(content: WatchSnapshot) {
-        publishSnapshotWithinSizeLimit(
+publishSnapshotWithinSizeLimit(
             content = content,
-            spendRevision = store::nextRevision,
+            spendStamp = store::nextStamp,
             publishBytes = { bytes ->
                 val request = PutDataRequest.create(WearSyncPaths.SNAPSHOT).apply {
                     data = bytes
@@ -77,18 +80,19 @@ class WearSyncPublisher(
 /** Size gate separated from Play Services so its no-revision/no-publish contract is JVM-testable. */
 internal suspend fun publishSnapshotWithinSizeLimit(
     content: WatchSnapshot,
-    spendRevision: suspend () -> Long,
+    spendStamp: suspend () -> SnapshotStamp,
     publishBytes: suspend (ByteArray) -> Unit,
     warnOversize: (Int) -> Unit = {},
 ): Boolean {
-    // Measure with the widest possible revision before spending the durable one.
-    val guardedBytes = SyncCodec.encodeSnapshot(content.copy(revision = Long.MAX_VALUE))
+    // Measure with the widest possible stamp before spending the durable one.
+    val guardedBytes = SyncCodec.encodeSnapshot(content.copy(revision = Long.MAX_VALUE, epoch = Long.MAX_VALUE))
     if (guardedBytes.size > WearSyncPublisher.MAX_SNAPSHOT_BYTES) {
         // Stale-but-working beats a failed publish that also spends a revision.
         warnOversize(guardedBytes.size)
         return false
     }
-    val bytes = SyncCodec.encodeSnapshot(content.copy(revision = spendRevision()))
+    val stamp = spendStamp()
+    val bytes = SyncCodec.encodeSnapshot(content.copy(revision = stamp.revision, epoch = stamp.epoch))
     publishBytes(bytes)
     return true
 }

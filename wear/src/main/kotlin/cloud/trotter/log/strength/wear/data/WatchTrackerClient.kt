@@ -44,12 +44,18 @@ interface WatchTrackerClient {
     fun pendingSwapsFlow(): Flow<Set<Long>>
 
     /**
-     * Sends an edit toward the phone. This call does not itself update
-     * [snapshotFlow] — cascade/seeding run phone-side only, so the caller
-     * renders optimistically and reconciles against the next snapshot
-     * (higher `revision`), never against this call's return.
+     * Sends an edit toward the phone. Cascade/seeding run phone-side only, so the
+     * caller renders optimistically and reconciles against the next snapshot (higher
+     * `revision`), never against this call's return.
+     *
+     * Deliberately **not** a suspend function: the durable enqueue is the
+     * implementation's own responsibility, on a scope that outlives the caller. The
+     * dial acknowledges a tick with a haptic the instant it is tapped, and the Activity
+     * it was tapped in can be destroyed a millisecond later (the day-done disc's own
+     * dismiss does exactly that) — a tick the lifter felt must not be able to die with
+     * the composition that sent it (#174).
      */
-    suspend fun sendEdit(delta: SetEditDelta)
+    fun sendEdit(delta: SetEditDelta)
 
     /**
      * Asks the phone to use one of the alternates it prescribed for a slot (#90).
@@ -57,5 +63,5 @@ interface WatchTrackerClient {
      * next snapshot, carrying the new name and the sets the phone reseeded. The watch
      * echoes the name and nothing else — it cannot seed.
      */
-    suspend fun sendSwap(swap: ExerciseSwapDelta)
+    fun sendSwap(swap: ExerciseSwapDelta)
 }

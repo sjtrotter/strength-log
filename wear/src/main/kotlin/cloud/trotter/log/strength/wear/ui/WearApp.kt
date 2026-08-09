@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.wear.ui
 import android.Manifest
 import android.os.SystemClock
 import android.view.HapticFeedbackConstants
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -460,12 +461,17 @@ private fun WorkoutDial(
         }
     }
 
+    fun returnToOverview() {
+        face = DialFace.OVERVIEW
+    }
+
     // Two-level dismiss: out of the workout face to the overview, then out of the
-    // app. DONE is terminal — a swipe there means the same thing its tap does, so
-    // the gesture is handed back to the system.
-    val backToOverview = face == DialFace.WORKOUT && state.screen != DialScreen.DAY_DONE
+    // app. DONE is terminal — a swipe or back there means the same thing its tap
+    // does, so both are handed back to the system.
+    val backToOverview = systemBackTarget(face, state.screen) != null
+    BackHandler(enabled = backToOverview, onBack = ::returnToOverview)
     BasicSwipeToDismissBox(
-        onDismissed = { face = DialFace.OVERVIEW },
+        onDismissed = ::returnToOverview,
         // Off on the overview: the gesture then belongs to the system, which is
         // how the second level (out of the app) stays the platform's own.
         userSwipeEnabled = backToOverview,

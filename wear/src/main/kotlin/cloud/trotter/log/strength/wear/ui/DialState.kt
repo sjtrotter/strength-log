@@ -83,6 +83,10 @@ fun impliedFace(snapshot: WatchSnapshot): DialFace =
         DialFace.OVERVIEW
     }
 
+/** The system owns back at the dial's top level; only a workout face descends. */
+fun systemBackTarget(face: DialFace, screen: DialScreen): DialFace? =
+    DialFace.OVERVIEW.takeIf { face == DialFace.WORKOUT && screen != DialScreen.DAY_DONE }
+
 /**
  * The outer ring: the program's days in order, today's segment carrying the accent
  * and the browsed one the white marker (v3 §1). The marks are checked in that

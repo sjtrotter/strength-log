@@ -92,9 +92,44 @@ class Migration3To4Test {
         }
     }
 
+    @Test
+    fun `the migration carries the autoincrement high-water mark past deleted ids`() = runTest {
+        context.deleteDatabase(dbName)
+        // AUTOINCREMENT promises an issued id is never reused, even after its
+        // row is deleted; the rebuild must inherit that promise, not restart
+        // at the highest surviving row.
+        createV3DatabaseWithRows { db ->
+            db.execSQL(
+                "INSERT INTO workout_session (id, dayId, dayTitle, startedAt, completedAt, bodyweightLb) " +
+                    "VALUES (100, 'C', 'Day C', NULL, 3000, 200)",
+            )
+            db.execSQL("DELETE FROM workout_session WHERE id = 100")
+        }
+
+        val db = Room.databaseBuilder(context, StrengthDatabase::class.java, dbName)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val newId = db.sessionDao().insertSession(
+                WorkoutSessionEntity(
+                    id = 0,
+                    dayId = "B",
+                    dayTitle = "Day B",
+                    startedAt = null,
+                    completedAt = 5000L,
+                    bodyweightLb = null,
+                ),
+            )
+            assertTrue("id $newId reuses a previously issued id", newId > 100L)
+        } finally {
+            db.close()
+        }
+    }
+
     /** Builds the DB at schema v3 (no Room), with one logged session and one
      *  CSV-imported session written the pre-#171 way. */
-    private fun createV3DatabaseWithRows() {
+    private fun createV3DatabaseWithRows(extraRows: (SupportSQLiteDatabase) -> Unit = {}) {
         val callback = object : SupportSQLiteOpenHelper.Callback(3) {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 V3_STATEMENTS.forEach(db::execSQL)
@@ -114,6 +149,7 @@ class Migration3To4Test {
                     "INSERT INTO session_set (id, sessionId, exerciseId, exerciseName, slot, setIndex, kind, weightLb, reps, done, seconds, startedAtMillis, completedAtMillis) " +
                         "VALUES (2, 2, 'bb_back_squat', 'Barbell Back Squat', 'main', 0, 'WORK', 225.0, 5, 1, 0, NULL, NULL)",
                 )
+                extraRows(db)
             }
 
             override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit

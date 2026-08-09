@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.transfer.backup
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -52,5 +53,20 @@ class BackupV4RestoreTest {
         // The unknown bodyweight survives a v5 write/read; before #171 this file
         // could not be restored at all.
         assertNull(codec.decode(reEncoded).sessions.first { it.id == 2L }.bodyweightLb)
+    }
+
+    @Test
+    fun `a legacy document missing a session bodyweight is malformed, not unknown`() {
+        // Pre-v5 the field was required; absence means truncation or hand
+        // editing, and must not be quietly read as "none recorded".
+        val doc = v4Json().replace(""""bodyweightLb": 0,""", "")
+        val error = assertFailsWith<BackupError.Malformed> { codec.decode(doc) }
+        assertTrue("bodyweightLb" in error.message.orEmpty())
+    }
+
+    @Test
+    fun `a legacy document with an explicit null bodyweight is malformed too`() {
+        val doc = v4Json().replace(""""bodyweightLb": 0,""", """"bodyweightLb": null,""")
+        assertFailsWith<BackupError.Malformed> { codec.decode(doc) }
     }
 }

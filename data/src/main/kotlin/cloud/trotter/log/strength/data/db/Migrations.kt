@@ -64,6 +64,22 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
             "INSERT INTO `workout_session_new` (id, dayId, dayTitle, startedAt, completedAt, bodyweightLb) " +
                 "SELECT id, dayId, dayTitle, startedAt, completedAt, NULLIF(bodyweightLb, 0) FROM `workout_session`",
         )
+        // The copy seeds the new table's sqlite_sequence with the highest
+        // SURVIVING id, but AUTOINCREMENT promises no reuse of any id ever
+        // issued — carry the old high-water mark forward when it's higher
+        // (sessions may have been deleted above the survivors).
+        db.execSQL(
+            "INSERT INTO sqlite_sequence(name, seq) " +
+                "SELECT 'workout_session_new', old.seq FROM sqlite_sequence AS old " +
+                "WHERE old.name = 'workout_session' " +
+                "AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'workout_session_new')",
+        )
+        db.execSQL(
+            "UPDATE sqlite_sequence SET seq = " +
+                "(SELECT old.seq FROM sqlite_sequence AS old WHERE old.name = 'workout_session') " +
+                "WHERE name = 'workout_session_new' " +
+                "AND seq < (SELECT old.seq FROM sqlite_sequence AS old WHERE old.name = 'workout_session')",
+        )
         db.execSQL("DROP TABLE `workout_session`")
         db.execSQL("ALTER TABLE `workout_session_new` RENAME TO `workout_session`")
     }

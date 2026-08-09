@@ -64,6 +64,19 @@ class LogScreenBuilderTest {
         assertNull(LogScreenBuilder.bodyweightDisplay(null, WeightUnit.LB))
     }
 
+    // --- backfill offer copy (#159) --------------------------------------------
+
+    @Test
+    fun backfillLabel_counts_the_workouts_and_keeps_its_plurals_straight() {
+        assertEquals("Publish 12 past workouts", LogScreenBuilder.backfillLabel(12, running = false))
+        assertEquals("Publish 1 past workout", LogScreenBuilder.backfillLabel(1, running = false))
+    }
+
+    @Test
+    fun backfillLabel_says_what_it_is_doing_while_it_runs() {
+        assertEquals("Publishing…", LogScreenBuilder.backfillLabel(12, running = true))
+    }
+
     // --- grouping by exercise --------------------------------------------------
 
     @Test

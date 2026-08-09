@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -36,6 +37,10 @@ import org.robolectric.annotation.Config
  * (unavailable, denied, empty session, provider throws, happy path) is proven
  * here on the JVM with [FakeHealthConnectClient]. The pure record shape itself
  * is [SessionRecordMapperTest]'s job.
+ *
+ * The backfill (#159) shares that path, so its own section pins what only it
+ * cares about: which sessions it writes, that a re-run upserts instead of
+ * duplicating, and that it answers honestly when a session didn't make it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -78,7 +83,11 @@ class HealthConnectPublisherTest {
         return repo.sessionSummariesFlow.first().first().session.id
     }
 
-    private fun session(startedAt: Long? = null, completedAt: Long = 10_000L, bodyweightLb: Int = 180) = WorkoutSessionEntity(
+    private fun session(
+        startedAt: Long? = null,
+        completedAt: Long = 10_000L,
+        bodyweightLb: Int? = 180,
+    ) = WorkoutSessionEntity(
         id = 0, dayId = "A", dayTitle = "Lower", startedAt = startedAt, completedAt = completedAt, bodyweightLb = bodyweightLb,
     )
 
@@ -232,5 +241,109 @@ class HealthConnectPublisherTest {
         assertEquals(CaloriesRecordMapper.clientRecordId(id), calories.metadata.clientRecordId)
         assertEquals(SessionRecordMapper.clientRecordId(id), exercise.metadata.clientRecordId)
         assertTrue(calories.metadata.clientRecordId != exercise.metadata.clientRecordId)
+    }
+
+    // --- backfill (#159) ---------------------------------------------------------
+
+    /** [count] sessions, oldest to newest, each with one done set. */
+    private suspend fun seedSessions(count: Int): List<Long> {
+        repo.importSessionHistory(
+            (1..count).map { i ->
+                ImportedSession(session(completedAt = 10_000L * i), listOf(set("bb_back_squat")))
+            },
+            newCustomExercises = emptyList(),
+        )
+        return repo.sessionSummariesFlow.first().map { it.session.id }
+    }
+
+    private fun grantedClient(insertThrows: Boolean = false) = FakeHealthConnectClient(
+        grantedPermissions = setOf(HealthConnectPermissions.WRITE_EXERCISE, HealthConnectPermissions.WRITE_CALORIES),
+        insertThrows = insertThrows,
+    )
+
+    @Test
+    fun backfillPublishesEverySessionUnderItsOwnClientRecordId() = runTest {
+        val ids = seedSessions(3)
+        val client = grantedClient()
+
+        assertTrue(publisher(client).publishAll(ids))
+
+        assertEquals(3, client.insertCallCount)
+        assertEquals(
+            ids.map { SessionRecordMapper.clientRecordId(it) }.toSet(),
+            client.storedRecords.keys,
+        )
+    }
+
+    /** Idempotency: the ids are derived from the session, not from when the
+     *  publish happened, so a second backfill lands on the same records. */
+    @Test
+    fun republishingTheSameSessionsUpsertsRatherThanDuplicating() = runTest {
+        val ids = seedSessions(2)
+        val client = grantedClient()
+
+        assertTrue(publisher(client).publishAll(ids))
+        assertTrue(publisher(client).publishAll(ids))
+
+        assertEquals(4, client.insertCallCount)
+        assertEquals(2, client.storedRecords.size)
+        // Every write keeps client record version 0 — the record a session
+        // produces is deterministic, so no write is ever "newer" than another.
+        assertTrue(client.storedRecords.values.all { it.metadata.clientRecordVersion == 0L })
+    }
+
+    /** A session that predates the bodyweight capture (#171, and every CSV
+     *  import) still belongs in the backfill — it just has no calorie estimate
+     *  to publish alongside it. */
+    @Test
+    fun backfillOfASessionWithNoRecordedBodyweightPublishesWithoutCalories() = runTest {
+        val id = seedSession(
+            listOf(set("bb_back_squat")),
+            session(startedAt = 10_000L, completedAt = 10_000L + 30 * 60_000L, bodyweightLb = null),
+        )
+        val client = grantedClient()
+
+        assertTrue(publisher(client).publishAll(listOf(id)))
+
+        assertEquals(1, client.insertedRecords.size)
+        assertTrue(client.insertedRecords.single() is ExerciseSessionRecord)
+    }
+
+    /** Nothing ticked off is nothing to publish, not a failure — otherwise one
+     *  abandoned session would block the one-shot backfill forever. */
+    @Test
+    fun backfillSucceedsOverASessionWithNothingTickedOff() = runTest {
+        val skipped = seedSession(listOf(set("bb_back_squat", done = false)))
+        val client = grantedClient()
+
+        assertTrue(publisher(client).publishAll(listOf(skipped)))
+        assertEquals(0, client.insertCallCount)
+    }
+
+    @Test
+    fun backfillWithoutTheWriteGrantReportsFailureAndWritesNothing() = runTest {
+        val ids = seedSessions(2)
+        val client = FakeHealthConnectClient(grantedPermissions = emptySet())
+
+        assertFalse(publisher(client).publishAll(ids))
+        assertEquals(0, client.insertCallCount)
+    }
+
+    @Test
+    fun backfillWithNoProviderReportsFailure() = runTest {
+        val ids = seedSessions(2)
+        assertFalse(publisher(client = null).publishAll(ids))
+    }
+
+    /** Partial failure must be reported, so the caller can leave the offer
+     *  standing instead of recording a backfill that didn't happen. */
+    @Test
+    fun backfillReportsFailureWhenTheProviderRefusesAnInsert() = runTest {
+        val ids = seedSessions(2)
+        val client = grantedClient(insertThrows = true)
+
+        assertFalse(publisher(client).publishAll(ids))
+        // Every session was still attempted — one bad insert doesn't abandon the rest.
+        assertEquals(2, client.insertCallCount)
     }
 }

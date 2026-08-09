@@ -77,6 +77,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val REST_WORK_SECONDS = intPreferencesKey("rest_work_seconds")
         val REST_LIGHT_SECONDS = intPreferencesKey("rest_light_seconds")
 
+        /** Set once the one-shot Health Connect backfill (#159) has published the
+         *  history that predates the grant. Its presence is what makes the offer
+         *  one-shot — it never shows again. */
+        val HEALTH_BACKFILL_DONE = booleanPreferencesKey("health_backfill_done")
+
         /** Whether the phone screen stays awake while the app is in front (#125).
          *  Absent means off: a screen that never sleeps is a battery decision, so
          *  the user has to ask for it, and having asked once they keep it. */
@@ -156,6 +161,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val keepScreenOnFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.KEEP_SCREEN_ON] ?: false }
 
+    /** Whether the one-shot Health Connect backfill has already run (#159). Not
+     *  carried by the backup: [restore] clears it, so restored history — which
+     *  this device has never published — gets offered again. */
+    val healthBackfillDoneFlow: Flow<Boolean> =
+        dataStore.data.map { it[Keys.HEALTH_BACKFILL_DONE] ?: false }
+
     // --- writes --------------------------------------------------------------
 
     suspend fun setConfig(config: LifterConfig) = dataStore.edit { it.writeConfig(config) }
@@ -163,6 +174,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     /** Marks the one-shot legacy-TIMED fixup as done so it never runs again. */
     suspend fun setLegacyTimedFixupDone() =
         dataStore.edit { it[Keys.LEGACY_TIMED_FIXUP_DONE] = true }
+
+    /** Marks the one-shot Health Connect backfill as done so the offer never
+     *  returns. Written only after a backfill that published every session. */
+    suspend fun setHealthBackfillDone() =
+        dataStore.edit { it[Keys.HEALTH_BACKFILL_DONE] = true }
 
     /** Flips the master rest-timer gate. */
     suspend fun setRestTimerEnabled(enabled: Boolean) =

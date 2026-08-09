@@ -11,19 +11,32 @@ import java.time.temporal.ChronoUnit
 
 /**
  * The Health Connect read path (#17): other apps' strength sessions for the Log
- * screen, and the latest bodyweight for the "update your GOALs?" prompt. Reads
- * are permission-gated and every provider call is wrapped so a denial or a
- * provider error degrades to "nothing to show" rather than an error — the app
- * stays fully functional when Health Connect is absent or its permissions are
- * denied (A3).
+ * screen, the latest bodyweight for the "update your GOALs?" prompt, and the
+ * Log section's connection status (#158). Reads are permission-gated and every
+ * provider call is wrapped so a denial or a provider error degrades to "nothing
+ * to show" rather than an error — the app stays fully functional when Health
+ * Connect is absent or its permissions are denied (A3).
  *
  * The pure formatting/decision logic lives in [ExternalSessionFormatter] and
  * [BodyweightPrompt]; this class only pulls raw values off the provider.
+ *
+ * `open` so a module that can't name an androidx.health type can subclass it as
+ * a test double (see the no-provider constructor below) — the same reason
+ * `TrackerRepository`'s slow reads are open.
  */
-class HealthConnectReader(
+open class HealthConnectReader(
     private val clientProvider: HealthConnectClientProvider,
     private val ownPackageName: String,
 ) {
+
+    /**
+     * A reader with no provider: [isAvailable] is false and every read degrades
+     * to empty. For callers that must supply a reader on a platform without
+     * Health Connect — notably JVM/Robolectric ViewModel tests, which then need
+     * no androidx.health reference of their own, neither to construct one nor to
+     * subclass it.
+     */
+    constructor(ownPackageName: String = "unavailable") : this(HealthConnectClientProvider { null }, ownPackageName)
 
     /** Everything the app may ask for, for the lazy one-shot permission request. */
     val requestedPermissions: Set<String> get() = HealthConnectPermissions.ALL
@@ -36,10 +49,22 @@ class HealthConnectReader(
 
     /** True when a Health Connect provider is installed and usable. Any provider
      *  exception (e.g. a throwing getSdkStatus) degrades to "unavailable" (A3). */
-    fun isAvailable(): Boolean = runCatching { clientProvider.get() != null }.getOrDefault(false)
+    open fun isAvailable(): Boolean = runCatching { clientProvider.get() != null }.getOrDefault(false)
 
-    /** Which of [requestedPermissions] are currently granted (empty on any error). */
-    suspend fun grantedPermissions(): Set<String> =
+    /**
+     * Whether the workout-write permission is granted — the single grant that
+     * decides whether [SessionPublisher] exports anything at all (#158). The Log
+     * screen asks on every refresh and never caches the answer: the grant is
+     * per-package, an applicationId change resets it, and the user can revoke it
+     * in the Health Connect app while this process is alive.
+     */
+    open suspend fun publishesWorkouts(): Boolean =
+        HealthConnectPermissions.WRITE_EXERCISE in grantedPermissions()
+
+    /** Which of [requestedPermissions] are currently granted (empty on any error).
+     *  Asked fresh at every gate below rather than cached: the grant is the
+     *  user's to change at any moment, in another app. */
+    private suspend fun grantedPermissions(): Set<String> =
         runCatching { client()?.permissionController?.getGrantedPermissions().orEmpty() }
             .getOrDefault(emptySet())
 
@@ -93,16 +118,7 @@ class HealthConnectReader(
 
     private fun client() = clientProvider.get()
 
-    companion object {
-        private const val LOOKBACK_DAYS = 365L
-
-        /**
-         * A reader with no provider: every read degrades to empty and
-         * [isAvailable] is false. For callers that must supply a reader on a
-         * platform without Health Connect — notably JVM/Robolectric ViewModel
-         * tests, which then need no androidx.health reference of their own.
-         */
-        fun unavailable(ownPackageName: String = "unavailable"): HealthConnectReader =
-            HealthConnectReader({ null }, ownPackageName)
+    private companion object {
+        const val LOOKBACK_DAYS = 365L
     }
 }

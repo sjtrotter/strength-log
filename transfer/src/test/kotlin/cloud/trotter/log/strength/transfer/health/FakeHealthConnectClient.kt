@@ -25,6 +25,11 @@ import kotlin.reflect.KClass
  * can be told to throw from the insert so the swallow-and-log path is exercised.
  * Only the surface the publisher touches is implemented; everything else throws
  * if a test ever reaches for it.
+ *
+ * [storedRecords] models the one provider behavior the backfill leans on (#159):
+ * a record carrying a client record id settles under that id instead of landing
+ * beside the record already there, so re-publishing a session can never leave
+ * the user holding two copies of the same workout.
  */
 class FakeHealthConnectClient(
     grantedPermissions: Set<String> = emptySet(),
@@ -32,6 +37,10 @@ class FakeHealthConnectClient(
 ) : HealthConnectClient {
 
     val insertedRecords = mutableListOf<Record>()
+
+    /** What the provider would hold afterwards, keyed by client record id. */
+    val storedRecords = linkedMapOf<String, Record>()
+
     var insertCallCount = 0
         private set
 
@@ -43,6 +52,9 @@ class FakeHealthConnectClient(
         insertCallCount++
         if (insertThrows) throw RuntimeException("provider insert failed")
         insertedRecords += records
+        records.forEach { record ->
+            record.metadata.clientRecordId?.let { storedRecords[it] = record }
+        }
         return InsertRecordsResponse(records.map { "rec-${insertedRecords.size}" })
     }
 

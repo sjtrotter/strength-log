@@ -9,7 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -55,8 +54,8 @@ private const val GOAL_BUZZ_SETTLE_MILLIS = 250L
 private val LIVE_SCREENS = setOf(DialScreen.LIFTING, DialScreen.TIMED_HOLD, DialScreen.REST)
 
 /**
- * Root composable: keeps the screen on while logging (A8), swaps in [AmbientDial]
- * while the system reports ambient mode, and otherwise shows the dial — the one
+ * Root composable: swaps in [AmbientDial] while the system reports ambient mode,
+ * and otherwise shows the dial — the one
  * screen the whole workout happens on (brief §1).
  *
  * Every state the watch can be in is that same dial: waiting for the phone
@@ -71,6 +70,8 @@ fun WearApp(
     client: WatchTrackerClient,
     isAmbient: Boolean,
     ambientTick: Int = 0,
+    burnInProtectionRequired: Boolean = false,
+    deviceHasLowBitAmbient: Boolean = false,
     onDismiss: () -> Unit = {},
 ) {
     val snapshot by client.snapshotFlow().collectAsState(initial = null)
@@ -84,7 +85,6 @@ fun WearApp(
     // controller's coroutine must keep running to fire the single haptic on time).
     val restScope = rememberCoroutineScope()
     val restController = remember(context) { RestTimerController(context.applicationContext, restScope) }
-    KeepScreenOn(enabled = !isAmbient)
     // Runs on every screen (loading/ambient/interactive) so the chip reconciles
     // even when the app relaunches straight into ambient — see OngoingSessionChip.
     OngoingSessionChip(snapshot)
@@ -94,7 +94,13 @@ fun WearApp(
             val snap = snapshot
             when {
                 snap == null -> LoadingDial()
-                isAmbient -> AmbientDial(snap, ambientTick, restController.activeRest)
+                isAmbient -> AmbientDial(
+                    snapshot = snap,
+                    ambientTick = ambientTick,
+                    rest = restController.activeRest,
+                    burnInProtectionRequired = burnInProtectionRequired,
+                    deviceHasLowBitAmbient = deviceHasLowBitAmbient,
+                )
                 else -> WorkoutDial(
                     snap = snap,
                     pendingCount = pendingCount,
@@ -531,15 +537,5 @@ private fun OngoingSessionChip(snapshot: WatchSnapshot?) {
 
     LaunchedEffect(sessionActive, hasPermission) {
         if (sessionActive) chip.show() else chip.clear()
-    }
-}
-
-/** Mirrors the phone app's DayScreen.KeepScreenOn — a plain `View.keepScreenOn` toggle. */
-@Composable
-private fun KeepScreenOn(enabled: Boolean) {
-    val view = LocalView.current
-    DisposableEffect(enabled) {
-        view.keepScreenOn = enabled
-        onDispose { view.keepScreenOn = false }
     }
 }

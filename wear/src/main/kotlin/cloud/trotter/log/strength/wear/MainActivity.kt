@@ -25,9 +25,13 @@ class MainActivity : ComponentActivity() {
     // free-running coroutine, which isn't guaranteed to fire while the CPU is
     // suspended in ambient mode.
     private var ambientTick by mutableIntStateOf(0)
+    private var burnInProtectionRequired by mutableStateOf(false)
+    private var deviceHasLowBitAmbient by mutableStateOf(false)
 
     private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
         override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+            burnInProtectionRequired = ambientDetails.burnInProtectionRequired
+            deviceHasLowBitAmbient = ambientDetails.deviceHasLowBitAmbient
             isAmbient = true
             ambientTick++
         }
@@ -51,6 +55,8 @@ class MainActivity : ComponentActivity() {
                 client = client,
                 isAmbient = isAmbient,
                 ambientTick = ambientTick,
+                burnInProtectionRequired = burnInProtectionRequired,
+                deviceHasLowBitAmbient = deviceHasLowBitAmbient,
                 // The day-done disc's tap is a dismiss — the same exit a swipe gives.
                 onDismiss = ::finish,
             )

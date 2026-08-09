@@ -81,6 +81,10 @@ open class TrackerRepository(
     val wizardCompleteFlow: Flow<Boolean> = settings.wizardCompleteFlow
     val wizardAnswersFlow: Flow<WizardAnswers> = settings.wizardAnswersFlow
 
+    /** Whether the one-shot Health Connect backfill has run (#159) — the Log
+     *  screen's offer hides itself once it has. */
+    val healthBackfillDoneFlow: Flow<Boolean> = settings.healthBackfillDoneFlow
+
     /** The in-progress session's start stamp (session-start capture), or `null`
      *  between an advance/clear and the next performed tick. A stamp whose stored
      *  calendar date isn't today reads as `null`: it belonged to a session
@@ -109,6 +113,13 @@ open class TrackerRepository(
     /** Flips the keep-screen-on preference (the day screen's bottom-bar switch). */
     suspend fun setKeepScreenOn(on: Boolean) {
         settings.setKeepScreenOn(on)
+    }
+
+    /** Records that the one-shot Health Connect backfill published the history
+     *  that predated the grant (#159). Only ever written after a backfill that
+     *  reported every session published. */
+    suspend fun setHealthBackfillDone() {
+        settings.setHealthBackfillDone()
     }
 
     /** Flips the master rest-timer gate (Setup's "Rest timer on watch" toggle). */

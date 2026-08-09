@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.log
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,6 +19,9 @@ import org.robolectric.annotation.Config
  * lives on the header row — one owner per action — and SHARE is a sibling that
  * never also toggles the row. Before the migration the whole card toggled and
  * SHARE was nested inside it; these tests are the record of the new shape.
+ *
+ * Also pins the Health Connect section's two honest states and its backfill
+ * offer (#158/#159), where the exact words are the fix.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
@@ -44,18 +48,22 @@ class LogScreenInteractionTest {
 
     private fun setContent(
         expanded: Boolean,
+        health: HealthSectionUi = HealthSectionUi(),
         onToggle: (Long) -> Unit = {},
         onShare: (Long) -> Unit = {},
+        onConnectHealth: () -> Unit = {},
+        onPublishPast: () -> Unit = {},
     ) {
         composeTestRule.setContent {
             AppTheme {
                 LogScreen(
-                    LogUiState(sessions = listOf(item(expanded))),
+                    LogUiState(sessions = listOf(item(expanded)), health = health),
                     LogActions(
                         onBack = {},
                         onToggleExpanded = onToggle,
                         onPageCalendar = {},
-                        onConnectHealth = {},
+                        onConnectHealth = onConnectHealth,
+                        onPublishPastWorkouts = onPublishPast,
                         onApplyBodyweight = {},
                         onDismissBodyweight = {},
                         onShare = onShare,
@@ -95,5 +103,69 @@ class LogScreenInteractionTest {
         composeTestRule.onNodeWithText("SHARE").performClick()
         assertEquals(listOf(7L), shared)
         assertEquals(emptyList<Long>(), toggled)
+    }
+
+    // --- Health Connect status (#158) and backfill offer (#159) ---------------
+    //
+    // The copy is the feature: "nothing appeared in the Health app" was
+    // indistinguishable from "never connected", so these pin the two states'
+    // exact words as well as their wiring.
+
+    @Test
+    fun aGrantedProviderSaysItIsPublishingInsteadOfAskingToConnect() {
+        setContent(expanded = false, health = HealthSectionUi(available = true, publishing = true))
+
+        composeTestRule.onNodeWithText("Connected · publishing").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Connect Health Connect").assertDoesNotExist()
+    }
+
+    @Test
+    fun aProviderWithoutTheWorkoutWriteGrantOffersToConnect() {
+        setContent(expanded = false, health = HealthSectionUi(available = true, publishing = false))
+
+        composeTestRule.onNodeWithText("Connect Health Connect").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Connected · publishing").assertDoesNotExist()
+    }
+
+    @Test
+    fun noProviderShowsNeitherStateAtAll() {
+        setContent(expanded = false, health = HealthSectionUi(available = false))
+
+        composeTestRule.onNodeWithText("Connect Health Connect").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Connected · publishing").assertDoesNotExist()
+    }
+
+    @Test
+    fun theBackfillOfferPublishesPastWorkoutsWhenTapped() {
+        var taps = 0
+        setContent(
+            expanded = false,
+            health = HealthSectionUi(
+                available = true,
+                publishing = true,
+                backfill = BackfillOfferUi(label = "Publish 12 past workouts", enabled = true),
+            ),
+            onPublishPast = { taps += 1 },
+        )
+
+        composeTestRule.onNodeWithText("Publish 12 past workouts").performClick()
+        assertEquals(1, taps)
+    }
+
+    @Test
+    fun aRunningBackfillCannotBeTappedAgain() {
+        var taps = 0
+        setContent(
+            expanded = false,
+            health = HealthSectionUi(
+                available = true,
+                publishing = true,
+                backfill = BackfillOfferUi(label = "Publishing…", enabled = false),
+            ),
+            onPublishPast = { taps += 1 },
+        )
+
+        composeTestRule.onNodeWithText("Publishing…").performClick()
+        assertEquals(0, taps)
     }
 }

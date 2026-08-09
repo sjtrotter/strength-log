@@ -632,6 +632,9 @@ class DayViewModelWiringTest {
             override suspend fun publish(sessionId: Long) {
                 published += sessionId
             }
+
+            // The day flow never backfills — only the Log screen's offer does.
+            override suspend fun publishAll(sessionIds: List<Long>) = false
         }
         val vm = newViewModel(publisher = recording)
         val collect = launch { vm.uiState.collect {} }

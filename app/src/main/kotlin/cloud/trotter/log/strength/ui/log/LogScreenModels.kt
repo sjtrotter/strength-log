@@ -19,17 +19,37 @@ data class LogUiState(
 )
 
 /**
- * The Log screen's Health Connect section (#17 read path). When no provider is
- * installed the section stays hidden ([available] false); when available but not
- * yet permitted it shows a single "Connect Health Connect" affordance; once
- * connected it lists other apps' sessions (clearly external) and, if the latest
- * recorded bodyweight differs from the configured one, offers [bodyweightPrompt].
+ * The Log screen's Health Connect section (#17 read path, honest status #158).
+ * When no provider is installed the section stays hidden ([available] false);
+ * otherwise it says which of the two states the app is actually in, because
+ * "never connected" and "the grant went away" used to look identical — both
+ * silently published nothing. [publishing] is the workout-write grant itself,
+ * re-read on every visit: false shows the "Connect Health Connect" affordance,
+ * true shows the quiet connected line plus, until it has run once, the
+ * [backfill] offer (#159). The section also lists other apps' sessions (clearly
+ * external) and, if the latest recorded bodyweight differs from the configured
+ * one, offers [bodyweightPrompt].
  */
 data class HealthSectionUi(
     val available: Boolean = false,
-    val connected: Boolean = false,
+    /** The workout-write grant — the only permission that makes the publish path
+     *  export anything. Deliberately not "any permission granted": a read-only
+     *  grant hid the Connect card while nothing was ever published (#158). */
+    val publishing: Boolean = false,
+    val backfill: BackfillOfferUi? = null,
     val externalSessions: List<ExternalSessionRow> = emptyList(),
     val bodyweightPrompt: BodyweightPromptUi? = null,
+)
+
+/**
+ * The one-shot offer to publish history that predates the Health Connect grant
+ * (#159). Present only while there is something to publish and the backfill has
+ * never completed; [enabled] goes false for the duration of the run so a second
+ * tap can't start it twice.
+ */
+data class BackfillOfferUi(
+    val label: String,
+    val enabled: Boolean,
 )
 
 /**

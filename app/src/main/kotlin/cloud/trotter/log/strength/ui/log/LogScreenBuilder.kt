@@ -36,6 +36,18 @@ object LogScreenBuilder {
         return (letter - 'A').takeIf { it >= 0 } ?: 0
     }
 
+    /**
+     * The backfill offer's line (#159): "Publish 12 past workouts" over the
+     * history Health Connect has never seen, or "Publishing…" while the run is
+     * in flight. [sessionCount] is the history the Log screen is showing, so the
+     * number the user reads is the number of sessions they can see.
+     */
+    fun backfillLabel(sessionCount: Int, running: Boolean): String = when {
+        running -> "Publishing…"
+        sessionCount == 1 -> "Publish 1 past workout"
+        else -> "Publish $sessionCount past workouts"
+    }
+
     /** Bodyweight display in [unit], matching the day screen's own convention, or
      *  null for a session that recorded none (imported history — #171): the row
      *  drops the line rather than printing a placeholder. */

@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
+import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
 import java.time.Clock
@@ -28,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -98,18 +100,49 @@ class LogViewModelTest {
 
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
-    // No Health Connect provider under Robolectric — the null-object reader makes
+    // No Health Connect provider under Robolectric — the no-provider reader makes
     // every HC read a degrade-safe empty, isolating these tests to own-history
     // (and keeping androidx.health entirely out of :app's test classpath).
-    private val healthReader = HealthConnectReader.unavailable()
+    private val healthReader = HealthConnectReader()
+
+    /**
+     * A reader that answers the two questions the Log section's status turns on
+     * (#158), both mutable so a test can revoke a grant between refreshes. It
+     * inherits the no-provider reads, so the external-session list and bodyweight
+     * stay empty — this is about status honesty, not about faking a provider.
+     */
+    private class FakeHealthReader(
+        var available: Boolean = true,
+        var publishing: Boolean = true,
+    ) : HealthConnectReader("fake") {
+        override fun isAvailable(): Boolean = available
+        override suspend fun publishesWorkouts(): Boolean = publishing
+    }
+
+    /** Records what a backfill hands over, and can refuse it (partial failure). */
+    private class RecordingPublisher(private val succeeds: Boolean = true) : SessionPublisher {
+        val backfilled = mutableListOf<List<Long>>()
+
+        /** Session completion doesn't happen on the Log screen. */
+        override suspend fun publish(sessionId: Long) = Unit
+
+        override suspend fun publishAll(sessionIds: List<Long>): Boolean {
+            backfilled += sessionIds
+            return succeeds
+        }
+    }
 
     // Fixed so the journal's "which week / which month is now" is deterministic.
     private val clock = Clock.fixed(Instant.parse("2026-07-15T12:00:00Z"), ZoneOffset.UTC)
 
     private val shareCardService by lazy { ShareCardService(ApplicationProvider.getApplicationContext(), repo) }
 
-    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): LogViewModel =
-        LogViewModel(repo, healthReader, shareCardService, handle, clock).also { vms += it }
+    private fun newViewModel(
+        handle: SavedStateHandle = SavedStateHandle(),
+        reader: HealthConnectReader = healthReader,
+        publisher: SessionPublisher = SessionPublisher.NoOp,
+    ): LogViewModel =
+        LogViewModel(repo, reader, publisher, shareCardService, handle, clock).also { vms += it }
 
     private fun session(dayId: String, dayTitle: String, completedAt: Long) =
         WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
@@ -373,5 +406,156 @@ class LogViewModelTest {
         vm.shareSession(999L)
         advanceUntilIdle()
         assertNull(vm.pendingShare.value)
+    }
+
+    // --- Health Connect status honesty (#158) --------------------------------
+
+    @Test
+    fun aGrantedWorkoutWritePermissionReadsAsPublishing() = runVmTest {
+        val vm = newViewModel(reader = FakeHealthReader(available = true, publishing = true))
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.health.available)
+        assertTrue(vm.uiState.value.health.publishing)
+        collect.cancel()
+    }
+
+    /** The #158 bug in one test: the grant is re-read, never cached, so a
+     *  permission revoked in the Health Connect app stops claiming to publish. */
+    @Test
+    fun aRevokedPermissionReadsAsNotPublishingOnTheNextRefresh() = runVmTest {
+        val reader = FakeHealthReader(available = true, publishing = true)
+        val vm = newViewModel(reader = reader)
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.health.publishing)
+
+        reader.publishing = false
+        vm.refreshHealth()
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.health.available)
+        assertFalse(vm.uiState.value.health.publishing)
+        collect.cancel()
+    }
+
+    /** A read-only grant used to count as "connected" and hide the Connect card
+     *  while nothing was ever published — the invisible half of #158. */
+    @Test
+    fun aReadOnlyGrantIsNotPublishing() = runVmTest {
+        val vm = newViewModel(reader = FakeHealthReader(available = true, publishing = false))
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.health.publishing)
+        collect.cancel()
+    }
+
+    @Test
+    fun noProviderIsNeitherAvailableNorPublishing() = runVmTest {
+        val vm = newViewModel(reader = FakeHealthReader(available = false, publishing = true))
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.health.available)
+        assertFalse(vm.uiState.value.health.publishing)
+        collect.cancel()
+    }
+
+    // --- backfill offer (#159) -----------------------------------------------
+
+    @Test
+    fun theBackfillOfferCountsTheHistoryTheScreenIsShowing() = runVmTest {
+        seedTwoSessions()
+        val vm = newViewModel(reader = FakeHealthReader())
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+
+        assertEquals("Publish 2 past workouts", vm.uiState.value.health.backfill?.label)
+        collect.cancel()
+    }
+
+    @Test
+    fun thereIsNoBackfillOfferWithoutHistoryOrWithoutPublishing() = runVmTest {
+        val empty = newViewModel(reader = FakeHealthReader())
+        val emptyCollect = launch { empty.uiState.collect {} }
+        empty.refreshHealth()
+        advanceUntilIdle()
+        assertNull("no history to publish", empty.uiState.value.health.backfill)
+        emptyCollect.cancel()
+
+        seedTwoSessions()
+        val denied = newViewModel(reader = FakeHealthReader(publishing = false))
+        val deniedCollect = launch { denied.uiState.collect {} }
+        denied.refreshHealth()
+        advanceUntilIdle()
+        assertNull("a backfill would write nothing", denied.uiState.value.health.backfill)
+        deniedCollect.cancel()
+    }
+
+    @Test
+    fun backfillPublishesEverySessionAndThenStopsOffering() = runVmTest {
+        seedTwoSessions()
+        val publisher = RecordingPublisher()
+        val vm = newViewModel(reader = FakeHealthReader(), publisher = publisher)
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+        val sessionIds = vm.uiState.value.sessions.map { it.sessionId }
+
+        vm.publishPastWorkouts()
+        advanceUntilIdle()
+
+        assertEquals(1, publisher.backfilled.size)
+        assertEquals(sessionIds.sorted(), publisher.backfilled.single().sorted())
+        assertNull("the one-shot offer is spent", vm.uiState.value.health.backfill)
+        collect.cancel()
+    }
+
+    /** Failure honesty: a backfill that didn't publish everything must not claim
+     *  it did, so the flag stays unset and the offer is still there next visit. */
+    @Test
+    fun aFailedBackfillKeepsOffering() = runVmTest {
+        seedTwoSessions()
+        val publisher = RecordingPublisher(succeeds = false)
+        val vm = newViewModel(reader = FakeHealthReader(), publisher = publisher)
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+
+        vm.publishPastWorkouts()
+        advanceUntilIdle()
+
+        assertEquals("Publish 2 past workouts", vm.uiState.value.health.backfill?.label)
+        assertFalse(repo.healthBackfillDoneFlow.first())
+        collect.cancel()
+    }
+
+    /** The one-shot flag is persisted, not remembered: a fresh ViewModel over the
+     *  same store makes no second offer. */
+    @Test
+    fun aCompletedBackfillStaysDoneAcrossViewModels() = runVmTest {
+        seedTwoSessions()
+        val vm = newViewModel(reader = FakeHealthReader(), publisher = RecordingPublisher())
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+        vm.publishPastWorkouts()
+        advanceUntilIdle()
+        collect.cancel()
+
+        val restarted = newViewModel(reader = FakeHealthReader())
+        val restartedCollect = launch { restarted.uiState.collect {} }
+        restarted.refreshHealth()
+        advanceUntilIdle()
+
+        assertNull(restarted.uiState.value.health.backfill)
+        restartedCollect.cancel()
     }
 }

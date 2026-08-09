@@ -43,9 +43,10 @@ object CaloriesRecordMapper {
 
     private const val MILLIS_PER_HOUR = 3_600_000.0
 
-    /** A stable client record id so a retry/re-publish updates rather than
-     *  duplicates the Health Connect entry (idempotency), distinct from the
-     *  exercise session's own id so the two records never collide. */
+    /** A stable client record id so a retry/re-publish deduplicates rather than
+     *  duplicates the Health Connect entry (idempotency, same version-0 scheme
+     *  as [SessionRecordMapper.clientRecordId]), distinct from the exercise
+     *  session's own id so the two records never collide. */
     fun clientRecordId(sessionId: Long): String = "strengthlog-calories-$sessionId"
 
     fun toActiveCalories(

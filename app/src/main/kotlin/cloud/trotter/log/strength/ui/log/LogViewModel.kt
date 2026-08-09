@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.transfer.health.BodyweightPrompt
 import cloud.trotter.log.strength.transfer.health.ExternalSessionFormatter
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.transfer.health.HealthConnectReader
+import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.time.Clock
 import java.time.LocalDate
@@ -52,14 +53,19 @@ import kotlinx.coroutines.launch
  * plus the session list the screen already streams — never one query per card.
  * All of their shaping is [JournalBuilder]'s.
  *
- * The Health Connect reads are entirely degrade-safe: with no provider or no
- * permission [healthData] stays empty and the section hides itself, so the Log
- * screen is fully functional without Health Connect (A3).
+ * The Health Connect reads are entirely degrade-safe: with no provider [healthData]
+ * stays empty and the section hides itself, so the Log screen is fully functional
+ * without Health Connect (A3). What the section does *not* hide is the connection
+ * itself (#158): [refreshHealth] re-reads the workout-write grant every time the
+ * screen resumes, so a permission that was never given — or was revoked in the
+ * Health Connect app — reads as "not connected" on the next visit instead of
+ * looking exactly like a working export.
  */
 @HiltViewModel
 class LogViewModel @Inject constructor(
     private val repo: TrackerRepository,
     private val healthReader: HealthConnectReader,
+    private val sessionPublisher: SessionPublisher,
     private val shareCardService: ShareCardService,
     private val savedState: SavedStateHandle,
     private val clock: Clock,
@@ -69,6 +75,11 @@ class LogViewModel @Inject constructor(
     private val expandedSets = MutableStateFlow<Map<Long, List<SessionSetEntity>>>(emptyMap())
     private val bodyweightDismissed: StateFlow<Boolean> = savedState.getStateFlow(KEY_BW_DISMISSED, false)
     private val healthData = MutableStateFlow(HealthData())
+
+    /** True for the length of one backfill run (#159) — a bare field on purpose:
+     *  it is the spinner on a button, not user data, and a process death during
+     *  the run simply leaves the (unset) one-shot flag offering it again. */
+    private val backfillRunning = MutableStateFlow(false)
 
     /**
      * The share card's ACTION_SEND intent, ready for the UI to launch — a bare
@@ -129,22 +140,30 @@ class LogViewModel @Inject constructor(
      *  program the journal needs — not the program itself. */
     private val hasProgram = repo.programFlow.map { it.days.isNotEmpty() }.distinctUntilChanged()
 
+    private val backfillState = combine(repo.healthBackfillDoneFlow, backfillRunning, ::BackfillState)
+
     val uiState: StateFlow<LogUiState> = combine(
         ownSessions,
         journal,
         healthUi,
         hasProgram,
-    ) { sessions, journalState, health, programExists ->
+        backfillState,
+    ) { sessions, journalState, health, programExists, backfill ->
         LogUiState(
             sessions = sessions,
             journal = journalState,
-            health = health,
+            // The offer counts the sessions this screen is already showing, so it
+            // needs no query of its own and can't disagree with the list.
+            health = health.copy(backfill = backfillOffer(health.publishing, backfill, sessions.size)),
             hasProgram = programExists,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogUiState())
 
     init {
-        refreshHealth()
+        // No refreshHealth() here: the route drives it on every resume (#158), so
+        // the grant is read when the screen is actually in front rather than once
+        // when this ViewModel happened to be constructed.
+        //
         // expandedSessionId survives process death via SavedStateHandle, but
         // expandedSets is an in-memory cache and doesn't — without this, a
         // restored VM shows the row expanded with no content until the user
@@ -199,25 +218,44 @@ class LogViewModel @Inject constructor(
 
     val requestedPermissions: Set<String> get() = healthReader.requestedPermissions
 
-    /** Re-reads Health Connect after a permission result (or on first open). The
-     *  reader is already degrade-safe; this extra guard means even an unexpected
-     *  provider failure can only leave the section empty, never crash the Log
-     *  screen (A3). */
+    /** Re-reads Health Connect — on every resume of the Log screen and after a
+     *  permission result. The grant is queried, never cached (#158): that is what
+     *  makes a permission revoked elsewhere show up here next visit. The reader is
+     *  already degrade-safe; this extra guard means even an unexpected provider
+     *  failure can only leave the section empty, never crash the Log screen (A3). */
     fun refreshHealth() {
         viewModelScope.launch {
             healthData.value = runCatching {
                 if (!healthReader.isAvailable()) {
                     HealthData(available = false)
                 } else {
-                    val granted = healthReader.grantedPermissions()
                     HealthData(
                         available = true,
-                        connected = granted.isNotEmpty(),
+                        publishing = healthReader.publishesWorkouts(),
                         externalSessions = ExternalSessionFormatter.format(healthReader.externalWorkouts()),
                         latestWeightLb = healthReader.latestBodyweightLb(),
                     )
                 }
             }.getOrDefault(HealthData())
+        }
+    }
+
+    /**
+     * The backfill tap (#159): publishes every logged session, then marks the
+     * one-shot flag — but only if the publisher reports that all of them landed.
+     * A partial failure leaves the flag unset, so the offer is still standing on
+     * the next visit rather than claiming a success that didn't happen.
+     */
+    fun publishPastWorkouts() {
+        if (backfillRunning.value) return
+        backfillRunning.value = true
+        viewModelScope.launch {
+            try {
+                val sessionIds = repo.sessionSummariesFlow.first().map { it.session.id }
+                if (sessionPublisher.publishAll(sessionIds)) repo.setHealthBackfillDone()
+            } finally {
+                backfillRunning.value = false
+            }
         }
     }
 
@@ -250,7 +288,7 @@ class LogViewModel @Inject constructor(
         }
         return HealthSectionUi(
             available = data.available,
-            connected = data.connected,
+            publishing = data.publishing,
             externalSessions = data.externalSessions,
             bodyweightPrompt = promptData?.let {
                 BodyweightPromptUi(
@@ -286,6 +324,31 @@ class LogViewModel @Inject constructor(
         )
     }
 
+    /**
+     * The one-shot backfill offer (#159), or null when there is nothing to
+     * offer: no export is happening ([publishing] false — a backfill would
+     * write nothing and then wrongly mark itself done), the backfill has already
+     * run, or there is no history yet.
+     *
+     * The gap this contract accepts: "done" is one flag, not per-session publish
+     * state, so a session completed *after* a successful backfill while the grant
+     * happened to be off is never offered again. Closing it would mean tracking a
+     * published/unpublished bit per session, or re-offering after every workout —
+     * both worse than the miss, since the grant being off is itself now visible
+     * on this screen (#158).
+     */
+    private fun backfillOffer(publishing: Boolean, state: BackfillState, sessionCount: Int): BackfillOfferUi? {
+        if (!publishing || state.done || sessionCount == 0) return null
+        return BackfillOfferUi(
+            label = LogScreenBuilder.backfillLabel(sessionCount, state.running),
+            enabled = !state.running,
+        )
+    }
+
+    /** The two facts the backfill offer turns on: whether it has ever completed,
+     *  and whether it is running right now. */
+    private data class BackfillState(val done: Boolean, val running: Boolean)
+
     /** The three history reads the journal sections share, kept together so the
      *  section builders run off one combine rather than one per card. */
     private data class JournalHistory(
@@ -298,7 +361,7 @@ class LogViewModel @Inject constructor(
     /** The raw Health Connect read snapshot, before display formatting. */
     private data class HealthData(
         val available: Boolean = false,
-        val connected: Boolean = false,
+        val publishing: Boolean = false,
         val externalSessions: List<ExternalSessionRow> = emptyList(),
         val latestWeightLb: Double? = null,
     )

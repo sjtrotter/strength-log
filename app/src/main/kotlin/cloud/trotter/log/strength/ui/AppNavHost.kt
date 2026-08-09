@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavType
@@ -412,6 +413,15 @@ private fun LogRoute(
     viewModel: LogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // The grant lives outside this app and can change while the process is alive
+    // — granted in the Health Connect app, revoked there, reset by an
+    // applicationId change. Re-reading it on every resume (rather than once when
+    // the ViewModel was built) is what makes the section's status honest on the
+    // next visit (#158).
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshHealth()
+        onPauseOrDispose {}
+    }
     val permissionLauncher = rememberLauncherForActivityResult(remember { viewModel.permissionContract() }) {
         viewModel.refreshHealth()
     }
@@ -434,6 +444,7 @@ private fun LogRoute(
             onToggleExpanded = viewModel::toggleExpanded,
             onPageCalendar = viewModel::pageCalendar,
             onConnectHealth = { permissionLauncher.launch(viewModel.requestedPermissions) },
+            onPublishPastWorkouts = viewModel::publishPastWorkouts,
             onApplyBodyweight = viewModel::applyBodyweightPrompt,
             onDismissBodyweight = viewModel::dismissBodyweightPrompt,
             onShare = viewModel::shareSession,

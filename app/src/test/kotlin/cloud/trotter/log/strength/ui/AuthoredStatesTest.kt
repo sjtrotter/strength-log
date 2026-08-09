@@ -216,6 +216,7 @@ class AuthoredStatesTest {
         onToggleExpanded = {},
         onPageCalendar = {},
         onConnectHealth = {},
+        onPublishPastWorkouts = {},
         onApplyBodyweight = {},
         onDismissBodyweight = {},
         onShare = {},

@@ -119,8 +119,14 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                         BodyweightPromptCard(prompt, actions.onApplyBodyweight, actions.onDismissBodyweight)
                     }
                 }
-                if (state.health.available && !state.health.connected) {
-                    item(key = "hc-connect") { ConnectHealthCard(actions.onConnectHealth) }
+                if (state.health.available) {
+                    item(key = "hc-status") {
+                        HealthConnectSection(
+                            section = state.health,
+                            onConnect = actions.onConnectHealth,
+                            onPublishPast = actions.onPublishPastWorkouts,
+                        )
+                    }
                 }
 
                 if (state.sessions.isEmpty()) {
@@ -168,7 +174,7 @@ private fun sessionRowIndex(state: LogUiState, sessionId: Long): Int? {
     if (state.journal.volume != null) index += 2
     if (state.journal.calendar != null) index += 2
     if (state.health.bodyweightPrompt != null) index += 1
-    if (state.health.available && !state.health.connected) index += 1
+    if (state.health.available) index += 1
     return index + position
 }
 
@@ -353,8 +359,36 @@ private fun PromptButton(text: String, emphasized: Boolean, onClick: () -> Unit)
     }
 }
 
-/** Shown when a Health Connect provider is present but not yet permitted (#17):
- *  the lazy, user-initiated permission entry point. */
+/**
+ * What Health Connect is actually doing (#158). Before this, a provider that had
+ * never been granted and one whose grant had been reset looked the same from
+ * here — nothing published, nothing said. Two states, no ambiguity: without the
+ * workout-write grant the section *is* the Connect affordance; with it, one
+ * quiet line, carrying the one-shot backfill offer (#159) while there is history
+ * Health Connect has never seen. The status is a statement, not a card: a
+ * working export shouldn't ask for attention every visit.
+ */
+@Composable
+private fun HealthConnectSection(section: HealthSectionUi, onConnect: () -> Unit, onPublishPast: () -> Unit) {
+    if (!section.publishing) {
+        ConnectHealthCard(onConnect)
+        return
+    }
+    Column {
+        Text("Connected · publishing", color = TextFaint, style = MaterialTheme.typography.bodySmall)
+        section.backfill?.let { offer ->
+            TextButton(
+                onClick = onPublishPast,
+                enabled = offer.enabled,
+                colors = ButtonDefaults.textButtonColors(contentColor = TextSecondary),
+                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),
+            ) { Text(offer.label, style = MaterialTheme.typography.bodyMedium) }
+        }
+    }
+}
+
+/** Shown when a Health Connect provider is present but the workout-write grant
+ *  isn't (#17, #158): the lazy, user-initiated permission entry point. */
 @Composable
 private fun ConnectHealthCard(onConnect: () -> Unit) {
     AppCard(onClick = onConnect) {
@@ -390,6 +424,8 @@ data class LogActions(
     val onToggleExpanded: (Long) -> Unit,
     val onPageCalendar: (Int) -> Unit,
     val onConnectHealth: () -> Unit,
+    /** The one-shot backfill tap (#159): publish the history that predates the grant. */
+    val onPublishPastWorkouts: () -> Unit,
     val onApplyBodyweight: () -> Unit,
     val onDismissBodyweight: () -> Unit,
     val onShare: (Long) -> Unit,
@@ -403,6 +439,11 @@ data class LogActions(
 @Composable
 private fun LogScreenPreview() {
     val state = LogUiState(
+        health = HealthSectionUi(
+            available = true,
+            publishing = true,
+            backfill = BackfillOfferUi(label = "Publish 12 past workouts", enabled = true),
+        ),
         sessions = listOf(
             SessionListItem(
                 sessionId = 2,
@@ -512,6 +553,7 @@ private fun LogScreenPreview() {
                 onToggleExpanded = {},
                 onPageCalendar = {},
                 onConnectHealth = {},
+                onPublishPastWorkouts = {},
                 onApplyBodyweight = {},
                 onDismissBodyweight = {},
                 onShare = {},

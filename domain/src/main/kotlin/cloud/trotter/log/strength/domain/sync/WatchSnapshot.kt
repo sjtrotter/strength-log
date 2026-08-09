@@ -11,6 +11,13 @@ import kotlinx.serialization.Serializable
  * [revision] is a phone-side monotonic counter (persisted so app restarts
  * don't regress it); the watch uses it only to detect a newer snapshot, never
  * to order or merge — last-write-wins is resolved entirely on the phone.
+ *
+ * It is load-bearing in one direction: the watch installs a snapshot only when its
+ * revision is *strictly greater* than the one it already holds, so the publisher must
+ * spend a fresh revision on every publish carrying new content and must never reuse
+ * one. An equal revision reads as a redelivery and is ignored — which is what keeps a
+ * reconnect resync from wiping the watch's optimistic echo, since that echo
+ * deliberately leaves the revision alone.
  */
 @Serializable
 data class WatchSnapshot(

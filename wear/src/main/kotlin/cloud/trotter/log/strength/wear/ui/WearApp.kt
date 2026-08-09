@@ -18,7 +18,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,7 +35,6 @@ import cloud.trotter.log.strength.wear.data.WatchTrackerClient
 import cloud.trotter.log.strength.wear.theme.Background
 import cloud.trotter.log.strength.wear.theme.WearTrackerTheme
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /** No rest, and no rest just ended — the sentinel for both saveable ints. */
 private const val NO_REST = -1
@@ -82,7 +80,6 @@ fun WearApp(
     val pendingSwaps by client.pendingSwapsFlow().collectAsState(initial = emptySet())
     val dayId = snapshot?.day?.dayId
     var localSessionStarted by rememberSaveable(dayId) { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     // The exact-alarm listener lives at the root so it outlives the ambient swap.
     val restController = remember(context) { restTimerController(context.applicationContext) }
@@ -118,8 +115,12 @@ fun WearApp(
                     pendingExercises = pendingExercises,
                     pendingSwaps = pendingSwaps,
                     restController = restController,
-                    sendEdit = { scope.launch { client.sendEdit(it) } },
-                    sendSwap = { scope.launch { client.sendSwap(it) } },
+                    // Straight through, no composition scope in the middle: the client
+                    // owns the coroutine, on a scope that outlives this Activity. A
+                    // tick the lifter already felt must not be abortable by the
+                    // Activity going away mid-enqueue (#174).
+                    sendEdit = client::sendEdit,
+                    sendSwap = client::sendSwap,
                     onSessionStarted = { localSessionStarted = true },
                     onDismiss = onDismiss,
                 )

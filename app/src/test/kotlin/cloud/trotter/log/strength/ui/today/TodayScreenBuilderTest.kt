@@ -61,6 +61,19 @@ class TodayScreenBuilderTest {
     }
 
     @Test
+    fun cardioIntentLine_doesNotRepeatTheEasyMode() {
+        assertEquals("EASY · Zone 2", TodayScreenBuilder.cardioIntentLine(hard = false, label = "Easy Zone 2"))
+    }
+
+    @Test
+    fun cardioIntentLine_doesNotRepeatTheHardModeAndRecapitalizes() {
+        assertEquals(
+            "HARD · Cardio — intervals",
+            TodayScreenBuilder.cardioIntentLine(hard = true, label = "Hard cardio — intervals"),
+        )
+    }
+
+    @Test
     fun rotationMarks_preserve_indices_and_mark_the_next_day() {
         assertEquals(
             listOf(

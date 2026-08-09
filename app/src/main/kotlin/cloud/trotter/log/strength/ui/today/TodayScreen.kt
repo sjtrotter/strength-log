@@ -118,7 +118,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                     Text("CARDIO FINISHER", color = TextFaint, style = MaterialTheme.typography.labelSmall)
                     Spacer(Modifier.size(4.dp))
                     Text(
-                        if (cardio.hard) "HARD · ${cardio.label}" else "EASY · ${cardio.label}",
+                        TodayScreenBuilder.cardioIntentLine(cardio.hard, cardio.label),
                         color = accent,
                         style = MaterialTheme.typography.labelLarge,
                     )

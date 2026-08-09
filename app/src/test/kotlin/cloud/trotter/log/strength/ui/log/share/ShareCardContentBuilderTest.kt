@@ -32,9 +32,16 @@ class ShareCardContentBuilderTest {
         bodyweightLb = bodyweightLb,
     )
 
-    private fun weightedSet(exerciseId: String, name: String, weightLb: Double, reps: Int, done: Boolean = true) =
+    private fun weightedSet(
+        exerciseId: String,
+        name: String,
+        weightLb: Double,
+        reps: Int,
+        done: Boolean = true,
+        slot: String = Slot.MAIN,
+    ) =
         SessionSetEntity(
-            id = 0, sessionId = 1, exerciseId = exerciseId, exerciseName = name, slot = Slot.MAIN, setIndex = 0,
+            id = 0, sessionId = 1, exerciseId = exerciseId, exerciseName = name, slot = slot, setIndex = 0,
             kind = SetKind.WORK.name, weightLb = weightLb, reps = reps, done = done,
         )
 
@@ -150,21 +157,22 @@ class ShareCardContentBuilderTest {
     // --- footer: sets / duration / volume ------------------------------------
 
     @Test
-    fun footerCountsDoneSetsAndDurationInWholeMinutesAndGroupedTonnage() {
+    fun footerCountsDoneRoundsAndDurationInWholeMinutesAndGroupedTonnage() {
         val sets = listOf(
             weightedSet("bb_back_squat", "Barbell Back Squat", 235.0, 5),
-            weightedSet("bb_back_squat", "Barbell Back Squat", 200.0, 5),
+            weightedSet("pullup", "Pull-Up", 200.0, 5, slot = Slot.SS),
         )
         // 38-minute session (session()'s default startedAt/completedAt).
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("2 SETS · 38 MIN · 2,175 LB", content.footerLine)
+        // #144: the share card joins every other surface in counting superset rounds, not rows.
+        assertEquals("1 SET · 38 MIN · 2,175 LB", content.footerLine)
     }
 
     @Test
     fun footerOmitsDurationWhenNoStartWasRecorded() {
         val sets = listOf(weightedSet("bb_back_squat", "Barbell Back Squat", 235.0, 5))
         val content = ShareCardContentBuilder.build(session(startedAt = null), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("1 SETS · 1,175 LB", content.footerLine)
+        assertEquals("1 SET · 1,175 LB", content.footerLine)
     }
 
     @Test
@@ -174,7 +182,7 @@ class ShareCardContentBuilderTest {
         // ambiguity in the assertion.
         val sets = listOf(weightedSet("bb_back_squat", "Barbell Back Squat", 220.46226218, 10))
         val content = ShareCardContentBuilder.build(session(startedAt = null), sets, WeightUnit.KG, ZoneOffset.UTC)
-        assertEquals("1 SETS · 1,000 KG", content.footerLine)
+        assertEquals("1 SET · 1,000 KG", content.footerLine)
     }
 
     @Test
@@ -184,7 +192,7 @@ class ShareCardContentBuilderTest {
             weightedSet("bb_back_squat", "Barbell Back Squat", 500.0, 5, done = false),
         )
         val content = ShareCardContentBuilder.build(session(startedAt = null), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("1 SETS · 1,175 LB", content.footerLine)
+        assertEquals("1 SET · 1,175 LB", content.footerLine)
     }
 
     // --- §2 acceptance: bodyweight never appears ------------------------------

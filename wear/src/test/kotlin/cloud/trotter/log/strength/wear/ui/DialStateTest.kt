@@ -23,6 +23,19 @@ import kotlin.test.assertTrue
  */
 class DialStateTest {
 
+    @Test
+    fun `system back descends from every in-session screen and nowhere top-level`() {
+        val inSession = DialScreen.entries - setOf(DialScreen.OVERVIEW, DialScreen.DAY_DONE)
+
+        inSession.forEach { screen ->
+            assertEquals(DialFace.OVERVIEW, systemBackTarget(DialFace.WORKOUT, screen), screen.name)
+        }
+        DialScreen.entries.forEach { screen ->
+            assertNull(systemBackTarget(DialFace.OVERVIEW, screen), screen.name)
+        }
+        assertNull(systemBackTarget(DialFace.WORKOUT, DialScreen.DAY_DONE))
+    }
+
     // --- fixtures ----------------------------------------------------------------
 
     private fun set(

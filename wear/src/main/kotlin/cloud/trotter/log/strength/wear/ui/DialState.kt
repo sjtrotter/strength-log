@@ -542,7 +542,7 @@ private class ScreenContext(
      * recoverable on the wrist, or the last set of the day is the one set the
      * phone alone can fix. So the disc keeps DISMISS on tap and layers the hold
      * on top: one tap target still (redesign §10.3), the same 700ms undo the rest
-     * of the flow uses, announced by nothing. Finishing stays a tap.
+     * of the flow uses. Finishing stays a tap; accessibility exposes both actions.
      *
      * There is no "lift in front of the lifter" on a finished day — [exerciseIndex]
      * is only whatever [currentExerciseIndex] fell back to — so the fallback search

@@ -717,6 +717,11 @@ open class TrackerRepository(
             restoreMarkerDao.clear()
         } catch (e: IOException) {
             throw RestoreInterruption.CleanupPending(e)
+        } catch (e: RuntimeException) {
+            // Room surfaces storage failures as SQLiteException, not IOException;
+            // a cleanup failure is the same success-with-a-footnote either way.
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            throw RestoreInterruption.CleanupPending(e)
         }
     }
 

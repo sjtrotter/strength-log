@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.ui
 
+import android.text.format.DateFormat
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -20,15 +21,21 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,12 +50,17 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,8 +90,10 @@ import cloud.trotter.log.strength.wear.theme.accentBright
 import cloud.trotter.log.strength.wear.theme.dayAccent
 import cloud.trotter.log.strength.wear.theme.dialTypography
 import cloud.trotter.log.strength.wear.theme.onDayAccent
+import java.time.LocalTime
 import kotlin.math.abs
 import kotlin.math.min
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -103,6 +117,7 @@ fun Dial(
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
     onHoldComplete: (UndoTarget) -> Unit = {},
+    timePillText: String? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -129,8 +144,65 @@ fun Dial(
             modifier = Modifier.align(Alignment.Center),
         )
         Band(state.bottomBand, BandPole.BOTTOM, type, state.accentIndex, diameterPx)
+        if (state.showsTimePill) {
+            if (timePillText == null) {
+                TimePill(type, diameterPx, Modifier.align(Alignment.Center))
+            } else {
+                TimePill(type, diameterPx, Modifier.align(Alignment.Center), timePillText)
+            }
+        }
     }
 }
+
+/** Interactive-only wall clock. [AmbientDial] is a separate tree and never composes this fill. */
+@Composable
+internal fun TimePill(
+    type: DialTypography,
+    diameterPx: Float,
+    modifier: Modifier = Modifier,
+    timeText: String = rememberMinuteTimeText(
+        DateFormat.is24HourFormat(LocalContext.current),
+    ),
+) {
+    val density = LocalDensity.current
+    with(density) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = modifier
+                .offset(y = DialGeometry.px(DialGeometry.TIME_PILL_CENTER_RADIUS, diameterPx).toDp())
+                .height(DialGeometry.px(DialGeometry.TIME_PILL_HEIGHT, diameterPx).toDp())
+                .widthIn(max = DialGeometry.timePillMaxWidthPx(diameterPx).toDp())
+                .clip(RoundedCornerShape(percent = 50))
+                .background(Surface)
+                .padding(horizontal = DialGeometry.px(DialGeometry.TIME_PILL_HORIZONTAL_PADDING, diameterPx).toDp())
+                .testTag(TIME_PILL_TEST_TAG),
+        ) {
+            Text(
+                text = timeText,
+                style = type.style(DialTextRole.BAND),
+                color = TextSecondary,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+                // Keep the clock as a plain, independent TalkBack node; it has no action.
+                modifier = Modifier.clearAndSetSemantics { text = AnnotatedString(timeText) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun rememberMinuteTimeText(is24Hour: Boolean): String {
+    var minuteTick by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(millisUntilNextMinute(System.currentTimeMillis()))
+            minuteTick++
+        }
+    }
+    return remember(minuteTick, is24Hour) { timePillTimeText(LocalTime.now(), is24Hour) }
+}
+
+internal const val TIME_PILL_TEST_TAG = "time-pill"
 
 /**
  * Every animation the brief allows (§8) and nothing else: no slide transitions,

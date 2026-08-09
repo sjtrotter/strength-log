@@ -72,6 +72,9 @@ fun LoadingDial() {
                 Text("log", style = type.band, color = TextSecondary, maxLines = 1)
             }
         }
+
+        // Loading is an interactive face with no workout claim on the bottom band.
+        TimePill(type, diameterPx, Modifier.align(Alignment.Center))
     }
 }
 

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
@@ -78,6 +79,29 @@ class DialSemanticsTest {
         }
 
         composeTestRule.onNodeWithText("ACTION").assertHasNoClickAction()
+    }
+
+    @Test
+    fun `time pill is its own plain node and yields to a bottom band`() {
+        val time = "12:58"
+        val currentBottomBand = mutableStateOf<BandContent?>(null)
+        composeTestRule.setContent {
+            WearTrackerTheme {
+                Dial(
+                    state = state(DialTap.OPEN_WORKOUT).copy(bottomBand = currentBottomBand.value),
+                    onTap = {},
+                    timePillText = time,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(TIME_PILL_TEST_TAG).assertExists()
+        composeTestRule.onNodeWithText(time).assertExists().assertHasNoClickAction()
+        composeTestRule.runOnIdle {
+            currentBottomBand.value = BandContent("WORKOUT STATUS", DialTone.TERTIARY)
+        }
+        composeTestRule.onNodeWithTag(TIME_PILL_TEST_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithText(time).assertDoesNotExist()
     }
 
     private fun state(tap: DialTap, hold: DialHold? = null) = DialUiState(

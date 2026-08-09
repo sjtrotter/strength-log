@@ -233,6 +233,19 @@ wordmark. No dots, no new vocabulary.
 **Empty (no program)** — disc has a **dashed** border, `NO PROGRAM` + `set up on your phone`.
 Day ring is drawn but fully gray. Setup stays phone-only by design.
 
+**Interactive time pill** — every lit face whose bottom band is free shows hour and minute without
+meridiem, using the device's 12/24-hour preference for the hour value, as straight BAND-size
+tabular text in a quiet, borderless raised-surface capsule,
+centred at the bottom pole (`r=120px`, `24px` high, `10px` horizontal padding at reference
+size). The pill yields whenever workout content owns `bottomBand`, never the reverse. It updates
+at the next minute boundary and once per minute thereafter. Ambient never composes the pill: it
+already carries time and permits neither filled shapes nor continuously moving pixels.
+
+Implemented by issue #181, this resolves deviation 1 tracked in issue #167 for interactive faces:
+elapsed workout time keeps primacy in its band, while faces that previously omitted `TimeText`
+now carry wall time via the yielding pill. Ambient retains its existing centre-or-bottom-band
+wall clock treatment.
+
 ---
 
 ## 8. Motion & haptics (option `2e`)

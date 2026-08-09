@@ -23,9 +23,6 @@ import cloud.trotter.log.strength.wear.theme.AmbientBackground
 import cloud.trotter.log.strength.wear.theme.AmbientClock
 import cloud.trotter.log.strength.wear.theme.AmbientDim
 import cloud.trotter.log.strength.wear.theme.dialTypography
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import kotlin.math.min
 
 /**
@@ -57,7 +54,7 @@ fun AmbientDial(
         }
         ambientDialState(
             snapshot = snapshot,
-            timeText = LocalTime.now().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)),
+            timeText = wallClockTimeText(),
             restRemainingSeconds = remaining,
         )
     }
@@ -138,7 +135,7 @@ fun AmbientLoadingDial(
     deviceHasLowBitAmbient: Boolean = false,
 ) {
     val timeText = remember(ambientTick) {
-        LocalTime.now().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+        wallClockTimeText()
     }
     val shift = if (burnInProtectionRequired) ambientPixelOffset(ambientTick) else AmbientPixelOffset.ZERO
     val palette = ambientPalette(deviceHasLowBitAmbient)

@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.wear.ui
 
+import kotlin.math.sqrt
+
 /**
  * The dial's layout, as pure math (redesign brief §2, amended by dial v2 §2 and
  * v3 §1). Every number below is a logical px on the brief's 384px reference face;
@@ -56,6 +58,15 @@ object DialGeometry {
     const val EXERCISE_RING_INSET = 40f
     const val EXERCISE_RING_STROKE = 14f
     const val DISC_DIAMETER = 204f
+
+    /** Interactive wall-clock capsule, centred in the free band annulus at 6 o'clock. */
+    // r=115/h=22: the outer-corner chord inside the exercise ring's inner circle
+    // is 112px — "12:58" at BAND size (~91px) fits with margin, and the lower
+    // edge sits 2px off the disc rim. r=120/h=24 read better on paper but its
+    // 80px chord could not hold five numerals; geometry beat aesthetics.
+    const val TIME_PILL_CENTER_RADIUS = 115f
+    const val TIME_PILL_HEIGHT = 22f
+    const val TIME_PILL_HORIZONTAL_PADDING = 10f
 
     /** The rest-over halo's width (§8). */
     const val BLOOM_WIDTH = 10f
@@ -133,6 +144,18 @@ object DialGeometry {
     }
 
     fun discRadiusPx(diameterPx: Float): Float = px(DISC_DIAMETER, diameterPx) / 2f
+
+    /**
+     * Widest capsule that clears the exercise ring at the pill's lower edge.
+     * This is the horizontal chord `2 * sqrt(r² - y²)`, where `r` is the
+     * exercise ring's inner radius and `y` is the pill centre plus half its height.
+     */
+    fun timePillMaxWidthPx(diameterPx: Float): Float {
+        val exercise = exerciseRing(diameterPx)
+        val innerRadius = exercise.radiusPx - exercise.strokePx / 2f
+        val lowerEdgeRadius = px(TIME_PILL_CENTER_RADIUS + TIME_PILL_HEIGHT / 2f, diameterPx)
+        return 2f * sqrt(innerRadius * innerRadius - lowerEdgeRadius * lowerEdgeRadius)
+    }
 
     /** Innermost ring: the clock, stroked just inside the disc's own rim (v2 §3). */
     fun clockRing(diameterPx: Float): DialRing {

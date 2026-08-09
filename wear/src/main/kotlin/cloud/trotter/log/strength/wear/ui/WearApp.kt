@@ -78,6 +78,8 @@ fun WearApp(
     val pendingCount by client.pendingCountFlow().collectAsState(initial = 0)
     val pendingExercises by client.pendingExercisesFlow().collectAsState(initial = emptySet())
     val pendingSwaps by client.pendingSwapsFlow().collectAsState(initial = emptySet())
+    val dayId = snapshot?.day?.dayId
+    var localSessionStarted by rememberSaveable(dayId) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     // The rest-timer buzz + wake lock live here, at the root, so they outlive the
@@ -87,7 +89,7 @@ fun WearApp(
     val restController = remember(context) { RestTimerController(context.applicationContext, restScope) }
     // Runs on every screen (loading/ambient/interactive) so the chip reconciles
     // even when the app relaunches straight into ambient — see OngoingSessionChip.
-    OngoingSessionChip(snapshot)
+    OngoingSessionChip(snapshot, localSessionStarted)
 
     WearTrackerTheme {
         Box(Modifier.fillMaxSize().background(Background)) {
@@ -116,6 +118,7 @@ fun WearApp(
                     restController = restController,
                     sendEdit = { scope.launch { client.sendEdit(it) } },
                     sendSwap = { scope.launch { client.sendSwap(it) } },
+                    onSessionStarted = { localSessionStarted = true },
                     onDismiss = onDismiss,
                 )
             }
@@ -146,6 +149,7 @@ private fun WorkoutDial(
     restController: RestTimerController,
     sendEdit: (SetEditDelta) -> Unit,
     sendSwap: (ExerciseSwapDelta) -> Unit,
+    onSessionStarted: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val view = LocalView.current
@@ -198,7 +202,10 @@ private fun WorkoutDial(
         val wallNow = System.currentTimeMillis()
         startedAtWallMillis = wallNow
         startedAtElapsedMillis = SystemClock.elapsedRealtime()
-        if (sessionStartedAtMillis == 0L) sessionStartedAtMillis = wallNow
+        if (sessionStartedAtMillis == 0L) {
+            sessionStartedAtMillis = wallNow
+            onSessionStarted()
+        }
         nowElapsedMillis = SystemClock.elapsedRealtime()
         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     }
@@ -509,13 +516,13 @@ private val TickMemorySaver = Saver<TickMemory, String>(
 )
 
 /**
- * Drives the OngoingActivity re-entry chip off the snapshot (redesign §1.4 / R6).
+ * Drives the OngoingActivity re-entry chip from reconciled snapshot and local
+ * session state (redesign §1.4 / R6).
  *
- * The chip's whole lifecycle is [isSessionActive]: post while a workout is
- * underway, clear otherwise. Because that is a pure function of the snapshot,
- * the effect also **reconciles on launch** — first composition (snapshot still
- * loading ⇒ inactive) cancels any chip a killed process left behind, and a
- * finished day flips it back to `clear()` with no extra bookkeeping.
+ * [isSessionUnderway] posts immediately when the first set starts, before its
+ * tick reaches the snapshot. Its snapshot half still **reconciles on launch**:
+ * first composition (snapshot still loading ⇒ inactive) cancels any chip a
+ * killed process left behind, and a finished day flips it back to `clear()`.
  *
  * [POST_NOTIFICATIONS][Manifest.permission.POST_NOTIFICATIONS] is requested
  * **contextually** — once, the moment a session first becomes active (API 33+
@@ -524,10 +531,10 @@ private val TickMemorySaver = Saver<TickMemory, String>(
  * the launcher).
  */
 @Composable
-private fun OngoingSessionChip(snapshot: WatchSnapshot?) {
+private fun OngoingSessionChip(snapshot: WatchSnapshot?, localSessionStarted: Boolean) {
     val context = LocalContext.current
     val chip = remember(context) { OngoingWorkoutChip(context) }
-    val sessionActive = isSessionActive(snapshot)
+    val sessionActive = isSessionUnderway(snapshot, localSessionStarted)
 
     var hasPermission by remember {
         mutableStateOf(OngoingWorkoutChip.hasPostNotificationsPermission(context))
@@ -535,9 +542,15 @@ private fun OngoingSessionChip(snapshot: WatchSnapshot?) {
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> hasPermission = granted }
+    // Once per install-session, not per day: a denial must stay denied across
+    // DONE/undo and day turnover, or the prompt re-fires on every reactivation.
+    var permissionRequested by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(sessionActive) {
-        if (sessionActive && !hasPermission && OngoingWorkoutChip.needsRuntimePermission()) {
+        if (sessionActive && !hasPermission && !permissionRequested &&
+            OngoingWorkoutChip.needsRuntimePermission()
+        ) {
+            permissionRequested = true
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }

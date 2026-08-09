@@ -152,6 +152,25 @@ class RestTimerControllerTest {
     }
 
     @Test
+    fun `a stale callback after a same-deadline re-arm neither buzzes nor completes`() {
+        val alarm = RecordingAlarmScheduler()
+        var buzzes = 0
+        val controller = controller(alarm) { buzzes++ }
+        controller.arm(deadlineMillis = 5_000L, totalSeconds = 5)
+        val stale = alarm.captureCallback()
+
+        controller.disarm()
+        controller.arm(deadlineMillis = 5_000L, totalSeconds = 5)
+        stale()
+
+        assertEquals(0, buzzes)
+        assertEquals(RestTimerController.ActiveRest(5_000L, 5), controller.activeRest)
+
+        alarm.fire()
+        assertEquals(1, buzzes)
+    }
+
+    @Test
     fun `timed hold uses the same alarm machinery`() {
         val alarm = RecordingAlarmScheduler()
         var buzzes = 0

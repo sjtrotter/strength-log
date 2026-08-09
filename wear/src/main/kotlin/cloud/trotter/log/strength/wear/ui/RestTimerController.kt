@@ -113,7 +113,10 @@ class RestTimerController(
         val armed = ActiveRest(deadlineMillis, totalSeconds)
         activeRest = armed
         alarmScheduler.schedule(deadlineMillis) {
-            if (activeRest == armed) {
+            // Identity, not equality: a disarm-and-re-arm at the SAME deadline
+            // mints a structurally equal ActiveRest, and a stale queued callback
+            // must not pass the guard on the new arm's behalf.
+            if (activeRest === armed) {
                 activeRest = null
                 buzz()
                 val firedGeneration = ++generation

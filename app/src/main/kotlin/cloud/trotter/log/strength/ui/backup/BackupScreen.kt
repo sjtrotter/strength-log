@@ -17,10 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -46,7 +45,9 @@ import cloud.trotter.log.strength.transfer.csv.CsvImportPreview
 import cloud.trotter.log.strength.transfer.csv.PreviewSession
 import cloud.trotter.log.strength.transfer.csv.PreviewSet
 import cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.pressable
@@ -56,7 +57,6 @@ import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
-import cloud.trotter.log.strength.ui.theme.Surface
 import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TabLetter
 import cloud.trotter.log.strength.ui.theme.TextFaint
@@ -135,7 +135,7 @@ private fun BackupHeader(onBack: () -> Unit) {
             BackChevron(onBack)
             Text("DATA / BACKUP", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+        HorizontalDivider(thickness = 1.dp, color = Border)
     }
 }
 
@@ -237,11 +237,8 @@ private fun MessageBanner(message: StatusMessage, onDismiss: () -> Unit) {
 
 @Composable
 private fun RestoreConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Surface,
-        titleContentColor = TextPrimary,
-        textContentColor = TextSecondary,
         title = { Text("Restore this backup?") },
         text = {
             Text(
@@ -370,7 +367,7 @@ private fun UnmatchedNameRow(unmatched: UnmatchedExerciseName, selected: Movemen
 @Composable
 private fun PatternPickerSheet(current: MovementPattern, onPick: (MovementPattern) -> Unit, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Surface) {
+    AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
             Text("Movement pattern", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.size(10.dp))
@@ -390,7 +387,7 @@ private fun PatternPickerSheet(current: MovementPattern, onPick: (MovementPatter
 @Composable
 private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
     Column(Modifier.fillMaxWidth().background(Background)) {
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+        HorizontalDivider(thickness = 1.dp, color = Border)
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),

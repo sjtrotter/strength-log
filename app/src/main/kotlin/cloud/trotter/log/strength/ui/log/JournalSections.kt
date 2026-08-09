@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -392,6 +393,6 @@ internal fun LogSectionHeader(title: String) {
     Column(Modifier.padding(top = 8.dp)) {
         Text(title, color = TextFaint, style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.size(2.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+        HorizontalDivider(thickness = 1.dp, color = Border)
     }
 }

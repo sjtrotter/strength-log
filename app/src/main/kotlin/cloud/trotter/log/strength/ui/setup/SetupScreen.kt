@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -47,6 +47,7 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
@@ -59,7 +60,6 @@ import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
-import cloud.trotter.log.strength.ui.theme.Surface
 import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TabLetter
 import cloud.trotter.log.strength.ui.theme.TextFaint
@@ -150,7 +150,7 @@ private fun SetupHeader(onBack: () -> Unit) {
             BackButton(onBack)
             Text("SETUP", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+        HorizontalDivider(thickness = 1.dp, color = Border)
     }
 }
 
@@ -186,7 +186,7 @@ private fun SectionHeader(label: String) {
         Spacer(Modifier.size(8.dp))
         Text(label, color = TextFaint, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+        HorizontalDivider(thickness = 1.dp, color = Border)
     }
 }
 
@@ -502,11 +502,8 @@ private fun RerunConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Surface,
-        titleContentColor = TextPrimary,
-        textContentColor = TextSecondary,
         title = { Text("Re-run setup wizard?") },
         text = { Text("This replaces your current program from scratch. Your workout history isn't touched.") },
         confirmButton = { DialogAction("Re-run", Error, onConfirm) },
@@ -520,11 +517,8 @@ private fun RestDefaultsConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Surface,
-        titleContentColor = TextPrimary,
-        textContentColor = TextSecondary,
         title = { Text("Reset rest timers?") },
         text = { Text("Every per-category rest length goes back to the built-in default. The rest timer stays on.") },
         confirmButton = { DialogAction("Reset", Error, onConfirm) },

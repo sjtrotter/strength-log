@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -174,7 +175,7 @@ private fun ReceiptRow(
  *  chrome uses, doing the separating a card would otherwise be hired for. */
 @Composable
 private fun ReceiptRule() {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+    HorizontalDivider(thickness = 1.dp, color = Border)
 }
 
 @Composable

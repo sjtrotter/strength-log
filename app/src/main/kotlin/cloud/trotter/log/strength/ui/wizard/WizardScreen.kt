@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -418,7 +419,7 @@ private fun WizardFooter(
     actions: WizardActions,
 ) {
     Column(Modifier.fillMaxWidth().background(Background)) {
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+        HorizontalDivider(thickness = 1.dp, color = Border)
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),

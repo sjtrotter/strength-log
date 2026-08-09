@@ -218,8 +218,9 @@ sent as an edit for the phone to reconcile.
 ## 7. Edge states (option `2d`)
 
 **Ambient** — same dial, burn-in safe: outline-only arc in `#4E4E55`, no accent, no filled
-shapes, dim gray type. Shows the live rest countdown, `DAY A · 12/21`, and the time.
-Repaint at minute cadence, plus one wake in the final 10s of a rest timer.
+shapes, dim gray type. Shows `RESTING`, `DAY A · 12/21`, and the time during a rest.
+Repaint at minute cadence. A rest or timed hold schedules one exact wakeup at its
+deadline for the haptic; the interactive countdown remains composition-driven.
 
 **Phone away / offline** — top band shows a pulsing dot + `2 QUEUED`. Status lives in the
 top band and nowhere else. Logging and timers work fully offline; deltas flush on reconnect.

@@ -14,18 +14,6 @@ package cloud.trotter.log.strength.wear.ui
  */
 object RestTimer {
 
-    /** Extra time a partial wake lock is held past the deadline so a slightly
-     *  late wake still catches the buzz; kept small (battery vs. punctuality). */
-    const val WAKE_LOCK_SLACK_MILLIS = 10_000L
-
-    /** Ceiling used only to bound the wake-lock hold ([wakeLockTimeoutMillis]) so a
-     *  garbled deadline can never pin the CPU indefinitely. It does NOT clamp the
-     *  countdown itself — the phone already clamps rest to 300s via
-     *  `RestPolicy.MAX_REST_SECONDS` before stamping the wire, and the watch counts
-     *  down whatever it receives. Kept as a local const — the watch imports no
-     *  `RestPolicy`. */
-    const val MAX_REST_SECONDS = 300
-
     /**
      * A rest countdown runs after a done-tick only when the stream advances to a
      * **next round within the same exercise** ([StreamAdvance.NextRound]) and the
@@ -85,13 +73,4 @@ object RestTimer {
     fun shouldFire(deadlineMillis: Long, nowElapsedMillis: Long, alreadyFired: Boolean): Boolean =
         !alreadyFired && isExpired(deadlineMillis, nowElapsedMillis)
 
-    /**
-     * Bounded partial-wake-lock hold: [remainingMillis] left plus a small slack,
-     * hard-capped at [MAX_REST_SECONDS] + slack (~5.2 min) so even a bogus deadline
-     * can never hold the CPU indefinitely. Deriving the bound from *remaining*
-     * (not the original duration) keeps it correct when the timer is re-armed after
-     * process death partway through a rest.
-     */
-    fun wakeLockTimeoutMillis(remainingMillis: Long): Long =
-        remainingMillis.coerceIn(0L, MAX_REST_SECONDS * 1000L) + WAKE_LOCK_SLACK_MILLIS
 }

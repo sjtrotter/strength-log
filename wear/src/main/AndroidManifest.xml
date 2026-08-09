@@ -4,7 +4,9 @@
 
     <!-- Required for AmbientLifecycleObserver to arm ambient mode (redesign §1.4):
          without it, onEnterAmbient never fires and the system just backgrounds the
-         app to the watch face on dim/wrist-down instead of keeping it visible. -->
+         app to the watch face on dim/wrist-down instead of keeping it visible.
+         The library holds the lock, not us — app code acquiring a wake lock is
+         forbidden by WearAppPowerPolicyTest (#164 replaced ours with an alarm). -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- The OngoingActivity re-entry chip is a posted notification (redesign §1.4

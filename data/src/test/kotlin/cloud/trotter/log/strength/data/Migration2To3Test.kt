@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_1_2
 import cloud.trotter.log.strength.data.db.MIGRATION_2_3
 import cloud.trotter.log.strength.data.db.MIGRATION_3_4
+import cloud.trotter.log.strength.data.db.MIGRATION_4_5
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -48,7 +49,7 @@ class Migration2To3Test {
         createV2DatabaseWithRows()
 
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .allowMainThreadQueries()
             .build()
         try {

@@ -463,12 +463,16 @@ private fun WizardFooter(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            // Both dead while a restore is in flight: it is rewriting the very
+            // answers this footer navigates, and "GENERATE PROGRAM" landing on
+            // top of a just-restored program is the accident (#172).
             if (!state.isFirstStep) {
                 FooterButton(
                     label = "BACK",
                     fill = Border,
                     textColor = TextPrimary,
                     modifier = Modifier.weight(1f),
+                    enabled = !state.restore.inFlight,
                     onClick = actions.onBack,
                 )
             }
@@ -477,6 +481,7 @@ private fun WizardFooter(
                 fill = accent,
                 textColor = onAccent,
                 modifier = Modifier.weight(if (state.isFirstStep) 1f else 2f),
+                enabled = !state.restore.inFlight,
                 onClick = actions.onNext,
             )
         }
@@ -489,10 +494,12 @@ private fun FooterButton(
     fill: Color,
     textColor: Color,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier
             // heightIn(min), not height (A7 font-scale): "GENERATE PROGRAM"
             // wraps to two lines at large fontScale instead of overflowing.

@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -16,6 +17,9 @@ import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -26,6 +30,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -61,8 +66,14 @@ class WizardViewModelWiringTest {
     private lateinit var context: Context
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
+    private lateinit var journal: RestoreJournal
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
+
+    /** Stands in for the injected app scope (a [SupervisorJob], like the real
+     *  one). The wizard's restore path runs on it; nothing here exercises that,
+     *  but the ViewModel needs one. */
+    private lateinit var appScope: CoroutineScope
     private val vms = mutableListOf<androidx.lifecycle.ViewModel>()
 
     @Before
@@ -74,10 +85,17 @@ class WizardViewModelWiringTest {
             .setQueryCoroutineContext(dispatcher)
             .build()
         storeScope = CoroutineScope(dispatcher + Job())
+        appScope = CoroutineScope(dispatcher + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("wizard-vm-settings", ".preferences_pb")
         }
         settings = SettingsStore(dataStore)
+        journal = RestoreJournal(
+            PreferenceDataStoreFactory.create(scope = storeScope) {
+                File.createTempFile("wizard-vm-journal", ".preferences_pb")
+            },
+            settings,
+        )
         repo = newRepo()
     }
 
@@ -121,10 +139,25 @@ class WizardViewModelWiringTest {
         db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings,
     )
 
+    /** Stands in for whatever a restore put in Room: one day the generator would
+     *  never produce, so "was it regenerated?" is a one-line assert. */
+    private fun restoredProgram() = Program(
+        listOf(
+            ProgramDay(
+                id = "R",
+                title = "Restored",
+                emphasisLine = "from a backup",
+                exercises = listOf(ProgramExercise(exerciseId = "bb_back_squat", isMain = true)),
+                cardio = null,
+            ),
+        ),
+    )
+
     @After
     fun tearDown() {
         vms.forEach { it.viewModelScope.cancel() }
         db.close()
+        appScope.cancel()
         storeScope.cancel()
         Dispatchers.resetMain()
     }
@@ -139,7 +172,13 @@ class WizardViewModelWiringTest {
         handle: SavedStateHandle = SavedStateHandle(),
         repository: TrackerRepository = repo,
     ): WizardViewModel =
-        WizardViewModel(repository, handle, context, BackupService(repository)).also { vm ->
+        WizardViewModel(
+            repository,
+            handle,
+            context,
+            BackupService(repository, journal),
+            appScope,
+        ).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -272,6 +311,32 @@ class WizardViewModelWiringTest {
             "replaceProgram must run before setWizardComplete",
             recording.calls.indexOf("replaceProgram") < recording.calls.indexOf("setWizardComplete"),
         )
+    }
+
+    @Test
+    fun finish_stepsAsideWhenARestoreLandedUnderTheFirstRunWizard() = runVmTest {
+        // #172: the app opens on the wizard whenever wizardComplete reads false,
+        // so an interrupted restore whose settings half is still pending puts the
+        // wizard in front of a *restored* program. Generating over it would delete
+        // the restored program and keep the history — the worst of both.
+        val recording = newRecordingRepo()
+        val vm = newViewModel(repository = recording)
+        advanceUntilIdle()
+
+        // What the startup reconciliation does: the restored program is already in
+        // Room, and the settings replay flips the flag under the open wizard.
+        recording.replaceProgram(restoredProgram())
+        settings.setWizardComplete(true)
+        recording.calls.clear()
+        advanceUntilIdle()
+
+        repeat(WizardStep.entries.size - 1) { vm.onNext() }
+        vm.onNext() // last step -> finish()
+        advanceUntilIdle()
+
+        assertEquals("finish must not write anything over a restored device", emptyList<String>(), recording.calls)
+        assertEquals(listOf("R"), repo.programFlow.first().days.map { it.id })
+        assertTrue("the wizard still leaves — the device is set up", vm.uiState.value.isComplete)
     }
 
     @Test

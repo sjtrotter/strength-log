@@ -8,11 +8,11 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.sync.WearSyncPublisher
+import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.widget.TodayWidgetUpdater
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /** Hilt's application root. The object graph is defined in [cloud.trotter.log.strength.di]. */
@@ -46,10 +46,22 @@ class StrengthLogApp : Application() {
         fun todayWidgetUpdater(): TodayWidgetUpdater
     }
 
-    /** App-scope background jobs (the one-shot startup fixup). Not cancelled — it
-     *  lives as long as the process; a [SupervisorJob] keeps one failure from
-     *  tearing down the others. */
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    /** The backup core, for the startup restore reconciliation below. */
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface BackupEntryPoint {
+        fun backupService(): BackupService
+    }
+
+    /** The process-lifetime scope from [cloud.trotter.log.strength.di.AppScopeModule]
+     *  — the same one an in-flight restore runs on, so startup jobs and screen-
+     *  independent work share one lifetime. */
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface AppScopeEntryPoint {
+        @ApplicationScope
+        fun appScope(): CoroutineScope
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -60,18 +72,38 @@ class StrengthLogApp : Application() {
             .todayWidgetUpdater()
             .start()
 
-        // One-shot on first launch of the tracking-types build: reinterpret the
-        // reps a user logged for now-TIMED holds (plank, ...) as seconds. Guarded
-        // by a DataStore flag, so this is a cheap no-op on every later launch.
-        // runCatching (Fable P3 advisory #1): this runs unattended at startup
-        // with nothing downstream to surface a failure to, so a corrupt row (a
-        // stored `setsJson` that fails to decode) must not crash-loop the app
-        // on every launch — log it and move on; the fixup's own idempotency
-        // (SettingsStore.md) means a future, fixed build can still pick it up.
+        val appScope = EntryPointAccessors
+            .fromApplication(this, AppScopeEntryPoint::class.java)
+            .appScope()
+
+        val backupService = EntryPointAccessors
+            .fromApplication(this, BackupEntryPoint::class.java)
+            .backupService()
         val repository = EntryPointAccessors
             .fromApplication(this, RepositoryEntryPoint::class.java)
             .trackerRepository()
+
+        // Both startup repairs, in order, in one coroutine — genuinely ordered
+        // rather than two launches that would race. Reconciliation goes first
+        // because it can rewrite settings the fixup and the first screen both
+        // read (`wizardComplete` among them: leave it stale and a first-run
+        // wizard can open over a restored program). Launched and never awaited,
+        // so startup waits for neither.
+        //
+        // runCatching *per phase* (Fable P3 advisory #1): these run unattended
+        // with nothing downstream to surface a failure to, so neither may
+        // crash-loop the app — and a failed reconcile must not swallow the fixup
+        // behind it. Both are idempotent, so the next launch retries.
         appScope.launch {
+            runCatching { backupService.reconcilePendingRestore() }
+                .onFailure { Log.e(TAG, "Pending restore not reconciled; will retry next launch", it) }
+
+            // One-shot on first launch of the tracking-types build: reinterpret
+            // the reps a user logged for now-TIMED holds (plank, ...) as seconds.
+            // Guarded by a DataStore flag, so this is a cheap no-op on every
+            // later launch; a corrupt row (a stored `setsJson` that fails to
+            // decode) is logged and skipped, and the fixup's own idempotency
+            // (SettingsStore.md) means a future, fixed build can still pick it up.
             runCatching { repository.runLegacyTimedFixupIfNeeded() }
                 .onFailure { Log.e(TAG, "Legacy TIMED fixup failed; will retry next launch", it) }
         }

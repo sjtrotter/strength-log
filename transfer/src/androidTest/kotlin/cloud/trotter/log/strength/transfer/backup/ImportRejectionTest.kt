@@ -94,7 +94,7 @@ class ImportRejectionTest : BackupTestHarness() {
         seed()
         val before = fingerprint()
         val valid = service.export()
-        val tinyCapService = BackupService(repository, BackupCodec(maxBytes = 32))
+        val tinyCapService = BackupService(repository, journal, BackupCodec(maxBytes = 32))
         assertThrowsBackupError<BackupError.TooLarge> { tinyCapService.import(valid) }
         assertEquals(before, fingerprint())
     }

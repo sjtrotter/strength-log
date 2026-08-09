@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -476,6 +477,10 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
     val backProgress = rememberBackGestureProgress(enabled = !state.isFirstStep) {
         viewModel.onBack()
     }
+    // Registered after the gesture handler so it takes priority while enabled.
+    // Back on the first step means leaving the app, and a restore in flight is
+    // writing two stores that share no transaction (#172) — it stays put.
+    BackHandler(enabled = state.restore.inFlight) {}
     Box(Modifier.backGesturePreview { backProgress.value }) {
         WizardScreen(
             state = state,

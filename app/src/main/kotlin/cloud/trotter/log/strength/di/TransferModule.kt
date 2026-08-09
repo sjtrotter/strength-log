@@ -5,6 +5,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.transfer.csv.CsvHistoryService
 import javax.inject.Singleton
@@ -21,7 +22,8 @@ object TransferModule {
 
     @Provides
     @Singleton
-    fun backupService(repository: TrackerRepository): BackupService = BackupService(repository)
+    fun backupService(repository: TrackerRepository, journal: RestoreJournal): BackupService =
+        BackupService(repository, journal)
 
     @Provides
     @Singleton

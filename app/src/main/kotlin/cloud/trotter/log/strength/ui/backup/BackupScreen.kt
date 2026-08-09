@@ -2,8 +2,10 @@ package cloud.trotter.log.strength.ui.backup
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,8 +20,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -190,46 +196,45 @@ private fun SectionButton(
     onClick: () -> Unit,
     outlined: Boolean = false,
 ) {
-    val shape = RoundedCornerShape(10.dp)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
+    val modifier = Modifier
+        .fillMaxWidth()
             // heightIn(min), not height (A7 font-scale): "RESTORE FROM BACKUP"
             // wraps to two lines at large fontScale instead of overflowing.
-            .heightIn(min = 48.dp)
-            .then(
-                if (outlined) {
-                    Modifier.border(1.dp, accent, shape)
-                } else {
-                    Modifier.background(accent, shape)
-                },
-            )
-            .pressable(enabled = enabled, onClick = onClick, shape = shape)
-            .padding(vertical = 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
+        .heightIn(min = 48.dp)
+    val content: @Composable () -> Unit = {
         Text(
             label,
-            color = if (outlined) accent else Background,
             style = DoneButtonLabel.copy(fontSize = 14.sp),
             textAlign = TextAlign.Center,
             maxLines = 2,
         )
+    }
+    if (outlined) {
+        OutlinedButton(onClick, modifier, enabled, shape = MaterialTheme.shapes.medium,
+            border = BorderStroke(1.dp, accent), colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = accent, disabledContentColor = accent),
+            contentPadding = PaddingValues(vertical = 6.dp), content = { content() })
+    } else {
+        Button(onClick, modifier, enabled, shape = MaterialTheme.shapes.medium,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = accent, contentColor = Background,
+                disabledContainerColor = accent, disabledContentColor = Background),
+            contentPadding = PaddingValues(vertical = 6.dp), content = { content() })
     }
 }
 
 @Composable
 private fun MessageBanner(message: StatusMessage, onDismiss: () -> Unit) {
     val color = if (message.isError) Error else Done
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
-            .border(1.dp, color, RoundedCornerShape(10.dp))
-            .pressable(onClick = onDismiss, shape = RoundedCornerShape(10.dp))
-            .padding(14.dp),
+    FilledTonalButton(
+        onClick = onDismiss,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, color),
+        colors = ButtonDefaults.filledTonalButtonColors(containerColor = color.copy(alpha = 0.12f), contentColor = color),
+        contentPadding = PaddingValues(14.dp),
     ) {
-        Text(message.text, color = color, style = MaterialTheme.typography.bodySmall)
+        Text(message.text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -259,15 +264,15 @@ private fun DialogButton(
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
-    Box(
+    Button(
+        onClick = onClick,
         modifier = modifier
-            .heightIn(min = 48.dp)
-            .background(fill, RoundedCornerShape(12.dp))
-            .pressable(onClick = onClick, shape = RoundedCornerShape(12.dp))
-            .padding(vertical = 6.dp),
-        contentAlignment = Alignment.Center,
+            .heightIn(min = 48.dp),
+        shape = MaterialTheme.shapes.large,
+        colors = ButtonDefaults.buttonColors(containerColor = fill, contentColor = textColor),
+        contentPadding = PaddingValues(vertical = 6.dp),
     ) {
-        Text(label, color = textColor, style = DoneButtonLabel.copy(fontSize = 13.sp), textAlign = TextAlign.Center, maxLines = 2)
+        Text(label, style = DoneButtonLabel.copy(fontSize = 13.sp), textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 
@@ -393,19 +398,18 @@ private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             DialogButton("CANCEL", Surface2, TextPrimary, Modifier.weight(1f), actions.onCancelCsvImport)
-            Box(
+            Button(
+                onClick = actions.onConfirmCsvImport,
+                enabled = canCommit,
                 modifier = Modifier
                     .weight(2f)
-                    .heightIn(min = 48.dp)
-                    .background(if (canCommit) Done else Surface2, RoundedCornerShape(12.dp))
-                    .pressable(
-                        enabled = canCommit,
-                        onClick = actions.onConfirmCsvImport,
-                        shape = RoundedCornerShape(12.dp),
-                    ),
-                contentAlignment = Alignment.Center,
+                    .heightIn(min = 48.dp),
+                shape = MaterialTheme.shapes.large,
+                colors = ButtonDefaults.buttonColors(containerColor = Done, contentColor = Background,
+                    disabledContainerColor = Surface2, disabledContentColor = TextFaint),
+                contentPadding = PaddingValues(vertical = 6.dp),
             ) {
-                Text("IMPORT", color = if (canCommit) Background else TextFaint, style = DoneButtonLabel.copy(fontSize = 13.sp))
+                Text("IMPORT", style = DoneButtonLabel.copy(fontSize = 13.sp))
             }
         }
     }

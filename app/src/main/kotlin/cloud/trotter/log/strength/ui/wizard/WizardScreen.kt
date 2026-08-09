@@ -1,9 +1,10 @@
 package cloud.trotter.log.strength.ui.wizard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,13 +17,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,7 +44,6 @@ import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
-import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -157,26 +159,25 @@ private fun EmphasisStep(state: WizardUiState, actions: WizardActions) {
 @Composable
 private fun RestoreFromBackupEntry(restore: WizardRestoreState, onClick: () -> Unit) {
     Spacer(Modifier.size(6.dp))
-    Box(
+    OutlinedButton(
+        onClick = onClick,
+        enabled = !restore.inFlight,
         modifier = Modifier
             // No disabledAlpha: while a restore is in flight this button's own
             // label becomes the progress message, and fading it to 40% would
             // dim the one thing the user is reading.
             .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .border(1.dp, Border, RoundedCornerShape(12.dp))
-            .pressable(
-                enabled = !restore.inFlight,
-                role = Role.Button,
-                shape = RoundedCornerShape(12.dp),
-                onClick = onClick,
-            )
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center,
+            .heightIn(min = 48.dp),
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, Border),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = TextSecondary,
+            disabledContentColor = TextSecondary,
+        ),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Text(
             if (restore.inFlight) "RESTORING…" else "HAVE A BACKUP? RESTORE IT",
-            color = TextSecondary,
             style = DoneButtonLabel,
             textAlign = TextAlign.Center,
             maxLines = 2,
@@ -452,17 +453,17 @@ private fun FooterButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Box(
+    Button(
+        onClick = onClick,
         modifier = modifier
             // heightIn(min), not height (A7 font-scale): "GENERATE PROGRAM"
             // wraps to two lines at large fontScale instead of overflowing.
-            .heightIn(min = 52.dp)
-            .background(fill, RoundedCornerShape(12.dp))
-            .pressable(shape = RoundedCornerShape(12.dp), onClick = onClick)
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center,
+            .heightIn(min = 52.dp),
+        shape = MaterialTheme.shapes.large,
+        colors = ButtonDefaults.buttonColors(containerColor = fill, contentColor = textColor),
+        contentPadding = PaddingValues(vertical = 8.dp),
     ) {
-        Text(label, color = textColor, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
+        Text(label, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 

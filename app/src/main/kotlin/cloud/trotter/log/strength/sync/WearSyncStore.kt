@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.first
 class WearSyncStore(
     private val dataStore: DataStore<Preferences>,
     private val nowMillis: () -> Long = System::currentTimeMillis,
+    private val entropy: () -> Long = { java.security.SecureRandom().nextLong() },
 ) : AppliedEditMarkers {
 
     /**
@@ -39,12 +40,22 @@ class WearSyncStore(
     suspend fun nextStamp(): SnapshotStamp {
         var stamp = SnapshotStamp(epoch = 0L, revision = 0L)
         dataStore.edit { prefs ->
-            val epoch = prefs[EPOCH] ?: nowMillis().also { prefs[EPOCH] = it }
+            // Millis alone could collide across a same-instant wipe-and-recreate
+            // (or read 0 from a broken clock); ten entropy bits under a
+            // second-granularity timestamp keep epochs unique while the cold
+            // cache's (epoch, revision) ordering stays wall-clock honest.
+            val epoch = prefs[EPOCH] ?: mintEpoch().also { prefs[EPOCH] = it }
             val revision = (prefs[REVISION] ?: 0L) + 1
             prefs[REVISION] = revision
             stamp = SnapshotStamp(epoch = epoch, revision = revision)
         }
         return stamp
+    }
+
+    private fun mintEpoch(): Long {
+        val seconds = (nowMillis() / 1000L).coerceAtLeast(1L)
+        val salt = entropy() and 0x3FF
+        return (seconds shl 10) or salt
     }
 
     override suspend fun lastApplied(rowKey: String): Long =

@@ -33,7 +33,9 @@ import kotlinx.coroutines.sync.withLock
  * The §11.4 mechanism lives here: messaging is fire-and-forget, so every edit is also
  * queued in [PendingEditStore] and re-sent until a later snapshot reflects it. Three
  * signals drain the queue: the first prime on start, every inbound snapshot, and every
- * report that a phone is reachable ([PhoneLink.phoneReachability]) — the last of these
+ * report that a phone is reachable ([PhoneLink.phoneReachability]; the flow conflates,
+ * so rapid flaps may collapse — the LATEST state always lands, which is all the
+ * drain needs) — the last of these
  * is what makes "deltas flush on reconnect" true rather than "flush next time the
  * lifter opens the app" (#173). The phone dedupes replays, so blind re-sends are safe.
  *

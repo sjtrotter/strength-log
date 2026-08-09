@@ -60,7 +60,7 @@ class WearSyncStoreTest {
     private fun newStore(nowMillis: () -> Long = { 1_000L }): Pair<WearSyncStore, CoroutineScope> {
         val scope = CoroutineScope(Dispatchers.IO + Job()).also { openScopes += it }
         val dataStore = PreferenceDataStoreFactory.create(scope = scope) { file }
-        return WearSyncStore(dataStore, nowMillis) to scope
+        return WearSyncStore(dataStore, nowMillis, entropy = { 0L }) to scope
     }
 
     @Test
@@ -97,7 +97,7 @@ class WearSyncStoreTest {
         store1.nextStamp()
         val before = store1.nextStamp()
         assertEquals(2L, before.revision)
-        assertEquals(1_000L, before.epoch)
+        assertEquals(1L shl 10, before.epoch)
         scope1.release()
 
         // App data cleared: the file goes, so the counter restarts at 1 — which is

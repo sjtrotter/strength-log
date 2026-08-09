@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.ZoneOffset
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class LogScreenBuilderTest {
 
@@ -54,6 +55,13 @@ class LogScreenBuilderTest {
             WeightStepper.format(WeightUnit.KG.fromLb(220.0)),
             LogScreenBuilder.bodyweightDisplay(220, WeightUnit.KG),
         )
+    }
+
+    @Test
+    fun bodyweightDisplay_is_absent_for_a_session_that_recorded_none() {
+        // Imported history (#171): the row drops the BW line rather than
+        // printing a "0" the session never weighed.
+        assertNull(LogScreenBuilder.bodyweightDisplay(null, WeightUnit.LB))
     }
 
     // --- grouping by exercise --------------------------------------------------

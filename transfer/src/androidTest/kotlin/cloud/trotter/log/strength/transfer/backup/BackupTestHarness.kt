@@ -55,6 +55,20 @@ abstract class BackupTestHarness {
         service = BackupService(repository)
     }
 
+    /** A minimal but structurally valid empty backup: importing it wipes the
+     *  device, which is how these tests get a clean slate to restore into. */
+    protected fun emptyBackupJson(): String = BackupCodec().encode(
+        BackupDocument(
+            settings = SettingsBackup(
+                bodyweightLb = 235, age = 40, level = "INTERMEDIATE", emphasis = "BALANCED",
+                cardioMode = "OUTDOOR_RUN", cardioPlacement = "FINISHERS", fiveKGoal = true,
+                daysPerWeek = 4, split = "FULL_BODY", anchorScheme = "PROTOTYPE",
+                deadliftVariant = "TRAP_BAR", equipment = emptyList(), weightUnit = "LB",
+                wizardComplete = false, suggestedDay = null,
+            ),
+        ),
+    )
+
     @After
     fun tearDown() {
         runBlocking {

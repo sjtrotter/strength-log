@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -71,7 +72,7 @@ class TrackerRepositorySessionHistoryImportTest {
     }
 
     private fun session(dayTitle: String, completedAt: Long) =
-        WorkoutSessionEntity(id = 0, dayId = "csv:$dayTitle", dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 0)
+        WorkoutSessionEntity(id = 0, dayId = "csv:$dayTitle", dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = null)
 
     private fun set(exerciseId: String, exerciseName: String, setIndex: Int) = SessionSetEntity(
         id = 0, sessionId = 0, exerciseId = exerciseId, exerciseName = exerciseName,
@@ -95,6 +96,18 @@ class TrackerRepositorySessionHistoryImportTest {
         for (s in history.sessionSets) {
             assertTrue(history.sessions.any { it.id == s.sessionId })
         }
+    }
+
+    @Test
+    fun importedSessionsKeepTheirUnknownBodyweight() = runTest {
+        // A CSV has no bodyweight column (#171); the column must round-trip as
+        // NULL rather than the 0 that used to make later backups unrestorable.
+        repo.importSessionHistory(
+            listOf(ImportedSession(session("Day A", 1_000L), listOf(set("bb_back_squat", "Barbell Back Squat", 0)))),
+            newCustomExercises = emptyList(),
+        )
+
+        assertNull(repo.sessionsFlow.first().single().bodyweightLb)
     }
 
     @Test

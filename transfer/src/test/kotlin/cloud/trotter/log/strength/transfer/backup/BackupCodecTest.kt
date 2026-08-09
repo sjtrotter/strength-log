@@ -17,6 +17,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -327,6 +328,8 @@ class BackupCodecTest {
                 liveLogs = emptyList(),
             ),
             document(sessions = listOf(goodSession.copy(bodyweightLb = -5))),
+            // 0 is not "unknown" at v5 — unknown is null, and 0 is impossible.
+            document(sessions = listOf(goodSession.copy(bodyweightLb = 0))),
             document(sessions = listOf(goodSession.copy(sets = listOf(goodSet.copy(weightLb = -1.0))))),
             document(sessions = listOf(goodSession.copy(sets = listOf(goodSet.copy(reps = -1))))),
             document(sessions = listOf(goodSession.copy(sets = listOf(goodSet.copy(setIndex = -1))))),
@@ -350,6 +353,22 @@ class BackupCodecTest {
             ),
         )
         assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(badSet)) }
+    }
+
+    @Test
+    fun `a session with no recorded bodyweight survives a full round trip`() {
+        // The #171 contract: CSV-imported history has no bodyweight, and a backup
+        // carrying that absence must encode, decode and validate cleanly.
+        val doc = document(
+            sessions = listOf(
+                SessionBackup(
+                    id = 7, dayId = "A", dayTitle = "Day A", completedAt = 1L, bodyweightLb = null,
+                    sets = listOf(SessionSetBackup(11, "bb_back_squat", "Squat", "main", 0, "TOP", 235.0, 5, true)),
+                ),
+            ),
+        )
+        assertEquals(doc, codec.decode(codec.encode(doc)))
+        assertNull(codec.decode(codec.encode(doc)).toSnapshot().sessions.single().bodyweightLb)
     }
 
     @Test

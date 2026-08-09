@@ -36,7 +36,7 @@ and the GOAL/ACTUAL seed), and additionally append an immutable session record
 when the user taps **DONE — advance**:
 
 ```
-workout_session(id, dayId, dayTitle, startedAt?, completedAt, bodyweightLb)
+workout_session(id, dayId, dayTitle, startedAt?, completedAt, bodyweightLb?)
 session_set(sessionId, exerciseId, exerciseName, slot, setIndex, kind,
             weightLb, reps, done)
 ```

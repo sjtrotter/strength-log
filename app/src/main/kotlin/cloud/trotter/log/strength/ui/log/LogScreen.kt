@@ -229,7 +229,9 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: ()
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("${item.setCount} sets", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                Text("BW ${item.bodyweightDisplay}", color = TextFaint, style = MaterialTheme.typography.bodySmall)
+                item.bodyweightDisplay?.let {
+                    Text("BW $it", color = TextFaint, style = MaterialTheme.typography.bodySmall)
+                }
             }
             Spacer(Modifier.size(8.dp))
             Text(

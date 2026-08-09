@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
@@ -77,14 +78,16 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
         val document = when (version) {
-            // Every version so far shares one decoder, because every bump only
+            // Every version shares one decoder, because every bump so far only
             // *added* defaulted fields: v2 added session-set `seconds` and the
             // custom-exercise tracking/targets, v3 added the rest-timer prefs, v4
-            // added keep-screen-on. An older document therefore decodes into the
-            // current shape with the newer fields at their defaults, which is
-            // their old meaning — an old backup must always restore. A newer
-            // version is still rejected loudly rather than silently misread.
-            1, 2, 3, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
+            // added keep-screen-on, v5 made a session's bodyweight nullable. An
+            // older document therefore decodes into the current shape with the
+            // newer fields at their defaults, which is their old meaning — an old
+            // backup must always restore. A newer version is still rejected
+            // loudly rather than silently misread.
+            1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj)))
+            CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -97,6 +100,35 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
+
+    /**
+     * Pre-v5, a session's bodyweight was a REQUIRED number. The current
+     * decoder would quietly default an absent field to null, which for a
+     * legacy document means accepting truncation as data — so absence (or an
+     * explicit JSON null) in a v1-v4 document stays what it always was there:
+     * malformed.
+     */
+    private fun requireLegacySessionBodyweights(obj: JsonObject): JsonObject {
+        val sessions = obj["sessions"] as? JsonArray ?: return obj
+        sessions.forEachIndexed { i, el ->
+            val bw = (el as? JsonObject)?.get("bodyweightLb")
+            if (bw !is JsonPrimitive || bw.intOrNull == null) {
+                throw BackupError.Malformed("session[$i] bodyweightLb is required before schema v5")
+            }
+        }
+        return obj
+    }
+
+    /**
+     * Pre-v5, a session's bodyweight was a required number and CSV-imported
+     * history was written as 0 (#171) — the value that made those documents
+     * unrestorable. 0 was never a real bodyweight, so it can only have meant
+     * "none recorded", which v5 spells null.
+     */
+    private fun withLegacyUnknownBodyweight(doc: BackupDocument): BackupDocument =
+        doc.copy(
+            sessions = doc.sessions.map { if (it.bodyweightLb == 0) it.copy(bodyweightLb = null) else it },
+        )
 
     /**
      * Semantic checks the type system can't express. These reject a file that
@@ -233,7 +265,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val setIds = HashSet<Long>()
         for (s in sessions) {
             if (!sessionIds.add(s.id)) throw BackupError.Inconsistent("duplicate session id ${s.id}")
-            if (s.bodyweightLb <= 0) {
+            // Null is "none recorded" and legitimate; any number that isn't a real
+            // bodyweight is not (a legacy 0 has already been mapped to null).
+            if (s.bodyweightLb != null && s.bodyweightLb <= 0) {
                 throw BackupError.Inconsistent("session ${s.id} bodyweightLb must be positive: ${s.bodyweightLb}")
             }
             for (set in s.sets) {

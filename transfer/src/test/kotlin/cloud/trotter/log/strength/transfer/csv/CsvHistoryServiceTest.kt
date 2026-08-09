@@ -75,7 +75,7 @@ class CsvHistoryServiceTest {
 
     private suspend fun seed(dayTitle: String, completedAt: Long, exerciseId: String, exerciseName: String, weightLb: Double, reps: Int) {
         val imported = ImportedSession(
-            session = WorkoutSessionEntity(0, "csv:$dayTitle", dayTitle, null, completedAt, 0),
+            session = WorkoutSessionEntity(0, "csv:$dayTitle", dayTitle, null, completedAt, null),
             sets = listOf(
                 SessionSetEntity(0, 0, exerciseId, exerciseName, Slot.MAIN, 0, SetKind.WORK.name, weightLb, reps, done = true),
             ),
@@ -136,7 +136,7 @@ class CsvHistoryServiceTest {
             SessionSetEntity(0, 0, "bb_back_squat", "Barbell Back Squat", Slot.MAIN, index, SetKind.WORK.name, WeightUnit.KG.toLb(kg), 5, done = true)
         }
         repo.importSessionHistory(
-            listOf(ImportedSession(WorkoutSessionEntity(0, "csv:Day KG", "Day KG", null, 1_720_000_000_000L, 0), sets)),
+            listOf(ImportedSession(WorkoutSessionEntity(0, "csv:Day KG", "Day KG", null, 1_720_000_000_000L, null), sets)),
             emptyList(),
         )
 

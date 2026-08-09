@@ -23,13 +23,22 @@ class CaloriesRecordMapperTest {
 
     private val zone = ZoneId.of("America/New_York")
 
-    private fun session(startedAt: Long?, completedAt: Long, bodyweightLb: Int = 200) = WorkoutSessionEntity(
+    private fun session(startedAt: Long?, completedAt: Long, bodyweightLb: Int? = 200) = WorkoutSessionEntity(
         id = 7, dayId = "A", dayTitle = "Lower", startedAt = startedAt, completedAt = completedAt, bodyweightLb = bodyweightLb,
     )
 
     @Test
     fun `no recorded start yields no record`() {
         assertNull(CaloriesRecordMapper.toActiveCalories(session(startedAt = null, completedAt = 10_000L), zone))
+    }
+
+    @Test
+    fun `no recorded bodyweight yields no record`() {
+        // CSV-imported history (#171): kcal is proportional to bodyweight, so with
+        // none recorded there is no honest number to publish.
+        val start = 0L
+        val end = start + 3_600_000L
+        assertNull(CaloriesRecordMapper.toActiveCalories(session(start, end, bodyweightLb = null), zone))
     }
 
     @Test

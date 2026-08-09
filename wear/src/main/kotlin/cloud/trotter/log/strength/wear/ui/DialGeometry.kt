@@ -57,6 +57,11 @@ object DialGeometry {
     const val EXERCISE_RING_STROKE = 14f
     const val DISC_DIAMETER = 204f
 
+    /** Interactive wall-clock capsule, centred in the free band annulus at 6 o'clock. */
+    const val TIME_PILL_CENTER_RADIUS = 120f
+    const val TIME_PILL_HEIGHT = 24f
+    const val TIME_PILL_HORIZONTAL_PADDING = 10f
+
     /** The rest-over halo's width (§8). */
     const val BLOOM_WIDTH = 10f
 

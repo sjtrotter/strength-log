@@ -267,11 +267,7 @@ private class ScreenContext(
             // The title alone: which day this is now lives on the ring, and the
             // emphasis line is a five-clause sentence an arc can only truncate.
             topBand = dayTitleBand(day.title),
-            bottomBand = BandContent(
-                text = "${day.exercises.size} lifts · $setCount sets".uppercase(),
-                tone = DialTone.TERTIARY,
-                role = DialTextRole.BAND_SECONDARY,
-            ),
+            bottomBand = null,
             disc = DiscContent(
                 style = DiscStyle.FILLED,
                 lines = listOf(
@@ -313,12 +309,7 @@ private class ScreenContext(
             rounds = List(browsed.exercises.size) { RoundState.UPCOMING },
             arc = null,
             topBand = dayTitleBand(browsed.title),
-            bottomBand = BandContent(
-                text = "${browsed.exercises.size} lifts · ${browsed.exercises.sumOf { it.setCount }} sets"
-                    .uppercase(),
-                tone = DialTone.TERTIARY,
-                role = DialTextRole.BAND_SECONDARY,
-            ),
+            bottomBand = null,
             disc = DiscContent(
                 style = DiscStyle.DIMMED,
                 lines = listOfNotNull(
@@ -558,14 +549,7 @@ private class ScreenContext(
         rounds = emptyList(),
         arc = null,
         topBand = null,
-        bottomBand = BandContent(
-            text = if (inputs.pendingCount > 0) {
-                "${inputs.pendingCount} queued · $setCount sets".uppercase()
-            } else {
-                "✓ synced · $setCount sets".uppercase()
-            },
-            tone = if (inputs.pendingCount > 0) DialTone.TERTIARY else DialTone.SUCCESS,
-        ),
+        bottomBand = null,
         disc = DiscContent(
             style = DiscStyle.FILLED_GREEN,
             lines = listOf(DiscLine("done".uppercase(), DialTextRole.NUMERAL, DialTone.ON_DISC)) +

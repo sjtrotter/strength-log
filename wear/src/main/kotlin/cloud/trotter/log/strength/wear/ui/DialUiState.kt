@@ -127,3 +127,10 @@ data class DialUiState(
 
 /** The state machine offers undo by supplying the target the gesture will undo. */
 val DialUiState.isUndoAvailable: Boolean get() = hold != null
+
+/**
+ * The wall clock yields to workout content, never the reverse. In particular,
+ * elapsed/counting/swap copy keeps the bottom band promised by the workout flow;
+ * only a genuinely free bottom pole may carry interactive chrome.
+ */
+val DialUiState.showsTimePill: Boolean get() = bottomBand == null

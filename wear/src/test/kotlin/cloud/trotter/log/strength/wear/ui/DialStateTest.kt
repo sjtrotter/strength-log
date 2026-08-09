@@ -166,7 +166,8 @@ class DialStateTest {
         assertEquals(1, state.rounds.count { it == RoundState.CURRENT })
         // The day's identity is on the ring now, so the band is the title alone.
         assertEquals("LOWER", state.topBand?.text)
-        assertEquals("2 LIFTS · 5 SETS", state.bottomBand?.text)
+        assertNull(state.bottomBand)
+        assertTrue(state.showsTimePill)
         assertEquals(DiscStyle.FILLED, state.disc.style)
         assertEquals(listOf("START", "SQUAT"), state.discText())
         assertEquals(DialTap.OPEN_WORKOUT, state.tap)
@@ -246,7 +247,8 @@ class DialStateTest {
         assertEquals(DialScreen.OVERVIEW, state.screen)
         assertEquals(1, state.accentIndex) // day B's accent, not today's
         assertEquals("UPPER", state.topBand?.text)
-        assertEquals("2 LIFTS · 7 SETS", state.bottomBand?.text)
+        assertNull(state.bottomBand)
+        assertTrue(state.showsTimePill)
         assertEquals(2, state.rounds.size) // one segment per lift of the browsed day
         assertTrue(state.rounds.all { it == RoundState.UPCOMING })
         assertEquals(DiscStyle.DIMMED, state.disc.style)
@@ -477,7 +479,8 @@ class DialStateTest {
         assertTrue(state.rounds.isEmpty())
         assertNull(state.arc)
         assertEquals(DiscStyle.FILLED_GREEN, state.disc.style)
-        assertEquals("✓ SYNCED · 5 SETS", state.bottomBand?.text)
+        assertNull(state.bottomBand)
+        assertTrue(state.showsTimePill)
         assertEquals(DialTap.DISMISS, state.tap)
     }
 
@@ -506,7 +509,31 @@ class DialStateTest {
     @Test
     fun `day done reports the queue instead of a sync it hasn't had`() {
         val state = dialUiState(inputs(snapshot = allDone(), pendingCount = 2))
-        assertEquals("2 QUEUED · 5 SETS", state.bottomBand?.text)
+        assertNull(state.bottomBand)
+        assertTrue(state.showsTimePill)
+    }
+
+    @Test
+    fun `time pill yields exactly when workout content owns the bottom band`() {
+        val overview = overview()
+        val ready = dialUiState(inputs())
+        val swap = dialUiState(
+            inputs(
+                snapshot = snapshot(
+                    squat.copy(alternates = listOf(WatchAlternate("front_squat", "Front Squat"))),
+                    press,
+                ),
+                swapAlternateIndex = 0,
+            ),
+        )
+        val dayDone = dialUiState(inputs(snapshot = allDone()))
+        val noProgram = dialUiState(inputs(snapshot = day.copy(day = day.day.copy(exercises = emptyList()))))
+
+        assertTrue(overview.showsTimePill)
+        assertFalse(ready.showsTimePill)
+        assertFalse(swap.showsTimePill)
+        assertTrue(dayDone.showsTimePill)
+        assertTrue(noProgram.showsTimePill)
     }
 
     private fun allDone(weight: Double = 235.0) = snapshot(

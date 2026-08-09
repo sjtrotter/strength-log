@@ -80,6 +80,26 @@ class DialSemanticsTest {
         composeTestRule.onNodeWithText("ACTION").assertHasNoClickAction()
     }
 
+    @Test
+    fun `time pill is its own plain node and yields to a bottom band`() {
+        val time = wallClockTimeText()
+        val currentBottomBand = mutableStateOf<BandContent?>(null)
+        composeTestRule.setContent {
+            WearTrackerTheme {
+                Dial(
+                    state = state(DialTap.OPEN_WORKOUT).copy(bottomBand = currentBottomBand.value),
+                    onTap = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(time).assertExists().assertHasNoClickAction()
+        composeTestRule.runOnIdle {
+            currentBottomBand.value = BandContent("WORKOUT STATUS", DialTone.TERTIARY)
+        }
+        composeTestRule.onNodeWithText(time).assertDoesNotExist()
+    }
+
     private fun state(tap: DialTap, hold: DialHold? = null) = DialUiState(
         screen = when (tap) {
             DialTap.OPEN_WORKOUT -> DialScreen.OVERVIEW

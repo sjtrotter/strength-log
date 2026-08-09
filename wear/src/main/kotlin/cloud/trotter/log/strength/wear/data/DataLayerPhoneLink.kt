@@ -8,9 +8,11 @@ import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.NodeClient
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.tasks.await
 
 private const val TAG = "PhoneLink"
@@ -20,6 +22,12 @@ private const val TAG = "PhoneLink"
  * Data Layer client. Holds no state of its own: every method is a straight
  * translation of a Play-services call into the vocabulary [DataLayerWatchClient]
  * speaks.
+ *
+ * Both listener flows are [conflate]d, because both carry *state* rather than
+ * events — the current snapshot, and whether a phone is there. Conflating makes
+ * latest-wins structural: a burst arriving faster than the client drains it collapses
+ * to the newest value instead of overflowing a buffer and silently dropping whichever
+ * one the channel happened to refuse.
  */
 class DataLayerPhoneLink(
     private val dataClient: DataClient,
@@ -34,7 +42,7 @@ class DataLayerPhoneLink(
         val listener = DataClient.OnDataChangedListener { events ->
             events.forEach { event ->
                 if (event.type != DataEvent.TYPE_CHANGED) return@forEach
-                SnapshotItem.decode(event.dataItem)?.let { trySend(it) }
+                SnapshotItem.decode(event.dataItem)?.let { offer("a snapshot", it) }
             }
             events.release()
         }
@@ -43,19 +51,24 @@ class DataLayerPhoneLink(
         // be the same match-all wearing a disguise (#173 refutes pinning it here).
         dataClient.addListener(listener, SnapshotItem.uri, DataClient.FILTER_LITERAL).await()
         awaitClose { dataClient.removeListener(listener) }
-    }
+    }.conflate()
 
     override fun phoneReachability(): Flow<Boolean> = callbackFlow {
         val listener = CapabilityClient.OnCapabilityChangedListener { info ->
-            trySend(info.nodes.isNotEmpty())
+            offer("phone reachability", info.nodes.isNotEmpty())
         }
         capabilityClient.addListener(listener, PHONE_CAPABILITY).await()
         // The listener reports transitions only, and a phone already in range when the
         // watch app starts is a state, not an event — the queue has to drain against
-        // that too. Queried *after* registering so a change in the gap can't be missed.
-        trySend(phoneNodeIds().isNotEmpty())
-        awaitClose { capabilityClient.removeListener(listener) }
-    }
+        // that too. Queried *after* registering so a change in the gap can't be missed;
+        // the client treats every `true` as a drain signal, so the two sources racing
+        // costs a duplicate drain at worst.
+        offer("phone reachability", phoneNodeIds().isNotEmpty())
+        // The capability overload, not the listener-only one: that removes URI-filter
+        // registrations, would leave this one live, and every reconstruction of this
+        // flow would then stack another callback on the same listener object.
+        awaitClose { capabilityClient.removeListener(listener, PHONE_CAPABILITY) }
+    }.conflate()
 
     override suspend fun send(path: String, bytes: ByteArray) {
         val targets = phoneNodeIds().ifEmpty { connectedNodeIds() }
@@ -80,6 +93,19 @@ class DataLayerPhoneLink(
         quietly("listing connected nodes", emptyList()) {
             nodeClient.connectedNodes.await().map { it.id }
         }
+}
+
+/**
+ * Hands [value] to the collector, and says so when it can't. The flows above are
+ * conflated, so the only way this fails is a closed channel — the collector is gone
+ * and the listener is about to be unregistered, which is not worth a line in the log.
+ * Anything else would mean a value went missing, which is.
+ */
+private fun <T> ProducerScope<T>.offer(what: String, value: T) {
+    val result = trySend(value)
+    if (result.isFailure && !result.isClosed) {
+        Log.w(TAG, "dropped $what before the watch could read it: ${result.exceptionOrNull()}")
+    }
 }
 
 /**

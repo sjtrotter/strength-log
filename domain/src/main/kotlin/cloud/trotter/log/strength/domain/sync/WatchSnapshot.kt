@@ -8,16 +8,16 @@ import kotlinx.serialization.Serializable
  * the watch is glanceable, not a program browser, so there is no per-day
  * history on the wrist.
  *
- * [revision] is a phone-side monotonic counter (persisted so app restarts
- * don't regress it); the watch uses it only to detect a newer snapshot, never
- * to order or merge — last-write-wins is resolved entirely on the phone.
+ * [epoch] and [revision] together are the freshness contract, and the watch enforces
+ * it: within one epoch it installs a snapshot only when the revision is *strictly
+ * greater* than the one it holds (an equal revision is a redelivery, and installing
+ * one would wipe the watch's optimistic echo, which deliberately doesn't spend a
+ * revision); across epochs it adopts unconditionally, because a new epoch means a new
+ * authority generation and its revisions have nothing to do with the old ones.
  *
- * It is load-bearing in one direction: the watch installs a snapshot only when its
- * revision is *strictly greater* than the one it already holds, so the publisher must
- * spend a fresh revision on every publish carrying new content and must never reuse
- * one. An equal revision reads as a redelivery and is ignored — which is what keeps a
- * reconnect resync from wiping the watch's optimistic echo, since that echo
- * deliberately leaves the revision alone.
+ * The publisher's side of that bargain: spend a fresh revision on every publish that
+ * carries new content, never reuse one, and mint a new epoch whenever the counter
+ * starts over.
  */
 @Serializable
 data class WatchSnapshot(
@@ -38,6 +38,32 @@ data class WatchSnapshot(
      * dial was before this field existed.
      */
     val cycle: List<WatchCycleDay> = emptyList(),
+    /**
+     * Which generation of the phone's sync state [revision] belongs to: the wall-clock
+     * millis at which that state was created, minted once and persisted beside the
+     * counter.
+     *
+     * It exists because [revision] alone is only monotonic *within* one generation.
+     * Clear the phone app's data and the counter restarts at 1 while the watch is still
+     * holding 500 — without an epoch, a watch that refuses anything not strictly newer
+     * refuses the phone forever, and no restart on either side recovers (the watch's
+     * client is a process singleton, and the cached item it re-primes from can be the
+     * stale one). A new epoch says "these numbers are a new series", and the watch
+     * adopts across it unconditionally.
+     *
+     * Being a creation timestamp rather than an opaque id also orders generations,
+     * which is what lets a cold read of the item cache pick a side when it holds items
+     * from two of them (highest epoch, then highest revision). A phone whose clock went
+     * backwards between two data-clears could mint a lower epoch than the one it
+     * replaced; the *live* publish is adopted regardless, so only that cold cache pick
+     * can be briefly wrong, and the next publish corrects it.
+     *
+     * Additive, appended last, defaulting to 0 (mirrors [cycle]). A snapshot from a
+     * publisher too old to have this field decodes as epoch 0, which is simply the
+     * oldest generation — legacy is its own epoch, and the first epoched publish is
+     * adopted across it.
+     */
+    val epoch: Long = 0L,
 )
 
 /** One day of the program as the cycle ring and its day-browse preview read it. */

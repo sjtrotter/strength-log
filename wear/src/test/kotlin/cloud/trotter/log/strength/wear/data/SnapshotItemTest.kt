@@ -13,16 +13,39 @@ import kotlin.test.assertNull
 class SnapshotItemTest {
 
     @Test
-    fun `the highest revision wins regardless of read order`() {
-        val stale = phoneSnapshot(revision = 3)
-        val current = phoneSnapshot(revision = 11)
+    fun `within one generation the highest revision wins, in either read order`() {
+        val stale = phoneSnapshot(revision = 3, epoch = EPOCH)
+        val current = phoneSnapshot(revision = 11, epoch = EPOCH)
 
         assertEquals(current, newest(listOf(stale, current)))
         assertEquals(current, newest(listOf(current, stale)))
     }
 
     @Test
+    fun `a newer generation outranks a higher revision of an older one`() {
+        // What an obsolete node leaves in the cache after the phone's data is cleared:
+        // a revision far above anything the restarted count will reach for weeks.
+        val obsolete = phoneSnapshot(revision = 500, epoch = EPOCH)
+        val current = phoneSnapshot(revision = 1, epoch = EPOCH + 1)
+
+        assertEquals(current, newest(listOf(obsolete, current)))
+        assertEquals(current, newest(listOf(current, obsolete)))
+    }
+
+    @Test
+    fun `an epoched item outranks a legacy one that carries no epoch at all`() {
+        val legacy = phoneSnapshot(revision = 900)
+        val epoched = phoneSnapshot(revision = 1, epoch = EPOCH)
+
+        assertEquals(epoched, newest(listOf(legacy, epoched)))
+    }
+
+    @Test
     fun `nothing cached reads as nothing to show`() {
         assertNull(newest(emptyList()))
+    }
+
+    private companion object {
+        const val EPOCH = 1_700_000_000_000L
     }
 }

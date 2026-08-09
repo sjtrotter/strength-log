@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.wear.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import java.io.File
+import java.util.Collections
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,8 +22,8 @@ import kotlin.test.fail
 
 /**
  * The watch client's sync contract against a [FakePhoneLink]: when the queue drains,
- * what makes an inbound snapshot authoritative, and who owns the coroutine an edit
- * rides on (#173, #174).
+ * which inbound snapshot is authoritative, and who owns the coroutine an edit rides on
+ * (#173, #174).
  *
  * Real dispatchers and a real (temp-file) DataStore rather than virtual time: the
  * properties under test are about work outliving its caller and about two drains
@@ -34,6 +35,7 @@ class DataLayerWatchClientTest {
     /** Stands in for StrengthLogWearApp.appScope — outlives every "Activity" below. */
     private val appScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val storeScope = CoroutineScope(Dispatchers.IO + Job())
+    private val warnings: MutableList<String> = Collections.synchronizedList(mutableListOf())
 
     @AfterTest
     fun tearDown() {
@@ -47,13 +49,24 @@ class DataLayerWatchClientTest {
         },
     )
 
+    private fun watchClient(link: FakePhoneLink, queue: PendingEditStore = store()) =
+        DataLayerWatchClient(
+            link = link,
+            queue = queue,
+            scope = appScope,
+            // The module doesn't return default values for unmocked Android calls, so
+            // android.util.Log would throw here. Recorded instead: a warning in a
+            // happy-path test means something failed quietly.
+            onWarning = { message, cause -> warnings += "$message: $cause" },
+        )
+
     @Test
-    fun `a phone becoming reachable drains both queues`() = runBlocking {
+    fun `a phone reported reachable drains both queues, every time it is reported`() = runBlocking {
         val link = FakePhoneLink()
         val queue = store()
         queue.enqueue(tickDelta(stamp = 7L))
         queue.enqueueSwap(swapRequest(stamp = 8L))
-        DataLayerWatchClient(link, queue, appScope)
+        watchClient(link, queue)
         // The start-up prime drains too; let it settle so the reconnect drain is the
         // one being measured.
         eventually("the start-up drain") { link.sentDeltas.size == 1 && link.sentSwaps.size == 1 }
@@ -61,12 +74,16 @@ class DataLayerWatchClientTest {
 
         link.reachability.emit(false)
         link.reachability.emit(true)
-
         eventually("the reconnect drain") { link.sentDeltas.size == 2 && link.sentSwaps.size == 2 }
-        // Reachability re-asserted without having changed is not a reconnect.
+
+        // A second `true` with no `false` between drains again, deliberately: the
+        // initial capability query and the change callbacks are independent sources,
+        // and deduplicating would let a late query result latch `true` over a real
+        // disconnect and swallow the reconnect that follows it.
         link.reachability.emit(true)
-        delay(SETTLE_MILLIS)
-        assertEquals(2, link.sentDeltas.size)
+
+        eventually("the repeated report's drain") { link.sentDeltas.size == 3 }
+        assertTrue(warnings.isEmpty(), "unexpected warnings: $warnings")
     }
 
     @Test
@@ -75,7 +92,7 @@ class DataLayerWatchClientTest {
         link.sendDurationMillis = 60L
         val queue = store()
         queue.enqueue(tickDelta(stamp = 7L))
-        DataLayerWatchClient(link, queue, appScope)
+        watchClient(link, queue)
         eventually("both listeners") {
             link.reachability.subscriptionCount.value > 0 && link.snapshotEvents.subscriptionCount.value > 0
         }
@@ -91,31 +108,29 @@ class DataLayerWatchClientTest {
     }
 
     @Test
-    fun `a snapshot older than the one held is refused, and still flushes the queue`() = runBlocking {
+    fun `a lower revision of the epoch we hold is refused, and still flushes the queue`() = runBlocking {
         val link = FakePhoneLink()
+        // Primed from the cache, which is where a fresh process gets its baseline.
+        link.cached = phoneSnapshot(revision = 9, epoch = PHONE_EPOCH)
         val queue = store()
         queue.enqueue(tickDelta(setIndex = 1, stamp = 7L))
-        val client = DataLayerWatchClient(link, queue, appScope)
+        val client = watchClient(link, queue)
+        eventually("the primed snapshot") { link.sentDeltas.size == 1 }
+        assertEquals(9L, client.snapshotFlow().first().revision)
         eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
 
-        // One send from the start-up drain, one more from revision 9's.
-        link.snapshotEvents.emit(phoneSnapshot(revision = 9))
-        eventually("the phone's snapshot") { link.sentDeltas.size == 2 }
-        assertEquals(9L, client.snapshotFlow().first().revision)
+        link.snapshotEvents.emit(phoneSnapshot(revision = 4, epoch = PHONE_EPOCH))
 
-        link.snapshotEvents.emit(phoneSnapshot(revision = 4))
-
-        eventually("the stale item's drain") { link.sentDeltas.size == 3 }
+        eventually("the stale item's drain") { link.sentDeltas.size == 2 }
         assertEquals(9L, client.snapshotFlow().first().revision, "revision 4 must not install")
     }
 
     @Test
     fun `a redelivered snapshot does not un-tick the set the lifter just ticked`() = runBlocking {
         val link = FakePhoneLink()
-        val queue = store()
-        val client = DataLayerWatchClient(link, queue, appScope)
+        val client = watchClient(link)
         eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
-        val published = phoneSnapshot(revision = 9)
+        val published = phoneSnapshot(revision = 9, epoch = PHONE_EPOCH)
         link.snapshotEvents.emit(published)
         eventually("the phone's snapshot") { client.snapshotFlow().first().revision == 9L }
 
@@ -132,10 +147,58 @@ class DataLayerWatchClientTest {
     }
 
     @Test
+    fun `a count that restarted under a new epoch is adopted, not refused as stale`() = runBlocking {
+        val link = FakePhoneLink()
+        val client = watchClient(link)
+        eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        link.snapshotEvents.emit(phoneSnapshot(revision = 500, epoch = PHONE_EPOCH))
+        eventually("the phone's snapshot") { client.snapshotFlow().first().revision == 500L }
+
+        // The lifter cleared the phone app's data: same phone, new generation, and its
+        // revisions start over. Refusing this is the wedge #173's guard could have
+        // created — no restart on either side recovers from it.
+        link.snapshotEvents.emit(phoneSnapshot(revision = 1, epoch = PHONE_EPOCH + 1))
+
+        eventually("the new generation") { client.snapshotFlow().first().epoch == PHONE_EPOCH + 1 }
+        assertEquals(1L, client.snapshotFlow().first().revision)
+    }
+
+    @Test
+    fun `a stale cached item does not outrank a live snapshot of a newer epoch`() = runBlocking {
+        val link = FakePhoneLink()
+        // What an obsolete node leaves behind: a high revision of a dead generation.
+        link.cached = phoneSnapshot(revision = 500, epoch = PHONE_EPOCH)
+        val client = watchClient(link)
+        eventually("the primed baseline") { client.snapshotFlow().first().revision == 500L }
+        eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+
+        link.snapshotEvents.emit(phoneSnapshot(revision = 1, epoch = PHONE_EPOCH + 1))
+
+        eventually("the live generation") { client.snapshotFlow().first().epoch == PHONE_EPOCH + 1 }
+    }
+
+    @Test
+    fun `a snapshot from a publisher too old to send an epoch still installs`() = runBlocking {
+        val link = FakePhoneLink()
+        val client = watchClient(link)
+        eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+
+        // Legacy decodes as epoch 0 — the oldest generation, and its own.
+        link.snapshotEvents.emit(phoneSnapshot(revision = 5))
+        eventually("the legacy snapshot") { client.snapshotFlow().first().revision == 5L }
+        assertEquals(0L, client.snapshotFlow().first().epoch)
+
+        // The publisher is upgraded: revision 1 of a real epoch supersedes it.
+        link.snapshotEvents.emit(phoneSnapshot(revision = 1, epoch = PHONE_EPOCH))
+        eventually("the epoched snapshot") { client.snapshotFlow().first().epoch == PHONE_EPOCH }
+        assertEquals(1L, client.snapshotFlow().first().revision)
+    }
+
+    @Test
     fun `an edit reaches the durable queue after the caller's scope is cancelled`() = runBlocking {
         val link = FakePhoneLink()
         val queue = store()
-        val client = DataLayerWatchClient(link, queue, appScope)
+        val client = watchClient(link, queue)
         // The dial's composition scope: cancelled on Activity destroy, which the app's
         // own day-done dismiss triggers a haptic's worth of time after the tick (#174).
         val composition = CoroutineScope(Dispatchers.Unconfined + Job())
@@ -165,5 +228,9 @@ class DataLayerWatchClientTest {
 
         /** Long enough for work that must NOT happen to have happened. */
         const val SETTLE_MILLIS = 150L
+
+        /** A phone generation, as [cloud.trotter.log.strength.domain.sync.WatchSnapshot.epoch]
+         *  carries it: the wall-clock millis its sync state was created. */
+        const val PHONE_EPOCH = 1_700_000_000_000L
     }
 }

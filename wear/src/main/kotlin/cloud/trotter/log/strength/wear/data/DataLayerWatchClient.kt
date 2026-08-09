@@ -7,13 +7,12 @@ import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.WearSyncPaths
+import kotlin.random.Random
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.getAndUpdate
@@ -33,21 +32,30 @@ import kotlinx.coroutines.sync.withLock
  *
  * The §11.4 mechanism lives here: messaging is fire-and-forget, so every edit is also
  * queued in [PendingEditStore] and re-sent until a later snapshot reflects it. Three
- * signals drain the queue: the first prime on start, every inbound snapshot, and a
- * phone becoming reachable again ([PhoneLink.phoneReachability]) — the last of these
+ * signals drain the queue: the first prime on start, every inbound snapshot, and every
+ * report that a phone is reachable ([PhoneLink.phoneReachability]) — the last of these
  * is what makes "deltas flush on reconnect" true rather than "flush next time the
  * lifter opens the app" (#173). The phone dedupes replays, so blind re-sends are safe.
  *
  * Everything here runs on the application [scope], which has no
  * `CoroutineExceptionHandler`: anything that escapes takes the whole watch app down.
- * That is the constraint behind [guarded] and [withRetriedRegistration], and the
- * reason [sendEdit] launches its own work instead of borrowing the caller's scope
- * (#174 — a composition scope dies with the Activity, mid-enqueue).
+ * That is the constraint behind [guarded] and [retryingRegistration], and the reason
+ * [sendEdit] launches its own work instead of borrowing the caller's scope (#174 — a
+ * composition scope dies with the Activity, mid-enqueue).
+ *
+ * @param onWarning where this client's warnings go. Injectable because `:wear`'s tests
+ *   are plain JVM, where `android.util.Log` is a stub that throws — a seam here is
+ *   cheaper and more honest than making the whole module return default values for
+ *   every unmocked Android call.
+ * @param retryJitter the only randomness in the retry cadence, injectable so the
+ *   schedule can be asserted exactly.
  */
 class DataLayerWatchClient(
     private val link: PhoneLink,
     private val queue: PendingEditStore,
     private val scope: CoroutineScope,
+    private val onWarning: (String, Throwable) -> Unit = { message, cause -> Log.w(TAG, message, cause) },
+    private val retryJitter: () -> Double = { Random.nextDouble() },
 ) : WatchTrackerClient {
 
     private val snapshots = MutableStateFlow<WatchSnapshot?>(null)
@@ -59,12 +67,17 @@ class DataLayerWatchClient(
     init {
         scope.launch { prime() }
         link.snapshotChanges()
-            .withRetriedRegistration("snapshots")
+            .retryingRegistration("snapshots")
             .onEach { guarded("handling a snapshot") { onSnapshot(it) } }
             .launchIn(scope)
         link.phoneReachability()
-            .withRetriedRegistration("phone reachability")
-            .distinctUntilChanged()
+            .retryingRegistration("phone reachability")
+            // Every "reachable" is a drain, not just the rising edge. Deduplicating
+            // would mean trusting the order of two independent sources — the initial
+            // capability query and the change callbacks — and a query result that
+            // lands after a disconnect callback would latch `true` and swallow the
+            // real reconnect for the rest of the session. Drains are serialized and
+            // the phone dedupes replays, so an extra one costs a message nobody reads.
             .filter { reachable -> reachable }
             .onEach { guarded("draining on reconnect") { drainQueue() } }
             .launchIn(scope)
@@ -112,10 +125,10 @@ class DataLayerWatchClient(
      * The optimistic on-wrist echo (spec §9), applied in place to whatever snapshot is
      * held.
      *
-     * INVARIANT: the echo must NOT bump `revision`. Revision means "the phone has said
-     * something new"; an echo that advanced it would let the lifter's own edit pass
-     * itself off as a phone-side change, and — since [install] compares against the
-     * held revision — would make the phone's real answer look stale.
+     * INVARIANT: the echo must NOT touch `epoch` or `revision`. Revision means "the
+     * phone has said something new"; an echo that advanced it would let the lifter's
+     * own edit pass itself off as a phone-side change, and — since [install] compares
+     * against the held stamp — would make the phone's real answer look stale.
      */
     private fun echo(apply: (List<WatchExercise>) -> List<WatchExercise>) {
         snapshots.update { held ->
@@ -140,36 +153,46 @@ class DataLayerWatchClient(
             // no lock needed here.
             queue.reconcileAgainst(snapshot)
         }
-        // Drained either way: a redelivery of the revision we already hold is what a
+        // Drained either way: a redelivery of the stamp we already hold is what a
         // reconnect resync looks like, and it is a perfectly good flush signal.
         drainQueue()
     }
 
-    /**
-     * Installs [snapshot] if it is strictly newer than the one held, and says whether
-     * it did.
-     *
-     * THE REVISION CONTRACT (`>`, not `>=`). The phone spends a fresh revision on every
-     * publish (`WearSyncPublisher` conflates on content, then bumps), so an equal
-     * revision is never new content — it is a redelivery, which the Data Layer does
-     * emit when it resyncs a reconnected node, and which [prime] can also race against
-     * the listener. Installing one would be worse than a no-op: the optimistic echo
-     * deliberately leaves `revision` alone, so the held snapshot at revision R can be
-     * *ahead* of the phone's R in exactly the way the lifter can see, and re-installing
-     * R would visibly un-tick a set they just ticked. Out-of-order and stale items are
-     * refused by the same comparison.
-     *
-     * The guard is per-process by design: it holds only against the revision this
-     * process has seen, so a phone that legitimately regresses its counter (app data
-     * cleared) is picked up on the next watch-app start, when [prime] installs the
-     * cached item against nothing.
-     */
+    /** Installs [snapshot] if it [supersedes] the held one, and says whether it did. */
     private fun install(snapshot: WatchSnapshot): Boolean {
         val held = snapshots.getAndUpdate { current ->
-            if (current != null && snapshot.revision <= current.revision) current else snapshot
+            if (current == null || supersedes(snapshot, current)) snapshot else current
         }
-        return held == null || held.revision < snapshot.revision
+        return held == null || supersedes(snapshot, held)
     }
+
+    /**
+     * THE FRESHNESS CONTRACT, and the only place it is decided.
+     *
+     * **Same epoch — strictly greater revision wins, and equal loses.** The phone
+     * spends a fresh revision on every publish, so an equal revision is never new
+     * content: it is a redelivery, which the Data Layer emits when it resyncs a
+     * reconnected node, and which [prime] can also race against the listener.
+     * Installing one would be worse than a no-op — the optimistic echo deliberately
+     * leaves the stamp alone, so the held snapshot at revision R can be *ahead* of the
+     * phone's R in exactly the way the lifter can see, and re-installing R would
+     * visibly un-tick a set they just ticked. Out-of-order and stale items are refused
+     * by the same comparison.
+     *
+     * **Different epoch — always adopt.** Revisions only order within the generation
+     * that issued them ([WatchSnapshot.epoch]). Clearing the phone app's data restarts
+     * the count at 1 while this watch may hold 500, and refusing that would wedge sync
+     * permanently: this client is a process singleton, so reopening the app doesn't
+     * rebuild it, and even a fresh process can re-prime the stale baseline from a
+     * cached item an obsolete node left behind. Adopting on epoch change is what makes
+     * the wedge impossible.
+     *
+     * Two same-package handheld nodes publishing under different epochs at once would
+     * flap between them — the parked two-phone topology (#173), not a shape a
+     * one-phone-one-watch lifter reaches.
+     */
+    private fun supersedes(incoming: WatchSnapshot, held: WatchSnapshot): Boolean =
+        incoming.epoch != held.epoch || incoming.revision > held.revision
 
     /**
      * Both queues, on every drain signal. The order between them doesn't matter and
@@ -192,18 +215,33 @@ class DataLayerWatchClient(
      * Registering a Data Layer listener can fail transiently — Play services updating,
      * a cold GMS process — and the failure surfaces when the flow is collected. It used
      * to throw straight into the handler-less application scope and take the app down
-     * (#173). Retry a bounded number of times with exponential backoff, then stop
-     * listening quietly for this session; the next launch registers again.
+     * (#173).
+     *
+     * Retried for as long as the process lives, never abandoned. This client is a
+     * process singleton built once from the Application, so "give up and let the next
+     * app open try again" would have been a lie: giving up means no reconnect flush and
+     * no inbound snapshot for the rest of the process's life. The cadence pays for that
+     * promise — see [retryDelayMillis].
      */
-    private fun <T> Flow<T>.withRetriedRegistration(what: String): Flow<T> =
+    private fun <T> Flow<T>.retryingRegistration(what: String): Flow<T> =
         retryWhen { cause, priorFailures ->
-            val retrying = priorFailures < REGISTRATION_ATTEMPTS - 1
-            if (retrying) {
-                Log.w(TAG, "registering for $what failed; retrying", cause)
-                delay(RETRY_BASE_MILLIS shl priorFailures.toInt())
-            }
-            retrying
-        }.catch { Log.w(TAG, "gave up listening for $what this session", it) }
+            onWarning("registering for $what failed; retrying", cause)
+            delay(retryDelayMillis(priorFailures))
+            true
+        }
+
+    /**
+     * Exponential from [RETRY_BASE_MILLIS] (1s, 2s, 4s…) up to a [RETRY_CAP_MILLIS]
+     * ceiling, then that ceiling forever — quick enough to catch a Play-services
+     * hiccup within seconds, slow enough that a genuinely broken node is polled a few
+     * times an hour rather than continuously. Scattered ±25% so a watch and its
+     * neighbours don't settle into one metronome.
+     */
+    private fun retryDelayMillis(priorFailures: Long): Long {
+        val shift = priorFailures.coerceAtMost(MAX_BACKOFF_SHIFT).toInt()
+        val backoff = minOf(RETRY_BASE_MILLIS shl shift, RETRY_CAP_MILLIS)
+        return (backoff * (0.75 + retryJitter() / 2)).toLong()
+    }
 
     /**
      * Runs [block], logging anything it throws instead of letting it reach the
@@ -216,17 +254,20 @@ class DataLayerWatchClient(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.w(TAG, "$what failed", e)
+            onWarning("$what failed", e)
         }
     }
 
     internal companion object {
         private const val TAG = "WatchClient"
 
-        /** Registration attempts in all — the first, plus four retries. */
-        const val REGISTRATION_ATTEMPTS = 5L
-
-        /** First backoff; each retry doubles it (1s, 2s, 4s, 8s). */
+        /** First backoff; each failure doubles it. */
         const val RETRY_BASE_MILLIS = 1_000L
+
+        /** The ceiling the backoff settles at, and stays at. */
+        const val RETRY_CAP_MILLIS = 300_000L
+
+        /** Keeps the doubling inside a Long however long a phone stays broken. */
+        private const val MAX_BACKOFF_SHIFT = 20L
     }
 }

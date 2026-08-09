@@ -20,13 +20,14 @@ import kotlinx.coroutines.flow.flow
 
 /**
  * A [PhoneLink] with no Play services behind it — the seam that makes
- * [DataLayerWatchClient]'s reconnect, retry and revision rules provable on a plain
+ * [DataLayerWatchClient]'s reconnect, retry and freshness rules provable on a plain
  * JVM. A test drives the phone by emitting on [snapshotEvents] / [reachability] and
  * reads back what the watch put on the wire.
  *
- * Both flows are unreplayed, so a test must wait for the client to subscribe
- * (`subscriptionCount`) before emitting, exactly as it would have to against a real
- * listener registration.
+ * Both flows register on collection (recording the clock, refusing while asked to),
+ * which is what a real listener registration does and what the client's retry has to
+ * survive. Neither replays, so a test must wait for the client to subscribe
+ * (`subscriptionCount`) before emitting.
  */
 internal class FakePhoneLink(private val clockMillis: () -> Long = { 0L }) : PhoneLink {
 
@@ -35,11 +36,13 @@ internal class FakePhoneLink(private val clockMillis: () -> Long = { 0L }) : Pho
     val snapshotEvents = MutableSharedFlow<WatchSnapshot>(extraBufferCapacity = 64)
     val reachability = MutableSharedFlow<Boolean>(extraBufferCapacity = 64)
 
-    /** How many snapshot-listener registrations to refuse before letting one through. */
-    var registrationsToRefuse = 0
+    /** How many registrations of each flow to refuse before letting one through. */
+    var snapshotRegistrationsToRefuse = 0
+    var reachabilityRegistrationsToRefuse = 0
 
-    /** The clock at each registration attempt — the retry backoff, observed. */
-    val registrationAttempts: MutableList<Long> = Collections.synchronizedList(mutableListOf())
+    /** The clock at each registration attempt — the retry cadence, observed. */
+    val snapshotRegistrations: MutableList<Long> = Collections.synchronizedList(mutableListOf())
+    val reachabilityRegistrations: MutableList<Long> = Collections.synchronizedList(mutableListOf())
 
     /** How long a send takes; non-zero makes an overlapping drain observable. */
     var sendDurationMillis = 0L
@@ -60,12 +63,20 @@ internal class FakePhoneLink(private val clockMillis: () -> Long = { 0L }) : Pho
     override suspend fun cachedSnapshot(): WatchSnapshot? = cached
 
     override fun snapshotChanges(): Flow<WatchSnapshot> = flow {
-        registrationAttempts += clockMillis()
-        if (registrationAttempts.size <= registrationsToRefuse) throw IOException("registration refused")
+        snapshotRegistrations += clockMillis()
+        if (snapshotRegistrations.size <= snapshotRegistrationsToRefuse) {
+            throw IOException("snapshot registration refused")
+        }
         emitAll(snapshotEvents)
     }
 
-    override fun phoneReachability(): Flow<Boolean> = reachability
+    override fun phoneReachability(): Flow<Boolean> = flow {
+        reachabilityRegistrations += clockMillis()
+        if (reachabilityRegistrations.size <= reachabilityRegistrationsToRefuse) {
+            throw IOException("capability registration refused")
+        }
+        emitAll(reachability)
+    }
 
     override suspend fun send(path: String, bytes: ByteArray) {
         peakInFlight.accumulateAndGet(inFlight.incrementAndGet()) { a, b -> maxOf(a, b) }
@@ -82,8 +93,9 @@ internal class FakePhoneLink(private val clockMillis: () -> Long = { 0L }) : Pho
 }
 
 /** A day the tests can log against: one lift, two rounds, neither done. */
-internal fun phoneSnapshot(revision: Long) = WatchSnapshot(
+internal fun phoneSnapshot(revision: Long, epoch: Long = 0L) = WatchSnapshot(
     revision = revision,
+    epoch = epoch,
     suggestedDayId = "A",
     day = WatchDay(
         dayId = "A",

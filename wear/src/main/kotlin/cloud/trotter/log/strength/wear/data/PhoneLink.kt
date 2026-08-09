@@ -34,6 +34,11 @@ interface PhoneLink {
      * only on a content change, so coming back into range on its own produces no data
      * event, and offline edits used to sit queued until the lifter opened the app
      * (#173). Same registration-failure contract as [snapshotChanges].
+     *
+     * Repeats are allowed and expected: the initial query and the change callbacks are
+     * independent sources with no ordering between them, so this promises the
+     * *reports*, not a clean edge. The client treats every `true` as a drain signal
+     * precisely so it never has to trust that ordering.
      */
     fun phoneReachability(): Flow<Boolean>
 

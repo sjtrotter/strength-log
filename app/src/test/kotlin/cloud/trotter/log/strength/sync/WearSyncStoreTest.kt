@@ -22,7 +22,12 @@ import org.robolectric.annotation.Config
  * The snapshot revision must be monotonic *across process restarts* — a regressed
  * revision would make a live watch treat a genuinely newer snapshot as stale and
  * ignore it. The counter is persisted, so a fresh [WearSyncStore] over the same
- * file resumes counting up. Also pins the dedupe markers' persistence.
+ * file resumes counting up.
+ *
+ * The epoch is the other half of that contract, pinned here in the two ways that
+ * matter: it survives a restart (same file), and it is *new* when the file isn't —
+ * app data cleared, which is exactly when the counter starts over. Also pins the
+ * dedupe markers' persistence.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -52,32 +57,55 @@ class WearSyncStoreTest {
      * DataStore's hold on the file, which is exactly how a "process restart" is
      * simulated: the next [newStore] opens the same file fresh.
      */
-    private fun newStore(): Pair<WearSyncStore, CoroutineScope> {
+    private fun newStore(nowMillis: () -> Long = { 1_000L }): Pair<WearSyncStore, CoroutineScope> {
         val scope = CoroutineScope(Dispatchers.IO + Job()).also { openScopes += it }
-        return WearSyncStore(PreferenceDataStoreFactory.create(scope = scope) { file }) to scope
+        val dataStore = PreferenceDataStoreFactory.create(scope = scope) { file }
+        return WearSyncStore(dataStore, nowMillis) to scope
     }
 
     @Test
     fun `revision increments monotonically`() = runTest {
         val store = newStore().first
-        assertEquals(1L, store.nextRevision())
-        assertEquals(2L, store.nextRevision())
-        assertEquals(3L, store.nextRevision())
+        assertEquals(1L, store.nextStamp().revision)
+        assertEquals(2L, store.nextStamp().revision)
+        assertEquals(3L, store.nextStamp().revision)
     }
 
     @Test
-    fun `revision does not regress across a restart`() = runTest {
+    fun `revision does not regress across a restart, and the epoch holds`() = runTest {
         // One store hands out 1, 2 then the process "dies" (its scope is cancelled).
         val (store1, scope1) = newStore()
-        store1.nextRevision()
-        val last = store1.nextRevision()
-        assertEquals(2L, last)
+        store1.nextStamp()
+        val last = store1.nextStamp()
+        assertEquals(2L, last.revision)
         scope1.release()
 
-        // A fresh store over the same file must continue above the last value.
-        val resumed = newStore().first.nextRevision()
-        assertTrue("revision regressed across restart: $resumed <= $last", resumed > last)
-        assertEquals(3L, resumed)
+        // A fresh store over the same file continues above the last value, under the
+        // same epoch: a restart is not a new generation, however the clock reads.
+        val resumed = newStore(nowMillis = { 9_999L }).first.nextStamp()
+        assertTrue(
+            "revision regressed across restart: ${resumed.revision} <= ${last.revision}",
+            resumed.revision > last.revision,
+        )
+        assertEquals(3L, resumed.revision)
+        assertEquals(last.epoch, resumed.epoch)
+    }
+
+    @Test
+    fun `clearing the app's data mints a new epoch for the restarted count`() = runTest {
+        val (store1, scope1) = newStore(nowMillis = { 1_000L })
+        store1.nextStamp()
+        val before = store1.nextStamp()
+        assertEquals(2L, before.revision)
+        assertEquals(1_000L, before.epoch)
+        scope1.release()
+
+        // App data cleared: the file goes, so the counter restarts at 1 — which is
+        // exactly when the watch has to be told these numbers are a new series.
+        file.delete()
+        val after = newStore(nowMillis = { 2_000L }).first.nextStamp()
+        assertEquals(1L, after.revision)
+        assertTrue("epoch must change when the count restarts", after.epoch != before.epoch)
     }
 
     @Test

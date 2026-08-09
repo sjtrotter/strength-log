@@ -46,11 +46,6 @@ android {
     testOptions {
         unitTests.all { it.useJUnitPlatform() }
         unitTests.isIncludeAndroidResources = true // Robolectric Compose semantics tests
-        // The Data Layer client logs on every path its tests drive it down — a refused
-        // listener registration, a swallowed handler failure. Without this the stubbed
-        // android.jar throws inside android.util.Log itself and the test never reaches
-        // the behavior it means to pin.
-        unitTests.isReturnDefaultValues = true
     }
 }
 

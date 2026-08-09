@@ -127,6 +127,10 @@ class WatchSnapshotTest {
         """.trimIndent()
         val decoded = lenient.decodeFromString(WatchSnapshot.serializer(), oldWire)
         assertEquals(0, decoded.day.exercises.single().sets.single().restAfterSeconds)
+        // Same wire, same rule for the epoch: a publisher too old to stamp a
+        // generation decodes as epoch 0 — the oldest generation, and its own. The
+        // watch installs it, then supersedes it with the first epoched publish.
+        assertEquals(0L, decoded.epoch)
     }
 
     @Test

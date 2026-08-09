@@ -1,7 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,26 +9,25 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -127,22 +126,28 @@ internal fun SessionReceiptScrim(
 
             Spacer(Modifier.size(28.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ReceiptButton(
-                    label = "SHARE",
-                    fill = Color.Transparent,
-                    labelColor = TextSecondary,
-                    border = Border,
+                OutlinedButton(
                     onClick = onShare,
                     modifier = Modifier.weight(1f),
-                )
-                ReceiptButton(
-                    label = "BACK TO TODAY",
-                    fill = accent,
-                    labelColor = onDayAccent(receipt.dayIndex),
-                    border = null,
+                    shape = MaterialTheme.shapes.large,
+                    border = BorderStroke(1.dp, Border),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    ReceiptButtonLabel("SHARE")
+                }
+                Button(
                     onClick = onFinish,
                     modifier = Modifier.weight(1.6f),
-                )
+                    shape = MaterialTheme.shapes.large,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = accent,
+                        contentColor = onDayAccent(receipt.dayIndex),
+                    ),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    ReceiptButtonLabel("BACK TO TODAY")
+                }
             }
         }
     }
@@ -179,28 +184,14 @@ private fun ReceiptRule() {
 }
 
 @Composable
-private fun ReceiptButton(
-    label: String,
-    fill: Color,
-    labelColor: Color,
-    border: Color?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val shape = RoundedCornerShape(12.dp)
-    Box(
-        modifier = modifier
-            // heightIn, not height (A7 font-scale): "BACK TO TODAY" wraps to two
-            // lines at large scales rather than overflowing a fixed pill.
-            .heightIn(min = 52.dp)
-            .background(fill, shape)
-            .then(if (border == null) Modifier else Modifier.border(1.dp, border, shape))
-            .pressable(shape = shape, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = label, color = labelColor, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
-    }
+private fun ReceiptButtonLabel(label: String) {
+    Text(
+        text = label,
+        style = DoneButtonLabel,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        modifier = Modifier.heightIn(min = 36.dp),
+    )
 }
 
 @Preview(showBackground = true, heightDp = 720, backgroundColor = 0xFF0D0D0F)

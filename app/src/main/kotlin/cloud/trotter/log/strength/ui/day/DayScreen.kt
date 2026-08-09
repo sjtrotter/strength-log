@@ -76,7 +76,6 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
-import cloud.trotter.log.strength.ui.components.CardShape
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.NoProgramState
@@ -927,12 +926,14 @@ private fun CardioCard(cardio: CardioSuggestion) {
     // Saveable so LazyColumn eviction and rotation don't snap it shut (defaults closed).
     var open by rememberSaveable { mutableStateOf(false) }
     val chevronRotation by animateFloatAsState(if (open) 180f else 0f, tween(200), label = "cardioChevron")
+    // Not the clickable-card overload: OutlinedCard(onClick) cannot carry the
+    // Expand/Collapse click label, and TalkBack loses the verb without it.
     AppCard(
         modifier = Modifier
             .pressable(
                 onClickLabel = if (open) "Collapse" else "Expand",
                 role = Role.Button,
-                shape = CardShape,
+                shape = MaterialTheme.shapes.large,
             ) { open = !open }
             .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
     ) {

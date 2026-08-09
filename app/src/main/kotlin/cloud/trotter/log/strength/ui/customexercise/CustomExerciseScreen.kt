@@ -9,15 +9,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -307,45 +309,49 @@ private fun Footer(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            FooterButton(
-                label = "CANCEL",
-                fill = Border,
-                textColor = TextPrimary,
+            FilledTonalButton(
                 modifier = Modifier.weight(1f),
                 onClick = actions.onCancel,
-            )
-            FooterButton(
-                label = "SAVE",
-                fill = accent,
-                textColor = onAccent,
+                shape = MaterialTheme.shapes.large,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = Border,
+                    contentColor = TextPrimary,
+                ),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+            ) {
+                FooterButtonLabel("CANCEL")
+            }
+            Button(
                 enabled = state.canSave,
-                modifier = Modifier.weight(2f),
+                modifier = Modifier.weight(2f).disabledAlpha(state.canSave),
                 onClick = actions.onSave,
-            )
+                shape = MaterialTheme.shapes.large,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = accent,
+                    contentColor = onAccent,
+                    // Preserve the existing whole-control 40% treatment: M3
+                    // owns the disabled interaction, this modifier owns its
+                    // established rendering.
+                    disabledContainerColor = accent,
+                    disabledContentColor = onAccent,
+                ),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+            ) {
+                FooterButtonLabel("SAVE")
+            }
         }
     }
 }
 
 @Composable
-private fun FooterButton(
-    label: String,
-    fill: androidx.compose.ui.graphics.Color,
-    textColor: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .disabledAlpha(enabled)
-            .heightIn(min = 52.dp)
-            .background(fill, RoundedCornerShape(12.dp))
-            .pressable(enabled = enabled, shape = RoundedCornerShape(12.dp), onClick = onClick)
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, color = textColor, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
-    }
+private fun FooterButtonLabel(label: String) {
+    Text(
+        label,
+        style = DoneButtonLabel,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        modifier = Modifier.heightIn(min = 36.dp),
+    )
 }
 
 private fun patternLabel(pattern: MovementPattern): String = when (pattern) {

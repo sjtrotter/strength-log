@@ -43,6 +43,7 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -438,7 +439,7 @@ private fun EquipmentStep(answers: WizardAnswers, actions: WizardActions) {
             title = equipmentLabel(equip),
             selected = equip in answers.equipment,
             onClick = { actions.onEquipmentToggle(equip) },
-            multiChoice = true,
+            mode = SelectionMode.Check,
         )
     }
 }

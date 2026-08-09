@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -30,6 +28,8 @@ import cloud.trotter.log.strength.ui.theme.accentSoft
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 
+enum class SelectionMode { Radio, Check, Action }
+
 /**
  * A tappable choice row for single-select questions (wizard, and later Setup
  * #12): filled/bordered like [AppCard], but tints to the accent and shows a
@@ -38,12 +38,12 @@ import cloud.trotter.log.strength.ui.theme.onDayAccent
  * highlight color — this reuses the existing per-day palette (SSOT) rather
  * than introducing a new brand color.
  *
- * [selectable] exposes this as a radio-button choice, including its selection
- * state, without depending on the ✓ glyph. The glyph is silenced via
- * [clearAndSetSemantics] to avoid reading it raw. Callers place exclusive
- * choice sets in `selectableGroup()`. A multi-select list (equipment) passes
- * [multiChoice] and gets checkbox semantics via [toggleable] instead — one of
- * several is not one of many, and TalkBack must not promise exclusivity.
+ * [mode] controls the interaction semantics: [SelectionMode.Radio] is one of
+ * many persistent choices in a `selectableGroup()`; [SelectionMode.Check] is
+ * several of many; [SelectionMode.Action] means the card looks like a choice
+ * but performs navigation or an action, so it uses plain button semantics and
+ * has no selection state.
+ * The ✓ glyph is silenced via [clearAndSetSemantics] to avoid reading it raw.
  */
 @Composable
 fun SelectionCard(
@@ -53,22 +53,37 @@ fun SelectionCard(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     accentDayIndex: Int = 0,
-    multiChoice: Boolean = false,
+    mode: SelectionMode = SelectionMode.Radio,
 ) {
     val accent = dayAccent(accentDayIndex)
     val onAccent = onDayAccent(accentDayIndex)
     val background = if (selected) accentSoft(accentDayIndex) else Surface
     val border = if (selected) accent else Border
-    val interaction = if (multiChoice) {
-        Modifier.toggleable(value = selected, role = Role.Checkbox, onValueChange = { onClick() })
-    } else {
-        Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+    val shape = MaterialTheme.shapes.large
+    val interaction = when (mode) {
+        SelectionMode.Radio -> Modifier.pressableSelectable(
+            selected = selected,
+            role = Role.RadioButton,
+            shape = shape,
+            onClick = onClick,
+        )
+        SelectionMode.Check -> Modifier.pressableToggleable(
+            value = selected,
+            role = Role.Checkbox,
+            shape = shape,
+            onValueChange = { onClick() },
+        )
+        SelectionMode.Action -> Modifier.pressable(
+            role = Role.Button,
+            shape = shape,
+            onClick = onClick,
+        )
     }
     OutlinedCard(
         modifier = modifier
             .fillMaxWidth()
             .then(interaction),
-        shape = MaterialTheme.shapes.large,
+        shape = shape,
         colors = CardDefaults.outlinedCardColors(containerColor = background),
         border = BorderStroke(1.dp, border),
     ) {

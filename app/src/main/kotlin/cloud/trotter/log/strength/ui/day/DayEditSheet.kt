@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -55,8 +54,10 @@ import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.disabledAlpha
 import cloud.trotter.log.strength.ui.components.pressable
+import cloud.trotter.log.strength.ui.components.pressableToggleable
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.CardTitle
 import cloud.trotter.log.strength.ui.theme.CardTitleSmall
@@ -339,11 +340,16 @@ private fun PatternPickerScreen(
         PickerHeader(title = title, onBack = onBack)
         Spacer(Modifier.size(8.dp))
         LazyColumn(
-            modifier = Modifier.heightIn(max = 420.dp).selectableGroup(),
+            modifier = Modifier.heightIn(max = 420.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(patterns) { pattern ->
-                SelectionCard(title = patternLabel(pattern), selected = false, onClick = { onPick(pattern) })
+                SelectionCard(
+                    title = patternLabel(pattern),
+                    selected = false,
+                    onClick = { onPick(pattern) },
+                    mode = SelectionMode.Action,
+                )
             }
         }
     }
@@ -456,7 +462,7 @@ private fun ExercisePickerScreen(
             Text("No matching exercises.", color = TextFaint, style = MaterialTheme.typography.bodySmall)
         } else {
             LazyColumn(
-                modifier = Modifier.heightIn(max = 360.dp).selectableGroup(),
+                modifier = Modifier.heightIn(max = 360.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(results, key = { it.id }) { entry ->
@@ -465,6 +471,7 @@ private fun ExercisePickerScreen(
                         subtitle = entry.equipment.joinToString(", ") { equipmentLabel(it) },
                         selected = false,
                         onClick = { onPick(entry) },
+                        mode = SelectionMode.Action,
                     )
                 }
             }
@@ -523,7 +530,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
 }
 
 @Composable
-private fun EquipmentFilterRow(
+internal fun EquipmentFilterRow(
     options: List<Equipment>,
     selected: Set<Equipment>,
     accent: Color,
@@ -544,7 +551,12 @@ private fun EquipmentFilterRow(
                     .clip(RoundedCornerShape(50))
                     .background(if (isOn) accent.copy(alpha = 0.18f) else Surface2, RoundedCornerShape(50))
                     .border(1.dp, if (isOn) accent else Border, RoundedCornerShape(50))
-                    .pressable(onClick = { onToggle(equip) }, shape = RoundedCornerShape(50))
+                    .pressableToggleable(
+                        value = isOn,
+                        role = Role.Checkbox,
+                        shape = RoundedCornerShape(50),
+                        onValueChange = { onToggle(equip) },
+                    )
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
                 Text(equipmentLabel(equip), color = if (isOn) accent else TextSecondary, style = MaterialTheme.typography.labelSmall)

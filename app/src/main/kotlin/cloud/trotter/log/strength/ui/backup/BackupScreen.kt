@@ -57,6 +57,7 @@ import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -361,6 +362,7 @@ private fun UnmatchedNameRow(unmatched: UnmatchedExerciseName, selected: Movemen
         subtitle = patternLabel(selected),
         selected = false,
         onClick = onClick,
+        mode = SelectionMode.Action,
     )
 }
 

@@ -43,6 +43,7 @@ import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
 import cloud.trotter.log.strength.ui.components.disabledAlpha
@@ -165,7 +166,7 @@ private fun EquipmentSection(state: CustomExerciseUiState, actions: CustomExerci
                     title = equipmentLabel(equip),
                     selected = equip in state.equipment,
                     onClick = { actions.onEquipmentToggle(equip) },
-                    multiChoice = true,
+                    mode = SelectionMode.Check,
                 )
             }
         }

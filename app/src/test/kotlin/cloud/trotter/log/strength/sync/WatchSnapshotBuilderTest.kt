@@ -15,6 +15,8 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.seeding.SetSeeder
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -41,6 +43,45 @@ class WatchSnapshotBuilderTest {
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
         LoggedSlot(id, slot, sets, checkDate = "2026-07-09")
+
+    @Test
+    fun `an unseeded day previews the domain-seeded template with every set undone`() {
+        val exercise = ProgramExercise("bb_back_squat", isMain = true)
+        val slots = listOf(ProgramSlot(10L, 0, exercise))
+        val expected = SetSeeder.seed(
+            exercise,
+            GoalCalculator.targetFor(catalog.get(exercise.exerciseId), cfg),
+            cfg,
+        )
+
+        val sets = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single().sets
+
+        assertEquals(expected.size, sets.size)
+        assertEquals(expected.map { it.weightLb }, sets.map { it.weightLb })
+        assertEquals(expected.map { it.kind.name }, sets.map { it.kind })
+        assertEquals(true, sets.all { !it.done })
+    }
+
+    @Test
+    fun `a partially logged day keeps its real rows unchanged`() {
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val realSets = listOf(
+            LoggedSet(145.0, 8, SetKind.EXTRA, done = true),
+            LoggedSet(155.0, 6, SetKind.WORK, done = false),
+        )
+
+        val sets = WatchSnapshotBuilder.build(
+            program, "A", slots, logs = listOf(loggedSlot(10L, Slot.MAIN, realSets)),
+            cfg, catalog, WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single().sets
+
+        assertEquals(realSets.map { it.weightLb }, sets.map { it.weightLb })
+        assertEquals(realSets.map { it.reps }, sets.map { it.reps })
+        assertEquals(realSets.map { it.kind.name }, sets.map { it.kind })
+        assertEquals(realSets.map { it.done }, sets.map { it.done })
+    }
 
     @Test
     fun `projects the suggested day with canonical weights, goal and accent index`() {

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.ui
 
+import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /**
@@ -31,15 +32,14 @@ fun ambientDialState(
     timeText: String,
     restRemainingSeconds: Int? = null,
 ): AmbientDialState {
-    val sets = snapshot.day.exercises.flatMap { it.sets }
-    val done = sets.count { it.done }
+    val progress = DayProgress.of(snapshot.day)
     val resting = restRemainingSeconds?.let { it > 0 } == true
     return AmbientDialState(
-        dayProgress = if (sets.isEmpty()) 0f else done.toFloat() / sets.size,
-        topText = if (sets.isEmpty()) {
+        dayProgress = if (progress.total == 0) 0f else progress.done.toFloat() / progress.total,
+        topText = if (progress.total == 0) {
             "day ${snapshot.day.dayId}".uppercase()
         } else {
-            "day ${snapshot.day.dayId} · $done/${sets.size}".uppercase()
+            "day ${snapshot.day.dayId} · ${progress.done}/${progress.total}".uppercase()
         },
         centerText = if (resting) "RESTING" else timeText,
         bottomText = timeText.takeIf { resting },

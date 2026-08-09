@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.glance
 
+import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
@@ -96,18 +97,18 @@ data class DayGlance(
 
         fun of(snapshot: WatchSnapshot?): DayGlance {
             val day = snapshot?.day ?: return NONE
-            val sets = day.exercises.flatMap { it.sets }
+            val progress = DayProgress.of(day)
             // A day with no sets is nothing to glance at, but it still has an accent —
             // keep it so the surface doesn't flip to day A's orange mid-rotation.
-            if (sets.isEmpty()) return NONE.copy(accentIndex = day.accentIndex)
+            if (progress.total == 0) return NONE.copy(accentIndex = day.accentIndex)
             return DayGlance(
                 hasProgram = true,
                 dayLetter = day.dayId,
                 dayTitle = day.title,
                 accentIndex = day.accentIndex,
                 exerciseCount = day.exercises.size,
-                doneSets = sets.count { it.done },
-                totalSets = sets.size,
+                doneSets = progress.done,
+                totalSets = progress.total,
             )
         }
     }

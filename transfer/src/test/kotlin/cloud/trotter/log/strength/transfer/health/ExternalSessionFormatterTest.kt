@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.transfer.health
 
 import java.time.ZoneId
+import java.time.ZoneOffset
+import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -42,5 +44,20 @@ class ExternalSessionFormatterTest {
             zone,
         )
         assertTrue(rows.all { it.title == "Strength session" })
+    }
+
+    @Test
+    fun dateDisplayStaysEnglishUnderANonEnglishFormatLocale() {
+        val previous = Locale.getDefault(Locale.Category.FORMAT)
+        try {
+            Locale.setDefault(Locale.Category.FORMAT, Locale.FRANCE)
+            val row = ExternalSessionFormatter.format(
+                listOf(workout("Lift", 1_783_339_200_000L, "com.example.app")),
+                ZoneOffset.UTC,
+            ).single()
+            assertEquals("Jul 6, 2026", row.dateDisplay)
+        } finally {
+            Locale.setDefault(Locale.Category.FORMAT, previous)
+        }
     }
 }

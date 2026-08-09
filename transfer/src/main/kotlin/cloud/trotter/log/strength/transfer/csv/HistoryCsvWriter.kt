@@ -66,9 +66,9 @@ object HistoryCsvWriter {
                 rows.add(
                     listOf(
                         date,
-                        session.dayTitle,
+                        Csv.neutralizeFormula(session.dayTitle),
                         duration,
-                        set.exerciseName,
+                        Csv.neutralizeFormula(set.exerciseName),
                         (set.setIndex + 1).toString(),
                         weightCell,
                         unit.name.lowercase(),

@@ -129,4 +129,42 @@ class HistoryCsvWriterTest {
         assertEquals(first, second)
         assertTrue(first.contains("\"Day, \"\"A\"\"\""), "workout name with comma/quote must be quoted")
     }
+
+    @Test
+    fun `free-text names are formula-neutralized before CSV quoting`() {
+        val dangerous = listOf("=SUM(A1:A2)", "+cmd", "-2+3", "@name", "  \t=SUM(A1:A2)", "\u0001@name", "＝式", "＋式", "－式", "＠式")
+
+        dangerous.forEachIndexed { index, name ->
+            val session = WorkoutSessionEntity(index + 1L, "A", name, null, 1_720_000_000_000L + index, 235)
+            val sets = listOf(set(index + 1L, index + 1L, name, 0, 225.0, 5))
+            val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
+
+            assertEquals("'$name", row[1])
+            assertEquals("'$name", row[3])
+            assertEquals("225", row[5])
+            assertEquals("5", row[7])
+        }
+    }
+
+    @Test
+    fun `neutralization composes with quotes commas and newlines`() {
+        val name = "\t=SUM(\"A,1\")\r\nnext"
+        val session = WorkoutSessionEntity(1, "A", name, null, 1_720_000_000_000L, 235)
+        val sets = listOf(set(1, 1, name, 0, 225.0, 5))
+
+        val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
+
+        assertEquals("'$name", row[1])
+        assertEquals("'$name", row[3])
+    }
+
+    @Test
+    fun `clean Strong-compatible names are unchanged`() {
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
+        val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
+
+        assertEquals("Day A", row[1])
+        assertEquals("Barbell Back Squat", row[3])
+    }
 }

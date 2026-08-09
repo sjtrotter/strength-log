@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.transfer.health
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * Pure formatting for the external-session list (#17 read path). Sorts other
@@ -13,7 +14,7 @@ import java.time.format.DateTimeFormatter
  */
 object ExternalSessionFormatter {
 
-    private val DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy")
+    private val DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
 
     fun format(workouts: List<ExternalWorkout>, zone: ZoneId = ZoneId.systemDefault()): List<ExternalSessionRow> =
         workouts

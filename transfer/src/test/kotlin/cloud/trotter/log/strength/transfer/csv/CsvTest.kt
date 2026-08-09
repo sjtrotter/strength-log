@@ -83,4 +83,30 @@ class CsvTest {
     fun `a lone trailing quote is unterminated`() {
         assertFailsWith<Csv.UnterminatedQuote> { Csv.parse("a,b,\"") }
     }
+
+    @Test
+    fun `a name that already looks neutralized gains a level and round-trips exactly`() {
+        // '=PR Day is an authored name, not our escape: export doubles, import
+        // strips one level, and the lifter's apostrophe survives — at any depth.
+        val authored = "'=PR Day"
+        assertEquals("''=PR Day", Csv.neutralizeFormula(authored))
+        assertEquals(authored, Csv.deneutralizeFormula(Csv.neutralizeFormula(authored)))
+
+        val deeper = "''@Home Press"
+        assertEquals(deeper, Csv.deneutralizeFormula(Csv.neutralizeFormula(deeper)))
+    }
+
+    @Test
+    fun `a third-party neutralized name reads as its unescaped form, never a formula`() {
+        // A Strong/Hevy file carrying '=Imported: ambiguous by construction — we
+        // read it as a neutralized =Imported (one apostrophe spent), which is
+        // inert in-app and re-neutralized on our own export.
+        assertEquals("=Imported", Csv.deneutralizeFormula("'=Imported"))
+    }
+
+    @Test
+    fun `an apostrophe over a safe name is untouched in both directions`() {
+        assertEquals("'Day A", Csv.neutralizeFormula("'Day A"))
+        assertEquals("'Day A", Csv.deneutralizeFormula("'Day A"))
+    }
 }

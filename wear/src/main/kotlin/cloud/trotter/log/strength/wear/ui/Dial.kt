@@ -46,6 +46,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -533,17 +534,23 @@ private fun Modifier.discGestures(
     onHoldComplete: (UndoTarget) -> Unit,
 ): Modifier {
     val scope = rememberCoroutineScope()
-    // The gesture is hand-rolled, so the button semantics `clickable` would have
-    // given TalkBack are declared explicitly rather than lost.
-    val accessibleTap = if (state.tap == DialTap.NONE) {
-        Modifier
-    } else {
-        Modifier.semantics {
+    // The gesture is hand-rolled, so its accessibility actions are declared here.
+    // Both actions must use the same callbacks as touch; they are alternate input
+    // paths, not separate behavior.
+    val accessibility = Modifier.semantics(mergeDescendants = true) {
+        state.tap.accessibilityClickLabel?.let { label ->
             role = Role.Button
-            onClick { onTap(); true }
+            onClick(label = label) { onTap(); true }
+        }
+        state.hold?.let { hold ->
+            role = Role.Button
+            onLongClick(label = "undo last set") {
+                onHoldComplete(hold.target)
+                true
+            }
         }
     }
-    return this.then(accessibleTap).pointerInput(state.tap, state.hold) {
+    return this.then(accessibility).pointerInput(state.tap, state.hold) {
         if (state.tap == DialTap.NONE && state.hold == null) return@pointerInput
         detectTapGestures(
             onPress = {

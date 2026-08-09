@@ -10,7 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-/** M3 has no app-specific dialog action colors and compact visual padding. */
+/**
+ * One action in a dialog's button row: M3's `TextButton`, kept behind a
+ * wrapper because six dialogs share one action policy — per-action semantic
+ * color, the app's pill shape, and compact padding — and pinning those at
+ * every call site is how the pre-M3 version drifted in the first place.
+ */
 @Composable
 fun DialogAction(label: String, color: Color, onClick: () -> Unit) {
     TextButton(

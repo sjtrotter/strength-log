@@ -19,14 +19,27 @@ object Csv {
 
     fun writeRow(fields: List<String>): String = fields.joinToString(",") { quoteIfNeeded(it) }
 
-    /** Neutralizes a free-text field before RFC quoting so spreadsheet apps do
-     *  not interpret an exported name as a formula. */
+    /**
+     * Neutralizes a free-text field before RFC quoting so spreadsheet apps do
+     * not interpret an exported name as a formula. A field that already LOOKS
+     * neutralized (apostrophes over a dangerous char — an authored name like
+     * `'=PR Day`) gains one more apostrophe, so [deneutralizeFormula]'s
+     * strip-one-level makes our own round trip exact at every depth. A
+     * third-party file's `'=Name` is genuinely ambiguous — we read it as a
+     * neutralized `=Name`, which costs an apostrophe, never invents a formula.
+     */
     fun neutralizeFormula(field: String): String =
-        if (field.firstSignificantChar() in formulaPrefixes) "'$field" else field
+        if (field.firstSignificantChar() in formulaPrefixes || isNeutralizedForm(field)) "'$field" else field
 
-    /** Reverses only the prefix pattern emitted by [neutralizeFormula]. */
+    /** Reverses exactly one level of the prefix pattern [neutralizeFormula] emits. */
     fun deneutralizeFormula(field: String): String =
-        if (field.startsWith("'") && field.drop(1).firstSignificantChar() in formulaPrefixes) field.drop(1) else field
+        if (isNeutralizedForm(field)) field.drop(1) else field
+
+    /** One or more leading apostrophes directly over a formula-leading char. */
+    private fun isNeutralizedForm(field: String): Boolean {
+        val depth = field.takeWhile { it == '\'' }.length
+        return depth >= 1 && field.drop(depth).firstSignificantChar() in formulaPrefixes
+    }
 
     private fun String.firstSignificantChar(): Char? =
         firstOrNull { !it.isWhitespace() && !Character.isISOControl(it) }

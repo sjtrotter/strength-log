@@ -441,7 +441,9 @@ private fun ExercisePickerScreen(
         key,
         stateSaver = listSaver(
             save = { selected -> selected.map(Equipment::name) },
-            restore = { names -> names.mapTo(mutableSetOf(), Equipment::valueOf) },
+            // A saved bundle can outlive an enum rename across an app update —
+            // an unknown name is a dropped filter, never a crash.
+            restore = { names -> names.mapNotNullTo(mutableSetOf()) { n -> Equipment.entries.find { it.name == n } } },
         ),
     ) { mutableStateOf(defaultEquipment) }
     val allEquipment = remember(candidates) { candidates.flatMap { it.equipment }.distinct() }

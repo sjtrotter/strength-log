@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.transfer.csv
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import java.time.ZoneId
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

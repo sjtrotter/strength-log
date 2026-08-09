@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.ui
 
+import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
@@ -156,9 +157,8 @@ fun dialUiState(inputs: DialInputs): DialUiState {
     val exercise = day.exercises[exerciseIndex]
     val stream = exercise.toStreamUiState(unit, day.dayId, day.accentIndex)
     val roundIndex = currentRoundIndex(exercise)
-    val allSets = day.exercises.flatMap { it.sets }
-    val doneSets = allSets.count { it.done }
-    val dayDone = allSets.isNotEmpty() && doneSets == allSets.size
+    val progress = DayProgress.of(day)
+    val dayDone = progress.total > 0 && progress.done == progress.total
     val restRunning = inputs.rest?.takeIf { !RestTimer.isExpired(it.deadlineElapsedMillis, inputs.nowElapsedMillis) }
 
     val context = ScreenContext(
@@ -167,9 +167,9 @@ fun dialUiState(inputs: DialInputs): DialUiState {
         exercise = exercise,
         stream = stream,
         roundIndex = roundIndex,
-        dayProgress = if (allSets.isEmpty()) 0f else doneSets.toFloat() / allSets.size,
-        setCount = allSets.size,
-        doneSetCount = doneSets,
+        dayProgress = if (progress.total == 0) 0f else progress.done.toFloat() / progress.total,
+        setCount = progress.total,
+        doneSetCount = progress.done,
         unit = unit,
         cycle = cycleSegments(inputs.snapshot, browsing),
     )

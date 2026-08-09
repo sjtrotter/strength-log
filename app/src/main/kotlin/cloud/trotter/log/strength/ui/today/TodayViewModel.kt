@@ -12,9 +12,8 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.seeding.SetSeeder
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -128,15 +127,11 @@ class TodayViewModel @Inject constructor(private val repo: TrackerRepository) : 
      * target of 3 seeds four ramps, a TOP and a back-off — so reading
      * `targetSets` here would promise a 3-set day and open a 6-set one.
      *
-     * `targetSets` survives as the fallback for an exercise the catalog can't
-     * resolve, because [cloud.trotter.log.strength.ui.day.DayScreenBuilder.seedPlan]
-     * skips that slot too: nothing will ever be seeded for it, so there is no
-     * seeded count to promise.
+     * The unresolved-id fallback lives in [DayScreenBuilder.previewMainSets], so
+     * Today and snapshot/glance surfaces cannot drift on this count.
      */
-    private fun seededRowCount(slot: ProgramSlot, ctx: TodayContext): Int {
-        val entry = ctx.catalog.find(slot.exercise.exerciseId) ?: return slot.exercise.targetSets
-        return SetSeeder.seed(slot.exercise, GoalCalculator.targetFor(entry, ctx.cfg), ctx.cfg).size
-    }
+    private fun seededRowCount(slot: ProgramSlot, ctx: TodayContext): Int =
+        DayScreenBuilder.previewMainSets(slot, ctx.cfg, ctx.catalog).size
 
     private data class TodayContext(
         val program: Program,

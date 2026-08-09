@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.ui
 
+import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /**
@@ -15,13 +16,14 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
  * those snapshot guards.
  */
 fun isSessionActive(snapshot: WatchSnapshot?): Boolean {
-    val sets = snapshot?.day?.exercises?.flatMap { it.sets } ?: return false
-    if (sets.isEmpty()) return false
-    return sets.any { it.done } && sets.any { !it.done }
+    val day = snapshot?.day ?: return false
+    val progress = DayProgress.of(day)
+    return progress.done > 0 && progress.done < progress.total
 }
 
 /** True while the snapshot is active or a locally started day still has work. */
 fun isSessionUnderway(snapshot: WatchSnapshot?, localSessionStarted: Boolean): Boolean {
-    val sets = snapshot?.day?.exercises?.flatMap { it.sets } ?: return false
-    return isSessionActive(snapshot) || (localSessionStarted && sets.any { !it.done })
+    val day = snapshot?.day ?: return false
+    val progress = DayProgress.of(day)
+    return (progress.done > 0 || localSessionStarted) && progress.done < progress.total
 }

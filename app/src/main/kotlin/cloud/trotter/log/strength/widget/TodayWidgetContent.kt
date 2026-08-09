@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.widget
 
+import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
@@ -53,9 +54,9 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
         )
     }
 
-    val sets = day.exercises.flatMap { it.sets }
-    val total = sets.size
-    val done = sets.count { it.done }
+    val progress = DayProgress.of(day)
+    val total = progress.total
+    val done = progress.done
     val state = when {
         total > 0 && done == total -> TodayWidgetState.DONE
         done == 0 -> TodayWidgetState.BEFORE

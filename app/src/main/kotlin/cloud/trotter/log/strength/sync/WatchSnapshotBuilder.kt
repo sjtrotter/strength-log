@@ -25,6 +25,7 @@ import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.ExercisePicker
 
 /**
@@ -70,8 +71,14 @@ object WatchSnapshotBuilder {
         val day = program.days[dayIndex]
 
         val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
+        val previewSeeds = DayScreenBuilder.seedPlan(
+            slots = slots,
+            existing = logsByKey.mapValues { it.value.sets.size },
+            cfg = cfg,
+            catalog = catalog,
+        ).associateBy { it.programExerciseId to it.slot }
         val exercises = slots.map { slot ->
-            buildExercise(slot, logsByKey, cfg, catalog, unit, restSettings, equipment)
+            buildExercise(slot, logsByKey, previewSeeds, cfg, catalog, unit, restSettings, equipment)
         }
 
         return WatchSnapshot(
@@ -109,6 +116,7 @@ object WatchSnapshotBuilder {
     private fun buildExercise(
         slot: ProgramSlot,
         logsByKey: Map<Pair<Long, String>, LoggedSlot>,
+        previewSeeds: Map<Pair<Long, String>, DayScreenBuilder.SeedWrite>,
         cfg: LifterConfig,
         catalog: ExerciseCatalog,
         unit: WeightUnit,
@@ -130,8 +138,12 @@ object WatchSnapshotBuilder {
             is GoalTarget.Reps, null -> 0.0
         }
         val partnerEntry = pe.superset?.let { catalog.find(it.exerciseId) }
-        val main = logsByKey[id to Slot.MAIN]?.sets.orEmpty()
-        val ss = pe.superset?.let { logsByKey[id to Slot.SS]?.sets }.orEmpty()
+        val main = logsByKey[id to Slot.MAIN]?.sets
+            ?: previewSeeds[id to Slot.MAIN]?.sets
+            ?: DayScreenBuilder.previewMainSets(slot, cfg, catalog)
+        val ss = pe.superset?.let {
+            logsByKey[id to Slot.SS]?.sets ?: previewSeeds[id to Slot.SS]?.sets
+        }.orEmpty()
 
         return WatchExercise(
             programExerciseId = id,

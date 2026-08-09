@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.log.share
 
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -126,7 +127,8 @@ object ShareCardContentBuilder {
     }
 
     /**
-     * "21 SETS · 38 MIN · 12,450 LB": set count and tonnage over done sets only
+     * "21 SETS · 38 MIN · 12,450 LB": set count is completed rounds
+     * ([Slot.isRound]); tonnage covers all done rows
      * (Σ weightLb × reps, matching [cloud.trotter.log.strength.ui.log
      * .JournalBuilder]'s volume convention), duration in whole minutes from
      * completedAt − startedAt when a start was recorded, omitted otherwise —
@@ -134,7 +136,7 @@ object ShareCardContentBuilder {
      * fabricated duration.
      */
     private fun footerLine(session: WorkoutSessionEntity, doneSets: List<SessionSetEntity>, unit: WeightUnit): String {
-        val parts = mutableListOf("${doneSets.size} SETS")
+        val parts = mutableListOf("${doneSets.count { Slot.isRound(it.slot) }} SETS")
         session.startedAt?.let { startedAt ->
             val minutes = (session.completedAt - startedAt).toDouble().div(60_000.0).roundToLong()
             parts += "$minutes MIN"

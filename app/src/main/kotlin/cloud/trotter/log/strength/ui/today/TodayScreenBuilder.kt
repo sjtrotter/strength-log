@@ -41,6 +41,15 @@ object TodayScreenBuilder {
         else -> "START DAY ${dayId.uppercase()}"
     }
 
+    /** The mode overline owns "EASY"/"HARD"; planner labels remain reusable by Day. */
+    fun cardioIntentLine(hard: Boolean, label: String): String {
+        val mode = if (hard) "HARD" else "EASY"
+        val rest = label
+            .removePrefix(if (hard) "Hard " else "Easy ")
+            .replaceFirstChar(Char::uppercase)
+        return "$mode · $rest"
+    }
+
     /** The rotation rail: every day of the cycle in order, with [nextDayId] marked. */
     fun rotationMarks(days: List<String>, nextDayId: String): List<RotationMark> =
         days.mapIndexed { index, id -> RotationMark(id, index, isNext = id == nextDayId) }

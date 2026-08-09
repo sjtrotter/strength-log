@@ -31,8 +31,12 @@ class AndroidRestAlarmScheduler(context: Context) : RestAlarmScheduler {
 
     override fun schedule(deadlineMillis: Long, onAlarm: () -> Unit) {
         cancel()
-        val next = AlarmManager.OnAlarmListener {
-            listener = null
+        lateinit var next: AlarmManager.OnAlarmListener
+        next = AlarmManager.OnAlarmListener {
+            // A callback already handed to the handler outlives cancel(); a
+            // stale one must not null out a NEWER listener or that alarm
+            // becomes uncancellable (it would still wake the device).
+            if (listener === next) listener = null
             onAlarm()
         }
         listener = next
@@ -62,7 +66,10 @@ class AndroidRestAlarmScheduler(context: Context) : RestAlarmScheduler {
  * composition and does not depend on this controller.
  *
  * Delivery is guaranteed only while the app process and root [WearApp] are alive
- * (ambient counts). [close] is called when that root is disposed, including
+ * and the display is interactive or ambient (a lit or dim screen never dozes).
+ * True Doze — screen off, device still — defers setExact like any exact alarm;
+ * the departed wake-lock design fared no better there, because Doze ignores
+ * partial wake locks too. [close] is called when that root is disposed, including
  * Activity destruction, and cancels the alarm. Delivery after process death is not
  * part of the contract; the phone remains the workout source of truth.
  */

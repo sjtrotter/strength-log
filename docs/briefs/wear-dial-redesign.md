@@ -221,6 +221,8 @@ sent as an edit for the phone to reconcile.
 shapes, dim gray type. Shows `RESTING`, `DAY A · 12/21`, and the time during a rest.
 Repaint at minute cadence. A rest or timed hold schedules one exact wakeup at its
 deadline for the haptic; the interactive countdown remains composition-driven.
+Punctuality holds while the screen is lit or ambient; true Doze (screen off,
+still) defers exact alarms — as it also ignored the old design's wake lock.
 
 **Phone away / offline** — top band shows a pulsing dot + `2 QUEUED`. Status lives in the
 top band and nowhere else. Logging and timers work fully offline; deltas flush on reconnect.

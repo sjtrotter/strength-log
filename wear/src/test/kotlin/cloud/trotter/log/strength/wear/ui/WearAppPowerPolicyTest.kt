@@ -42,7 +42,7 @@ class WearAppPowerPolicyTest {
         val mainSources = sequenceOf(File("src/main"), File("wear/src/main"))
             .first(File::isDirectory)
         val offenders = mainSources.walkTopDown()
-            .filter { it.isFile && it.extension == "kt" }
+            .filter { it.isFile && it.extension in setOf("kt", "java") }
             .flatMap { file ->
                 val text = file.readText()
                 forbiddenWakeLock.filter { text.contains(it, ignoreCase = true) }

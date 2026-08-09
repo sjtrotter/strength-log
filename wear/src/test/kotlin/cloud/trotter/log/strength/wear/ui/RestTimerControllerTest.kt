@@ -60,6 +60,66 @@ class RestTimerControllerTest {
     }
 
     @Test
+    fun `re-arming the same live deadline is idempotent`() {
+        val alarm = RecordingAlarmScheduler()
+        val controller = controller(alarm)
+
+        controller.arm(deadlineMillis = 5_000L, totalSeconds = 5)
+        controller.arm(deadlineMillis = 5_000L, totalSeconds = 5)
+
+        assertEquals(listOf(5_000L), alarm.deadlines)
+    }
+
+    @Test
+    fun `a deadline already reached is ignored without buzzing`() {
+        val alarm = RecordingAlarmScheduler()
+        var buzzes = 0
+        val controller = controller(alarm) { buzzes++ }
+
+        controller.arm(deadlineMillis = 500L, totalSeconds = 5)
+
+        assertEquals(emptyList<Long>(), alarm.deadlines)
+        assertEquals(0, buzzes)
+        assertNull(controller.activeRest)
+    }
+
+    @Test
+    fun `close cancels the pending alarm`() {
+        val alarm = RecordingAlarmScheduler()
+        var buzzes = 0
+        val controller = controller(alarm) { buzzes++ }
+        controller.arm(deadlineMillis = 5_000L, totalSeconds = 5)
+
+        controller.close()
+        alarm.fire()
+
+        assertEquals(0, buzzes)
+        assertNull(controller.activeRest)
+    }
+
+    @Test
+    fun `a stale callback delivered after replacement neither buzzes nor disturbs the new arm`() {
+        // AlarmManager cancellation cannot retract a callback already queued to
+        // the handler — the controller's identity guard is what keeps a dead
+        // alarm from buzzing or clearing its replacement.
+        val alarm = RecordingAlarmScheduler()
+        var buzzes = 0
+        val controller = controller(alarm) { buzzes++ }
+        controller.arm(deadlineMillis = 5_000L, totalSeconds = 5)
+        val stale = alarm.captureCallback()
+
+        controller.arm(deadlineMillis = 9_000L, totalSeconds = 9)
+        stale()
+
+        assertEquals(0, buzzes)
+        assertEquals(RestTimerController.ActiveRest(9_000L, 9), controller.activeRest)
+
+        alarm.fire()
+        assertEquals(1, buzzes)
+        assertNull(controller.activeRest)
+    }
+
+    @Test
     fun `timed hold uses the same alarm machinery`() {
         val alarm = RecordingAlarmScheduler()
         var buzzes = 0
@@ -100,5 +160,8 @@ class RestTimerControllerTest {
         fun fire() {
             callback?.also { callback = null }?.invoke()
         }
+
+        /** The pending callback as the handler would hold it — surviving cancel. */
+        fun captureCallback(): () -> Unit = checkNotNull(callback)
     }
 }

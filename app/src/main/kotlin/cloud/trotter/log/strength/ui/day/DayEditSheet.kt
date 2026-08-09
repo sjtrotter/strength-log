@@ -425,7 +425,7 @@ fun SlotSwapSheet(
 // --- page 3: substitution / add candidate picker (spec §8.3, PLAN.md A4) -----
 
 @Composable
-private fun ExercisePickerScreen(
+internal fun ExercisePickerScreen( // internal: restoration pinned directly (#178) — the sheet's dialog window is invisible to StateRestorationTester
     key: String,
     title: String,
     pattern: MovementPattern,

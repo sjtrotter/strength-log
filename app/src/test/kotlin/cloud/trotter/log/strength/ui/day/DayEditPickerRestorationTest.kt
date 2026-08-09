@@ -1,8 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -18,6 +18,14 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/**
+ * The picker's search/filter draft survives recreation (#178). Pinned on
+ * [ExercisePickerScreen] directly rather than through [DayEditSheet]: the M3
+ * sheet hosts its content in a dialog WINDOW, whose saveable registry
+ * [StateRestorationTester] cannot reach — testing through it exercises the
+ * tool's blind spot, not the code. The dialog's own restoration is the
+ * platform's contract (its wrapper is a SavedStateRegistryOwner).
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class DayEditPickerRestorationTest {
@@ -25,61 +33,21 @@ class DayEditPickerRestorationTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private val state = DayEditUiState(
-        catalog = ExerciseCatalog.CODE_ONLY,
-        slots = listOf(
-            DayEditSlotState(
-                programExerciseId = 1,
-                position = 0,
-                exerciseId = "bb_back_squat",
-                title = "Barbell Back Squat",
-                pattern = MovementPattern.SQUAT_BILATERAL,
-                isSuperset = false,
-            ),
-        ),
-    )
+    private val candidates = ExerciseCatalog.CODE_ONLY.byPattern(MovementPattern.SQUAT_BILATERAL)
 
-    @Test
-    fun swapPickerDraftSurvivesRestoration() {
-        val restoration = showSheet()
-        composeTestRule.onNodeWithText("Edit").performClick()
-        composeTestRule.onNodeWithText("Swap exercise").performClick()
-        assertDraftSurvives(restoration)
-    }
-
-    @Test
-    fun addPickerDraftSurvivesRestoration() {
-        val restoration = showSheet()
-        composeTestRule.onNodeWithText("+ Add exercise").performClick()
-        composeTestRule.onNodeWithText("Squat bilateral").performClick()
-        assertDraftSurvives(restoration)
-    }
-
-    @Test
-    fun supersetPickerDraftSurvivesRestoration() {
-        val restoration = showSheet()
-        composeTestRule.onNodeWithText("Edit").performClick()
-        composeTestRule.onNodeWithText("Add superset").performClick()
-        composeTestRule.onNodeWithText("Squat bilateral").performClick()
-        assertDraftSurvives(restoration)
-    }
-
-    private fun showSheet(): StateRestorationTester {
+    private fun show(key: String): StateRestorationTester {
         val restoration = StateRestorationTester(composeTestRule)
         restoration.setContent {
             AppTheme {
-                DayEditSheet(
-                    state = state,
-                    actions = DayEditActions(
-                        onSwap = { _, _ -> },
-                        onAdd = {},
-                        onRemove = {},
-                        onSetSuperset = { _, _ -> },
-                        onRemoveSuperset = {},
-                        onResetToTemplate = {},
-                    ),
+                ExercisePickerScreen(
+                    key = key,
+                    title = "SWAP",
+                    pattern = MovementPattern.SQUAT_BILATERAL,
+                    candidates = candidates,
+                    defaultEquipment = emptySet(),
                     accent = Color.White,
-                    onDismiss = {},
+                    onPick = {},
+                    onBack = {},
                     onCreateExercise = {},
                 )
             }
@@ -90,8 +58,18 @@ class DayEditPickerRestorationTest {
     private fun assertDraftSurvives(restoration: StateRestorationTester) {
         composeTestRule.onNode(hasSetTextAction()).performTextInput("press")
         composeTestRule.onNodeWithText("Barbell").performClick()
+        composeTestRule.onNodeWithText("Barbell").assertIsOn()
         restoration.emulateSavedInstanceStateRestore()
         composeTestRule.onNode(hasSetTextAction()).assertTextContains("press")
-        composeTestRule.onNodeWithText("Barbell").assertIsOff()
+        composeTestRule.onNodeWithText("Barbell").assertIsOn()
     }
+
+    @Test
+    fun swapPickerDraftSurvivesRestoration() = assertDraftSurvives(show(key = "swap:1"))
+
+    @Test
+    fun addPickerDraftSurvivesRestoration() = assertDraftSurvives(show(key = "add:SQUAT_BILATERAL"))
+
+    @Test
+    fun supersetPickerDraftSurvivesRestoration() = assertDraftSurvives(show(key = "ss:1"))
 }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
@@ -42,6 +43,7 @@ import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
 import cloud.trotter.log.strength.ui.components.disabledAlpha
@@ -138,7 +140,7 @@ private fun NameField(value: String, onValueChange: (String) -> Unit) {
 
 @Composable
 private fun PatternSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
-    Column {
+    Column(Modifier.selectableGroup()) {
         Text("Movement pattern", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -164,6 +166,7 @@ private fun EquipmentSection(state: CustomExerciseUiState, actions: CustomExerci
                     title = equipmentLabel(equip),
                     selected = equip in state.equipment,
                     onClick = { actions.onEquipmentToggle(equip) },
+                    mode = SelectionMode.Check,
                 )
             }
         }
@@ -178,7 +181,7 @@ private fun EquipmentSection(state: CustomExerciseUiState, actions: CustomExerci
  */
 @Composable
 private fun TrackingSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
-    Column {
+    Column(Modifier.selectableGroup()) {
         Text("How is it tracked?", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

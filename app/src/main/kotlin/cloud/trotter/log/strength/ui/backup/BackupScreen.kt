@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
@@ -56,6 +57,7 @@ import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -360,6 +362,7 @@ private fun UnmatchedNameRow(unmatched: UnmatchedExerciseName, selected: Movemen
         subtitle = patternLabel(selected),
         selected = false,
         onClick = onClick,
+        mode = SelectionMode.Action,
     )
 }
 
@@ -376,7 +379,10 @@ private fun PatternPickerSheet(current: MovementPattern, onPick: (MovementPatter
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
             Text("Movement pattern", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.size(10.dp))
-            LazyColumn(modifier = Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 420.dp).selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(MovementPattern.entries) { pattern ->
                     SelectionCard(
                         title = patternLabel(pattern),

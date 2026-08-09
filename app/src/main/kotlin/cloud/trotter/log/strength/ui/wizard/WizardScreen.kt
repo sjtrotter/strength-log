@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
@@ -42,6 +43,7 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.SelectionCard
+import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -140,13 +142,18 @@ private fun EmphasisStep(state: WizardUiState, actions: WizardActions) {
         GoalEmphasis.BALANCED to ("Balanced strength + muscle" to "The default — even mix of heavy work and volume."),
         GoalEmphasis.PHYSIQUE to ("Physique-leaning" to "More volume and isolation work."),
     )
-    options.forEach { (value, copy) ->
-        SelectionCard(
-            title = copy.first,
-            subtitle = copy.second,
-            selected = state.answers.config.emphasis == value,
-            onClick = { actions.onEmphasisChange(value) },
-        )
+    Column(
+        modifier = Modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        options.forEach { (value, copy) ->
+            SelectionCard(
+                title = copy.first,
+                subtitle = copy.second,
+                selected = state.answers.config.emphasis == value,
+                onClick = { actions.onEmphasisChange(value) },
+            )
+        }
     }
     if (state.restore.offered) RestoreFromBackupEntry(state.restore, actions.onRestoreFromBackup)
 }
@@ -220,13 +227,18 @@ private fun DaysPerWeekStep(answers: WizardAnswers, actions: WizardActions) {
 @Composable
 private fun SplitStep(state: WizardUiState, actions: WizardActions) {
     val options = listOfNotNull(state.splitOptions.default, state.splitOptions.alternative)
-    options.forEach { split ->
-        SelectionCard(
-            title = splitLabel(split),
-            subtitle = if (split == state.splitOptions.default) "Suggested for ${state.answers.daysPerWeek} days/week" else "Alternative",
-            selected = state.answers.split == split,
-            onClick = { actions.onSplitChange(split) },
-        )
+    Column(
+        modifier = Modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        options.forEach { split ->
+            SelectionCard(
+                title = splitLabel(split),
+                subtitle = if (split == state.splitOptions.default) "Suggested for ${state.answers.daysPerWeek} days/week" else "Alternative",
+                selected = state.answers.split == split,
+                onClick = { actions.onSplitChange(split) },
+            )
+        }
     }
 }
 
@@ -243,22 +255,32 @@ private fun splitLabel(split: SplitTemplate): String = when (split) {
 private fun AnchorsStep(state: WizardUiState, actions: WizardActions) {
     val answers = state.answers
     Text("Main lifts", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-    AnchorScheme.entries.forEach { scheme ->
-        SelectionCard(
-            title = anchorSchemeLabel(scheme),
-            subtitle = anchorNames(scheme, answers.deadliftVariant),
-            selected = answers.anchorScheme == scheme,
-            onClick = { actions.onAnchorSchemeChange(scheme) },
-        )
+    Column(
+        modifier = Modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        AnchorScheme.entries.forEach { scheme ->
+            SelectionCard(
+                title = anchorSchemeLabel(scheme),
+                subtitle = anchorNames(scheme, answers.deadliftVariant),
+                selected = answers.anchorScheme == scheme,
+                onClick = { actions.onAnchorSchemeChange(scheme) },
+            )
+        }
     }
     Spacer(Modifier.size(4.dp))
     Text("Deadlift variant", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-    DeadliftVariant.entries.forEach { variant ->
-        SelectionCard(
-            title = deadliftLabel(variant),
-            selected = answers.deadliftVariant == variant,
-            onClick = { actions.onDeadliftVariantChange(variant) },
-        )
+    Column(
+        modifier = Modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        DeadliftVariant.entries.forEach { variant ->
+            SelectionCard(
+                title = deadliftLabel(variant),
+                selected = answers.deadliftVariant == variant,
+                onClick = { actions.onDeadliftVariantChange(variant) },
+            )
+        }
     }
     val allAnchors = ProgramGenerator.anchorIds(answers)
     if (answers.split == SplitTemplate.FULL_BODY && state.activeAnchorIds.size < allAnchors.size) {
@@ -296,22 +318,32 @@ private fun deadliftLabel(variant: DeadliftVariant): String = when (variant) {
 @Composable
 private fun CardioStep(answers: WizardAnswers, actions: WizardActions) {
     Text("Mode", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-    CardioMode.entries.forEach { mode ->
-        SelectionCard(
-            title = cardioModeLabel(mode),
-            selected = answers.cardio.mode == mode,
-            onClick = { actions.onCardioModeChange(mode) },
-        )
+    Column(
+        modifier = Modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        CardioMode.entries.forEach { mode ->
+            SelectionCard(
+                title = cardioModeLabel(mode),
+                selected = answers.cardio.mode == mode,
+                onClick = { actions.onCardioModeChange(mode) },
+            )
+        }
     }
     if (answers.cardio.mode != CardioMode.NONE) {
         Spacer(Modifier.size(4.dp))
         Text("Placement", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        CardioPlacement.entries.filter { it != CardioPlacement.NONE }.forEach { placement ->
-            SelectionCard(
-                title = cardioPlacementLabel(placement),
-                selected = answers.cardio.placement == placement,
-                onClick = { actions.onCardioPlacementChange(placement) },
-            )
+        Column(
+            modifier = Modifier.selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            CardioPlacement.entries.filter { it != CardioPlacement.NONE }.forEach { placement ->
+                SelectionCard(
+                    title = cardioPlacementLabel(placement),
+                    selected = answers.cardio.placement == placement,
+                    onClick = { actions.onCardioPlacementChange(placement) },
+                )
+            }
         }
         Spacer(Modifier.size(4.dp))
         AppCard {
@@ -373,12 +405,17 @@ private fun AboutYouStep(answers: WizardAnswers, actions: WizardActions) {
         }
     }
     Text("Experience level", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-    ExperienceLevel.entries.forEach { level ->
-        SelectionCard(
-            title = levelLabel(level),
-            selected = answers.config.level == level,
-            onClick = { actions.onLevelChange(level) },
-        )
+    Column(
+        modifier = Modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        ExperienceLevel.entries.forEach { level ->
+            SelectionCard(
+                title = levelLabel(level),
+                selected = answers.config.level == level,
+                onClick = { actions.onLevelChange(level) },
+            )
+        }
     }
 }
 
@@ -402,6 +439,7 @@ private fun EquipmentStep(answers: WizardAnswers, actions: WizardActions) {
             title = equipmentLabel(equip),
             selected = equip in answers.equipment,
             onClick = { actions.onEquipmentToggle(equip) },
+            mode = SelectionMode.Check,
         )
     }
 }

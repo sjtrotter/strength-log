@@ -89,6 +89,37 @@ class HistoryCsvReaderTest {
         assertEquals("bb_back_squat", preview.sessions.first().sets.first().exerciseId)
     }
 
+    @Test
+    fun `our formula prefix round-trips only on dangerous free-text names`() {
+        val session = cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity(
+            1, "A", " =Training", null, 1_720_000_000_000L, 235,
+        )
+        val set = cloud.trotter.log.strength.data.db.entity.SessionSetEntity(
+            1, 1, "custom", "＠Press", cloud.trotter.log.strength.data.db.entity.Slot.MAIN,
+            0, cloud.trotter.log.strength.domain.model.SetKind.WORK.name, 100.0, 5, true,
+        )
+
+        val preview = HistoryCsvReader.preview(
+            HistoryCsvWriter.export(listOf(session), listOf(set), WeightUnit.LB, zone),
+            catalog,
+            zone,
+        )
+
+        assertEquals(" =Training", preview.sessions.single().dayTitle)
+        assertEquals("＠Press", preview.sessions.single().sets.single().exerciseName)
+        assertEquals(listOf("＠Press"), preview.unmatchedNames.map { it.name })
+    }
+
+    @Test
+    fun `an authored apostrophe is not stripped from a clean imported name`() {
+        val text = "Date,Workout Name,Exercise Name,Weight,Weight Unit,Reps\n" +
+            "2026-07-01 08:00:00,'Day A,'Arnold Press,25,lb,8\n"
+        val preview = HistoryCsvReader.preview(text, catalog, zone)
+
+        assertEquals("'Day A", preview.sessions.single().dayTitle)
+        assertEquals("'Arnold Press", preview.sessions.single().sets.single().exerciseName)
+    }
+
     // --- rejection paths --------------------------------------------------------
 
     @Test

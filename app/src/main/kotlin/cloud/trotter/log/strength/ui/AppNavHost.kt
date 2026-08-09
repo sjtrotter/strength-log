@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -52,11 +53,13 @@ import cloud.trotter.log.strength.ui.wizard.WizardScreen
 import cloud.trotter.log.strength.ui.wizard.WizardViewModel
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.withContext
 
 /**
  * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / re-run),
@@ -377,26 +380,27 @@ private fun BackupRoute(onBack: () -> Unit, viewModel: BackupViewModel = hiltVie
 /**
  * Static OSS-licenses screen (M6 #23). No view-model: the two license texts
  * ship as APK assets (`app/src/main/assets/licenses/`) rather than live
- * repo-only, so `remember` just reads them off [LocalContext] once per visit
- * — there's no state to survive process death because there's nothing to
- * edit.
+ * repo-only. They load once per visit off the main thread; there's no state to
+ * survive process death because there's nothing to edit.
  */
 @Composable
 private fun LicensesRoute(onBack: () -> Unit) {
     val context = LocalContext.current
-    val entries = remember {
-        listOf(
-            LicenseEntry(
-                "Barlow Condensed — SIL Open Font License 1.1",
-                context.assets.open("licenses/barlow-condensed-OFL.txt").bufferedReader().use { it.readText() },
-            ),
-            LicenseEntry(
-                "Third-party libraries — Apache License 2.0",
-                context.assets.open("licenses/apache-2.0-notices.txt").bufferedReader().use { it.readText() },
-            ),
-        )
+    val entries by produceState<List<LicenseEntry>?>(initialValue = null, context) {
+        value = withContext(Dispatchers.IO) {
+            listOf(
+                LicenseEntry(
+                    "Barlow Condensed — SIL Open Font License 1.1",
+                    context.assets.open("licenses/barlow-condensed-OFL.txt").bufferedReader().use { it.readText() },
+                ),
+                LicenseEntry(
+                    "Third-party libraries — Apache License 2.0",
+                    context.assets.open("licenses/apache-2.0-notices.txt").bufferedReader().use { it.readText() },
+                ),
+            )
+        }
     }
-    LicensesScreen(entries = entries, onBack = onBack)
+    entries?.let { LicensesScreen(entries = it, onBack = onBack) }
 }
 
 /**

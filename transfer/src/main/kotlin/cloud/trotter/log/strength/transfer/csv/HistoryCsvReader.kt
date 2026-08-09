@@ -179,6 +179,11 @@ object HistoryCsvReader {
             return fields.getOrNull(index)?.trim()
                 ?: throw CsvImportError.MalformedRow(line, "row is too short for column ${field.name}")
         }
+        fun freeTextCell(field: HistoryField): String {
+            val index = columns.getValue(field)
+            return fields.getOrNull(index)
+                ?: throw CsvImportError.MalformedRow(line, "row is too short for column ${field.name}")
+        }
         // An optional column's cell, absent-or-blank collapsing to "".
         fun rawCell(field: HistoryField): String =
             columns[field]?.let { fields.getOrNull(it)?.trim() }.orEmpty()
@@ -197,10 +202,10 @@ object HistoryCsvReader {
         val completedAt = parseDate(dateText, zone)
             ?: throw CsvImportError.MalformedRow(line, "unparsable date '$dateText'")
 
-        val dayTitle = cell(HistoryField.WORKOUT_NAME)
+        val dayTitle = Csv.deneutralizeFormula(freeTextCell(HistoryField.WORKOUT_NAME))
         if (dayTitle.isBlank()) throw CsvImportError.MalformedRow(line, "workout name is blank")
 
-        val exerciseName = cell(HistoryField.EXERCISE_NAME)
+        val exerciseName = Csv.deneutralizeFormula(freeTextCell(HistoryField.EXERCISE_NAME))
         if (exerciseName.isBlank()) throw CsvImportError.MalformedRow(line, "exercise name is blank")
 
         val setOrder = rawCell(HistoryField.SET_ORDER).takeIf { it.isNotEmpty() }?.let { raw ->

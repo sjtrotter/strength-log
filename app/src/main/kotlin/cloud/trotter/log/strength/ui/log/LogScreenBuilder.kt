@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * The pure History Log (#14) decision logic: list-row and expanded-session
@@ -19,7 +20,7 @@ import java.time.format.DateTimeFormatter
  */
 object LogScreenBuilder {
 
-    private val DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy")
+    private val DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
 
     /** "Jul 6, 2026" from a session's epoch-millis completion time, device-local. */
     fun dateDisplay(completedAtMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =

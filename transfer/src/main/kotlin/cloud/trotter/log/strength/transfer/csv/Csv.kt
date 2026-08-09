@@ -15,7 +15,21 @@ package cloud.trotter.log.strength.transfer.csv
  */
 object Csv {
 
+    private val formulaPrefixes = setOf('=', '+', '-', '@', '＝', '＋', '－', '＠')
+
     fun writeRow(fields: List<String>): String = fields.joinToString(",") { quoteIfNeeded(it) }
+
+    /** Neutralizes a free-text field before RFC quoting so spreadsheet apps do
+     *  not interpret an exported name as a formula. */
+    fun neutralizeFormula(field: String): String =
+        if (field.firstSignificantChar() in formulaPrefixes) "'$field" else field
+
+    /** Reverses only the prefix pattern emitted by [neutralizeFormula]. */
+    fun deneutralizeFormula(field: String): String =
+        if (field.startsWith("'") && field.drop(1).firstSignificantChar() in formulaPrefixes) field.drop(1) else field
+
+    private fun String.firstSignificantChar(): Char? =
+        firstOrNull { !it.isWhitespace() && !Character.isISOControl(it) }
 
     private fun quoteIfNeeded(field: String): String {
         val needsQuoting = field.any { it == ',' || it == '"' || it == '\n' || it == '\r' }

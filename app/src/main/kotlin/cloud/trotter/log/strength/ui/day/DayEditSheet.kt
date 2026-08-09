@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,9 +75,9 @@ import cloud.trotter.log.strength.ui.theme.TextSecondary
  * Internal navigation between the slot list, the substitution/add picker and
  * the pattern picker is plain Compose state; only the page identity is
  * [rememberSaveable] (a rotation mid-edit shouldn't punt the user back to the
- * slot list), the search/filter fields inside a picker page are ordinary
- * `remember` — losing an in-progress search string to process death is not
- * data loss, unlike anything in [DayUiState].
+ * slot list). Search/filter drafts are saveable too: Create exercise is a
+ * designed round trip out to a navigation destination, and returning should
+ * restore the picker the user had already narrowed down.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -435,8 +436,14 @@ private fun ExercisePickerScreen(
     onBack: () -> Unit,
     onCreateExercise: (MovementPattern) -> Unit,
 ) {
-    var query by remember(key) { mutableStateOf("") }
-    var equipmentFilter by remember(key) { mutableStateOf(defaultEquipment) }
+    var query by rememberSaveable(key) { mutableStateOf("") }
+    var equipmentFilter by rememberSaveable(
+        key,
+        stateSaver = listSaver(
+            save = { selected -> selected.map(Equipment::name) },
+            restore = { names -> names.mapTo(mutableSetOf(), Equipment::valueOf) },
+        ),
+    ) { mutableStateOf(defaultEquipment) }
     val allEquipment = remember(candidates) { candidates.flatMap { it.equipment }.distinct() }
     val results = remember(candidates, query, equipmentFilter) {
         ExercisePicker.filter(candidates, query, equipmentFilter)

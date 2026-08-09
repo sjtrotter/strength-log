@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.ZoneOffset
+import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -32,6 +33,17 @@ class LogScreenBuilderTest {
         // 2026-07-06T12:00:00Z
         val millis = 1783339200000L
         assertEquals("Jul 6, 2026", LogScreenBuilder.dateDisplay(millis, ZoneOffset.UTC))
+    }
+
+    @Test
+    fun dateDisplay_stays_English_under_a_non_English_format_locale() {
+        val previous = Locale.getDefault(Locale.Category.FORMAT)
+        try {
+            Locale.setDefault(Locale.Category.FORMAT, Locale.FRANCE)
+            assertEquals("Jul 6, 2026", LogScreenBuilder.dateDisplay(1783339200000L, ZoneOffset.UTC))
+        } finally {
+            Locale.setDefault(Locale.Category.FORMAT, previous)
+        }
     }
 
     @Test

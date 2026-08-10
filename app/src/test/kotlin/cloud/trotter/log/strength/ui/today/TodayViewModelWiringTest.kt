@@ -165,7 +165,7 @@ class TodayViewModelWiringTest {
         assertEquals(cloud.trotter.log.strength.ui.text.TodayActionKind.START, state.actionLabel.kind)
         assertEquals(suggestedDayId, state.actionLabel.dayId)
 
-        val slotCount = repo.daySlotsFlow(suggestedDayId).first().size
+        val slotCount = repo.daySlotsFlow(checkNotNull(suggestedDayId)).first().size
         assertTrue("lifts must not be empty", state.lifts.isNotEmpty())
         assertEquals(slotCount, state.lifts.size)
 

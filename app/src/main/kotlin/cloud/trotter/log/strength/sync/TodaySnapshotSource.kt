@@ -35,8 +35,6 @@ class TodaySnapshotSource(
     @CivilDay private val today: Flow<LocalDate>,
 ) {
 
-    constructor(repo: TrackerRepository) : this(repo, flowOf(repo.currentDate()))
-
     val snapshots: Flow<WatchSnapshot?> =
         repo.suggestedDayFlow.flatMapLatest { dayId ->
             if (dayId == null) {

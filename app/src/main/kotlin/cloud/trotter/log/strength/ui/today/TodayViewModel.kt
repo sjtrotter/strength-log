@@ -48,8 +48,6 @@ class TodayViewModel @Inject constructor(
     @CivilDay private val today: Flow<LocalDate>,
 ) : ViewModel() {
 
-    constructor(repo: TrackerRepository) : this(repo, flowOf(repo.currentDate()))
-
     private val contextFlow =
         combine(
             repo.programFlow,

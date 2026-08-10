@@ -15,7 +15,6 @@ import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -68,9 +67,6 @@ class SetEditApplier(
     private val markers: AppliedEditMarkers,
     @CivilDay private val today: Flow<LocalDate>,
 ) {
-
-    constructor(repo: TrackerRepository, markers: AppliedEditMarkers) :
-        this(repo, markers, flowOf(repo.currentDate()))
 
     enum class Outcome { APPLIED, STALE, INVALID }
 

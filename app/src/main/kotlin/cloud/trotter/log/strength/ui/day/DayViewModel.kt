@@ -43,7 +43,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -84,13 +83,6 @@ class DayViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     @CivilDay private val today: Flow<LocalDate>,
 ) : ViewModel() {
-
-    constructor(
-        repo: TrackerRepository,
-        sessionPublisher: SessionPublisher,
-        shareCardService: ShareCardService,
-        savedState: SavedStateHandle,
-    ) : this(repo, sessionPublisher, shareCardService, savedState, flowOf(repo.currentDate()))
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
     private val manualCollapse: StateFlow<Map<Long, Boolean>> =

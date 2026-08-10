@@ -77,7 +77,7 @@ class SetEditApplierTest {
             settings = SettingsStore(dataStore),
         )
         markers = RecordingMarkers()
-        applier = SetEditApplier(repo, markers)
+        applier = SetEditApplier(repo, markers, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()))
     }
 
     @After

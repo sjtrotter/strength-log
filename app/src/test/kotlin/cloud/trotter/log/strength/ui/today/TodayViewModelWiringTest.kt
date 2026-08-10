@@ -102,13 +102,13 @@ class TodayViewModelWiringTest {
      *  in the reference fixture — an active collector is required for `.value`
      *  to track updates at all. */
     private fun newTodayViewModel(): TodayViewModel =
-        TodayViewModel(repo).also { vm ->
+        TodayViewModel(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate())).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
 
     private fun newDayViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle).also { vm ->
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate())).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }

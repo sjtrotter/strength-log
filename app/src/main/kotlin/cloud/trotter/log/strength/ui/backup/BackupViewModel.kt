@@ -1,12 +1,16 @@
 package cloud.trotter.log.strength.ui.backup
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import cloud.trotter.log.strength.backup.AutoBackupScheduler
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.transfer.backup.BackupCodec
@@ -22,6 +26,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import cloud.trotter.log.strength.ui.text.BackupStatusKind
@@ -60,6 +65,7 @@ class BackupViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val backupService: BackupService,
     private val csvHistoryService: CsvHistoryService,
+    private val settings: SettingsStore,
     @ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
@@ -69,6 +75,59 @@ class BackupViewModel @Inject constructor(
     val uiState: StateFlow<BackupUiState> = _uiState.asStateFlow()
 
     private var pendingRestoreText: String? = null
+
+    init {
+        viewModelScope.launch {
+            settings.autoBackupSettingsFlow.collect { automatic ->
+                _uiState.update { state ->
+                    state.copy(automatic = AutomaticBackupUiState(
+                        enabled = automatic.enabled,
+                        folderName = automatic.folderName,
+                        detailLine = automatic.folderName?.let { "Daily · $it" },
+                        resultLine = automaticBackupResultLine(
+                            automatic.lastSuccessAtMillis,
+                            automatic.lastAttemptFailed,
+                            automatic.permissionLost,
+                            System.currentTimeMillis(),
+                        ),
+                    ))
+                }
+            }
+        }
+    }
+
+    /** Persisted SAF grants survive process death, but not provider removal or a
+     * user revoking access. Provider apps do any Drive/Nextcloud/Syncthing/
+     * OneDrive syncing; strength.log only writes through their local document
+     * interface and never uploads itself. */
+    fun enableAutomaticBackup(uri: Uri) = runBusy {
+        context.contentResolver.takePersistableUriPermission(
+            uri,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+        )
+        val name = DocumentFile.fromTreeUri(context, uri)?.name ?: "Selected folder"
+        try {
+            settings.enableAutoBackup(uri.toString(), name)
+            AutoBackupScheduler.enable(context)
+        } catch (error: Exception) {
+            runCatching { context.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
+            throw error
+        }
+    }
+
+    fun disableAutomaticBackup() = runBusy {
+        val current = settings.autoBackupSettingsFlow.first()
+        current.treeUri?.let { stored ->
+            runCatching {
+                context.contentResolver.releasePersistableUriPermission(
+                    Uri.parse(stored),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            }
+        }
+        AutoBackupScheduler.disable(context)
+        settings.disableAutoBackup()
+    }
 
     // --- JSON backup -----------------------------------------------------
 

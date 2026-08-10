@@ -163,6 +163,9 @@
 <!-- Backup -->
 <string name="backup_title">DATA / BACKUP</string>
 <string name="backup_back_label">Back</string>
+<string name="backup_automatic_title">Automatic backup</string>
+<string name="backup_automatic_body">Keep one current backup in a folder you choose. Your folder provider handles any syncing.</string>
+<string name="backup_automatic_toggle">Automatic backup</string>
 <string name="backup_full_title">Full backup</string>
 <string name="backup_full_body">Everything you own — program, logs, custom exercises, and history — as one JSON file.</string>
 <string name="backup_export_button">EXPORT BACKUP</string>

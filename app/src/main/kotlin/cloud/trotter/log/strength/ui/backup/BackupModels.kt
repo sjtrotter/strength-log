@@ -30,6 +30,14 @@ data class BackupUiState(
     val message: StatusMessage? = null,
     val pendingRestoreConfirm: Boolean = false,
     val csvImport: CsvImportUiState? = null,
+    val automatic: AutomaticBackupUiState = AutomaticBackupUiState(),
+)
+
+data class AutomaticBackupUiState(
+    val enabled: Boolean = false,
+    val folderName: String? = null,
+    val detailLine: String? = null,
+    val resultLine: String? = null,
 )
 
 /** A one-shot status line (export/import result or failure); [isError] picks
@@ -66,6 +74,7 @@ data class CsvImportUiState(
 /** Callbacks the screen forwards to [BackupViewModel] / the SAF launchers the
  *  route owns — mirrors [cloud.trotter.log.strength.ui.setup.SetupActions]'s shape. */
 data class BackupActions(
+    val onAutomaticBackupChange: (Boolean) -> Unit,
     val onExportBackupClick: () -> Unit,
     val onImportBackupClick: () -> Unit,
     val onExportCsvClick: () -> Unit,
@@ -78,6 +87,23 @@ data class BackupActions(
     val onDismissMessage: () -> Unit,
     val onBack: () -> Unit,
 )
+
+internal fun automaticBackupResultLine(
+    lastSuccessAtMillis: Long?,
+    lastAttemptFailed: Boolean,
+    permissionLost: Boolean,
+    nowMillis: Long,
+): String? {
+    if (permissionLost) return "Folder permission was lost — choose it again"
+    if (lastAttemptFailed) return "Last attempt failed — will retry"
+    val success = lastSuccessAtMillis ?: return null
+    val days = ((nowMillis - success).coerceAtLeast(0) / 86_400_000L).toInt()
+    return when (days) {
+        0 -> "Last backup: today"
+        1 -> "Last backup: yesterday"
+        else -> "Last backup: $days days ago"
+    }
+}
 
 /**
  * Maps the typed core errors to plain user-facing copy (PLAN.md A2: "surface

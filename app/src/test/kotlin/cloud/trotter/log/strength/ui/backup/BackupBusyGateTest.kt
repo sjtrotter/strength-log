@@ -63,6 +63,7 @@ class BackupBusyGateTest {
     }
 
     private fun actions() = BackupActions(
+        onAutomaticBackupChange = {},
         onExportBackupClick = {},
         onImportBackupClick = {},
         onExportCsvClick = {},

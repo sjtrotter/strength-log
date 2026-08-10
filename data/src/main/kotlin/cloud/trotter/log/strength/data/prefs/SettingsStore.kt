@@ -86,6 +86,17 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
          *  Absent means off: a screen that never sleeps is a battery decision, so
          *  the user has to ask for it, and having asked once they keep it. */
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+
+        // Device-local SAF automation state. These keys are deliberately not
+        // part of the versioned backup document: a persisted grant belongs to
+        // this Android install and cannot be restored on another device.
+        val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
+        val AUTO_BACKUP_TREE_URI = stringPreferencesKey("auto_backup_tree_uri")
+        val AUTO_BACKUP_FOLDER_NAME = stringPreferencesKey("auto_backup_folder_name")
+        val AUTO_BACKUP_CADENCE_HOURS = intPreferencesKey("auto_backup_cadence_hours")
+        val AUTO_BACKUP_LAST_SUCCESS_AT = longPreferencesKey("auto_backup_last_success_at")
+        val AUTO_BACKUP_LAST_ATTEMPT_FAILED = booleanPreferencesKey("auto_backup_last_attempt_failed")
+        val AUTO_BACKUP_PERMISSION_LOST = booleanPreferencesKey("auto_backup_permission_lost")
     }
 
     /** Maps each overridable rest category to its DataStore key (SSOT for the
@@ -167,6 +178,18 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val healthBackfillDoneFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.HEALTH_BACKFILL_DONE] ?: false }
 
+    val autoBackupSettingsFlow: Flow<AutoBackupSettings> = dataStore.data.map { prefs ->
+        AutoBackupSettings(
+            enabled = prefs[Keys.AUTO_BACKUP_ENABLED] ?: false,
+            treeUri = prefs[Keys.AUTO_BACKUP_TREE_URI],
+            folderName = prefs[Keys.AUTO_BACKUP_FOLDER_NAME],
+            cadenceHours = prefs[Keys.AUTO_BACKUP_CADENCE_HOURS] ?: AUTO_BACKUP_DAILY_HOURS,
+            lastSuccessAtMillis = prefs[Keys.AUTO_BACKUP_LAST_SUCCESS_AT],
+            lastAttemptFailed = prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] ?: false,
+            permissionLost = prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] ?: false,
+        )
+    }
+
     // --- writes --------------------------------------------------------------
 
     suspend fun setConfig(config: LifterConfig) = dataStore.edit { it.writeConfig(config) }
@@ -179,6 +202,42 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      *  returns. Written only after a backfill that published every session. */
     suspend fun setHealthBackfillDone() =
         dataStore.edit { it[Keys.HEALTH_BACKFILL_DONE] = true }
+
+    suspend fun enableAutoBackup(treeUri: String, folderName: String) = dataStore.edit { prefs ->
+        prefs[Keys.AUTO_BACKUP_TREE_URI] = treeUri
+        prefs[Keys.AUTO_BACKUP_FOLDER_NAME] = folderName
+        prefs[Keys.AUTO_BACKUP_CADENCE_HOURS] = AUTO_BACKUP_DAILY_HOURS
+        prefs[Keys.AUTO_BACKUP_ENABLED] = true
+        prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = false
+        prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = false
+    }
+
+    suspend fun disableAutoBackup() = dataStore.edit { prefs ->
+        prefs.remove(Keys.AUTO_BACKUP_ENABLED)
+        prefs.remove(Keys.AUTO_BACKUP_TREE_URI)
+        prefs.remove(Keys.AUTO_BACKUP_FOLDER_NAME)
+        prefs.remove(Keys.AUTO_BACKUP_CADENCE_HOURS)
+        prefs.remove(Keys.AUTO_BACKUP_LAST_SUCCESS_AT)
+        prefs.remove(Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED)
+        prefs.remove(Keys.AUTO_BACKUP_PERMISSION_LOST)
+    }
+
+    suspend fun recordAutoBackupSuccess(atMillis: Long) = dataStore.edit { prefs ->
+        prefs[Keys.AUTO_BACKUP_LAST_SUCCESS_AT] = atMillis
+        prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = false
+    }
+
+    suspend fun recordAutoBackupFailure() = dataStore.edit { prefs ->
+        prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = true
+    }
+
+    suspend fun markAutoBackupPermissionLost() = dataStore.edit { prefs ->
+        prefs.remove(Keys.AUTO_BACKUP_ENABLED)
+        prefs.remove(Keys.AUTO_BACKUP_TREE_URI)
+        prefs.remove(Keys.AUTO_BACKUP_CADENCE_HOURS)
+        prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = true
+        prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = true
+    }
 
     /** Flips the master rest-timer gate. */
     suspend fun setRestTimerEnabled(enabled: Boolean) =
@@ -254,6 +313,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * and [Keys.SESSION_STARTED_DATE]) are deliberately left cleared: a restore
      * can't be "mid-workout".
      *
+     * Device-local automatic-backup keys are captured and restored around the
+     * clear: their SAF grant cannot be transferred in a backup document, but a
+     * data restore on this device must not silently turn its schedule off.
+     *
      * [restSettings] only writes the override keys the backup actually carries
      * (schema v3): a bucket the user never pinned stays absent here too, so a
      * restored device keeps following [RestPolicy]'s defaults rather than being
@@ -267,6 +330,16 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         restSettings: RestSettings,
         keepScreenOn: Boolean,
     ) = dataStore.edit { prefs ->
+        // SAF grants and their schedule are properties of this installation,
+        // not user data contained in the imported document. Keep them across a
+        // full restore while still clearing all restorable preferences.
+        val autoEnabled = prefs[Keys.AUTO_BACKUP_ENABLED]
+        val autoTreeUri = prefs[Keys.AUTO_BACKUP_TREE_URI]
+        val autoFolderName = prefs[Keys.AUTO_BACKUP_FOLDER_NAME]
+        val autoCadence = prefs[Keys.AUTO_BACKUP_CADENCE_HOURS]
+        val autoLastSuccess = prefs[Keys.AUTO_BACKUP_LAST_SUCCESS_AT]
+        val autoFailed = prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED]
+        val autoPermissionLost = prefs[Keys.AUTO_BACKUP_PERMISSION_LOST]
         prefs.clear()
         prefs.writeConfig(answers.config)
         prefs.writeCardio(answers.cardio)
@@ -283,6 +356,13 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             prefs[restOverrideKeys.getValue(category)] = seconds.coerceIn(0, RestPolicy.MAX_REST_SECONDS)
         }
         prefs[Keys.KEEP_SCREEN_ON] = keepScreenOn
+        autoEnabled?.let { prefs[Keys.AUTO_BACKUP_ENABLED] = it }
+        autoTreeUri?.let { prefs[Keys.AUTO_BACKUP_TREE_URI] = it }
+        autoFolderName?.let { prefs[Keys.AUTO_BACKUP_FOLDER_NAME] = it }
+        autoCadence?.let { prefs[Keys.AUTO_BACKUP_CADENCE_HOURS] = it }
+        autoLastSuccess?.let { prefs[Keys.AUTO_BACKUP_LAST_SUCCESS_AT] = it }
+        autoFailed?.let { prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = it }
+        autoPermissionLost?.let { prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = it }
     }
 
     // --- read/write helpers --------------------------------------------------
@@ -338,3 +418,15 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
  *  a reader can drop one that outlived its day (session-start capture). [date]
  *  is a `yyyy-MM-dd` string from the same clock basis `CheckmarkReset` uses. */
 data class SessionStartStamp(val startedAtMillis: Long, val date: String)
+
+const val AUTO_BACKUP_DAILY_HOURS = 24
+
+data class AutoBackupSettings(
+    val enabled: Boolean = false,
+    val treeUri: String? = null,
+    val folderName: String? = null,
+    val cadenceHours: Int = AUTO_BACKUP_DAILY_HOURS,
+    val lastSuccessAtMillis: Long? = null,
+    val lastAttemptFailed: Boolean = false,
+    val permissionLost: Boolean = false,
+)

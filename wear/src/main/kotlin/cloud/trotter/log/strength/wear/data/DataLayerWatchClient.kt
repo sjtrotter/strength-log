@@ -50,6 +50,10 @@ import kotlinx.coroutines.sync.withLock
  *   every unmocked Android call.
  * @param retryJitter the only randomness in the retry cadence, injectable so the
  *   schedule can be asserted exactly.
+ * @param afterEnqueueBeforeEcho test seam at the race boundary; it runs while
+ *   [installing] is held.
+ * @param beforeInstallLock test seam for proving that an install is waiting on
+ *   [installing].
  */
 class DataLayerWatchClient(
     private val link: PhoneLink,
@@ -57,6 +61,8 @@ class DataLayerWatchClient(
     private val scope: CoroutineScope,
     private val onWarning: (String, Throwable) -> Unit = { message, cause -> Log.w(TAG, message, cause) },
     private val retryJitter: () -> Double = { Random.nextDouble() },
+    private val afterEnqueueBeforeEcho: suspend () -> Unit = {},
+    private val beforeInstallLock: suspend () -> Unit = {},
 ) : WatchTrackerClient {
 
     private val snapshots = MutableStateFlow<WatchSnapshot?>(null)
@@ -96,21 +102,31 @@ class DataLayerWatchClient(
     override fun pendingSwapsFlow(): Flow<Set<Long>> = queue.swapExerciseIdsFlow()
 
     override fun sendEdit(delta: SetEditDelta) = launchSend("sending an edit") {
-        // Re-stamp with a strictly monotonic, persisted editedAtMillis: the caller's
-        // wall clock can stamp two distinct edits into the same millisecond, and the
-        // phone's per-row dedupe would then drop the second as a replay.
-        val stamped = delta.copy(editedAtMillis = queue.issueStamp(delta.editedAtMillis))
-        queue.enqueue(stamped)
-        echo(stamped)
+        val stamped = installing.withLock {
+            // Re-stamp with a strictly monotonic, persisted editedAtMillis: the caller's
+            // wall clock can stamp two distinct edits into the same millisecond, and the
+            // phone's per-row dedupe would then drop the second as a replay.
+            val edit = delta.copy(editedAtMillis = queue.issueStamp(delta.editedAtMillis))
+            queue.enqueue(edit)
+            afterEnqueueBeforeEcho()
+            // Display-only: applyDelta preserves the phone-owned epoch and revision.
+            snapshots.update { held -> held?.let { applyDelta(it, edit) } }
+            edit
+        }
         send(stamped)
     }
 
     /** Same shape as [sendEdit], one path over. The echo is the name only — seeding
      *  is the phone's (see [applyDelta]). */
     override fun sendSwap(swap: ExerciseSwapDelta) = launchSend("sending a swap") {
-        val stamped = swap.copy(editedAtMillis = queue.issueStamp(swap.editedAtMillis))
-        queue.enqueueSwap(stamped)
-        echo(stamped)
+        val stamped = installing.withLock {
+            val edit = swap.copy(editedAtMillis = queue.issueStamp(swap.editedAtMillis))
+            queue.enqueueSwap(edit)
+            afterEnqueueBeforeEcho()
+            // Display-only: applyDelta preserves the phone-owned epoch and revision.
+            snapshots.update { held -> held?.let { applyDelta(it, edit) } }
+            edit
+        }
         sendSwapMessage(stamped)
     }
 
@@ -123,23 +139,6 @@ class DataLayerWatchClient(
      */
     private fun launchSend(what: String, block: suspend () -> Unit) {
         scope.launch { guarded(what) { block() } }
-    }
-
-    /**
-     * The optimistic on-wrist echo (spec §9), applied in place to whatever snapshot is
-     * held.
-     *
-     * INVARIANT: the echo must NOT touch `epoch` or `revision`. Revision means "the
-     * phone has said something new"; an echo that advanced it would let the lifter's
-     * own edit pass itself off as a phone-side change, and — since [install] compares
-     * against the held stamp — would make the phone's real answer look stale.
-     */
-    private suspend fun echo(delta: SetEditDelta) = installing.withLock {
-        snapshots.update { held -> held?.let { applyDelta(it, delta) } }
-    }
-
-    private suspend fun echo(delta: ExerciseSwapDelta) = installing.withLock {
-        snapshots.update { held -> held?.let { applyDelta(it, delta) } }
     }
 
     /** The last snapshot the Data Layer cached on this node (survives restarts). */
@@ -160,18 +159,21 @@ class DataLayerWatchClient(
     }
 
     /** Installs [snapshot] if it [supersedes] the held one, and says whether it did. */
-    private suspend fun install(snapshot: WatchSnapshot): Boolean = installing.withLock {
-        val held = snapshots.value
-        if (held != null && !supersedes(snapshot, held)) return@withLock false
+    private suspend fun install(snapshot: WatchSnapshot): Boolean {
+        beforeInstallLock()
+        return installing.withLock {
+            val held = snapshots.value
+            if (held != null && !supersedes(snapshot, held)) return@withLock false
 
-        // Reconciliation always reads the phone's wire truth. Only the remaining
-        // durable deltas are then folded over a fresh in-memory copy for display.
-        queue.reconcileAgainst(snapshot)
-        var displayed = snapshot
-        queue.all().forEach { delta -> displayed = applyDelta(displayed, delta) }
-        queue.allSwaps().forEach { delta -> displayed = applyDelta(displayed, delta) }
-        snapshots.value = displayed
-        true
+            // Reconciliation always reads the phone's wire truth. Only the remaining
+            // durable deltas are then folded over a fresh in-memory copy for display.
+            queue.reconcileAgainst(snapshot)
+            var displayed = snapshot
+            queue.all().forEach { delta -> displayed = applyDelta(displayed, delta) }
+            queue.allSwaps().forEach { delta -> displayed = applyDelta(displayed, delta) }
+            snapshots.value = displayed
+            true
+        }
     }
 
     /**

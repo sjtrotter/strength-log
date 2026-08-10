@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.wear.data
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import java.io.File
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -49,7 +51,12 @@ class DataLayerWatchClientTest {
         },
     )
 
-    private fun watchClient(link: FakePhoneLink, queue: PendingEditStore = store()) =
+    private fun watchClient(
+        link: FakePhoneLink,
+        queue: PendingEditStore = store(),
+        afterEnqueueBeforeEcho: suspend () -> Unit = {},
+        beforeInstallLock: suspend () -> Unit = {},
+    ) =
         DataLayerWatchClient(
             link = link,
             queue = queue,
@@ -58,6 +65,8 @@ class DataLayerWatchClientTest {
             // android.util.Log would throw here. Recorded instead: a warning in a
             // happy-path test means something failed quietly.
             onWarning = { message, cause -> warnings += "$message: $cause" },
+            afterEnqueueBeforeEcho = afterEnqueueBeforeEcho,
+            beforeInstallLock = beforeInstallLock,
         )
 
     @Test
@@ -301,6 +310,75 @@ class DataLayerWatchClientTest {
         eventually("the durable enqueue") { queue.all().size == 1 }
         assertEquals(true, queue.all().single().done)
         eventually("the send") { link.sentDeltas.size == 1 }
+    }
+
+    @Test
+    fun `a drift-refused swap install cannot be overtaken by its echo`() = runBlocking {
+        val link = FakePhoneLink()
+        val queue = store()
+        val installAttempted = CompletableDeferred<Unit>()
+        val raceArmed = AtomicBoolean(false)
+        val authoritative = phoneSnapshot(revision = 10, epoch = PHONE_EPOCH).let { snapshot ->
+            snapshot.copy(day = snapshot.day.copy(exercises = snapshot.day.exercises.map { exercise ->
+                exercise.copy(name = "Authoritative Squat", alternates = emptyList())
+            }))
+        }
+        val client = watchClient(
+            link = link,
+            queue = queue,
+            afterEnqueueBeforeEcho = {
+                link.snapshotEvents.emit(authoritative)
+                installAttempted.await()
+            },
+            beforeInstallLock = { if (raceArmed.get()) installAttempted.complete(Unit) },
+        )
+        eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        link.snapshotEvents.emit(phoneSnapshot(revision = 9, epoch = PHONE_EPOCH))
+        eventually("the baseline") { client.snapshotFlow().first().revision == 9L }
+
+        raceArmed.set(true)
+        client.sendSwap(swapRequest(stamp = 7L))
+
+        eventually("the authoritative install") {
+            queue.allSwaps().isEmpty() && client.snapshotFlow().first().revision == 10L
+        }
+        assertEquals("Authoritative Squat", client.snapshotFlow().first().day.exercises.single().name)
+        assertEquals(0, client.pendingCountFlow().first())
+    }
+
+    @Test
+    fun `a day rollover install cannot be overtaken by an old day edit echo`() = runBlocking {
+        val link = FakePhoneLink()
+        val queue = store()
+        val installAttempted = CompletableDeferred<Unit>()
+        val raceArmed = AtomicBoolean(false)
+        val nextDay = phoneSnapshot(revision = 10, epoch = PHONE_EPOCH).let { snapshot ->
+            snapshot.copy(
+                suggestedDayId = "B",
+                day = snapshot.day.copy(dayId = "B", title = "Day B"),
+            )
+        }
+        val client = watchClient(
+            link = link,
+            queue = queue,
+            afterEnqueueBeforeEcho = {
+                link.snapshotEvents.emit(nextDay)
+                installAttempted.await()
+            },
+            beforeInstallLock = { if (raceArmed.get()) installAttempted.complete(Unit) },
+        )
+        eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        link.snapshotEvents.emit(phoneSnapshot(revision = 9, epoch = PHONE_EPOCH))
+        eventually("the baseline") { client.snapshotFlow().first().revision == 9L }
+
+        raceArmed.set(true)
+        client.sendEdit(tickDelta(done = true, stamp = 7L))
+
+        eventually("the day rollover") {
+            queue.all().isEmpty() && client.snapshotFlow().first().day.dayId == "B"
+        }
+        assertEquals(false, client.snapshotFlow().first().day.exercises.single().sets[0].done)
+        assertEquals(0, client.pendingCountFlow().first())
     }
 
     /** Real time, because the work being waited on is on real threads. */

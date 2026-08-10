@@ -38,12 +38,14 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -138,6 +140,13 @@ fun SetRow(
     onSecondsChange: (Int) -> Unit = {},
     showTimedWeight: Boolean = false,
 ) {
+    val supersetPartnerDescription = stringResource(R.string.set_row_superset_partner_description)
+    val decreaseWeightDescription = stringResource(R.string.set_row_decrease_weight_action)
+    val increaseWeightDescription = stringResource(R.string.set_row_increase_weight_action)
+    val decreaseRepsDescription = stringResource(R.string.set_row_decrease_reps_action)
+    val increaseRepsDescription = stringResource(R.string.set_row_increase_reps_action)
+    val decreaseHoldDescription = stringResource(R.string.set_row_decrease_hold_action)
+    val increaseHoldDescription = stringResource(R.string.set_row_increase_hold_action)
     var previousWeight by remember { mutableDoubleStateOf(weight) }
     var selfEdited by remember { mutableStateOf(false) }
     val flash = remember { Animatable(0f) }
@@ -176,7 +185,7 @@ fun SetRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = if (isSubRow) "↳" else kindLabel,
+            text = if (isSubRow) stringResource(R.string.components_superset_partner_glyph) else kindLabel,
             color = if (isTop) accent else if (isSubRow) TextFaint else TextSecondary,
             style = SetKindLabel,
             maxLines = 1,
@@ -185,7 +194,7 @@ fun SetRow(
             // (A7) — the Stepper value's widthIn(min) pattern is the model.
             modifier = Modifier
                 .widthIn(min = if (isSubRow) SubRowKindLabelWidth else PrimaryKindLabelWidth)
-                .then(if (isSubRow) Modifier.clearAndSetSemantics { contentDescription = "Superset partner" } else Modifier),
+                .then(if (isSubRow) Modifier.clearAndSetSemantics { contentDescription = supersetPartnerDescription } else Modifier),
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.alpha(fadeAlpha)) {
@@ -200,8 +209,8 @@ fun SetRow(
                     format = weightFormat,
                     round = weightRound,
                     valueColor = lerp(TextPrimary, accent, flash.value),
-                    decreaseDescription = "Decrease weight",
-                    increaseDescription = "Increase weight",
+                    decreaseDescription = decreaseWeightDescription,
+                    increaseDescription = increaseWeightDescription,
                 )
             }
             when (tracking) {
@@ -215,8 +224,8 @@ fun SetRow(
                         format = { it.toInt().toString() },
                         valueTextStyle = StepperRepsValue,
                         valueMinWidth = 36.dp,
-                        decreaseDescription = "Decrease reps",
-                        increaseDescription = "Increase reps",
+                        decreaseDescription = decreaseRepsDescription,
+                        increaseDescription = increaseRepsDescription,
                     )
                 }
                 TrackingType.REPS -> {
@@ -228,8 +237,8 @@ fun SetRow(
                         format = { it.toInt().toString() },
                         valueTextStyle = StepperRepsValue,
                         valueMinWidth = 36.dp,
-                        decreaseDescription = "Decrease reps",
-                        increaseDescription = "Increase reps",
+                        decreaseDescription = decreaseRepsDescription,
+                        increaseDescription = increaseRepsDescription,
                     )
                 }
                 TrackingType.TIMED -> {
@@ -239,8 +248,8 @@ fun SetRow(
                         step = { SecondsStepper.increment(it.toInt()).toDouble() },
                         format = { SecondsStepper.format(it.toInt()) },
                         valueTextStyle = StepperRepsValue,
-                        decreaseDescription = "Decrease hold",
-                        increaseDescription = "Increase hold",
+                        decreaseDescription = decreaseHoldDescription,
+                        increaseDescription = increaseHoldDescription,
                     )
                     if (showTimedWeight) weightStepper()
                 }
@@ -258,11 +267,12 @@ fun SetRow(
 
 @Composable
 private fun RemoveButton(onClick: () -> Unit) {
+    val removeDescription = stringResource(R.string.set_row_remove_action)
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .pressable(onClickLabel = "Remove set", role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = "Remove set" },
+            .pressable(onClickLabel = removeDescription, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = removeDescription },
         contentAlignment = Alignment.Center,
     ) {
         // Both axes are floors: large type keeps the remove glyph whole; 1.0x
@@ -271,7 +281,12 @@ private fun RemoveButton(onClick: () -> Unit) {
             modifier = Modifier.defaultMinSize(minWidth = 24.dp, minHeight = 48.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "×", color = TextFaint, style = RemoveGlyph, modifier = Modifier.clearAndSetSemantics {})
+            Text(
+                text = stringResource(R.string.components_remove_glyph),
+                color = TextFaint,
+                style = RemoveGlyph,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
         }
     }
 }

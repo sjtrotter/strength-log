@@ -33,6 +33,8 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.NoProgramState
 import cloud.trotter.log.strength.ui.components.ProgramLoadingState
 import cloud.trotter.log.strength.ui.components.pressable
@@ -115,7 +118,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
 
                 state.cardio?.let { cardio ->
                     Spacer(Modifier.size(14.dp))
-                    Text("CARDIO FINISHER", color = TextFaint, style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.today_cardio_finisher_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
                     Spacer(Modifier.size(4.dp))
                     Text(
                         TodayScreenBuilder.cardioIntentLine(cardio.hard, cardio.label),
@@ -128,12 +131,19 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
 
                 if (state.rotation.isNotEmpty()) {
                     Spacer(Modifier.size(24.dp))
-                    Text("ROTATION", color = TextFaint, style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.today_rotation_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
                     Spacer(Modifier.size(8.dp))
                     val nextId = state.rotation.firstOrNull { it.isNext }?.dayId?.uppercase()
-                    val description = "Rotation: " +
-                        state.rotation.joinToString(", ") { "Day ${it.dayId}" } +
-                        if (nextId != null) ". Next is Day $nextId." else "."
+                    val rotationDays = mutableListOf<String>()
+                    state.rotation.forEach {
+                        rotationDays += stringResource(R.string.today_rotation_day, it.dayId)
+                    }
+                    val days = rotationDays.joinToString(stringResource(R.string.today_list_separator))
+                    val description = if (nextId != null) {
+                        stringResource(R.string.today_rotation_description_next, days, nextId)
+                    } else {
+                        stringResource(R.string.today_rotation_description, days)
+                    }
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.clearAndSetSemantics { contentDescription = description },
@@ -146,7 +156,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                     Spacer(Modifier.size(22.dp))
                     Hairline()
                     Spacer(Modifier.size(12.dp))
-                    Text("LAST SESSION", color = TextFaint, style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.today_last_session_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
                     Spacer(Modifier.size(4.dp))
                     Text(lastSession, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
@@ -166,7 +176,7 @@ private fun TodayHeader(actions: TodayActions) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("TODAY", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.today_title), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.weight(1f))
             LogButton(actions.onOpenLog)
             SettingsButton(actions.onOpenSettings)
@@ -177,6 +187,7 @@ private fun TodayHeader(actions: TodayActions) {
 
 @Composable
 private fun LogButton(onClick: () -> Unit) {
+    val openLog = stringResource(R.string.today_open_log_description)
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
@@ -184,21 +195,22 @@ private fun LogButton(onClick: () -> Unit) {
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
             .pressable(
-                onClickLabel = "Open log",
+                onClickLabel = openLog,
                 role = Role.Button,
                 shape = RoundedCornerShape(10.dp),
                 onClick = onClick,
             )
-            .semantics { contentDescription = "Open log" }
+            .semantics { contentDescription = openLog }
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text("LOG", color = TextSecondary, style = TabLetter.copy(fontSize = 13.sp), modifier = Modifier.clearAndSetSemantics {})
+        Text(stringResource(R.string.today_log_button), color = TextSecondary, style = TabLetter.copy(fontSize = 13.sp), modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
 @Composable
 private fun SettingsButton(onClick: () -> Unit) {
+    val settings = stringResource(R.string.today_settings_description)
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()
@@ -206,15 +218,15 @@ private fun SettingsButton(onClick: () -> Unit) {
             .background(Surface2, RoundedCornerShape(10.dp))
             .border(1.dp, Border, RoundedCornerShape(10.dp))
             .pressable(
-                onClickLabel = "Settings",
+                onClickLabel = settings,
                 role = Role.Button,
                 shape = RoundedCornerShape(10.dp),
                 onClick = onClick,
             )
-            .semantics { contentDescription = "Settings" },
+            .semantics { contentDescription = settings },
         contentAlignment = Alignment.Center,
     ) {
-        Text("⚙", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
+        Text(stringResource(R.string.today_settings_icon), color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
@@ -237,7 +249,11 @@ private fun LiftRow(lift: TodayLift) {
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
         )
-        Text("${lift.setCount} sets", color = TextFaint, style = MaterialTheme.typography.bodySmall)
+        Text(
+            pluralStringResource(R.plurals.today_lift_set_count, lift.setCount, lift.setCount),
+            color = TextFaint,
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 

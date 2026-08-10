@@ -14,7 +14,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.TextPrimary
@@ -47,22 +49,26 @@ private fun RationaleScreen() {
             .systemBarsPadding()
             .padding(24.dp),
     ) {
-        Text("Health Connect", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.health_rationale_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.size(12.dp))
         Text(
-            "strength.log uses Health Connect only on this device — it needs no internet access. " +
-                "You choose which of these to allow, and the app works fully without any of them:",
+            stringResource(R.string.health_rationale_body),
             color = TextSecondary,
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(Modifier.size(16.dp))
-        Bullet("Write your completed workouts, so other fitness apps can see them.")
-        Bullet("Read strength sessions from other apps, to list them in your Log.")
-        Bullet("Read your latest bodyweight, to offer to update your training GOALs.")
+        Bullet(stringResource(R.string.health_rationale_write_workouts_bullet))
+        Bullet(stringResource(R.string.health_rationale_read_sessions_bullet))
+        Bullet(stringResource(R.string.health_rationale_read_bodyweight_bullet))
     }
 }
 
 @Composable
 private fun Bullet(text: String) {
-    Text("•  $text", color = TextSecondary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 6.dp))
+    Text(
+        stringResource(R.string.health_rationale_bullet_format, text),
+        color = TextSecondary,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(vertical = 6.dp),
+    )
 }

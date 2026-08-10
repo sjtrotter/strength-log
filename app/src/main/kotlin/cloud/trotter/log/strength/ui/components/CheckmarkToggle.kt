@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -29,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -56,8 +58,10 @@ fun CheckmarkToggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    description: String = "Set done",
+    description: String? = null,
 ) {
+    val resolvedDescription = description ?: stringResource(R.string.set_row_done_description)
+    val resolvedStateDescription = stringResource(if (checked) R.string.set_row_done_state else R.string.set_row_not_done_state)
     // Resting scale is always 1.0; 0.7 is only the transient start of the pop.
     val scale = remember { Animatable(1f) }
     // Only pop on an actual tick — not when a checked row scrolls back into the
@@ -84,8 +88,8 @@ fun CheckmarkToggle(
                 role = Role.Checkbox,
             )
             .semantics {
-                contentDescription = description
-                stateDescription = if (checked) "Done" else "Not done"
+                contentDescription = resolvedDescription
+                stateDescription = resolvedStateDescription
             },
         contentAlignment = Alignment.Center,
     ) {
@@ -98,7 +102,12 @@ fun CheckmarkToggle(
             contentAlignment = Alignment.Center,
         ) {
             if (checked) {
-                Text(text = "✓", color = Background, style = TickGlyph, modifier = Modifier.clearAndSetSemantics {})
+                Text(
+                    text = stringResource(R.string.components_checkmark_glyph),
+                    color = Background,
+                    style = TickGlyph,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
             }
         }
     }

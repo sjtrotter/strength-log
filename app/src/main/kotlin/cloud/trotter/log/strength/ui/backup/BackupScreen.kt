@@ -36,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -43,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.transfer.csv.CsvImportPreview
 import cloud.trotter.log.strength.transfer.csv.PreviewSession
 import cloud.trotter.log.strength.transfer.csv.PreviewSet
@@ -98,25 +101,25 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
                 item { Spacer(Modifier.size(4.dp)) }
                 item {
                     SectionCard(
-                        title = "Full backup",
-                        body = "Everything you own — program, logs, custom exercises, and history — as one JSON file.",
+                        title = stringResource(R.string.backup_full_title),
+                        body = stringResource(R.string.backup_full_body),
                         accent = accent,
                         busy = state.isBusy,
-                        primaryLabel = "EXPORT BACKUP",
+                        primaryLabel = stringResource(R.string.backup_export_button),
                         onPrimaryClick = actions.onExportBackupClick,
-                        secondaryLabel = "RESTORE FROM BACKUP",
+                        secondaryLabel = stringResource(R.string.backup_restore_button),
                         onSecondaryClick = actions.onImportBackupClick,
                     )
                 }
                 item {
                     SectionCard(
-                        title = "CSV history",
-                        body = "Strong-compatible export/import for your workout history — spreadsheets, Hevy, FitNotes.",
+                        title = stringResource(R.string.backup_csv_title),
+                        body = stringResource(R.string.backup_csv_body),
                         accent = accent,
                         busy = state.isBusy,
-                        primaryLabel = "EXPORT CSV",
+                        primaryLabel = stringResource(R.string.backup_csv_export_button),
                         onPrimaryClick = actions.onExportCsvClick,
-                        secondaryLabel = "IMPORT CSV",
+                        secondaryLabel = stringResource(R.string.backup_csv_import_button),
                         onSecondaryClick = actions.onImportCsvClick,
                     )
                 }
@@ -144,7 +147,7 @@ private fun BackupHeader(onBack: () -> Unit, enabled: Boolean = true) {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             BackAction(onBack, enabled = enabled)
-            Text("DATA / BACKUP", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.backup_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         }
         HorizontalDivider(thickness = 1.dp, color = Border)
     }
@@ -228,15 +231,12 @@ private fun MessageBanner(message: StatusMessage, onDismiss: () -> Unit) {
 private fun RestoreConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Restore this backup?") },
+        title = { Text(stringResource(R.string.backup_restore_confirm_title)) },
         text = {
-            Text(
-                "This replaces everything on this device — program, logs, custom exercises, and history — " +
-                    "with what's in the file. This can't be undone.",
-            )
+            Text(stringResource(R.string.backup_restore_confirm_body))
         },
-        confirmButton = { DialogAction("Replace all data", Error, onConfirm) },
-        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
+        confirmButton = { DialogAction(stringResource(R.string.backup_restore_confirm_button), Error, onConfirm) },
+        dismissButton = { DialogAction(stringResource(R.string.backup_restore_cancel_button), TextSecondary, onDismiss) },
     )
 }
 
@@ -282,7 +282,7 @@ private fun CsvImportPreviewOverlay(state: CsvImportUiState, actions: BackupActi
                     if (state.preview.unmatchedNames.isNotEmpty()) {
                         item {
                             Text(
-                                "UNMATCHED EXERCISES — CONFIRM A PATTERN",
+                                stringResource(R.string.backup_csv_unmatched_header),
                                 color = TextSecondary,
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -318,18 +318,25 @@ private fun CsvImportPreviewOverlay(state: CsvImportUiState, actions: BackupActi
 @Composable
 private fun CsvPreviewSummary(state: CsvImportUiState) {
     AppCard {
-        Text("PREVIEW", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.backup_csv_preview_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
         Text(
-            "${state.sessionCount} session(s), ${state.matchedSetCount} set(s) will be added to your history.",
+            stringResource(
+                R.string.backup_csv_preview_summary,
+                pluralStringResource(R.plurals.backup_csv_preview_sessions, state.sessionCount, state.sessionCount),
+                pluralStringResource(R.plurals.backup_csv_preview_sets, state.matchedSetCount, state.matchedSetCount),
+            ),
             color = TextPrimary,
             style = MaterialTheme.typography.bodyLarge,
         )
         if (state.preview.unmatchedNames.isNotEmpty()) {
             Spacer(Modifier.size(6.dp))
             Text(
-                "${state.preview.unmatchedNames.size} exercise name(s) below don't match your library — " +
-                    "confirm (or change) the movement pattern for each so a custom exercise can be created.",
+                pluralStringResource(
+                    R.plurals.backup_csv_unmatched_body,
+                    state.preview.unmatchedNames.size,
+                    state.preview.unmatchedNames.size,
+                ),
                 color = TextFaint,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -359,7 +366,7 @@ private fun PatternPickerSheet(current: MovementPattern, onPick: (MovementPatter
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text("Movement pattern", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.backup_csv_pattern_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.size(10.dp))
             LazyColumn(
                 modifier = Modifier.heightIn(max = 420.dp).selectableGroup(),
@@ -385,7 +392,7 @@ private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            DialogButton("CANCEL", Surface2, TextPrimary, Modifier.weight(1f), actions.onCancelCsvImport)
+            DialogButton(stringResource(R.string.backup_csv_cancel_button), Surface2, TextPrimary, Modifier.weight(1f), actions.onCancelCsvImport)
             Button(
                 onClick = actions.onConfirmCsvImport,
                 enabled = canCommit,
@@ -397,7 +404,7 @@ private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
                     disabledContainerColor = Surface2, disabledContentColor = TextFaint),
                 contentPadding = PaddingValues(vertical = 6.dp),
             ) {
-                Text("IMPORT", style = DoneButtonLabel.copy(fontSize = 13.sp))
+                Text(stringResource(R.string.backup_csv_confirm_button), style = DoneButtonLabel.copy(fontSize = 13.sp))
             }
         }
     }
@@ -409,27 +416,30 @@ private fun CsvImportFooter(canCommit: Boolean, actions: BackupActions) {
  * recognize (an imported CSV's exercise name), not picking from a familiar
  * list, so the extra context in each label earns its keep.
  */
-private fun patternLabel(pattern: MovementPattern): String = when (pattern) {
-    MovementPattern.SQUAT_BILATERAL -> "Squat (bilateral)"
-    MovementPattern.SINGLE_LEG -> "Single-leg"
-    MovementPattern.HINGE -> "Hinge"
-    MovementPattern.KNEE_FLEXION -> "Knee flexion (leg curl)"
-    MovementPattern.KNEE_EXTENSION -> "Knee extension (leg extension)"
-    MovementPattern.H_PUSH -> "Horizontal push"
-    MovementPattern.V_PUSH -> "Vertical push"
-    MovementPattern.H_PULL -> "Horizontal pull"
-    MovementPattern.V_PULL -> "Vertical pull"
-    MovementPattern.SIDE_DELT -> "Side delt"
-    MovementPattern.REAR_DELT -> "Rear delt"
-    MovementPattern.BICEPS -> "Biceps"
-    MovementPattern.TRICEPS -> "Triceps"
-    MovementPattern.CALF_GASTROC -> "Calf (gastroc)"
-    MovementPattern.CALF_SOLEUS -> "Calf (soleus)"
-    MovementPattern.CORE_ANTI_EXT -> "Core (anti-extension)"
-    MovementPattern.CORE_ANTI_ROT -> "Core (anti-rotation)"
-    MovementPattern.CORE_FLEX -> "Core (flexion)"
-    MovementPattern.CARDIO -> "Cardio"
-}
+@Composable
+private fun patternLabel(pattern: MovementPattern): String = stringResource(
+    when (pattern) {
+        MovementPattern.SQUAT_BILATERAL -> R.string.backup_pattern_squat_bilateral
+        MovementPattern.SINGLE_LEG -> R.string.backup_pattern_single_leg
+        MovementPattern.HINGE -> R.string.backup_pattern_hinge
+        MovementPattern.KNEE_FLEXION -> R.string.backup_pattern_knee_flexion
+        MovementPattern.KNEE_EXTENSION -> R.string.backup_pattern_knee_extension
+        MovementPattern.H_PUSH -> R.string.backup_pattern_horizontal_push
+        MovementPattern.V_PUSH -> R.string.backup_pattern_vertical_push
+        MovementPattern.H_PULL -> R.string.backup_pattern_horizontal_pull
+        MovementPattern.V_PULL -> R.string.backup_pattern_vertical_pull
+        MovementPattern.SIDE_DELT -> R.string.backup_pattern_side_delt
+        MovementPattern.REAR_DELT -> R.string.backup_pattern_rear_delt
+        MovementPattern.BICEPS -> R.string.backup_pattern_biceps
+        MovementPattern.TRICEPS -> R.string.backup_pattern_triceps
+        MovementPattern.CALF_GASTROC -> R.string.backup_pattern_calf_gastroc
+        MovementPattern.CALF_SOLEUS -> R.string.backup_pattern_calf_soleus
+        MovementPattern.CORE_ANTI_EXT -> R.string.backup_pattern_core_anti_extension
+        MovementPattern.CORE_ANTI_ROT -> R.string.backup_pattern_core_anti_rotation
+        MovementPattern.CORE_FLEX -> R.string.backup_pattern_core_flexion
+        MovementPattern.CARDIO -> R.string.backup_pattern_cardio
+    },
+)
 
 @Preview(showBackground = true, heightDp = 900, backgroundColor = 0xFF0D0D0F)
 @Composable

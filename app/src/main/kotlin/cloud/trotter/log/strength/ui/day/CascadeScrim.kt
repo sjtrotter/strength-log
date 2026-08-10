@@ -20,10 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.DisplayXl
@@ -56,7 +58,7 @@ internal fun CascadeScrim(
         modifier = modifier
             .fillMaxSize()
             .background(Background.copy(alpha = 0.94f))
-            .clickable(interaction, indication = null, onClickLabel = "Dismiss", onClick = onDismiss)
+            .clickable(interaction, indication = null, onClickLabel = stringResource(R.string.cascade_dismiss_action), onClick = onDismiss)
             .padding(32.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -86,7 +88,7 @@ internal fun CascadeScrim(
                     Text(lift.newDisplay, color = accentBright(ceremony.dayIndex), style = DisplayXl)
                 }
             }
-            Text("NEW RAMP", color = TextFaint, style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.cascade_new_ramp_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
         }
     }
 }

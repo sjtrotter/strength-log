@@ -29,10 +29,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
@@ -86,16 +92,16 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
-                item { SectionHeader("TRAINING") }
+                item { SectionHeader(stringResource(R.string.setup_training_section)) }
                 item { GoalPreviewCard(state.goalPreview, accent) }
                 item { BodyweightCard(state.bodyweightDisplay, state.unit, actions.onBodyweightChange) }
                 item { AgeCard(state.config.age, actions.onAgeChange) }
                 item { LevelSection(state.config.level, actions.onLevelChange) }
                 item { EmphasisSection(state.config.emphasis, actions.onEmphasisChange) }
                 item { CardioSection(state.cardio, actions) }
-                item { SectionHeader("DISPLAY") }
+                item { SectionHeader(stringResource(R.string.setup_display_section)) }
                 item { UnitCard(state.unit, actions.onUnitToggle) }
-                item { SectionHeader("WATCH") }
+                item { SectionHeader(stringResource(R.string.setup_watch_section)) }
                 item {
                     RestTimerSection(
                         state.restTimerEnabled,
@@ -104,10 +110,10 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                         onResetDefaults = { showRestResetConfirm = true },
                     )
                 }
-                item { SectionHeader("DATA") }
+                item { SectionHeader(stringResource(R.string.setup_data_section)) }
                 item { CreateCustomExerciseButton(accent, actions.onCreateCustomExercise) }
                 item { DataBackupButton(accent, actions.onOpenBackup) }
-                item { SectionHeader("ABOUT") }
+                item { SectionHeader(stringResource(R.string.setup_about_section)) }
                 item { LicensesButton(actions.onOpenLicenses) }
                 item { Spacer(Modifier.size(20.dp)) }
                 item { RerunWizardButton(onClick = { showRerunConfirm = true }) }
@@ -144,7 +150,7 @@ private fun SetupHeader(onBack: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             BackAction(onBack)
-            Text("SETUP", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.setup_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         }
         HorizontalDivider(thickness = 1.dp, color = Border)
     }
@@ -170,7 +176,7 @@ private fun SectionHeader(label: String) {
 @Composable
 private fun GoalPreviewCard(items: List<GoalPreviewItem>, accent: Color) {
     AppCard {
-        Text("YOUR MAIN-LIFT GOALS", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.setup_goals_title), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(10.dp))
         items.forEachIndexed { index, item ->
             Row(
@@ -182,7 +188,7 @@ private fun GoalPreviewCard(items: List<GoalPreviewItem>, accent: Color) {
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(item.display, color = accent, style = DisplayXl)
                     if (item.perHand) {
-                        Text("/hand", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.setup_per_hand_suffix), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -197,7 +203,7 @@ private fun GoalPreviewCard(items: List<GoalPreviewItem>, accent: Color) {
 private fun BodyweightCard(displayValue: Double, unit: WeightUnit, onChange: (Double) -> Unit) {
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text("Bodyweight (${unit.name.lowercase()})", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.setup_bodyweight_label, unit.name.lowercase()), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.size(8.dp))
             Stepper(
                 value = displayValue,
@@ -206,8 +212,8 @@ private fun BodyweightCard(displayValue: Double, unit: WeightUnit, onChange: (Do
                 minValue = 1.0,
                 format = WeightStepper::format,
                 round = { WeightStepper.round(it, unit) },
-                decreaseDescription = "Decrease bodyweight",
-                increaseDescription = "Increase bodyweight",
+                decreaseDescription = stringResource(R.string.setup_decrease_bodyweight_description),
+                increaseDescription = stringResource(R.string.setup_increase_bodyweight_description),
             )
         }
     }
@@ -217,7 +223,7 @@ private fun BodyweightCard(displayValue: Double, unit: WeightUnit, onChange: (Do
 private fun AgeCard(age: Int, onChange: (Int) -> Unit) {
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text("Age", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.setup_age_label), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.size(8.dp))
             Stepper(
                 value = age.toDouble(),
@@ -225,8 +231,8 @@ private fun AgeCard(age: Int, onChange: (Int) -> Unit) {
                 step = { 1.0 },
                 minValue = 1.0,
                 format = { it.toInt().toString() },
-                decreaseDescription = "Decrease age",
-                increaseDescription = "Increase age",
+                decreaseDescription = stringResource(R.string.setup_decrease_age_description),
+                increaseDescription = stringResource(R.string.setup_increase_age_description),
             )
         }
     }
@@ -240,31 +246,32 @@ private fun LevelSection(level: ExperienceLevel, onChange: (ExperienceLevel) -> 
         modifier = Modifier.selectableGroup(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Experience level", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.setup_experience_level_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         ExperienceLevel.entries.forEach { entry ->
             SelectionCard(title = levelLabel(entry), selected = level == entry, onClick = { onChange(entry) })
         }
     }
 }
 
+@Composable
 private fun levelLabel(level: ExperienceLevel): String = when (level) {
-    ExperienceLevel.NOVICE -> "Novice"
-    ExperienceLevel.INTERMEDIATE -> "Intermediate"
-    ExperienceLevel.ADVANCED -> "Advanced"
+    ExperienceLevel.NOVICE -> stringResource(R.string.setup_level_novice)
+    ExperienceLevel.INTERMEDIATE -> stringResource(R.string.setup_level_intermediate)
+    ExperienceLevel.ADVANCED -> stringResource(R.string.setup_level_advanced)
 }
 
 @Composable
 private fun EmphasisSection(emphasis: GoalEmphasis, onChange: (GoalEmphasis) -> Unit) {
     val options = listOf(
-        GoalEmphasis.STRENGTH to ("Strength-leaning" to "Fewer reps, more weight on the mains."),
-        GoalEmphasis.BALANCED to ("Balanced strength + muscle" to "Even mix of heavy work and volume."),
-        GoalEmphasis.PHYSIQUE to ("Physique-leaning" to "More volume and isolation work."),
+        GoalEmphasis.STRENGTH to (stringResource(R.string.setup_emphasis_strength_title) to stringResource(R.string.setup_emphasis_strength_description)),
+        GoalEmphasis.BALANCED to (stringResource(R.string.setup_emphasis_balanced_title) to stringResource(R.string.setup_emphasis_balanced_description)),
+        GoalEmphasis.PHYSIQUE to (stringResource(R.string.setup_emphasis_physique_title) to stringResource(R.string.setup_emphasis_physique_description)),
     )
     Column(
         modifier = Modifier.selectableGroup(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Training emphasis", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.setup_emphasis_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         options.forEach { (value, copy) ->
             SelectionCard(
                 title = copy.first,
@@ -281,7 +288,7 @@ private fun EmphasisSection(emphasis: GoalEmphasis, onChange: (GoalEmphasis) -> 
 @Composable
 private fun CardioSection(cardio: CardioPrefs, actions: SetupActions) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Cardio", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.setup_cardio_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Column(
             modifier = Modifier.selectableGroup(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -292,7 +299,7 @@ private fun CardioSection(cardio: CardioPrefs, actions: SetupActions) {
         }
         if (cardio.mode != CardioMode.NONE) {
             Spacer(Modifier.size(2.dp))
-            Text("Placement", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.setup_cardio_placement_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
             Column(
                 modifier = Modifier.selectableGroup(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -307,24 +314,26 @@ private fun CardioSection(cardio: CardioPrefs, actions: SetupActions) {
             }
             Spacer(Modifier.size(2.dp))
             AppCard {
-                SwitchToggle(label = "Keep me 5k-ready", checked = cardio.fiveKGoal, onCheckedChange = actions.onFiveKChange)
+                SwitchToggle(label = stringResource(R.string.setup_cardio_five_k_toggle), checked = cardio.fiveKGoal, onCheckedChange = actions.onFiveKChange)
             }
         }
     }
 }
 
+@Composable
 private fun cardioModeLabel(mode: CardioMode): String = when (mode) {
-    CardioMode.OUTDOOR_RUN -> "Outdoor run"
-    CardioMode.TREADMILL -> "Treadmill"
-    CardioMode.LOW_IMPACT -> "Bike / elliptical"
-    CardioMode.NONE -> "None"
+    CardioMode.OUTDOOR_RUN -> stringResource(R.string.setup_cardio_mode_outdoor_run)
+    CardioMode.TREADMILL -> stringResource(R.string.setup_cardio_mode_treadmill)
+    CardioMode.LOW_IMPACT -> stringResource(R.string.setup_cardio_mode_low_impact)
+    CardioMode.NONE -> stringResource(R.string.setup_cardio_mode_none)
 }
 
+@Composable
 private fun cardioPlacementLabel(placement: CardioPlacement): String = when (placement) {
-    CardioPlacement.FINISHERS -> "Finishers after lifting"
-    CardioPlacement.SEPARATE_DAYS -> "Separate days"
-    CardioPlacement.BOTH -> "Both"
-    CardioPlacement.NONE -> "None"
+    CardioPlacement.FINISHERS -> stringResource(R.string.setup_cardio_placement_finishers)
+    CardioPlacement.SEPARATE_DAYS -> stringResource(R.string.setup_cardio_placement_separate_days)
+    CardioPlacement.BOTH -> stringResource(R.string.setup_cardio_placement_both)
+    CardioPlacement.NONE -> stringResource(R.string.setup_cardio_placement_none)
 }
 
 // --- unit toggle (A5) ---------------------------------------------------------
@@ -333,7 +342,7 @@ private fun cardioPlacementLabel(placement: CardioPlacement): String = when (pla
 private fun UnitCard(unit: WeightUnit, onToggle: (WeightUnit) -> Unit) {
     AppCard {
         SwitchToggle(
-            label = "Display weights in kilograms",
+            label = stringResource(R.string.setup_display_kilograms_toggle),
             checked = unit == WeightUnit.KG,
             onCheckedChange = { useKg -> onToggle(if (useKg) WeightUnit.KG else WeightUnit.LB) },
         )
@@ -352,7 +361,7 @@ private fun RestTimerSection(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         AppCard {
             SwitchToggle(
-                label = "Rest timer on watch",
+                label = stringResource(R.string.setup_rest_timer_toggle),
                 checked = enabled,
                 onCheckedChange = actions.onRestTimerEnabledChange,
             )
@@ -388,53 +397,54 @@ private fun RestCategoryRow(row: RestCategoryUiState, onChange: (Int) -> Unit) {
             round = { it.coerceIn(0.0, RestPolicy.MAX_REST_SECONDS.toDouble()) },
             format = { SetupStateBuilder.restTimerLabel(it.toInt()) },
             valueColor = if (row.seconds == 0) TextFaint else TextPrimary,
-            decreaseDescription = "Decrease $label rest",
-            increaseDescription = "Increase $label rest",
+            decreaseDescription = stringResource(R.string.setup_decrease_rest_description, label),
+            increaseDescription = stringResource(R.string.setup_increase_rest_description, label),
         )
     }
 }
 
+@Composable
 private fun restCategoryLabel(category: RestCategory): String = when (category) {
-    RestCategory.RAMP -> "Warm-up"
-    RestCategory.TOP -> "Top set"
-    RestCategory.BACKOFF -> "Back-off"
-    RestCategory.WORK -> "Accessory work"
-    RestCategory.LIGHT -> "Bodyweight · timed"
+    RestCategory.RAMP -> stringResource(R.string.setup_rest_category_warm_up)
+    RestCategory.TOP -> stringResource(R.string.setup_rest_category_top_set)
+    RestCategory.BACKOFF -> stringResource(R.string.setup_rest_category_back_off)
+    RestCategory.WORK -> stringResource(R.string.setup_rest_category_accessory)
+    RestCategory.LIGHT -> stringResource(R.string.setup_rest_category_bodyweight)
 }
 
 private const val REST_STEP_SECONDS = 15.0
 
 @Composable
 private fun ResetRestDefaultsRow(onClick: () -> Unit) {
-    SetupOutlineAction("RESET DEFAULTS", TextSecondary, 48, 6, onClick)
+    SetupOutlineAction(stringResource(R.string.setup_reset_defaults_button), TextSecondary, 48, 6, onClick)
 }
 
 // --- create custom exercise (route #13, D1: reachable from Setup and the day-edit picker) ---
 
 @Composable
 private fun CreateCustomExerciseButton(accent: Color, onClick: () -> Unit) {
-    SetupOutlineAction("+ CREATE CUSTOM EXERCISE", accent, 52, 8, onClick)
+    SetupOutlineAction(stringResource(R.string.setup_create_custom_exercise_button), accent, 52, 8, onClick)
 }
 
 // --- data / backup (PLAN.md A2, brief D9's :app-side UI PR) ------------------
 
 @Composable
 private fun DataBackupButton(accent: Color, onClick: () -> Unit) {
-    SetupOutlineAction("DATA / BACKUP", accent, 52, 8, onClick)
+    SetupOutlineAction(stringResource(R.string.setup_data_backup_button), accent, 52, 8, onClick)
 }
 
 // --- OSS licenses (M6 #23: Barlow Condensed OFL + third-party notices) -------
 
 @Composable
 private fun LicensesButton(onClick: () -> Unit) {
-    SetupOutlineAction("OSS LICENSES", TextSecondary, 52, 6, onClick)
+    SetupOutlineAction(stringResource(R.string.setup_licenses_button), TextSecondary, 52, 6, onClick)
 }
 
 // --- re-run wizard (destructive escape hatch, spec §8.4) ---------------------
 
 @Composable
 private fun RerunWizardButton(onClick: () -> Unit) {
-    SetupOutlineAction("RE-RUN SETUP WIZARD", Error, 52, 8, onClick)
+    SetupOutlineAction(stringResource(R.string.setup_rerun_wizard_button), Error, 52, 8, onClick)
 }
 
 @Composable
@@ -465,10 +475,10 @@ private fun RerunConfirmDialog(
 ) {
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Re-run setup wizard?") },
-        text = { Text("This replaces your current program from scratch. Your workout history isn't touched.") },
-        confirmButton = { DialogAction("Re-run", Error, onConfirm) },
-        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
+        title = { Text(stringResource(R.string.setup_rerun_confirm_title)) },
+        text = { Text(stringResource(R.string.setup_rerun_confirm_message)) },
+        confirmButton = { DialogAction(stringResource(R.string.setup_rerun_confirm_button), Error, onConfirm) },
+        dismissButton = { DialogAction(stringResource(R.string.setup_cancel_button), TextSecondary, onDismiss) },
     )
 }
 
@@ -480,10 +490,10 @@ private fun RestDefaultsConfirmDialog(
 ) {
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Reset rest timers?") },
-        text = { Text("Every per-category rest length goes back to the built-in default. The rest timer stays on.") },
-        confirmButton = { DialogAction("Reset", Error, onConfirm) },
-        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
+        title = { Text(stringResource(R.string.setup_rest_reset_confirm_title)) },
+        text = { Text(stringResource(R.string.setup_rest_reset_confirm_message)) },
+        confirmButton = { DialogAction(stringResource(R.string.setup_rest_reset_confirm_button), Error, onConfirm) },
+        dismissButton = { DialogAction(stringResource(R.string.setup_cancel_button), TextSecondary, onDismiss) },
     )
 }
 

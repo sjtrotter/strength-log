@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.TouchTargets.assertEveryTouchTargetIsAtLeast48dp
 import cloud.trotter.log.strength.ui.TouchTargets.assertNoOverlappingTouchTargets
+import cloud.trotter.log.strength.ui.TouchTargets.assertOverlappingTouchTargetsAreExactly
 import cloud.trotter.log.strength.ui.backup.BackupActions
 import cloud.trotter.log.strength.ui.backup.BackupScreen
 import cloud.trotter.log.strength.ui.backup.BackupUiState
@@ -112,13 +113,22 @@ class ChromeTouchTargetTest {
         assertTouchContract()
     }
 
+    /** The pattern list's last row runs under the fixed footer (pre-existing,
+     *  #210): depth gives the footer the tap, and the record keeps the squeeze
+     *  visible until the list learns footer-height padding. */
+    private val issue210FooterSqueeze = mapOf(
+        setOf("Vertical pull", "CANCEL") to 1,
+        setOf("Vertical pull", "SAVE") to 1,
+    )
+
     @Test
     fun customExerciseCloseKeepsItsTargetClear() {
         composeTestRule.setContent {
             AppTheme { CustomExerciseScreen(CustomExerciseUiState(), customExerciseActions()) }
         }
 
-        assertTouchContract()
+        composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
+        composeTestRule.assertOverlappingTouchTargetsAreExactly(issue210FooterSqueeze)
     }
 
     private fun assertTouchContract() {

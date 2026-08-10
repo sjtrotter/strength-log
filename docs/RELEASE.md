@@ -18,9 +18,10 @@ keytool -genkeypair -v \
 ```
 
 `keytool` will prompt for a store password and a key password (they can be
-the same value). Write both down somewhere durable — Play has no "reset
-signing key" button; losing this keystore means you can never update the
-app under the same listing again.
+the same value). Write both down somewhere durable. Once Play App Signing
+is accepted (§5.6) this keystore is the *upload* key — losing it is a
+support-ticket reset, not a bricked listing — but before that first upload
+it is the only identity the app has, so treat it like a house key anyway.
 
 ## 2. One-time per machine: point Gradle at it
 
@@ -125,10 +126,77 @@ around it.
 
 ## What's out of scope here
 
-- `:wear`'s release build type is still unminified (`isMinifyEnabled =
-  false` in `wear/build.gradle.kts`) — not signed or covered by this
-  document. It isn't bundled into the phone app's release artifact yet
-  either (no `wearApp` dependency wiring); that's a separate task from #23.
+- (Historical: `:wear` used to be unminified and unsigned. It now shrinks
+  with R8 and signs with the same four properties as `:app`, and §6's
+  pipeline publishes it to its own Wear form-factor track.)
 - Play listing copy, store screenshots, and the actual Play Console upload
   flow aren't covered here — this document stops at "you have a signed
   `.aab` on disk."
+
+## 5. Play Console: one-time setup (owner-only — nothing here is scriptable)
+
+Everything below happens in a browser, signed in as the account that owns
+the listing. The publish pipeline (§6) only works after this is done once.
+
+1. **Developer account** — play.google.com/console, one-time $25.
+2. **Decide free vs paid FIRST.** A free app can never become paid under the
+   same applicationId — the decision is permanent at first publish. (The
+   2026-08-06 research note recommended paid at ~$4.99; decide before step 3.)
+3. **Create the app** (`cloud.trotter.log.strength`). The Play API cannot
+   create apps; the first AAB of each form factor is also easiest uploaded
+   by hand here, after which the pipeline takes over.
+4. **Store listing.** Title, short + full description, 512px icon, feature
+   graphic, phone screenshots, and — because the wear bundle ships too —
+   Wear OS screenshots (the Console gates the Wear form factor on them).
+5. **App content declarations**:
+   - *Privacy policy URL* — host `docs/privacy.md` somewhere public (GitHub
+     Pages of this repo is fine) and paste the URL. Required regardless of
+     the empty data-safety form because of the health permissions.
+   - *Data safety* — copy the answers from `docs/play-data-safety.md`.
+   - *Health apps declaration* — every Play app completes this form now;
+     this one declares Health Connect read/write use (the manifest carries
+     the permissions), which brings Play's Health Connect policy review:
+     a privacy policy is mandatory and the declared use must match the
+     manifest. Budget extra review time rather than counting on the
+     ordinary turnaround.
+   - Content rating questionnaire, ads declaration (none), target audience.
+6. **Play App Signing** — accept it (Google holds the app signing key; the
+   §1 keystore becomes the *upload* key, which is resettable if lost).
+7. **Internal testing track** — create it and add tester emails (your own,
+   at minimum). Testers opt in via the link the Console shows.
+8. **Service account for the pipeline** — Google Cloud console → create a
+   service account (no roles needed at the project level) → create a JSON
+   key. In Play Console: Users and permissions → invite the service
+   account's email with the *Release to testing tracks* permission for this
+   app. The JSON becomes the `PLAY_SERVICE_ACCOUNT_JSON` secret below.
+
+## 6. The internal-testing pipeline (.github/workflows/publish-internal.yml)
+
+Manually triggered (Actions → "Publish to Play internal testing" → Run):
+publishing stays a deliberate act. It builds **release-signed** bundles for
+both form factors — Play accepts no debug builds on any track; the internal
+tracks *are* the mechanism for "builds for us before anyone else sees them"
+— and uploads them in TWO steps, because Wear OS artifacts live on their own
+dedicated form-factor track (dispatch input `wearTrack`, default
+`wear:internal`; confirm the exact id against the API's track list the
+first time). Version codes are minted from the run number (phone even, wear
+odd) — monotonic across *dispatches*, not re-runs, so: never re-run a
+dispatch whose upload may have reached Play; start a fresh one. And when
+hand-uploading the very first bundles (§5.3), give them LOW version codes
+(1 and 2 are fine) so the pipeline's run-derived codes clear them. The
+version name defaults to `0.1.<run>`, overridable at dispatch.
+
+GitHub secrets it needs (Settings → Secrets and variables → Actions) — the
+keystore travels as base64, decoded into the runner's temp dir and scrubbed
+after; no signing material ever exists in the workspace or repo:
+
+| Secret | Value |
+|---|---|
+| `PLAY_SERVICE_ACCOUNT_JSON` | the §5.8 JSON key, verbatim |
+| `UPLOAD_KEYSTORE_BASE64` | `base64 -w0 ~/keystores/strength-log-release.jks` |
+| `UPLOAD_STORE_PASSWORD` | the §1 store password |
+| `UPLOAD_KEY_ALIAS` | `strength-log` |
+| `UPLOAD_KEY_PASSWORD` | the §1 key password |
+
+The workflow refuses to run (with a pointed error) when secrets are absent,
+so a fork or a fresh clone can't half-publish anything.

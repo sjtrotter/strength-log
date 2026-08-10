@@ -11,11 +11,15 @@ import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.generator.CardioIntervals
+import cloud.trotter.log.strength.domain.generator.CardioPlan
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
@@ -29,6 +33,8 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -39,6 +45,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -74,6 +81,12 @@ import kotlinx.coroutines.sync.withLock
  * ticking is performing, not planning, so weight/rep edits never stamp. The
  * watch delta path ([cloud.trotter.log.strength.sync.SetEditApplier])
  * shares the same repository helper so a watch-first workout stamps too.
+ *
+ * Cardio durability is deliberately smaller than its render state: the handle
+ * stores only an encoded plan identity and wall/elapsed start anchors. Current
+ * step, step time left, elapsed time, completed prefix, and OVERRUN are derived
+ * on every emission. Boundary alarms exist only while the foreground day screen
+ * declares itself live; restoring never replays a boundary already passed.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -83,11 +96,18 @@ class DayViewModel @Inject constructor(
     private val shareCardService: ShareCardService,
     private val savedState: SavedStateHandle,
     @CivilDay private val today: Flow<LocalDate>,
+    private val cardioClock: CardioClock,
+    private val cardioAlarm: CardioAlarm,
 ) : ViewModel() {
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
     private val manualCollapse: StateFlow<Map<Long, Boolean>> =
         savedState.getStateFlow(KEY_COLLAPSE, emptyMap())
+    private val cardioPlanIdentity = savedState.getStateFlow<String?>(KEY_CARDIO_PLAN, null)
+    private val cardioStartedWall = savedState.getStateFlow<Long?>(KEY_CARDIO_WALL, null)
+    private val cardioStartedElapsed = savedState.getStateFlow<Long?>(KEY_CARDIO_ELAPSED, null)
+    private val cardioTick = MutableStateFlow(0L)
+    private var cardioScreenLive = false
 
     /** Serializes all read-modify-write log mutations (see class doc). */
     private val mutationLock = Mutex()
@@ -148,8 +168,17 @@ class DayViewModel @Inject constructor(
      * flatMapLatest would restart the whole branch — and now blank the screen —
      * every time a lifter flips a switch mid-workout.
      */
+    private val cardioAnchors = combine(
+        cardioPlanIdentity, cardioStartedWall, cardioStartedElapsed,
+    ) { identity, wall, elapsed -> CardioAnchors(identity, wall, elapsed) }
+
     val uiState: StateFlow<DayUiState> =
-        combine(dayState, repo.keepScreenOnFlow) { state, keepOn -> state.copy(keepScreenOn = keepOn) }
+        combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick) { a, _ -> a }) {
+                state, keepOn, history, anchors ->
+            val cardio = buildCardioState(state, history, anchors)
+            maybeArmCardioBoundary(cardio, anchors)
+            state.copy(keepScreenOn = keepOn, cardio = cardio)
+        }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState(loading = true))
 
     /** Render model for the day-edit sheet (#11, spec §8.3) — a second view over
@@ -216,6 +245,14 @@ class DayViewModel @Inject constructor(
 
     init {
         seedMissingLogs()
+        viewModelScope.launch {
+            cardioPlanIdentity.collectLatest { identity ->
+                while (identity != null) {
+                    cardioTick.value++
+                    delay(CARDIO_TICK_MS)
+                }
+            }
+        }
     }
 
     // --- user intents --------------------------------------------------------
@@ -223,6 +260,63 @@ class DayViewModel @Inject constructor(
     fun selectDay(dayId: String) {
         closeUndoWindow()
         savedState[KEY_VIEW_DAY] = dayId
+    }
+
+    fun startCardio() {
+        if (cardioPlanIdentity.value != null) return
+        val dayId = currentDay() ?: return
+        val suggestion = uiState.value.cardio?.takeIf { it.phase == CardioPhase.SUGGESTION } ?: return
+        viewModelScope.launch {
+            val prefs = repo.wizardAnswersFlow.first().cardio
+            if (prefs.mode == CardioMode.NONE) return@launch
+            val identity = CardioPlanIdentity(dayId, prefs.mode, prefs.fiveKGoal, suggestion.hard, suggestion.label)
+            val wall = cardioClock.wallMillis()
+            val elapsed = cardioClock.elapsedRealtimeMillis()
+            savedState[KEY_CARDIO_WALL] = wall
+            savedState[KEY_CARDIO_ELAPSED] = elapsed
+            savedState[KEY_CARDIO_PLAN] = identity.encode()
+            cardioTick.value++
+        }
+    }
+
+    fun stopCardio() {
+        val encoded = cardioPlanIdentity.value ?: return
+        val wall = cardioStartedWall.value ?: return
+        val elapsed = cardioStartedElapsed.value ?: return
+        val identity = CardioPlanIdentity.decode(encoded) ?: return clearCardioExecution()
+        val anchors = CardioAnchors(encoded, wall, elapsed)
+        val elapsedSeconds = derivedElapsedMillis(anchors).div(1_000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        clearCardioExecution()
+        if (elapsedSeconds < CARDIO_LOG_THRESHOLD_SECONDS) return
+        val plan = cardioPlan(identity)
+        val completedAt = cardioClock.wallMillis()
+        val stepsCompleted = plan.steps.runningFold(0) { total, step -> total + step.seconds }
+            .drop(1).count { it <= elapsedSeconds }
+        mutate {
+            repo.logCardioSession(
+                CardioSessionEntity(
+                    dayId = identity.dayId,
+                    mode = identity.mode.name,
+                    hard = identity.hard,
+                    label = identity.label,
+                    startedAt = wall,
+                    completedAt = completedAt,
+                    seconds = elapsedSeconds,
+                    stepsCompleted = stepsCompleted,
+                ),
+            )
+        }
+    }
+
+    /** Called by the day-screen lifecycle; background screens never retain a boundary alarm. */
+    fun setCardioScreenLive(live: Boolean) {
+        cardioScreenLive = live
+        if (!live) cardioAlarm.cancel() else cardioTick.value++
+    }
+
+    override fun onCleared() {
+        cardioAlarm.cancel()
+        super.onCleared()
     }
 
     fun changeWeight(programExerciseId: Long, slot: String, index: Int, newDisplayWeight: Double) {
@@ -629,8 +723,93 @@ class DayViewModel @Inject constructor(
             suggestedDayId = ctx.suggested,
             nextDayId = Rotation.next(program, dayId),
             exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse, history) },
-            cardio = day.cardio,
+            cardio = day.cardio?.let {
+                CardioCardState(label = it.label, detail = it.detail, hard = it.hard)
+            },
         )
+    }
+
+    private fun buildCardioState(
+        state: DayUiState,
+        history: List<CardioSessionEntity>,
+        anchors: CardioAnchors,
+    ): CardioCardState? {
+        val identity = anchors.identity?.let(CardioPlanIdentity::decode)
+        val civilDate = Instant.ofEpochMilli(cardioClock.wallMillis()).atZone(ZoneId.systemDefault()).toLocalDate()
+        val logged = state.viewDayId?.let { dayId ->
+            history.firstOrNull {
+                it.dayId == dayId &&
+                    Instant.ofEpochMilli(it.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
+            }
+        }
+        if (identity == null || anchors.wallMillis == null || anchors.elapsedMillis == null) {
+            return state.cardio?.copy(loggedSeconds = logged?.seconds)
+        }
+        // A running block belongs to the day it was started from. Switching tabs
+        // does not retarget or expose controls that could log it under another day.
+        if (state.viewDayId != identity.dayId) return state.cardio?.copy(loggedSeconds = logged?.seconds)
+        val plan = cardioPlan(identity)
+        val elapsedSeconds = derivedElapsedMillis(anchors).div(1_000L)
+            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        val boundaries = plan.steps.runningFold(0) { total, step -> total + step.seconds }.drop(1)
+        val index = boundaries.indexOfFirst { elapsedSeconds < it }
+        return if (index < 0) {
+            CardioCardState(
+                label = identity.label,
+                detail = state.cardio?.detail.orEmpty(),
+                hard = identity.hard,
+                phase = CardioPhase.OVERRUN,
+                elapsedSeconds = elapsedSeconds,
+            )
+        } else {
+            CardioCardState(
+                label = identity.label,
+                detail = state.cardio?.detail.orEmpty(),
+                hard = identity.hard,
+                phase = CardioPhase.EXECUTING,
+                currentStepLabel = plan.steps[index].label,
+                stepSecondsLeft = (boundaries[index] - elapsedSeconds).coerceAtLeast(0),
+                elapsedSeconds = elapsedSeconds,
+            )
+        }
+    }
+
+    private fun maybeArmCardioBoundary(cardio: CardioCardState?, anchors: CardioAnchors) {
+        if (!cardioScreenLive || cardio?.phase != CardioPhase.EXECUTING) {
+            cardioAlarm.cancel()
+            return
+        }
+        val identity = anchors.identity?.let(CardioPlanIdentity::decode) ?: return
+        val plan = cardioPlan(identity)
+        val elapsedMillis = derivedElapsedMillis(anchors)
+        val nextBoundaryMillis = plan.steps.runningFold(0L) { total, step -> total + step.seconds * 1_000L }
+            .drop(1).firstOrNull { it > elapsedMillis } ?: return cardioAlarm.cancel()
+        val deadline = cardioClock.elapsedRealtimeMillis() + (nextBoundaryMillis - elapsedMillis)
+        val alarmIdentity = "${anchors.identity}:$nextBoundaryMillis"
+        cardioAlarm.arm(deadline, alarmIdentity) { cardioTick.value++ }
+    }
+
+    private fun derivedElapsedMillis(anchors: CardioAnchors): Long {
+        val wallDelta = (cardioClock.wallMillis() - (anchors.wallMillis ?: return 0L)).coerceAtLeast(0L)
+        val elapsedAnchor = anchors.elapsedMillis ?: return wallDelta
+        val elapsedNow = cardioClock.elapsedRealtimeMillis()
+        val elapsedDelta = if (elapsedNow >= elapsedAnchor) elapsedNow - elapsedAnchor else -1L
+        // elapsedRealtime restarts at boot. A materially younger monotonic delta
+        // than the wall delta therefore means the saved anchor crossed a reboot.
+        return if (elapsedDelta < 0L || elapsedDelta + REBOOT_DIVERGENCE_MS < wallDelta) wallDelta else elapsedDelta
+    }
+
+    private fun cardioPlan(identity: CardioPlanIdentity): CardioPlan = CardioIntervals.plan(
+        cloud.trotter.log.strength.domain.model.CardioSuggestion(identity.label, "", identity.hard),
+        identity.fiveK,
+    )
+
+    private fun clearCardioExecution() {
+        cardioAlarm.cancel()
+        savedState[KEY_CARDIO_PLAN] = null
+        savedState[KEY_CARDIO_WALL] = null
+        savedState[KEY_CARDIO_ELAPSED] = null
+        cardioTick.value++
     }
 
     private fun buildCard(
@@ -757,10 +936,50 @@ class DayViewModel @Inject constructor(
         val catalog: ExerciseCatalog,
     )
 
+    private data class CardioAnchors(
+        val identity: String?,
+        val wallMillis: Long?,
+        val elapsedMillis: Long?,
+    )
+
+    private data class CardioPlanIdentity(
+        val dayId: String,
+        val mode: CardioMode,
+        val fiveK: Boolean,
+        val hard: Boolean,
+        val label: String,
+    ) {
+        fun encode(): String = listOf(dayId, mode.name, fiveK.toString(), hard.toString(), label)
+            .joinToString(IDENTITY_SEPARATOR) { java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(it.toByteArray()) }
+
+        companion object {
+            fun decode(value: String): CardioPlanIdentity? = runCatching {
+                val parts = value.split(IDENTITY_SEPARATOR).map {
+                    String(java.util.Base64.getUrlDecoder().decode(it))
+                }
+                if (parts.size != 5) return null
+                CardioPlanIdentity(
+                    dayId = parts[0],
+                    mode = CardioMode.valueOf(parts[1]),
+                    fiveK = parts[2].toBooleanStrict(),
+                    hard = parts[3].toBooleanStrict(),
+                    label = parts[4],
+                )
+            }.getOrNull()
+        }
+    }
+
     private companion object {
         const val KEY_VIEW_DAY = "day_view_override"
         const val KEY_COLLAPSE = "day_collapse_overrides"
+        const val KEY_CARDIO_PLAN = "day_cardio_plan"
+        const val KEY_CARDIO_WALL = "day_cardio_started_wall"
+        const val KEY_CARDIO_ELAPSED = "day_cardio_started_elapsed"
         const val STOP_TIMEOUT_MS = 5_000L
+        const val CARDIO_TICK_MS = 1_000L
+        const val CARDIO_LOG_THRESHOLD_SECONDS = 60
+        const val REBOOT_DIVERGENCE_MS = 5_000L
+        const val IDENTITY_SEPARATOR = "."
 
         /** How long a removed set stays undoable (#124). Long enough to notice
          *  the row vanish and reach for it, short enough that the offer is gone

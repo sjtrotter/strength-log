@@ -14,6 +14,10 @@ import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.time.SystemCivilTimeSource
+import cloud.trotter.log.strength.ui.day.AndroidCardioAlarm
+import cloud.trotter.log.strength.ui.day.CardioAlarm
+import cloud.trotter.log.strength.ui.day.CardioClock
+import cloud.trotter.log.strength.ui.day.SystemCardioClock
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Singleton
@@ -31,6 +35,14 @@ import kotlinx.coroutines.flow.shareIn
 @Module
 @InstallIn(SingletonComponent::class)
 object DataModule {
+
+    @Provides
+    @Singleton
+    fun cardioClock(clock: SystemCardioClock): CardioClock = clock
+
+    @Provides
+    @Singleton
+    fun cardioAlarm(alarm: AndroidCardioAlarm): CardioAlarm = alarm
 
     private const val SETTINGS_FILE = "strength_settings"
 

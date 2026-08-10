@@ -17,6 +17,8 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.DayViewModel
+import cloud.trotter.log.strength.ui.day.FixedCardioClock
+import cloud.trotter.log.strength.ui.day.InertCardioAlarm
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -108,7 +110,7 @@ class TodayViewModelWiringTest {
         }
 
     private fun newDayViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate())).also { vm ->
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }

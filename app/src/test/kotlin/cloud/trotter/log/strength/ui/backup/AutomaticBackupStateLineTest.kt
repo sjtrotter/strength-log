@@ -14,6 +14,6 @@ class AutomaticBackupStateLineTest {
     }
 
     @Test fun `revoked grant asks for a new folder without claiming retry`() {
-        assertEquals("Folder permission was lost — choose it again", automaticBackupResultLine(null, true, true, 0L))
+        assertEquals("Folder unavailable — choose it again", automaticBackupResultLine(null, true, true, 0L))
     }
 }

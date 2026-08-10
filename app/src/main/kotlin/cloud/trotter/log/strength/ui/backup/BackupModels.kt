@@ -94,7 +94,7 @@ internal fun automaticBackupResultLine(
     permissionLost: Boolean,
     nowMillis: Long,
 ): String? {
-    if (permissionLost) return "Folder permission was lost — choose it again"
+    if (permissionLost) return "Folder unavailable — choose it again"
     if (lastAttemptFailed) return "Last attempt failed — will retry"
     val success = lastSuccessAtMillis ?: return null
     val days = ((nowMillis - success).coerceAtLeast(0) / 86_400_000L).toInt()

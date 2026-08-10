@@ -2,9 +2,10 @@ package cloud.trotter.log.strength.backup
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.io.OutputStream
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -47,31 +48,111 @@ class AutoBackupRunnerTest {
         assertEquals(2, documents.writeCount)
     }
 
-    @Test fun `ordinary write failure records failure and retries`() = runTest {
+    @Test fun `partial exporter failure leaves prior snapshot intact`() = runTest {
         settings.enableAutoBackup("content://tree/folder", "Folder")
-        val runner = AutoBackupRunner(settings, {}, AutoBackupDocumentStore { _, _, _ -> error("provider down") })
+        val prior = "{\"schemaVersion\":4,\"run\":1}".toByteArray()
+        val documents = FakeDocuments(mutableMapOf(AUTO_BACKUP_FILE_NAME to prior))
+        val runner = AutoBackupRunner(settings, {
+            it.write("{\"schemaVersion\":".toByteArray())
+            throw IOException("export interrupted")
+        }, documents)
+
+        assertEquals(AutoBackupRunResult.Retry, runner.run())
+        assertArrayEquals(prior, documents.files.getValue(AUTO_BACKUP_FILE_NAME))
+        assertArrayEquals(
+            "{\"schemaVersion\":".toByteArray(),
+            documents.files.getValue(AUTO_BACKUP_TEMP_FILE_NAME),
+        )
+    }
+
+    @Test fun `complete orphaned temp is promoted on next run`() = runTest {
+        settings.enableAutoBackup("content://tree/folder", "Folder")
+        val orphan = "{\"schemaVersion\":4,\"orphan\":true}".toByteArray()
+        val documents = FakeDocuments(mutableMapOf(AUTO_BACKUP_TEMP_FILE_NAME to orphan))
+        val runner = AutoBackupRunner(settings, { throw IOException("new export failed") }, documents)
+
+        assertEquals(AutoBackupRunResult.Retry, runner.run())
+        assertArrayEquals(orphan, documents.files.getValue(AUTO_BACKUP_FILE_NAME))
+    }
+
+    @Test fun `transient IO records failure and retries`() = runTest {
+        settings.enableAutoBackup("content://tree/folder", "Folder")
+        val runner = runnerThrowing(IOException("provider busy"))
 
         assertEquals(AutoBackupRunResult.Retry, runner.run())
         assertTrue(settings.autoBackupSettingsFlow.first().lastAttemptFailed)
     }
 
-    @Test fun `revoked permission disables without retrying`() = runTest {
-        settings.enableAutoBackup("content://tree/folder", "Folder")
-        val runner = AutoBackupRunner(settings, {}, AutoBackupDocumentStore { _, _, _ -> throw SecurityException("revoked") })
+    @Test fun `absent persisted permission disables`() = runTest {
+        assertUnavailableDisables(AutoBackupPermissionAbsentException())
+    }
 
-        assertEquals(AutoBackupRunResult.Disabled, runner.run())
+    @Test fun `definitively missing tree disables`() = runTest {
+        assertUnavailableDisables(AutoBackupTreeMissingException())
+    }
+
+    @Test fun `gone provider disables`() = runTest {
+        assertUnavailableDisables(AutoBackupProviderGoneException())
+    }
+
+    @Test fun `security failure disables`() = runTest {
+        assertUnavailableDisables(SecurityException("revoked"))
+    }
+
+    @Test fun `cancellation is rethrown without changing state`() = runTest {
+        settings.enableAutoBackup("content://tree/folder", "Folder")
+        val runner = runnerThrowing(CancellationException("stopped"))
+
+        try {
+            runner.run()
+            throw AssertionError("Expected cancellation")
+        } catch (_: CancellationException) {
+            // expected
+        }
+        val state = settings.autoBackupSettingsFlow.first()
+        assertTrue(state.enabled)
+        assertFalse(state.lastAttemptFailed)
+    }
+
+    private fun runnerThrowing(failure: Exception) = AutoBackupRunner(
+        settings, {}, AutoBackupDocumentStore { _, _, _ -> throw failure },
+    )
+
+    private suspend fun assertUnavailableDisables(failure: Exception) {
+        settings.enableAutoBackup("content://tree/folder", "Folder")
+        assertEquals(AutoBackupRunResult.Disabled, runnerThrowing(failure).run())
         val state = settings.autoBackupSettingsFlow.first()
         assertFalse(state.enabled)
         assertTrue(state.permissionLost)
+        assertTrue(state.lastAttemptFailed)
     }
 
-    private class FakeDocuments : AutoBackupDocumentStore {
-        val files = mutableMapOf<String, ByteArray>()
+    /** Commits every write immediately, even when the exporter later throws. */
+    private class FakeDocuments(
+        val files: MutableMap<String, ByteArray> = mutableMapOf(),
+    ) : AutoBackupDocumentStore {
         var writeCount = 0
-        override suspend fun overwrite(treeUri: String, fileName: String, write: suspend (OutputStream) -> Unit) {
-            val out = ByteArrayOutputStream()
+
+        override suspend fun replace(treeUri: String, fileName: String, write: suspend (OutputStream) -> Unit) {
+            val tempName = "$fileName.tmp"
+            files[tempName]?.let { orphan ->
+                if (orphan.isCompleteJsonDocument()) files[fileName] = orphan
+                files.remove(tempName)
+            }
+            files[tempName] = byteArrayOf()
+            val out = object : OutputStream() {
+                override fun write(value: Int) {
+                    files[tempName] = files.getValue(tempName) + value.toByte()
+                }
+
+                override fun write(bytes: ByteArray, offset: Int, length: Int) {
+                    files[tempName] = files.getValue(tempName) + bytes.copyOfRange(offset, offset + length)
+                }
+            }
             write(out)
-            files[fileName] = out.toByteArray()
+            check(files.getValue(tempName).isCompleteJsonDocument())
+            files[fileName] = files.getValue(tempName)
+            files.remove(tempName)
             writeCount++
         }
     }

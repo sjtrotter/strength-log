@@ -104,10 +104,10 @@ class CardioCsvTest {
             WeightUnit.LB, emptyList(), emptyList(), cardioSessions = listOf(held),
         )
 
-        assertTrue(CsvHistoryImporter.commit(preview, existingHistory = existing).cardioSessions.isEmpty())
+        assertTrue(CsvHistoryImporter.commit(preview, emptyMap(), existing).cardioSessions.isEmpty())
         assertEquals(
             1,
-            CsvHistoryImporter.commit(preview, existingHistory = null).cardioSessions.size,
+            CsvHistoryImporter.commit(preview, emptyMap(), existingHistory = null).cardioSessions.size,
         )
     }
 

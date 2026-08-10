@@ -9,6 +9,7 @@
     <string name="ongoing_workout_channel_description">Keeps an in-progress workout one tap away from the watch face.</string>
     <string name="ongoing_workout_title">Workout in progress</string>
     <string name="ongoing_workout_text">Tap to keep logging</string>
+    <string name="ongoing_workout_status_template">#workout# · #elapsed#</string>
     <string name="dial_undo_last_set_action">undo last set</string>
     <string name="dial_open_workout_action">open workout</string>
     <string name="dial_start_set_action">start set</string>

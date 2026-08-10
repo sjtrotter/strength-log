@@ -13,15 +13,15 @@ import com.google.android.gms.wearable.Wearable
 import com.google.common.util.concurrent.ListenableFuture
 import cloud.trotter.log.strength.wear.MainActivity
 import cloud.trotter.log.strength.wear.data.SnapshotItem
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * The day in the tile carousel (glance-surfaces brief §3): a mini dial, one glance,
  * one tap into the app.
  *
- * The timeline is a single entry with no freshness interval — nothing here is
- * time-dependent, so there is nothing for the system to re-request on a clock. The
- * tile is redrawn when the carousel opens it and when [GlanceUpdateService] pushes
- * an update after a new snapshot lands. No polling, no alarms.
+ * The timeline is a single entry whose freshness ends at the next local civil day.
+ * The zone is read for every render; this is a one-shot system request, not polling.
  */
 class DayTileService : TileService() {
 
@@ -30,6 +30,9 @@ class DayTileService : TileService() {
     ): ListenableFuture<TileBuilders.Tile> = SuspendToFutureAdapter.launchFuture {
         TileBuilders.Tile.Builder()
             .setResourcesVersion(RESOURCES_VERSION)
+            .setFreshnessIntervalMillis(
+                CivilDayFreshness.millisUntilNextDay(Instant.now(), ZoneId.systemDefault()),
+            )
             .setTileTimeline(
                 TimelineBuilders.Timeline.fromLayoutElement(
                     dayTileLayout(DayGlance.of(readSnapshot()), glanceCopy(), openApp()),

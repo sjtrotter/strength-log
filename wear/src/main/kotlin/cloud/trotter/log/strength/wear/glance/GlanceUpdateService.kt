@@ -11,12 +11,11 @@ import cloud.trotter.log.strength.domain.sync.WearSyncPaths
 import cloud.trotter.log.strength.wear.StrengthLogWearApp
 
 /**
- * The whole freshness story for the two glance surfaces: when the phone publishes a
- * new snapshot, Play Services starts this service (waking the process if it has to)
- * and we ask the face and the carousel to come back for the new numbers.
+ * The data-change half of freshness for the two glance surfaces: when the phone
+ * publishes a new snapshot, Play Services starts this service (waking the process
+ * if it has to) and asks the face and carousel to come back for the new numbers.
  *
- * That is the only surface-refresh trigger. Neither surface polls or schedules work — the
- * complication pins UPDATE_PERIOD_SECONDS=0 in the manifest to say so out loud.
+ * Civil-day and timezone changes have their own receiver; neither surface polls.
  * A set ticked on the phone is what makes today's count change, and that event
  * already travels over the Data Layer.
  *

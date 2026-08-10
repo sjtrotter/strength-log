@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.SystemClock
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -31,7 +32,7 @@ class OngoingWorkoutChip(context: Context) {
     private val notificationManager = NotificationManagerCompat.from(appContext)
 
     /** Post the chip if allowed; a no-op when the notifications permission is absent. */
-    fun show() {
+    fun show(sessionStartedAtWallMillis: Long) {
         // Inline permission gate (the pattern lint's NotificationPermission check
         // recognizes): on API < 33 the permission is install-time granted.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -44,6 +45,11 @@ class OngoingWorkoutChip(context: Context) {
         ensureChannel()
         val touchIntent = reentryIntent(appContext)
         val title = appContext.getString(R.string.ongoing_workout_title)
+        val elapsedAnchor = elapsedRealtimeAnchor(
+            sessionStartedAtWallMillis = sessionStartedAtWallMillis,
+            wallNowMillis = System.currentTimeMillis(),
+            elapsedNowMillis = SystemClock.elapsedRealtime(),
+        )
         val builder = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(appContext.getString(R.string.ongoing_workout_text))
@@ -56,7 +62,13 @@ class OngoingWorkoutChip(context: Context) {
         OngoingActivity.Builder(appContext, NOTIFICATION_ID, builder)
             .setStaticIcon(R.drawable.ic_ongoing_workout)
             .setTouchIntent(touchIntent)
-            .setStatus(Status.Builder().addTemplate(title).build())
+            .setStatus(
+                Status.Builder()
+                    .addPart(STATUS_WORKOUT, Status.TextPart(title))
+                    .addPart(STATUS_ELAPSED, Status.StopwatchPart(elapsedAnchor))
+                    .addTemplate(appContext.getString(R.string.ongoing_workout_status_template))
+                    .build(),
+            )
             .build()
             .apply(appContext)
 
@@ -80,6 +92,19 @@ class OngoingWorkoutChip(context: Context) {
     companion object {
         private const val CHANNEL_ID = "workout_in_progress"
         private const val NOTIFICATION_ID = 1001
+        private const val STATUS_WORKOUT = "workout"
+        private const val STATUS_ELAPSED = "elapsed"
+
+        /** Converts the persisted wall-clock start into StopwatchPart's elapsed-realtime domain. */
+        fun elapsedRealtimeAnchor(
+            sessionStartedAtWallMillis: Long,
+            wallNowMillis: Long,
+            elapsedNowMillis: Long,
+        ): Long {
+            if (sessionStartedAtWallMillis <= 0L) return elapsedNowMillis
+            val age = (wallNowMillis - sessionStartedAtWallMillis).coerceAtLeast(0L)
+            return (elapsedNowMillis - age).coerceAtLeast(0L)
+        }
 
         /** POST_NOTIFICATIONS only became a runtime permission in API 33 (Tiramisu). */
         fun needsRuntimePermission(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU

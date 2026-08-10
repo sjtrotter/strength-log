@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.wear.glance
 
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Intent
 import android.util.Log
 import androidx.wear.watchface.complications.data.ComplicationData
@@ -9,6 +10,7 @@ import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.RangedValueComplicationData
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
+import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import com.google.android.gms.wearable.Wearable
 import cloud.trotter.log.strength.wear.MainActivity
@@ -23,11 +25,16 @@ import cloud.trotter.log.strength.wear.data.SnapshotItem
  * no colors, nothing that would fight the face it lands on.
  *
  * Every request re-reads the persisted DataItem, so the answer is correct from a
- * cold process with the phone out of range. Freshness is push-only — the manifest
- * declares UPDATE_PERIOD_SECONDS=0 (no schedule, deliberately), and
- * [GlanceUpdateService] asks for a refresh when a new snapshot arrives.
+ * cold process with the phone out of range. Data pushes still refresh immediately;
+ * activation and civil-day/timezone broadcasts cover visibility and rollover.
  */
 class DayComplicationService : SuspendingComplicationDataSourceService() {
+
+    override fun onComplicationActivated(complicationInstanceId: Int, type: ComplicationType) {
+        ComplicationDataSourceUpdateRequester
+            .create(this, ComponentName(this, DayComplicationService::class.java))
+            .requestUpdate(complicationInstanceId)
+    }
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? =
         complicationData(request.complicationType, DayGlance.of(readSnapshot()))

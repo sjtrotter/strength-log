@@ -1,10 +1,12 @@
 package cloud.trotter.log.strength.wear.ui
 
+import cloud.trotter.log.strength.wear.OngoingWorkoutChip
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -14,6 +16,18 @@ import kotlin.test.assertTrue
  * instant it is finished, not-yet-started, empty, or absent.
  */
 class SessionChipTest {
+
+    @Test
+    fun `ongoing stopwatch converts wall start to elapsed realtime`() {
+        assertEquals(
+            40_000L,
+            OngoingWorkoutChip.elapsedRealtimeAnchor(
+                sessionStartedAtWallMillis = 1_000_000L,
+                wallNowMillis = 1_060_000L,
+                elapsedNowMillis = 100_000L,
+            ),
+        )
+    }
 
     private fun set(done: Boolean) = WatchSet(weightLb = 100.0, reps = 5, kind = "WORK", done = done)
 

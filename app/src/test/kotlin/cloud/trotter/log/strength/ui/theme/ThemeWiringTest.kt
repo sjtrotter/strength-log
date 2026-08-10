@@ -11,6 +11,9 @@ import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextStyle
@@ -96,14 +99,44 @@ class ThemeWiringTest {
     }
 
     @Test
-    fun systemPreferenceResolvesTheSuppliedSystemAppearance() {
+    fun explicitDarkOverridesLightSystemAppearance() {
         var colors: ColorScheme? = null
         composeTestRule.setContent {
-            AppTheme(preference = ThemePreference.SYSTEM, systemInDarkTheme = false) {
+            AppTheme(preference = ThemePreference.DARK, systemInDarkTheme = false) {
+                colors = MaterialTheme.colorScheme
+            }
+        }
+        assertSame(DarkAppColorScheme, colors)
+    }
+
+    @Test
+    fun explicitLightOverridesDarkSystemAppearance() {
+        var colors: ColorScheme? = null
+        composeTestRule.setContent {
+            AppTheme(preference = ThemePreference.LIGHT, systemInDarkTheme = true) {
                 colors = MaterialTheme.colorScheme
             }
         }
         assertSame(LightAppColorScheme, colors)
+    }
+
+    @Test
+    fun systemPreferenceFollowsChangedSystemAppearance() {
+        var systemInDarkTheme by mutableStateOf(false)
+        var colors: ColorScheme? = null
+        composeTestRule.setContent {
+            AppTheme(preference = ThemePreference.SYSTEM, systemInDarkTheme = systemInDarkTheme) {
+                colors = MaterialTheme.colorScheme
+            }
+        }
+
+        composeTestRule.runOnIdle {
+            assertSame(LightAppColorScheme, colors)
+            systemInDarkTheme = true
+        }
+        composeTestRule.runOnIdle {
+            assertSame(DarkAppColorScheme, colors)
+        }
     }
 
     @Test

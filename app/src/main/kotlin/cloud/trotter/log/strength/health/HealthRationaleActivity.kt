@@ -13,30 +13,46 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Handles Health Connect's mandatory permissions-rationale intents (#17): the
  * provider launches this to explain why the app wants health permissions,
- * before the user grants them. It's a plain, self-contained screen — no data,
- * no network — stating exactly what each permission is for and that everything
- * stays on-device.
+ * before the user grants them. It's a plain screen with no workout data or
+ * network access, stating exactly what each permission is for and that
+ * everything stays on-device.
  *
  * The full privacy-policy page (Play requirement for health permissions) is
  * #23's job; this activity only satisfies the manifest rationale contract that
  * has to ship with the permission declarations.
  */
+@AndroidEntryPoint
 class HealthRationaleActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var repository: TrackerRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { AppTheme { RationaleScreen() } }
+        setContent {
+            val themePreference by repository.themePreferenceFlow.collectAsStateWithLifecycle(
+                initialValue = ThemePreference.SYSTEM,
+            )
+            AppTheme(preference = themePreference) { RationaleScreen() }
+        }
     }
 }
 

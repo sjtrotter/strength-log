@@ -31,17 +31,20 @@ fun ambientDialState(
     snapshot: WatchSnapshot,
     timeText: String,
     restRemainingSeconds: Int? = null,
+    dayText: (String) -> String,
+    dayProgressText: (String, Int, Int) -> String,
+    restingText: String,
 ): AmbientDialState {
     val progress = DayProgress.of(snapshot.day)
     val resting = restRemainingSeconds?.let { it > 0 } == true
     return AmbientDialState(
         dayProgress = if (progress.total == 0) 0f else progress.done.toFloat() / progress.total,
         topText = if (progress.total == 0) {
-            "day ${snapshot.day.dayId}".uppercase()
+            dayText(snapshot.day.dayId).uppercase()
         } else {
-            "day ${snapshot.day.dayId} · ${progress.done}/${progress.total}".uppercase()
+            dayProgressText(snapshot.day.dayId, progress.done, progress.total).uppercase()
         },
-        centerText = if (resting) "RESTING" else timeText,
+        centerText = if (resting) restingText.uppercase() else timeText,
         bottomText = timeText.takeIf { resting },
     )
 }

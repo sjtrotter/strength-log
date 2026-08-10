@@ -14,11 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Text
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.wear.R
 import cloud.trotter.log.strength.wear.theme.AmbientBackground
 import cloud.trotter.log.strength.wear.theme.AmbientClock
 import cloud.trotter.log.strength.wear.theme.AmbientDim
@@ -48,7 +50,12 @@ fun AmbientDial(
     burnInProtectionRequired: Boolean = false,
     deviceHasLowBitAmbient: Boolean = false,
 ) {
-    val state = remember(ambientTick, snapshot, rest) {
+    // Raw templates resolved in composition (the lint-endorsed configuration-
+    // aware path); the state builder formats them with runtime values later.
+    val dayTemplate = stringResource(R.string.dial_day)
+    val progressTemplate = stringResource(R.string.ambient_day_progress)
+    val restingText = stringResource(R.string.ambient_resting)
+    val state = remember(ambientTick, snapshot, rest, dayTemplate, progressTemplate, restingText) {
         val remaining = rest?.let {
             RestTimer.remainingSeconds(it.deadlineMillis, SystemClock.elapsedRealtime())
         }
@@ -56,6 +63,9 @@ fun AmbientDial(
             snapshot = snapshot,
             timeText = wallClockTimeText(),
             restRemainingSeconds = remaining,
+            dayText = { dayTemplate.format(it) },
+            dayProgressText = { day, done, total -> progressTemplate.format(day, done, total) },
+            restingText = restingText,
         )
     }
 

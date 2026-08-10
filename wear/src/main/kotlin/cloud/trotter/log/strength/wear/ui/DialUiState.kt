@@ -56,14 +56,14 @@ data class BandContent(
 )
 
 /** What tapping the disc does — the dial's one tap target (§1). */
-enum class DialTap(val accessibilityClickLabel: String?) {
-    NONE(null),
-    OPEN_WORKOUT("open workout"),
-    START_SET("start set"),
-    TICK("log set"),
-    SKIP_REST("skip rest"),
-    CONFIRM_SWAP("confirm swap"),
-    DISMISS("dismiss"),
+enum class DialTap {
+    NONE,
+    OPEN_WORKOUT,
+    START_SET,
+    TICK,
+    SKIP_REST,
+    CONFIRM_SWAP,
+    DISMISS,
 }
 
 /**

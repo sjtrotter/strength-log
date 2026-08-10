@@ -44,7 +44,11 @@ import cloud.trotter.log.strength.wear.theme.accentBright
  * Colors come from the same tokens the dial paints with, converted to ARGB here
  * rather than restated — the hexes stay SSOT in `theme/` and `:domain`.
  */
-internal fun dayTileLayout(glance: DayGlance, onClick: ModifiersBuilders.Clickable): LayoutElement {
+internal fun dayTileLayout(
+    glance: DayGlance,
+    copy: DayGlanceCopy,
+    onClick: ModifiersBuilders.Clickable,
+): LayoutElement {
     val face = Box.Builder()
         .setWidth(expand())
         .setHeight(expand())
@@ -58,7 +62,7 @@ internal fun dayTileLayout(glance: DayGlance, onClick: ModifiersBuilders.Clickab
                 )
                 .setSemantics(
                     ModifiersBuilders.Semantics.Builder()
-                        .setContentDescription(glance.contentDescription)
+                        .setContentDescription(glance.contentDescription(copy))
                         .build(),
                 )
                 .build(),
@@ -67,7 +71,7 @@ internal fun dayTileLayout(glance: DayGlance, onClick: ModifiersBuilders.Clickab
     if (glance.progress > 0f) {
         face.addContent(ring(FULL_TURN_DEGREES * glance.progress, Done.toArgb()))
     }
-    return face.addContent(center(glance)).build()
+    return face.addContent(center(glance, copy)).build()
 }
 
 /** One ring of the dial: an arc that starts at twelve and runs clockwise. */
@@ -86,7 +90,7 @@ private fun ring(sweepDegrees: Float, color: Int): LayoutElement = Arc.Builder()
     .build()
 
 /** The day, then the set count — the phone widget's two lines, stacked. */
-private fun center(glance: DayGlance): LayoutElement = Column.Builder()
+private fun center(glance: DayGlance, copy: DayGlanceCopy): LayoutElement = Column.Builder()
     .setWidth(expand())
     .setHorizontalAlignment(HORIZONTAL_ALIGN_CENTER)
     .setModifiers(
@@ -101,7 +105,7 @@ private fun center(glance: DayGlance): LayoutElement = Column.Builder()
     )
     .addContent(
         line(
-            text = glance.titleLine,
+            text = glance.titleLine(copy),
             sizeSp = TITLE_SIZE_SP,
             weight = FONT_WEIGHT_NORMAL,
             color = if (glance.hasProgram) accentBright(glance.accentIndex).toArgb() else TextSecondary.toArgb(),
@@ -110,7 +114,7 @@ private fun center(glance: DayGlance): LayoutElement = Column.Builder()
     .addContent(Spacer.Builder().setHeight(dp(LINE_GAP_DP)).build())
     .addContent(
         line(
-            text = glance.setLine,
+            text = glance.setLine(copy),
             sizeSp = if (glance.hasProgram) HERO_SIZE_SP else TITLE_SIZE_SP,
             weight = if (glance.hasProgram) FONT_WEIGHT_BOLD else FONT_WEIGHT_NORMAL,
             color = when {

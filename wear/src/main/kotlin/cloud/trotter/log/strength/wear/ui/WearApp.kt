@@ -24,14 +24,17 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.wear.compose.foundation.BasicSwipeToDismissBox
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.wear.OngoingWorkoutChip
+import cloud.trotter.log.strength.wear.R
 import cloud.trotter.log.strength.wear.data.WatchTrackerClient
 import cloud.trotter.log.strength.wear.theme.Background
 import cloud.trotter.log.strength.wear.theme.WearTrackerTheme
@@ -375,7 +378,8 @@ private fun WorkoutDial(
         pendingSwapExerciseIds = pendingSwaps,
         tickMemory = tickMemory,
     )
-    val state = dialUiState(inputs)
+    val copy = rememberDialCopy()
+    val state = dialUiState(inputs, copy)
 
     // Repaint ticker: only while something on screen is counting.
     LaunchedEffect(state.screen) {
@@ -585,5 +589,77 @@ private fun OngoingSessionChip(snapshot: WatchSnapshot?, localSessionStarted: Bo
 
     LaunchedEffect(sessionActive, hasPermission) {
         if (sessionActive) chip.show() else chip.clear()
+    }
+}
+
+/** The dial recomposes every rest-tick second; copy changes only with the
+ *  configuration, so the lambda bag is rebuilt on that key alone. Templates
+ *  resolve through [stringResource], the configuration-aware read lint asks for. */
+@Composable
+private fun rememberDialCopy(): DialCopy {
+    val continueText = stringResource(R.string.dial_continue)
+    val start = stringResource(R.string.dial_start)
+    val day = stringResource(R.string.dial_day)
+    val setOf = stringResource(R.string.dial_set_of)
+    val exerciseKind = stringResource(R.string.dial_exercise_kind)
+    val waitingOnPhone = stringResource(R.string.dial_waiting_on_phone)
+    val swapping = stringResource(R.string.dial_swapping)
+    val useThis = stringResource(R.string.dial_use_this)
+    val alternateOf = stringResource(R.string.dial_alternate_of)
+    val tapToLog = stringResource(R.string.dial_tap_to_log)
+    val goal = stringResource(R.string.dial_goal)
+    val rest = stringResource(R.string.dial_rest)
+    val tapToSkip = stringResource(R.string.dial_tap_to_skip)
+    val next = stringResource(R.string.dial_next)
+    val rested = stringResource(R.string.dial_rested)
+    val done = stringResource(R.string.dial_done)
+    val minutes = stringResource(R.string.dial_minutes)
+    val volume = stringResource(R.string.dial_volume)
+    val sets = stringResource(R.string.dial_sets)
+    val undo = stringResource(R.string.dial_undo)
+    val set = stringResource(R.string.dial_set)
+    val took = stringResource(R.string.dial_took)
+    val thenPartner = stringResource(R.string.dial_then_partner)
+    val releaseToReturn = stringResource(R.string.dial_release_to_return)
+    val queued = stringResource(R.string.dial_queued)
+    val noProgram = stringResource(R.string.dial_no_program)
+    val setUpOnPhone = stringResource(R.string.dial_set_up_on_phone)
+    val rampLabel = stringResource(R.string.dial_ramp_label)
+    val topLabel = stringResource(R.string.dial_top_label)
+    val backoffLabel = stringResource(R.string.dial_backoff_label)
+    val configuration = LocalConfiguration.current
+    return remember(configuration) {
+        DialCopy(
+            continueText = continueText,
+            start = start,
+            day = { day.format(it) },
+            setOf = { current, total -> setOf.format(current, total) },
+            exerciseKind = { exercise, kind -> exerciseKind.format(exercise, kind) },
+            waitingOnPhone = waitingOnPhone,
+            swapping = swapping,
+            useThis = useThis,
+            alternateOf = { current, total -> alternateOf.format(current, total) },
+            tapToLog = tapToLog,
+            goal = { goal.format(it) },
+            rest = rest,
+            tapToSkip = tapToSkip,
+            next = { next.format(it) },
+            rested = { rested.format(it) },
+            done = done,
+            minutes = { minutes.format(it) },
+            volume = { value, unit -> volume.format(value, unit) },
+            sets = { sets.format(it) },
+            undo = undo,
+            set = { set.format(it) },
+            took = { took.format(it) },
+            thenPartner = { name, summary -> thenPartner.format(name, summary) },
+            releaseToReturn = releaseToReturn,
+            queued = { queued.format(it) },
+            noProgram = noProgram,
+            setUpOnPhone = setUpOnPhone,
+            rampLabel = { rampLabel.format(it) },
+            topLabel = topLabel,
+            backoffLabel = backoffLabel,
+        )
     }
 }

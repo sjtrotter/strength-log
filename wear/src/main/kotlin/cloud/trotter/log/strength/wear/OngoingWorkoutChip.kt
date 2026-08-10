@@ -43,9 +43,10 @@ class OngoingWorkoutChip(context: Context) {
 
         ensureChannel()
         val touchIntent = reentryIntent(appContext)
+        val title = appContext.getString(R.string.ongoing_workout_title)
         val builder = NotificationCompat.Builder(appContext, CHANNEL_ID)
-            .setContentTitle(TITLE)
-            .setContentText(TEXT)
+            .setContentTitle(title)
+            .setContentText(appContext.getString(R.string.ongoing_workout_text))
             .setSmallIcon(R.drawable.ic_ongoing_workout)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_WORKOUT)
@@ -55,7 +56,7 @@ class OngoingWorkoutChip(context: Context) {
         OngoingActivity.Builder(appContext, NOTIFICATION_ID, builder)
             .setStaticIcon(R.drawable.ic_ongoing_workout)
             .setTouchIntent(touchIntent)
-            .setStatus(Status.Builder().addTemplate(TITLE).build())
+            .setStatus(Status.Builder().addTemplate(title).build())
             .build()
             .apply(appContext)
 
@@ -70,20 +71,15 @@ class OngoingWorkoutChip(context: Context) {
     private fun ensureChannel() {
         notificationManager.createNotificationChannel(
             NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_LOW)
-                .setName(CHANNEL_NAME)
-                .setDescription(CHANNEL_DESC)
+                .setName(appContext.getString(R.string.ongoing_workout_channel_name))
+                .setDescription(appContext.getString(R.string.ongoing_workout_channel_description))
                 .build(),
         )
     }
 
     companion object {
         private const val CHANNEL_ID = "workout_in_progress"
-        private const val CHANNEL_NAME = "Workout in progress"
-        private const val CHANNEL_DESC =
-            "Keeps an in-progress workout one tap away from the watch face."
         private const val NOTIFICATION_ID = 1001
-        private const val TITLE = "Workout in progress"
-        private const val TEXT = "Tap to keep logging"
 
         /** POST_NOTIFICATIONS only became a runtime permission in API 33 (Tiramisu). */
         fun needsRuntimePermission(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU

@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.wear.glance
 
 import cloud.trotter.log.strength.domain.glance.DayProgress
-import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /**
@@ -46,25 +45,23 @@ data class DayGlance(
      * the widget's "SET UP YOUR PROGRAM" — that is an instruction you can't follow
      * on a watch, and the tile is a mini version of a dial that already says this.
      */
-    val titleLine: String
-        get() = if (!hasProgram) {
-            "no program".uppercase()
-        } else {
-            GlanceLines.dayLine(dayLetter, dayTitle)
-        }
+    fun titleLine(copy: DayGlanceCopy): String = if (!hasProgram) copy.noProgram.uppercase()
+    else if (dayTitle.isBlank()) copy.dayOnly(dayLetter).uppercase()
+    else copy.dayTitle(dayLetter, dayTitle).uppercase()
 
     /** The hero line: "3 LIFTS · 21 SETS", "12 / 21 SETS", "DONE · 21 SETS". */
-    val setLine: String
-        get() = when {
-            !hasProgram -> "SET UP ON YOUR PHONE"
-            else -> GlanceLines.statLine(exerciseCount, doneSets, totalSets)
-        }
+    fun setLine(copy: DayGlanceCopy): String = when {
+        !hasProgram -> copy.setUpOnPhone.uppercase()
+        done -> copy.doneSets(totalSets).uppercase()
+        doneSets > 0 -> copy.progressSets(doneSets, totalSets).uppercase()
+        else -> copy.liftsSets(exerciseCount, totalSets).uppercase()
+    }
 
     /** The complication's short text: the day letter, or an em dash with no program. */
-    val shortText: String get() = if (hasProgram) dayLetter.uppercase() else "—"
+    fun shortText(copy: DayGlanceCopy): String = if (hasProgram) dayLetter.uppercase() else copy.emptyShortText
 
     /** The SHORT_TEXT complication's title, "12/21"; blank with no program. */
-    val ratioText: String get() = if (hasProgram) "$doneSets/$totalSets" else ""
+    fun ratioText(copy: DayGlanceCopy): String = if (hasProgram) copy.ratio(doneSets, totalSets) else ""
 
     /**
      * RANGED_VALUE's ceiling. Never 0: a range needs room to move, and an empty
@@ -75,12 +72,11 @@ data class DayGlance(
     val rangeValue: Float get() = doneSets.coerceIn(0, totalSets).toFloat()
 
     /** What a screen reader says — the complication has no other way to explain itself. */
-    val contentDescription: String
-        get() = when {
-            !hasProgram -> "No program yet"
-            done -> "Day $dayLetter done, $totalSets sets"
-            else -> "Day $dayLetter, $doneSets of $totalSets sets done"
-        }
+    fun contentDescription(copy: DayGlanceCopy): String = when {
+        !hasProgram -> copy.noProgramDescription
+        done -> copy.doneDescription(dayLetter, totalSets)
+        else -> copy.progressDescription(dayLetter, doneSets, totalSets)
+    }
 
     companion object {
 
@@ -113,3 +109,18 @@ data class DayGlance(
         }
     }
 }
+
+data class DayGlanceCopy(
+    val noProgram: String,
+    val setUpOnPhone: String,
+    val dayTitle: (String, String) -> String,
+    val dayOnly: (String) -> String,
+    val liftsSets: (Int, Int) -> String,
+    val progressSets: (Int, Int) -> String,
+    val doneSets: (Int) -> String,
+    val noProgramDescription: String,
+    val doneDescription: (String, Int) -> String,
+    val progressDescription: (String, Int, Int) -> String,
+    val emptyShortText: String,
+    val ratio: (Int, Int) -> String,
+)

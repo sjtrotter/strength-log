@@ -36,13 +36,15 @@ data class CardioPlan(val steps: List<CardioStep>) {
 derives steps from the same rules that wrote the prose:
 
 - Easy Zone 2 → one step: `EASY · 25:00` (the 20–30 min band pins its middle;
-  the lifter ends early or late freely — ACTUAL is what's logged).
-- Hard, no 5k → `WARM-UP 5:00`, `TEMPO 20:00`.
+  ending early or running long is normal — ACTUAL is what's logged).
+- Hard, no 5k → one step: `TEMPO 20:00` (the prose says 20 min tempo; no invented warm-up).
 - Hard, 5k → `WARM-UP 5:00`, then 5 × (`HARD 2:00`, `EASY 2:00`) — the prose
-  says 4–6; the plan pins 5 and the lifter stops early or repeats freely.
+  says 4–6; the plan pins 5; stopping early is normal. C1 has no manual
+  repeats — ACTUAL is total elapsed plus the fully-completed step prefix,
+  which `stepsCompleted` records exactly.
 
 **Pinned vectors (§11 addendum, new `CardioIntervalsTest`):** easy = [1500];
-hard = [300, 1200]; hard+5k = [300, 120, 120, 120, 120, 120, 120, 120, 120,
+hard = [1200]; hard+5k = [300, 120, 120, 120, 120, 120, 120, 120, 120,
 120, 120] (total 1500). These are the cardio analog of the squat GOAL numbers:
 a diff that changes them is wrong unless the spec changes first.
 
@@ -65,19 +67,28 @@ data class CardioSessionEntity(
 )
 ```
 
+`dayId` is always the day the block was started from — C1 has no ad-hoc
+cardio outside a generated day, so it is never null in practice; the column
+stays nullable only so a future ad-hoc entry needs no migration.
+
 Deliberate absences: no distance, no pace, no HR — this app logs what the
 lifter did against the plan it wrote, not what a sports watch measures. If that
 ever changes it's a new brief. `label`/`mode` are copied at log time (the plan
 can change later; history is immutable — same rule as `exerciseName` on set
 rows).
 
-- **Backup schema v7**: `cardioSessions: List<CardioSessionBackup> = []`
-  (defaulted — old backups restore; new backups into old apps are already
-  version-rejected).
-- **CSV**: cardio goes in the existing history export as rows with
-  `Exercise Name = label`, weight/reps empty, a `Seconds` value — the format
-  Strong/Hevy readers ignore gracefully; our reader maps them back by the
-  label+empty-weight shape. (One file, per #175's one-format decision.)
+- **Backup schema v6** (current is v5): `cardioSessions:
+  List<CardioSessionBackup> = []`, defaulted — v1–v5 documents decode with an
+  empty list through the existing shared-decoder routing; newer-than-current
+  stays loudly rejected.
+- **CSV**: one file (per #175's decision), with an explicit discriminator:
+  the writer emits `Set Type = cardio` in the existing optional column and the
+  reader routes such rows to cardio BEFORE strength name-matching ever sees
+  them (no custom-exercise prompts, no set rows). Labels pass the #175
+  neutralization boundary like any free text. Dedupe identity, extending
+  #216's normalization: `(completedAt at CSV second precision, normalized
+  label, cardio marker)` — collisions skip the insert, same as strength.
+  Round-trip pins include formula-leading and apostrophe labels.
 
 ## 4. Phone execution
 
@@ -89,48 +100,79 @@ from the restored stamps — elapsed derives from `elapsedRealtime`, same
 contract as the wear rest deadline):
 
 - Card shows the current step (`HARD · 1:23 left`), overall elapsed, and one
-  quiet STOP. Step boundaries buzz (Vibrator, one shot) via an exact
-  `ELAPSED_REALTIME_WAKEUP` alarm scheduled for the NEXT boundary only —
-  the `RestTimerController` pattern (#188), phone-side twin, same
-  foreground-contract KDoc. The keep-screen-on preference applies while a
-  block runs (it already exists on the day screen).
-- STOP (or the plan running out) logs the session: one insert, immediately, in
-  a single transaction — write-on-every-mutation, as ever. Under 60 seconds of
-  elapsed time, STOP discards instead of logging (a fat-finger START must not
-  mint history; threshold pinned in a test).
+  quiet STOP. Step boundaries buzz via an exact `ELAPSED_REALTIME_WAKEUP`
+  alarm for the NEXT boundary only — the #188 pattern with its identity-
+  guarded single-alarm discipline (#207), phone twin. The lifecycle contract
+  is stated, not implied: buzzes are guaranteed only while the app is
+  foreground with the day screen live; backgrounding forfeits boundary buzzes
+  (no foreground service in C1 — a non-goal on the record) and the elapsed
+  math is simply correct again on return. Keep-screen-on applies while a
+  block runs.
+- Durable state is minimal and derived: `SavedStateHandle` holds only the
+  plan identity and the wall + elapsedRealtime start anchors. Step index and
+  elapsed are DERIVED from the anchors on every restore, never stored. Reboot
+  is detected by anchor divergence (elapsed anchor younger than wall delta) —
+  after a reboot the wall anchor alone drives elapsed. Restores re-arm only
+  the next FUTURE boundary; missed buzzes are never replayed. A restore that
+  lands past the plan's end enters OVERRUN (below) with elapsed still
+  honest.
+- The plan running out transitions to OVERRUN: the card keeps counting
+  elapsed (Zone 2 runs long all the time) and only STOP logs. One insert,
+  immediately, single transaction — write-on-every-mutation. Under 60 seconds
+  elapsed, STOP discards instead of logging (a fat-finger START must not mint
+  history; threshold pinned).
 - The intent line on Today and the receipt do not change. The card collapses
   back to its suggestion form once logged, with a quiet `LOGGED · 24:12` line
   for the rest of the day (reads from history, no new state).
 
 ## 5. Journal + Health Connect
 
-- **Log screen list**: cardio sessions interleave by `completedAt` with
-  strength sessions — same card shape, `label` where the day title goes,
-  `MODE · M:SS` where the set count goes, no expansion (there are no rows). The
-  calendar's day-dot definition ("a session happened") now includes cardio.
-  Trajectories and volume are lifts-only by definition and do not change.
-- **HC**: `CardioRecordMapper` writes an `ExerciseSessionRecord`
-  (`EXERCISE_TYPE_RUNNING` / `_BIKING` by mode; treadmill maps to running)
-  with client id `strengthlog-cardio-<id>`, version 0 — the #194 dedupe
-  contract verbatim. Calories: same bodyweight-honest rule as lifts — no
-  bodyweight, no calories record. Backfill (#159's one-shot) counts cardio
-  sessions too once this ships.
+- **Log screen list**: cardio sessions interleave by `completedAt` — same
+  card shape, `label` where the day title goes, `MODE · M:SS` where the set
+  count goes, no expansion and no SHARE (both are strength constructs). The
+  accent is the logged day's accent (`dayId` is always set in C1); the card's
+  semantics announce "cardio session" with label and duration. The calendar's
+  day-dot ("a session happened") now includes cardio. Trajectories and volume
+  stay lifts-only by definition.
+- **Validity**: `mode` decodes with an unknown-name fallback (label still
+  renders; HC mapping skips), labels are non-blank and length-capped at the
+  entity boundary, and formula-shaped labels are neutralized only at the CSV
+  boundary (#175) — nowhere else.
+- **HC**: `CardioRecordMapper` writes an `ExerciseSessionRecord` with client
+  id `strengthlog-cardio-<id>`, version 0 — #194's dedupe contract verbatim.
+  Mode mapping pinned: `OUTDOOR_RUN` and `TREADMILL` → RUNNING,
+  `LOW_IMPACT` → BIKING (its prose verb is "ride"). The Room insert is the
+  committed mutation; the HC publish follows, retryable/backfillable by the
+  stable client id (#159's one-shot counts cardio too). Mapper guards:
+  `completedAt > startedAt`, duration within [60s, 24h], else no record —
+  never invented data.
 
 ## 6. Wrist role — phase C2, designed now, built second
 
 The watch stays a *logger with a timer*, not a sports tracker:
 
-- After the last lift (or from the overview when the day has a finisher), the
-  dial offers the cardio block as one more face: center shows the current
-  step's countdown (the clock-ring drains per step — the rest ring's exact
-  visual grammar), tap advances nothing (steps advance on time), long-press =
-  stop-and-log. Buzz at boundaries via `RestTimerController` — the machinery
-  from #188/#207 unchanged.
-- The logged session travels as a new `CardioDelta` over the wire (schema
-  bump; epoch/revision rules from #199 apply; `applyDelta` gains one overload,
-  the #208 overlay covers it for free).
-- The `WatchSnapshot` gains the day's `cardio: CardioSuggestion?` it already
-  computes phone-side (WatchSnapshotBuilder), so the dial can offer it.
+- Cardio is a STATE within the existing workout face (a `DialScreen` entry),
+  never a third face — the two-face contract of wear-dial-v3 holds. Entered
+  from the overview once the day has a finisher (or after the last lift):
+  center shows the current step's countdown, the clock ring drains per step —
+  the rest ring's exact grammar — tap advances nothing (steps advance on
+  time), and the 700ms authored hold = stop-and-log (the hold slot is free
+  here: undo is never offered in the cardio state, so the grammar doesn't
+  collide). Buzz at boundaries via `RestTimerController` (#188/#207)
+  unchanged.
+- The logged session travels as `CardioDelta(schemaVersion = 1)` — its own
+  codec and message path, NOT a snapshot version bump (#199's wire is
+  additive-with-defaults; nothing rejects). It rides the existing durable
+  queue with the same stamp machinery ticks use: the stamp IS the stable
+  event id, persisted until ack, deduplicated phone-side by that id, and the
+  queue settles when an installed snapshot exposes the logged session — the
+  exact reconcile contract edits already obey. Replay after reconnect is
+  therefore idempotent by construction.
+- Execution is device-local: starting a block on one device mirrors nothing
+  live to the other; only completions travel, and completion identity dedupes
+  them. No shared active-session protocol — a deliberate non-goal.
+- `WatchSnapshot` gains `cardio: CardioSuggestion? = null` — additive,
+  defaulted, no version change — so the dial can offer the block.
 - Health Services stays out (deviation 5, #167) — the timer is elapsed-time
   arithmetic, not sensors. Revisit trigger unchanged.
 
@@ -152,10 +194,10 @@ new cardio vectors join them.
 
 ## 8. Open questions (answered here, overridable by the owner)
 
-- Standalone cardio days (`SEPARATE_DAYS` placement): C1 treats them as a day
-  whose only block is cardio — the day screen shows the one card; DONE is the
-  cardio log itself for that day type. (Smallest honest reading; revisit if it
-  feels wrong on wrist.)
+- Standalone days (`SEPARATE_DAYS`): the spec's "Cardio + Core" days keep
+  their core lifts, so DONE and `DayProgress` stay lifts-only there too — no
+  contradiction with §1. Logging the cardio block is a separate calendar fact
+  (`cardioLogged`), never DONE. No day type exists whose completion is cardio.
 - Editing/deleting logged cardio: none in C1 (matches lifts — history is
   append-only today). CSV re-import dedupe (#196) extends to cardio rows by
   the same identity triple.

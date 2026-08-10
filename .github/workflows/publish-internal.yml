@@ -77,7 +77,9 @@ jobs:
           # interpolated into shell source.
           INPUT_VERSION_NAME: ${{ inputs.versionName }}
         run: |
-          BASE=$(( ${{ github.run_number }} * 2 ))
+          # +10 clears the hand-uploaded codes (1, 4) and the burned 2 —
+          # Play remembers every code ever uploaded, forever.
+          BASE=$(( ${{ github.run_number }} * 2 + 10 ))
           NAME="$INPUT_VERSION_NAME"
           [ -n "$NAME" ] || NAME="0.1.${{ github.run_number }}"
           ./gradlew :app:bundleRelease :wear:bundleRelease \

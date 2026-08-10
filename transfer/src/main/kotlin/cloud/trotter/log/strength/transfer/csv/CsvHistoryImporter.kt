@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.ImportedSession
+import cloud.trotter.log.strength.data.SessionHistorySnapshot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
@@ -33,7 +34,11 @@ object CsvHistoryImporter {
      * rows to append. Throws [CsvImportError.MissingApproval] — committing
      * nothing — if any unmatched name has no entry in [approvedPatterns].
      */
-    fun commit(preview: CsvImportPreview, approvedPatterns: Map<String, MovementPattern>): CommitPlan {
+    fun commit(
+        preview: CsvImportPreview,
+        approvedPatterns: Map<String, MovementPattern>,
+        existingHistory: SessionHistorySnapshot? = null,
+    ): CommitPlan {
         val approvedByNormalizedName = approvedPatterns.mapKeys { normalizeExerciseName(it.key) }
         val missing = preview.unmatchedNames
             .filter { normalizeExerciseName(it.name) !in approvedByNormalizedName }
@@ -87,8 +92,51 @@ object CsvHistoryImporter {
                 },
             )
         }
-        return CommitPlan(sessions, newCustomExercises)
+        val seen = existingHistory?.let { history ->
+            history.sessions.mapTo(mutableSetOf()) { session ->
+                sessionFingerprint(session, history.sessionSets.filter { it.sessionId == session.id })
+            }
+        } ?: mutableSetOf()
+        val newSessions = sessions.filter { seen.add(sessionFingerprint(it.session, it.sets)) }
+        return CommitPlan(newSessions, newCustomExercises)
     }
+
+    /** Row ids are deliberately absent: a CSV re-import necessarily receives new
+     * ids, while its title, completion stamp, and ordered set contents are stable. */
+    private fun sessionFingerprint(session: WorkoutSessionEntity, sets: List<SessionSetEntity>) =
+        SessionFingerprint(session.dayTitle, session.completedAt, sets.map { it.contentFingerprint() })
+
+    private fun SessionSetEntity.contentFingerprint() = SetFingerprint(
+        exerciseName = exerciseName,
+        slot = slot,
+        setIndex = setIndex,
+        kind = kind,
+        weightLb = weightLb,
+        reps = reps,
+        done = done,
+        seconds = seconds,
+        startedAtMillis = startedAtMillis,
+        completedAtMillis = completedAtMillis,
+    )
+
+    private data class SessionFingerprint(
+        val dayTitle: String,
+        val completedAt: Long,
+        val sets: List<SetFingerprint>,
+    )
+
+    private data class SetFingerprint(
+        val exerciseName: String,
+        val slot: String,
+        val setIndex: Int,
+        val kind: String,
+        val weightLb: Double,
+        val reps: Int,
+        val done: Boolean,
+        val seconds: Int,
+        val startedAtMillis: Long?,
+        val completedAtMillis: Long?,
+    )
 
     private fun newCustomExercise(name: String, pattern: MovementPattern) = CustomExerciseEntity(
         id = ExerciseCatalog.CUSTOM_ID_PREFIX + UUID.randomUUID().toString().replace("-", ""),

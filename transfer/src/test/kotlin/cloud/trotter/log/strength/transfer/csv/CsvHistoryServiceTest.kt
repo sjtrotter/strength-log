@@ -128,6 +128,23 @@ class CsvHistoryServiceTest {
     }
 
     @Test
+    fun `re-importing the same CSV twice inserts nothing new`() = runTest {
+        val text = "Date,Workout Name,Exercise Name,Set Order,Weight,Weight Unit,Reps\n" +
+            "2026-07-01 08:00:00,Day A,Barbell Back Squat,1,225,lb,5\n" +
+            "2026-07-01 08:00:00,Day A,Barbell Back Squat,2,205,lb,8\n"
+        val preview = service.preview(ByteArrayInputStream(text.toByteArray()))
+
+        service.commit(preview)
+        val firstImport = repo.exportSessionHistory()
+        service.commit(preview)
+        val secondImport = repo.exportSessionHistory()
+
+        assertEquals(1, secondImport.sessions.size)
+        assertEquals(2, secondImport.sessionSets.size)
+        assertEquals(firstImport, secondImport)
+    }
+
+    @Test
     fun `kg weights round-trip export to import to export byte-identical`() = runTest {
         repo.setUnit(WeightUnit.KG)
         // Canonical storage is lb; these are exactly toLb(100 / 102.5 / 42.5 kg).

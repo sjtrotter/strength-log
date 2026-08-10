@@ -50,7 +50,7 @@ import cloud.trotter.log.strength.ui.theme.TabLetter
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
-import cloud.trotter.log.strength.ui.theme.accentBright
+import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 
@@ -103,8 +103,9 @@ internal fun TrajectoryCardView(card: TrajectoryCard) {
 @Composable
 private fun TrajectoryPlot(card: TrajectoryCard, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
-    val lineColor = accentBright(card.dayIndex)
+    val lineColor = accentEmphasis(card.dayIndex)
     val goalColor = if (card.goalMet) Done else TextFaint
+    val faintColor = TextFaint
     val axisStyle = MaterialTheme.typography.labelSmall.copy(color = TextFaint)
     val goalStyle = MaterialTheme.typography.labelSmall.copy(color = goalColor)
     val valueStyle = StepperRepsValue.copy(color = TextPrimary)
@@ -131,7 +132,7 @@ private fun TrajectoryPlot(card: TrajectoryCard, modifier: Modifier) {
 
         for ((i, grid) in card.gridlines.withIndex()) {
             val gy = y(grid.value)
-            drawLine(TextFaint.copy(alpha = 0.28f), Offset(left, gy), Offset(right, gy), strokeWidth = 1.dp.toPx())
+            drawLine(faintColor.copy(alpha = 0.28f), Offset(left, gy), Offset(right, gy), strokeWidth = 1.dp.toPx())
             drawText(gridLabels[i], topLeft = Offset(0f, gy - gridLabels[i].size.height / 2f))
         }
 
@@ -190,6 +191,7 @@ internal fun VolumeCardView(chart: VolumeChart) {
     // The ember accent is Day A's hex (spec §8.5) used here as this chart's one
     // hue — a filled bar, not a hairline, so the base accent reads fine.
     val barColor = dayAccent(0)
+    val borderColor = Border
     val trainedWeeks = chart.bars.count { it.trained }
     val chartDescription = pluralStringResource(
         R.plurals.log_volume_description,
@@ -205,7 +207,7 @@ internal fun VolumeCardView(chart: VolumeChart) {
                 .height(VOLUME_HEIGHT)
                 .semantics { contentDescription = chartDescription },
         ) {
-            drawVolumeBars(chart, barColor, measurer, labelStyle)
+            drawVolumeBars(chart, barColor, borderColor, measurer, labelStyle)
         }
         Spacer(Modifier.size(6.dp))
         Text(
@@ -219,6 +221,7 @@ internal fun VolumeCardView(chart: VolumeChart) {
 private fun DrawScope.drawVolumeBars(
     chart: VolumeChart,
     barColor: Color,
+    borderColor: Color,
     measurer: TextMeasurer,
     labelStyle: TextStyle,
 ) {
@@ -235,7 +238,7 @@ private fun DrawScope.drawVolumeBars(
     val plotHeight = baseline - plotTop
     if (plotHeight <= 0f) return
 
-    drawLine(Border, Offset(0f, baseline), Offset(size.width, baseline), strokeWidth = 1.dp.toPx())
+    drawLine(borderColor, Offset(0f, baseline), Offset(size.width, baseline), strokeWidth = 1.dp.toPx())
 
     chart.bars.forEachIndexed { i, bar ->
         val x = startX + i * (barWidth + gap)

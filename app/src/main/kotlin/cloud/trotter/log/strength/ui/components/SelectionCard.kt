@@ -27,7 +27,6 @@ import cloud.trotter.log.strength.ui.theme.CardTitleSmall
 import cloud.trotter.log.strength.ui.theme.Surface
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
-import cloud.trotter.log.strength.ui.theme.accentSoft
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 
@@ -60,7 +59,7 @@ fun SelectionCard(
 ) {
     val accent = dayAccent(accentDayIndex)
     val onAccent = onDayAccent(accentDayIndex)
-    val background = if (selected) accentSoft(accentDayIndex) else Surface
+    val background = if (selected) accent else Surface
     val border = if (selected) accent else Border
     val shape = MaterialTheme.shapes.large
     val interaction = when (mode) {
@@ -100,7 +99,7 @@ fun SelectionCard(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     title,
-                    color = TextPrimary,
+                    color = if (selected) onAccent else TextPrimary,
                     style = CardTitleSmall,
                     modifier = Modifier.weight(1f),
                 )
@@ -116,7 +115,7 @@ fun SelectionCard(
             subtitle?.let {
                 Text(
                     it,
-                    color = TextSecondary,
+                    color = if (selected) onAccent else TextSecondary,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 4.dp),
                 )

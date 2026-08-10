@@ -44,7 +44,7 @@ class SetupViewModel @Inject constructor(private val repo: TrackerRepository) : 
 
     private val mutationLock = Mutex()
 
-    val uiState: StateFlow<SetupUiState> = combine(
+    private val trainingState = combine(
         repo.configFlow,
         repo.cardioPrefsFlow,
         repo.unitFlow,
@@ -52,6 +52,10 @@ class SetupViewModel @Inject constructor(private val repo: TrackerRepository) : 
         repo.restSettingsFlow,
     ) { cfg, cardio, unit, answers, restSettings ->
         SetupStateBuilder.buildUiState(cfg, cardio, unit, answers, restSettings)
+    }
+
+    val uiState: StateFlow<SetupUiState> = combine(trainingState, repo.themePreferenceFlow) { state, theme ->
+        state.copy(themePreference = theme)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SetupUiState())
 
     fun setBodyweight(displayValue: Double) = mutateConfig { cfg, unit ->
@@ -72,6 +76,10 @@ class SetupViewModel @Inject constructor(private val repo: TrackerRepository) : 
 
     fun setUnit(unit: WeightUnit) {
         viewModelScope.launch { mutationLock.withLock { repo.setUnit(unit) } }
+    }
+
+    fun setThemePreference(theme: cloud.trotter.log.strength.domain.theme.ThemePreference) {
+        viewModelScope.launch { repo.setThemePreference(theme) }
     }
 
     fun setRestTimerEnabled(enabled: Boolean) {

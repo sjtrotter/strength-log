@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 
 /**
  * Pure decision logic behind the setup screen (spec §8.4): the live main-lift
@@ -76,6 +77,7 @@ object SetupStateBuilder {
         unit: WeightUnit,
         answers: WizardAnswers,
         restSettings: RestSettings = RestSettings(),
+        themePreference: ThemePreference = ThemePreference.SYSTEM,
     ): SetupUiState = SetupUiState(
         config = cfg,
         cardio = cardio,
@@ -84,5 +86,6 @@ object SetupStateBuilder {
         goalPreview = goalPreview(cfg, answers, unit),
         restTimerEnabled = restSettings.enabled,
         restCategories = restCategoryRows(restSettings),
+        themePreference = themePreference,
     )
 }

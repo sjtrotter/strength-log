@@ -46,6 +46,7 @@ import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.dayAccent
+import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import kotlinx.coroutines.delay
 
 /**
@@ -142,7 +143,7 @@ private fun NoProgram(onSetUpProgram: () -> Unit, modifier: Modifier = Modifier)
     AuthoredState(
         overline = stringResource(R.string.authored_no_program_title),
         body = stringResource(R.string.authored_no_program_body),
-        action = { PillAction(stringResource(R.string.authored_run_setup_button), dayAccent(0), onSetUpProgram) },
+        action = { PillAction(stringResource(R.string.authored_run_setup_button), accentEmphasis(0), onSetUpProgram) },
         modifier = modifier,
     )
 }
@@ -157,7 +158,7 @@ private fun AuthoredState(
     overline: String,
     modifier: Modifier = Modifier,
     body: String? = null,
-    accent: Color = dayAccent(0),
+    accent: Color = accentEmphasis(0),
     rule: @Composable () -> Unit = { StaticRule(accent) },
     action: @Composable (() -> Unit)? = null,
 ) {

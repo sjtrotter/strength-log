@@ -4,7 +4,7 @@ import kotlin.math.roundToLong
 
 /**
  * SSOT for the per-day earth-tone accent colors, their on-accent contrast text
- * color and their bright foreground variant, in day order A-G, as 0xAARRGGBB
+ * color and their bright/deep foreground variants, in day order A-G, as 0xAARRGGBB
  * values. `:app` (via `androidx.compose.ui.graphics.Color`) and `:wear` both
  * read the same hexes from here instead of duplicating the literals — and, since
  * #150, the same *derivations* too.
@@ -30,6 +30,7 @@ object DayAccentColors {
 
     private const val TEXT_PRIMARY = 0xFFF2F2F0L // light on-accent (the wear/app "TextPrimary" hex)
     private const val BACKGROUND = 0xFF0D0D0FL // dark on-accent (the wear/app "Background" hex)
+    private const val LIGHT_TEXT_PRIMARY = 0xFF1B1B1EL // ink used to deepen light-theme accents
 
     /** Per-day on-accent text color, A-G order — only C (goldenrod) needs the dark pairing. */
     private val ON_HEX = listOf(
@@ -79,12 +80,21 @@ object DayAccentColors {
      */
     fun brightHex(dayIndex: Int): Long = lift(hex(dayIndex), TEXT_PRIMARY, BRIGHT_LIFT)
 
+    /**
+     * Foreground form of the day accent on the light theme's warm paper. The
+     * identity fill remains [hex]; only accent text and hairline chart strokes
+     * use this 30% move toward ink. One rule keeps all seven hues distinct while
+     * the light-background contrast pin in `DayAccentColorsTest` guards AA.
+     */
+    fun deepHex(dayIndex: Int): Long = lift(hex(dayIndex), LIGHT_TEXT_PRIMARY, DEEPEN)
+
     /** How far [brightHex] moves an accent toward [TEXT_PRIMARY]. The worst day (D,
      *  the deep teal) first clears 4.5:1 at 0.30; the phone's shipped 0.35 keeps a
      *  margin, so a hairline chart stroke or a 9sp cap on the watch isn't sitting
      *  exactly on the line. One value for all seven — a lift tuned per day would be
      *  seven rules wearing one name. */
     private const val BRIGHT_LIFT = 0.35f
+    private const val DEEPEN = 0.30f
 
     /** Per-channel blend of two opaque 0xAARRGGBB values; [from] keeps its alpha. */
     private fun lift(from: Long, to: Long, fraction: Float): Long {

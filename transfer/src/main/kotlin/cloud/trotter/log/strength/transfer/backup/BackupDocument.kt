@@ -92,6 +92,8 @@ data class SettingsBackup(
      *  session-only flag that no backup could carry — restores with the screen
      *  behaving exactly as it does on a fresh install. */
     val keepScreenOn: Boolean = false,
+    /** Theme preference. Defaulted so pre-light-theme backups follow SYSTEM. */
+    val theme: String = "SYSTEM",
 )
 
 /** A user-created exercise (mirror of the `custom_exercise` row). The tracking

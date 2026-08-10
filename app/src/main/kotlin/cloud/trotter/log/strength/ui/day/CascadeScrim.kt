@@ -33,7 +33,7 @@ import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.StepperValue
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextSecondary
-import cloud.trotter.log.strength.ui.theme.accentBright
+import cloud.trotter.log.strength.ui.theme.accentEmphasis
 
 /**
  * The cascade's moment (docs/briefs/journal.md §2): a scrim over the day screen
@@ -85,7 +85,7 @@ internal fun CascadeScrim(
                         color = TextSecondary,
                         style = StepperValue.copy(textDecoration = TextDecoration.LineThrough),
                     )
-                    Text(lift.newDisplay, color = accentBright(ceremony.dayIndex), style = DisplayXl)
+                    Text(lift.newDisplay, color = accentEmphasis(ceremony.dayIndex), style = DisplayXl)
                 }
             }
             Text(stringResource(R.string.cascade_new_ramp_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)

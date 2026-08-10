@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -120,6 +121,7 @@ class SetupViewModelWiringTest {
         vm.setCardioPlacement(CardioPlacement.SEPARATE_DAYS)
         vm.setFiveK(false)
         vm.setUnit(WeightUnit.KG)
+        vm.setThemePreference(ThemePreference.LIGHT)
         advanceUntilIdle()
 
         val cfg = repo.configFlow.first()
@@ -133,6 +135,7 @@ class SetupViewModelWiringTest {
         assertEquals(false, cardio.fiveKGoal)
 
         assertEquals(WeightUnit.KG, repo.unitFlow.first())
+        assertEquals(ThemePreference.LIGHT, repo.themePreferenceFlow.first())
     }
 
     @Test

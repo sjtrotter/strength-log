@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 
 /** One row of the live GOAL preview (spec §8.4) — a main lift's name and its
  *  current GOAL, already formatted for display in the lifter's chosen unit. */
@@ -36,6 +37,7 @@ data class SetupUiState(
     val restTimerEnabled: Boolean = true,
     val restCategories: List<RestCategoryUiState> =
         RestCategory.entries.map { RestCategoryUiState(it, RestPolicy.defaultSeconds(it)) },
+    val themePreference: ThemePreference = ThemePreference.SYSTEM,
 )
 
 /** Callbacks the screen forwards to [SetupViewModel] — mirrors [cloud.trotter.log.strength.ui.wizard.WizardActions]. */
@@ -48,6 +50,7 @@ data class SetupActions(
     val onCardioPlacementChange: (CardioPlacement) -> Unit,
     val onFiveKChange: (Boolean) -> Unit,
     val onUnitToggle: (WeightUnit) -> Unit,
+    val onThemePreferenceChange: (ThemePreference) -> Unit = {},
     val onRestTimerEnabledChange: (Boolean) -> Unit,
     val onRestOverrideChange: (RestCategory, Int) -> Unit,
     val onRestOverridesReset: () -> Unit,

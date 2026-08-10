@@ -75,6 +75,15 @@ androidComponents {
     beforeVariants(selector().withBuildType("benchmarkRelease")) { it.enable = false }
 }
 
+// The disabled variants above are deliberate (the beforeVariants block is the
+// mechanism the warning suggests checking), so the configure-time notice is
+// suppressed rather than repeated on every build.
+baselineProfile {
+    warnings {
+        disabledVariants = false
+    }
+}
+
 kotlin {
     jvmToolchain(17)
 }

@@ -13,6 +13,28 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CardioStateTest {
+    @Test
+    fun `a watch reboot hands elapsed to the wall clock exactly`() {
+        val plan = CardioIntervals.plan(suggestion, fiveK = false)
+        val anchors = CardioAnchors(startedAtWallMillis = 1_000_000L, startedAtElapsedMillis = 600_000L, bootCount = 4)
+        // Post-reboot uptime exceeds the old anchor: the monotonic delta looks
+        // plausible (100s) but boots differ, so the wall delta (300s) wins.
+        val progress = cardioProgress(plan, anchors, nowElapsedMillis = 700_000L, nowWallMillis = 1_300_000L, nowBootCount = 5)
+        assertEquals(300, progress.elapsedSeconds)
+    }
+
+    @Test
+    fun `boundary deadlines are relative to the current boot's clock`() {
+        val plan = CardioIntervals.plan(suggestion, fiveK = false)
+        val anchors = CardioAnchors(startedAtWallMillis = 1_000_000L, startedAtElapsedMillis = 600_000L, bootCount = 4)
+        val progress = cardioProgress(plan, anchors, nowElapsedMillis = 50_000L, nowWallMillis = 1_100_000L, nowBootCount = 5)
+        val boundary = progress.nextBoundaryElapsedMillis
+        if (boundary != null) {
+            val remainingMillis = boundary - 50_000L
+            assertEquals(progress.stepRemainingSeconds.toLong(), remainingMillis / 1_000L)
+        }
+    }
+
     private val suggestion = CardioSuggestion("Hard cardio — intervals", "", hard = true, mode = "TREADMILL", fiveK = true)
     private val plan = CardioIntervals.plan(suggestion, fiveK = true)
     private val anchors = CardioAnchors(1_700_000_000_000L, 10_000L)

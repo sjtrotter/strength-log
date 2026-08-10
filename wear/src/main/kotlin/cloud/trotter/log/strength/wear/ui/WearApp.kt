@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.wear.ui
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.SystemClock
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
@@ -28,7 +30,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.ContextCompat
 import androidx.wear.compose.foundation.BasicSwipeToDismissBox
+import androidx.wear.remote.interactions.RemoteActivityHelper
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchAlternate
@@ -36,6 +40,7 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.wear.OngoingWorkoutChip
 import cloud.trotter.log.strength.wear.R
 import cloud.trotter.log.strength.wear.data.WatchTrackerClient
+import cloud.trotter.log.strength.wear.data.CompanionDetector
 import cloud.trotter.log.strength.wear.theme.Background
 import cloud.trotter.log.strength.wear.theme.WearTrackerTheme
 import kotlinx.coroutines.delay
@@ -73,6 +78,7 @@ private val LIVE_SCREENS = setOf(DialScreen.LIFTING, DialScreen.TIMED_HOLD, Dial
 @Composable
 fun WearApp(
     client: WatchTrackerClient,
+    companionDetector: CompanionDetector,
     isAmbient: Boolean,
     ambientTick: Int = 0,
     burnInProtectionRequired: Boolean = false,
@@ -89,6 +95,17 @@ fun WearApp(
     // The exact-alarm listener lives at the root so it outlives the ambient swap.
     val restController = remember(context) { restTimerController(context.applicationContext) }
     val rootScope = rememberCoroutineScope()
+    val loadingMachine = remember(companionDetector, rootScope) {
+        LoadingDialStateMachine(companionDetector, rootScope)
+    }
+    val loadingState by loadingMachine.state.collectAsState()
+    val remoteActivity = remember(context) {
+        RemoteActivityHelper(context.applicationContext, ContextCompat.getMainExecutor(context))
+    }
+    LaunchedEffect(Unit) { loadingMachine.start() }
+    LaunchedEffect(snapshot) {
+        if (snapshot != null) loadingMachine.snapshotArrived()
+    }
     DisposableEffect(restController) {
         onDispose(restController::close)
     }
@@ -118,7 +135,30 @@ fun WearApp(
                     burnInProtectionRequired = burnInProtectionRequired,
                     deviceHasLowBitAmbient = deviceHasLowBitAmbient,
                 )
-                snap == null -> LoadingDial()
+                snap == null -> {
+                    val loadingCopy = rememberLoadingDialCopy()
+                    LoadingDial(
+                        state = loadingState,
+                        copy = loadingCopy,
+                        onAction = {
+                            if (loadingState == LoadingDialState.INSTALL_NEEDED) {
+                                val send = remoteActivity.startRemoteActivity(
+                                    Intent(Intent.ACTION_VIEW)
+                                        .setData(Uri.parse(PHONE_PLAY_LISTING))
+                                        .addCategory(Intent.CATEGORY_BROWSABLE),
+                                )
+                                // A hand-off that can't be delivered must not leave the
+                                // dial silently claiming an install is on its way.
+                                send.addListener({
+                                    val failed = runCatching { send.get() }.isFailure
+                                    if (failed) loadingMachine.remoteLaunchFailed()
+                                }, ContextCompat.getMainExecutor(context))
+                            } else {
+                                loadingMachine.retry()
+                            }
+                        },
+                    )
+                }
                 isAmbient -> AmbientDial(
                     snapshot = snap,
                     ambientTick = ambientTick,
@@ -152,6 +192,21 @@ fun WearApp(
         }
     }
 }
+
+@Composable
+private fun rememberLoadingDialCopy() = LoadingDialCopy(
+    phoneAppNeeded = stringResource(R.string.dial_phone_app_needed),
+    openPhoneApp = stringResource(R.string.dial_open_phone_app),
+    installPhone = stringResource(R.string.dial_install_phone),
+    installAction = stringResource(R.string.dial_install_phone_action),
+    phoneUnreachable = stringResource(R.string.dial_phone_unreachable),
+    syncError = stringResource(R.string.dial_sync_error),
+    retry = stringResource(R.string.dial_retry),
+    retryAction = stringResource(R.string.dial_retry_action),
+)
+
+private const val PHONE_PLAY_LISTING =
+    "https://play.google.com/store/apps/details?id=cloud.trotter.log.strength"
 
 /**
  * The workout, as local state over the snapshot. Which exercise and which round

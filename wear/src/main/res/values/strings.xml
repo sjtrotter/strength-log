@@ -46,6 +46,14 @@
     <string name="dial_ramp_label">R%1$d</string>
     <string name="dial_top_label">TOP</string>
     <string name="dial_backoff_label">B/O</string>
+    <string name="dial_phone_app_needed">phone app needed</string>
+    <string name="dial_open_phone_app">open the phone app</string>
+    <string name="dial_install_phone">install on phone</string>
+    <string name="dial_install_phone_action">open phone install</string>
+    <string name="dial_phone_unreachable">phone unreachable</string>
+    <string name="dial_sync_error">sync unavailable</string>
+    <string name="dial_retry">tap to retry</string>
+    <string name="dial_retry_action">retry phone connection</string>
     <string name="ambient_day_progress">day %1$s · %2$d/%3$d</string>
     <string name="ambient_resting">resting</string>
     <string name="glance_set_up_on_phone">set up on your phone</string>

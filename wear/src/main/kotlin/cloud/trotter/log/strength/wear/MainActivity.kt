@@ -49,10 +49,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         lifecycle.addObserver(AmbientLifecycleObserver(this, ambientCallback))
 
-        val client = (application as StrengthLogWearApp).watchClient
+        val app = application as StrengthLogWearApp
+        val client = app.watchClient
         setContent {
             WearApp(
                 client = client,
+                companionDetector = app.companionDetector,
                 isAmbient = isAmbient,
                 ambientTick = ambientTick,
                 burnInProtectionRequired = burnInProtectionRequired,

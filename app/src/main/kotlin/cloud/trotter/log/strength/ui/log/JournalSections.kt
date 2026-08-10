@@ -31,12 +31,15 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.Border
@@ -105,7 +108,12 @@ private fun TrajectoryPlot(card: TrajectoryCard, modifier: Modifier) {
     val axisStyle = MaterialTheme.typography.labelSmall.copy(color = TextFaint)
     val goalStyle = MaterialTheme.typography.labelSmall.copy(color = goalColor)
     val valueStyle = StepperRepsValue.copy(color = TextPrimary)
-    val description = "${card.exerciseName} top set trajectory, latest ${card.latestLabel}, ${card.goalLabel}"
+    val description = stringResource(
+        R.string.log_trajectory_description,
+        card.exerciseName,
+        card.latestLabel,
+        card.goalLabel,
+    )
 
     Canvas(modifier.semantics { contentDescription = description }) {
         val gridLabels = card.gridlines.map { measurer.measure(it.label, axisStyle) }
@@ -183,19 +191,25 @@ internal fun VolumeCardView(chart: VolumeChart) {
     // hue — a filled bar, not a hairline, so the base accent reads fine.
     val barColor = dayAccent(0)
     val trainedWeeks = chart.bars.count { it.trained }
+    val chartDescription = pluralStringResource(
+        R.plurals.log_volume_description,
+        chart.bars.size,
+        trainedWeeks,
+        chart.bars.size,
+    )
 
     AppCard {
         Canvas(
             Modifier
                 .fillMaxWidth()
                 .height(VOLUME_HEIGHT)
-                .semantics { contentDescription = "Weekly tonnage, $trainedWeeks of ${chart.bars.size} weeks trained" },
+                .semantics { contentDescription = chartDescription },
         ) {
             drawVolumeBars(chart, barColor, measurer, labelStyle)
         }
         Spacer(Modifier.size(6.dp))
         Text(
-            "LAST ${chart.bars.size} WEEKS",
+            pluralStringResource(R.plurals.log_volume_caption, chart.bars.size, chart.bars.size),
             color = TextFaint,
             style = MaterialTheme.typography.labelSmall,
         )
@@ -258,7 +272,15 @@ private fun Density.roundTopBar(left: Float, right: Float, top: Float, bottom: F
 
 // --- CALENDAR ----------------------------------------------------------------
 
-private val WEEKDAY_INITIALS = listOf("M", "T", "W", "T", "F", "S", "S")
+private val WEEKDAY_INITIALS = listOf(
+    R.string.log_weekday_monday,
+    R.string.log_weekday_tuesday,
+    R.string.log_weekday_wednesday,
+    R.string.log_weekday_thursday,
+    R.string.log_weekday_friday,
+    R.string.log_weekday_saturday,
+    R.string.log_weekday_sunday,
+)
 
 @Composable
 internal fun CalendarCardView(
@@ -274,15 +296,23 @@ internal fun CalendarCardView(
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.weight(1f),
             )
-            MonthChevron("‹", "Previous month", month.canPageBack) { onPage(-1) }
+            MonthChevron(
+                "‹",
+                stringResource(R.string.log_calendar_previous_month),
+                month.canPageBack,
+            ) { onPage(-1) }
             Spacer(Modifier.size(6.dp))
-            MonthChevron("›", "Next month", month.canPageForward) { onPage(1) }
+            MonthChevron(
+                "›",
+                stringResource(R.string.log_calendar_next_month),
+                month.canPageForward,
+            ) { onPage(1) }
         }
         Spacer(Modifier.size(10.dp))
         Row(Modifier.fillMaxWidth()) {
             WEEKDAY_INITIALS.forEach { initial ->
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Text(initial, color = TextFaint, style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(initial), color = TextFaint, style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -345,6 +375,7 @@ private fun MonthChevron(glyph: String, label: String, enabled: Boolean, onClick
 private fun CalendarCell(day: CalendarDay, onSelectSession: (Long) -> Unit) {
     val trained = day.dayLetter != null
     val todayRing = if (day.isToday) Modifier.border(1.dp, TextSecondary, RoundedCornerShape(8.dp)) else Modifier
+    val showSessionLabel = stringResource(R.string.log_calendar_show_session)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -354,7 +385,7 @@ private fun CalendarCell(day: CalendarDay, onSelectSession: (Long) -> Unit) {
             .then(todayRing)
             .then(
                 if (day.sessionId != null) {
-                    Modifier.pressable(onClickLabel = "Show session", shape = RoundedCornerShape(8.dp)) {
+                    Modifier.pressable(onClickLabel = showSessionLabel, shape = RoundedCornerShape(8.dp)) {
                         onSelectSession(day.sessionId)
                     }
                 } else {

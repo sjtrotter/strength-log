@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
@@ -330,7 +332,7 @@ private fun TopBar(
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     state.viewDayId?.let {
-                        Text(text = "DAY ${it.uppercase()}", color = accent, style = MaterialTheme.typography.labelSmall)
+                        Text(text = stringResource(R.string.day_header_label, it.uppercase()), color = accent, style = MaterialTheme.typography.labelSmall)
                     }
                     Text(text = state.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                     Text(text = state.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
@@ -358,16 +360,22 @@ private fun TopBar(
 
 @Composable
 private fun EditDayButton(onClick: () -> Unit) {
+    val description = stringResource(R.string.day_edit_action)
     OutlinedIconButton(
         onClick = onClick,
         modifier = Modifier
             .defaultMinSize(40.dp, 40.dp)
-            .semantics { contentDescription = "Edit day" },
+            .semantics { contentDescription = description },
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, Border),
         colors = IconButtonDefaults.outlinedIconButtonColors(containerColor = Surface2, contentColor = TextSecondary),
     ) {
-        Text("✎", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
+        Text(
+            "✎",
+            color = TextSecondary,
+            style = TabLetter.copy(fontSize = 15.sp),
+            modifier = Modifier.clearAndSetSemantics {},
+        )
     }
 }
 
@@ -410,10 +418,12 @@ private fun ProgressHairline(progress: Float, accent: Color) {
 
 @Composable
 private fun OverridePill(accent: Color, accentSoftColor: Color, suggestedDayId: String) {
+    val prefix = stringResource(R.string.day_override_suggested_prefix)
+    val suggestedDay = stringResource(R.string.day_header_label, suggestedDayId.uppercase())
     val text = buildAnnotatedString {
-        append("OVERRIDE · SUGGESTED NEXT: ")
+        append(prefix)
         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-            append("DAY ${suggestedDayId.uppercase()}")
+            append(suggestedDay)
         }
     }
     Box(
@@ -433,7 +443,10 @@ internal fun DayTab(tab: DayTab, onClick: () -> Unit) {
     val showSuggestedRing = tab.isSuggested && !tab.isSelected
     // Border-color uses the muted 55% blend; the suggested ring is the pure accent.
     val borderColor = if (showSuggestedRing) accentBorder(tab.dayIndex) else Border
-    val description = "Day ${tab.dayId}" + if (showSuggestedRing) ", suggested next" else ""
+    val description = stringResource(
+        if (showSuggestedRing) R.string.day_tab_suggested_description else R.string.day_tab_description,
+        tab.dayId,
+    )
     Box(
         modifier = Modifier
             // Reserves the 48dp target around a 40dp tab, which also gives the
@@ -497,6 +510,10 @@ private fun ExerciseCard(
     undoSlotIndex: Int? = null,
     onUndoRemoveSet: () -> Unit = {},
 ) {
+    val expandAction = stringResource(R.string.day_expand_action)
+    val collapseAction = stringResource(R.string.day_collapse_action)
+    val expandedState = stringResource(R.string.day_expanded_state)
+    val collapsedState = stringResource(R.string.day_collapsed_state)
     // Animation-layer only, and deliberately *not* saveable: both are how the
     // fold looks, never what it is. The fold itself is [ExerciseCardState.collapsed],
     // which DayViewModel keeps in SavedStateHandle — so a rotation lands on the
@@ -556,11 +573,11 @@ private fun ExerciseCard(
                 Modifier
                     .weight(1f)
                     .pressable(
-                        onClickLabel = if (displayCollapsed) "Expand" else "Collapse",
+                        onClickLabel = if (displayCollapsed) expandAction else collapseAction,
                         role = Role.Button,
                         onClick = { actions.onToggleCollapse(card.programExerciseId) },
                     )
-                    .semantics { stateDescription = if (displayCollapsed) "Collapsed" else "Expanded" },
+                    .semantics { stateDescription = if (displayCollapsed) collapsedState else expandedState },
             ) {
                 Text(card.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                 // Centered, because the swap pill reserves a 48dp target (#123)
@@ -571,9 +588,16 @@ private fun ExerciseCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 5.dp),
                 ) {
-                    if (card.isMain) Badge("MAIN", accent, onAccent)
-                    if (card.hasWarmupHint) Badge("+1 WARM-UP", Color.Transparent, TextSecondary, outlined = true)
-                    if (card.allDone) Badge("✓", Done, Background, description = "All sets done")
+                    if (card.isMain) Badge(stringResource(R.string.day_main_badge), accent, onAccent)
+                    if (card.hasWarmupHint) Badge(stringResource(R.string.day_warmup_badge), Color.Transparent, TextSecondary, outlined = true)
+                    if (card.allDone) {
+                        Badge(
+                            "✓",
+                            Done,
+                            Background,
+                            description = stringResource(R.string.day_all_sets_done_description),
+                        )
+                    }
                     card.weightSwap?.let { swap ->
                         WeightSwapPill(swap, accent, onClick = { confirmingSwap = true })
                     }
@@ -583,7 +607,7 @@ private fun ExerciseCard(
                 // logged" copy clutter on a brand-new slot).
                 card.lastTimeDisplay?.let {
                     Text(
-                        "Last time: $it",
+                        stringResource(R.string.day_last_time, it),
                         color = TextFaint,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(top = 3.dp),
@@ -595,7 +619,7 @@ private fun ExerciseCard(
                 // repeat the last-time number.
                 card.personalRecordDisplay?.let {
                     Text(
-                        "Best: $it",
+                        stringResource(R.string.day_best, it),
                         color = TextFaint,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(top = 3.dp),
@@ -760,7 +784,7 @@ private fun ExerciseCard(
  */
 @Composable
 internal fun WeightSwapPill(swap: WeightSwapAffordance, accent: Color, onClick: () -> Unit) {
-    val label = if (swap.isRemove) "− REMOVE WEIGHT" else "+ ADD WEIGHT"
+    val label = stringResource(if (swap.isRemove) R.string.day_remove_weight_button else R.string.day_add_weight_button)
     val borderColor = if (swap.isRemove) Border else accent
     val textColor = if (swap.isRemove) TextSecondary else accent
     Box(
@@ -802,16 +826,17 @@ private val SwapChipHeight = 20.dp
  */
 @Composable
 internal fun SwapExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val description = stringResource(R.string.day_swap_exercise_action)
     Box(
         modifier = modifier
             .minimumInteractiveComponentSize()
             .pressable(
-                onClickLabel = "Swap exercise",
+                onClickLabel = description,
                 role = Role.Button,
                 shape = RoundedCornerShape(50),
                 onClick = onClick,
             )
-            .semantics { contentDescription = "Swap exercise" },
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -836,10 +861,10 @@ internal fun SwapExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier
 internal fun WeightSwapConfirmDialog(swap: WeightSwapAffordance, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Switch to ${swap.targetName}?") },
-        text = { Text("Your sets reseed from its goal.") },
-        confirmButton = { DialogAction("Switch", Done, onConfirm) },
-        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
+        title = { Text(stringResource(R.string.day_weight_swap_confirm_title, swap.targetName)) },
+        text = { Text(stringResource(R.string.day_weight_swap_confirm_body)) },
+        confirmButton = { DialogAction(stringResource(R.string.day_weight_swap_confirm_button), Done, onConfirm) },
+        dismissButton = { DialogAction(stringResource(R.string.day_cancel_button), TextSecondary, onDismiss) },
     )
 }
 
@@ -848,10 +873,10 @@ internal fun WeightSwapConfirmDialog(swap: WeightSwapAffordance, onConfirm: () -
 @Composable
 private fun GoalBlock(goalDisplay: String, perHand: Boolean, accent: Color) {
     Column(horizontalAlignment = Alignment.End) {
-        Text("GOAL", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.day_goal_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Text(goalDisplay, color = accent, style = MaterialTheme.typography.displayLarge)
         if (perHand) {
-            Text("/hand", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.day_per_hand_suffix), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -888,7 +913,7 @@ private fun AddSetButton(modifier: Modifier = Modifier, isSuperset: Boolean, onC
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            if (isSuperset) "+ ADD ROUND" else "+ ADD SET",
+            stringResource(if (isSuperset) R.string.day_add_round_button else R.string.day_add_set_button),
             color = TextSecondary,
             style = MaterialTheme.typography.labelLarge,
         )
@@ -906,12 +931,13 @@ private fun AddSetButton(modifier: Modifier = Modifier, isSuperset: Boolean, onC
  */
 @Composable
 private fun UndoRemovedSetRow(accent: Color, modifier: Modifier = Modifier, onUndo: () -> Unit) {
+    val undoDescription = stringResource(R.string.day_undo_remove_set_action)
     TextButton(
         onClick = onUndo,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .semantics { onClick(label = "Undo remove set", action = null) },
+            .semantics { onClick(label = undoDescription, action = null) },
         colors = ButtonDefaults.textButtonColors(contentColor = accent),
         contentPadding = PaddingValues(0.dp),
     ) {
@@ -919,9 +945,9 @@ private fun UndoRemovedSetRow(accent: Color, modifier: Modifier = Modifier, onUn
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("SET REMOVED", color = TextFaint, style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.day_set_removed_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.weight(1f))
-            Text("UNDO", color = accent, style = DoneButtonLabel)
+            Text(stringResource(R.string.day_undo_button), color = accent, style = DoneButtonLabel)
         }
     }
 }
@@ -932,28 +958,32 @@ private fun UndoRemovedSetRow(accent: Color, modifier: Modifier = Modifier, onUn
 private fun CardioCard(cardio: CardioSuggestion) {
     // Saveable so LazyColumn eviction and rotation don't snap it shut (defaults closed).
     var open by rememberSaveable { mutableStateOf(false) }
+    val expandAction = stringResource(R.string.day_expand_action)
+    val collapseAction = stringResource(R.string.day_collapse_action)
+    val expandedState = stringResource(R.string.day_expanded_state)
+    val collapsedState = stringResource(R.string.day_collapsed_state)
     val chevronRotation by animateFloatAsState(if (open) 180f else 0f, tween(200), label = "cardioChevron")
     // Not the clickable-card overload: OutlinedCard(onClick) cannot carry the
     // Expand/Collapse click label, and TalkBack loses the verb without it.
     AppCard(
         modifier = Modifier
             .pressable(
-                onClickLabel = if (open) "Collapse" else "Expand",
+                onClickLabel = if (open) collapseAction else expandAction,
                 role = Role.Button,
                 shape = MaterialTheme.shapes.large,
             ) { open = !open }
-            .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
+            .semantics { stateDescription = if (open) expandedState else collapsedState },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Cardio finisher",
+                    stringResource(R.string.day_cardio_title),
                     color = TextPrimary,
                     style = CardTitle,
                 )
                 Spacer(Modifier.size(5.dp))
                 Badge(
-                    if (cardio.hard) "HARD · ${cardio.label}" else "EASY · ${cardio.label}",
+                    stringResource(if (cardio.hard) R.string.day_cardio_hard_label else R.string.day_cardio_easy_label, cardio.label),
                     Color.Transparent,
                     TextSecondary,
                     outlined = true,
@@ -1046,7 +1076,7 @@ private fun DoneButton(
         contentPadding = PaddingValues(vertical = 8.dp),
     ) {
         Text(
-            text = if (nextDayId != null) "DONE — ADVANCE TO DAY ${nextDayId.uppercase()}" else "DONE",
+            text = if (nextDayId != null) stringResource(R.string.day_done_advance_button, nextDayId.uppercase()) else stringResource(R.string.day_done_button),
             style = DoneButtonLabel,
             textAlign = TextAlign.Center,
             maxLines = 2,
@@ -1059,8 +1089,7 @@ private fun DoneButton(
 private fun Footer(onClearChecks: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "Rotation, not calendar — days advance when you finish them, not on a schedule. " +
-                "The weights you log are your living record; GOALs are a reference, not a rule.",
+            stringResource(R.string.day_rotation_footer),
             color = TextFaint,
             style = MaterialTheme.typography.bodySmall,
         )
@@ -1078,10 +1107,10 @@ private fun Footer(onClearChecks: () -> Unit) {
 private fun ClearChecksConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Clear today's checkmarks?") },
-        text = { Text("Every ✓ on this day comes off. The weights and reps you logged stay where they are.") },
-        confirmButton = { DialogAction("Clear", Error, onConfirm) },
-        dismissButton = { DialogAction("Cancel", TextSecondary, onDismiss) },
+        title = { Text(stringResource(R.string.day_clear_checks_confirm_title)) },
+        text = { Text(stringResource(R.string.day_clear_checks_confirm_body)) },
+        confirmButton = { DialogAction(stringResource(R.string.day_clear_checks_confirm_button), Error, onConfirm) },
+        dismissButton = { DialogAction(stringResource(R.string.day_cancel_button), TextSecondary, onDismiss) },
     )
 }
 
@@ -1095,7 +1124,7 @@ private fun QuietButton(onClick: () -> Unit) {
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
     ) {
         // The one labelLarge element the reference leaves mixed-case (no caps).
-        Text("Clear today's checkmarks", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.day_clear_checks_button), style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -1150,7 +1179,7 @@ private fun KeepScreenOnSwitch(
             )
         }
         Text(
-            "KEEP ON",
+            stringResource(R.string.day_keep_screen_on_label),
             color = TextSecondary,
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,

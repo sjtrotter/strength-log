@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -105,9 +107,11 @@ fun Stepper(
     valueTextStyle: TextStyle = StepperValue,
     valueMinWidth: Dp = 52.dp,
     valueColor: Color = TextPrimary,
-    decreaseDescription: String = "decrease",
-    increaseDescription: String = "increase",
+    decreaseDescription: String? = null,
+    increaseDescription: String? = null,
 ) {
+    val resolvedDecreaseDescription = decreaseDescription ?: stringResource(R.string.stepper_decrease_action)
+    val resolvedIncreaseDescription = increaseDescription ?: stringResource(R.string.stepper_increase_action)
     Row(
         modifier = modifier
             // heightIn(min), not height (A7 font-scale): the numeral must grow past its 40dp floor.
@@ -117,7 +121,7 @@ fun Stepper(
             .border(1.dp, Border, CapsuleShape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StepSegment(symbol = "−", contentDescription = decreaseDescription) {
+        StepSegment(symbol = "−", contentDescription = resolvedDecreaseDescription) {
             onValueChange(maxOf(minValue, round(value - step(value))))
         }
         Text(
@@ -129,7 +133,7 @@ fun Stepper(
             color = valueColor,
             style = valueTextStyle,
         )
-        StepSegment(symbol = "+", contentDescription = increaseDescription) {
+        StepSegment(symbol = "+", contentDescription = resolvedIncreaseDescription) {
             onValueChange(maxOf(minValue, round(value + step(value))))
         }
     }

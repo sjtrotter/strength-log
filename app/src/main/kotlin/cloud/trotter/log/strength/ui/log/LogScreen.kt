@@ -42,8 +42,11 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.BackAction
@@ -86,17 +89,17 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 item { Spacer(Modifier.size(4.dp)) }
 
                 if (state.journal.trajectories.isNotEmpty()) {
-                    item(key = "trajectory-header") { LogSectionHeader("TRAJECTORY") }
+                    item(key = "trajectory-header") { LogSectionHeader(stringResource(R.string.log_trajectory_header)) }
                     items(state.journal.trajectories, key = { "traj-${it.exerciseId}" }) { card ->
                         TrajectoryCardView(card)
                     }
                 }
                 state.journal.volume?.let { volume ->
-                    item(key = "volume-header") { LogSectionHeader("VOLUME") }
+                    item(key = "volume-header") { LogSectionHeader(stringResource(R.string.log_volume_header)) }
                     item(key = "volume") { VolumeCardView(volume) }
                 }
                 state.journal.calendar?.let { calendar ->
-                    item(key = "calendar-header") { LogSectionHeader("CALENDAR") }
+                    item(key = "calendar-header") { LogSectionHeader(stringResource(R.string.log_calendar_header)) }
                     item(key = "calendar") {
                         CalendarCardView(
                             month = calendar,
@@ -144,7 +147,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 }
 
                 if (state.health.externalSessions.isNotEmpty()) {
-                    item(key = "external-header") { LogSectionHeader("FROM OTHER APPS") }
+                    item(key = "external-header") { LogSectionHeader(stringResource(R.string.log_external_header)) }
                     items(state.health.externalSessions, key = { "ext-${it.title}-${it.dateDisplay}-${it.sourceLabel}" }) { row ->
                         ExternalSessionCard(row)
                     }
@@ -183,7 +186,7 @@ private fun LogHeader(onBack: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             BackAction(onBack)
-            Text("Log", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.log_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         }
         HorizontalDivider(thickness = 1.dp, color = Border)
     }
@@ -192,6 +195,8 @@ private fun LogHeader(onBack: () -> Unit) {
 @Composable
 private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: () -> Unit) {
     val chevronRotation by animateFloatAsState(if (item.expanded) 180f else 0f, tween(200), label = "logChevron")
+    val disclosureLabel = stringResource(if (item.expanded) R.string.log_collapse_label else R.string.log_expand_label)
+    val disclosureState = stringResource(if (item.expanded) R.string.log_expanded_state else R.string.log_collapsed_state)
     AppCard {
         // SHARE is a separate action when expanded, so disclosure belongs to
         // this header region rather than the M3 card container.
@@ -202,11 +207,11 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: ()
                 .minimumInteractiveComponentSize()
                 .fillMaxWidth()
                 .pressable(
-                    onClickLabel = if (item.expanded) "Collapse" else "Expand",
+                    onClickLabel = disclosureLabel,
                     role = Role.Button,
                     onClick = onToggle,
                 )
-                .semantics { stateDescription = if (item.expanded) "Expanded" else "Collapsed" },
+                .semantics { stateDescription = disclosureState },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DayBadge(dayIndex = item.dayIndex, letter = item.dayLetter)
@@ -216,14 +221,18 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: ()
                 Text(item.dateDisplay, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("${item.setCount} sets", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    pluralStringResource(R.plurals.log_session_set_count, item.setCount, item.setCount),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 item.bodyweightDisplay?.let {
-                    Text("BW $it", color = TextFaint, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.log_session_bodyweight, it), color = TextFaint, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Spacer(Modifier.size(8.dp))
             Text(
-                "▼",
+                "\u25BC",
                 color = TextFaint,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.rotate(chevronRotation).clearAndSetSemantics {},
@@ -233,7 +242,7 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: ()
             if (item.expanded) {
                 Spacer(Modifier.size(10.dp))
                 if (item.exerciseGroups == null) {
-                    Text("Loading…", color = TextFaint, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.log_session_loading), color = TextFaint, style = MaterialTheme.typography.bodySmall)
                 } else {
                     item.exerciseGroups.forEach { group -> ExerciseGroupRow(group) }
                     Spacer(Modifier.size(4.dp))
@@ -246,10 +255,14 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: ()
 
 @Composable
 private fun ExerciseGroupRow(group: SessionExerciseGroup) {
+    val separator = " \u00B7 "
+    val summaries = group.sets.map {
+        stringResource(R.string.log_set_summary, it.kindLabel, it.weightRepsDisplay)
+    }
     Column(Modifier.padding(vertical = 4.dp)) {
         Text(group.exerciseName, color = TextPrimary, style = MaterialTheme.typography.labelLarge)
         Text(
-            group.sets.joinToString(" · ") { "${it.kindLabel}: ${it.weightRepsDisplay}" },
+            summaries.joinToString(separator),
             color = TextSecondary,
             style = SummaryLine,
         )
@@ -271,6 +284,7 @@ private fun ExerciseGroupRow(group: SessionExerciseGroup) {
 private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
+    val shareLabel = stringResource(R.string.log_share_label)
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End,
@@ -278,11 +292,11 @@ private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
     ) {
         TextButton(
             onClick = onClick,
-            modifier = Modifier.semantics { onClick(label = "Share session", action = null) },
+            modifier = Modifier.semantics { onClick(label = shareLabel, action = null) },
             interactionSource = interactionSource,
             colors = ButtonDefaults.textButtonColors(contentColor = if (pressed) dayAccent(dayIndex) else TextSecondary),
             contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),
-        ) { Text("SHARE", style = MaterialTheme.typography.labelLarge) }
+        ) { Text(stringResource(R.string.log_share_button), style = MaterialTheme.typography.labelLarge) }
     }
 }
 
@@ -294,18 +308,17 @@ private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
 @Composable
 private fun BodyweightPromptCard(prompt: BodyweightPromptUi, onApply: () -> Unit, onDismiss: () -> Unit) {
     AppCard {
-        Text("Bodyweight changed", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.log_bodyweight_title), color = TextPrimary, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.size(4.dp))
         Text(
-            "Health Connect has ${prompt.healthConnectDisplay}; your GOALs use ${prompt.currentDisplay}. " +
-                "Update your bodyweight to recompute GOALs?",
+            stringResource(R.string.log_bodyweight_body, prompt.healthConnectDisplay, prompt.currentDisplay),
             color = TextSecondary,
             style = MaterialTheme.typography.bodySmall,
         )
         Spacer(Modifier.size(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PromptButton(text = "Update", emphasized = true, onClick = onApply)
-            PromptButton(text = "Not now", emphasized = false, onClick = onDismiss)
+            PromptButton(text = stringResource(R.string.log_bodyweight_update_button), emphasized = true, onClick = onApply)
+            PromptButton(text = stringResource(R.string.log_bodyweight_dismiss_button), emphasized = false, onClick = onDismiss)
         }
     }
 }
@@ -350,7 +363,7 @@ private fun HealthConnectSection(section: HealthSectionUi, onConnect: () -> Unit
         return
     }
     Column {
-        Text("Connected · publishing", color = TextFaint, style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.log_health_connected), color = TextFaint, style = MaterialTheme.typography.bodySmall)
         section.backfill?.let { offer ->
             TextButton(
                 onClick = onPublishPast,
@@ -367,10 +380,10 @@ private fun HealthConnectSection(section: HealthSectionUi, onConnect: () -> Unit
 @Composable
 private fun ConnectHealthCard(onConnect: () -> Unit) {
     AppCard(onClick = onConnect) {
-        Text("Connect Health Connect", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.log_health_connect_title), color = TextPrimary, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.size(4.dp))
         Text(
-            "Share your workouts and see sessions logged by other apps. On-device only — nothing leaves your phone.",
+            stringResource(R.string.log_health_connect_body),
             color = TextSecondary,
             style = MaterialTheme.typography.bodySmall,
         )

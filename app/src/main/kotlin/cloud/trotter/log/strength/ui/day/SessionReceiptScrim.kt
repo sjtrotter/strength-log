@@ -26,9 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -107,10 +109,10 @@ internal fun SessionReceiptScrim(
 
             Spacer(Modifier.size(24.dp))
             ReceiptRule()
-            ReceiptRow(label = "SETS", value = receipt.setCount.toString())
+            ReceiptRow(label = stringResource(R.string.receipt_sets_label), value = receipt.setCount.toString())
             receipt.strongest?.let { lift ->
                 ReceiptRule()
-                ReceiptRow(label = "STRONGEST", value = lift.value)
+                ReceiptRow(label = stringResource(R.string.receipt_strongest_label), value = lift.value)
                 Text(
                     text = lift.name.uppercase(),
                     color = TextFaint,
@@ -121,7 +123,7 @@ internal fun SessionReceiptScrim(
             }
             receipt.nextDayLine?.let { next ->
                 ReceiptRule()
-                ReceiptRow(label = "NEXT", value = next, valueColor = TextSecondary, big = false)
+                ReceiptRow(label = stringResource(R.string.receipt_next_label), value = next, valueColor = TextSecondary, big = false)
             }
             ReceiptRule()
 
@@ -135,7 +137,7 @@ internal fun SessionReceiptScrim(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 ) {
-                    ReceiptButtonLabel("SHARE")
+                    ReceiptButtonLabel(stringResource(R.string.receipt_share_button))
                 }
                 Button(
                     onClick = onFinish,
@@ -147,7 +149,7 @@ internal fun SessionReceiptScrim(
                     ),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 ) {
-                    ReceiptButtonLabel("BACK TO TODAY")
+                    ReceiptButtonLabel(stringResource(R.string.receipt_back_to_today_button))
                 }
             }
         }

@@ -14,10 +14,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.CardTitleSmall
@@ -96,7 +98,12 @@ fun SelectionCard(
                     modifier = Modifier.weight(1f),
                 )
                 if (selected) {
-                    Text("✓", color = onAccent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clearAndSetSemantics {})
+                    Text(
+                        "✓",
+                        color = onAccent,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
                 }
             }
             subtitle?.let {

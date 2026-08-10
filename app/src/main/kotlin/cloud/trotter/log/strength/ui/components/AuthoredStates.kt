@@ -32,12 +32,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -86,7 +88,7 @@ fun ProgramLoadingState(modifier: Modifier = Modifier) {
     }
     Box(modifier.fillMaxSize().background(Background), contentAlignment = Alignment.Center) {
         if (revealed) {
-            AuthoredState(overline = "PREPARING YOUR PROGRAM", rule = { SweepingRule() })
+            AuthoredState(overline = stringResource(R.string.authored_preparing_program), rule = { SweepingRule() })
         }
     }
 }
@@ -126,10 +128,9 @@ fun EmptyJournalState(
         return
     }
     AuthoredState(
-        overline = "YOUR FIRST SESSION WILL LAND HERE",
-        body = "Finish a workout and it lands in this list — every set, the day it belonged " +
-            "to, and what it added to your trajectory.",
-        action = { PillAction("START A SESSION", TextSecondary, onStartSession, border = Border) },
+        overline = stringResource(R.string.authored_empty_journal_title),
+        body = stringResource(R.string.authored_empty_journal_body),
+        action = { PillAction(stringResource(R.string.authored_start_session_button), TextSecondary, onStartSession, border = Border) },
         modifier = inset,
     )
 }
@@ -139,10 +140,9 @@ fun EmptyJournalState(
 @Composable
 private fun NoProgram(onSetUpProgram: () -> Unit, modifier: Modifier = Modifier) {
     AuthoredState(
-        overline = "NO PROGRAM YET",
-        body = "The wizard builds your rotation from a few answers — days, emphasis, " +
-            "and the equipment you actually have.",
-        action = { PillAction("RUN THE SETUP WIZARD", dayAccent(0), onSetUpProgram) },
+        overline = stringResource(R.string.authored_no_program_title),
+        body = stringResource(R.string.authored_no_program_body),
+        action = { PillAction(stringResource(R.string.authored_run_setup_button), dayAccent(0), onSetUpProgram) },
         modifier = modifier,
     )
 }

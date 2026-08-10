@@ -27,11 +27,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -95,7 +100,7 @@ private fun Header(actions: CustomExerciseActions) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text("New exercise", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.custom_exercise_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         CloseAction(onClick = actions.onCancel, contentDescription = "Cancel")
     }
 }
@@ -103,7 +108,7 @@ private fun Header(actions: CustomExerciseActions) {
 @Composable
 private fun NameField(value: String, onValueChange: (String) -> Unit) {
     Column {
-        Text("Name", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.custom_exercise_name_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
         Box(
             modifier = Modifier
@@ -113,7 +118,7 @@ private fun NameField(value: String, onValueChange: (String) -> Unit) {
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             if (value.isEmpty()) {
-                Text("e.g. Cable Hack Squat", color = TextFaint, style = NameFieldStyle)
+                Text(stringResource(R.string.custom_exercise_name_hint), color = TextFaint, style = NameFieldStyle)
             }
             BasicTextField(
                 value = value,
@@ -130,7 +135,7 @@ private fun NameField(value: String, onValueChange: (String) -> Unit) {
 @Composable
 private fun PatternSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
     Column(Modifier.selectableGroup()) {
-        Text("Movement pattern", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.custom_exercise_pattern_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             MovementPattern.entries.forEach { pattern ->
@@ -147,7 +152,7 @@ private fun PatternSection(state: CustomExerciseUiState, actions: CustomExercise
 @Composable
 private fun EquipmentSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
     Column {
-        Text("Equipment", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.custom_exercise_equipment_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Equipment.entries.forEach { equip ->
@@ -171,24 +176,24 @@ private fun EquipmentSection(state: CustomExerciseUiState, actions: CustomExerci
 @Composable
 private fun TrackingSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
     Column(Modifier.selectableGroup()) {
-        Text("How is it tracked?", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.custom_exercise_tracking_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SelectionCard(
-                title = "Weighted",
-                subtitle = "Load × reps — barbell, dumbbell, machine, cable.",
+                title = stringResource(R.string.custom_exercise_weighted_title),
+                subtitle = stringResource(R.string.custom_exercise_weighted_description),
                 selected = state.tracking == TrackingType.WEIGHTED,
                 onClick = { actions.onTrackingChange(TrackingType.WEIGHTED) },
             )
             SelectionCard(
-                title = "Reps",
-                subtitle = "Bodyweight, counted reps — push-up, pull-up, sit-up.",
+                title = stringResource(R.string.custom_exercise_reps_title),
+                subtitle = stringResource(R.string.custom_exercise_reps_description),
                 selected = state.tracking == TrackingType.REPS,
                 onClick = { actions.onTrackingChange(TrackingType.REPS) },
             )
             SelectionCard(
-                title = "Timed",
-                subtitle = "A hold or carry, logged in seconds — plank, wall sit.",
+                title = stringResource(R.string.custom_exercise_timed_title),
+                subtitle = stringResource(R.string.custom_exercise_timed_description),
                 selected = state.tracking == TrackingType.TIMED,
                 onClick = { actions.onTrackingChange(TrackingType.TIMED) },
             )
@@ -203,7 +208,7 @@ private fun TrackingSection(state: CustomExerciseUiState, actions: CustomExercis
 private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: CustomExerciseActions) {
     AppCard {
         SwitchToggle(
-            label = "Per hand (dumbbell/unilateral)",
+            label = stringResource(R.string.custom_exercise_per_hand_label),
             checked = state.perHand,
             onCheckedChange = actions.onPerHandChange,
         )
@@ -211,31 +216,31 @@ private fun PerHandAndTargetSection(state: CustomExerciseUiState, actions: Custo
     Spacer(Modifier.size(12.dp))
     when (state.tracking) {
         TrackingType.WEIGHTED -> WeightTargetCard(
-            label = "Starting weight (${state.unit.name.lowercase()})",
+            label = stringResource(R.string.custom_exercise_starting_weight_label, state.unit.name.lowercase()),
             weightDisplay = state.weightDisplay,
             unit = state.unit,
             onWeightChange = actions.onWeightChange,
         )
         TrackingType.REPS -> TargetStepperCard(
-            label = "Target reps",
+            label = stringResource(R.string.custom_exercise_target_reps_label),
             value = state.targetReps,
             onValueChange = actions.onTargetRepsChange,
             step = 1,
-            decreaseDescription = "Decrease target reps",
-            increaseDescription = "Increase target reps",
+            decreaseDescription = stringResource(R.string.custom_exercise_decrease_target_reps_action),
+            increaseDescription = stringResource(R.string.custom_exercise_increase_target_reps_action),
         )
         TrackingType.TIMED -> {
             TargetStepperCard(
-                label = "Target hold (seconds)",
+                label = stringResource(R.string.custom_exercise_target_hold_label),
                 value = state.targetSeconds,
                 onValueChange = actions.onTargetSecondsChange,
                 step = 5,
-                decreaseDescription = "Decrease target hold",
-                increaseDescription = "Increase target hold",
+                decreaseDescription = stringResource(R.string.custom_exercise_decrease_target_hold_action),
+                increaseDescription = stringResource(R.string.custom_exercise_increase_target_hold_action),
             )
             Spacer(Modifier.size(12.dp))
             WeightTargetCard(
-                label = "Added load, optional (${state.unit.name.lowercase()})",
+                label = stringResource(R.string.custom_exercise_added_load_label, state.unit.name.lowercase()),
                 weightDisplay = state.addedWeightDisplay,
                 unit = state.unit,
                 onWeightChange = actions.onAddedWeightChange,
@@ -256,8 +261,8 @@ private fun WeightTargetCard(label: String, weightDisplay: Double, unit: WeightU
                 step = { WeightStepper.increment(it, unit) },
                 round = { WeightStepper.round(it, unit) },
                 format = WeightStepper::format,
-                decreaseDescription = "Decrease $label",
-                increaseDescription = "Increase $label",
+                decreaseDescription = stringResource(R.string.custom_exercise_decrease_value_action, label),
+                increaseDescription = stringResource(R.string.custom_exercise_increase_value_action, label),
             )
         }
     }
@@ -312,7 +317,7 @@ private fun Footer(
                 ),
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
-                FooterButtonLabel("CANCEL")
+                FooterButtonLabel(stringResource(R.string.custom_exercise_cancel_button))
             }
             Button(
                 enabled = state.canSave,
@@ -330,7 +335,7 @@ private fun Footer(
                 ),
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
-                FooterButtonLabel("SAVE")
+                FooterButtonLabel(stringResource(R.string.custom_exercise_save_button))
             }
         }
     }
@@ -347,27 +352,28 @@ private fun FooterButtonLabel(label: String) {
     )
 }
 
-private fun patternLabel(pattern: MovementPattern): String = when (pattern) {
-    MovementPattern.SQUAT_BILATERAL -> "Squat (bilateral)"
-    MovementPattern.SINGLE_LEG -> "Single-leg"
-    MovementPattern.HINGE -> "Hinge"
-    MovementPattern.KNEE_FLEXION -> "Knee flexion (leg curl)"
-    MovementPattern.KNEE_EXTENSION -> "Knee extension (leg extension)"
-    MovementPattern.H_PUSH -> "Horizontal push"
-    MovementPattern.V_PUSH -> "Vertical push"
-    MovementPattern.H_PULL -> "Horizontal pull"
-    MovementPattern.V_PULL -> "Vertical pull"
-    MovementPattern.SIDE_DELT -> "Side delt"
-    MovementPattern.REAR_DELT -> "Rear delt"
-    MovementPattern.BICEPS -> "Biceps"
-    MovementPattern.TRICEPS -> "Triceps"
-    MovementPattern.CALF_GASTROC -> "Calf (gastroc)"
-    MovementPattern.CALF_SOLEUS -> "Calf (soleus)"
-    MovementPattern.CORE_ANTI_EXT -> "Core (anti-extension)"
-    MovementPattern.CORE_ANTI_ROT -> "Core (anti-rotation)"
-    MovementPattern.CORE_FLEX -> "Core (flexion)"
-    MovementPattern.CARDIO -> "Cardio"
-}
+@Composable
+private fun patternLabel(pattern: MovementPattern): String = stringResource(when (pattern) {
+    MovementPattern.SQUAT_BILATERAL -> R.string.custom_exercise_pattern_squat_bilateral
+    MovementPattern.SINGLE_LEG -> R.string.custom_exercise_pattern_single_leg
+    MovementPattern.HINGE -> R.string.custom_exercise_pattern_hinge
+    MovementPattern.KNEE_FLEXION -> R.string.custom_exercise_pattern_knee_flexion
+    MovementPattern.KNEE_EXTENSION -> R.string.custom_exercise_pattern_knee_extension
+    MovementPattern.H_PUSH -> R.string.custom_exercise_pattern_horizontal_push
+    MovementPattern.V_PUSH -> R.string.custom_exercise_pattern_vertical_push
+    MovementPattern.H_PULL -> R.string.custom_exercise_pattern_horizontal_pull
+    MovementPattern.V_PULL -> R.string.custom_exercise_pattern_vertical_pull
+    MovementPattern.SIDE_DELT -> R.string.custom_exercise_pattern_side_delt
+    MovementPattern.REAR_DELT -> R.string.custom_exercise_pattern_rear_delt
+    MovementPattern.BICEPS -> R.string.custom_exercise_pattern_biceps
+    MovementPattern.TRICEPS -> R.string.custom_exercise_pattern_triceps
+    MovementPattern.CALF_GASTROC -> R.string.custom_exercise_pattern_calf_gastroc
+    MovementPattern.CALF_SOLEUS -> R.string.custom_exercise_pattern_calf_soleus
+    MovementPattern.CORE_ANTI_EXT -> R.string.custom_exercise_pattern_core_anti_extension
+    MovementPattern.CORE_ANTI_ROT -> R.string.custom_exercise_pattern_core_anti_rotation
+    MovementPattern.CORE_FLEX -> R.string.custom_exercise_pattern_core_flexion
+    MovementPattern.CARDIO -> R.string.custom_exercise_pattern_cardio
+})
 
 private fun equipmentLabel(equipment: Equipment): String = equipment.name
     .split("_")

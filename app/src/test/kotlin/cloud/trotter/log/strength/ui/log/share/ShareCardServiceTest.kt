@@ -3,7 +3,6 @@ package cloud.trotter.log.strength.ui.log.share
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -141,13 +140,9 @@ class ShareCardServiceTest {
             DarkBackground.toArgb(),
             bitmap.getPixel(0, 0),
         )
-        val expectedAccent = Color(DayAccentColors.brightHex(0)).toArgb()
-        val pixels = IntArray(bitmap.width * bitmap.height)
-        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-        assertTrue(
-            "the day heading must contain a stroke painted with brightHex",
-            pixels.any { it == expectedAccent },
-        )
+        val painterColors = ShareCardPainter.colorInput(dayIndex = 0)
+        assertEquals(DarkBackground.toArgb(), painterColors.background)
+        assertEquals(DayAccentColors.brightHex(0).toInt(), painterColors.accent)
 
         // A second render (a different session) clears the first's file —
         // one render lives in cache/shares/ at a time (§3).

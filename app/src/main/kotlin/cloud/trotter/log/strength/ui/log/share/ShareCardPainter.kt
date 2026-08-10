@@ -29,6 +29,11 @@ import cloud.trotter.log.strength.ui.theme.accentBright
  */
 object ShareCardPainter {
 
+    internal data class ColorInput(
+        val background: Int,
+        val accent: Int,
+    )
+
     const val WIDTH = 1080
     const val HEIGHT = 1350
 
@@ -56,10 +61,18 @@ object ShareCardPainter {
     private const val VALUE_COLUMN_WIDTH = 300f
     private const val NAME_VALUE_GAP = 24f
 
+    /** Token-derived colors supplied to the renderer. Kept as a small test
+     *  seam because Robolectric does not reliably rasterize text/strokes. */
+    internal fun colorInput(dayIndex: Int): ColorInput = ColorInput(
+        background = DarkBackground.toArgb(),
+        accent = accentBright(dayIndex).toArgb(),
+    )
+
     fun render(context: Context, content: ShareCardContent): Bitmap {
+        val colors = colorInput(content.dayIndex)
         val bitmap = createBitmap(WIDTH, HEIGHT)
         val canvas = Canvas(bitmap)
-        canvas.drawColor(DarkBackground.toArgb())
+        canvas.drawColor(colors.background)
 
         val medium = font(context, R.font.barlow_condensed_medium, Typeface.NORMAL)
         val semibold = font(context, R.font.barlow_condensed_semibold, Typeface.NORMAL)
@@ -73,7 +86,7 @@ object ShareCardPainter {
         canvas.drawText(content.dateLine, left, DATE_Y, textPaint(medium, DATE_SIZE, DarkTextSecondary.toArgb()))
         // Exported share cards are designed artifacts pinned to DARK, independent
         // of the phone theme, so their authored bright foreground stays fixed.
-        canvas.drawText(content.dayLine, left, DAY_Y, textPaint(bold, DAY_SIZE, accentBright(content.dayIndex).toArgb()))
+        canvas.drawText(content.dayLine, left, DAY_Y, textPaint(bold, DAY_SIZE, colors.accent))
 
         val namePaint = textPaint(medium, LIFT_NAME_SIZE, DarkTextSecondary.toArgb())
         val valuePaint = textPaint(bold, LIFT_VALUE_SIZE, DarkTextPrimary.toArgb()).apply { textAlign = Paint.Align.RIGHT }

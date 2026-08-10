@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -58,6 +59,39 @@ object TouchTargets {
     }
 
     /**
+     * The part of this node's minimum touch target that is actually reachable.
+     *
+     * [SemanticsNode.touchBoundsInRoot] retains the node's full target when a
+     * scrolling ancestor clips the node. Rebuild that target around the
+     * clip-aware [SemanticsNode.boundsInRoot]: preserve only the padding by
+     * which the touch target extends past the node's unclipped layout bounds,
+     * then intersect it with the reported touch target. For a fully visible
+     * node, `boundsInRoot` equals its unclipped layout bounds, so this returns
+     * the original touch target unchanged; only viewport-clipped targets are
+     * reduced.
+     */
+    private fun SemanticsNode.visibleTouchBoundsInRoot(): Rect {
+        val touch = touchBoundsInRoot
+        val visible = boundsInRoot
+        if (visible.isEmpty) return Rect.Zero
+
+        val position = positionInRoot
+        val unclipped = Rect(
+            left = position.x,
+            top = position.y,
+            right = position.x + size.width,
+            bottom = position.y + size.height,
+        )
+        val paddedVisible = Rect(
+            left = visible.left - (unclipped.left - touch.left).coerceAtLeast(0f),
+            top = visible.top - (unclipped.top - touch.top).coerceAtLeast(0f),
+            right = visible.right + (touch.right - unclipped.right).coerceAtLeast(0f),
+            bottom = visible.bottom + (touch.bottom - unclipped.bottom).coerceAtLeast(0f),
+        )
+        return touch.intersect(paddedVisible)
+    }
+
+    /**
      * No two independent controls may claim the same pixel.
      *
      * Nesting is exempt: a control inside another control's clickable — the
@@ -74,7 +108,7 @@ object TouchTargets {
                 val a = nodes[i]
                 val b = nodes[j]
                 if (a.isWithin(b) || b.isWithin(a)) continue
-                if (!a.touchBoundsInRoot.overlaps(b.touchBoundsInRoot)) continue
+                if (!a.visibleTouchBoundsInRoot().overlaps(b.visibleTouchBoundsInRoot())) continue
                 val pair = setOf(a.describe(), b.describe())
                 found[pair] = (found[pair] ?: 0) + 1
             }

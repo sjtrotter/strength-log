@@ -141,8 +141,10 @@ contract as the wear rest deadline):
   boundary (#175) — nowhere else.
 - **HC**: `CardioRecordMapper` writes an `ExerciseSessionRecord` with client
   id `strengthlog-cardio-<id>`, version 0 — #194's dedupe contract verbatim.
-  Mode mapping pinned: `OUTDOOR_RUN` and `TREADMILL` → RUNNING,
-  `LOW_IMPACT` → BIKING (its prose verb is "ride"). The Room insert is the
+  Mode mapping pinned: `OUTDOOR_RUN` → RUNNING, `TREADMILL` →
+  RUNNING_TREADMILL (amended in C1c review: the specific constant exists in
+  the catalog's HC client and more-specific is more truthful), `LOW_IMPACT` →
+  BIKING (its prose verb is "ride"). The Room insert is the
   committed mutation; the HC publish follows, retryable/backfillable by the
   stable client id (#159's one-shot counts cardio too). Mapper guards:
   `completedAt > startedAt`, duration within [60s, 24h], else no record —

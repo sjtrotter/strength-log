@@ -39,7 +39,38 @@ class HealthConnectPublisher(
         publishAll(listOf(sessionId))
     }
 
+    override suspend fun publishCardio(cardioSessionId: Long) {
+        publishAllCardio(listOf(cardioSessionId))
+    }
+
+    override suspend fun publishAllCardio(cardioSessionIds: List<Long>): Boolean =
+        withExerciseClient { client ->
+            var allPublished = true
+            for (id in cardioSessionIds) {
+                try {
+                    repository.cardioSession(id)?.let { session ->
+                        CardioRecordMapper.toExerciseSession(session, zone)?.let { client.insertRecords(listOf(it)) }
+                    }
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Health Connect publish for cardio session $id failed; skipping", t)
+                    allPublished = false
+                }
+            }
+            allPublished
+        }
+
     override suspend fun publishAll(sessionIds: List<Long>): Boolean {
+        return withExerciseClient { client, granted ->
+            val withCalories = HealthConnectPermissions.WRITE_CALORIES in granted
+            var allPublished = true
+            for (sessionId in sessionIds) {
+                if (!publishSession(client, sessionId, withCalories)) allPublished = false
+            }
+            allPublished
+        }
+    }
+
+    private suspend fun withExerciseClient(block: suspend (HealthConnectClient, Set<String>) -> Boolean): Boolean {
         val client = try {
             clientProvider.get()
         } catch (t: Throwable) {
@@ -56,14 +87,11 @@ class HealthConnectPublisher(
             return false
         }
         if (HealthConnectPermissions.WRITE_EXERCISE !in granted) return false
-        val withCalories = HealthConnectPermissions.WRITE_CALORIES in granted
-
-        var allPublished = true
-        for (sessionId in sessionIds) {
-            if (!publishSession(client, sessionId, withCalories)) allPublished = false
-        }
-        return allPublished
+        return block(client, granted)
     }
+
+    private suspend fun withExerciseClient(block: suspend (HealthConnectClient) -> Boolean): Boolean =
+        withExerciseClient { client, _ -> block(client) }
 
     /**
      * True when [sessionId] was written **or** had nothing to write — a session

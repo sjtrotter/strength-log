@@ -108,6 +108,10 @@ class LogViewModel @Inject constructor(
         summaries.map { summary -> buildItem(summary, unit, expandedId, setsCache[summary.session.id]) }
     }
 
+    private val historyItems = combine(ownSessions, repo.cardioSessionsFlow) { strength, cardio ->
+        LogScreenBuilder.interleave(strength, cardio.map(LogScreenBuilder::cardioItem))
+    }
+
     private val mainLifts = combine(
         repo.programFlow,
         repo.catalogFlow,
@@ -119,6 +123,7 @@ class LogViewModel @Inject constructor(
         repo.sessionTonnageFlow,
         repo.sessionSummariesFlow,
         repo.unitFlow,
+        repo.cardioSessionsFlow,
         ::JournalHistory,
     )
 
@@ -139,7 +144,7 @@ class LogViewModel @Inject constructor(
         JournalUiState(
             trajectories = JournalBuilder.trajectories(mains, history.topSets, history.unit, now.zone),
             volume = JournalBuilder.volume(history.tonnage, history.unit, now.date, now.zone),
-            calendar = JournalBuilder.calendar(history.sessions, offset, now.date, now.zone),
+            calendar = JournalBuilder.calendar(history.sessions, offset, now.date, now.zone, history.cardio),
         )
     }
 
@@ -157,7 +162,7 @@ class LogViewModel @Inject constructor(
     private val backfillState = combine(repo.healthBackfillDoneFlow, backfillRunning, ::BackfillState)
 
     val uiState: StateFlow<LogUiState> = combine(
-        ownSessions,
+        historyItems,
         journal,
         healthUi,
         hasProgram,
@@ -282,7 +287,10 @@ class LogViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val sessionIds = repo.sessionSummariesFlow.first().map { it.session.id }
-                if (sessionPublisher.publishAll(sessionIds)) repo.setHealthBackfillDone()
+                val cardioIds = repo.cardioSessionsFlow.first().map { it.id }
+                val strengthPublished = sessionPublisher.publishAll(sessionIds)
+                val cardioPublished = sessionPublisher.publishAllCardio(cardioIds)
+                if (strengthPublished && cardioPublished) repo.setHealthBackfillDone()
             } finally {
                 backfillRunning.value = false
             }
@@ -351,6 +359,7 @@ class LogViewModel @Inject constructor(
             } else {
                 null
             },
+            completedAt = session.completedAt,
         )
     }
 
@@ -386,6 +395,7 @@ class LogViewModel @Inject constructor(
         val tonnage: List<SessionTonnageRow>,
         val sessions: List<SessionSummaryRow>,
         val unit: WeightUnit,
+        val cardio: List<cloud.trotter.log.strength.data.db.entity.CardioSessionEntity>,
     )
 
     /** The raw Health Connect read snapshot, before display formatting. */

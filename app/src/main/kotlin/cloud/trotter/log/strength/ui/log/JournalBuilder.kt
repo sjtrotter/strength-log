@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
@@ -207,21 +208,23 @@ object JournalBuilder {
         monthOffset: Int,
         today: LocalDate,
         zone: ZoneId = ZoneId.systemDefault(),
+        cardioSessions: List<CardioSessionEntity> = emptyList(),
     ): CalendarMonth? {
-        if (sessions.isEmpty()) return null
+        if (sessions.isEmpty() && cardioSessions.isEmpty()) return null
         val offset = monthOffset.coerceAtMost(0)
         val month = YearMonth.from(today).plusMonths(offset.toLong())
 
         // Oldest first so "the first session of that day" is the letter shown.
-        val byDate = sessions
-            .sortedBy { it.session.completedAt }
-            .groupBy { Instant.ofEpochMilli(it.session.completedAt).atZone(zone).toLocalDate() }
+        val occurrences = sessions.map { Occurrence(it.session.completedAt, it.session.dayId, it.session.id) } +
+            cardioSessions.map { Occurrence(it.completedAt, it.dayId.orEmpty(), null) }
+        val byDate = occurrences.sortedBy { it.completedAt }
+            .groupBy { Instant.ofEpochMilli(it.completedAt).atZone(zone).toLocalDate() }
         val earliest = byDate.keys.min()
 
         val days = (1..month.lengthOfMonth()).map { dayOfMonth ->
             val date = month.atDay(dayOfMonth)
             val onDate = byDate[date]
-            val first = onDate?.first()?.session
+            val first = onDate?.first()
             // The drawn cell is only a letter or a numeral; its month, its today
             // state and its session count exist solely in this spoken label.
             val label = buildList {
@@ -230,7 +233,7 @@ object JournalBuilder {
                 if (onDate == null) {
                     add("no session")
                 } else {
-                    add("day ${onDate.first().session.dayId}")
+                    add("day ${onDate.first().dayId}")
                     add(if (onDate.size == 1) "1 session" else "${onDate.size} sessions")
                 }
             }.joinToString(", ")
@@ -239,7 +242,7 @@ object JournalBuilder {
                 label = label,
                 dayLetter = first?.dayId,
                 dayIndex = first?.let { LogScreenBuilder.dayIndex(it.dayId) } ?: 0,
-                sessionId = first?.id,
+                sessionId = first?.strengthId,
                 moreSessions = (onDate?.size ?: 0) > 1,
                 isToday = date == today,
             )
@@ -253,6 +256,8 @@ object JournalBuilder {
             days = days,
         )
     }
+
+    private data class Occurrence(val completedAt: Long, val dayId: String, val strengthId: Long?)
 
     private const val DAYS_PER_WEEK = 7
     private const val AXIS_HEADROOM = 0.08f

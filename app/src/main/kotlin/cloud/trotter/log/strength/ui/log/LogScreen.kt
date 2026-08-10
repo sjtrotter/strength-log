@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -139,12 +140,13 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                         )
                     }
                 } else {
-                    items(state.sessions, key = { it.sessionId }) { session ->
-                        SessionCard(
-                            session,
-                            onToggle = { actions.onToggleExpanded(session.sessionId) },
-                            onShare = { actions.onShare(session.sessionId) },
-                        )
+                    items(state.sessions, key = { if (it.cardioId != null) "cardio-${it.cardioId}" else "strength-${it.sessionId}" }) { session ->
+                        if (session.cardioId != null) CardioSessionCard(session) else
+                            SessionCard(
+                                session,
+                                onToggle = { actions.onToggleExpanded(session.sessionId) },
+                                onShare = { actions.onShare(session.sessionId) },
+                            )
                     }
                 }
 
@@ -157,6 +159,27 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
 
                 item { Spacer(Modifier.size(8.dp)) }
             }
+        }
+    }
+}
+
+@Composable
+private fun CardioSessionCard(item: SessionListItem) {
+    val spoken = stringResource(R.string.log_cardio_semantics, item.cardioSemantics.orEmpty(), item.cardioDuration.orEmpty())
+    val summary = stringResource(R.string.log_cardio_summary, item.cardioSummary.orEmpty(), item.cardioDuration.orEmpty())
+    AppCard(
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = spoken
+        },
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            DayBadge(dayIndex = item.dayIndex, letter = item.dayLetter)
+            Spacer(Modifier.size(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(item.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+                Text(item.dateDisplay, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            }
+            Text(summary, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

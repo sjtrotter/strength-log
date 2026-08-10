@@ -307,7 +307,7 @@ class DayViewModel @Inject constructor(
             val alreadyLogged = repo.cardioSessionsFlow.first()
                 .any { it.dayId == identity.dayId && it.startedAt == wall }
             if (!alreadyLogged) {
-                repo.logCardioSession(
+                val cardioId = repo.logCardioSession(
                     CardioSessionEntity(
                         dayId = identity.dayId,
                         mode = identity.mode.name,
@@ -319,6 +319,7 @@ class DayViewModel @Inject constructor(
                         stepsCompleted = stepsCompleted,
                     ),
                 )
+                sessionPublisher.publishCardio(cardioId)
             }
             clearCardioExecution()
         }

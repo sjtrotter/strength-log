@@ -64,6 +64,7 @@ class RestoreJournal(
             suggestedDay = snapshot.suggestedDay,
             restSettings = snapshot.restSettings,
             keepScreenOn = snapshot.keepScreenOn,
+            themePreference = snapshot.themePreference,
         )
         dataStore.edit { it[Keys.NONCE] = nonce }
     }
@@ -102,6 +103,7 @@ class RestoreJournal(
             suggestedDay = staged.suggestedDayFlow.first(),
             restSettings = staged.restSettingsFlow.first(),
             keepScreenOn = staged.keepScreenOnFlow.first(),
+            themePreference = staged.themePreferenceFlow.first(),
         )
         clear()
         return true

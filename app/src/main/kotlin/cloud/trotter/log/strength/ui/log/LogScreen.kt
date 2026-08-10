@@ -62,8 +62,9 @@ import cloud.trotter.log.strength.ui.theme.Surface3
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
-import cloud.trotter.log.strength.ui.theme.dayAccent
+import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.readableWidth
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.text.resolve
 import kotlinx.coroutines.launch
 
@@ -295,7 +296,7 @@ private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
             onClick = onClick,
             modifier = Modifier.semantics { onClick(label = shareLabel, action = null) },
             interactionSource = interactionSource,
-            colors = ButtonDefaults.textButtonColors(contentColor = if (pressed) dayAccent(dayIndex) else TextSecondary),
+            colors = ButtonDefaults.textButtonColors(contentColor = if (pressed) accentEmphasis(dayIndex) else TextSecondary),
             contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),
         ) { Text(stringResource(R.string.log_share_button), style = MaterialTheme.typography.labelLarge) }
     }
@@ -427,6 +428,17 @@ data class LogActions(
 @Preview(showBackground = true, heightDp = 700, backgroundColor = 0xFF0D0D0F)
 @Composable
 private fun LogScreenPreview() {
+    LogScreenPreviewContent(ThemePreference.DARK)
+}
+
+@Preview(showBackground = true, heightDp = 700, backgroundColor = 0xFFF1EFEA)
+@Composable
+private fun LogScreenLightPreview() {
+    LogScreenPreviewContent(ThemePreference.LIGHT)
+}
+
+@Composable
+private fun LogScreenPreviewContent(theme: ThemePreference) {
     val state = LogUiState(
         health = HealthSectionUi(
             available = true,
@@ -534,7 +546,7 @@ private fun LogScreenPreview() {
         ),
     )
 
-    AppTheme {
+    AppTheme(preference = theme) {
         LogScreen(
             state = state,
             actions = LogActions(

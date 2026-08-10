@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -600,6 +601,23 @@ class BackupCodecTest {
         val restored = codec.decode(codec.encode(off.toDocument())).toSnapshot()
 
         assertFalse(restored.keepScreenOn)
+    }
+
+    @Test
+    fun `theme preference survives a full export-import cycle`() {
+        val light = restSnapshot(RestSettings()).copy(themePreference = ThemePreference.LIGHT)
+
+        val restored = codec.decode(codec.encode(light.toDocument())).toSnapshot()
+
+        assertEquals(ThemePreference.LIGHT, restored.themePreference)
+    }
+
+    @Test
+    fun `a backup without theme defaults to system without a schema bump`() {
+        val encoded = codec.encode(restSnapshot(RestSettings()).toDocument())
+        val oldShape = encoded.replace(Regex(",?\"theme\":\"SYSTEM\""), "")
+
+        assertEquals(ThemePreference.SYSTEM, codec.decode(oldShape).toSnapshot().themePreference)
     }
 
     @Test

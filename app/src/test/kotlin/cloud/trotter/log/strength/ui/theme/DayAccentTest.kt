@@ -13,6 +13,19 @@ import kotlin.test.assertTrue
 class DayAccentTest {
 
     @Test
+    fun `light palette is pinned to the authored warm-paper tokens`() {
+        assertEquals(Color(0xFFF1EFEA), LightBackground)
+        assertEquals(Color(0xFFFAF9F6), LightSurface)
+        assertEquals(Color(0xFFE9E6E0), LightSurface2)
+        assertEquals(Color(0xFFE1DDD5), LightSurface3)
+        assertEquals(Color(0xFFD8D4CC), LightBorder)
+        assertEquals(Color(0xFFC4BFB5), LightBorderStrong)
+        assertEquals(Color(0xFF1B1B1E), LightTextPrimary)
+        assertEquals(Color(0xFF5C5C64), LightTextSecondary)
+        assertEquals(Color(0xFF8B8B92), LightTextFaint)
+    }
+
+    @Test
     fun `indices 0-6 map to the seven day accents in order`() {
         // Extended from the spec's 4 to 7 (wear-companion §8.5 amendment); the
         // hexes are SSOT in :domain DayAccentColors and the phone now reads all
@@ -38,18 +51,28 @@ class DayAccentTest {
     @Test
     fun `day 8 cycles back to A's colors`() {
         assertEquals(dayAccent(0), dayAccent(7))
-        assertEquals(onDayAccent(0), onDayAccent(7))
+        assertEquals(onDayAccent(0, true), onDayAccent(7, true))
     }
 
     @Test
     fun `every accent and on-color pairing meets WCAG AA`() {
-        for (dayIndex in 0..6) {
-            val ratio = contrastRatio(dayAccent(dayIndex), onDayAccent(dayIndex))
-            assertTrue(
-                ratio >= 4.5,
-                "Day index $dayIndex accent/on-color contrast is $ratio, below WCAG AA's 4.5:1",
-            )
+        for (isDark in listOf(true, false)) {
+            for (dayIndex in 0..6) {
+                val ratio = contrastRatio(dayAccent(dayIndex), onDayAccent(dayIndex, isDark))
+                assertTrue(
+                    ratio >= 4.5,
+                    "Day index $dayIndex accent/on-color contrast is $ratio in ${if (isDark) "dark" else "light"}, below WCAG AA's 4.5:1",
+                )
+            }
         }
+    }
+
+    @Test
+    fun `light done and error foregrounds clear AA on warm paper`() {
+        assertEquals(Color(0xFF37774E), LightDone)
+        assertEquals(Color(0xFFC2334D), LightError)
+        assertTrue(contrastRatio(LightDone, LightBackground) >= 4.5)
+        assertTrue(contrastRatio(LightError, LightBackground) >= 4.5)
     }
 
     @Test
@@ -61,7 +84,7 @@ class DayAccentTest {
         // phone's own colors even though the rule is now in :domain — this floor
         // is what the phone promises its own screens.
         for (dayIndex in 0..6) {
-            val ratio = contrastRatio(accentBright(dayIndex), Background)
+            val ratio = contrastRatio(accentBright(dayIndex), DarkBackground)
             assertTrue(
                 ratio >= 4.5,
                 "Day index $dayIndex bright accent contrast on Background is $ratio, below WCAG AA's 4.5:1",
@@ -93,8 +116,8 @@ class DayAccentTest {
         // off the M3 default 0xFFB3261E to a cooler crimson so it never reads as
         // Day A's terracotta. TextPrimary on it is ~4.84:1 — pin both the exact
         // hex and the contrast floor so neither regresses silently.
-        assertEquals(Color(0xFFC2334D), Error)
-        val ratio = contrastRatio(Error, TextPrimary)
+        assertEquals(Color(0xFFC2334D), DarkError)
+        val ratio = contrastRatio(DarkError, DarkTextPrimary)
         assertTrue(ratio >= 4.5, "Error/on-error contrast is $ratio, below WCAG AA's 4.5:1")
     }
 

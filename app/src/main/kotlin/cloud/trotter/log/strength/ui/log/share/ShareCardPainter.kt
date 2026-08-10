@@ -11,11 +11,11 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.createBitmap
 import cloud.trotter.log.strength.R
-import cloud.trotter.log.strength.ui.theme.Border
-import cloud.trotter.log.strength.ui.theme.Background
-import cloud.trotter.log.strength.ui.theme.TextFaint
-import cloud.trotter.log.strength.ui.theme.TextPrimary
-import cloud.trotter.log.strength.ui.theme.TextSecondary
+import cloud.trotter.log.strength.ui.theme.DarkBorder
+import cloud.trotter.log.strength.ui.theme.DarkBackground
+import cloud.trotter.log.strength.ui.theme.DarkTextFaint
+import cloud.trotter.log.strength.ui.theme.DarkTextPrimary
+import cloud.trotter.log.strength.ui.theme.DarkTextSecondary
 import cloud.trotter.log.strength.ui.theme.accentBright
 
 /**
@@ -28,6 +28,11 @@ import cloud.trotter.log.strength.ui.theme.accentBright
  * scale) via `.toArgb()` — read, never a second hex table.
  */
 object ShareCardPainter {
+
+    internal data class ColorInput(
+        val background: Int,
+        val accent: Int,
+    )
 
     const val WIDTH = 1080
     const val HEIGHT = 1350
@@ -56,10 +61,18 @@ object ShareCardPainter {
     private const val VALUE_COLUMN_WIDTH = 300f
     private const val NAME_VALUE_GAP = 24f
 
+    /** Token-derived colors supplied to the renderer. Kept as a small test
+     *  seam because Robolectric does not reliably rasterize text/strokes. */
+    internal fun colorInput(dayIndex: Int): ColorInput = ColorInput(
+        background = DarkBackground.toArgb(),
+        accent = accentBright(dayIndex).toArgb(),
+    )
+
     fun render(context: Context, content: ShareCardContent): Bitmap {
+        val colors = colorInput(content.dayIndex)
         val bitmap = createBitmap(WIDTH, HEIGHT)
         val canvas = Canvas(bitmap)
-        canvas.drawColor(Background.toArgb())
+        canvas.drawColor(colors.background)
 
         val medium = font(context, R.font.barlow_condensed_medium, Typeface.NORMAL)
         val semibold = font(context, R.font.barlow_condensed_semibold, Typeface.NORMAL)
@@ -70,11 +83,13 @@ object ShareCardPainter {
         val left = MARGIN
         val right = WIDTH - MARGIN
 
-        canvas.drawText(content.dateLine, left, DATE_Y, textPaint(medium, DATE_SIZE, TextSecondary.toArgb()))
-        canvas.drawText(content.dayLine, left, DAY_Y, textPaint(bold, DAY_SIZE, accentBright(content.dayIndex).toArgb()))
+        canvas.drawText(content.dateLine, left, DATE_Y, textPaint(medium, DATE_SIZE, DarkTextSecondary.toArgb()))
+        // Exported share cards are designed artifacts pinned to DARK, independent
+        // of the phone theme, so their authored bright foreground stays fixed.
+        canvas.drawText(content.dayLine, left, DAY_Y, textPaint(bold, DAY_SIZE, colors.accent))
 
-        val namePaint = textPaint(medium, LIFT_NAME_SIZE, TextSecondary.toArgb())
-        val valuePaint = textPaint(bold, LIFT_VALUE_SIZE, TextPrimary.toArgb()).apply { textAlign = Paint.Align.RIGHT }
+        val namePaint = textPaint(medium, LIFT_NAME_SIZE, DarkTextSecondary.toArgb())
+        val valuePaint = textPaint(bold, LIFT_VALUE_SIZE, DarkTextPrimary.toArgb()).apply { textAlign = Paint.Align.RIGHT }
         val nameMaxWidth = (right - left) - VALUE_COLUMN_WIDTH - NAME_VALUE_GAP
 
         content.liftLines.forEachIndexed { i, lift ->
@@ -86,18 +101,18 @@ object ShareCardPainter {
 
         content.overflowLine?.let { overflow ->
             val y = LIFTS_START_Y + content.liftLines.size * LIFT_ROW_PITCH
-            canvas.drawText(overflow, left, y, textPaint(medium, OVERFLOW_SIZE, TextFaint.toArgb()))
+            canvas.drawText(overflow, left, y, textPaint(medium, OVERFLOW_SIZE, DarkTextFaint.toArgb()))
         }
 
-        canvas.drawText(content.footerLine, left, FOOTER_Y, textPaint(semibold, FOOTER_SIZE, TextSecondary.toArgb()))
-        canvas.drawText("strength.log", left, WORDMARK_Y, textPaint(medium, WORDMARK_SIZE, TextFaint.toArgb()))
+        canvas.drawText(content.footerLine, left, FOOTER_Y, textPaint(semibold, FOOTER_SIZE, DarkTextSecondary.toArgb()))
+        canvas.drawText("strength.log", left, WORDMARK_Y, textPaint(medium, WORDMARK_SIZE, DarkTextFaint.toArgb()))
 
         return bitmap
     }
 
     private fun drawBorder(canvas: Canvas) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Border.toArgb()
+            color = DarkBorder.toArgb()
             style = Paint.Style.STROKE
             strokeWidth = BORDER_STROKE
         }

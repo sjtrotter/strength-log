@@ -75,6 +75,37 @@ class DayAccentColorsTest {
     }
 
     @Test
+    fun `the seven deep accents, in A-G order`() {
+        assertEquals(0xFF8F3813L, DayAccentColors.deepHex(0)) // A
+        assertEquals(0xFF284734L, DayAccentColors.deepHex(1)) // B
+        assertEquals(0xFF896611L, DayAccentColors.deepHex(2)) // C
+        assertEquals(0xFF1E3F4CL, DayAccentColors.deepHex(3)) // D
+        assertEquals(0xFF323F5DL, DayAccentColors.deepHex(4)) // E
+        assertEquals(0xFF693745L, DayAccentColors.deepHex(5)) // F
+        assertEquals(0xFF535228L, DayAccentColors.deepHex(6)) // G
+    }
+
+    @Test
+    fun `every deep accent clears WCAG AA on warm paper`() {
+        val background = 0xFFF1EFEAL
+        for (dayIndex in 0..6) {
+            val ratio = contrastRatio(DayAccentColors.deepHex(dayIndex), background)
+            assertTrue(
+                ratio >= 4.5,
+                "Day index $dayIndex deep accent is $ratio on warm paper, below WCAG AA's 4.5:1",
+            )
+        }
+    }
+
+    @Test
+    fun `a deep accent stays distinct and cycles with its identity fill`() {
+        val deep = (0..6).map { DayAccentColors.deepHex(it) }
+        assertEquals(deep.size, deep.distinct().size)
+        for (dayIndex in 0..6) assertNotEquals(DayAccentColors.hex(dayIndex), deep[dayIndex])
+        assertEquals(DayAccentColors.deepHex(0), DayAccentColors.deepHex(7))
+    }
+
+    @Test
     fun `a bright accent is still its own day's hue, not a shared grey`() {
         val bright = (0..6).map { DayAccentColors.brightHex(it) }
         assertEquals(bright.size, bright.distinct().size)

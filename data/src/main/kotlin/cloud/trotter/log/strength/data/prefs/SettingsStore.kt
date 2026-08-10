@@ -22,6 +22,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -97,6 +98,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val AUTO_BACKUP_LAST_SUCCESS_AT = longPreferencesKey("auto_backup_last_success_at")
         val AUTO_BACKUP_LAST_ATTEMPT_FAILED = booleanPreferencesKey("auto_backup_last_attempt_failed")
         val AUTO_BACKUP_PERMISSION_LOST = booleanPreferencesKey("auto_backup_permission_lost")
+
+        val THEME = stringPreferencesKey("theme")
     }
 
     /** Maps each overridable rest category to its DataStore key (SSOT for the
@@ -171,6 +174,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      *  Defaults off — the wake costs battery, so it is opt-in. */
     val keepScreenOnFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.KEEP_SCREEN_ON] ?: false }
+
+    val themePreferenceFlow: Flow<ThemePreference> =
+        dataStore.data.map { it.enum(Keys.THEME, ThemePreference.SYSTEM) }
 
     /** Whether the one-shot Health Connect backfill has already run (#159). Not
      *  carried by the backup: [restore] clears it, so restored history — which
@@ -280,6 +286,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setKeepScreenOn(on: Boolean) =
         dataStore.edit { it[Keys.KEEP_SCREEN_ON] = on }
 
+    suspend fun setThemePreference(theme: ThemePreference) =
+        dataStore.edit { it[Keys.THEME] = theme.name }
+
     /** Stamps [nowMillis]/[today] as the in-progress session's start, unless a
      *  stamp for [today] already exists. A stamp carrying any other date is
      *  treated as absent and overwritten: it belonged to an abandoned session
@@ -329,6 +338,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         suggestedDay: String?,
         restSettings: RestSettings,
         keepScreenOn: Boolean,
+        themePreference: ThemePreference = ThemePreference.SYSTEM,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
         // not user data contained in the imported document. Keep them across a
@@ -363,6 +373,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         autoLastSuccess?.let { prefs[Keys.AUTO_BACKUP_LAST_SUCCESS_AT] = it }
         autoFailed?.let { prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = it }
         autoPermissionLost?.let { prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = it }
+        prefs[Keys.THEME] = themePreference.name
     }
 
     // --- read/write helpers --------------------------------------------------

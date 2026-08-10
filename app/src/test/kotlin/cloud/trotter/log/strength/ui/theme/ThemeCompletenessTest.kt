@@ -5,6 +5,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import java.lang.reflect.Method
@@ -21,7 +22,10 @@ import kotlin.test.assertTrue
  */
 class ThemeCompletenessTest {
 
-    private val baselineColors = darkColorScheme()
+    private val schemes = listOf(
+        "dark" to (DarkAppColorScheme to darkColorScheme()),
+        "light" to (LightAppColorScheme to lightColorScheme()),
+    )
     private val baselineType = Typography()
     private val baselineShapes = Shapes()
 
@@ -59,12 +63,16 @@ class ThemeCompletenessTest {
 
     @Test
     fun `no color role is left at its baseline Material value`() {
-        val leaked = colorRoles
-            .filter { roleName(it) !in DeliberatelyBaseline }
-            .filter { read(it, AppColorScheme) == read(it, baselineColors) }
+        val leaked = schemes.flatMap { (name, pair) ->
+            val (scheme, baseline) = pair
+            colorRoles
+                .filter { roleName(it) !in DeliberatelyBaseline }
+                .filter { read(it, scheme) == read(it, baseline) }
+                .map { "$name:${roleName(it)}" }
+        }
         assertTrue(
             leaked.isEmpty(),
-            "roles still on Material's baseline palette: ${leaked.map(::roleName)}",
+            "roles still on Material's baseline palette: $leaked",
         )
     }
 
@@ -73,16 +81,26 @@ class ThemeCompletenessTest {
         // Differing from baseline isn't enough — a role could differ and still
         // be an off-brand one-off. The whole scheme has to come from Color.kt,
         // or from the accent-sunk-into-surface containers derived from it.
-        val named = listOf(
-            Background, Surface, Surface2, Surface3, Border, BorderStrong,
-            TextPrimary, TextSecondary, TextFaint, Error, Done, FocusRing,
-        ) + (0..6).flatMap { listOf(dayAccent(it), onDayAccent(it)) }
-        val palette = (named + named.map(::containerOf)).map { it.value.toLong() }.toSet()
-
-        val strangers = colorRoles.filter { read(it, AppColorScheme) !in palette }
+        val darkNamed = listOf(
+            DarkBackground, DarkSurface, DarkSurface2, DarkSurface3, DarkBorder, DarkBorderStrong,
+            DarkTextPrimary, DarkTextSecondary, DarkTextFaint, DarkError, DarkDone, DarkFocusRing,
+        ) + (0..6).flatMap { listOf(dayAccent(it), onDayAccent(it, true)) }
+        val lightNamed = listOf(
+            LightBackground, LightSurface, LightSurface2, LightSurface3, LightBorder, LightBorderStrong, DarkBackground,
+            LightTextPrimary, LightTextSecondary, LightTextFaint, LightError, LightDone, LightFocusRing,
+        ) + (0..6).flatMap { listOf(dayAccent(it), onDayAccent(it, false)) }
+        val palettes = listOf(
+            "dark" to (DarkAppColorScheme to (darkNamed + darkNamed.map { containerOf(it, DarkSurface) })),
+            "light" to (LightAppColorScheme to (lightNamed + lightNamed.map { containerOf(it, LightSurface) })),
+        )
+        val strangers = palettes.flatMap { (name, pair) ->
+            val (scheme, named) = pair
+            val palette = named.map { it.value.toLong() }.toSet()
+            colorRoles.filter { read(it, scheme) !in palette }.map { "$name:${roleName(it)}" }
+        }
         assertTrue(
             strangers.isEmpty(),
-            "roles set to colors outside the app palette: ${strangers.map(::roleName)}",
+            "roles set to colors outside the app palette: $strangers",
         )
     }
 

@@ -46,7 +46,7 @@ fun Modifier.pressable(
     onClick: () -> Unit,
 ): Modifier = composed {
     val source = interactionSource ?: remember { MutableInteractionSource() }
-    pressableBase(shape, source).clickable(
+    pressableBase(shape, source, FocusRing).clickable(
         interactionSource = source,
         indication = LocalIndication.current,
         enabled = enabled,
@@ -66,7 +66,7 @@ fun Modifier.pressableSelectable(
     onClick: () -> Unit,
 ): Modifier = composed {
     val source = interactionSource ?: remember { MutableInteractionSource() }
-    pressableBase(shape, source).selectable(
+    pressableBase(shape, source, FocusRing).selectable(
         selected = selected,
         interactionSource = source,
         indication = LocalIndication.current,
@@ -86,7 +86,7 @@ fun Modifier.pressableToggleable(
     onValueChange: (Boolean) -> Unit,
 ): Modifier = composed {
     val source = interactionSource ?: remember { MutableInteractionSource() }
-    pressableBase(shape, source).toggleable(
+    pressableBase(shape, source, FocusRing).toggleable(
         value = value,
         interactionSource = source,
         indication = LocalIndication.current,
@@ -96,8 +96,8 @@ fun Modifier.pressableToggleable(
     )
 }
 
-private fun Modifier.pressableBase(shape: Shape, source: InteractionSource): Modifier =
-    clip(shape).then(FocusRingElement(source, shape))
+private fun Modifier.pressableBase(shape: Shape, source: InteractionSource, focusColor: androidx.compose.ui.graphics.Color): Modifier =
+    clip(shape).then(FocusRingElement(source, shape, focusColor))
 
 /** The shared whole-control disabled treatment; apply before background/border. */
 fun Modifier.disabledAlpha(enabled: Boolean): Modifier =
@@ -106,23 +106,26 @@ fun Modifier.disabledAlpha(enabled: Boolean): Modifier =
 private data class FocusRingElement(
     val interactionSource: InteractionSource,
     val shape: Shape,
+    val color: androidx.compose.ui.graphics.Color,
 ) : ModifierNodeElement<FocusRingNode>() {
-    override fun create() = FocusRingNode(interactionSource, shape)
-    override fun update(node: FocusRingNode) = node.update(interactionSource, shape)
+    override fun create() = FocusRingNode(interactionSource, shape, color)
+    override fun update(node: FocusRingNode) = node.update(interactionSource, shape, color)
     override fun InspectorInfo.inspectableProperties() { name = "pressableFocusRing" }
 }
 
 private class FocusRingNode(
     private var interactionSource: InteractionSource,
     private var shape: Shape,
+    private var color: androidx.compose.ui.graphics.Color,
 ) : Modifier.Node(), DrawModifierNode {
     private var focused = false
     private var observation: Job? = null
 
     override fun onAttach() = observe(interactionSource)
 
-    fun update(interactionSource: InteractionSource, shape: Shape) {
+    fun update(interactionSource: InteractionSource, shape: Shape, color: androidx.compose.ui.graphics.Color) {
         this.shape = shape
+        this.color = color
         if (this.interactionSource != interactionSource) {
             this.interactionSource = interactionSource
             focused = false
@@ -149,7 +152,7 @@ private class FocusRingNode(
         if (!focused) return
         val width = PressableFocusRingWidth.toPx()
         inset(width / 2f) {
-            drawOutline(shape.createOutline(size, layoutDirection, this), FocusRing, style = Stroke(width))
+            drawOutline(shape.createOutline(size, layoutDirection, this), color, style = Stroke(width))
         }
     }
 }

@@ -63,10 +63,12 @@ import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.accentBorder
+import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.chromeVerticalPadding
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 
 /**
  * The Today screen (issue #121): an editorial glance at the next workout in
@@ -262,6 +264,7 @@ private fun LiftRow(lift: TodayLift) {
 @Composable
 private fun RotationChip(mark: RotationMark) {
     val shape = RoundedCornerShape(7.dp)
+    val emphasis = accentEmphasis(mark.dayIndex)
     Box(
         Modifier
             .defaultMinSize(24.dp, 24.dp)
@@ -273,7 +276,7 @@ private fun RotationChip(mark: RotationMark) {
     ) {
         Text(
             mark.dayId.uppercase(),
-            color = if (mark.isNext) onDayAccent(mark.dayIndex) else dayAccent(mark.dayIndex),
+            color = if (mark.isNext) onDayAccent(mark.dayIndex) else emphasis,
             style = TabLetter.copy(fontSize = 12.sp),
         )
     }
@@ -325,6 +328,12 @@ private fun TodayScreenPreview() {
     TodayScreenPreviewContent()
 }
 
+@Preview(showBackground = true, backgroundColor = 0xFFF1EFEA)
+@Composable
+private fun TodayScreenLightPreview() {
+    TodayScreenPreviewContent(theme = ThemePreference.LIGHT)
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFF0D0D0F)
 @Composable
 private fun TodayScreenInProgressPreview() {
@@ -340,7 +349,10 @@ private fun TodayScreenFontScale200Preview() {
 }
 
 @Composable
-private fun TodayScreenPreviewContent(inProgress: Boolean = false) {
+private fun TodayScreenPreviewContent(
+    inProgress: Boolean = false,
+    theme: ThemePreference = ThemePreference.DARK,
+) {
     val state = TodayUiState(
         hasProgram = true,
         dayId = "B",
@@ -366,7 +378,7 @@ private fun TodayScreenPreviewContent(inProgress: Boolean = false) {
             RotationMark("D", 3, isNext = false),
         ),
     )
-    AppTheme {
+    AppTheme(preference = theme) {
         TodayScreen(
             state = state,
             actions = TodayActions(onStart = {}, onOpenSettings = {}, onOpenLog = {}, onSetUpProgram = {}),

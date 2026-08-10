@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -91,5 +92,24 @@ class SettingsRestoreClearsBackfillFlagTest {
         )
 
         assertFalse(settings.healthBackfillDoneFlow.first())
+    }
+
+    @Test
+    fun `theme defaults to system and restore carries an explicit choice`() = runTest {
+        assertTrue(settings.themePreferenceFlow.first() == ThemePreference.SYSTEM)
+        settings.setThemePreference(ThemePreference.DARK)
+        assertTrue(settings.themePreferenceFlow.first() == ThemePreference.DARK)
+
+        settings.restore(
+            answers = WizardAnswers(),
+            unit = WeightUnit.LB,
+            wizardComplete = true,
+            suggestedDay = null,
+            restSettings = RestSettings(),
+            keepScreenOn = false,
+            themePreference = ThemePreference.LIGHT,
+        )
+
+        assertTrue(settings.themePreferenceFlow.first() == ThemePreference.LIGHT)
     }
 }

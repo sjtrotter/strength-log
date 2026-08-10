@@ -97,6 +97,7 @@ open class TrackerRepository(
      *  the wake follows the app rather than whichever screen happens to be
      *  composed — see `MainActivity`. */
     val keepScreenOnFlow: Flow<Boolean> = settings.keepScreenOnFlow
+    val themePreferenceFlow = settings.themePreferenceFlow
     val wizardCompleteFlow: Flow<Boolean> = settings.wizardCompleteFlow
     val wizardAnswersFlow: Flow<WizardAnswers> = settings.wizardAnswersFlow
 
@@ -137,6 +138,10 @@ open class TrackerRepository(
     /** Flips the keep-screen-on preference (the day screen's bottom-bar switch). */
     suspend fun setKeepScreenOn(on: Boolean) {
         settings.setKeepScreenOn(on)
+    }
+
+    suspend fun setThemePreference(theme: cloud.trotter.log.strength.domain.theme.ThemePreference) {
+        settings.setThemePreference(theme)
     }
 
     /** Records that the one-shot Health Connect backfill published the history
@@ -669,6 +674,7 @@ open class TrackerRepository(
         suggestedDay = settings.suggestedDayFlow.first(),
         restSettings = settings.restSettingsFlow.first(),
         keepScreenOn = settings.keepScreenOnFlow.first(),
+        themePreference = settings.themePreferenceFlow.first(),
         customExercises = customExerciseDao.allOrdered(),
         days = programDao.allDays(),
         exercises = programDao.allExercises(),
@@ -750,6 +756,7 @@ open class TrackerRepository(
                     suggestedDay = snapshot.suggestedDay,
                     restSettings = snapshot.restSettings,
                     keepScreenOn = snapshot.keepScreenOn,
+                    themePreference = snapshot.themePreference,
                 )
             } catch (e: IOException) {
                 throw RestoreInterruption.SettingsPending(e)

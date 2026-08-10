@@ -8,6 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
 import dagger.hilt.android.AndroidEntryPoint
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.icon.DayIconManager
@@ -38,7 +40,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AppTheme {
+            val themePreference by repository.themePreferenceFlow.collectAsStateWithLifecycle(
+                initialValue = cloud.trotter.log.strength.domain.theme.ThemePreference.SYSTEM,
+            )
+            AppTheme(preference = themePreference) {
                 AppNavHost()
             }
         }

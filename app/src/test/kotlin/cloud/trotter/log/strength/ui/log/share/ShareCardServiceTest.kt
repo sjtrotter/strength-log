@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.log.share
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -14,6 +15,8 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.theme.DayAccentColors
+import cloud.trotter.log.strength.ui.theme.DarkBackground
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -132,6 +135,12 @@ class ShareCardServiceTest {
         val bitmap = BitmapFactory.decodeFile(firstFile.absolutePath)
         assertEquals(1080, bitmap.width)
         assertEquals(1350, bitmap.height)
+        // Robolectric bitmaps carry no real pixel data, so the dark-pinned
+        // contract is asserted at the painter's color seam, which render()
+        // itself consumes.
+        val painterColors = ShareCardPainter.colorInput(dayIndex = 0)
+        assertEquals(DarkBackground.toArgb(), painterColors.background)
+        assertEquals(DayAccentColors.brightHex(0).toInt(), painterColors.accent)
 
         // A second render (a different session) clears the first's file —
         // one render lives in cache/shares/ at a time (§3).

@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 
 /**
  * A complete, in-memory copy of everything a user owns — the whole DataStore
@@ -35,6 +36,7 @@ data class FullSnapshot(
     /** The keep-screen-on preference (#125). Defaulted off so the many fixtures
      *  that predate it still read as the setting's absent-means-off meaning. */
     val keepScreenOn: Boolean = false,
+    val themePreference: ThemePreference = ThemePreference.SYSTEM,
     val customExercises: List<CustomExerciseEntity>,
     val days: List<ProgramDayEntity>,
     val exercises: List<ProgramExerciseEntity>,

@@ -6,9 +6,13 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.assertIsSelected
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Assert.assertEquals
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -39,6 +43,24 @@ class SetupSectionsTest {
             composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
             composeTestRule.onNodeWithText(label).assertExists().assertHasNoClickAction()
         }
+    }
+
+    @Test
+    fun themeIsAResourcedRadioTrio() {
+        var chosen: ThemePreference? = null
+        composeTestRule.setContent {
+            AppTheme {
+                SetupScreen(
+                    state = SetupUiState(themePreference = ThemePreference.SYSTEM),
+                    actions = setupActions().copy(onThemePreferenceChange = { chosen = it }),
+                )
+            }
+        }
+
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("System"))
+        composeTestRule.onNodeWithText("System").assertIsSelected()
+        composeTestRule.onNodeWithText("Light").performClick()
+        assertEquals(ThemePreference.LIGHT, chosen)
     }
 
     private fun setupActions() = SetupActions(

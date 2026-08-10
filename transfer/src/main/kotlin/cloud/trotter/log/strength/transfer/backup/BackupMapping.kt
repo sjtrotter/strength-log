@@ -22,6 +22,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 
 /**
  * Maps between `:data`'s [FullSnapshot] (raw entities + settings) and the portable
@@ -64,6 +65,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
             restWorkSeconds = restSettings.overrides[RestCategory.WORK],
             restLightSeconds = restSettings.overrides[RestCategory.LIGHT],
             keepScreenOn = keepScreenOn,
+            theme = themePreference.name,
         ),
         customExercises = customExercises.map {
             CustomExerciseBackup(
@@ -243,6 +245,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             overrides = settings.restOverrides(),
         ),
         keepScreenOn = settings.keepScreenOn,
+        themePreference = enumOrDefault(settings.theme, ThemePreference.SYSTEM),
         customExercises = customExercises.map {
             CustomExerciseEntity(
                 id = it.id,

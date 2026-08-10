@@ -50,6 +50,7 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.BackAction
@@ -67,7 +68,7 @@ import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
-import cloud.trotter.log.strength.ui.theme.dayAccent
+import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import cloud.trotter.log.strength.ui.theme.readableWidth
 
 /**
@@ -82,7 +83,7 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
 fun SetupScreen(state: SetupUiState, actions: SetupActions) {
     var showRerunConfirm by rememberSaveable { mutableStateOf(false) }
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
-    val accent = dayAccent(0)
+    val accent = accentEmphasis(0)
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
@@ -101,6 +102,7 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 item { CardioSection(state.cardio, actions) }
                 item { SectionHeader(stringResource(R.string.setup_display_section)) }
                 item { UnitCard(state.unit, actions.onUnitToggle) }
+                item { ThemeSection(state.themePreference, actions.onThemePreferenceChange) }
                 item { SectionHeader(stringResource(R.string.setup_watch_section)) }
                 item {
                     RestTimerSection(
@@ -136,6 +138,29 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                     actions.onRestOverridesReset()
                 },
                 onDismiss = { showRestResetConfirm = false },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemeSection(theme: ThemePreference, onChange: (ThemePreference) -> Unit) {
+    val copy = listOf(
+        ThemePreference.SYSTEM to (R.string.setup_theme_system_title to R.string.setup_theme_system_description),
+        ThemePreference.DARK to (R.string.setup_theme_dark_title to R.string.setup_theme_dark_description),
+        ThemePreference.LIGHT to (R.string.setup_theme_light_title to R.string.setup_theme_light_description),
+    )
+    Column(
+        modifier = Modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(stringResource(R.string.setup_theme_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        copy.forEach { (value, resources) ->
+            SelectionCard(
+                title = stringResource(resources.first),
+                subtitle = stringResource(resources.second),
+                selected = theme == value,
+                onClick = { onChange(value) },
             )
         }
     }
@@ -500,7 +525,18 @@ private fun RestDefaultsConfirmDialog(
 @Preview(showBackground = true, heightDp = 1700, backgroundColor = 0xFF0D0D0F)
 @Composable
 private fun SetupScreenPreview() {
-    AppTheme {
+    SetupScreenPreviewContent(ThemePreference.DARK)
+}
+
+@Preview(showBackground = true, heightDp = 1700, backgroundColor = 0xFFF1EFEA)
+@Composable
+private fun SetupScreenLightPreview() {
+    SetupScreenPreviewContent(ThemePreference.LIGHT)
+}
+
+@Composable
+private fun SetupScreenPreviewContent(theme: ThemePreference) {
+    AppTheme(preference = theme) {
         SetupScreen(
             state = SetupStateBuilder.buildUiState(
                 cfg = LifterConfig(),
@@ -512,6 +548,7 @@ private fun SetupScreenPreview() {
                 onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEmphasisChange = {},
                 onCardioModeChange = {}, onCardioPlacementChange = {}, onFiveKChange = {},
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
+                onThemePreferenceChange = {},
                 onRestOverridesReset = {}, onRerunWizard = {}, onCreateCustomExercise = {}, onOpenBackup = {},
                 onOpenLicenses = {}, onBack = {},
             ),

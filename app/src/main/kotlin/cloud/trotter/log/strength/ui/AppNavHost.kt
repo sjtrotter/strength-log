@@ -323,6 +323,7 @@ private fun SetupRoute(
             onCardioPlacementChange = viewModel::setCardioPlacement,
             onFiveKChange = viewModel::setFiveK,
             onUnitToggle = viewModel::setUnit,
+            onThemePreferenceChange = viewModel::setThemePreference,
             onRestTimerEnabledChange = viewModel::setRestTimerEnabled,
             onRestOverrideChange = viewModel::setRestOverride,
             onRestOverridesReset = viewModel::clearRestOverrides,

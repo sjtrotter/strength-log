@@ -121,6 +121,7 @@ import cloud.trotter.log.strength.ui.theme.chromeVerticalPadding
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.text.resolve
 import kotlinx.coroutines.delay
 
@@ -333,7 +334,7 @@ private fun TopBar(
                         // The 2dp top inset owns the dot's overhang; neither the
                         // decoration nor its clipping contract escapes this row.
                         .height(50.dp)
-                        .drawSuggestedDayDecoration(state.tabs, tabGeometry, tabScrollState)
+                        .drawSuggestedDayDecoration(state.tabs, tabGeometry, tabScrollState, Background)
                         .padding(top = 2.dp),
                     containerColor = Color.Transparent,
                     contentColor = accent,
@@ -519,6 +520,7 @@ private fun Modifier.drawSuggestedDayDecoration(
     tabs: List<DayTab>,
     tabGeometry: List<TabGeometry?>,
     scrollState: ScrollState,
+    background: Color,
 ): Modifier = drawWithContent {
     val visual = DayTabVisualSize.toPx()
     val ownedTopClearance = 2.dp.toPx()
@@ -547,7 +549,7 @@ private fun Modifier.drawSuggestedDayDecoration(
         val logicalCenter = position.offsetX + position.width / 2f - scrollState.value
         val centerX = if (layoutDirection == LayoutDirection.Ltr) logicalCenter else size.width - logicalCenter
         val dotCenter = Offset(centerX + visual / 2f, visualTop)
-        drawCircle(color = Background, radius = 6.dp.toPx(), center = dotCenter)
+        drawCircle(color = background, radius = 6.dp.toPx(), center = dotCenter)
         drawCircle(color = dayAccent(tab.dayIndex), radius = 4.dp.toPx(), center = dotCenter)
     }
 }
@@ -617,11 +619,12 @@ private fun ExerciseCard(
         animationSpec = tween(200),
         label = "cardDoneEdge",
     )
+    val doneColor = Done
     AppCard(modifier = Modifier.drawWithContent {
         drawContent()
         // A finished card gets a 3dp green left edge (spec §8.2); non-done cards
         // carry only AppCard's hairline border (reference: no muted strip).
-        if (doneEdge > 0f) drawRect(color = Done.copy(alpha = doneEdge), size = Size(3.dp.toPx(), size.height))
+        if (doneEdge > 0f) drawRect(color = doneColor.copy(alpha = doneEdge), size = Size(3.dp.toPx(), size.height))
     }) {
         // The collapse toggle covers the title block only, never the trailing
         // controls: a control's touch target must not sit on top of a different
@@ -1295,6 +1298,12 @@ private fun DayScreenPreview() {
     DayScreenPreviewContent()
 }
 
+@Preview(showBackground = true, heightDp = 900, backgroundColor = 0xFFF1EFEA)
+@Composable
+private fun DayScreenLightPreview() {
+    DayScreenPreviewContent(theme = ThemePreference.LIGHT)
+}
+
 // Font-scale audit (A7): the DONE button's "ADVANCE TO DAY B" label and the
 // GOAL numeral are the two elements most at risk of clipping/overflow at
 // large system font scales — see the heightIn(min)/maxLines fix on
@@ -1312,7 +1321,7 @@ private fun DayScreenFontScale200Preview() {
 }
 
 @Composable
-private fun DayScreenPreviewContent() {
+private fun DayScreenPreviewContent(theme: ThemePreference = ThemePreference.DARK) {
     fun row(index: Int, kind: String, isTop: Boolean, w: Double, r: Int, done: Boolean = false) =
         SetRowState(index = index, kindLabel = kind, isTop = isTop, weightDisplay = w, reps = r, done = done)
 
@@ -1417,7 +1426,7 @@ private fun DayScreenPreviewContent() {
         keepScreenOn = false,
     )
 
-    AppTheme {
+    AppTheme(preference = theme) {
         DayScreen(
             state = previewState,
             actions = DayActions(

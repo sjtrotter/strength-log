@@ -11,9 +11,14 @@ import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.Color
+import cloud.trotter.log.strength.domain.theme.DayAccentColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Rule
@@ -21,6 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 
 /**
  * `ThemeCompletenessTest` proves the three values are complete; this proves
@@ -40,13 +46,13 @@ class ThemeWiringTest {
         var type: Typography? = null
         var shapes: Shapes? = null
         composeTestRule.setContent {
-            AppTheme {
+            AppTheme(preference = ThemePreference.DARK) {
                 colors = MaterialTheme.colorScheme
                 type = MaterialTheme.typography
                 shapes = MaterialTheme.shapes
             }
         }
-        assertSame(AppColorScheme, colors)
+        assertSame(DarkAppColorScheme, colors)
         assertEquals(AppTypography, type)
         assertEquals(AppShapes, shapes)
     }
@@ -56,16 +62,14 @@ class ThemeWiringTest {
         var indication: Indication? = null
         var configuration: RippleConfiguration? = null
         composeTestRule.setContent {
-            AppTheme {
+            AppTheme(preference = ThemePreference.DARK) {
                 indication = LocalIndication.current
                 configuration = LocalRippleConfiguration.current
             }
         }
 
-        assertSame(AppIndication, indication)
-        assertSame(AppRippleConfiguration, configuration)
-        assertEquals(AppColorScheme.onSurfaceVariant, configuration?.color)
-        assertEquals(1f, AppRippleColor.alpha)
+        assertEquals(DarkAppColorScheme.onSurfaceVariant, configuration?.color)
+        assertEquals(1f, configuration?.color?.alpha)
         // AppIndication is constructed from this opaque color and bounded flag;
         // Indication does not expose those constructor values for inspection.
         assertEquals(true, AppRippleBounded)
@@ -74,6 +78,77 @@ class ThemeWiringTest {
         assertEquals(0.04f, configuration?.rippleAlpha?.draggedAlpha)
         // The bespoke inset ring remains the only focus treatment.
         assertEquals(0f, configuration?.rippleAlpha?.focusedAlpha)
+    }
+
+    @Test
+    fun explicitLightThemeInstallsLightSchemeAndDarkContentRipple() {
+        var colors: ColorScheme? = null
+        var configuration: RippleConfiguration? = null
+        composeTestRule.setContent {
+            AppTheme(preference = ThemePreference.LIGHT) {
+                colors = MaterialTheme.colorScheme
+                configuration = LocalRippleConfiguration.current
+            }
+        }
+        assertSame(LightAppColorScheme, colors)
+        assertEquals(LightAppColorScheme.onSurfaceVariant, configuration?.color)
+        assertEquals(AppRipplePressedAlpha, configuration?.rippleAlpha?.pressedAlpha)
+        assertEquals(0.04f, configuration?.rippleAlpha?.hoveredAlpha)
+        assertEquals(0.04f, configuration?.rippleAlpha?.draggedAlpha)
+        assertEquals(0f, configuration?.rippleAlpha?.focusedAlpha)
+    }
+
+    @Test
+    fun explicitDarkOverridesLightSystemAppearance() {
+        var colors: ColorScheme? = null
+        composeTestRule.setContent {
+            AppTheme(preference = ThemePreference.DARK, systemInDarkTheme = false) {
+                colors = MaterialTheme.colorScheme
+            }
+        }
+        assertSame(DarkAppColorScheme, colors)
+    }
+
+    @Test
+    fun explicitLightOverridesDarkSystemAppearance() {
+        var colors: ColorScheme? = null
+        composeTestRule.setContent {
+            AppTheme(preference = ThemePreference.LIGHT, systemInDarkTheme = true) {
+                colors = MaterialTheme.colorScheme
+            }
+        }
+        assertSame(LightAppColorScheme, colors)
+    }
+
+    @Test
+    fun systemPreferenceFollowsChangedSystemAppearance() {
+        var systemInDarkTheme by mutableStateOf(false)
+        var colors: ColorScheme? = null
+        composeTestRule.setContent {
+            AppTheme(preference = ThemePreference.SYSTEM, systemInDarkTheme = systemInDarkTheme) {
+                colors = MaterialTheme.colorScheme
+            }
+        }
+
+        composeTestRule.runOnIdle {
+            assertSame(LightAppColorScheme, colors)
+            systemInDarkTheme = true
+        }
+        composeTestRule.runOnIdle {
+            assertSame(DarkAppColorScheme, colors)
+        }
+    }
+
+    @Test
+    fun accentEmphasisResolvesBrightForDarkAndDeepForLight() {
+        var dark: Color? = null
+        var light: Color? = null
+        composeTestRule.setContent {
+            AppTheme(preference = ThemePreference.DARK) { dark = accentEmphasis(2) }
+            AppTheme(preference = ThemePreference.LIGHT) { light = accentEmphasis(2) }
+        }
+        assertEquals(Color(DayAccentColors.brightHex(2)), dark)
+        assertEquals(Color(DayAccentColors.deepHex(2)), light)
     }
 
     /**

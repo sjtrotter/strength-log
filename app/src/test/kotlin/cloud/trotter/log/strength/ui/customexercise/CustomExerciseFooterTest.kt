@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.customexercise
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -66,6 +67,16 @@ class CustomExerciseFooterTest {
         var cancels = 0
         setContent(CustomExerciseUiState(), onCancel = { cancels++ })
         composeTestRule.onNodeWithText("CANCEL").performClick()
+        assertEquals(1, cancels)
+    }
+
+    @Test
+    fun headerCancelAnnouncesItsActionAndFires() {
+        var cancels = 0
+        setContent(CustomExerciseUiState(), onCancel = { cancels++ })
+
+        composeTestRule.onNodeWithContentDescription("Cancel").performClick()
+
         assertEquals(1, cancels)
     }
 }

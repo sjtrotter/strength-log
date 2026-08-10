@@ -496,7 +496,13 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly (#17
 @Composable
 private fun PickerHeader(title: String, onBack: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        BackAction(onClick = onBack, visualSize = 32.dp, outlined = false)
+        BackAction(
+            onClick = onBack,
+            visualSize = 32.dp,
+            outlined = false,
+            shape = RoundedCornerShape(8.dp),
+            iconSize = 18.dp,
+        )
         Spacer(Modifier.size(10.dp))
         Text(title, color = TextPrimary, style = CardTitle)
     }

@@ -96,7 +96,7 @@ private fun Header(actions: CustomExerciseActions) {
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text("New exercise", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-        CloseAction(onClick = actions.onCancel)
+        CloseAction(onClick = actions.onCancel, contentDescription = "Cancel")
     }
 }
 

@@ -431,13 +431,13 @@ class A11ySemanticsTest {
     }
 
     @Test
-    fun closeActionExposesOnlyTheVectorDescription() {
-        composeTestRule.setContent { AppTheme { CloseAction(onClick = {}) } }
+    fun closeActionExposesOnlyTheRequestedVectorDescription() {
+        composeTestRule.setContent { AppTheme { CloseAction(onClick = {}, contentDescription = "Cancel") } }
 
-        val close = composeTestRule.onNodeWithContentDescription("Close")
+        val close = composeTestRule.onNodeWithContentDescription("Cancel")
         close.assertExists()
         val config = close.fetchSemanticsNode().config
-        assertEquals(listOf("Close"), config.getOrNull(SemanticsProperties.ContentDescription))
+        assertEquals(listOf("Cancel"), config.getOrNull(SemanticsProperties.ContentDescription))
         assertTrue(config.getOrNull(SemanticsProperties.Text).isNullOrEmpty())
     }
 }

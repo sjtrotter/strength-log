@@ -45,7 +45,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -173,8 +172,22 @@ class DayViewModel @Inject constructor(
         cardioPlanIdentity, cardioStartedWall, cardioStartedElapsed, cardioStartedBoot,
     ) { identity, wall, elapsed, boot -> CardioAnchors(identity, wall, elapsed, boot) }
 
+    /** One tick per second while a block runs and someone is watching; nothing
+     *  otherwise. Living inside the uiState pipeline means WhileSubscribed owns
+     *  its lifecycle — no free-running loop survives the screen. */
+    private val cardioSecondTicker = cardioPlanIdentity.flatMapLatest { identity ->
+        if (identity == null) flowOf(0L)
+        else flow {
+            var beat = 0L
+            while (true) {
+                emit(beat++)
+                delay(CARDIO_TICK_MS)
+            }
+        }
+    }
+
     val uiState: StateFlow<DayUiState> =
-        combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick) { a, _ -> a }) {
+        combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }) {
                 state, keepOn, history, anchors ->
             val cardio = buildCardioState(state, history, anchors)
             maybeArmCardioBoundary(cardio, anchors)
@@ -246,14 +259,6 @@ class DayViewModel @Inject constructor(
 
     init {
         seedMissingLogs()
-        viewModelScope.launch {
-            cardioPlanIdentity.collectLatest { identity ->
-                while (identity != null) {
-                    cardioTick.value++
-                    delay(CARDIO_TICK_MS)
-                }
-            }
-        }
     }
 
     // --- user intents --------------------------------------------------------

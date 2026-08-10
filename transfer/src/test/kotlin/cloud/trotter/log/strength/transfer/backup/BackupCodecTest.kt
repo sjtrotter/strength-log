@@ -135,6 +135,69 @@ class BackupCodecTest {
     }
 
     @Test
+    fun `cardio duration bounds pin 59 60 86400 and 86401 seconds independently`() {
+        fun decode(seconds: Int) = codec.decode(codec.encode(document(cardioSessions = listOf(
+            cardio(seconds = seconds, startedAt = 1_000, completedAt = 2_000),
+        ))))
+        assertFailsWith<BackupError.Inconsistent> { decode(59) }
+        assertEquals(60, decode(60).cardioSessions.single().seconds)
+        assertEquals(86_400, decode(86_400).cardioSessions.single().seconds)
+        assertFailsWith<BackupError.Inconsistent> { decode(86_401) }
+    }
+
+    @Test
+    fun `cardio rejects equal and reversed timestamps independently`() {
+        assertFailsWith<BackupError.Inconsistent> { decodeCardio(cardio(startedAt = 2_000, completedAt = 2_000)) }
+        assertFailsWith<BackupError.Inconsistent> { decodeCardio(cardio(startedAt = 3_000, completedAt = 2_000)) }
+    }
+
+    @Test
+    fun `cardio label bounds pin blank 80 and 81 characters independently`() {
+        assertFailsWith<BackupError.Inconsistent> { decodeCardio(cardio(label = " ")) }
+        assertEquals(80, decodeCardio(cardio(label = "x".repeat(80))).cardioSessions.single().label.length)
+        assertFailsWith<BackupError.Inconsistent> { decodeCardio(cardio(label = "x".repeat(81))) }
+    }
+
+    @Test
+    fun `cardio rejects negative steps and duplicate ids independently`() {
+        assertFailsWith<BackupError.Inconsistent> { decodeCardio(cardio(stepsCompleted = -1)) }
+        val duplicate = cardio(id = 9)
+        assertFailsWith<BackupError.Inconsistent> {
+            codec.decode(codec.encode(document(cardioSessions = listOf(duplicate, duplicate.copy(label = "Tempo")))))
+        }
+    }
+
+    @Test
+    fun `unknown cardio mode is accepted by the backup codec`() {
+        assertEquals("FUTURE_MODE", decodeCardio(cardio(mode = "FUTURE_MODE")).cardioSessions.single().mode)
+    }
+
+    @Test
+    fun `v1 through v4 absence of cardio sessions defaults independently`() {
+        (1..4).forEach { version ->
+            val legacy = codec.encode(document().copy(schemaVersion = version))
+                .replace(",\"cardioSessions\":[]", "")
+            assertTrue(codec.decode(legacy).cardioSessions.isEmpty(), "v$version")
+        }
+    }
+
+    private fun cardio(
+        id: Long = 3,
+        mode: String = "OUTDOOR_RUN",
+        label: String = "Easy Zone 2",
+        startedAt: Long = 1_000,
+        completedAt: Long = 61_000,
+        seconds: Int = 60,
+        stepsCompleted: Int = 1,
+    ) = CardioSessionBackup(
+        id = id, dayId = "A", mode = mode, hard = false, label = label,
+        startedAt = startedAt, completedAt = completedAt, seconds = seconds, stepsCompleted = stepsCompleted,
+    )
+
+    private fun decodeCardio(cardio: CardioSessionBackup): BackupDocument =
+        codec.decode(codec.encode(document(cardioSessions = listOf(cardio))))
+
+    @Test
     fun `a valid backup referencing its own custom exercise passes validation`() {
         // The superset partner (custom.id) resolves only via the backup's own
         // customExercises, proving they join the resolvable set.

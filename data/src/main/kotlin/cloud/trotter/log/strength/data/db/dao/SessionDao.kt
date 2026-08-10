@@ -71,7 +71,7 @@ data class SessionTonnageRow(
 @Dao
 interface SessionDao {
 
-    @Query("SELECT * FROM workout_session ORDER BY completedAt DESC")
+    @Query("SELECT * FROM workout_session ORDER BY completedAt DESC, id DESC")
     fun observeSessions(): Flow<List<WorkoutSessionEntity>>
 
     /**
@@ -84,7 +84,7 @@ interface SessionDao {
         FROM workout_session ws
         LEFT JOIN session_set ss ON ss.sessionId = ws.id
         GROUP BY ws.id
-        ORDER BY ws.completedAt DESC
+        ORDER BY ws.completedAt DESC, ws.id DESC
         """,
     )
     fun observeSessionSummaries(): Flow<List<SessionSummaryRow>>

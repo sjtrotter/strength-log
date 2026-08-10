@@ -15,6 +15,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -23,6 +24,10 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class TrackerRepositoryCardioTest {
+    @Test fun `unknown mode stays unknown for typed consumers`() {
+        assertNull(cardio("Future", 2_000).copy(mode = "FUTURE_MODE").decodedCardioMode())
+    }
+
     @Test fun `cardio write commits and flow reads newest first`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
@@ -34,7 +39,11 @@ class TrackerRepositoryCardioTest {
         try {
             repo.logCardioSession(cardio("Easy Zone 2", 2_000))
             val id = repo.logCardioSession(cardio("Tempo", 3_000))
-            assertEquals(listOf("Tempo", "Easy Zone 2"), repo.cardioSessionsFlow.first().map { it.label })
+            repo.logCardioSession(cardio("Later id at same time", 3_000))
+            assertEquals(
+                listOf("Later id at same time", "Tempo", "Easy Zone 2"),
+                repo.cardioSessionsFlow.first().map { it.label },
+            )
             assertEquals("Tempo", repo.cardioSession(id)?.label)
         } finally { db.close(); scope.cancel() }
     }

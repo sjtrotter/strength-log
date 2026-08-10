@@ -44,11 +44,38 @@ object HistoryCsvWriter {
         cardioSessions: List<CardioSessionEntity> = emptyList(),
     ): String {
         val setsBySession = sessionSets.groupBy { it.sessionId }
-        val orderedSessions = sessions.sortedWith(compareBy({ it.completedAt }, { it.id }))
-
         val rows = mutableListOf<List<String>>()
         rows.add(HISTORY_CSV_HEADER)
-        for (session in orderedSessions) {
+        val history = sessions.map { HistoryRow.Strength(it) } + cardioSessions.map { HistoryRow.Cardio(it) }
+        for (item in history.sortedWith(compareBy({ it.completedAt }, { it.id }, { it is HistoryRow.Cardio }))) {
+            when (item) {
+                is HistoryRow.Strength -> writeStrengthRows(rows, item.session, setsBySession, unit, zone)
+                is HistoryRow.Cardio -> writeCardioRow(rows, item.session, zone)
+            }
+        }
+        return rows.joinToString("\r\n", postfix = "\r\n") { Csv.writeRow(it) }
+    }
+
+    private sealed interface HistoryRow {
+        val completedAt: Long
+        val id: Long
+        data class Strength(val session: WorkoutSessionEntity) : HistoryRow {
+            override val completedAt = session.completedAt
+            override val id = session.id
+        }
+        data class Cardio(val session: CardioSessionEntity) : HistoryRow {
+            override val completedAt = session.completedAt
+            override val id = session.id
+        }
+    }
+
+    private fun writeStrengthRows(
+        rows: MutableList<List<String>>,
+        session: WorkoutSessionEntity,
+        setsBySession: Map<Long, List<SessionSetEntity>>,
+        unit: WeightUnit,
+        zone: ZoneId,
+    ) {
             val date = DATE_FORMAT.format(Instant.ofEpochMilli(session.completedAt).atZone(zone))
             val duration = durationField(session)
             val sets = setsBySession[session.id].orEmpty().sortedBy { it.id }
@@ -72,6 +99,7 @@ object HistoryCsvWriter {
                         duration,
                         Csv.neutralizeFormula(set.exerciseName),
                         (set.setIndex + 1).toString(),
+                        "", // Set Type — reserved for the exact cardio discriminator
                         weightCell,
                         unit.name.lowercase(),
                         if (isTimed) "" else set.reps.toString(),
@@ -84,8 +112,9 @@ object HistoryCsvWriter {
                     ),
                 )
             }
-        }
-        for (session in cardioSessions.sortedWith(compareBy({ it.completedAt }, { it.id }))) {
+    }
+
+    private fun writeCardioRow(rows: MutableList<List<String>>, session: CardioSessionEntity, zone: ZoneId) {
             val date = DATE_FORMAT.format(Instant.ofEpochMilli(session.completedAt).atZone(zone))
             rows.add(
                 listOf(
@@ -94,6 +123,7 @@ object HistoryCsvWriter {
                     formatDuration(session.seconds),
                     Csv.neutralizeFormula(session.label),
                     "",
+                    CARDIO_MARKER,
                     "",
                     "",
                     "",
@@ -101,12 +131,10 @@ object HistoryCsvWriter {
                     session.hard.toString(),
                     session.seconds.toString(),
                     session.mode,
-                    CARDIO_MARKER,
+                    "", // Workout Notes — notes, never a routing discriminator
                     session.stepsCompleted.toString(),
                 ),
             )
-        }
-        return rows.joinToString("\r\n", postfix = "\r\n") { Csv.writeRow(it) }
     }
 
     /** Whole numbers print without a trailing ".0" (Strong's own convention);

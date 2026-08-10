@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -49,12 +50,13 @@ class HistoryCsvWriterTest {
         assertEquals("", row[2]) // Duration
         assertEquals("Barbell Back Squat", row[3])
         assertEquals("1", row[4]) // Set Order is 1-based
-        assertEquals("225", row[5])
-        assertEquals("lb", row[6])
-        assertEquals("5", row[7])
-        assertEquals("", row[8]) // Distance
-        assertEquals("", row[11]) // Notes
-        assertEquals("", row[13]) // RPE
+        assertEquals("", row[HISTORY_CSV_HEADER.indexOf("Set Type")])
+        assertEquals("225", row[HISTORY_CSV_HEADER.indexOf("Weight")])
+        assertEquals("lb", row[HISTORY_CSV_HEADER.indexOf("Weight Unit")])
+        assertEquals("5", row[HISTORY_CSV_HEADER.indexOf("Reps")])
+        assertEquals("", row[HISTORY_CSV_HEADER.indexOf("Distance")])
+        assertEquals("", row[HISTORY_CSV_HEADER.indexOf("Notes")])
+        assertEquals("", row[HISTORY_CSV_HEADER.indexOf("RPE")])
     }
 
     @Test
@@ -65,8 +67,8 @@ class HistoryCsvWriterTest {
         val csv = HistoryCsvWriter.export(listOf(session), sets, WeightUnit.KG, zone)
         val row = Csv.parse(csv)[1]
 
-        assertEquals("kg", row[6])
-        assertEquals(100.0, row[5].toDouble(), 0.001)
+        assertEquals("kg", row[HISTORY_CSV_HEADER.indexOf("Weight Unit")])
+        assertEquals(100.0, row[HISTORY_CSV_HEADER.indexOf("Weight")].toDouble(), 0.001)
     }
 
     @Test
@@ -121,6 +123,20 @@ class HistoryCsvWriterTest {
     }
 
     @Test
+    fun `strength and cardio rows are globally interleaved by completion time`() {
+        val strength = WorkoutSessionEntity(2, "A", "Strength", null, 2_000L, 235)
+        val cardio = CardioSessionEntity(
+            id = 1, dayId = "A", mode = "TREADMILL", hard = false, label = "Earlier cardio",
+            startedAt = -59_000, completedAt = 1_000, seconds = 60, stepsCompleted = 1,
+        )
+        val rows = Csv.parse(HistoryCsvWriter.export(
+            listOf(strength), listOf(set(2, 1, "Squat", 0, 100.0, 5)), WeightUnit.LB, zone, listOf(cardio),
+        )).drop(1)
+
+        assertEquals(listOf("Earlier cardio", "Squat"), rows.map { it[HISTORY_CSV_HEADER.indexOf("Exercise Name")] })
+    }
+
+    @Test
     fun `exporting the same state twice is byte-identical`() {
         val session = WorkoutSessionEntity(1, "A", "Day, \"A\"", null, 1_720_000_000_000L, 235)
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
@@ -141,8 +157,8 @@ class HistoryCsvWriterTest {
 
             assertEquals("'$name", row[1])
             assertEquals("'$name", row[3])
-            assertEquals("225", row[5])
-            assertEquals("5", row[7])
+            assertEquals("225", row[HISTORY_CSV_HEADER.indexOf("Weight")])
+            assertEquals("5", row[HISTORY_CSV_HEADER.indexOf("Reps")])
         }
     }
 

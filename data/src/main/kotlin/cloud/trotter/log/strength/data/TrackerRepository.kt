@@ -487,7 +487,8 @@ open class TrackerRepository(
      * Append-only cardio history, newest completion first. Labels are valid only
      * when non-blank and at most [CARDIO_LABEL_MAX_LENGTH] characters. A mode is
      * persisted as [CardioMode.name]; readers must use [decodedCardioMode], whose
-     * `entries.firstOrNull` fallback keeps an unknown future name readable.
+     * nullable decode keeps an unknown future name readable without pretending
+     * it is a known activity mode.
      */
     val cardioSessionsFlow: Flow<List<CardioSessionEntity>> = cardioSessionDao.observeSessions()
 
@@ -496,7 +497,7 @@ open class TrackerRepository(
      * deliberately explicit even though C1 writes one row: this is the single
      * write boundary future paired effects must join, never a UI-held staging
      * value. Labels are non-blank and capped at 80 characters; modes are stored
-     * by enum name and decoded with [decodedCardioMode]'s fallback on read.
+     * by enum name and decoded with [decodedCardioMode] on read.
      */
     suspend fun logCardioSession(session: CardioSessionEntity): Long {
         require(session.label.isNotBlank()) { "cardio label must not be blank" }
@@ -885,6 +886,6 @@ open class TrackerRepository(
     }
 }
 
-/** Unknown stored enum names fall back without making the history row unreadable. */
-fun CardioSessionEntity.decodedCardioMode(): CardioMode =
-    CardioMode.entries.find { it.name == mode } ?: CardioMode.OUTDOOR_RUN
+/** Unknown stored enum names stay unknown: callers may render [mode], while typed consumers skip it. */
+fun CardioSessionEntity.decodedCardioMode(): CardioMode? =
+    CardioMode.entries.find { it.name == mode }

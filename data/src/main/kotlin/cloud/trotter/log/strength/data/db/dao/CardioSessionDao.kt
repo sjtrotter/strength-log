@@ -14,7 +14,7 @@ interface CardioSessionDao {
     @Insert
     suspend fun insertAll(sessions: List<CardioSessionEntity>)
 
-    @Query("SELECT * FROM cardio_session ORDER BY completedAt DESC")
+    @Query("SELECT * FROM cardio_session ORDER BY completedAt DESC, id DESC")
     fun observeSessions(): Flow<List<CardioSessionEntity>>
 
     @Query("SELECT * FROM cardio_session WHERE id = :id")

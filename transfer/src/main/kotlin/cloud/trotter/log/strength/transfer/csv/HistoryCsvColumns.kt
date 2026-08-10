@@ -6,7 +6,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  * Strong's column layout (PLAN.md A2/A5, issue #16) — the header this app's
  * own export always writes, and the de facto interchange format Hevy/
  * FitNotes/spreadsheets also target. Duration, Distance, Distance Unit,
- * Notes, Workout Notes and RPE are always emitted empty: this app doesn't
+ * Workout Notes is always emitted empty: this app doesn't
  * track them, but the headers stay present for round-trip compatibility with
  * tools that read a fixed Strong-shaped column set. The `Seconds` column is
  * written for TIMED holds/carries and read back on import (tracking types).
@@ -17,6 +17,7 @@ val HISTORY_CSV_HEADER: List<String> = listOf(
     "Duration",
     "Exercise Name",
     "Set Order",
+    "Set Type",
     "Weight",
     "Weight Unit",
     "Reps",
@@ -35,7 +36,7 @@ val HISTORY_CSV_HEADER: List<String> = listOf(
  */
 internal enum class HistoryField {
     DATE, WORKOUT_NAME, DURATION, EXERCISE_NAME, SET_ORDER, WEIGHT, WEIGHT_UNIT,
-    REPS, SECONDS, DISTANCE, DISTANCE_UNIT, NOTES, WORKOUT_NOTES, RPE,
+    SET_TYPE, REPS, SECONDS, DISTANCE, DISTANCE_UNIT, NOTES, WORKOUT_NOTES, RPE,
 }
 
 /** Header spellings recognized for each field, matched case/whitespace-
@@ -46,6 +47,7 @@ internal val HISTORY_FIELD_ALIASES: Map<HistoryField, List<String>> = mapOf(
     HistoryField.WORKOUT_NAME to listOf("Workout Name", "Title"),
     HistoryField.EXERCISE_NAME to listOf("Exercise Name", "Exercise Title"),
     HistoryField.SET_ORDER to listOf("Set Order", "Set Index"),
+    HistoryField.SET_TYPE to listOf("Set Type", "set_type"),
     HistoryField.WEIGHT to listOf("Weight", "Weight (kg)", "Weight (lb)", "Weight Kg", "Weight Lb"),
     HistoryField.WEIGHT_UNIT to listOf("Weight Unit"),
     HistoryField.REPS to listOf("Reps"),
@@ -60,7 +62,7 @@ internal val HISTORY_FIELD_ALIASES: Map<HistoryField, List<String>> = mapOf(
     HistoryField.RPE to listOf("RPE"),
 )
 
-internal const val CARDIO_MARKER = "Set Type = cardio"
+internal const val CARDIO_MARKER = "cardio"
 
 /**
  * The unit a [HistoryField.WEIGHT] header spelling implies on its own, for

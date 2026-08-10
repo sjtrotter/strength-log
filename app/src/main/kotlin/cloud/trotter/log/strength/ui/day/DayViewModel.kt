@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
@@ -27,6 +28,7 @@ import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -39,9 +41,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -80,6 +82,7 @@ class DayViewModel @Inject constructor(
     private val sessionPublisher: SessionPublisher,
     private val shareCardService: ShareCardService,
     private val savedState: SavedStateHandle,
+    @CivilDay private val today: Flow<LocalDate>,
 ) : ViewModel() {
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
@@ -123,7 +126,7 @@ class DayViewModel @Inject constructor(
             val slotsWithHistory = repo.daySlotsFlow(dayId).flatMapLatest { slots ->
                 flow { emit(slots to fetchDayHistory(slots)) }
             }
-            combine(slotsWithHistory, repo.logFlow(dayId), manualCollapse) { slotsAndHistory, logs, collapse ->
+            combine(slotsWithHistory, repo.logFlow(dayId, today), manualCollapse) { slotsAndHistory, logs, collapse ->
                 val (slots, history) = slotsAndHistory
                 buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, collapse, history)
             }
@@ -428,7 +431,7 @@ class DayViewModel @Inject constructor(
             // coerce below; the receipt then names no next day rather than
             // throwing on a workout that was already committed.
             val nextDayId = if (dayIndex >= 0) Rotation.next(program, day) else null
-            val sessionId = repo.advanceDay(day)
+            val sessionId = repo.advanceDay(day, today.first())
             savedState[KEY_COLLAPSE] = emptyMap<Long, Boolean>()
             savedState[KEY_VIEW_DAY] = null
             val unit = repo.unitFlow.first()
@@ -553,7 +556,7 @@ class DayViewModel @Inject constructor(
     }
 
     private suspend fun ensureSeeded(dayId: String, slots: List<ProgramSlot>) = mutationLock.withLock {
-        val existing = repo.logFlow(dayId).first()
+        val existing = repo.logFlow(dayId, today).first()
             .associate { (it.programExerciseId to it.slot) to it.sets.size }
         val cfg = repo.configFlow.first()
         val catalog = repo.catalogFlow.first()
@@ -575,7 +578,7 @@ class DayViewModel @Inject constructor(
     private fun currentDay(): String? = effectiveDayId.value
 
     private suspend fun trackFor(dayId: String, programExerciseId: Long, slot: String): List<LoggedSet> =
-        repo.logFlow(dayId).first()
+        repo.logFlow(dayId, today).first()
             .firstOrNull { it.programExerciseId == programExerciseId && it.slot == slot }
             ?.sets ?: emptyList()
 

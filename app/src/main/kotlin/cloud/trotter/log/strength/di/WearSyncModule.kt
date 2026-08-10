@@ -16,10 +16,12 @@ import cloud.trotter.log.strength.sync.SetEditApplier
 import cloud.trotter.log.strength.sync.TodaySnapshotSource
 import cloud.trotter.log.strength.sync.WearSyncPublisher
 import cloud.trotter.log.strength.sync.WearSyncStore
+import java.time.LocalDate
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Object graph for the phone-side wear sync (D6), plus the [TodaySnapshotSource]
@@ -46,15 +48,20 @@ object WearSyncModule {
 
     @Provides
     @Singleton
-    fun setEditApplier(repo: TrackerRepository, store: WearSyncStore): SetEditApplier =
-        SetEditApplier(repo, store)
+    fun setEditApplier(
+        repo: TrackerRepository,
+        store: WearSyncStore,
+        @CivilDay today: Flow<LocalDate>,
+    ): SetEditApplier = SetEditApplier(repo, store, today)
 
     /** One source, every glance surface: the widget observer reads this same
      *  instance (glance-surfaces.md §4.2). */
     @Provides
     @Singleton
-    fun todaySnapshotSource(repo: TrackerRepository): TodaySnapshotSource =
-        TodaySnapshotSource(repo)
+    fun todaySnapshotSource(
+        repo: TrackerRepository,
+        @CivilDay today: Flow<LocalDate>,
+    ): TodaySnapshotSource = TodaySnapshotSource(repo, today)
 
     @Provides
     @Singleton

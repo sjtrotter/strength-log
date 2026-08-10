@@ -2,11 +2,13 @@ package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -28,7 +30,10 @@ import kotlinx.coroutines.flow.flowOf
  * real revision, at publish time, so dedupe upstream compares content alone.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class TodaySnapshotSource(private val repo: TrackerRepository) {
+class TodaySnapshotSource(
+    private val repo: TrackerRepository,
+    @CivilDay private val today: Flow<LocalDate>,
+) {
 
     val snapshots: Flow<WatchSnapshot?> =
         repo.suggestedDayFlow.flatMapLatest { dayId ->
@@ -38,7 +43,7 @@ class TodaySnapshotSource(private val repo: TrackerRepository) {
                 val program = combine(
                     repo.programFlow,
                     repo.daySlotsFlow(dayId),
-                    repo.logFlow(dayId),
+                    repo.logFlow(dayId, today),
                 ) { program, slots, logs -> Triple(program, slots, logs) }
                 // restSettingsFlow rides the context combine so a Setup edit (master
                 // toggle or a duration) republishes immediately — the watch never

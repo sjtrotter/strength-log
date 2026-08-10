@@ -9,14 +9,17 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -40,7 +43,10 @@ import kotlinx.coroutines.flow.stateIn
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class TodayViewModel @Inject constructor(private val repo: TrackerRepository) : ViewModel() {
+class TodayViewModel @Inject constructor(
+    private val repo: TrackerRepository,
+    @CivilDay private val today: Flow<LocalDate>,
+) : ViewModel() {
 
     private val contextFlow =
         combine(
@@ -66,7 +72,7 @@ class TodayViewModel @Inject constructor(private val repo: TrackerRepository) : 
         } else {
             combine(
                 repo.daySlotsFlow(dayId),
-                repo.logFlow(dayId),
+                repo.logFlow(dayId, today),
                 repo.sessionSummariesFlow,
                 repo.topSetHistoryFlow,
             ) { slots, logs, sessions, topSets ->

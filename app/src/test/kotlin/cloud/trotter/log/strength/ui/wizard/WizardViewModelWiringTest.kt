@@ -353,7 +353,7 @@ class WizardViewModelWiringTest {
         vm.onNext() // last step -> finish(): ProgramGenerator -> replaceProgram
         advanceUntilIdle()
 
-        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle())
+        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle(), kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()))
             .also { vms += it }
         advanceUntilIdle() // constructing the VM triggers the day-A seed pass
 

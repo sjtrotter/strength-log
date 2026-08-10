@@ -15,7 +15,13 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.time.SystemCivilTimeSource
 import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 
 /**
  * The data layer's object graph — the one place the Room DB and Preferences
@@ -70,6 +76,22 @@ object DataModule {
     @Provides
     @Singleton
     fun civilTimeSource(source: SystemCivilTimeSource): CivilTimeSource = source
+
+    @Provides
+    @Singleton
+    @CivilDay
+    fun civilDay(
+        source: CivilTimeSource,
+        @ApplicationScope scope: CoroutineScope,
+    ): Flow<LocalDate> = source.civilTime
+        .map { it.date }
+        // Drop replay when the last consumer leaves. A later one must take a
+        // fresh CivilTime reading, never briefly observe the date it left behind.
+        .shareIn(
+            scope,
+            SharingStarted.WhileSubscribed(stopTimeoutMillis = 0, replayExpirationMillis = 0),
+            replay = 1,
+        )
 
     @Provides
     @Singleton

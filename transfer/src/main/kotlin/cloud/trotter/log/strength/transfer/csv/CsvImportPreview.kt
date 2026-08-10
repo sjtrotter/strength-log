@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 data class CsvImportPreview(
     val sessions: List<PreviewSession>,
     val unmatchedNames: List<UnmatchedExerciseName>,
+    val cardioSessions: List<PreviewCardioSession> = emptyList(),
 ) {
     val isFullyMatched: Boolean get() = unmatchedNames.isEmpty()
 }
@@ -29,6 +30,17 @@ data class PreviewSession(
     val dayTitle: String,
     val completedAt: Long,
     val sets: List<PreviewSet>,
+)
+
+data class PreviewCardioSession(
+    val dayId: String?,
+    val mode: String,
+    val hard: Boolean,
+    val label: String,
+    val startedAt: Long,
+    val completedAt: Long,
+    val seconds: Int,
+    val stepsCompleted: Int,
 )
 
 /** One CSV row, resolved as far as it can be without user input. [seconds] is a

@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
@@ -40,4 +41,5 @@ data class FullSnapshot(
     val logs: List<ExerciseLogEntity>,
     val sessions: List<WorkoutSessionEntity>,
     val sessionSets: List<SessionSetEntity>,
+    val cardioSessions: List<CardioSessionEntity> = emptyList(),
 )

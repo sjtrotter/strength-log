@@ -87,7 +87,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // backup must always restore. A newer version is still rejected
             // loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj)))
-            CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
+            5, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -156,6 +156,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
         validateLiveLogs(doc.liveLogs, slotsByDay)
         validateSessions(doc.sessions)
+        validateCardioSessions(doc.cardioSessions)
     }
 
     private fun validateSettings(settings: SettingsBackup) {
@@ -281,6 +282,30 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 if (set.weightLb < 0 || set.reps < 0 || set.setIndex < 0 || set.seconds < 0) {
                     throw BackupError.Inconsistent("negative weight/reps/setIndex/seconds on set ${set.id} in session ${s.id}")
                 }
+            }
+        }
+    }
+
+    private fun validateCardioSessions(sessions: List<CardioSessionBackup>) {
+        val ids = HashSet<Long>()
+        sessions.forEachIndexed { index, session ->
+            if (!ids.add(session.id)) {
+                throw BackupError.Inconsistent("duplicate cardio session id ${session.id}")
+            }
+            if (session.completedAt <= session.startedAt) {
+                throw BackupError.Inconsistent("cardio session[$index] completedAt must be after startedAt")
+            }
+            if (session.seconds !in 60..86_400) {
+                throw BackupError.Inconsistent("cardio session[$index] seconds out of range: ${session.seconds}")
+            }
+            if (session.label.isBlank()) {
+                throw BackupError.Inconsistent("cardio session[$index] label must not be blank")
+            }
+            if (session.label.length > 80) {
+                throw BackupError.Inconsistent("cardio session[$index] label is longer than 80 characters")
+            }
+            if (session.stepsCompleted < 0) {
+                throw BackupError.Inconsistent("cardio session[$index] stepsCompleted must not be negative")
             }
         }
     }

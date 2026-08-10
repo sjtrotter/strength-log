@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_1_2
 import cloud.trotter.log.strength.data.db.MIGRATION_2_3
 import cloud.trotter.log.strength.data.db.MIGRATION_3_4
 import cloud.trotter.log.strength.data.db.MIGRATION_4_5
+import cloud.trotter.log.strength.data.db.MIGRATION_5_6
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -47,7 +48,7 @@ class Migration1To2Test {
         createV1DatabaseWithRows()
 
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .allowMainThreadQueries()
             .build()
         try {

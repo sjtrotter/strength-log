@@ -13,8 +13,8 @@ import java.time.format.DateTimeParseException
 /**
  * Parses a Strong/Hevy-shaped CSV into the pure [CsvImportPreview] (issue
  * #16). Validation order mirrors [BackupCodec]: size cap, then CSV
- * well-formedness, then header (column presence + weight-unit resolvability),
- * then each row, then exercise-name matching — cheapest and most fundamental
+ * well-formedness, then common headers, row routing, conditional strength
+ * columns/unit resolution, then each row and exercise-name matching —
  * checks first, so a bad file fails fast and *before* anything is grouped
  * into sessions.
  *
@@ -79,20 +79,31 @@ object HistoryCsvReader {
         if (dataRows.isEmpty()) throw CsvImportError.Empty()
 
         val columns = mapColumns(header)
-        val weightUnitResolver = resolveWeightUnit(header, columns)
+        val typedRows = dataRows.mapIndexed { index, fields ->
+            TypedRow(index + 2, fields, isCardioMarker(fields, columns))
+        }
+        val hasStrengthRows = typedRows.any { !it.cardio }
+        if (hasStrengthRows) requireStrengthColumns(columns)
+        val weightUnitResolver = if (hasStrengthRows) resolveWeightUnit(header, columns) else null
 
         // Cardio / bodyweight rows (both weight and reps blank) aren't strength
         // sets we model, so parseRow returns null for them and they're dropped
         // here rather than rejecting the whole file.
-        val parsedRows = dataRows.mapIndexedNotNull { index, fields ->
-            parseRow(fields, line = index + 2, columns = columns, zone = zone, weightUnit = weightUnitResolver)
+        val cardioRows = mutableListOf<PreviewCardioSession>()
+        val parsedRows = typedRows.mapNotNull { row ->
+            if (row.cardio) {
+                cardioRows += checkNotNull(parseCardioRow(row.fields, row.line, columns, zone))
+                null
+            } else {
+                parseRow(row.fields, line = row.line, columns = columns, zone = zone, weightUnit = checkNotNull(weightUnitResolver))
+            }
         }
 
         val sessions = groupIntoSessions(parsedRows)
         val unmatched = matchExerciseNames(sessions, catalog)
         val matchedSessions = resolveExerciseIds(sessions, catalog)
 
-        return CsvImportPreview(sessions = matchedSessions, unmatchedNames = unmatched)
+        return CsvImportPreview(sessions = matchedSessions, unmatchedNames = unmatched, cardioSessions = cardioRows)
     }
 
     // --- header mapping --------------------------------------------------
@@ -105,15 +116,22 @@ object HistoryCsvReader {
             val index = normalized.indexOfFirst { it in aliasKeys }
             if (index >= 0) columns[field] = index
         }
-        val required = listOf(
-            HistoryField.DATE, HistoryField.WORKOUT_NAME, HistoryField.EXERCISE_NAME,
-            HistoryField.WEIGHT, HistoryField.REPS,
-        )
+        val required = listOf(HistoryField.DATE, HistoryField.WORKOUT_NAME, HistoryField.EXERCISE_NAME)
         val missing = required.filter { it !in columns }
         if (missing.isNotEmpty()) {
             throw CsvImportError.MissingColumns(missing.map { HISTORY_FIELD_ALIASES.getValue(it).first() })
         }
         return columns
+    }
+
+    private data class TypedRow(val line: Int, val fields: List<String>, val cardio: Boolean)
+
+    private fun requireStrengthColumns(columns: Map<HistoryField, Int>) {
+        val required = listOf(HistoryField.WEIGHT, HistoryField.REPS)
+        val missing = required.filter { it !in columns }
+        if (missing.isNotEmpty()) {
+            throw CsvImportError.MissingColumns(missing.map { HISTORY_FIELD_ALIASES.getValue(it).first() })
+        }
     }
 
     /** How a row's weight unit is determined: the same unit for every row (a
@@ -140,6 +158,50 @@ object HistoryCsvReader {
             "kg", "kgs" -> WeightUnit.KG
             else -> throw CsvImportError.MalformedRow(line, "unknown weight unit '$raw'")
         }
+
+    private fun isCardioMarker(fields: List<String>, columns: Map<HistoryField, Int>): Boolean =
+        columns[HistoryField.SET_TYPE]?.let { fields.getOrNull(it) } == CARDIO_MARKER
+
+    /** Cardio is routed before strength matching, so its label can never create
+     * an unmatched-exercise prompt or a synthetic strength set. */
+    private fun parseCardioRow(
+        fields: List<String>,
+        line: Int,
+        columns: Map<HistoryField, Int>,
+        zone: ZoneId,
+    ): PreviewCardioSession? {
+        if (!isCardioMarker(fields, columns)) return null
+        fun required(field: HistoryField): String {
+            val index = columns[field] ?: throw CsvImportError.MalformedRow(line, "cardio row needs ${field.name}")
+            return fields.getOrNull(index)
+                ?: throw CsvImportError.MalformedRow(line, "row is too short for column ${field.name}")
+        }
+        val completedAt = parseDate(required(HistoryField.DATE).trim(), zone)
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio date")
+        val label = Csv.deneutralizeFormula(required(HistoryField.EXERCISE_NAME))
+        if (label.isBlank() || label.length > 80) {
+            throw CsvImportError.MalformedRow(line, "cardio label must be non-blank and at most 80 characters")
+        }
+        val seconds = required(HistoryField.SECONDS).trim().toIntOrNull()
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio seconds")
+        if (seconds !in 60..86_400) throw CsvImportError.MalformedRow(line, "cardio seconds out of range")
+        val mode = required(HistoryField.NOTES).trim().ifBlank { "OUTDOOR_RUN" }
+        val hard = required(HistoryField.DISTANCE_UNIT).trim().toBooleanStrictOrNull()
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio hard flag")
+        val steps = required(HistoryField.RPE).trim().toIntOrNull()
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio steps completed")
+        if (steps < 0) throw CsvImportError.MalformedRow(line, "cardio steps completed must not be negative")
+        return PreviewCardioSession(
+            dayId = Csv.deneutralizeFormula(required(HistoryField.WORKOUT_NAME)).ifBlank { null },
+            mode = mode,
+            hard = hard,
+            label = label,
+            startedAt = completedAt - seconds * 1_000L,
+            completedAt = completedAt,
+            seconds = seconds,
+            stepsCompleted = steps,
+        )
+    }
 
     // --- row parsing -------------------------------------------------------
 

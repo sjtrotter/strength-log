@@ -47,7 +47,6 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.IOException
 import java.time.Clock
 import java.time.LocalDate
-import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -832,27 +831,13 @@ open class TrackerRepository(
     ) {
         db.withTransaction {
             if (newCustomExercises.isNotEmpty()) customExerciseDao.upsertAll(newCustomExercises)
-            val strengthIdentities = sessionDao.allSessions().mapTo(HashSet()) {
-                Triple(it.completedAt / 1_000L, normalizeCsvIdentity(it.dayTitle), "strength")
-            }
-            sessions.filter { imported ->
-                strengthIdentities.add(
-                    Triple(imported.session.completedAt / 1_000L, normalizeCsvIdentity(imported.session.dayTitle), "strength"),
-                )
-            }.forEach { imported ->
+            sessions.forEach { imported ->
                 val sessionId = sessionDao.insertSession(imported.session.copy(id = 0))
                 if (imported.sets.isNotEmpty()) {
                     sessionDao.insertSets(imported.sets.map { it.copy(id = 0, sessionId = sessionId) })
                 }
             }
-            val cardioIdentities = cardioSessionDao.all().mapTo(HashSet()) {
-                Triple(it.completedAt / 1_000L, normalizeCsvIdentity(it.label), "cardio")
-            }
-            cardioSessions.filter { session ->
-                cardioIdentities.add(
-                    Triple(session.completedAt / 1_000L, normalizeCsvIdentity(session.label), "cardio"),
-                )
-            }.forEach { cardioSessionDao.insert(it.copy(id = 0)) }
+            cardioSessions.forEach { cardioSessionDao.insert(it.copy(id = 0)) }
         }
     }
 
@@ -867,9 +852,6 @@ open class TrackerRepository(
             days.sortedBy { it.position }.map { day -> day.toDomain(byDay[day.dayId].orEmpty()) },
         )
     }
-
-    private fun normalizeCsvIdentity(value: String): String =
-        value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
 
     private fun ExerciseLogEntity.toLoggedSlot(today: String): LoggedSlot {
         val stored = SetJson.decodeSets(setsJson)

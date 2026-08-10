@@ -48,21 +48,6 @@ class TrackerRepositoryCardioTest {
         } finally { db.close(); scope.cancel() }
     }
 
-    @Test fun `csv cardio identity dedupes at second precision with normalized label`() = runTest {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
-        val scope = CoroutineScope(Dispatchers.IO + Job())
-        val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
-            File.createTempFile("cardio-dedupe", ".preferences_pb")
-        })
-        val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-        try {
-            repo.importSessionHistory(emptyList(), emptyList(), listOf(cardio(" Easy   Zone 2 ", 2_123)))
-            repo.importSessionHistory(emptyList(), emptyList(), listOf(cardio("easy zone 2", 2_999)))
-            assertEquals(1, repo.cardioSessionsFlow.first().size)
-        } finally { db.close(); scope.cancel() }
-    }
-
     private fun cardio(label: String, completedAt: Long) = CardioSessionEntity(
         dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = label,
         startedAt = completedAt - 60_000, completedAt = completedAt, seconds = 60, stepsCompleted = 1,

@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
-import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -90,7 +89,7 @@ fun WearApp(
     val pendingExercises by client.pendingExercisesFlow().collectAsState(initial = emptySet())
     val pendingSwaps by client.pendingSwapsFlow().collectAsState(initial = emptySet())
     val dayId = snapshot?.day?.dayId
-    var localSessionStarted by rememberSaveable(dayId) { mutableStateOf(false) }
+    var localSessionStartedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
     val context = LocalContext.current
     // The exact-alarm listener lives at the root so it outlives the ambient swap.
     val restController = remember(context) { restTimerController(context.applicationContext) }
@@ -122,7 +121,7 @@ fun WearApp(
     }
     // Runs on every screen (loading/ambient/interactive) so the chip reconciles
     // even when the app relaunches straight into ambient — see OngoingSessionChip.
-    OngoingSessionChip(snapshot, localSessionStarted)
+    OngoingSessionChip(snapshot, localSessionStartedAtMillis)
 
     WearTrackerTheme {
         Box(Modifier.fillMaxSize().background(Background)) {
@@ -185,7 +184,7 @@ fun WearApp(
                     // Activity going away mid-enqueue (#174).
                     sendEdit = client::sendEdit,
                     sendSwap = client::sendSwap,
-                    onSessionStarted = { localSessionStarted = true },
+                    onSessionStarted = { localSessionStartedAtMillis = it },
                     onDismiss = onDismiss,
                 )
             }
@@ -232,7 +231,7 @@ private fun WorkoutDial(
     scheduleTimedHoldTick: (RestTimerController.Firing, () -> Unit) -> Unit,
     sendEdit: (SetEditDelta) -> Unit,
     sendSwap: (ExerciseSwapDelta) -> Unit,
-    onSessionStarted: () -> Unit,
+    onSessionStarted: (Long) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val view = LocalView.current
@@ -287,10 +286,10 @@ private fun WorkoutDial(
         startedAtElapsedMillis = SystemClock.elapsedRealtime()
         if (sessionStartedAtMillis == 0L) {
             sessionStartedAtMillis = wallNow
-            onSessionStarted()
+            onSessionStarted(wallNow)
         }
         nowElapsedMillis = SystemClock.elapsedRealtime()
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        DialHaptics.perform(view, DialHaptics.Cue.START)
     }
 
     fun tick() {
@@ -310,7 +309,7 @@ private fun WorkoutDial(
                 completedAtMillis = completedAtMillis,
             ),
         )
-        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        DialHaptics.perform(view, DialHaptics.Cue.CONFIRM_TICK)
         // Remembered on the wrist only — the wire never echoes the stamps back, so
         // this is the peek's only source for TOOK (§6) and the undo's only source of
         // chronology. Recorded even when no start was seen: a set the watch didn't
@@ -378,7 +377,7 @@ private fun WorkoutDial(
         )
         tickMemory = tickMemory.forget(ex.programExerciseId, target.roundIndex)
         selectedExercise = target.exerciseIndex
-        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        DialHaptics.perform(view, DialHaptics.Cue.UNDO)
     }
 
     /**
@@ -405,7 +404,7 @@ private fun WorkoutDial(
             ),
         )
         tickMemory = tickMemory.forgetExercise(ex.programExerciseId)
-        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        DialHaptics.perform(view, DialHaptics.Cue.CONFIRM_TICK)
     }
 
     val inputs = DialInputs(
@@ -508,24 +507,42 @@ private fun WorkoutDial(
     // The crown reads the screen it's on: exercises on the overview, rounds in a
     // session, nothing where there is nothing to look through (§6).
     val crown = rememberCrownModifier(enabled = state.crown != DialCrown.NONE) { detents ->
+        var moved = 0
         when (state.crown) {
-            DialCrown.SELECT_EXERCISE ->
-                selectedExercise = ExerciseSelection.move(exerciseIndex, detents, snap.day.exercises.size)
-            DialCrown.PEEK -> peek = PeekScrub.turn(
-                current = peek,
-                currentRoundIndex = roundIndex,
-                detents = detents,
-                roundCount = exercise?.sets?.size ?: 0,
-                nowElapsedMillis = SystemClock.elapsedRealtime(),
-            )
-            DialCrown.SELECT_ALTERNATE -> swapPreview = SwapPicker.turn(
-                current = swapPreview,
-                detents = detents,
-                alternateCount = exercise?.alternates?.size ?: 0,
-                nowElapsedMillis = SystemClock.elapsedRealtime(),
-            )
+            DialCrown.SELECT_EXERCISE -> {
+                val next = ExerciseSelection.move(exerciseIndex, detents, snap.day.exercises.size)
+                moved = next - exerciseIndex
+                selectedExercise = next
+            }
+            DialCrown.PEEK -> {
+                val from = peek?.roundIndex ?: roundIndex
+                val next = PeekScrub.turn(
+                    current = peek,
+                    currentRoundIndex = roundIndex,
+                    detents = detents,
+                    roundCount = exercise?.sets?.size ?: 0,
+                    nowElapsedMillis = SystemClock.elapsedRealtime(),
+                )
+                moved = (next?.roundIndex ?: from) - from
+                peek = next
+            }
+            DialCrown.SELECT_ALTERNATE -> {
+                val from = swapPreview?.alternateIndex ?: -1
+                val next = SwapPicker.turn(
+                    current = swapPreview,
+                    detents = detents,
+                    alternateCount = exercise?.alternates?.size ?: 0,
+                    nowElapsedMillis = SystemClock.elapsedRealtime(),
+                )
+                moved = (next?.alternateIndex ?: -1) - from
+                swapPreview = next
+            }
             DialCrown.NONE -> Unit
         }
+        repeat(kotlin.math.abs(moved)) {
+            DialHaptics.perform(view, DialHaptics.Cue.ROTARY_DETENT)
+        }
+        if (moved != detents) DialHaptics.perform(view, DialHaptics.Cue.BOUNDARY)
     }
 
     // Leftward is contextual and only where nothing is under way (v3 §3); rightward
@@ -618,10 +635,10 @@ private val TickMemorySaver = Saver<TickMemory, String>(
  * the launcher).
  */
 @Composable
-private fun OngoingSessionChip(snapshot: WatchSnapshot?, localSessionStarted: Boolean) {
+private fun OngoingSessionChip(snapshot: WatchSnapshot?, localSessionStartedAtMillis: Long) {
     val context = LocalContext.current
     val chip = remember(context) { OngoingWorkoutChip(context) }
-    val sessionActive = isSessionUnderway(snapshot, localSessionStarted)
+    val sessionActive = isSessionUnderway(snapshot, localSessionStartedAtMillis > 0L)
 
     var hasPermission by remember {
         mutableStateOf(OngoingWorkoutChip.hasPostNotificationsPermission(context))
@@ -643,7 +660,7 @@ private fun OngoingSessionChip(snapshot: WatchSnapshot?, localSessionStarted: Bo
     }
 
     LaunchedEffect(sessionActive, hasPermission) {
-        if (sessionActive) chip.show() else chip.clear()
+        if (sessionActive) chip.show(localSessionStartedAtMillis) else chip.clear()
     }
 }
 

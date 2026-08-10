@@ -1,10 +1,13 @@
 package cloud.trotter.log.strength.wear.ui
 
+import cloud.trotter.log.strength.wear.OngoingWorkoutChip
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -14,6 +17,28 @@ import kotlin.test.assertTrue
  * instant it is finished, not-yet-started, empty, or absent.
  */
 class SessionChipTest {
+
+    @Test
+    fun `ongoing stopwatch converts wall start to elapsed realtime`() {
+        assertEquals(
+            40_000L,
+            OngoingWorkoutChip.elapsedRealtimeAnchor(
+                sessionStartedAtWallMillis = 1_000_000L,
+                wallNowMillis = 1_060_000L,
+                elapsedNowMillis = 100_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun `no honest anchor means no stopwatch, never a fabricated one`() {
+        // Unknown start (process restored into an active session).
+        assertNull(OngoingWorkoutChip.elapsedRealtimeAnchor(0L, 1_060_000L, 100_000L))
+        // Start in the wall clock's future (clock stepped backward past it).
+        assertNull(OngoingWorkoutChip.elapsedRealtimeAnchor(2_000_000L, 1_060_000L, 100_000L))
+        // Session older than this boot (reboot mid-session).
+        assertNull(OngoingWorkoutChip.elapsedRealtimeAnchor(1_000_000L, 1_060_000L, 30_000L))
+    }
 
     private fun set(done: Boolean) = WatchSet(weightLb = 100.0, reps = 5, kind = "WORK", done = done)
 

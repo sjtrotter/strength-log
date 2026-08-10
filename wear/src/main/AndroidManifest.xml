@@ -41,9 +41,8 @@
         <!--
           The day on the watch face (glance-surfaces brief §2). Exported because the
           watch-face process binds it; locked to BIND_COMPLICATION_PROVIDER, which
-          only the system holds, so nothing else can call in. UPDATE_PERIOD_SECONDS=0
-          disables scheduled refreshes; GlanceUpdateService pushes updates when the
-          Data Layer snapshot changes.
+          only the system holds, so nothing else can call in. Data Layer pushes,
+          activation, and civil-day/timezone broadcasts request fresh renders.
         -->
         <service
             android:name=".glance.DayComplicationService"
@@ -61,6 +60,18 @@
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
                 android:value="0" />
         </service>
+
+        <!-- TIMEZONE_CHANGED is on the implicit-broadcast exception list; the
+             midnight rollover arrives as an explicit alarm broadcast scheduled at
+             each glance render, because DATE_CHANGED never reaches manifest
+             receivers on API 26+. -->
+        <receiver
+            android:name=".glance.CivilDayChangeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
         <!--
           The day in the tile carousel (glance-surfaces brief §3). Same posture: the

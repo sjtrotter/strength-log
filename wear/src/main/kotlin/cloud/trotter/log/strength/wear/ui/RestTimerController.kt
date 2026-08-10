@@ -2,13 +2,9 @@ package cloud.trotter.log.strength.wear.ui
 
 import android.app.AlarmManager
 import android.content.Context
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -146,19 +142,6 @@ fun restTimerController(context: Context): RestTimerController {
     return RestTimerController(
         alarmScheduler = AndroidRestAlarmScheduler(appContext),
         elapsedRealtime = SystemClock::elapsedRealtime,
-        buzz = {
-            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                (appContext.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
-                    ?.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                appContext.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-            }
-            vibrator?.vibrate(
-                VibrationEffect.createOneShot(BUZZ_MILLIS, VibrationEffect.DEFAULT_AMPLITUDE),
-            )
-        },
+        buzz = { DialHaptics.restComplete(appContext) },
     )
 }
-
-private const val BUZZ_MILLIS = 400L

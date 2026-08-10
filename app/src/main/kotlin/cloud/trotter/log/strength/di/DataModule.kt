@@ -12,6 +12,8 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.time.CivilTimeSource
+import cloud.trotter.log.strength.time.SystemCivilTimeSource
 import java.time.Clock
 import javax.inject.Singleton
 
@@ -55,12 +57,19 @@ object DataModule {
             settings,
         )
 
-    /** One device clock for the whole process: the daily checkmark reset and the
-     *  journal's "which week/month is now" read the same wall clock, and tests
-     *  can substitute a fixed one. */
+    /** One device clock for the whole process: every write stamp and the daily
+     *  checkmark reset read the same wall clock, and tests can substitute a fixed
+     *  one. Not for "what day is it *now*" on a screen — this clock's zone is
+     *  frozen at construction; that question goes to [CivilTimeSource] (#176). */
     @Provides
     @Singleton
     fun clock(): Clock = Clock.systemDefaultZone()
+
+    /** The read-path counterpart to [clock]: a civil day that re-reads the zone
+     *  and re-emits when the day turns (#176). */
+    @Provides
+    @Singleton
+    fun civilTimeSource(source: SystemCivilTimeSource): CivilTimeSource = source
 
     @Provides
     @Singleton

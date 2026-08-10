@@ -418,13 +418,14 @@ private fun LogRoute(
     viewModel: LogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    // The grant lives outside this app and can change while the process is alive
-    // — granted in the Health Connect app, revoked there, reset by an
-    // applicationId change. Re-reading it on every resume (rather than once when
-    // the ViewModel was built) is what makes the section's status honest on the
-    // next visit (#158).
+    // Two facts this screen can't observe change while it is away: the Health
+    // Connect grant, which lives in another app and can be granted, revoked or
+    // reset there (#158), and the device's civil day, which turns on its own
+    // (#176). Re-reading both on every resume — rather than once when the
+    // ViewModel was built — is what makes the section's status and the
+    // journal's "today" honest on the next visit.
     LifecycleResumeEffect(Unit) {
-        viewModel.refreshHealth()
+        viewModel.onResumed()
         onPauseOrDispose {}
     }
     val permissionLauncher = rememberLauncherForActivityResult(remember { viewModel.permissionContract() }) {

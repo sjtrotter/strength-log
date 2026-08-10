@@ -143,7 +143,7 @@ class DataLayerWatchClient(
 
     /** The last snapshot the Data Layer cached on this node (survives restarts). */
     private suspend fun prime() {
-        guarded("priming the snapshot") { link.cachedSnapshot()?.let(::install) }
+        guarded("priming the snapshot") { link.cachedSnapshot()?.let { install(it) } }
         guarded("draining on start") { drainQueue() }
     }
 

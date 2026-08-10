@@ -148,7 +148,7 @@ class ChromeTouchTargetTest {
             TodayLift("Barbell Back Squat", 5, isMain = true),
             TodayLift("Seated Leg Curl", 3, isMain = false),
         ),
-        actionLabel = "START DAY B",
+        actionLabel = cloud.trotter.log.strength.ui.today.TodayScreenBuilder.actionLabel("B", 0, 18),
         lastSession = "Jul 30, 2026 · 18 sets · Back Squat 245",
         rotation = listOf(
             RotationMark("A", 0, isNext = false),

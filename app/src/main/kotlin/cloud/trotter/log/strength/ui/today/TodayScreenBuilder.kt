@@ -6,6 +6,8 @@ import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.log.LogScreenBuilder
+import cloud.trotter.log.strength.ui.text.TodayActionKind
+import cloud.trotter.log.strength.ui.text.UiText
 
 /**
  * The pure decision logic behind the Today screen (#121): the statement's
@@ -35,20 +37,16 @@ object TodayScreenBuilder {
     fun setsPhrase(doneSets: Int, totalSets: Int): String = "$doneSets OF $totalSets SETS"
 
     /** The one dominant action's label, in the same three phases as [overline]. */
-    fun actionLabel(dayId: String, doneSets: Int, totalSets: Int): String = when {
-        totalSets > 0 && doneSets >= totalSets -> "FINISH DAY ${dayId.uppercase()}"
-        doneSets > 0 -> "CONTINUE — ${setsPhrase(doneSets, totalSets)}"
-        else -> "START DAY ${dayId.uppercase()}"
-    }
+    fun actionLabel(dayId: String, doneSets: Int, totalSets: Int): UiText.TodayAction = UiText.TodayAction(
+        kind = when {
+            totalSets > 0 && doneSets >= totalSets -> TodayActionKind.FINISH
+            doneSets > 0 -> TodayActionKind.CONTINUE
+            else -> TodayActionKind.START
+        }, dayId = dayId, done = doneSets, total = totalSets,
+    )
 
     /** The mode overline owns "EASY"/"HARD"; planner labels remain reusable by Day. */
-    fun cardioIntentLine(hard: Boolean, label: String): String {
-        val mode = if (hard) "HARD" else "EASY"
-        val rest = label
-            .removePrefix(if (hard) "Hard " else "Easy ")
-            .replaceFirstChar(Char::uppercase)
-        return "$mode · $rest"
-    }
+    fun cardioIntentLine(hard: Boolean, label: String): UiText.TodayCardio = UiText.TodayCardio(hard, label)
 
     /** The rotation rail: every day of the cycle in order, with [nextDayId] marked. */
     fun rotationMarks(days: List<String>, nextDayId: String): List<RotationMark> =

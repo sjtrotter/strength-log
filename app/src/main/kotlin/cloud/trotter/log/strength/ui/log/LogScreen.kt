@@ -64,6 +64,7 @@ import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
+import cloud.trotter.log.strength.ui.text.resolve
 import kotlinx.coroutines.launch
 
 /**
@@ -370,7 +371,7 @@ private fun HealthConnectSection(section: HealthSectionUi, onConnect: () -> Unit
                 enabled = offer.enabled,
                 colors = ButtonDefaults.textButtonColors(contentColor = TextSecondary),
                 contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),
-            ) { Text(offer.label, style = MaterialTheme.typography.bodyMedium) }
+            ) { Text(offer.label.resolve(), style = MaterialTheme.typography.bodyMedium) }
         }
     }
 }
@@ -430,7 +431,7 @@ private fun LogScreenPreview() {
         health = HealthSectionUi(
             available = true,
             publishing = true,
-            backfill = BackfillOfferUi(label = "Publish 12 past workouts", enabled = true),
+            backfill = BackfillOfferUi(label = LogScreenBuilder.backfillLabel(12, false), enabled = true),
         ),
         sessions = listOf(
             SessionListItem(

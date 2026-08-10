@@ -16,6 +16,11 @@
 <string name="today_last_session_label">LAST SESSION</string>
 <string name="today_open_log_description">Open log</string>
 <string name="today_log_button">LOG</string>
+<string name="today_action_start">START DAY %1$s</string>
+<string name="today_action_continue">CONTINUE — %1$d OF %2$d SETS</string>
+<string name="today_action_finish">FINISH DAY %1$s</string>
+<string name="today_cardio_easy">EASY · %1$s</string>
+<string name="today_cardio_hard">HARD · %1$s</string>
 <string name="today_settings_description">Settings</string>
 <plurals name="today_lift_set_count">
     <item quantity="one">%1$d set</item>
@@ -207,8 +212,37 @@
 <string name="backup_pattern_core_anti_rotation">Core (anti-rotation)</string>
 <string name="backup_pattern_core_flexion">Core (flexion)</string>
 <string name="backup_pattern_cardio">Cardio</string>
+<string name="backup_status_exported">Backup exported.</string>
+<string name="backup_status_restored">Backup restored.</string>
+<string name="backup_status_history_exported">History exported.</string>
+<string name="backup_status_history_imported">Imported %1$d session(s), %2$d set(s).</string>
+<string name="backup_error_restore_not_started">Couldn\'t start the restore. Nothing changed — try again.</string>
+<string name="backup_error_settings_pending">Your data restored, but your settings didn\'t. Reopen the app and it\'ll finish.</string>
+<string name="backup_error_cleanup_pending">Backup restored. A bit of tidying up is left; the app will finish it.</string>
+<string name="backup_error_too_large">That file is too large to be a strength-log backup (%1$s bytes).</string>
+<string name="backup_error_malformed">That file isn\'t a strength-log backup (not valid JSON, or the wrong shape).</string>
+<string name="backup_error_unsupported_schema">That backup was written by a version of the app this build can\'t read.</string>
+<string name="backup_error_invalid_payload">That backup contains data this build can\'t decode — it may be corrupt.</string>
+<string name="backup_error_dangling_exercise">That backup references an exercise (%1$s) it doesn\'t define.</string>
+<string name="backup_error_invalid_custom_exercise">That backup has an invalid custom exercise and can\'t be restored.</string>
+<string name="backup_error_inconsistent">That backup\'s data is inconsistent and can\'t be safely restored.</string>
+<string name="backup_csv_error_too_large">That file is too large to import (%1$s bytes).</string>
+<string name="backup_csv_error_empty">That CSV file has no data rows to import.</string>
+<string name="backup_csv_error_malformed">That file isn\'t valid CSV — it looks truncated or corrupt.</string>
+<string name="backup_csv_error_missing_columns">That CSV is missing required column(s): %1$s.</string>
+<string name="backup_csv_error_ambiguous_unit">Can\'t tell whether \'%1$s\' is lb or kg — add a Weight Unit column.</string>
+<string name="backup_csv_error_malformed_row">%1$s</string>
+<string name="backup_csv_error_missing_approval">Pick a movement pattern for: %1$s.</string>
+<string name="transfer_error_file_access">Couldn\'t access that file: %1$s</string>
+<string name="transfer_error_permission">No permission to access that file anymore.</string>
 
 <!-- Log -->
+<string name="day_main_helper">Change the TOP set — ramp &amp; back-off recalculate.</string>
+<string name="day_superset_helper">One tick checks the whole round — both moves, back-to-back.</string>
+<string name="day_plates_empty">Plates: empty bar</string>
+<string name="day_plates_per_side">Plates: %1$s a side</string>
+<string name="day_status_in_progress">IN PROGRESS · %1$d OF %2$d SETS</string>
+<string name="day_status_ready">READY TO FINISH · %1$d OF %2$d SETS</string>
 <string name="log_title">Log</string>
 <string name="log_back_label">Back</string>
 <string name="log_trajectory_header">TRAJECTORY</string>
@@ -233,6 +267,9 @@
 <string name="log_bodyweight_update_button">Update</string>
 <string name="log_bodyweight_dismiss_button">Not now</string>
 <string name="log_health_connected">Connected · publishing</string>
+<string name="log_backfill_publishing">Publishing…</string>
+<string name="log_backfill_publish_one">Publish 1 past workout</string>
+<string name="log_backfill_publish_many">Publish %1$d past workouts</string>
 <string name="log_health_connect_title">Connect Health Connect</string>
 <string name="log_health_connect_body">Share your workouts and see sessions logged by other apps. On-device only — nothing leaves your phone.</string>
 

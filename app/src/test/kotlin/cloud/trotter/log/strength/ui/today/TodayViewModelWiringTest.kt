@@ -162,7 +162,8 @@ class TodayViewModelWiringTest {
         assertTrue(state.hasProgram)
         assertEquals(suggestedDayId, state.dayId)
         assertEquals("NEXT IN ROTATION", state.overline)
-        assertEquals("START DAY ${suggestedDayId!!.uppercase()}", state.actionLabel)
+        assertEquals(cloud.trotter.log.strength.ui.text.TodayActionKind.START, state.actionLabel.kind)
+        assertEquals(suggestedDayId, state.actionLabel.dayId)
 
         val slotCount = repo.daySlotsFlow(suggestedDayId).first().size
         assertTrue("lifts must not be empty", state.lifts.isNotEmpty())
@@ -226,13 +227,11 @@ class TodayViewModelWiringTest {
         val state = today.uiState.value
         assertEquals("IN PROGRESS", state.overline)
 
-        // The em dash is U+2014, not a hyphen — the action label's literal separator.
-        val match = Regex("^CONTINUE — (\\d+) OF (\\d+) SETS$").find(state.actionLabel)
-        assertNotNull("actionLabel didn't match the CONTINUE pattern: ${state.actionLabel}", match)
-        assertEquals(3, match!!.groupValues[1].toInt())
+        assertEquals(cloud.trotter.log.strength.ui.text.TodayActionKind.CONTINUE, state.actionLabel.kind)
+        assertEquals(3, state.actionLabel.done)
 
         // 6 seeded rows for the main + 4 for the accessory, from the live logs.
-        assertEquals(10, match.groupValues[2].toInt())
+        assertEquals(10, state.actionLabel.total)
         assertEquals(GlanceLines.statLine(2, 3, 10), state.statLine)
     }
 

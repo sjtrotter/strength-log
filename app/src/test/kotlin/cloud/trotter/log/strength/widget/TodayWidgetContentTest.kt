@@ -48,7 +48,7 @@ class TodayWidgetContentTest {
         val content = todayWidgetContent(snapshot(0, 0, 0))
 
         assertEquals("DAY A · LOWER", content.dayLine)
-        assertEquals("3 LIFTS · 21 SETS", content.statLine)
+        assertEquals(WidgetStatLine.Data("3 LIFTS · 21 SETS"), content.statLine)
         assertEquals(TodayWidgetState.BEFORE, content.state)
         assertEquals(0, content.setsDone)
         assertEquals(21, content.totalSets)
@@ -58,7 +58,7 @@ class TodayWidgetContentTest {
     fun `mid-session counts every logged round of the day, not just the current lift`() {
         val content = todayWidgetContent(snapshot(7, 5, 0))
 
-        assertEquals("12 / 21 SETS", content.statLine)
+        assertEquals(WidgetStatLine.Data("12 / 21 SETS"), content.statLine)
         assertEquals(TodayWidgetState.IN_PROGRESS, content.state)
         assertEquals(12, content.setsDone)
         assertEquals(21, content.totalSets)
@@ -68,7 +68,7 @@ class TodayWidgetContentTest {
     fun `a finished day says so and keeps the total`() {
         val content = todayWidgetContent(snapshot(7, 7, 7))
 
-        assertEquals("DONE · 21 SETS", content.statLine)
+        assertEquals(WidgetStatLine.Data("DONE · 21 SETS"), content.statLine)
         assertEquals(TodayWidgetState.DONE, content.state)
         assertEquals(21, content.totalSets)
     }
@@ -78,7 +78,7 @@ class TodayWidgetContentTest {
         val content = todayWidgetContent(null)
 
         assertNull(content.dayLine)
-        assertEquals("SET UP YOUR PROGRAM", content.statLine)
+        assertEquals(WidgetStatLine.SetUpProgram, content.statLine)
         assertEquals(TodayWidgetState.NO_PROGRAM, content.state)
     }
 
@@ -87,7 +87,7 @@ class TodayWidgetContentTest {
         val content = todayWidgetContent(snapshot())
 
         assertEquals(TodayWidgetState.NO_PROGRAM, content.state)
-        assertEquals("SET UP YOUR PROGRAM", content.statLine)
+        assertEquals(WidgetStatLine.SetUpProgram, content.statLine)
     }
 
     @Test
@@ -125,7 +125,7 @@ class TodayWidgetContentTest {
             unit = "lb",
         )
 
-        assertEquals("1 LIFT · 1 SET", todayWidgetContent(oneRound).statLine)
+        assertEquals(WidgetStatLine.Data("1 LIFT · 1 SET"), todayWidgetContent(oneRound).statLine)
     }
 
     @Test
@@ -153,6 +153,6 @@ class TodayWidgetContentTest {
             unit = "lb",
         )
 
-        assertEquals("1 / 3 SETS", todayWidgetContent(withPartner).statLine)
+        assertEquals(WidgetStatLine.Data("1 / 3 SETS"), todayWidgetContent(withPartner).statLine)
     }
 }

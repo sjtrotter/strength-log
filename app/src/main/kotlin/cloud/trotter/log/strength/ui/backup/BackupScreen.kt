@@ -70,6 +70,7 @@ import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
+import cloud.trotter.log.strength.ui.text.resolve
 
 /**
  * The Data/Backup screen (PLAN.md A2, brief D9's `:app`-side UI PR): full
@@ -221,7 +222,7 @@ private fun MessageBanner(message: StatusMessage, onDismiss: () -> Unit) {
         colors = ButtonDefaults.filledTonalButtonColors(containerColor = color.copy(alpha = 0.12f), contentColor = color),
         contentPadding = PaddingValues(14.dp),
     ) {
-        Text(message.text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth())
+        Text(message.text.resolve(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth())
     }
 }
 

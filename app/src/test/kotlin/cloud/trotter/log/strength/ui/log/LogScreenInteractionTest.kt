@@ -143,7 +143,7 @@ class LogScreenInteractionTest {
             health = HealthSectionUi(
                 available = true,
                 publishing = true,
-                backfill = BackfillOfferUi(label = "Publish 12 past workouts", enabled = true),
+                backfill = BackfillOfferUi(label = LogScreenBuilder.backfillLabel(12, false), enabled = true),
             ),
             onPublishPast = { taps += 1 },
         )
@@ -160,7 +160,7 @@ class LogScreenInteractionTest {
             health = HealthSectionUi(
                 available = true,
                 publishing = true,
-                backfill = BackfillOfferUi(label = "Publishing…", enabled = false),
+                backfill = BackfillOfferUi(label = LogScreenBuilder.backfillLabel(12, true), enabled = false),
             ),
             onPublishPast = { taps += 1 },
         )

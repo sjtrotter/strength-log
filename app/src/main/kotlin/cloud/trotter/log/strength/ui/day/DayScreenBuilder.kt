@@ -31,12 +31,6 @@ import cloud.trotter.log.strength.ui.today.TodayScreenBuilder
  */
 object DayScreenBuilder {
 
-    /** Helper line under a main lift's header (spec §8.2, design-pass copy). */
-    const val MAIN_HELPER = "Change the TOP set — ramp & back-off recalculate."
-
-    /** Helper line under a superset's header (design-pass copy: one tick per round). */
-    const val SUPERSET_HELPER = "One tick checks the whole round — both moves, back-to-back."
-
     /** One log write emitted by [seedPlan]. */
     data class SeedWrite(
         val programExerciseId: Long,
@@ -252,15 +246,11 @@ object DayScreenBuilder {
      * [PlateMath.perSide] can't load the weight exactly. Superset partners
      * aren't considered (spec: main slot only in v1).
      */
-    fun plateLine(main: List<LoggedSet>, equipment: List<Equipment>, unit: WeightUnit): String? {
+    fun plateLine(main: List<LoggedSet>, equipment: List<Equipment>, unit: WeightUnit): cloud.trotter.log.strength.ui.text.UiText.DayPlate? {
         if (Equipment.BARBELL !in equipment) return null
         val next = main.firstOrNull { !it.done } ?: return null
         val perSide = PlateMath.perSide(unit.fromLb(next.weightLb), unit) ?: return null
-        return if (perSide.isEmpty()) {
-            "Plates: empty bar"
-        } else {
-            "Plates: ${perSide.joinToString(" + ") { WeightStepper.format(it) }} a side"
-        }
+        return cloud.trotter.log.strength.ui.text.UiText.DayPlate(perSide.takeIf { it.isNotEmpty() }?.joinToString(" + ") { WeightStepper.format(it) })
     }
 
     /**
@@ -273,11 +263,11 @@ object DayScreenBuilder {
      * speak rather than inventing a fourth, so "READY TO FINISH" means the same
      * thing everywhere it appears.
      */
-    fun sessionStatusLine(doneSets: Int, totalSets: Int): String? =
+    fun sessionStatusLine(doneSets: Int, totalSets: Int): cloud.trotter.log.strength.ui.text.UiText.DayStatus? =
         if (doneSets <= 0) {
             null
         } else {
-            "${TodayScreenBuilder.overline(doneSets, totalSets)} · ${TodayScreenBuilder.setsPhrase(doneSets, totalSets)}"
+            cloud.trotter.log.strength.ui.text.UiText.DayStatus(totalSets > 0 && doneSets >= totalSets, doneSets, totalSets)
         }
 
     /** True once every round is ticked — drives the green chip and auto-collapse. */

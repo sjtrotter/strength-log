@@ -10,6 +10,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import cloud.trotter.log.strength.ui.text.UiText
 
 /**
  * The pure History Log (#14) decision logic: list-row and expanded-session
@@ -43,11 +44,7 @@ object LogScreenBuilder {
      * in flight. [sessionCount] is the history the Log screen is showing, so the
      * number the user reads is the number of sessions they can see.
      */
-    fun backfillLabel(sessionCount: Int, running: Boolean): String = when {
-        running -> "Publishing…"
-        sessionCount == 1 -> "Publish 1 past workout"
-        else -> "Publish $sessionCount past workouts"
-    }
+    fun backfillLabel(sessionCount: Int, running: Boolean): UiText.LogBackfill = UiText.LogBackfill(running, sessionCount)
 
     /** Bodyweight display in [unit], matching the day screen's own convention, or
      *  null for a session that recorded none (imported history — #171): the row

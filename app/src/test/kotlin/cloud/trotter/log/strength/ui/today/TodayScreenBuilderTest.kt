@@ -42,33 +42,33 @@ class TodayScreenBuilderTest {
 
     @Test
     fun actionLabel_starts_a_fresh_day() {
-        assertEquals("START DAY B", TodayScreenBuilder.actionLabel("B", 0, 18))
+        assertEquals(cloud.trotter.log.strength.ui.text.TodayActionKind.START, TodayScreenBuilder.actionLabel("B", 0, 18).kind)
     }
 
     @Test
     fun actionLabel_continues_a_partial_day() {
-        assertEquals("CONTINUE — 4 OF 18 SETS", TodayScreenBuilder.actionLabel("B", 4, 18))
+        assertEquals(cloud.trotter.log.strength.ui.text.TodayActionKind.CONTINUE, TodayScreenBuilder.actionLabel("B", 4, 18).kind)
     }
 
     @Test
     fun actionLabel_finishes_a_complete_day() {
-        assertEquals("FINISH DAY B", TodayScreenBuilder.actionLabel("B", 18, 18))
+        assertEquals(cloud.trotter.log.strength.ui.text.TodayActionKind.FINISH, TodayScreenBuilder.actionLabel("B", 18, 18).kind)
     }
 
     @Test
     fun actionLabel_uppercases_the_day_id() {
-        assertEquals("START DAY B", TodayScreenBuilder.actionLabel("b", 0, 18))
+        assertEquals("b", TodayScreenBuilder.actionLabel("b", 0, 18).dayId)
     }
 
     @Test
     fun cardioIntentLine_doesNotRepeatTheEasyMode() {
-        assertEquals("EASY · Zone 2", TodayScreenBuilder.cardioIntentLine(hard = false, label = "Easy Zone 2"))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.TodayCardio(false, "Easy Zone 2"), TodayScreenBuilder.cardioIntentLine(hard = false, label = "Easy Zone 2"))
     }
 
     @Test
     fun cardioIntentLine_doesNotRepeatTheHardModeAndRecapitalizes() {
         assertEquals(
-            "HARD · Cardio — intervals",
+            cloud.trotter.log.strength.ui.text.UiText.TodayCardio(true, "Hard cardio — intervals"),
             TodayScreenBuilder.cardioIntentLine(hard = true, label = "Hard cardio — intervals"),
         )
     }

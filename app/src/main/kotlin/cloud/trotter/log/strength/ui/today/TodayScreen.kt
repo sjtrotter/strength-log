@@ -35,6 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import cloud.trotter.log.strength.ui.text.UiText
+import cloud.trotter.log.strength.ui.text.resolve
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -121,7 +123,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                     Text(stringResource(R.string.today_cardio_finisher_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
                     Spacer(Modifier.size(4.dp))
                     Text(
-                        TodayScreenBuilder.cardioIntentLine(cardio.hard, cardio.label),
+                        TodayScreenBuilder.cardioIntentLine(cardio.hard, cardio.label).resolve(),
                         color = accent,
                         style = MaterialTheme.typography.labelLarge,
                     )
@@ -162,7 +164,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                 }
                 Spacer(Modifier.size(24.dp))
             }
-            StartBar(state.actionLabel, accent, onAccent, actions.onStart)
+            StartBar(state.actionLabel.resolve(), accent, onAccent, actions.onStart)
         }
     }
 }
@@ -355,7 +357,7 @@ private fun TodayScreenPreviewContent(inProgress: Boolean = false) {
             TodayLift("Standing Calf Raise", 3, isMain = false),
         ),
         cardio = TodayCardio("ZONE 2", "20–25 min easy — keep it conversational.", hard = false),
-        actionLabel = if (inProgress) "CONTINUE — 4 OF 18 SETS" else "START DAY B",
+        actionLabel = TodayScreenBuilder.actionLabel("B", if (inProgress) 4 else 0, 18),
         lastSession = if (inProgress) null else "Jul 30, 2026 · 18 sets · Back Squat 245",
         rotation = listOf(
             RotationMark("A", 0, isNext = false),

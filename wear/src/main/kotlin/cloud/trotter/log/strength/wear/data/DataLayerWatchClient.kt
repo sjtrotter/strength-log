@@ -4,9 +4,9 @@ import android.util.Log
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.SyncCodec
-import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.WearSyncPaths
+import cloud.trotter.log.strength.domain.sync.applyDelta
 import kotlin.random.Random
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.retryWhen
@@ -66,6 +65,9 @@ class DataLayerWatchClient(
      *  the wire for no gain — the queue they both read is the same one. */
     private val draining = Mutex()
 
+    /** Serializes the cache prime and live listener through one freshness decision. */
+    private val installing = Mutex()
+
     init {
         scope.launch { prime() }
         link.snapshotChanges()
@@ -98,17 +100,17 @@ class DataLayerWatchClient(
         // wall clock can stamp two distinct edits into the same millisecond, and the
         // phone's per-row dedupe would then drop the second as a replay.
         val stamped = delta.copy(editedAtMillis = queue.issueStamp(delta.editedAtMillis))
-        echo { exercises -> WatchEditOptimism.apply(exercises, stamped) }
         queue.enqueue(stamped)
+        echo(stamped)
         send(stamped)
     }
 
     /** Same shape as [sendEdit], one path over. The echo is the name only — seeding
-     *  is the phone's (see [WatchEditOptimism.applySwap]). */
+     *  is the phone's (see [applyDelta]). */
     override fun sendSwap(swap: ExerciseSwapDelta) = launchSend("sending a swap") {
         val stamped = swap.copy(editedAtMillis = queue.issueStamp(swap.editedAtMillis))
-        echo { exercises -> WatchEditOptimism.applySwap(exercises, stamped) }
         queue.enqueueSwap(stamped)
+        echo(stamped)
         sendSwapMessage(stamped)
     }
 
@@ -132,10 +134,12 @@ class DataLayerWatchClient(
      * own edit pass itself off as a phone-side change, and — since [install] compares
      * against the held stamp — would make the phone's real answer look stale.
      */
-    private fun echo(apply: (List<WatchExercise>) -> List<WatchExercise>) {
-        snapshots.update { held ->
-            held?.copy(day = held.day.copy(exercises = apply(held.day.exercises)))
-        }
+    private suspend fun echo(delta: SetEditDelta) = installing.withLock {
+        snapshots.update { held -> held?.let { applyDelta(it, delta) } }
+    }
+
+    private suspend fun echo(delta: ExerciseSwapDelta) = installing.withLock {
+        snapshots.update { held -> held?.let { applyDelta(it, delta) } }
     }
 
     /** The last snapshot the Data Layer cached on this node (survives restarts). */
@@ -149,23 +153,25 @@ class DataLayerWatchClient(
         // snapshot as the phone's current authority — PendingEdits.isRefusedByDrift
         // drops a swap whose target has fallen out of the prescription — and a stale
         // or replayed item is not that document.
-        if (install(snapshot)) {
-            // Drop-settled runs atomically inside the store (one DataStore.edit), so a
-            // sendEdit enqueuing concurrently can't be wiped between read and write —
-            // no lock needed here.
-            queue.reconcileAgainst(snapshot)
-        }
+        install(snapshot)
         // Drained either way: a redelivery of the stamp we already hold is what a
         // reconnect resync looks like, and it is a perfectly good flush signal.
         drainQueue()
     }
 
     /** Installs [snapshot] if it [supersedes] the held one, and says whether it did. */
-    private fun install(snapshot: WatchSnapshot): Boolean {
-        val held = snapshots.getAndUpdate { current ->
-            if (current == null || supersedes(snapshot, current)) snapshot else current
-        }
-        return held == null || supersedes(snapshot, held)
+    private suspend fun install(snapshot: WatchSnapshot): Boolean = installing.withLock {
+        val held = snapshots.value
+        if (held != null && !supersedes(snapshot, held)) return@withLock false
+
+        // Reconciliation always reads the phone's wire truth. Only the remaining
+        // durable deltas are then folded over a fresh in-memory copy for display.
+        queue.reconcileAgainst(snapshot)
+        var displayed = snapshot
+        queue.all().forEach { delta -> displayed = applyDelta(displayed, delta) }
+        queue.allSwaps().forEach { delta -> displayed = applyDelta(displayed, delta) }
+        snapshots.value = displayed
+        true
     }
 
     /**

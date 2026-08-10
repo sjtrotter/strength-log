@@ -147,6 +147,98 @@ class DataLayerWatchClientTest {
     }
 
     @Test
+    fun `a newer pre-edit snapshot keeps an unacked tick overlaid`() = runBlocking {
+        val link = FakePhoneLink()
+        val queue = store()
+        queue.enqueue(tickDelta(setIndex = 0, done = true, stamp = 7L))
+        val client = watchClient(link, queue)
+        eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+
+        link.snapshotEvents.emit(phoneSnapshot(revision = 9, epoch = PHONE_EPOCH))
+
+        eventually("the overlaid snapshot") {
+            client.snapshotFlow().first().day.exercises.single().sets[0].done
+        }
+        assertEquals(1, queue.all().size, "display overlay must not acknowledge the edit")
+    }
+
+    @Test
+    fun `the confirming snapshot removes the overlay and converges with zero pending`() = runBlocking {
+        val link = FakePhoneLink()
+        val queue = store()
+        queue.enqueue(tickDelta(setIndex = 0, done = true, stamp = 7L))
+        val client = watchClient(link, queue)
+        eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        link.snapshotEvents.emit(phoneSnapshot(revision = 9, epoch = PHONE_EPOCH))
+        eventually("the pending overlay") { client.snapshotFlow().first().day.exercises[0].sets[0].done }
+
+        val confirmed = phoneSnapshot(revision = 10, epoch = PHONE_EPOCH).let { snapshot ->
+            snapshot.copy(day = snapshot.day.copy(exercises = snapshot.day.exercises.map { exercise ->
+                exercise.copy(sets = exercise.sets.mapIndexed { index, set ->
+                    if (index == 0) set.copy(done = true) else set
+                })
+            }))
+        }
+        link.snapshotEvents.emit(confirmed)
+
+        eventually("the acknowledgement") {
+            queue.all().isEmpty() && client.snapshotFlow().first().revision == 10L
+        }
+        assertEquals(confirmed, client.snapshotFlow().first())
+        assertEquals(0, client.pendingCountFlow().first())
+    }
+
+    @Test
+    fun `a pending delta for a missing exercise is skipped without changing the snapshot`() = runBlocking {
+        val link = FakePhoneLink()
+        val queue = store()
+        queue.enqueue(tickDelta(done = true, stamp = 7L))
+        val client = watchClient(link, queue)
+        eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        val withoutTarget = phoneSnapshot(revision = 9, epoch = PHONE_EPOCH).let { snapshot ->
+            snapshot.copy(day = snapshot.day.copy(exercises = emptyList()))
+        }
+
+        link.snapshotEvents.emit(withoutTarget)
+
+        eventually("the unchanged snapshot") { client.snapshotFlow().first().revision == 9L }
+        assertEquals(withoutTarget, client.snapshotFlow().first())
+        assertEquals(1, queue.all().size, "a missing target remains visibly queued")
+    }
+
+    @Test
+    fun `all remaining deltas for one exercise are overlaid`() = runBlocking {
+        val link = FakePhoneLink()
+        val queue = store()
+        queue.enqueue(tickDelta(done = true, stamp = 7L))
+        queue.enqueue(tickDelta(done = null, stamp = 8L).copy(reps = 9))
+        val client = watchClient(link, queue)
+        eventually("the snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+
+        link.snapshotEvents.emit(phoneSnapshot(revision = 9, epoch = PHONE_EPOCH))
+
+        eventually("the ordered overlay") { client.snapshotFlow().first().revision == 9L }
+        val row = client.snapshotFlow().first().day.exercises[0].sets[0]
+        assertEquals(true, row.done)
+        assertEquals(9, row.reps)
+        assertEquals(listOf(7L, 8L), queue.all().map { it.editedAtMillis })
+    }
+
+    @Test
+    fun `cached snapshot prime receives the pending overlay`() = runBlocking {
+        val link = FakePhoneLink().apply { cached = phoneSnapshot(revision = 9, epoch = PHONE_EPOCH) }
+        val queue = store()
+        queue.enqueue(tickDelta(done = true, stamp = 7L))
+
+        val client = watchClient(link, queue)
+
+        eventually("the overlaid cache prime") {
+            client.snapshotFlow().first().day.exercises[0].sets[0].done
+        }
+        assertEquals(1, queue.all().size)
+    }
+
+    @Test
     fun `a count that restarted under a new epoch is adopted, not refused as stale`() = runBlocking {
         val link = FakePhoneLink()
         val client = watchClient(link)

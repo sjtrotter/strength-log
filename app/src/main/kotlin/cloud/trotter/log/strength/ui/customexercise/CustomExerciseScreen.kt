@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.ui.customexercise
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,24 +14,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,6 +50,7 @@ import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
+import cloud.trotter.log.strength.ui.theme.BorderStrong
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TextFaint
@@ -111,25 +109,26 @@ private fun NameField(value: String, onValueChange: (String) -> Unit) {
     Column {
         Text(stringResource(R.string.custom_exercise_name_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Surface2, NameFieldShape)
-                .border(1.dp, Border, NameFieldShape)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-        ) {
-            if (value.isEmpty()) {
-                Text(stringResource(R.string.custom_exercise_name_hint), color = TextFaint, style = NameFieldStyle)
-            }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                textStyle = NameFieldStyle.copy(color = TextPrimary),
-                cursorBrush = SolidColor(TextPrimary),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = MaterialTheme.shapes.medium,
+            textStyle = MaterialTheme.typography.bodyLarge,
+            placeholder = { Text(stringResource(R.string.custom_exercise_name_hint)) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+                cursorColor = TextPrimary,
+                focusedBorderColor = BorderStrong,
+                unfocusedBorderColor = Border,
+                focusedContainerColor = Surface2,
+                unfocusedContainerColor = Surface2,
+                focusedPlaceholderColor = TextFaint,
+                unfocusedPlaceholderColor = TextFaint,
+            ),
+        )
     }
 }
 
@@ -380,7 +379,6 @@ private fun equipmentLabel(equipment: Equipment): String = equipment.name
     .split("_")
     .joinToString(" ") { it.lowercase().replaceFirstChar(Char::uppercase) }
 
-private val NameFieldShape = RoundedCornerShape(10.dp)
 private val FooterDividerThickness = 1.dp
 private val FooterVerticalPadding = 10.dp
 private val FooterButtonVerticalPadding = 8.dp
@@ -389,9 +387,6 @@ private val FooterHeight = FooterDividerThickness +
     FooterVerticalPadding * 2 +
     FooterButtonVerticalPadding * 2 +
     FooterLabelMinHeight
-private val NameFieldStyle: TextStyle
-    @Composable get() = MaterialTheme.typography.bodyLarge
-
 @Preview(showBackground = true, heightDp = 900, backgroundColor = 0xFF0D0D0F)
 @Composable
 private fun CustomExerciseScreenPreview() {

@@ -159,7 +159,7 @@ class DayViewModelCardioExecutionTest {
         val vm = runningVm()
         clock.advance(60_000)
         vm.stopCardio()
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(1, repo.cardioSessionsFlow.first().size)
         assertEquals(60, repo.cardioSessionsFlow.first().single().seconds)
     }
@@ -170,10 +170,10 @@ class DayViewModelCardioExecutionTest {
         val startedWall = clock.wall
         clock.advance(30_000)
         vm.startCardio()
-        advanceUntilIdle()
+        runCurrent()
         clock.advance(90_000)
         vm.stopCardio()
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(startedWall, repo.cardioSessionsFlow.first().single().startedAt)
     }
 

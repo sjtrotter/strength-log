@@ -9,7 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -24,13 +24,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +39,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -62,6 +64,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -311,19 +315,48 @@ private fun TopBar(
         ) {
             // Day selection is the only thing left in this row (#121: ⚙ and LOG
             // moved to Today), and it scrolls — a 6-day program overflows 360dp.
-            // The 16dp gutter is content padding *inside* the scroll viewport,
-            // not on it, so the suggested-next ring and dot [DayTab] draws 2-6dp
-            // outside a tab are never clipped at the viewport's edge.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .selectableGroup()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                state.tabs.forEach { tab ->
-                    DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
+            // M3 owns scrolling, selectable-group semantics, and the intentional
+            // platform-conventional auto-scroll that brings a newly selected day
+            // into view (especially useful for 6+-day programs). The decoration
+            // uses each tab's measured geometry, so it follows the real layout.
+            val selectedIndex = state.tabs.indexOfFirst { it.isSelected }.coerceAtLeast(0)
+            if (state.tabs.isNotEmpty()) {
+                val tabScrollState = rememberScrollState()
+                var tabGeometry by remember(state.tabs.map { it.dayId }) {
+                    mutableStateOf(List<TabGeometry?>(state.tabs.size) { null })
+                }
+                PrimaryScrollableTabRow(
+                    selectedTabIndex = selectedIndex,
+                    scrollState = tabScrollState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // The 2dp top inset owns the dot's overhang; neither the
+                        // decoration nor its clipping contract escapes this row.
+                        .height(50.dp)
+                        .drawSuggestedDayDecoration(state.tabs, tabGeometry, tabScrollState)
+                        .padding(top = 2.dp),
+                    containerColor = Color.Transparent,
+                    contentColor = accent,
+                    edgePadding = 16.dp,
+                    minTabWidth = 0.dp,
+                    divider = {},
+                    indicator = {},
+                ) {
+                    state.tabs.forEachIndexed { index, tab ->
+                        Box(
+                            Modifier.onGloballyPositioned { coordinates ->
+                                val measured = TabGeometry(
+                                    offsetX = coordinates.positionInParent().x,
+                                    width = coordinates.size.width.toFloat(),
+                                )
+                                if (tabGeometry[index] != measured) {
+                                    tabGeometry = tabGeometry.toMutableList().also { it[index] = measured }
+                                }
+                            },
+                        ) {
+                            DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
+                        }
+                    }
                 }
             }
             Row(
@@ -448,50 +481,74 @@ internal fun DayTab(tab: DayTab, onClick: () -> Unit) {
         if (showSuggestedRing) R.string.day_tab_suggested_description else R.string.day_tab_description,
         tab.dayId,
     )
-    Box(
+    Tab(
+        selected = tab.isSelected,
+        onClick = onClick,
+        selectedContentColor = onDayAccent(tab.dayIndex),
+        unselectedContentColor = accent,
         modifier = Modifier
             // Reserves the 48dp target around a 40dp tab, which also gives the
-            // suggested-next ring and dot (drawn 2-6dp outside the tab) room
-            // inside the tab's own slot instead of over its neighbour's.
+            // visual tab room to grow with enlarged system type.
             .minimumInteractiveComponentSize()
-            .defaultMinSize(40.dp, 40.dp)
-            .drawBehind {
-                if (showSuggestedRing) {
-                    val ringInset = (-2).dp.toPx()
-                    drawRoundRect(
-                        color = accent,
-                        topLeft = Offset(ringInset, ringInset),
-                        size = Size(size.width - 2 * ringInset, size.height - 2 * ringInset),
-                        cornerRadius = CornerRadius(12.dp.toPx()),
-                        style = Stroke(width = 1.5.dp.toPx()),
-                    )
-                    // Suggested-next dot at the tab's top-right corner, with a
-                    // background-colored ring so it reads as cut out of the tab.
-                    val dotCenter = Offset(size.width, 0f)
-                    drawCircle(color = Background, radius = 6.dp.toPx(), center = dotCenter)
-                    drawCircle(color = accent, radius = 4.dp.toPx(), center = dotCenter)
-                }
-            }
+            .defaultMinSize(DayTabVisualSize, DayTabVisualSize)
             .background(if (tab.isSelected) accent else Surface, RoundedCornerShape(10.dp))
             .then(if (tab.isSelected) Modifier else Modifier.border(1.dp, borderColor, RoundedCornerShape(10.dp)))
-            // selectable (A7), not plain clickable: the day tabs are a mutually-
-            // exclusive group (selectableGroup wraps them, see TopBar) so
-            // TalkBack announces "Day A, suggested next, tab, selected" etc.
-            .pressableSelectable(
-                selected = tab.isSelected,
-                onClick = onClick,
-                role = Role.Tab,
-                shape = RoundedCornerShape(10.dp),
-            )
+            // Generic M3 Tab fills its available width. Hold the authored
+            // surface at 40dp; minimumInteractiveComponentSize remains the
+            // outer 48dp layout/touch target.
+            .requiredWidth(DayTabVisualSize)
             .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
     ) {
         Text(
             tab.dayId,
-            color = if (tab.isSelected) onDayAccent(tab.dayIndex) else accent,
             style = TabLetter,
             modifier = Modifier.clearAndSetSemantics {},
         )
+    }
+}
+
+private val DayTabVisualSize = 40.dp
+
+private data class TabGeometry(val offsetX: Float, val width: Float)
+
+/**
+ * Draws the suggested ring/dot in space owned by the row. Horizontal centres
+ * come from each tab wrapper's measured layout rather than assumed tab sizes.
+ */
+private fun Modifier.drawSuggestedDayDecoration(
+    tabs: List<DayTab>,
+    tabGeometry: List<TabGeometry?>,
+    scrollState: ScrollState,
+): Modifier = drawWithContent {
+    val visual = DayTabVisualSize.toPx()
+    val ownedTopClearance = 2.dp.toPx()
+    val contentHeight = size.height - ownedTopClearance
+    val visualTop = ownedTopClearance + (contentHeight - visual) / 2f
+    val ringInset = (-2).dp.toPx()
+
+    tabs.forEachIndexed { index, tab ->
+        val position = tabGeometry.getOrNull(index)
+        if (!tab.isSuggested || tab.isSelected || position == null) return@forEachIndexed
+        val logicalCenter = position.offsetX + position.width / 2f - scrollState.value
+        val centerX = if (layoutDirection == LayoutDirection.Ltr) logicalCenter else size.width - logicalCenter
+        val left = centerX - visual / 2f
+        drawRoundRect(
+            color = dayAccent(tab.dayIndex),
+            topLeft = Offset(left + ringInset, visualTop + ringInset),
+            size = Size(visual - 2 * ringInset, visual - 2 * ringInset),
+            cornerRadius = CornerRadius(12.dp.toPx()),
+            style = Stroke(width = 1.5.dp.toPx()),
+        )
+    }
+    drawContent()
+    tabs.forEachIndexed { index, tab ->
+        val position = tabGeometry.getOrNull(index)
+        if (!tab.isSuggested || tab.isSelected || position == null) return@forEachIndexed
+        val logicalCenter = position.offsetX + position.width / 2f - scrollState.value
+        val centerX = if (layoutDirection == LayoutDirection.Ltr) logicalCenter else size.width - logicalCenter
+        val dotCenter = Offset(centerX + visual / 2f, visualTop)
+        drawCircle(color = Background, radius = 6.dp.toPx(), center = dotCenter)
+        drawCircle(color = dayAccent(tab.dayIndex), radius = 4.dp.toPx(), center = dotCenter)
     }
 }
 

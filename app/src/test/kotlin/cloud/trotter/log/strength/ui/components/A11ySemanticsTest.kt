@@ -313,14 +313,16 @@ class A11ySemanticsTest {
             }
         }
 
-        composeTestRule.onNodeWithContentDescription("Day A").assertIsSelected()
+        composeTestRule.onNodeWithContentDescription("Day A")
+            .assertIsSelected()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
     }
 
     // --- Today took the app-wide chrome off Day (#121) ---------------------------
 
-    /** Pins #121: Settings and "Open log" left the day header for Today, and the
-     *  day-tab cluster became horizontally scrollable so a 6-day program still
-     *  fits — every tab must still render, just not all in the viewport. */
+    /** Pins #121: Settings and "Open log" left the day header for Today. Also
+     *  renders the complete tab row to pin its one-node-per-day a11y contract.
+     *  Selection intentionally uses M3's auto-scroll-to-selected behavior. */
     @Test
     fun dayScreenScrollsAllDayTabsAndNoLongerHostsSettingsOrLog() {
         val state = DayUiState(
@@ -394,9 +396,26 @@ class A11ySemanticsTest {
             }
         }
 
-        listOf("A", "B", "C", "D", "E", "F").forEach {
-            composeTestRule.onNodeWithContentDescription("Day $it").assertExists()
-        }
+        val dayIds = listOf("A", "B", "C", "D", "E", "F")
+        val tabNodes = composeTestRule
+            .onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+            .fetchSemanticsNodes()
+
+        assertEquals("one tab semantics node per day", dayIds.size, tabNodes.size)
+        assertEquals(
+            "every day is announced exactly once",
+            dayIds.map { listOf("Day $it") },
+            tabNodes.map { it.config.getOrNull(SemanticsProperties.ContentDescription) },
+        )
+        assertEquals(
+            "exactly one day tab is selected",
+            1,
+            tabNodes.count { it.config.getOrNull(SemanticsProperties.Selected) == true },
+        )
+        assertTrue(
+            "tab letters must not create duplicate announcements",
+            tabNodes.all { it.config.getOrNull(SemanticsProperties.Text).isNullOrEmpty() },
+        )
 
         assertTrue(
             "Settings must not reappear on Day — it moved to Today (#121)",

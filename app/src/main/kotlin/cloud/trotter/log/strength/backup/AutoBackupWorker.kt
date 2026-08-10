@@ -192,6 +192,8 @@ sealed interface AutoBackupRunResult {
     data object Disabled : AutoBackupRunResult
 }
 
+/** Android-free decision seam apart from its output abstraction; tests supply a
+ * fake store to prove replacement, bytes, retry, and folder-loss behavior. */
 class AutoBackupRunner(
     private val settings: SettingsStore,
     private val exportBackup: suspend (OutputStream) -> Unit,
@@ -209,6 +211,9 @@ class AutoBackupRunner(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: SecurityException) {
+            // The provider grant was revoked. Stop scheduling quietly; the next
+            // Backup-screen visit explains the disabled state without a crash or
+            // notification.
             settings.markAutoBackupPermissionLost()
             AutoBackupRunResult.Disabled
         } catch (_: AutoBackupFolderUnavailableException) {
@@ -222,7 +227,8 @@ class AutoBackupRunner(
 }
 
 class AutoBackupWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
-    @EntryPoint @InstallIn(SingletonComponent::class)
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
     interface Dependencies {
         fun settingsStore(): SettingsStore
         fun backupService(): BackupService
@@ -231,7 +237,8 @@ class AutoBackupWorker(appContext: Context, params: WorkerParameters) : Coroutin
     override suspend fun doWork(): Result {
         val dependencies = EntryPointAccessors.fromApplication(applicationContext, Dependencies::class.java)
         return when (AutoBackupRunner(
-            dependencies.settingsStore(), dependencies.backupService()::exportTo,
+            dependencies.settingsStore(),
+            dependencies.backupService()::exportTo,
             SafAutoBackupDocumentStore(applicationContext),
         ).run()) {
             AutoBackupRunResult.Success -> Result.success()
@@ -250,8 +257,12 @@ object AutoBackupScheduler {
     fun enable(context: Context) {
         val request = PeriodicWorkRequestBuilder<AutoBackupWorker>(
             AUTO_BACKUP_DAILY_HOURS.toLong(), TimeUnit.HOURS,
-        ).setConstraints(Constraints.Builder().setRequiresBatteryNotLow(true).build())
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.MINUTES).build()
+        )
+            // No storage/network requirement: SAF providers decide how writes
+            // are persisted or synced. Avoid low-battery execution.
+            .setConstraints(Constraints.Builder().setRequiresBatteryNotLow(true).build())
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.MINUTES)
+            .build()
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             UNIQUE_WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request,
         )

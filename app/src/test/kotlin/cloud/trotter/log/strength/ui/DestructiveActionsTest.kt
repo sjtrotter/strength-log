@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.activity.ComponentDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -176,7 +177,7 @@ class DestructiveActionsTest {
         composeTestRule.onNodeWithText("Clear today's checkmarks").performClick()
         composeTestRule.onNodeWithText("Clear").assertIsDisplayed()
 
-        composeTestRule.runOnIdle { ShadowDialog.getLatestDialog().onBackPressed() }
+        composeTestRule.runOnIdle { (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed() }
 
         assertEquals(0, cleared)
         composeTestRule.onNodeWithText("Clear").assertDoesNotExist()
@@ -193,7 +194,7 @@ class DestructiveActionsTest {
         composeTestRule.onNodeWithText("RESET DEFAULTS").performClick()
         composeTestRule.onNodeWithText("Reset").assertIsDisplayed()
 
-        composeTestRule.runOnIdle { ShadowDialog.getLatestDialog().onBackPressed() }
+        composeTestRule.runOnIdle { (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed() }
 
         assertEquals(0, reset)
         composeTestRule.onNodeWithText("Reset").assertDoesNotExist()

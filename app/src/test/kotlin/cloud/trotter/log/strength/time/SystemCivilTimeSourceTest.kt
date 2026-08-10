@@ -93,13 +93,16 @@ class SystemCivilTimeSourceTest {
         val readings = Channel<CivilTime>(Channel.UNLIMITED)
         val collecting = collectReadings(SystemCivilTimeSource(app), readings)
         withTimeout(TIMEOUT_MS) { readings.receive() }
-        assertTrue(shadowOf(app).hasReceiverForIntent(Intent(Intent.ACTION_TIMEZONE_CHANGED)))
+        assertTrue(hasTimezoneReceiver())
 
         collecting.cancel()
         collecting.join()
 
-        assertFalse(shadowOf(app).hasReceiverForIntent(Intent(Intent.ACTION_TIMEZONE_CHANGED)))
+        assertFalse(hasTimezoneReceiver())
     }
+
+    private fun hasTimezoneReceiver(): Boolean =
+        shadowOf(app).registeredReceivers.any { it.intentFilter.hasAction(Intent.ACTION_TIMEZONE_CHANGED) }
 
     private fun CoroutineScope.collectReadings(source: SystemCivilTimeSource, into: Channel<CivilTime>): Job =
         launch(Dispatchers.Unconfined) { source.civilTime.collect { into.send(it) } }

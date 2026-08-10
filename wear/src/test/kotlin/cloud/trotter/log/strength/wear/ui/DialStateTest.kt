@@ -792,8 +792,8 @@ class DialStateTest {
         assertEquals(DialScreen.DAY_DONE, state.screen)
         assertEquals(DialTap.DISMISS, state.tap)
         assertNotNull(state.hold)
-        assertEquals(UndoTarget(1, 1), state.hold?.target)
-        assertEquals(listOf("UNDO", "SET 2"), state.hold?.disc?.lines?.map { it.spans.single().text })
+        assertEquals(UndoTarget(1, 1), state.hold.target)
+        assertEquals(listOf("UNDO", "SET 2"), state.hold.disc.lines.map { it.spans.single().text })
     }
 
     @Test

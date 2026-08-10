@@ -127,8 +127,12 @@ class LogViewModelTest {
     }
 
     /** Records what a backfill hands over, and can refuse it (partial failure). */
-    private class RecordingPublisher(private val succeeds: Boolean = true) : SessionPublisher {
+    private class RecordingPublisher(
+        private val succeeds: Boolean = true,
+        private val cardioSucceeds: Boolean = true,
+    ) : SessionPublisher {
         val backfilled = mutableListOf<List<Long>>()
+        val cardioBackfilled = mutableListOf<List<Long>>()
 
         /** Session completion doesn't happen on the Log screen. */
         override suspend fun publish(sessionId: Long) = Unit
@@ -136,6 +140,11 @@ class LogViewModelTest {
         override suspend fun publishAll(sessionIds: List<Long>): Boolean {
             backfilled += sessionIds
             return succeeds
+        }
+
+        override suspend fun publishAllCardio(cardioSessionIds: List<Long>): Boolean {
+            cardioBackfilled += cardioSessionIds
+            return cardioSucceeds
         }
     }
 
@@ -641,6 +650,24 @@ class LogViewModelTest {
         assertEquals(1, publisher.backfilled.size)
         assertEquals(sessionIds.sorted(), publisher.backfilled.single().sorted())
         assertNull("the one-shot offer is spent", vm.uiState.value.health.backfill)
+        collect.cancel()
+    }
+
+    /** The gate is a conjunction: strength publishing cleanly while cardio
+     *  fails (or vice versa) must leave the one-shot un-spent. */
+    @Test
+    fun aCardioOnlyFailureKeepsTheBackfillOffered() = runVmTest {
+        seedTwoSessions()
+        val publisher = RecordingPublisher(succeeds = true, cardioSucceeds = false)
+        val vm = newViewModel(reader = FakeHealthReader(), publisher = publisher)
+        val collect = launch { vm.uiState.collect {} }
+        vm.refreshHealth()
+        advanceUntilIdle()
+
+        vm.publishPastWorkouts()
+        advanceUntilIdle()
+
+        assertNotNull("cardio failed, so the offer must survive", vm.uiState.value.health.backfill)
         collect.cancel()
     }
 

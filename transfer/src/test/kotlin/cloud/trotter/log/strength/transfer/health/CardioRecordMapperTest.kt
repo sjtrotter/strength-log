@@ -20,6 +20,14 @@ class CardioRecordMapperTest {
         assertNull(CardioRecordMapper.toExerciseSession(cardio(start = 1_000, end = 86_401_001)))
     }
 
+    @Test fun `boundary durations map inclusively`() {
+        assertEquals(60_000L, span(cardio(start = 1_000, end = 61_000)))
+        assertEquals(86_400_000L, span(cardio(start = 1_000, end = 86_401_000)))
+    }
+
+    private fun span(session: CardioSessionEntity): Long? =
+        CardioRecordMapper.toExerciseSession(session)?.let { it.endTime.toEpochMilli() - it.startTime.toEpochMilli() }
+
     @Test fun `client identity and version follow dedupe contract`() {
         val record = mapped("OUTDOOR_RUN")!!
         assertEquals("strengthlog-cardio-42", record.metadata.clientRecordId)

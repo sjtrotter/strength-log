@@ -14,11 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Text
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.wear.R
 import cloud.trotter.log.strength.wear.theme.AmbientBackground
 import cloud.trotter.log.strength.wear.theme.AmbientClock
 import cloud.trotter.log.strength.wear.theme.AmbientDim
@@ -48,7 +50,8 @@ fun AmbientDial(
     burnInProtectionRequired: Boolean = false,
     deviceHasLowBitAmbient: Boolean = false,
 ) {
-    val state = remember(ambientTick, snapshot, rest) {
+    val context = LocalContext.current
+    val state = remember(ambientTick, snapshot, rest, context) {
         val remaining = rest?.let {
             RestTimer.remainingSeconds(it.deadlineMillis, SystemClock.elapsedRealtime())
         }
@@ -56,6 +59,11 @@ fun AmbientDial(
             snapshot = snapshot,
             timeText = wallClockTimeText(),
             restRemainingSeconds = remaining,
+            dayText = { context.getString(R.string.dial_day, it) },
+            dayProgressText = { day, done, total ->
+                context.getString(R.string.ambient_day_progress, day, done, total)
+            },
+            restingText = context.getString(R.string.ambient_resting),
         )
     }
 

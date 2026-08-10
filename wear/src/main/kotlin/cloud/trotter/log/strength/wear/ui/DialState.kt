@@ -147,15 +147,15 @@ fun holdGoalSeconds(exercise: WatchExercise, roundIndex: Int): Int {
 fun roundLabel(round: RoundUiState): String =
     listOf(round.heroDisplay, round.secondaryDisplay).filter { it.isNotBlank() }.joinToString(" ")
 
-fun dialUiState(inputs: DialInputs): DialUiState {
+fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
     val day = inputs.snapshot.day
-    if (day.exercises.isEmpty()) return noProgram(inputs.snapshot)
+    if (day.exercises.isEmpty()) return noProgram(inputs.snapshot, copy)
     val browsing = inputs.browseDayIndex?.takeIf { inputs.face == DialFace.OVERVIEW }
 
     val unit = watchUnit(inputs.snapshot.unit)
     val exerciseIndex = inputs.exerciseIndex.coerceIn(day.exercises.indices)
     val exercise = day.exercises[exerciseIndex]
-    val stream = exercise.toStreamUiState(unit, day.dayId, day.accentIndex)
+    val stream = exercise.toStreamUiState(unit, day.dayId, day.accentIndex, copy)
     val roundIndex = currentRoundIndex(exercise)
     val progress = DayProgress.of(day)
     val dayDone = progress.total > 0 && progress.done == progress.total
@@ -172,6 +172,7 @@ fun dialUiState(inputs: DialInputs): DialUiState {
         doneSetCount = progress.done,
         unit = unit,
         cycle = cycleSegments(inputs.snapshot, browsing),
+        copy = copy,
     )
 
     val state = when {
@@ -188,7 +189,7 @@ fun dialUiState(inputs: DialInputs): DialUiState {
     return state
         .withPeek(context, inputs.peekRoundIndex)
         .withSwapPreview(context, inputs.swapAlternateIndex)
-        .withQueuedStatus(inputs.pendingCount)
+        .withQueuedStatus(inputs.pendingCount, copy)
 }
 
 /** Everything the seven screen builders share, so each reads as its brief entry. */
@@ -203,6 +204,7 @@ private class ScreenContext(
     val doneSetCount: Int,
     val unit: WeightUnit,
     val cycle: List<CycleSegment>,
+    val copy: DialCopy,
 ) {
     val day get() = inputs.snapshot.day
     val round: RoundUiState? get() = stream.rounds.getOrNull(roundIndex)
@@ -212,7 +214,7 @@ private class ScreenContext(
     /** "235 × 5" / "×12" / "45s" — the round as one read-only line. */
     fun prescription(): String = round?.let(::roundLabel).orEmpty()
 
-    fun setOfLine(): String = "set ${roundIndex + 1} of ${exercise.sets.size}".uppercase()
+    fun setOfLine(): String = copy.setOf(roundIndex + 1, exercise.sets.size).uppercase()
 
     fun base(
         screen: DialScreen,
@@ -272,7 +274,7 @@ private class ScreenContext(
                 style = DiscStyle.FILLED,
                 lines = listOf(
                     DiscLine(
-                        (if (started) "continue" else "start").uppercase(),
+                        (if (started) copy.continueText else copy.start).uppercase(),
                         DialTextRole.DISC_LABEL,
                         DialTone.ON_DISC,
                     ),
@@ -314,7 +316,7 @@ private class ScreenContext(
                 style = DiscStyle.DIMMED,
                 lines = listOfNotNull(
                     DiscLine(
-                        "day ${browsed.dayId}".uppercase(),
+                        copy.day(browsed.dayId).uppercase(),
                         DialTextRole.DISC_LABEL,
                         DialTone.PRIMARY,
                     ),
@@ -364,7 +366,7 @@ private class ScreenContext(
             rounds = roundStates,
             arc = null,
             topBand = BandContent(
-                text = "${exercise.name} · ${round?.kindLabel.orEmpty()}".uppercase(),
+                text = copy.exerciseKind(exercise.name, round?.kindLabel.orEmpty()).uppercase(),
                 tone = DialTone.SECONDARY,
             ),
             bottomBand = BandContent(setOfLine(), DialTone.TERTIARY),
@@ -397,11 +399,11 @@ private class ScreenContext(
         rounds = roundStates,
         arc = null,
         topBand = BandContent(exercise.name.uppercase(), DialTone.SECONDARY),
-        bottomBand = BandContent("waiting on phone".uppercase(), DialTone.TERTIARY),
+        bottomBand = BandContent(copy.waitingOnPhone.uppercase(), DialTone.TERTIARY),
         disc = DiscContent(
             style = DiscStyle.DIMMED,
             lines = listOf(
-                DiscLine("swapping".uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY),
+                DiscLine(copy.swapping.uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY),
                 DiscLine(exercise.name.uppercase(), DialTextRole.BAND, DialTone.SECONDARY),
             ),
         ),
@@ -427,12 +429,12 @@ private class ScreenContext(
                 DialTextRole.DISC_LABEL,
                 DialTone.PRIMARY,
             ),
-            DiscLine("use this".uppercase(), DialTextRole.BAND, DialTone.ACCENT_BRIGHT),
+            DiscLine(copy.useThis.uppercase(), DialTextRole.BAND, DialTone.ACCENT_BRIGHT),
         ),
     )
 
     fun swapBand(alternateIndex: Int): BandContent = BandContent(
-        text = "${alternateIndex + 1} of ${exercise.alternates.size} alternates".uppercase(),
+        text = copy.alternateOf(alternateIndex + 1, exercise.alternates.size).uppercase(),
         tone = DialTone.TERTIARY,
     )
 
@@ -450,7 +452,7 @@ private class ScreenContext(
             style = DiscStyle.OUTLINED,
             lines = listOf(
                 DiscLine(numeralGroup()),
-                DiscLine("tap to log".uppercase(), DialTextRole.BAND, DialTone.ACCENT_BRIGHT),
+                DiscLine(copy.tapToLog.uppercase(), DialTextRole.BAND, DialTone.ACCENT_BRIGHT),
             ),
         ),
         tap = DialTap.TICK,
@@ -465,7 +467,7 @@ private class ScreenContext(
             rounds = roundStates,
             arc = (elapsedSeconds.toFloat() / goal).coerceIn(0f, 1f),
             topBand = BandContent(
-                text = "${exercise.name} · ${round?.kindLabel.orEmpty()}".uppercase(),
+                text = copy.exerciseKind(exercise.name, round?.kindLabel.orEmpty()).uppercase(),
                 tone = DialTone.SECONDARY,
             ),
             bottomBand = BandContent(setOfLine(), DialTone.TERTIARY),
@@ -474,7 +476,7 @@ private class ScreenContext(
                 lines = listOf(
                     DiscLine(DialFormat.clock(elapsedSeconds), DialTextRole.NUMERAL_LARGE, DialTone.PRIMARY),
                     DiscLine(
-                        "goal ${DialFormat.clock(goal.toLong())}".uppercase(),
+                        copy.goal(DialFormat.clock(goal.toLong())).uppercase(),
                         DialTextRole.BAND,
                         DialTone.SECONDARY,
                     ),
@@ -495,13 +497,13 @@ private class ScreenContext(
                 inputs.nowElapsedMillis,
                 rest.totalSeconds,
             ),
-            topBand = BandContent("rest".uppercase(), DialTone.SECONDARY),
-            bottomBand = BandContent("tap to skip".uppercase(), DialTone.TERTIARY),
+            topBand = BandContent(copy.rest.uppercase(), DialTone.SECONDARY),
+            bottomBand = BandContent(copy.tapToSkip.uppercase(), DialTone.TERTIARY),
             disc = DiscContent(
                 style = DiscStyle.FLAT,
                 lines = listOf(
                     DiscLine(DialFormat.clock(remaining.toLong()), DialTextRole.NUMERAL_LARGE, DialTone.PRIMARY),
-                    DiscLine("next $next".uppercase(), DialTextRole.BAND, DialTone.SECONDARY),
+                    DiscLine(copy.next(next).uppercase(), DialTextRole.BAND, DialTone.SECONDARY),
                 ),
             ),
             tap = DialTap.SKIP_REST,
@@ -514,7 +516,7 @@ private class ScreenContext(
         rounds = roundStates,
         arc = null,
         topBand = BandContent(
-            text = "✓ rested ${DialFormat.clock(restedSeconds.toLong())}".uppercase(),
+            text = copy.rested(DialFormat.clock(restedSeconds.toLong())).uppercase(),
             tone = DialTone.SUCCESS,
         ),
         bottomBand = BandContent(
@@ -552,7 +554,7 @@ private class ScreenContext(
         bottomBand = null,
         disc = DiscContent(
             style = DiscStyle.FILLED_GREEN,
-            lines = listOf(DiscLine("done".uppercase(), DialTextRole.NUMERAL, DialTone.ON_DISC)) +
+            lines = listOf(DiscLine(copy.done.uppercase(), DialTextRole.NUMERAL, DialTone.ON_DISC)) +
                 dayDoneStats().map { DiscLine(it, DialTextRole.BAND, DialTone.ON_DISC) },
         ),
         tap = DialTap.DISMISS,
@@ -572,10 +574,10 @@ private class ScreenContext(
         )
         val volume = sessionVolume(day.exercises, unit)
         val parts = buildList {
-            if (minutes > 0) add("$minutes min")
-            if (volume > 0) add("${DialFormat.grouped(volume)} ${unit.name}")
+            if (minutes > 0) add(copy.minutes(minutes))
+            if (volume > 0) add(copy.volume(DialFormat.grouped(volume), unit.name))
         }
-        return parts.ifEmpty { listOf("$doneSetCount sets") }.map { it.uppercase() }
+        return parts.ifEmpty { listOf(copy.sets(doneSetCount)) }.map { it.uppercase() }
     }
 
     /**
@@ -603,9 +605,9 @@ private class ScreenContext(
             disc = DiscContent(
                 style = DiscStyle.FLAT,
                 lines = listOfNotNull(
-                    DiscLine("undo".uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY),
+                    DiscLine(copy.undo.uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY),
                     liftName?.let { DiscLine(it.uppercase(), DialTextRole.BAND, DialTone.SECONDARY) },
-                    DiscLine("set ${target.roundIndex + 1}".uppercase(), DialTextRole.BAND, DialTone.SECONDARY),
+                    DiscLine(copy.set(target.roundIndex + 1).uppercase(), DialTextRole.BAND, DialTone.SECONDARY),
                 ),
             ),
         )
@@ -622,7 +624,7 @@ private class ScreenContext(
             ),
             inputs.tickMemory.secondsFor(exercise.programExerciseId, roundIndex)?.let {
                 DiscLine(
-                    "took ${DialFormat.clock(it.toLong())}".uppercase(),
+                    copy.took(DialFormat.clock(it.toLong())).uppercase(),
                     DialTextRole.BAND,
                     DialTone.SECONDARY,
                 )
@@ -636,7 +638,7 @@ private class ScreenContext(
     private fun startDisc() = DiscContent(
         style = DiscStyle.FILLED,
         lines = listOf(
-            DiscLine("start".uppercase(), DialTextRole.DISC_LABEL, DialTone.ON_DISC),
+            DiscLine(copy.start.uppercase(), DialTextRole.DISC_LABEL, DialTone.ON_DISC),
             DiscLine(prescription(), DialTextRole.DISC_LABEL_SMALL, DialTone.ON_DISC),
         ),
     )
@@ -667,7 +669,7 @@ private class ScreenContext(
         val partner = round?.partner
         return if (stream.partnerName != null && partner != null) {
             BandContent(
-                text = "then ${stream.partnerName} ${partner.summaryDisplay}".uppercase(),
+                text = copy.thenPartner(stream.partnerName, partner.summaryDisplay).uppercase(),
                 tone = DialTone.SECONDARY,
             )
         } else {
@@ -695,7 +697,7 @@ private fun DialUiState.withPeek(
     val index = peekRoundIndex.coerceIn(rounds.indices)
     return copy(
         rounds = context.peekedRoundStates(index),
-        bottomBand = BandContent("↺ release to return".uppercase(), DialTone.TERTIARY),
+        bottomBand = BandContent(context.copy.releaseToReturn.uppercase(), DialTone.TERTIARY),
         disc = context.peekDisc(index),
         bloom = false,
         tap = DialTap.NONE,
@@ -738,11 +740,11 @@ private fun DialUiState.withSwapPreview(
  * lifter is under the bar, where the band is carrying the live elapsed timer and
  * a queue that will flush itself is not worth taking it for.
  */
-private fun DialUiState.withQueuedStatus(pendingCount: Int): DialUiState {
+private fun DialUiState.withQueuedStatus(pendingCount: Int, copy: DialCopy): DialUiState {
     if (pendingCount <= 0 || screen == DialScreen.LIFTING || screen == DialScreen.DAY_DONE) return this
     return copy(
         topBand = BandContent(
-            text = "$pendingCount queued".uppercase(),
+            text = copy.queued(pendingCount).uppercase(),
             tone = DialTone.SECONDARY,
             dotTone = DialTone.SECONDARY,
         ),
@@ -750,7 +752,7 @@ private fun DialUiState.withQueuedStatus(pendingCount: Int): DialUiState {
 }
 
 /** The phone hasn't generated a program yet (§7): a dashed disc and nothing to act on. */
-private fun noProgram(snapshot: WatchSnapshot) = DialUiState(
+private fun noProgram(snapshot: WatchSnapshot, copy: DialCopy) = DialUiState(
     screen = DialScreen.OVERVIEW,
     accentIndex = snapshot.day.accentIndex,
     cycle = cycleSegments(snapshot),
@@ -762,8 +764,8 @@ private fun noProgram(snapshot: WatchSnapshot) = DialUiState(
     disc = DiscContent(
         style = DiscStyle.DASHED,
         lines = listOf(
-            DiscLine("no program".uppercase(), DialTextRole.DISC_LABEL_SMALL, DialTone.PRIMARY),
-            DiscLine("set up on your phone".uppercase(), DialTextRole.BAND_SECONDARY, DialTone.TERTIARY),
+            DiscLine(copy.noProgram.uppercase(), DialTextRole.DISC_LABEL_SMALL, DialTone.PRIMARY),
+            DiscLine(copy.setUpOnPhone.uppercase(), DialTextRole.BAND_SECONDARY, DialTone.TERTIARY),
         ),
     ),
     bloom = false,

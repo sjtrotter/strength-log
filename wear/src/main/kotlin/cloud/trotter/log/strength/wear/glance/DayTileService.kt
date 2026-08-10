@@ -32,7 +32,7 @@ class DayTileService : TileService() {
             .setResourcesVersion(RESOURCES_VERSION)
             .setTileTimeline(
                 TimelineBuilders.Timeline.fromLayoutElement(
-                    dayTileLayout(DayGlance.of(readSnapshot()), openApp()),
+                    dayTileLayout(DayGlance.of(readSnapshot()), glanceCopy(), openApp()),
                 ),
             )
             .build()
@@ -67,6 +67,8 @@ class DayTileService : TileService() {
                 .build(),
         )
         .build()
+
+    private fun glanceCopy() = dayGlanceCopy(this)
 
     private companion object {
 

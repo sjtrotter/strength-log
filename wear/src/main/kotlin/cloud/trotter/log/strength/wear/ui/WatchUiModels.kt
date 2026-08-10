@@ -70,8 +70,13 @@ data class PartnerRowUiState(
 )
 
 /** [unit] converts the DTO's canonical lb into what the watch displays. */
-fun WatchExercise.toStreamUiState(unit: WeightUnit, dayId: String, accentIndex: Int): ExerciseStreamUiState {
-    val labels = kindLabels(sets)
+fun WatchExercise.toStreamUiState(
+    unit: WeightUnit,
+    dayId: String,
+    accentIndex: Int,
+    copy: DialCopy,
+): ExerciseStreamUiState {
+    val labels = kindLabels(sets, copy)
     val track = watchTracking(tracking)
     val ssTrack = watchTracking(ssTracking)
     val isSuperset = supersetPartnerName != null
@@ -126,13 +131,13 @@ fun watchTracking(tracking: String): TrackingType = TrackingType.entries.firstOr
 } ?: TrackingType.WEIGHTED
 
 /** Per-round kind labels: R1…, TOP, B/O, or a plain 1-based number — mirrors the phone's DayScreenBuilder. */
-private fun kindLabels(sets: List<WatchSet>): List<String> {
+private fun kindLabels(sets: List<WatchSet>, copy: DialCopy): List<String> {
     var ramp = 0
     return sets.mapIndexed { index, s ->
         when (s.kind) {
-            "RAMP" -> "R${++ramp}"
-            "TOP" -> "TOP"
-            "BACKOFF" -> "B/O"
+            "RAMP" -> copy.rampLabel(++ramp)
+            "TOP" -> copy.topLabel
+            "BACKOFF" -> copy.backoffLabel
             else -> "${index + 1}"
         }
     }

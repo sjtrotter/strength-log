@@ -32,6 +32,7 @@ import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.wear.OngoingWorkoutChip
+import cloud.trotter.log.strength.wear.R
 import cloud.trotter.log.strength.wear.data.WatchTrackerClient
 import cloud.trotter.log.strength.wear.theme.Background
 import cloud.trotter.log.strength.wear.theme.WearTrackerTheme
@@ -177,6 +178,7 @@ private fun WorkoutDial(
     onSessionStarted: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     val view = LocalView.current
     // Keyed on the day: a rollover to tomorrow's workout starts a fresh session
     // rather than inheriting yesterday's stamps and a rest nobody is taking.
@@ -375,7 +377,41 @@ private fun WorkoutDial(
         pendingSwapExerciseIds = pendingSwaps,
         tickMemory = tickMemory,
     )
-    val state = dialUiState(inputs)
+    // The dial recomposes every rest-tick second; copy never changes within a
+    // composition's life (locale changes recreate the activity).
+    val copy = remember(context) { DialCopy(
+        continueText = context.getString(R.string.dial_continue),
+        start = context.getString(R.string.dial_start),
+        day = { context.getString(R.string.dial_day, it) },
+        setOf = { current, total -> context.getString(R.string.dial_set_of, current, total) },
+        exerciseKind = { exercise, kind -> context.getString(R.string.dial_exercise_kind, exercise, kind) },
+        waitingOnPhone = context.getString(R.string.dial_waiting_on_phone),
+        swapping = context.getString(R.string.dial_swapping),
+        useThis = context.getString(R.string.dial_use_this),
+        alternateOf = { current, total -> context.getString(R.string.dial_alternate_of, current, total) },
+        tapToLog = context.getString(R.string.dial_tap_to_log),
+        goal = { context.getString(R.string.dial_goal, it) },
+        rest = context.getString(R.string.dial_rest),
+        tapToSkip = context.getString(R.string.dial_tap_to_skip),
+        next = { context.getString(R.string.dial_next, it) },
+        rested = { context.getString(R.string.dial_rested, it) },
+        done = context.getString(R.string.dial_done),
+        minutes = { context.getString(R.string.dial_minutes, it) },
+        volume = { value, unit -> context.getString(R.string.dial_volume, value, unit) },
+        sets = { context.getString(R.string.dial_sets, it) },
+        undo = context.getString(R.string.dial_undo),
+        set = { context.getString(R.string.dial_set, it) },
+        took = { context.getString(R.string.dial_took, it) },
+        thenPartner = { name, summary -> context.getString(R.string.dial_then_partner, name, summary) },
+        releaseToReturn = context.getString(R.string.dial_release_to_return),
+        queued = { context.getString(R.string.dial_queued, it) },
+        noProgram = context.getString(R.string.dial_no_program),
+        setUpOnPhone = context.getString(R.string.dial_set_up_on_phone),
+        rampLabel = { context.getString(R.string.dial_ramp_label, it) },
+        topLabel = context.getString(R.string.dial_top_label),
+        backoffLabel = context.getString(R.string.dial_backoff_label),
+    ) }
+    val state = dialUiState(inputs, copy)
 
     // Repaint ticker: only while something on screen is counting.
     LaunchedEffect(state.screen) {

@@ -51,18 +51,21 @@ class DayComplicationService : SuspendingComplicationDataSourceService() {
                 glance.rangeValue,
                 0f,
                 glance.rangeMax,
-                text(glance.contentDescription),
+                text(glance.contentDescription(glanceCopy())),
             )
-                .setText(text(glance.shortText))
+                .setText(text(glance.shortText(glanceCopy())))
                 .setTapAction(openApp())
                 .build()
 
             ComplicationType.SHORT_TEXT -> ShortTextComplicationData.Builder(
-                text(glance.shortText),
-                text(glance.contentDescription),
+                text(glance.shortText(glanceCopy())),
+                text(glance.contentDescription(glanceCopy())),
             )
                 .setTapAction(openApp())
-                .also { if (glance.ratioText.isNotBlank()) it.setTitle(text(glance.ratioText)) }
+                .also {
+                    val ratio = glance.ratioText(glanceCopy())
+                    if (ratio.isNotBlank()) it.setTitle(text(ratio))
+                }
                 .build()
 
             // The manifest offers exactly two types; anything else is a face asking

@@ -53,6 +53,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.onClick
@@ -78,6 +79,7 @@ import androidx.wear.compose.foundation.curvedRow
 import androidx.wear.compose.foundation.radialSize
 import androidx.wear.compose.foundation.sizeIn
 import androidx.wear.compose.material.Text
+import cloud.trotter.log.strength.wear.R
 import cloud.trotter.log.strength.wear.theme.Background
 import cloud.trotter.log.strength.wear.theme.Border
 import cloud.trotter.log.strength.wear.theme.DialTypography
@@ -418,14 +420,15 @@ private fun CycleLabels(cycle: List<CycleSegment>, type: DialTypography, diamete
     val band = DialGeometry.cycleLabelBand(diameterPx)
     val labelStyle = type.style(DialTextRole.CYCLE_LABEL)
     val segments = DialGeometry.segments(cycle.size)
+    val dayLabels = cycle.map { stringResource(R.string.dial_day, it.dayLabel).uppercase() }
 
-    val labels = remember(cycle, labelStyle, band.radiusPx) {
+    val labels = remember(cycle, dayLabels, labelStyle, band.radiusPx) {
         fun sweepOf(text: String) = DialGeometry.bandSweepDeg(
             arcLengthPx = measurer.measure(text, labelStyle).size.width.toFloat(),
             radiusPx = band.radiusPx,
         )
         cycle.mapIndexed { index, segment ->
-            val full = "day ${segment.dayLabel}".uppercase()
+            val full = dayLabels[index]
             when (
                 DialGeometry.cycleLabelFit(
                     segmentSweepDeg = segments[index].sweepAngleDeg,
@@ -606,17 +609,27 @@ private fun Modifier.discGestures(
     onHoldComplete: (UndoTarget) -> Unit,
 ): Modifier {
     val scope = rememberCoroutineScope()
+    val undoLastSetLabel = stringResource(R.string.dial_undo_last_set_action)
+    val clickLabel = when (state.tap) {
+        DialTap.NONE -> null
+        DialTap.OPEN_WORKOUT -> stringResource(R.string.dial_open_workout_action)
+        DialTap.START_SET -> stringResource(R.string.dial_start_set_action)
+        DialTap.TICK -> stringResource(R.string.dial_log_set_action)
+        DialTap.SKIP_REST -> stringResource(R.string.dial_skip_rest_action)
+        DialTap.CONFIRM_SWAP -> stringResource(R.string.dial_confirm_swap_action)
+        DialTap.DISMISS -> stringResource(R.string.dial_dismiss_action)
+    }
     // The gesture is hand-rolled, so its accessibility actions are declared here.
     // Both actions must use the same callbacks as touch; they are alternate input
     // paths, not separate behavior.
     val accessibility = Modifier.semantics(mergeDescendants = true) {
-        state.tap.accessibilityClickLabel?.let { label ->
+        clickLabel?.let { label ->
             role = Role.Button
             onClick(label = label) { onTap(); true }
         }
         state.hold?.let { hold ->
             role = Role.Button
-            onLongClick(label = "undo last set") {
+            onLongClick(label = undoLastSetLabel) {
                 onHoldComplete(hold.target)
                 true
             }

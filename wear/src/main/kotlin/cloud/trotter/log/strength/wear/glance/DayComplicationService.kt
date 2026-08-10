@@ -73,6 +73,8 @@ class DayComplicationService : SuspendingComplicationDataSourceService() {
             else -> null
         }
 
+    private fun glanceCopy() = dayGlanceCopy(this)
+
     private fun text(value: String) = PlainComplicationText.Builder(value).build()
 
     // No FLAG_ACTIVITY_NEW_TASK: a PendingIntent already launches into its own task,

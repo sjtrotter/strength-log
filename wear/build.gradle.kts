@@ -72,6 +72,7 @@ dependencies {
     // watch face shows a one-tap re-entry chip after a stem press / ambient
     // timeout (redesign §1.4 / R6). Local-only; no INTERNET implication.
     implementation(libs.androidx.wear.ongoing)
+    implementation(libs.androidx.wear.remote.interactions)
     // The two glance surfaces (glance-surfaces brief §2/§3): a tile rendered with
     // ProtoLayout and a watch-face complication. Both read the snapshot DataItem the
     // Data Layer already persists here, so neither adds state or a permission.

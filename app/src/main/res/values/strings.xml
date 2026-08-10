@@ -364,6 +364,12 @@
 <string name="day_cardio_title">Cardio finisher</string>
 <string name="day_cardio_hard_label">HARD · %1$s</string>
 <string name="day_cardio_easy_label">EASY · %1$s</string>
+<string name="day_cardio_start_button">START</string>
+<string name="day_cardio_stop_button">STOP</string>
+<string name="day_cardio_step_left">%1$s · %2$s left</string>
+<string name="day_cardio_elapsed">ELAPSED · %1$s</string>
+<string name="day_cardio_overrun">OVERRUN</string>
+<string name="day_cardio_logged">LOGGED · %1$s</string>
 <string name="day_done_advance_button">DONE — ADVANCE TO DAY %1$s</string>
 <string name="day_done_button">DONE</string>
 <string name="day_rotation_footer">Rotation, not calendar — days advance when you finish them, not on a schedule. The weights you log are your living record; GOALs are a reference, not a rule.</string>

@@ -46,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +68,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -87,7 +92,6 @@ import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -168,6 +172,32 @@ fun DayScreen(
     val swappableSlotIds = remember(dayEditState.slots) {
         dayEditState.slots.filter { it.pattern != null }.mapTo(mutableSetOf()) { it.programExerciseId }
     }
+    val view = LocalView.current
+    val cardioRunning = state.cardio?.phase == CardioPhase.EXECUTING || state.cardio?.phase == CardioPhase.OVERRUN
+    // The keep-screen-on PREFERENCE is a window flag owned by MainActivity; this
+    // view flag belongs to a running cardio block alone, so dispose always clears it.
+    DisposableEffect(cardioRunning) {
+        view.keepScreenOn = cardioRunning
+        onDispose { view.keepScreenOn = false }
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> actions.onCardioScreenLive(true)
+                Lifecycle.Event.ON_STOP -> actions.onCardioScreenLive(false)
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            actions.onCardioScreenLive(true)
+        }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            actions.onCardioScreenLive(false)
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         if (!state.hasProgram) {
@@ -217,7 +247,9 @@ fun DayScreen(
                     )
                 }
                 state.cardio?.let { cardio ->
-                    item(contentType = "cardio") { CardioCard(cardio) }
+                    item(contentType = "cardio") {
+                        CardioCard(cardio, accent, onAccent, actions.onStartCardio, actions.onStopCardio)
+                    }
                 }
                 item(contentType = "footer") { Footer(onClearChecks = { confirmingClearChecks = true }) }
                 item(contentType = "spacer") { Spacer(Modifier.size(8.dp)) }
@@ -1018,24 +1050,32 @@ private fun UndoRemovedSetRow(accent: Color, modifier: Modifier = Modifier, onUn
 // --- cardio, done, footer ----------------------------------------------------
 
 @Composable
-private fun CardioCard(cardio: CardioSuggestion) {
+private fun CardioCard(
+    cardio: CardioCardState,
+    accent: Color,
+    onAccent: Color,
+    onStart: () -> Unit,
+    onStop: () -> Unit,
+) {
     // Saveable so LazyColumn eviction and rotation don't snap it shut (defaults closed).
     var open by rememberSaveable { mutableStateOf(false) }
     val expandAction = stringResource(R.string.day_expand_action)
     val collapseAction = stringResource(R.string.day_collapse_action)
     val expandedState = stringResource(R.string.day_expanded_state)
     val collapsedState = stringResource(R.string.day_collapsed_state)
+    val executing = cardio.phase != CardioPhase.SUGGESTION
+    LaunchedEffect(executing) { open = executing }
     val chevronRotation by animateFloatAsState(if (open) 180f else 0f, tween(200), label = "cardioChevron")
     // Not the clickable-card overload: OutlinedCard(onClick) cannot carry the
     // Expand/Collapse click label, and TalkBack loses the verb without it.
     AppCard(
         modifier = Modifier
-            .pressable(
+            .then(if (!executing) Modifier.pressable(
                 onClickLabel = if (open) collapseAction else expandAction,
                 role = Role.Button,
                 shape = MaterialTheme.shapes.large,
-            ) { open = !open }
-            .semantics { stateDescription = if (open) expandedState else collapsedState },
+            ) { open = !open } else Modifier)
+            .semantics { if (!executing) stateDescription = if (open) expandedState else collapsedState },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -1052,21 +1092,57 @@ private fun CardioCard(cardio: CardioSuggestion) {
                     outlined = true,
                 )
             }
-            Text(
-                "▼",
-                color = TextFaint,
-                style = MaterialTheme.typography.labelLarge,
+            if (!executing) Text(
+                "▼", color = TextFaint, style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.rotate(chevronRotation).clearAndSetSemantics {},
             )
         }
         Column(Modifier.animateContentSize(tween(320))) {
             if (open) {
                 Spacer(Modifier.size(10.dp))
-                Text(cardio.detail, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                if (executing) {
+                    if (cardio.phase == CardioPhase.OVERRUN) {
+                        Text(stringResource(R.string.day_cardio_overrun), color = accent, style = MaterialTheme.typography.titleMedium)
+                    } else {
+                        Text(
+                            stringResource(R.string.day_cardio_step_left, cardio.currentStepLabel.orEmpty(), formatCardioTime(cardio.stepSecondsLeft)),
+                            color = accent,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                    Spacer(Modifier.size(5.dp))
+                    Text(
+                        stringResource(R.string.day_cardio_elapsed, formatCardioTime(cardio.elapsedSeconds)),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    TextButton(onClick = onStop, colors = ButtonDefaults.textButtonColors(contentColor = TextFaint)) {
+                        Text(stringResource(R.string.day_cardio_stop_button))
+                    }
+                } else {
+                    Text(cardio.detail, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.size(8.dp))
+                    Button(
+                        onClick = onStart,
+                        colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
+                    ) {
+                        Text(stringResource(R.string.day_cardio_start_button))
+                    }
+                }
             }
+        }
+        if (!executing) cardio.loggedSeconds?.let { seconds ->
+            Spacer(Modifier.size(6.dp))
+            Text(
+                stringResource(R.string.day_cardio_logged, formatCardioTime(seconds)),
+                color = TextFaint,
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
     }
 }
+
+private fun formatCardioTime(seconds: Int): String = "%d:%02d".format(seconds / 60, seconds % 60)
 
 // --- fixed bottom bar: the primary action, and keep-screen-on ----------------
 
@@ -1290,6 +1366,9 @@ data class DayActions(
     val onCreateExercise: (MovementPattern) -> Unit,
     /** The recovery out of the no-program state (#127): back into the wizard. */
     val onSetUpProgram: () -> Unit,
+    val onStartCardio: () -> Unit = {},
+    val onStopCardio: () -> Unit = {},
+    val onCardioScreenLive: (Boolean) -> Unit = {},
 )
 
 // --- preview: the reference scenario (day_screen_reference.html) ------------
@@ -1424,7 +1503,7 @@ private fun DayScreenPreviewContent(theme: ThemePreference = ThemePreference.DAR
                 weightSwap = WeightSwapAffordance("weighted_plank", "Weighted Plank", isRemove = false),
             ),
         ),
-        cardio = CardioSuggestion("Zone 2", "20-25 min easy — legs were heavy today, keep it conversational.", hard = false),
+        cardio = CardioCardState("Zone 2", "20-25 min easy — legs were heavy today, keep it conversational.", hard = false),
         keepScreenOn = false,
     )
 
@@ -1443,6 +1522,9 @@ private fun DayScreenPreviewContent(theme: ThemePreference = ThemePreference.DAR
                 onKeepScreenOnChange = {},
                 onClearChecks = {},
                 onDone = {},
+                onStartCardio = {},
+                onStopCardio = {},
+                onCardioScreenLive = {},
                 onCreateExercise = {},
                 onSetUpProgram = {},
             ),

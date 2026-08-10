@@ -99,7 +99,7 @@ class DayViewModelWiringTest {
         handle: SavedStateHandle = SavedStateHandle(),
         publisher: SessionPublisher = SessionPublisher.NoOp,
     ): DayViewModel =
-        DayViewModel(repo, publisher, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate())).also { vms += it }
+        DayViewModel(repo, publisher, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm).also { vms += it }
 
     /** Day A: a ramped main, an arms superset, an unknown-id slot, and a superset
      *  whose partner id is unknown (its SS track can never seed). */

@@ -101,7 +101,7 @@ class DayViewModelDaySwitchTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, SavedStateHandle(), kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate())).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, SavedStateHandle(), kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm).also { vms += it }
 
     private suspend fun insertTwoDayProgram() {
         repo.replaceProgram(

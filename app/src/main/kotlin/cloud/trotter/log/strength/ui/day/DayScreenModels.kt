@@ -2,7 +2,6 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
@@ -35,7 +34,7 @@ data class DayUiState(
     /** The day DONE advances to (rotation successor of the viewed day). */
     val nextDayId: String? = null,
     val exercises: List<ExerciseCardState> = emptyList(),
-    val cardio: CardioSuggestion? = null,
+    val cardio: CardioCardState? = null,
     val keepScreenOn: Boolean = false,
 ) {
     /** True when the viewed day isn't the suggested-next one (spec §8.2 override note). */
@@ -65,6 +64,21 @@ data class DayTab(
     val isSuggested: Boolean,
     val isSelected: Boolean,
 )
+
+@Immutable
+data class CardioCardState(
+    val label: String,
+    val detail: String,
+    val hard: Boolean,
+    val phase: CardioPhase = CardioPhase.SUGGESTION,
+    val currentStepLabel: String? = null,
+    val stepSecondsLeft: Int = 0,
+    val elapsedSeconds: Int = 0,
+    /** Most recent logged session for this day, derived from Room history. */
+    val loggedSeconds: Int? = null,
+)
+
+enum class CardioPhase { SUGGESTION, EXECUTING, OVERRUN }
 
 /** One exercise card (spec §8.2). [Immutable] for the reason [DayUiState]
  *  carries it: this is the type the LazyColumn compares per item. */

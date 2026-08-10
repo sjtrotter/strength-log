@@ -109,9 +109,10 @@ contract as the wear rest deadline):
   math is simply correct again on return. Keep-screen-on applies while a
   block runs.
 - Durable state is minimal and derived: `SavedStateHandle` holds only the
-  plan identity and the wall + elapsedRealtime start anchors. Step index and
-  elapsed are DERIVED from the anchors on every restore, never stored. Reboot
-  is detected by anchor divergence (elapsed anchor younger than wall delta) —
+  plan identity and the wall + elapsedRealtime + boot-count start anchors.
+  Step index and elapsed are DERIVED from the anchors on every restore, never
+  stored. Reboot is detected exactly by the boot-count anchor (amended in
+  C1b review from wall-delta divergence, which an NTP jump could spoof) —
   after a reboot the wall anchor alone drives elapsed. Restores re-arm only
   the next FUTURE boundary; missed buzzes are never replayed. A restore that
   lands past the plan's end enters OVERRUN (below) with elapsed still

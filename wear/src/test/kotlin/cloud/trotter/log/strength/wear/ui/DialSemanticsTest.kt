@@ -31,6 +31,9 @@ class DialSemanticsTest {
     @Test
     fun `every dial tap is one named merged node and invokes its callback once`() {
         val actions = DialTap.entries.filterNot { it == DialTap.NONE }
+        // Pinned copy: distinct, terse, and total over every tappable state.
+        assertEquals(actions.toSet(), clickLabels.keys)
+        assertEquals(clickLabels.size, clickLabels.values.distinct().size)
         val current = mutableStateOf(actions.first())
         var taps = 0
         composeTestRule.setContent {
@@ -39,7 +42,7 @@ class DialSemanticsTest {
 
         actions.forEach { tap ->
             composeTestRule.runOnIdle { current.value = tap }
-            val node = composeTestRule.onNode(hasClickLabel(tap.accessibilityClickLabel!!))
+            val node = composeTestRule.onNode(hasClickLabel(clickLabels.getValue(tap)))
             node.assertHasClickAction().assertTextContains("ACTION")
             node.performClick()
             assertEquals("$tap callback count", actions.indexOf(tap) + 1, taps)
@@ -131,6 +134,15 @@ class DialSemanticsTest {
     private fun hold(target: UndoTarget) = DialHold(
         target = target,
         disc = DiscContent(DiscStyle.FLAT, emptyList()),
+    )
+
+    private val clickLabels = mapOf(
+        DialTap.OPEN_WORKOUT to "open workout",
+        DialTap.START_SET to "start set",
+        DialTap.TICK to "log set",
+        DialTap.SKIP_REST to "skip rest",
+        DialTap.CONFIRM_SWAP to "confirm swap",
+        DialTap.DISMISS to "dismiss",
     )
 
     private fun hasClickLabel(label: String) = SemanticsMatcher("click label '$label'") { node ->

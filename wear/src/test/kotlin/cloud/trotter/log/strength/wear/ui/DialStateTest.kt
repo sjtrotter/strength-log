@@ -36,16 +36,6 @@ class DialStateTest {
         assertNull(systemBackTarget(DialFace.WORKOUT, DialScreen.DAY_DONE))
     }
 
-    @Test
-    fun `every dial action has distinct terse accessibility copy`() {
-        val actions = DialTap.entries.filterNot { it == DialTap.NONE }
-        val labels = actions.map { it.accessibilityClickLabel }
-
-        assertTrue(labels.all { !it.isNullOrBlank() })
-        assertEquals(labels.size, labels.distinct().size)
-        assertNull(DialTap.NONE.accessibilityClickLabel)
-    }
-
     // --- fixtures ----------------------------------------------------------------
 
     private fun set(

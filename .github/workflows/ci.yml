@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
 
+# A new push supersedes the branch's running build; main's post-merge runs
+# are never cancelled (each validates a distinct merged commit).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest

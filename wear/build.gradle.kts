@@ -18,8 +18,20 @@ android {
         applicationId = "cloud.trotter.log.strength"
         minSdk = 30
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = (providers.gradleProperty("STRENGTHLOG_VERSION_CODE").orNull?.toInt() ?: 0) + 1
+        versionName = providers.gradleProperty("STRENGTHLOG_VERSION_NAME").orNull ?: "0.1"
+    }
+
+    // Same four locally-supplied properties as :app (docs/RELEASE.md) — one
+    // upload key signs both form factors; absent, release stays unsigned.
+    val releaseStoreFile = providers.gradleProperty("STRENGTHLOG_RELEASE_STORE_FILE")
+    signingConfigs {
+        create("release") {
+            releaseStoreFile.orNull?.let { storeFile = file(it) }
+            providers.gradleProperty("STRENGTHLOG_RELEASE_STORE_PASSWORD").orNull?.let { storePassword = it }
+            providers.gradleProperty("STRENGTHLOG_RELEASE_KEY_ALIAS").orNull?.let { keyAlias = it }
+            providers.gradleProperty("STRENGTHLOG_RELEASE_KEY_PASSWORD").orNull?.let { keyPassword = it }
+        }
     }
 
     buildTypes {
@@ -31,6 +43,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (releaseStoreFile.isPresent) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

@@ -84,7 +84,10 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
     @Test
     fun csv_imported_history_survives_a_full_backup_and_restore() = runTest {
         seedOneLoggedSession()
-        importCsv(exportCsv())
+        // A byte-identical re-import of our own export now deduplicates (#216),
+        // which is correct — so make the file foreign: a different completion
+        // time is a different workout, and the import must land it.
+        importCsv(exportCsv().replace(Regex("""\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"""), "2020-01-02 03:04:05"))
 
         val sessions = repository.sessionsFlow.first()
         assertEquals(2, sessions.size)

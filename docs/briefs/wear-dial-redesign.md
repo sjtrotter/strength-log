@@ -241,10 +241,10 @@ size). The pill yields whenever workout content owns `bottomBand`, never the rev
 at the next minute boundary and once per minute thereafter. Ambient never composes the pill: it
 already carries time and permits neither filled shapes nor continuously moving pixels.
 
-Implemented by issue #181, this resolves deviation 1 tracked in issue #167 for interactive faces:
-elapsed workout time keeps primacy in its band, while faces that previously omitted `TimeText`
-now carry wall time via the yielding pill. Ambient retains its existing centre-or-bottom-band
-wall clock treatment.
+Implemented by issue #181, the passive-time treatment keeps elapsed workout time primary in its
+band, while faces that previously omitted `TimeText` carry wall time via the yielding pill. Ambient
+retains its existing centre-or-bottom-band wall clock treatment. Deviation 1 tracked in #167 is
+resolved by #206 and is therefore not among the deliberate deviations below.
 
 ---
 
@@ -260,6 +260,35 @@ wall clock treatment.
 | Day complete | inner ring retracts to center and vanishes; outer ring closes; disc flips green | confirm |
 
 No slide transitions, no cross-fades between "screens", no spring overshoot on the rings.
+
+---
+
+## Deliberate deviations
+
+These choices are deviations from the usual Wear guidance, not unfinished framework work. Their
+original precondition is now met: back parity shipped in #163, accessibility landed in #141, and
+passive time landed in #181.
+
+- **Local face state with `BasicSwipeToDismissBox`, not `SwipeDismissableNavHost`.** The workout is
+  one dial changing state in place, so a navigation back stack would contradict its spatial model;
+  revisit if the watch gains genuinely separate, deep-linkable destinations.
+- **Crown dial, not list pickers.** One-handed eyes-off logging is the app's job, and rotating among
+  prescribed sets and exercises preserves the single large tap target; revisit if selection grows
+  beyond a small bounded workout or must support free-form browsing.
+- **Custom ProtoLayout tile geometry.** The tile shares the dial's concentric vocabulary, which the
+  stock layouts cannot express without losing glanceable progress; revisit when platform layouts
+  can reproduce the geometry accessibly across supported watches.
+- **No Horologist.** The flow needs neither list scaffolding nor another navigation/state layer, so
+  the dependency would own more architecture than it removes; revisit when a required feature has
+  a maintained Horologist primitive that materially replaces local code.
+- **No Health Services while the watch is a manual logger.** We record user-confirmed work rather
+  than infer exercise or physiological data the app does not measure; revisit with #154's cardio
+  build, where passive exercise and sensor data become part of the product.
+- **Active-session state is `rememberSaveable` only.** The pending-edit queue is the sole durable
+  watch store; saved state survives system recreation, not force-stop or reboot. That is right while
+  the phone remains source of truth and the watch holds only an in-flight interaction. Revisit if a
+  session must resume across relaunch or reboot: an `elapsedRealtime()` rest deadline cannot cross a
+  reboot, so durable timing would also need a wall-clock deadline or boot id.
 
 ---
 
@@ -284,8 +313,8 @@ fun Dial(
 - Two `Canvas` arcs + a `Box` with the disc. No `ScalingLazyColumn`, no nested scroll,
   no `Scaffold` vignette fighting the rings.
 - Derive every radius from the measured diameter so it holds on 41mm and 45mm alike.
-- Timers are **watch-local UI state**. Never synced, never persisted to the wire. Survive
-  process death via a start-timestamp in local storage, not by ticking in a service.
+- Timers are **watch-local UI state**. Never synced or persisted to the wire; `rememberSaveable`
+  carries them through system recreation, but not force-stop or reboot (see Deliberate deviations).
 - Keep the existing architecture: phone is source of truth, watch is read-only over the
   program, snapshot echo reconciles, **cascade/progression math never runs on the wrist**.
 

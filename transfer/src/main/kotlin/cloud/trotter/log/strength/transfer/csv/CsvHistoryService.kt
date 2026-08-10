@@ -38,12 +38,16 @@ class CsvHistoryService(private val repository: TrackerRepository) {
     /**
      * Commits a [preview] the caller has reviewed: creates a custom exercise
      * for each unmatched name using [approvedPatterns], then appends every
-     * session in one `:data` staging transaction ([TrackerRepository.importSessionHistory]).
+     * session not already present with the same title, second-precision completion
+     * time, and ordered CSV-normalized sets in one `:data` staging transaction
+     * ([TrackerRepository.importSessionHistory]). Two truly identical sessions
+     * completed within one second collide; that is an acceptable interchange
+     * limitation because CSV stores no finer completion time or set identity.
      * Throws [CsvImportError.MissingApproval] — writing nothing — if
      * [approvedPatterns] doesn't cover every unmatched name.
      */
     suspend fun commit(preview: CsvImportPreview, approvedPatterns: Map<String, MovementPattern> = emptyMap()) {
-        val plan = CsvHistoryImporter.commit(preview, approvedPatterns)
+        val plan = CsvHistoryImporter.commit(preview, approvedPatterns, repository.exportSessionHistory())
         repository.importSessionHistory(plan.sessions, plan.newCustomExercises)
     }
 }

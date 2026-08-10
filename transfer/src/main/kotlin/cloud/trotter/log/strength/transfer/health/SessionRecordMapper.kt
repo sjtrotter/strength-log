@@ -40,6 +40,13 @@ object SessionRecordMapper {
      * (0): the record a session produces is deterministic, so a second write
      * carries nothing newer, and the provider's same-id resolution leaves the
      * user with exactly one entry either way.
+     *
+     * The id is the local Room row id, not a content hash, because changing the
+     * scheme would remint every record already published by the app. CSV import
+     * therefore deduplicates identical history before inserting it. One narrow
+     * case remains: if an imported, already-published local session is deleted
+     * and then re-imported, the lost row id cannot be recovered from CSV and
+     * Health Connect receives a new client id for the same workout (#196).
      */
     fun clientRecordId(sessionId: Long): String = "strengthlog-session-$sessionId"
 

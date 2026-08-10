@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.ImportedSession
+import cloud.trotter.log.strength.data.SessionHistorySnapshot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
@@ -33,7 +34,11 @@ object CsvHistoryImporter {
      * rows to append. Throws [CsvImportError.MissingApproval] — committing
      * nothing — if any unmatched name has no entry in [approvedPatterns].
      */
-    fun commit(preview: CsvImportPreview, approvedPatterns: Map<String, MovementPattern>): CommitPlan {
+    fun commit(
+        preview: CsvImportPreview,
+        approvedPatterns: Map<String, MovementPattern>,
+        existingHistory: SessionHistorySnapshot? = null,
+    ): CommitPlan {
         val approvedByNormalizedName = approvedPatterns.mapKeys { normalizeExerciseName(it.key) }
         val missing = preview.unmatchedNames
             .filter { normalizeExerciseName(it.name) !in approvedByNormalizedName }
@@ -87,8 +92,51 @@ object CsvHistoryImporter {
                 },
             )
         }
-        return CommitPlan(sessions, newCustomExercises)
+        val seen = existingHistory?.let { history ->
+            val setsBySession = history.sessionSets.groupBy { it.sessionId }
+            history.sessions.mapTo(mutableSetOf()) { session ->
+                normalizedSessionFingerprint(session, setsBySession[session.id].orEmpty())
+            }
+        } ?: mutableSetOf()
+        val newSessions = sessions.filter { seen.add(normalizedSessionFingerprint(it.session, it.sets)) }
+        return CommitPlan(newSessions, newCustomExercises)
     }
+
+    /**
+     * Normalizes both native and imported history to exactly what CSV preserves:
+     * title, whole-second completion time, and ordered exercise/value tuples.
+     * Row ids and native-only set metadata are deliberately absent. Consequently,
+     * two truly identical sessions completed within one second collide; that is
+     * an acceptable limitation of the interchange format's second precision.
+     */
+    private fun normalizedSessionFingerprint(
+        session: WorkoutSessionEntity,
+        sets: List<SessionSetEntity>,
+    ) = SessionFingerprint(
+        dayTitle = session.dayTitle,
+        completedAtSeconds = session.completedAt / 1_000,
+        sets = sets.map { it.normalizedSetFingerprint() },
+    )
+
+    private fun SessionSetEntity.normalizedSetFingerprint() = SetFingerprint(
+        exerciseName = exerciseName,
+        weightLb = weightLb,
+        reps = reps,
+        seconds = seconds,
+    )
+
+    private data class SessionFingerprint(
+        val dayTitle: String,
+        val completedAtSeconds: Long,
+        val sets: List<SetFingerprint>,
+    )
+
+    private data class SetFingerprint(
+        val exerciseName: String,
+        val weightLb: Double,
+        val reps: Int,
+        val seconds: Int,
+    )
 
     private fun newCustomExercise(name: String, pattern: MovementPattern) = CustomExerciseEntity(
         id = ExerciseCatalog.CUSTOM_ID_PREFIX + UUID.randomUUID().toString().replace("-", ""),

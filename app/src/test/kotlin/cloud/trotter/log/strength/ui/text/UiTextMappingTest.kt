@@ -4,14 +4,15 @@ import android.content.Context
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.R
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import org.junit.Assert.assertEquals
+import org.junit.Test
 import org.junit.Rule
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /** Pins every semantic choice to its resolved default-resource copy. */
 @RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
 class UiTextMappingTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
 

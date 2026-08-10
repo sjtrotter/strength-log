@@ -278,13 +278,6 @@ class DayScreenBuilderTest {
         assertEquals(null, newPartner)
     }
 
-    // --- header helper copy (design-pass reference wording) ------------------
-
-    @Test
-    fun helper_copy_matches_the_design_reference() {
-        // Helper copy is authored directly at the Compose boundary.
-    }
-
     // --- kind labels from raw kinds (Log screen reuse, #14) ------------------
 
     @Test

@@ -56,7 +56,7 @@ class TodayScreenBuilderTest {
     }
 
     @Test
-    fun actionLabel_uppercases_the_day_id() {
+    fun actionLabel_preserves_the_semantic_day_id_lowercase() {
         assertEquals("b", TodayScreenBuilder.actionLabel("b", 0, 18).dayId)
     }
 

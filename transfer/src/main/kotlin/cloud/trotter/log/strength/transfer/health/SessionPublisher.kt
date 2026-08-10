@@ -20,9 +20,6 @@ interface SessionPublisher {
      */
     suspend fun publish(sessionId: Long)
 
-    /** Publishes one committed cardio row; default keeps existing test fakes source-compatible. */
-    suspend fun publishCardio(sessionId: Long) = Unit
-
     /**
      * Publishes [sessionIds] — the backfill a late grant needs (#159), since
      * [publish] only ever fires at completion time and history written before

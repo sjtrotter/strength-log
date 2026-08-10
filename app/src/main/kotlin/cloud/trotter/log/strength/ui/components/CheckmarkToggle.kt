@@ -52,6 +52,9 @@ private val ToggleShape = RoundedCornerShape(6.dp)
  * done"); [stateDescription] announces "Done"/"Not done" on top of the
  * checkbox role `toggleable` already sets. The inner ✓ glyph is silenced via
  * [clearAndSetSemantics] — the state description already says it.
+ *
+ * Material 3 Checkbox does not expose the authored 28dp rounded-square shape,
+ * unchecked fill, glyph treatment, or completion pop animation.
  */
 @Composable
 fun CheckmarkToggle(

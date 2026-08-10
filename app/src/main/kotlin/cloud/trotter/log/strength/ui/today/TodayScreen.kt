@@ -189,6 +189,10 @@ private fun TodayHeader(actions: TodayActions) {
     }
 }
 
+/**
+ * Compact text action. Material 3 Button cannot reproduce this 40dp-high,
+ * content-width header slot because its internal minimum width is 58dp.
+ */
 @Composable
 private fun LogButton(onClick: () -> Unit) {
     val openLog = stringResource(R.string.today_open_log_description)
@@ -212,6 +216,11 @@ private fun LogButton(onClick: () -> Unit) {
     }
 }
 
+/**
+ * Compact settings action. Material 3 IconButton cannot render in this header's
+ * 40dp visual slot — it owns a 48dp layout/state-layer slot with no smaller
+ * option, and the 48dp target here is provided separately.
+ */
 @Composable
 private fun SettingsButton(onClick: () -> Unit) {
     val settings = stringResource(R.string.today_settings_description)

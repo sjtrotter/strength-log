@@ -94,6 +94,9 @@ private const val LONG_PRESS_REPEAT_INTERVAL_MS = 90L
  * release so a long press doesn't tack on one extra step (see [StepSegment]).
  * No new persisted state — the repeat is entirely transient press-driven UI
  * state, gone the moment the finger lifts.
+ *
+ * Material 3 has no compound stepper with this shared capsule, value field,
+ * overlapping minimum touch targets, and long-press auto-repeat behavior.
  */
 @Composable
 fun Stepper(

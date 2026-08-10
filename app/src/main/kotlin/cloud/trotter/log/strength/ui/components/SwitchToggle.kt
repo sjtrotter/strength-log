@@ -40,6 +40,9 @@ import cloud.trotter.log.strength.ui.theme.onDayAccent
  * already uses for keep-screen-on, pulled out here so a second screen doesn't
  * have to re-draw it.
  *
+ * Material 3 [androidx.compose.material3.Switch] does not expose this compact
+ * 40x24 track geometry, so the visual track and thumb remain bespoke.
+ *
  * `toggleable(role = Role.Switch)` (A7) gives TalkBack the switch role and
  * on/off state for free; [label] is real [Text] so it merges into the
  * accessible name without any extra `contentDescription`.

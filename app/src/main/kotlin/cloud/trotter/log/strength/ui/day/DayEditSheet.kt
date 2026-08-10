@@ -537,6 +537,10 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
 }
 
 @Composable
+/**
+ * Compact equipment filters. Material 3 FilterChip does not expose its
+ * 16dp-per-side label padding, while this row's pinned geometry requires 12dp.
+ */
 internal fun EquipmentFilterRow(
     options: List<Equipment>,
     selected: Set<Equipment>,
@@ -585,6 +589,11 @@ private fun ResetToTemplateDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) 
 
 // --- small pieces --------------------------------------------------------------
 
+/**
+ * Sheet action. The compact slot-row branch stays bespoke because Material 3
+ * Button has a 58dp internal minimum width that cannot be capped externally;
+ * the regular branch delegates to M3 buttons.
+ */
 @Composable
 private fun SheetButton(
     text: String,

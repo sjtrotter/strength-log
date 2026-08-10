@@ -60,6 +60,38 @@ class RestTimerControllerTest {
     }
 
     @Test
+    fun `alarm fire invokes completion once`() {
+        val alarm = RecordingAlarmScheduler()
+        var completions = 0
+        val controller = controller(alarm)
+        controller.arm(5_000L, 5) { completions++ }
+
+        alarm.fire()
+        alarm.fire()
+
+        assertEquals(1, completions)
+    }
+
+    @Test
+    fun `re-arm and disarm invalidate a fired completion`() {
+        val alarm = RecordingAlarmScheduler()
+        val controller = controller(alarm)
+        var firing: RestTimerController.Firing? = null
+        controller.arm(5_000L, 5) { firing = it }
+        alarm.fire()
+
+        assertEquals(true, firing?.isCurrent())
+        controller.arm(9_000L, 9)
+        assertEquals(false, firing?.isCurrent())
+
+        var second: RestTimerController.Firing? = null
+        controller.arm(12_000L, 12) { second = it }
+        alarm.fire()
+        controller.disarm()
+        assertEquals(false, second?.isCurrent())
+    }
+
+    @Test
     fun `re-arming the same live deadline is idempotent`() {
         val alarm = RecordingAlarmScheduler()
         val controller = controller(alarm)
@@ -117,6 +149,25 @@ class RestTimerControllerTest {
         alarm.fire()
         assertEquals(1, buzzes)
         assertNull(controller.activeRest)
+    }
+
+    @Test
+    fun `a stale callback after a same-deadline re-arm neither buzzes nor completes`() {
+        val alarm = RecordingAlarmScheduler()
+        var buzzes = 0
+        val controller = controller(alarm) { buzzes++ }
+        controller.arm(deadlineMillis = 5_000L, totalSeconds = 5)
+        val stale = alarm.captureCallback()
+
+        controller.disarm()
+        controller.arm(deadlineMillis = 5_000L, totalSeconds = 5)
+        stale()
+
+        assertEquals(0, buzzes)
+        assertEquals(RestTimerController.ActiveRest(5_000L, 5), controller.activeRest)
+
+        alarm.fire()
+        assertEquals(1, buzzes)
     }
 
     @Test

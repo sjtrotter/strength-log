@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -35,6 +36,7 @@ import cloud.trotter.log.strength.wear.data.WatchTrackerClient
 import cloud.trotter.log.strength.wear.theme.Background
 import cloud.trotter.log.strength.wear.theme.WearTrackerTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** No rest, and no rest just ended — the sentinel for both saveable ints. */
 private const val NO_REST = -1
@@ -83,8 +85,20 @@ fun WearApp(
     val context = LocalContext.current
     // The exact-alarm listener lives at the root so it outlives the ambient swap.
     val restController = remember(context) { restTimerController(context.applicationContext) }
+    val rootScope = rememberCoroutineScope()
     DisposableEffect(restController) {
         onDispose(restController::close)
+    }
+    // A rollover invalidates a fired hold as well as an armed one. The retained
+    // latest-tick closure must never apply yesterday's exercise to today's snapshot.
+    DisposableEffect(dayId, restController) {
+        onDispose(restController::disarm)
+    }
+    LaunchedEffect(snapshot?.epoch, snapshot?.revision) {
+        // The dial's retained lambda is current through its last composition. If a
+        // phone update lands while ambient has removed it, cancel the settle rather
+        // than applying that closure to a snapshot it has never observed.
+        restController.invalidateFiring()
     }
     // Runs on every screen (loading/ambient/interactive) so the chip reconciles
     // even when the app relaunches straight into ambient — see OngoingSessionChip.
@@ -115,6 +129,13 @@ fun WearApp(
                     pendingExercises = pendingExercises,
                     pendingSwaps = pendingSwaps,
                     restController = restController,
+                    scheduleTimedHoldTick = { firing, tick ->
+                        rootScope.launch {
+                            // Let the long goal buzz land before tick's confirm haptic.
+                            delay(GOAL_BUZZ_SETTLE_MILLIS)
+                            if (firing.isCurrent()) tick()
+                        }
+                    },
                     // Straight through, no composition scope in the middle: the client
                     // owns the coroutine, on a scope that outlives this Activity. A
                     // tick the lifter already felt must not be abortable by the
@@ -150,6 +171,7 @@ private fun WorkoutDial(
     pendingExercises: Set<Long>,
     pendingSwaps: Set<Long>,
     restController: RestTimerController,
+    scheduleTimedHoldTick: (RestTimerController.Firing, () -> Unit) -> Unit,
     sendEdit: (SetEditDelta) -> Unit,
     sendSwap: (ExerciseSwapDelta) -> Unit,
     onSessionStarted: () -> Unit,
@@ -416,14 +438,12 @@ private fun WorkoutDial(
     LaunchedEffect(lifting, startedAtElapsedMillis, holdGoal) {
         if (!lifting || holdGoal <= 0 || startedAtElapsedMillis <= 0L) return@LaunchedEffect
         val goalDeadline = RestTimer.deadlineFrom(startedAtElapsedMillis, holdGoal)
-        restController.arm(goalDeadline, holdGoal)
+        restController.arm(goalDeadline, holdGoal) { firing ->
+            scheduleTimedHoldTick(firing, latestTick)
+        }
         while (!RestTimer.isExpired(goalDeadline, SystemClock.elapsedRealtime())) {
             delay(LIVE_TICK_MILLIS)
         }
-        // Let the goal buzz land before the tick fires its own confirm haptic —
-        // the brief's order is one long buzz, *then* the auto-tick (§8).
-        delay(GOAL_BUZZ_SETTLE_MILLIS)
-        latestTick()
     }
 
     // The crown reads the screen it's on: exercises on the overview, rounds in a

@@ -46,6 +46,8 @@ enum class SelectionMode { Radio, Check, Action }
  * but performs navigation or an action, so it uses plain button semantics and
  * has no selection state.
  * The ✓ glyph is silenced via [clearAndSetSemantics] to avoid reading it raw.
+ * Material 3 has no single card API for all three semantic modes plus this
+ * authored checkmark/subtitle interior, so only the container is M3.
  */
 @Composable
 fun SelectionCard(

@@ -32,8 +32,10 @@ internal val PressableFocusRingWidth = 2.dp
 internal const val PressableDisabledAlpha = 0.4f
 
 /**
- * Foundation interaction wrappers for controls without a faithful Material
- * component. Press feedback comes from the single [LocalIndication] installed
+ * Foundation interaction wrappers for controls without a faithful Material 3
+ * component. M3 has no modifier-level component that preserves these compound
+ * controls' authored geometry while supplying the shared inset focus ring.
+ * Press feedback comes from the single [LocalIndication] installed
  * by `AppTheme`; this layer supplies semantics, shape clipping, and the app's
  * keyboard/d-pad focus ring. Authored motion may share [interactionSource].
  */

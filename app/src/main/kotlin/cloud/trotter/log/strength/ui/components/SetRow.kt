@@ -115,6 +115,11 @@ private const val TICK_FADE_MS = 200
  * plus the weight stepper only when [showTimedWeight] is set (the exercise's
  * GOAL declares an added load, e.g. a weighted plank) — never derived from
  * whether this particular row's weight happens to be nonzero.
+ *
+ * Material 3 has no row component for this width budget, exact-overlap touch
+ * map, TOP/cascade choreography, and dashed superset structure. Its IconButton
+ * also owns a 48dp layout slot, while the remove leaf deliberately reserves
+ * only 24dp of row width around a separately expanded 48dp touch target.
  */
 @Composable
 fun SetRow(

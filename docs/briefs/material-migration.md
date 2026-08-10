@@ -1340,6 +1340,16 @@ Tests:
 
 Risk: high relative to the small deletion. This phase is optional and should be abandoned if fidelity degrades.
 
+**Phase 9 verdict (2026-08-10): ABANDON.** The existing remove leaf reserves a
+24 dp layout width (`defaultMinSize(minWidth = 24.dp)`) inside a separately
+expanded 48 dp minimum touch target. M3 `IconButton` owns a 48 dp layout/state-
+layer slot. Substitution would therefore add 24 dp to the row budget rather
+than preserve the current 24×48 dp visual footprint and separately expanded
+touch bounds, changing the
+issue-136 exact-overlap map. `RemoveButton` remains bespoke; Stepper,
+CheckmarkToggle, TOP decoration, cascade flash, and the dashed sub-row line were
+not changed.
+
 ## Phase 10 — deletion and enforcement
 
 Work:
@@ -1350,6 +1360,13 @@ Work:
 - Update component documentation with the final KEEP list.
 
 Expected result: net deletion with a short, explicit bespoke inventory.
+
+**Phase 10 deletion ledger (2026-08-10): no deletions.** Whole-source caller
+searches found a live call for every non-preview screen-local button, card, and
+header helper. `pressable`, `pressableSelectable`, and `pressableToggleable`
+also retain callers in the standing KEEP/HYBRID components and authored
+interactions. Preview entry points and Hilt provider methods were excluded from
+the dead-helper candidates.
 
 ---
 
@@ -1365,30 +1382,21 @@ A shorter enforcement sentence can be added beneath it:
 
 ---
 
-# Component summary
+# Component summary — final KEEP inventory
 
-| Component/family | M3 base | Verdict | Main reason |
-|---|---|---:|---|
-| `Pressable`/custom indication | Theme ripple configuration + app indication | HYBRID | Exact veil/focus language is not expressible by M3 ripple parameters alone |
-| `AppCard` | `OutlinedCard` | MIGRATE | Shape, flat surface, border, padding, and zero elevation are fully supported |
-| `SelectionCard` | `OutlinedCard` + `selectable` | HYBRID | M3 container is exact; check/subtitle remain custom |
-| `SwitchToggle` | `Switch` | KEEP | M3 does not expose the compact 40×24 geometry |
-| `CheckmarkToggle` | `Checkbox` | KEEP | Shape, unchecked fill, glyph, and pop animation are not configurable |
-| `Stepper` | None | KEEP | No M3 compound stepper or auto-repeat equivalent |
-| `SetRow` | M3 leaves inside custom row | HYBRID | Layout, cascade motion, TOP treatment, and overlap geometry are bespoke |
-| Conventional `Box + pressable` buttons | `Button`, `OutlinedButton`, `TextButton`, icon-button variants | MIGRATE | Public parameters cover existing shape/color/type/border |
-| `DialogAction` | `TextButton` | MIGRATE | Direct semantic equivalent |
-| Authored edge states | M3 action inside custom state | HYBRID | Loading sweep, reveal delay, and authored composition have no equivalent |
-| Headers/back chevrons | `TopAppBar` + auto-mirrored `IconButton` | MIGRATE/HYBRID | Conventional navigation; retain row layout if app-bar height is not faithful |
-| Day tab row | `PrimaryScrollableTabRow` + `Tab` | HYBRID | Suggested ring/dot and per-day filled tabs remain custom |
-| `BasicTextField` fields | `OutlinedTextField` defaults/decorator | HYBRID | M3 decoration is suitable; stock height may not be faithful |
-| Static hairlines | `HorizontalDivider` | MIGRATE | Exact equivalent |
-| Progress/dashed rules | None | KEEP | They encode progress or superset structure, not simple division |
-| Day-edit sheet shell | `ModalBottomSheet` | HYBRID | Shell already M3; internal page state and navigation remain custom |
-| Equipment pills | `FilterChip` | MIGRATE | Correct visual and toggle semantic equivalent |
-| Static badges/override pills | Themed `Surface` | HYBRID/KEEP | They are non-interactive; interactive chip APIs would add false semantics |
-| Log/exercise disclosure cards | `OutlinedCard` container | HYBRID | Nested actions require a custom disclosure region |
-| Cascade/receipt/journal visuals | None, except M3 actions | KEEP/HYBRID | Authored ceremonies and charts are outside M3’s component set |
+| Remaining bespoke component/family | M3 base used where faithful | KEEP reason (also stated in KDoc) |
+|---|---|---|
+| `pressable*` foundation leaves | Theme ripple configuration | M3 has no modifier-level component that preserves compound-control geometry plus the shared inset focus ring |
+| `SelectionCard` internals | `OutlinedCard` | Selection semantics, authored checkmark, and subtitle treatment remain custom inside the M3 container |
+| `SwitchToggle` / compact keep-screen-on switch | None | M3 `Switch` does not expose the authored 40×24 track geometry |
+| `CheckmarkToggle` | None | M3 `Checkbox` does not expose the 28 dp rounded shape, fills, glyph treatment, or completion pop |
+| `Stepper` | None | M3 has no compound capsule/value stepper with overlapping targets and long-press auto-repeat |
+| `SetRow`, including remove leaf | M3 text leaves | M3 has no equivalent for the width budget, exact-overlap map, TOP/cascade motion, or dashed superset structure; `IconButton` would widen the remove slot from 24 to 48 dp |
+| `EquipmentFilterRow` | None | M3 `FilterChip` does not expose the compact 12 dp label padding |
+| Compact `SheetButton` branch | M3 buttons for non-compact branch | M3 Button's 58 dp internal minimum width cannot fit the pinned slot-row geometry |
+| Compact header/calendar actions | M3 theme/state layer | M3 button/icon-button layout minima cannot preserve their 40 dp or 28 dp visual slots and pinned gaps |
+| Authored edge states, Day tab decoration, progress/dashed rules, cascade/receipt/journal visuals | M3 actions/containers where applicable | Their loading/reveal motion, suggested-day marks, semantic progress/superset rules, ceremonies, and charts have no M3 equivalent |
+| Static badges/override pills and disclosure regions | M3 `Surface`/`OutlinedCard` containers where applicable | Chip APIs would add false interaction semantics; whole-card actions would conflict with nested actions |
 
 # Final phase list
 

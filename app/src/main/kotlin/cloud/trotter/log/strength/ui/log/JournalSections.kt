@@ -334,6 +334,10 @@ internal fun CalendarCardView(
     }
 }
 
+/**
+ * Compact calendar navigation leaf. Material 3 IconButton owns a 48dp layout
+ * slot and cannot retain the two 28dp visual slots plus their pinned 6dp gap.
+ */
 @Composable
 private fun MonthChevron(glyph: String, label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(

@@ -5,6 +5,8 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.csv.CsvImportError
 import cloud.trotter.log.strength.transfer.csv.CsvImportPreview
+import cloud.trotter.log.strength.ui.text.BackupErrorKind
+import cloud.trotter.log.strength.ui.text.UiText
 
 /**
  * Everything the Data/Backup screen (PLAN.md A2, brief D9's `:app`-side UI
@@ -32,7 +34,7 @@ data class BackupUiState(
 
 /** A one-shot status line (export/import result or failure); [isError] picks
  *  the accent the screen renders it in. */
-data class StatusMessage(val text: String, val isError: Boolean)
+data class StatusMessage(val text: UiText, val isError: Boolean)
 
 /**
  * The CSV import preview/confirm screen's state (issue #16's pure preview
@@ -90,46 +92,29 @@ object TransferErrorMessages {
      *  I/O message used to imply — so each says what is true of the device now
      *  and what, if anything, is left for them to do. Shared with the wizard's
      *  first-run restore. */
-    fun of(interruption: RestoreInterruption): String = when (interruption) {
-        is RestoreInterruption.NotStarted ->
-            "Couldn't start the restore. Nothing changed — try again."
-        is RestoreInterruption.SettingsPending ->
-            "Your data restored, but your settings didn't. Reopen the app and it'll finish."
-        is RestoreInterruption.CleanupPending ->
-            "Backup restored. A bit of tidying up is left; the app will finish it."
+    fun of(interruption: RestoreInterruption): UiText = UiText.BackupError(when (interruption) {
+        is RestoreInterruption.NotStarted -> BackupErrorKind.RESTORE_NOT_STARTED
+        is RestoreInterruption.SettingsPending -> BackupErrorKind.SETTINGS_PENDING
+        is RestoreInterruption.CleanupPending -> BackupErrorKind.CLEANUP_PENDING
+    })
+
+    fun of(error: BackupError): UiText = when (error) {
+        is BackupError.TooLarge -> UiText.BackupError(BackupErrorKind.BACKUP_TOO_LARGE, error.bytes)
+        is BackupError.Malformed -> UiText.BackupError(BackupErrorKind.BACKUP_MALFORMED)
+        is BackupError.UnsupportedSchemaVersion -> UiText.BackupError(BackupErrorKind.UNSUPPORTED_SCHEMA)
+        is BackupError.InvalidPayload -> UiText.BackupError(BackupErrorKind.INVALID_PAYLOAD)
+        is BackupError.DanglingExerciseReference -> UiText.BackupError(BackupErrorKind.DANGLING_EXERCISE, error.exerciseId)
+        is BackupError.InvalidCustomExercise -> UiText.BackupError(BackupErrorKind.INVALID_CUSTOM_EXERCISE)
+        is BackupError.Inconsistent -> UiText.BackupError(BackupErrorKind.INCONSISTENT)
     }
 
-    fun of(error: BackupError): String = when (error) {
-        is BackupError.TooLarge ->
-            "That file is too large to be a strength-log backup (${error.bytes} bytes)."
-        is BackupError.Malformed ->
-            "That file isn't a strength-log backup (not valid JSON, or the wrong shape)."
-        is BackupError.UnsupportedSchemaVersion ->
-            "That backup was written by a version of the app this build can't read."
-        is BackupError.InvalidPayload ->
-            "That backup contains data this build can't decode — it may be corrupt."
-        is BackupError.DanglingExerciseReference ->
-            "That backup references an exercise (${error.exerciseId}) it doesn't define."
-        is BackupError.InvalidCustomExercise ->
-            "That backup has an invalid custom exercise and can't be restored."
-        is BackupError.Inconsistent ->
-            "That backup's data is inconsistent and can't be safely restored."
-    }
-
-    fun of(error: CsvImportError): String = when (error) {
-        is CsvImportError.TooLarge ->
-            "That file is too large to import (${error.bytes} bytes)."
-        is CsvImportError.Empty ->
-            "That CSV file has no data rows to import."
-        is CsvImportError.MalformedCsv ->
-            "That file isn't valid CSV — it looks truncated or corrupt."
-        is CsvImportError.MissingColumns ->
-            "That CSV is missing required column(s): ${error.missing.joinToString(", ")}."
-        is CsvImportError.AmbiguousWeightUnit ->
-            "Can't tell whether '${error.header}' is lb or kg — add a Weight Unit column."
-        is CsvImportError.MalformedRow ->
-            "Row ${error.line}: ${error.detail}"
-        is CsvImportError.MissingApproval ->
-            "Pick a movement pattern for: ${error.names.joinToString(", ")}."
+    fun of(error: CsvImportError): UiText = when (error) {
+        is CsvImportError.TooLarge -> UiText.BackupError(BackupErrorKind.CSV_TOO_LARGE, error.bytes)
+        is CsvImportError.Empty -> UiText.BackupError(BackupErrorKind.CSV_EMPTY)
+        is CsvImportError.MalformedCsv -> UiText.BackupError(BackupErrorKind.CSV_MALFORMED)
+        is CsvImportError.MissingColumns -> UiText.BackupError(BackupErrorKind.CSV_MISSING_COLUMNS, error.missing.joinToString(", "))
+        is CsvImportError.AmbiguousWeightUnit -> UiText.BackupError(BackupErrorKind.CSV_AMBIGUOUS_UNIT, error.header)
+        is CsvImportError.MalformedRow -> UiText.BackupError(BackupErrorKind.CSV_MALFORMED_ROW, "Row ${error.line}: ${error.detail}")
+        is CsvImportError.MissingApproval -> UiText.BackupError(BackupErrorKind.CSV_MISSING_APPROVAL, error.names.joinToString(", "))
     }
 }

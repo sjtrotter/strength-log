@@ -117,6 +117,7 @@ import cloud.trotter.log.strength.ui.theme.chromeVerticalPadding
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
+import cloud.trotter.log.strength.ui.text.resolve
 import kotlinx.coroutines.delay
 
 /**
@@ -337,7 +338,7 @@ private fun TopBar(
                     Text(text = state.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                     Text(text = state.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                     DayScreenBuilder.sessionStatusLine(state.doneSets, state.totalSets)?.let { status ->
-                        Text(text = status, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                        Text(text = status.resolve(), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
                     }
                     if (state.isOverride && state.suggestedDayId != null) {
                         Spacer(Modifier.size(3.dp))
@@ -653,16 +654,16 @@ private fun ExerciseCard(
             } else {
                 if (card.isMain) {
                     Spacer(Modifier.size(6.dp))
-                    Text(DayScreenBuilder.MAIN_HELPER, color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
+                    Text(stringResource(R.string.day_main_helper), color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
                 }
                 if (card.isSuperset) {
                     Spacer(Modifier.size(6.dp))
-                    Text(DayScreenBuilder.SUPERSET_HELPER, color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
+                    Text(stringResource(R.string.day_superset_helper), color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
                 }
 
                 card.plateLine?.let {
                     Text(
-                        it,
+                        it.resolve(),
                         color = TextFaint,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = rowInset.padding(bottom = 3.dp),

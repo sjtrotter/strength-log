@@ -125,7 +125,7 @@ class WizardViewModel @Inject constructor(
      *  — a user who comes back to a blank wizard just picks the file again. */
     private val restoreProgress = MutableStateFlow(RestoreProgress())
 
-    private data class RestoreProgress(val inFlight: Boolean = false, val error: String? = null)
+    private data class RestoreProgress(val inFlight: Boolean = false, val error: cloud.trotter.log.strength.ui.text.UiText? = null)
 
     private data class SplitGroup(val days: Int, val split: SplitTemplate, val anchors: AnchorScheme, val deadlift: DeadliftVariant)
     private data class CardioGroup(val mode: CardioMode, val placement: CardioPlacement, val fiveK: Boolean)
@@ -345,7 +345,7 @@ class WizardViewModel @Inject constructor(
                 // A note to carry down the success path: CleanupPending means the
                 // restore fully landed and only its bookkeeping is outstanding,
                 // so it must not divert us into the failure branches below.
-                var note: String? = null
+                var note: cloud.trotter.log.strength.ui.text.UiText? = null
                 try {
                     // App-scoped for the same reason the Data/Backup screen's
                     // restore is (#172): this ViewModel dies with the wizard, and
@@ -371,10 +371,10 @@ class WizardViewModel @Inject constructor(
             } catch (e: RestoreInterruption) {
                 restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
             } catch (e: IOException) {
-                restoreProgress.value = RestoreProgress(error = "Couldn't access that file: ${e.message}")
+                restoreProgress.value = RestoreProgress(error = cloud.trotter.log.strength.ui.text.UiText.FileAccessFailure(e.message))
             } catch (e: SecurityException) {
                 // A revoked/expired SAF grant surfaces here, not as a crash.
-                restoreProgress.value = RestoreProgress(error = "No permission to access that file anymore.")
+                restoreProgress.value = RestoreProgress(error = cloud.trotter.log.strength.ui.text.UiText.FilePermissionLost)
             }
         }
     }

@@ -184,7 +184,7 @@ class WindowSizeTest {
         emphasisLine = "hip-hinge hamstrings",
         statLine = "5 LIFTS · 21 SETS",
         lifts = listOf(TodayLift("Barbell Back Squat", 5, isMain = true)),
-        actionLabel = "START DAY B",
+        actionLabel = cloud.trotter.log.strength.ui.today.TodayScreenBuilder.actionLabel("B", 0, 18),
         rotation = listOf(RotationMark("B", 1, isNext = true)),
     )
 

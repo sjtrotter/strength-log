@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.ui.text.UiText
 
 /**
  * The wizard's questions in order (spec §6.1) plus the optional equipment step
@@ -58,7 +59,7 @@ data class WizardUiState(
 data class WizardRestoreState(
     val offered: Boolean = false,
     val inFlight: Boolean = false,
-    val error: String? = null,
+    val error: UiText? = null,
 )
 
 /** Callbacks the screen forwards to [WizardViewModel] — mirrors [cloud.trotter.log.strength.ui.day.DayActions]. */

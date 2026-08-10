@@ -59,6 +59,7 @@ import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
+import cloud.trotter.log.strength.ui.text.resolve
 
 /**
  * The setup wizard (spec §6.1, PLAN.md A4). Stateless: renders [state] and
@@ -194,7 +195,7 @@ private fun RestoreFromBackupEntry(restore: WizardRestoreState, onClick: () -> U
         )
     }
     restore.error?.let { message ->
-        Text(message, color = Error, style = MaterialTheme.typography.bodySmall)
+        Text(message.resolve(), color = Error, style = MaterialTheme.typography.bodySmall)
     }
 }
 

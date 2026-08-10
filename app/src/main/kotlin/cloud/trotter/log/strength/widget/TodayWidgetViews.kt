@@ -28,7 +28,10 @@ internal fun TodayWidgetContent.toRemoteViews(context: Context): RemoteViews {
         views.setTextColor(R.id.widget_day_line, accent)
     }
 
-    views.setTextViewText(R.id.widget_stat_line, statLine)
+    views.setTextViewText(R.id.widget_stat_line, when (val line = statLine) {
+        WidgetStatLine.SetUpProgram -> context.getString(R.string.widget_no_program)
+        is WidgetStatLine.Data -> line.value
+    })
     views.setTextColor(
         R.id.widget_stat_line,
         context.getColor(

@@ -23,13 +23,18 @@ enum class TodayWidgetState {
 data class TodayWidgetContent(
     /** Null only in [TodayWidgetState.NO_PROGRAM], where the line is hidden. */
     val dayLine: String?,
-    val statLine: String,
+    val statLine: WidgetStatLine,
     val state: TodayWidgetState,
     /** Day index for [cloud.trotter.log.strength.domain.theme.DayAccentColors]; 0 when there's no day. */
     val accentIndex: Int,
     val setsDone: Int,
     val totalSets: Int,
 )
+
+sealed interface WidgetStatLine {
+    data object SetUpProgram : WidgetStatLine
+    data class Data(val value: String) : WidgetStatLine
+}
 
 /**
  * Projects the shared today-state ([cloud.trotter.log.strength.sync.TodaySnapshotSource])
@@ -46,7 +51,7 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
     if (day == null || day.exercises.isEmpty()) {
         return TodayWidgetContent(
             dayLine = null,
-            statLine = "SET UP YOUR PROGRAM",
+            statLine = WidgetStatLine.SetUpProgram,
             state = TodayWidgetState.NO_PROGRAM,
             accentIndex = 0,
             setsDone = 0,
@@ -65,7 +70,7 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
 
     return TodayWidgetContent(
         dayLine = GlanceLines.dayLine(day.dayId, day.title),
-        statLine = GlanceLines.statLine(day.exercises.size, done, total),
+        statLine = WidgetStatLine.Data(GlanceLines.statLine(day.exercises.size, done, total)),
         state = state,
         accentIndex = day.accentIndex,
         setsDone = done,

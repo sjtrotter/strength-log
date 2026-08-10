@@ -37,7 +37,6 @@ class BackupModelsTest {
         )
         val messages = errors.map { TransferErrorMessages.of(it) }
 
-        messages.forEach { assertTrue(it.isNotBlank()) }
         assertEquals(errors.size, messages.toSet().size, "every case should produce distinct copy")
     }
 
@@ -54,17 +53,16 @@ class BackupModelsTest {
         )
         val messages = errors.map { TransferErrorMessages.of(it) }
 
-        messages.forEach { assertTrue(it.isNotBlank()) }
         assertEquals(errors.size, messages.toSet().size, "every case should produce distinct copy")
     }
 
     @Test
     fun missingColumns_and_missingApproval_messages_name_every_offender() {
         val columns = TransferErrorMessages.of(CsvImportError.MissingColumns(listOf("Date", "Weight")))
-        assertTrue("Date" in columns && "Weight" in columns)
+        assertEquals("Date, Weight", (columns as cloud.trotter.log.strength.ui.text.UiText.BackupError).detail)
 
         val approval = TransferErrorMessages.of(CsvImportError.MissingApproval(listOf("Cable Hack Squat", "Reverse Nordic")))
-        assertTrue("Cable Hack Squat" in approval && "Reverse Nordic" in approval)
+        assertEquals("Cable Hack Squat, Reverse Nordic", (approval as cloud.trotter.log.strength.ui.text.UiText.BackupError).detail)
     }
 
     // --- CsvImportUiState: seeding + commit gate --------------------------------

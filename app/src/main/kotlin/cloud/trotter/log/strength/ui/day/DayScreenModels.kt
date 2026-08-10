@@ -109,7 +109,7 @@ data class ExerciseCardState(
     /** "Plates: 45 + 25 + 2.5 a side"-style line (issue #101), keyed to the
      *  first undone MAIN-slot set's weight; null for non-barbell exercises,
      *  finished cards, or an unloadable weight — see [DayScreenBuilder.plateLine]. */
-    val plateLine: String? = null,
+    val plateLine: cloud.trotter.log.strength.ui.text.UiText.DayPlate? = null,
     val allDone: Boolean,
     val collapsed: Boolean,
     val collapsedSummary: String,

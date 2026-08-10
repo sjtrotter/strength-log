@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.today
 
 import androidx.compose.runtime.Immutable
+import cloud.trotter.log.strength.ui.text.UiText
 
 /** Immutable render model for the Today screen (issue #121) — the ViewModel's
  *  single output. [Immutable] for the reason
@@ -26,7 +27,7 @@ data class TodayUiState(
     val lifts: List<TodayLift> = emptyList(),
     val cardio: TodayCardio? = null,
     /** "START DAY B" / "CONTINUE — 4 OF 18 SETS" / "FINISH DAY B". */
-    val actionLabel: String = "",
+    val actionLabel: UiText.TodayAction = UiText.TodayAction(cloud.trotter.log.strength.ui.text.TodayActionKind.START, "", 0, 0),
     /** "Jul 30, 2026 · 18 sets · Back Squat 245"; null with no history. */
     val lastSession: String? = null,
     val rotation: List<RotationMark> = emptyList(),

@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import cloud.trotter.log.strength.ui.text.BackupStatusKind
+import cloud.trotter.log.strength.ui.text.UiText
 
 /**
  * Backs the Data/Backup screen (PLAN.md A2; brief D9 — the `:transfer` cores
@@ -72,7 +74,7 @@ class BackupViewModel @Inject constructor(
 
     fun exportBackup(uri: Uri) = runBusy {
         openOutput(uri) { out -> backupService.exportTo(out) }
-        postMessage("Backup exported.", isError = false)
+        postMessage(UiText.BackupStatus(BackupStatusKind.BACKUP_EXPORTED), isError = false)
     }
 
     /** Reads and validates the picked file; only on success does the confirm-
@@ -95,7 +97,7 @@ class BackupViewModel @Inject constructor(
             // BackupScreen — so the normal case is that we are here to report.
             try {
                 appScope.async { backupService.import(text) }.await()
-                postMessage("Backup restored.", isError = false)
+                postMessage(UiText.BackupStatus(BackupStatusKind.BACKUP_RESTORED), isError = false)
             } catch (e: RestoreInterruption.CleanupPending) {
                 // Everything the user owns landed; only the journal/marker
                 // cleanup didn't, and that replays itself. A success with a
@@ -114,7 +116,7 @@ class BackupViewModel @Inject constructor(
 
     fun exportCsv(uri: Uri) = runBusy {
         openOutput(uri) { out -> csvHistoryService.exportTo(out) }
-        postMessage("History exported.", isError = false)
+        postMessage(UiText.BackupStatus(BackupStatusKind.HISTORY_EXPORTED), isError = false)
     }
 
     fun beginImportCsv(uri: Uri) = runBusy {
@@ -135,7 +137,7 @@ class BackupViewModel @Inject constructor(
         _uiState.update { it.copy(csvImport = null) }
         runBusy {
             csvHistoryService.commit(csvImport.preview, csvImport.approvedPatterns)
-            postMessage("Imported ${csvImport.sessionCount} session(s), ${csvImport.matchedSetCount} set(s).", isError = false)
+            postMessage(UiText.BackupStatus(BackupStatusKind.HISTORY_IMPORTED, csvImport.sessionCount, csvImport.matchedSetCount), isError = false)
         }
     }
 
@@ -149,7 +151,7 @@ class BackupViewModel @Inject constructor(
 
     // --- plumbing ----------------------------------------------------------
 
-    private fun postMessage(text: String, isError: Boolean) {
+    private fun postMessage(text: UiText, isError: Boolean) {
         _uiState.update {
             it.copy(isBusy = false, restoreInFlight = false, message = StatusMessage(text, isError))
         }
@@ -190,10 +192,10 @@ class BackupViewModel @Inject constructor(
                 // the wrong problem (#172).
                 postMessage(TransferErrorMessages.of(e), isError = true)
             } catch (e: IOException) {
-                postMessage("Couldn't access that file: ${e.message}", isError = true)
+                postMessage(UiText.FileAccessFailure(e.message), isError = true)
             } catch (e: SecurityException) {
                 // A revoked/expired SAF grant surfaces here, not as a crash.
-                postMessage("No permission to access that file anymore.", isError = true)
+                postMessage(UiText.FilePermissionLost, isError = true)
             } finally {
                 _uiState.update { it.copy(isBusy = false, restoreInFlight = false) }
             }

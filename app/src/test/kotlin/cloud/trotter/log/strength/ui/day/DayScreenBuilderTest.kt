@@ -278,14 +278,6 @@ class DayScreenBuilderTest {
         assertEquals(null, newPartner)
     }
 
-    // --- header helper copy (design-pass reference wording) ------------------
-
-    @Test
-    fun helper_copy_matches_the_design_reference() {
-        assertEquals("Change the TOP set — ramp & back-off recalculate.", DayScreenBuilder.MAIN_HELPER)
-        assertEquals("One tick checks the whole round — both moves, back-to-back.", DayScreenBuilder.SUPERSET_HELPER)
-    }
-
     // --- kind labels from raw kinds (Log screen reuse, #14) ------------------
 
     @Test
@@ -408,7 +400,7 @@ class DayScreenBuilderTest {
     @Test
     fun plateLine_shows_the_load_for_a_barbell_exercise() {
         val main = listOf(work(235.0, 5))
-        assertEquals("Plates: 45 + 45 + 5 a side", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate("45 + 45 + 5"), DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
     }
 
     @Test
@@ -427,21 +419,21 @@ class DayScreenBuilderTest {
             work(210.0, 1),
         )
         // First two ramp sets are ticked, so the line reads the next one (190), not the TOP.
-        assertEquals("Plates: 45 + 25 + 2.5 a side", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate("45 + 25 + 2.5"), DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
     }
 
     @Test
     fun plateLine_updates_when_the_next_sets_weight_is_edited() {
         val main = listOf(work(235.0, 5))
-        assertEquals("Plates: 45 + 45 + 5 a side", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate("45 + 45 + 5"), DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
         val edited = listOf(work(245.0, 5))
-        assertEquals("Plates: 45 + 45 + 10 a side", DayScreenBuilder.plateLine(edited, barbellEquipment, WeightUnit.LB))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate("45 + 45 + 10"), DayScreenBuilder.plateLine(edited, barbellEquipment, WeightUnit.LB))
     }
 
     @Test
     fun plateLine_reads_empty_bar_at_bar_weight() {
         val main = listOf(work(45.0, 5))
-        assertEquals("Plates: empty bar", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate(null), DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
     }
 
     @Test
@@ -465,20 +457,20 @@ class DayScreenBuilderTest {
 
     @Test
     fun sessionStatusLine_reads_in_progress_with_the_count() {
-        assertEquals("IN PROGRESS · 4 OF 18 SETS", DayScreenBuilder.sessionStatusLine(4, 18))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayStatus(false, 4, 18), DayScreenBuilder.sessionStatusLine(4, 18))
     }
 
     /** The same phase vocabulary Today speaks — a fully ticked day is waiting
      *  on DONE, not still in progress. */
     @Test
     fun sessionStatusLine_turns_over_once_every_round_is_ticked() {
-        assertEquals("READY TO FINISH · 18 OF 18 SETS", DayScreenBuilder.sessionStatusLine(18, 18))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayStatus(true, 18, 18), DayScreenBuilder.sessionStatusLine(18, 18))
     }
 
     /** An over-count reads as a finished day, matching GlanceLines' `>=` rule. */
     @Test
     fun sessionStatusLine_treats_an_over_count_as_finished() {
-        assertEquals("READY TO FINISH · 19 OF 18 SETS", DayScreenBuilder.sessionStatusLine(19, 18))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayStatus(true, 19, 18), DayScreenBuilder.sessionStatusLine(19, 18))
     }
 
     // --- TOP set comparison -------------------------------------------------

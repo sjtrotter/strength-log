@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.log
 
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
+import cloud.trotter.log.strength.ui.text.UiText
 
 /** Immutable render model for the Log screen (PLAN.md A1, issue #14, extended by
  *  the #17 Health Connect read path and the journal sections, docs/briefs/journal.md). */
@@ -48,7 +49,7 @@ data class HealthSectionUi(
  * tap can't start it twice.
  */
 data class BackfillOfferUi(
-    val label: String,
+    val label: UiText.LogBackfill,
     val enabled: Boolean,
 )
 

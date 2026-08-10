@@ -225,7 +225,7 @@ class BackupViewModelRestoreTest {
 
         open.complete(Unit)
         val message = awaitMessage()
-        assertEquals("Backup restored.", message.text)
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.BackupStatus(cloud.trotter.log.strength.ui.text.BackupStatusKind.BACKUP_RESTORED), message.text)
         assertFalse("and the screen lets go again", viewModel.uiState.value.restoreInFlight)
     }
 

@@ -80,13 +80,13 @@ class LogScreenBuilderTest {
 
     @Test
     fun backfillLabel_counts_the_workouts_and_keeps_its_plurals_straight() {
-        assertEquals("Publish 12 past workouts", LogScreenBuilder.backfillLabel(12, running = false))
-        assertEquals("Publish 1 past workout", LogScreenBuilder.backfillLabel(1, running = false))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.LogBackfill(false, 12), LogScreenBuilder.backfillLabel(12, running = false))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.LogBackfill(false, 1), LogScreenBuilder.backfillLabel(1, running = false))
     }
 
     @Test
     fun backfillLabel_says_what_it_is_doing_while_it_runs() {
-        assertEquals("Publishing…", LogScreenBuilder.backfillLabel(12, running = true))
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.LogBackfill(true, 12), LogScreenBuilder.backfillLabel(12, running = true))
     }
 
     // --- grouping by exercise --------------------------------------------------

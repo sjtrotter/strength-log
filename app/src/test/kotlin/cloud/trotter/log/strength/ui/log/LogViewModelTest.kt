@@ -603,7 +603,7 @@ class LogViewModelTest {
         vm.refreshHealth()
         advanceUntilIdle()
 
-        assertEquals("Publish 2 past workouts", vm.uiState.value.health.backfill?.label)
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.LogBackfill(running = false, count = 2), vm.uiState.value.health.backfill?.label)
         collect.cancel()
     }
 
@@ -658,7 +658,7 @@ class LogViewModelTest {
         vm.publishPastWorkouts()
         advanceUntilIdle()
 
-        assertEquals("Publish 2 past workouts", vm.uiState.value.health.backfill?.label)
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.LogBackfill(running = false, count = 2), vm.uiState.value.health.backfill?.label)
         assertFalse(repo.healthBackfillDoneFlow.first())
         collect.cancel()
     }

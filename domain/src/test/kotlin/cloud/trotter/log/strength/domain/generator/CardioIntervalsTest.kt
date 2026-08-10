@@ -38,13 +38,16 @@ class CardioIntervalsTest {
     }
 
     @Test
-    fun `labels use the terse caps set`() {
-        val labels = buildSet {
-            addAll(CardioIntervals.plan(easy, fiveK = false).steps.map { it.label })
-            addAll(CardioIntervals.plan(hard, fiveK = false).steps.map { it.label })
-            addAll(CardioIntervals.plan(hard, fiveK = true).steps.map { it.label })
-        }
-
-        assertEquals(setOf("EASY", "TEMPO", "WARM-UP", "HARD"), labels)
+    fun `every plan's ordered labels are pinned`() {
+        assertEquals(listOf("EASY"), CardioIntervals.plan(easy, fiveK = false).steps.map { it.label })
+        assertEquals(listOf("TEMPO"), CardioIntervals.plan(hard, fiveK = false).steps.map { it.label })
+        assertEquals(
+            listOf(
+                "WARM-UP",
+                "HARD", "EASY", "HARD", "EASY", "HARD",
+                "EASY", "HARD", "EASY", "HARD", "EASY",
+            ),
+            CardioIntervals.plan(hard, fiveK = true).steps.map { it.label },
+        )
     }
 }

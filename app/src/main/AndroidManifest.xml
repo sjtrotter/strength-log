@@ -7,6 +7,8 @@
       promise holds). Requested lazily and individually at runtime from the Log
       screen; the app is fully functional with any or none of them granted.
     -->
+    <!-- Cardio step boundaries buzz (#154 C1b); install-time, not runtime. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
     <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />

@@ -41,13 +41,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabPosition
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,7 +64,10 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -316,11 +317,13 @@ private fun TopBar(
             // M3 owns scrolling, selectable-group semantics, and the intentional
             // platform-conventional auto-scroll that brings a newly selected day
             // into view (especially useful for 6+-day programs). The decoration
-            // uses M3's measured tab positions, so it follows the real layout.
+            // uses each tab's measured geometry, so it follows the real layout.
             val selectedIndex = state.tabs.indexOfFirst { it.isSelected }.coerceAtLeast(0)
             if (state.tabs.isNotEmpty()) {
                 val tabScrollState = rememberScrollState()
-                var tabPositions by remember { mutableStateOf(emptyList<TabPosition>()) }
+                var tabGeometry by remember(state.tabs.map { it.dayId }) {
+                    mutableStateOf(List<TabGeometry?>(state.tabs.size) { null })
+                }
                 PrimaryScrollableTabRow(
                     selectedTabIndex = selectedIndex,
                     scrollState = tabScrollState,
@@ -329,19 +332,29 @@ private fun TopBar(
                         // The 2dp top inset owns the dot's overhang; neither the
                         // decoration nor its clipping contract escapes this row.
                         .height(50.dp)
-                        .drawSuggestedDayDecoration(state.tabs, tabPositions, tabScrollState)
+                        .drawSuggestedDayDecoration(state.tabs, tabGeometry, tabScrollState)
                         .padding(top = 2.dp),
                     containerColor = Color.Transparent,
                     contentColor = accent,
                     edgePadding = 16.dp,
                     minTabWidth = 0.dp,
                     divider = {},
-                    indicator = { positions ->
-                        SideEffect { tabPositions = positions }
-                    },
+                    indicator = {},
                 ) {
-                    state.tabs.forEach { tab ->
-                        DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
+                    state.tabs.forEachIndexed { index, tab ->
+                        Box(
+                            Modifier.onGloballyPositioned { coordinates ->
+                                val measured = TabGeometry(
+                                    offsetX = coordinates.positionInParent().x,
+                                    width = coordinates.size.width.toFloat(),
+                                )
+                                if (tabGeometry[index] != measured) {
+                                    tabGeometry = tabGeometry.toMutableList().also { it[index] = measured }
+                                }
+                            },
+                        ) {
+                            DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
+                        }
                     }
                 }
             }
@@ -495,13 +508,15 @@ internal fun DayTab(tab: DayTab, onClick: () -> Unit) {
 
 private val DayTabVisualSize = 40.dp
 
+private data class TabGeometry(val offsetX: Float, val width: Float)
+
 /**
  * Draws the suggested ring/dot in space owned by the row. Horizontal centres
- * come from M3's measured [TabPosition]s rather than a parallel tab geometry.
+ * come from each tab wrapper's measured layout rather than assumed tab sizes.
  */
 private fun Modifier.drawSuggestedDayDecoration(
     tabs: List<DayTab>,
-    tabPositions: List<TabPosition>,
+    tabGeometry: List<TabGeometry?>,
     scrollState: ScrollState,
 ): Modifier = drawWithContent {
     val visual = DayTabVisualSize.toPx()
@@ -511,9 +526,9 @@ private fun Modifier.drawSuggestedDayDecoration(
     val ringInset = (-2).dp.toPx()
 
     tabs.forEachIndexed { index, tab ->
-        val position = tabPositions.getOrNull(index)
+        val position = tabGeometry.getOrNull(index)
         if (!tab.isSuggested || tab.isSelected || position == null) return@forEachIndexed
-        val logicalCenter = position.left.toPx() + position.width.toPx() / 2f - scrollState.value
+        val logicalCenter = position.offsetX + position.width / 2f - scrollState.value
         val centerX = if (layoutDirection == LayoutDirection.Ltr) logicalCenter else size.width - logicalCenter
         val left = centerX - visual / 2f
         drawRoundRect(
@@ -526,9 +541,9 @@ private fun Modifier.drawSuggestedDayDecoration(
     }
     drawContent()
     tabs.forEachIndexed { index, tab ->
-        val position = tabPositions.getOrNull(index)
+        val position = tabGeometry.getOrNull(index)
         if (!tab.isSuggested || tab.isSelected || position == null) return@forEachIndexed
-        val logicalCenter = position.left.toPx() + position.width.toPx() / 2f - scrollState.value
+        val logicalCenter = position.offsetX + position.width / 2f - scrollState.value
         val centerX = if (layoutDirection == LayoutDirection.Ltr) logicalCenter else size.width - logicalCenter
         val dotCenter = Offset(centerX + visual / 2f, visualTop)
         drawCircle(color = Background, radius = 6.dp.toPx(), center = dotCenter)

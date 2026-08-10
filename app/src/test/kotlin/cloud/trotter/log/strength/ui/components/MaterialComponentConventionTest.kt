@@ -80,9 +80,11 @@ class MaterialComponentConventionTest {
     private companion object {
         val function = Regex("""fun\s+(?:Modifier\.)?([A-Za-z_][A-Za-z0-9_]*)\s*\(""")
         val kdoc = Regex("""/\*\*[\s\S]*?\*/""")
-        val annotationsAndWhitespace = Regex("""(?:\s|@[A-Za-z0-9_.]+(?:\([^\n]*\))?)*""")
+        val annotationsAndWhitespace =
+            Regex("""(?:\s|@[A-Za-z0-9_.]+(?:\([^\n]*\))?|private|internal|protected|public)*""")
         val componentName = Regex("""(?:Button|Card|Row|Toggle|Stepper|Divider|Hairline|Rule)$""")
-        val interactionPattern = Regex("""\.(?:clickable|pressable|pressableSelectable|pressableToggleable)\s*\(""")
+        val interactionPattern =
+            Regex("""\.(?:clickable|toggleable|selectable|pressable|pressableSelectable|pressableToggleable)\s*\(""")
         val thinRulePattern = Regex("""\.(?:height|width)\s*\(\s*1\.dp\s*\)""")
         val materialPattern = Regex("""\b(?:M3|Material 3)\b""", RegexOption.IGNORE_CASE)
         val gapPattern = Regex("""\b(?:lacks?|does not|cannot|no)\b""", RegexOption.IGNORE_CASE)

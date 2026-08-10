@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -417,12 +418,13 @@ private fun EditDayButton(onClick: () -> Unit) {
 /** 1dp separator between the fixed chrome and the scrolling list. */
 @Composable
 private fun Hairline() {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Border))
+    HorizontalDivider(thickness = 1.dp, color = Border)
 }
 
 /**
  * The header's separator doing double duty as the day's progress rule
- * (#126): the same 1dp line, with the day's accent filling the fraction of
+ * (#126) — M3 has no divider that carries progress, and LinearProgressIndicator
+ * cannot be this 1dp chrome rule: the same 1dp line, with the day's accent filling the fraction of
  * it the lifter has ticked. Deliberately no extra height — a session's
  * progress is worth a line, not a band, and growing the rule once the first
  * set lands would shove the whole list down mid-workout.

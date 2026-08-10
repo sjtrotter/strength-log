@@ -202,8 +202,9 @@ class CsvHistoryServiceTest {
 
         // The kg display values survive the WeightUnit.fromLb SSOT exactly.
         val rows = Csv.parse(csvA).drop(1)
-        assertEquals(listOf("100", "102.5", "42.5"), rows.map { it[5] })
-        assertTrue(rows.all { it[6] == "kg" })
+        val weight = HISTORY_CSV_HEADER.indexOf("Weight")
+        assertEquals(listOf("100", "102.5", "42.5"), rows.map { it[weight] })
+        assertTrue(rows.all { it[HISTORY_CSV_HEADER.indexOf("Weight Unit")] == "kg" })
 
         // Re-importing that CSV (into a fresh KG device) and re-exporting is
         // byte-for-byte identical — toLb/fromLb reaches a fixed point, no drift.

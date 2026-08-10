@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.sync
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -11,7 +12,10 @@ import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.guardedFor
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
+import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -62,7 +66,11 @@ import kotlinx.coroutines.sync.withLock
 class SetEditApplier(
     private val repo: TrackerRepository,
     private val markers: AppliedEditMarkers,
+    @CivilDay private val today: Flow<LocalDate>,
 ) {
+
+    constructor(repo: TrackerRepository, markers: AppliedEditMarkers) :
+        this(repo, markers, flowOf(repo.currentDate()))
 
     enum class Outcome { APPLIED, STALE, INVALID }
 
@@ -84,7 +92,7 @@ class SetEditApplier(
         val slot = slots.firstOrNull { it.programExerciseId == delta.programExerciseId } ?: return Outcome.INVALID
         if (delta.slot == Slot.SS && slot.exercise.superset == null) return Outcome.INVALID
 
-        val logs = repo.logFlow(delta.dayId).first()
+        val logs = repo.logFlow(delta.dayId, today).first()
         val track = logs.firstOrNull {
             it.programExerciseId == delta.programExerciseId && it.slot == delta.slot
         }?.sets.orEmpty()
@@ -183,7 +191,7 @@ class SetEditApplier(
      */
     private suspend fun seedSwappedSlot(dayId: String, programExerciseId: Long, catalog: ExerciseCatalog) {
         val slots = repo.daySlotsFlow(dayId).first()
-        val existing = repo.logFlow(dayId).first()
+        val existing = repo.logFlow(dayId, today).first()
             .associate { (it.programExerciseId to it.slot) to it.sets.size }
         val cfg = repo.configFlow.first()
         DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)

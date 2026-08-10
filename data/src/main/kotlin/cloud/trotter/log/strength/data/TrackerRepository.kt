@@ -44,6 +44,7 @@ import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.IOException
 import java.time.Clock
+import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -73,6 +74,9 @@ open class TrackerRepository(
     private val settings: SettingsStore,
     private val clock: Clock = Clock.systemDefaultZone(),
 ) {
+
+    /** Clock-backed compatibility reading for non-app composition and tests. */
+    fun currentDate(): LocalDate = LocalDate.now(clock)
 
     /** Taken off [db] rather than injected like the other DAOs on purpose: the
      *  restore marker is this class's own crash bookkeeping (#172) — never data
@@ -106,6 +110,11 @@ open class TrackerRepository(
     val sessionStartedAtFlow: Flow<Long?> = settings.sessionStartRawFlow.map { stamp ->
         stamp?.takeIf { it.date == CheckmarkReset.today(clock) }?.startedAtMillis
     }
+
+    fun sessionStartedAtFlow(today: Flow<LocalDate>): Flow<Long?> =
+        combine(settings.sessionStartRawFlow, today) { stamp, date ->
+            stamp?.takeIf { it.date == date.toString() }?.startedAtMillis
+        }
 
     // Block bodies, not expression form: DataStore's Preferences (SettingsStore's
     // setter return type) must not leak into this public surface via inference —
@@ -366,6 +375,12 @@ open class TrackerRepository(
             rows.map { it.toLoggedSlot(today) }
         }
 
+    /** Reprojects on a civil-day tick even when Room has not emitted. */
+    fun logFlow(dayId: String, today: Flow<LocalDate>): Flow<List<LoggedSlot>> =
+        combine(programDao.observeLogs(dayId), today) { rows, date ->
+            rows.map { it.toLoggedSlot(date.toString()) }
+        }
+
     /** Persists a slot's set track immediately (spec §7). The write stamps today's
      *  date, so the `done` flags it carries are "today's" checks. */
     suspend fun updateSets(dayId: String, programExerciseId: Long, slot: String, sets: List<LoggedSet>) {
@@ -535,12 +550,18 @@ open class TrackerRepository(
      * span outside a sane 5 min–6 h window — so the worst case is a session
      * whose `startedAt` is simply absent, never a garbage duration.
      */
-    suspend fun advanceDay(completedDayId: String): Long {
+    suspend fun advanceDay(completedDayId: String, today: LocalDate? = null): Long {
         val bodyweight = settings.configFlow.first().bodyweightLb
         // Date-scoped read (see [sessionStartedAtFlow]): a stamp from a day the
         // user ticked but never advanced reads as null here, so the completed
         // session records no start rather than inheriting the abandoned one.
-        val sessionStartedAt = sessionStartedAtFlow.first()
+        val sessionStartedAt = if (today == null) {
+            sessionStartedAtFlow.first()
+        } else {
+            settings.sessionStartRawFlow.first()
+                ?.takeIf { it.date == today.toString() }
+                ?.startedAtMillis
+        }
         val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
         var next: String? = null
         var newSessionId = 0L

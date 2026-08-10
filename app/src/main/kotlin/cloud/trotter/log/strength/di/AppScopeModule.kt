@@ -15,6 +15,11 @@ import kotlinx.coroutines.SupervisorJob
 @Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope
 
+/** The process-wide live device-local date used by daily reset reads. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class CivilDay
+
 /**
  * The one scope that outlives every screen. Work belongs here when finishing it
  * matters more than the UI that started it: a backup restore writes Room and

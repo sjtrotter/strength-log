@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.sync.applyDelta
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,20 +51,14 @@ class FakeWatchClient : WatchTrackerClient {
         // a self-edit; that's fine because this fake never ships. Do not "align"
         // this with the real client by moving the bump onto the real echo.
         state.update { snapshot ->
-            snapshot.copy(
-                revision = snapshot.revision + 1,
-                day = snapshot.day.copy(exercises = WatchEditOptimism.apply(snapshot.day.exercises, delta)),
-            )
+            applyDelta(snapshot, delta).copy(revision = snapshot.revision + 1)
         }
     }
 
     override fun sendSwap(swap: ExerciseSwapDelta) {
         // As with sendEdit, the bump stands in for the phone's confirming snapshot.
         state.update { snapshot ->
-            snapshot.copy(
-                revision = snapshot.revision + 1,
-                day = snapshot.day.copy(exercises = WatchEditOptimism.applySwap(snapshot.day.exercises, swap)),
-            )
+            applyDelta(snapshot, swap).copy(revision = snapshot.revision + 1)
         }
     }
 

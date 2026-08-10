@@ -39,7 +39,7 @@ fun decideStreamAdvance(
 /**
  * True once every round of every exercise in the day is done — the day-done
  * trigger. A superset's partner round is aligned 1:1 with its main round and
- * flipped together by [cloud.trotter.log.strength.wear.data.WatchEditOptimism]'s
+ * flipped together by [cloud.trotter.log.strength.domain.sync.applyDelta]'s
  * one-tick-per-round rule, so checking the main track alone is sufficient.
  */
 fun allExercisesDone(snapshot: WatchSnapshot): Boolean =

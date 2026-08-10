@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.flowOf
 class TodaySnapshotSource(
     private val repo: TrackerRepository,
     @CivilDay private val today: Flow<LocalDate>,
+    private val markers: AppliedEditMarkers,
 ) {
 
     val snapshots: Flow<WatchSnapshot?> =
@@ -59,7 +60,10 @@ class TodaySnapshotSource(
                 ) { cfg, catalog, unit, rest, answers ->
                     Context(cfg, catalog, unit, rest, answers.equipment)
                 }
-                combine(program, context, repo.cardioSessionsFlow, today) { (prog, slots, logs), ctx, cardioHistory, civilDate ->
+                combine(
+                    program, context, repo.cardioSessionsFlow, today,
+                    markers.lastAppliedFlow(CardioDeltaApplier.MARKER_KEY),
+                ) { (prog, slots, logs), ctx, cardioHistory, civilDate, cardioAck ->
                     val loggedCardio = cardioHistory.firstOrNull { session ->
                         session.dayId == dayId &&
                             Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
@@ -76,6 +80,7 @@ class TodaySnapshotSource(
                         restSettings = ctx.restSettings,
                         equipment = ctx.equipment,
                         loggedCardio = loggedCardio,
+                        cardioAckStamp = cardioAck,
                     )
                 }
             }

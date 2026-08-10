@@ -57,6 +57,8 @@ class SetEditApplierTest {
         val map = mutableMapOf<String, Long>()
         override suspend fun lastApplied(rowKey: String): Long = map[rowKey] ?: 0L
         override suspend fun markApplied(rowKey: String, editedAtMillis: Long) { map[rowKey] = editedAtMillis }
+
+        override fun lastAppliedFlow(rowKey: String) = kotlinx.coroutines.flow.flow { emit(lastApplied(rowKey)) }
     }
 
     @Before

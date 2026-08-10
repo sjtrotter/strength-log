@@ -22,8 +22,10 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class CardioDeltaApplierTest {
     private lateinit var db: StrengthDatabase
     private lateinit var repo: TrackerRepository
@@ -33,6 +35,7 @@ class CardioDeltaApplierTest {
     private val markerStore = object : AppliedEditMarkers {
         override suspend fun lastApplied(rowKey: String) = markers[rowKey] ?: 0L
         override suspend fun markApplied(rowKey: String, editedAtMillis: Long) { markers[rowKey] = editedAtMillis }
+        override fun lastAppliedFlow(rowKey: String) = kotlinx.coroutines.flow.flow { emit(markers[rowKey] ?: 0L) }
     }
     private val publisher = object : SessionPublisher {
         var cardioPublishes = 0
@@ -57,19 +60,42 @@ class CardioDeltaApplierTest {
         seconds = 60, stepsCompleted = 0, stamp = stamp,
     )
 
-    @Test fun `stamp replay inserts and publishes once`() = runTest {
+    @Test fun `a replayed delta inserts and publishes once but still acks`() = runTest {
         val applier = CardioDeltaApplier(repo, markerStore, publisher)
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta()))
-        assertEquals(CardioDeltaApplier.Outcome.STALE, applier.apply(delta()))
+        assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(delta()))
         assertEquals(1, repo.cardioSessionsFlow.first().size)
         assertEquals(1, publisher.cardioPublishes)
+        assertEquals(10L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
     }
 
-    @Test fun `day and start guard dedupes a phone-local session under a new stamp`() = runTest {
+    @Test fun `same content under a new stamp dedupes but advances the ack`() = runTest {
         val applier = CardioDeltaApplier(repo, markerStore, publisher)
         applier.apply(delta(stamp = 10L))
-        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta(stamp = 11L)))
+        assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(delta(stamp = 11L)))
         assertEquals(1, repo.cardioSessionsFlow.first().size)
         assertEquals(1, publisher.cardioPublishes)
+        assertEquals(11L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+    }
+
+    @Test fun `an older stamp arriving late still inserts its session`() = runTest {
+        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        applier.apply(delta(stamp = 11L, startedAt = 5_000L))
+        assertEquals(
+            CardioDeltaApplier.Outcome.APPLIED,
+            applier.apply(delta(stamp = 10L, startedAt = 1_000L)),
+        )
+        assertEquals(2, repo.cardioSessionsFlow.first().size)
+        assertEquals(11L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+    }
+
+    @Test fun `an invalid delta is acked and dropped, never replayed forever`() = runTest {
+        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        assertEquals(
+            CardioDeltaApplier.Outcome.INVALID,
+            applier.apply(delta(stamp = 12L).copy(mode = "FUTURE_MODE")),
+        )
+        assertEquals(0, repo.cardioSessionsFlow.first().size)
+        assertEquals(12L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
     }
 }

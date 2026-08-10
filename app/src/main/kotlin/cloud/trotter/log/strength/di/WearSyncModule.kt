@@ -71,7 +71,8 @@ object WearSyncModule {
     fun todaySnapshotSource(
         repo: TrackerRepository,
         @CivilDay today: Flow<LocalDate>,
-    ): TodaySnapshotSource = TodaySnapshotSource(repo, today)
+        store: WearSyncStore,
+    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, store)
 
     @Provides
     @Singleton

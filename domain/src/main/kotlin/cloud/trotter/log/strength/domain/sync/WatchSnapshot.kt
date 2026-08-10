@@ -67,6 +67,10 @@ data class WatchSnapshot(
     val epoch: Long = 0L,
     /** The suggested day's finisher, including defaulted LOGGED acknowledgement facts. */
     val cardio: CardioSuggestion? = null,
+    /** Highest wrist cardio stamp the phone has processed — the queue's ack.
+     *  Additive with default, like [cardio]; an old phone publishes 0 and the
+     *  watch simply keeps re-sending into its dedupe. */
+    val cardioAckStamp: Long = 0L,
 )
 
 /** One day of the program as the cycle ring and its day-browse preview read it. */

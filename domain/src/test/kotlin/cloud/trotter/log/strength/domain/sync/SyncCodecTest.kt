@@ -283,6 +283,8 @@ class SyncCodecTest {
     fun snapshot_cardio_is_additive_and_defaulted() {
         val oldJson = SyncCodec.encodeSnapshot(snapshot).decodeToString()
             .replace(Regex(",?\\\"cardio\\\":(?:null|\\{.*?\\})(?=,?\\\"|})"), "")
-        assertEquals(null, SyncCodec.decodeSnapshot(oldJson.encodeToByteArray()).cardio)
+        val decoded = SyncCodec.decodeSnapshot(oldJson.encodeToByteArray())
+        assertEquals(null, decoded.cardio)
+        assertEquals(0L, decoded.cardioAckStamp)
     }
 }

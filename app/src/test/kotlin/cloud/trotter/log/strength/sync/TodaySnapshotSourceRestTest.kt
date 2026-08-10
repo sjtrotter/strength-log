@@ -85,7 +85,7 @@ class TodaySnapshotSourceRestTest {
         val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
         repo.updateSets("A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
 
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()))
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
 
         // Default (master on, no overrides): TOP rests its 180s default.
         val before = source.snapshots.first { it != null }!!
@@ -101,4 +101,10 @@ class TodaySnapshotSourceRestTest {
         val afterOff = source.snapshots.first { it != null }!!
         assertEquals(0, afterOff.day.exercises.single().sets.single().restAfterSeconds)
     }
+}
+
+private object InertMarkers : AppliedEditMarkers {
+    override suspend fun lastApplied(rowKey: String) = 0L
+    override suspend fun markApplied(rowKey: String, editedAtMillis: Long) = Unit
+    override fun lastAppliedFlow(rowKey: String) = kotlinx.coroutines.flow.flowOf(0L)
 }

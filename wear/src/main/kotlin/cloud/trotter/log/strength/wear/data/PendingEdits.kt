@@ -43,12 +43,15 @@ import kotlin.math.abs
  */
 object PendingEdits {
 
-    /** Cardio settles only when the phone snapshot exposes this exact logged start. */
+    /**
+     * Cardio settles on the snapshot's ack stamp and nothing else: a completion
+     * is history, so neither a day rollover nor a program switch may retire an
+     * undelivered one (the 23:55 run must survive to the 00:05 reconnect). An
+     * old phone publishing the default 0 simply never settles the queue, and
+     * its content dedupe absorbs the re-sends.
+     */
     fun reconcileCardio(pending: List<CardioDelta>, snapshot: WatchSnapshot): List<CardioDelta> =
-        pending.filter { delta ->
-            delta.dayId == snapshot.day.dayId &&
-                snapshot.cardio?.loggedStartedAt != delta.startedAt
-        }
+        pending.filter { delta -> delta.stamp > snapshot.cardioAckStamp }
 
     /** The deltas still worth re-sending after reconciling against [snapshot]. */
     fun reconcile(pending: List<SetEditDelta>, snapshot: WatchSnapshot): List<SetEditDelta> =

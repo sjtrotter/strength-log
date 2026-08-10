@@ -15,16 +15,27 @@ class CardioDeltaApplier(
     private val markers: AppliedEditMarkers,
     private val sessionPublisher: SessionPublisher,
 ) {
-    enum class Outcome { APPLIED, STALE, INVALID }
+    enum class Outcome { APPLIED, DUPLICATE, INVALID }
     private val lock = Mutex()
 
+    /**
+     * Idempotence is CONTENT identity (dayId + startedAt — the same key the
+     * phone's own STOP uses), never stamp order: fire-and-forget sends carry no
+     * ordering contract, so an older stamp arriving late must still insert.
+     * The marker only ever advances as the highest stamp SEEN — the ack the
+     * snapshot exposes for queue settlement — and it advances for every
+     * outcome, INVALID included: a delta this phone can never apply must be
+     * acked and dropped, or the watch re-sends it forever.
+     */
     suspend fun apply(delta: CardioDelta): Outcome = lock.withLock {
         if (delta.dayId.isBlank() || delta.label.isBlank() || delta.stamp <= 0L ||
             delta.startedAt < 0L || delta.completedAt <= delta.startedAt ||
             delta.seconds < 0 || delta.stepsCompleted < 0 ||
             CardioMode.entries.none { it.name == delta.mode && it != CardioMode.NONE }
-        ) return Outcome.INVALID
-        if (delta.stamp <= markers.lastApplied(MARKER_KEY)) return Outcome.STALE
+        ) {
+            ack(delta.stamp)
+            return Outcome.INVALID
+        }
 
         val duplicate = repo.cardioSessionsFlow.first().any {
             it.dayId == delta.dayId && it.startedAt == delta.startedAt
@@ -40,9 +51,14 @@ class CardioDeltaApplier(
             )
             sessionPublisher.publishCardio(id)
         }
-        markers.markApplied(MARKER_KEY, delta.stamp)
-        Outcome.APPLIED
+        ack(delta.stamp)
+        if (duplicate) Outcome.DUPLICATE else Outcome.APPLIED
     }
 
-    private companion object { const val MARKER_KEY = "cardio:event" }
+    private suspend fun ack(stamp: Long) {
+        val held = markers.lastApplied(MARKER_KEY)
+        if (stamp > held) markers.markApplied(MARKER_KEY, stamp)
+    }
+
+    companion object { const val MARKER_KEY = "cardio:event" }
 }

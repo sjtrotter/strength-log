@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.generator.CardioIntervals
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.math.roundToLong
 
@@ -52,6 +53,7 @@ data class DialInputs(
     val restedSeconds: Int? = null,
     val liftingElapsedMillis: Long = 0L,
     val nowElapsedMillis: Long = 0L,
+    val nowWallMillis: Long = 0L,
     val session: SessionStamps = SessionStamps(),
     /** The cycle day the overview is previewing (v3 §3), or null when it is showing
      *  today. Like the crown's peek, it is a glance — never restored. */
@@ -70,6 +72,8 @@ data class DialInputs(
      *  line, and the chronology the undo needs to reach the *latest* tick rather
      *  than the positionally nearest one. */
     val tickMemory: TickMemory = TickMemory.EMPTY,
+    /** Non-null only while cardio executes; its step and elapsed are always derived. */
+    val cardioAnchors: CardioAnchors? = null,
 )
 
 /**
@@ -175,7 +179,12 @@ fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
         copy = copy,
     )
 
+    val cardioSuggestion = inputs.snapshot.cardio
+    // A suggestion without execution facts (old phone) is not offerable.
+    val cardioUnlogged = cardioSuggestion?.mode != null && cardioSuggestion.loggedStartedAt == null
     val state = when {
+        inputs.cardioAnchors != null && cardioSuggestion != null -> context.cardioExecuting(inputs.cardioAnchors)
+        dayDone && cardioUnlogged && inputs.face == DialFace.OVERVIEW -> context.cardioOffer()
         dayDone -> context.dayDone()
         // The overview is a face, not a step: it stays available with a rest
         // running, and the clock keeps its ring there too (v3 §3).
@@ -562,6 +571,53 @@ private class ScreenContext(
         dayProgressOverride = 1f,
     )
 
+    /** Optional extra credit after the lifts: still the workout face, never a third face. */
+    fun cardioOffer(): DialUiState = base(
+        screen = DialScreen.CARDIO_OFFER,
+        rounds = emptyList(),
+        arc = null,
+        topBand = BandContent(copy.cardio.uppercase(), DialTone.ACCENT_BRIGHT),
+        bottomBand = null,
+        disc = DiscContent(
+            DiscStyle.FILLED,
+            listOf(
+                DiscLine(copy.cardioStart.uppercase(), DialTextRole.DISC_LABEL, DialTone.ON_DISC),
+                DiscLine(inputs.snapshot.cardio?.label.orEmpty().uppercase(), DialTextRole.BAND, DialTone.ON_DISC),
+            ),
+        ),
+        tap = DialTap.START_CARDIO,
+        // Cardio owns the authored hold slot. Undo is deliberately absent here.
+        hold = null,
+        dayProgressOverride = 1f,
+    )
+
+    fun cardioExecuting(anchors: CardioAnchors): DialUiState {
+        val suggestion = requireNotNull(inputs.snapshot.cardio)
+        val plan = CardioIntervals.plan(suggestion, suggestion.fiveK ?: false)
+        val progress = cardioProgress(plan, anchors, inputs.nowElapsedMillis, inputs.nowWallMillis)
+        val step = plan.steps[progress.stepIndex]
+        return base(
+            screen = if (progress.overrun) DialScreen.CARDIO_OVERRUN else DialScreen.CARDIO_EXECUTING,
+            rounds = emptyList(),
+            arc = progress.stepRemainingFraction,
+            topBand = BandContent(step.label.uppercase(), DialTone.ACCENT_BRIGHT),
+            bottomBand = BandContent(copy.cardioHoldToStop.uppercase(), DialTone.TERTIARY),
+            disc = DiscContent(
+                DiscStyle.FLAT,
+                listOf(
+                    DiscLine(DialFormat.clock(progress.stepRemainingSeconds.toLong()), DialTextRole.NUMERAL_LARGE, DialTone.PRIMARY),
+                    DiscLine(copy.cardio.uppercase(), DialTextRole.BAND, DialTone.SECONDARY),
+                ),
+            ),
+            tap = DialTap.NONE,
+            hold = DialHold(
+                action = DialHoldAction.STOP_CARDIO,
+                disc = DiscContent(DiscStyle.FLAT, listOf(DiscLine(copy.cardioStop.uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY))),
+            ),
+            dayProgressOverride = 1f,
+        )
+    }
+
     /**
      * "38 MIN", "12,450 LB" — real logged work, never a placeholder (§5.7), one
      * line each: joined with a separator they overflow the disc at BAND size,
@@ -601,6 +657,7 @@ private class ScreenContext(
         val liftName = day.exercises[target.exerciseIndex].name
             .takeIf { target.exerciseIndex != exerciseIndex }
         return DialHold(
+            action = DialHoldAction.UNDO,
             target = target,
             disc = DiscContent(
                 style = DiscStyle.FLAT,

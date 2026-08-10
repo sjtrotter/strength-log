@@ -118,7 +118,7 @@ fun Dial(
     state: DialUiState,
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
-    onHoldComplete: (UndoTarget) -> Unit = {},
+    onHoldComplete: (DialHold) -> Unit = {},
     timePillText: String? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -514,7 +514,7 @@ private fun Disc(
     scaleFactor: Float,
     accent: Color,
     onTap: () -> Unit,
-    onHoldComplete: (UndoTarget) -> Unit,
+    onHoldComplete: (DialHold) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -606,10 +606,11 @@ private fun Modifier.discGestures(
     state: DialUiState,
     holdFill: Animatable<Float, *>,
     onTap: () -> Unit,
-    onHoldComplete: (UndoTarget) -> Unit,
+    onHoldComplete: (DialHold) -> Unit,
 ): Modifier {
     val scope = rememberCoroutineScope()
     val undoLastSetLabel = stringResource(R.string.dial_undo_last_set_action)
+    val stopCardioLabel = stringResource(R.string.dial_cardio_stop_action)
     val clickLabel = when (state.tap) {
         DialTap.NONE -> null
         DialTap.OPEN_WORKOUT -> stringResource(R.string.dial_open_workout_action)
@@ -618,6 +619,7 @@ private fun Modifier.discGestures(
         DialTap.SKIP_REST -> stringResource(R.string.dial_skip_rest_action)
         DialTap.CONFIRM_SWAP -> stringResource(R.string.dial_confirm_swap_action)
         DialTap.DISMISS -> stringResource(R.string.dial_dismiss_action)
+        DialTap.START_CARDIO -> stringResource(R.string.dial_cardio_start)
     }
     // The gesture is hand-rolled, so its accessibility actions are declared here.
     // Both actions must use the same callbacks as touch; they are alternate input
@@ -629,8 +631,8 @@ private fun Modifier.discGestures(
         }
         state.hold?.let { hold ->
             role = Role.Button
-            onLongClick(label = undoLastSetLabel) {
-                onHoldComplete(hold.target)
+            onLongClick(label = if (hold.action == DialHoldAction.STOP_CARDIO) stopCardioLabel else undoLastSetLabel) {
+                onHoldComplete(hold)
                 true
             }
         }
@@ -646,7 +648,7 @@ private fun Modifier.discGestures(
                         holdFill.snapTo(0f)
                         holdFill.animateTo(1f, tween(HOLD_MILLIS, easing = LinearEasing))
                         completed = true
-                        onHoldComplete(it.target)
+                        onHoldComplete(it)
                     }
                 }
                 val released = tryAwaitRelease()

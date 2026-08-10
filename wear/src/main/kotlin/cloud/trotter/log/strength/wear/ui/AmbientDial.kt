@@ -65,7 +65,7 @@ fun AmbientDial(
             restRemainingSeconds = remaining,
             dayText = { dayTemplate.format(it) },
             dayProgressText = { day, done, total -> progressTemplate.format(day, done, total) },
-            restingText = restingText,
+            restingText = rest?.ambientLabel ?: restingText,
         )
     }
 

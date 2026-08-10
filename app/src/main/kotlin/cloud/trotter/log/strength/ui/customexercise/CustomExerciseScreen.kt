@@ -23,14 +23,10 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -42,6 +38,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.CloseAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.Stepper
@@ -99,15 +96,7 @@ private fun Header(actions: CustomExerciseActions) {
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text("New exercise", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-        Box(
-            modifier = Modifier
-                .minimumInteractiveComponentSize()
-                .pressable(onClickLabel = "Cancel", role = Role.Button, onClick = actions.onCancel)
-                .semantics { contentDescription = "Cancel" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("✕", color = TextSecondary, style = MaterialTheme.typography.titleMedium, modifier = Modifier.clearAndSetSemantics {})
-        }
+        CloseAction(onClick = actions.onCancel, contentDescription = "Cancel")
     }
 }
 

@@ -42,8 +42,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +50,7 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.BackAction
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
@@ -497,17 +496,13 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly (#17
 @Composable
 private fun PickerHeader(title: String, onBack: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .minimumInteractiveComponentSize()
-                .size(32.dp)
-                .background(Surface2, RoundedCornerShape(8.dp))
-                .pressable(onClickLabel = "Back", role = Role.Button, onClick = onBack, shape = RoundedCornerShape(8.dp))
-                .semantics { contentDescription = "Back" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("←", color = TextSecondary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clearAndSetSemantics {})
-        }
+        BackAction(
+            onClick = onBack,
+            visualSize = 32.dp,
+            outlined = false,
+            shape = RoundedCornerShape(8.dp),
+            iconSize = 18.dp,
+        )
         Spacer(Modifier.size(10.dp))
         Text(title, color = TextPrimary, style = CardTitle)
     }

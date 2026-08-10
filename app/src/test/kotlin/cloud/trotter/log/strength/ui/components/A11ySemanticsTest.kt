@@ -413,7 +413,7 @@ class A11ySemanticsTest {
     // --- License navigation ---------------------------------------------------
 
     @Test
-    fun licensesBackButtonDoesNotExposeItsChevronGlyph() {
+    fun licensesBackButtonExposesOnlyTheVectorDescription() {
         composeTestRule.setContent {
             AppTheme {
                 LicensesScreen(
@@ -427,6 +427,17 @@ class A11ySemanticsTest {
         back.assertExists()
         val config = back.fetchSemanticsNode().config
         assertEquals(listOf("Back"), config.getOrNull(SemanticsProperties.ContentDescription))
+        assertTrue(config.getOrNull(SemanticsProperties.Text).isNullOrEmpty())
+    }
+
+    @Test
+    fun closeActionExposesOnlyTheRequestedVectorDescription() {
+        composeTestRule.setContent { AppTheme { CloseAction(onClick = {}, contentDescription = "Cancel") } }
+
+        val close = composeTestRule.onNodeWithContentDescription("Cancel")
+        close.assertExists()
+        val config = close.fetchSemanticsNode().config
+        assertEquals(listOf("Cancel"), config.getOrNull(SemanticsProperties.ContentDescription))
         assertTrue(config.getOrNull(SemanticsProperties.Text).isNullOrEmpty())
     }
 }

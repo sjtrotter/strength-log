@@ -59,16 +59,15 @@ class OngoingWorkoutChip(context: Context) {
             .setContentIntent(touchIntent)
             .setSilent(true)
 
+        val status = Status.Builder().addPart(STATUS_WORKOUT, Status.TextPart(title))
+        if (elapsedAnchor != null) {
+            status.addPart(STATUS_ELAPSED, Status.StopwatchPart(elapsedAnchor))
+                .addTemplate(appContext.getString(R.string.ongoing_workout_status_template))
+        }
         OngoingActivity.Builder(appContext, NOTIFICATION_ID, builder)
             .setStaticIcon(R.drawable.ic_ongoing_workout)
             .setTouchIntent(touchIntent)
-            .setStatus(
-                Status.Builder()
-                    .addPart(STATUS_WORKOUT, Status.TextPart(title))
-                    .addPart(STATUS_ELAPSED, Status.StopwatchPart(elapsedAnchor))
-                    .addTemplate(appContext.getString(R.string.ongoing_workout_status_template))
-                    .build(),
-            )
+            .setStatus(status.build())
             .build()
             .apply(appContext)
 
@@ -95,15 +94,22 @@ class OngoingWorkoutChip(context: Context) {
         private const val STATUS_WORKOUT = "workout"
         private const val STATUS_ELAPSED = "elapsed"
 
-        /** Converts the persisted wall-clock start into StopwatchPart's elapsed-realtime domain. */
+        /**
+         * Converts the wall-clock start into StopwatchPart's elapsed-realtime
+         * domain, or null when no honest anchor exists — an unknown start
+         * (process restored into an already-active session), a start in the
+         * wall clock's future, or a session older than this boot. A missing
+         * stopwatch is honest; a fabricated 0:00 is not.
+         */
         fun elapsedRealtimeAnchor(
             sessionStartedAtWallMillis: Long,
             wallNowMillis: Long,
             elapsedNowMillis: Long,
-        ): Long {
-            if (sessionStartedAtWallMillis <= 0L) return elapsedNowMillis
-            val age = (wallNowMillis - sessionStartedAtWallMillis).coerceAtLeast(0L)
-            return (elapsedNowMillis - age).coerceAtLeast(0L)
+        ): Long? {
+            if (sessionStartedAtWallMillis <= 0L) return null
+            val age = wallNowMillis - sessionStartedAtWallMillis
+            if (age < 0L || age > elapsedNowMillis) return null
+            return elapsedNowMillis - age
         }
 
         /** POST_NOTIFICATIONS only became a runtime permission in API 33 (Tiramisu). */

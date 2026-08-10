@@ -44,6 +44,7 @@ class DayComplicationService : SuspendingComplicationDataSourceService() {
         complicationData(type, PREVIEW)
 
     private suspend fun readSnapshot() = try {
+        CivilDayFreshness.scheduleNextRollover(this)
         SnapshotItem.latest(Wearable.getDataClient(this))
     } catch (e: Exception) {
         // No Data Layer on this node, or Play Services said no — an empty glance is

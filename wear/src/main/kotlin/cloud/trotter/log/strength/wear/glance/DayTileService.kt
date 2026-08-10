@@ -20,14 +20,17 @@ import java.time.ZoneId
  * The day in the tile carousel (glance-surfaces brief §3): a mini dial, one glance,
  * one tap into the app.
  *
- * The timeline is a single entry whose freshness ends at the next local civil day.
- * The zone is read for every render; this is a one-shot system request, not polling.
+ * The timeline is one entry whose freshness interval reaches the next local
+ * civil day — after which the launcher attempts (not guarantees) a refresh —
+ * and each render also re-arms the explicit rollover alarm, which is the
+ * dependable midnight path. The zone is read per render; nothing polls.
  */
 class DayTileService : TileService() {
 
     override fun onTileRequest(
         requestParams: RequestBuilders.TileRequest,
     ): ListenableFuture<TileBuilders.Tile> = SuspendToFutureAdapter.launchFuture {
+        CivilDayFreshness.scheduleNextRollover(this@DayTileService)
         TileBuilders.Tile.Builder()
             .setResourcesVersion(RESOURCES_VERSION)
             .setFreshnessIntervalMillis(

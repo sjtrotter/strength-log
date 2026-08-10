@@ -61,13 +61,14 @@
                 android:value="0" />
         </service>
 
-        <!-- System civil-time broadcasts are exact boundary/zone invalidations and
-             need neither an exact-alarm permission nor an app polling loop. -->
+        <!-- TIMEZONE_CHANGED is on the implicit-broadcast exception list; the
+             midnight rollover arrives as an explicit alarm broadcast scheduled at
+             each glance render, because DATE_CHANGED never reaches manifest
+             receivers on API 26+. -->
         <receiver
             android:name=".glance.CivilDayChangeReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="android.intent.action.DATE_CHANGED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>

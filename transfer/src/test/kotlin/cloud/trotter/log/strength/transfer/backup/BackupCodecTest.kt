@@ -83,12 +83,14 @@ class BackupCodecTest {
                 sets = listOf(SessionSetBackup(11, "bb_back_squat", "Barbell Back Squat", "main", 0, "TOP", 235.0, 5, true)),
             ),
         ),
+        cardioSessions: List<CardioSessionBackup> = emptyList(),
     ) = BackupDocument(
         settings = settings,
         customExercises = customExercises,
         program = program,
         liveLogs = liveLogs,
         sessions = sessions,
+        cardioSessions = cardioSessions,
     )
 
     @Test
@@ -101,6 +103,35 @@ class BackupCodecTest {
     fun `encode then decode round-trips the document`() {
         val doc = document()
         assertEquals(doc, codec.decode(codec.encode(doc)))
+    }
+
+    @Test
+    fun `cardio sessions round-trip`() {
+        val cardio = CardioSessionBackup(
+            id = 3, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Easy Zone 2", startedAt = 1_000, completedAt = 91_000,
+            seconds = 90, stepsCompleted = 1,
+        )
+        val doc = document(cardioSessions = listOf(cardio))
+        assertEquals(listOf(cardio), codec.decode(codec.encode(doc)).cardioSessions)
+    }
+
+    @Test
+    fun `legacy v5 decodes with empty cardio sessions`() {
+        val legacy = codec.encode(document().copy(schemaVersion = 5))
+            .replace(",\"cardioSessions\":[]", "")
+        assertTrue(codec.decode(legacy).cardioSessions.isEmpty())
+    }
+
+    @Test
+    fun `invalid cardio entry rejects the whole file`() {
+        val invalid = CardioSessionBackup(
+            id = 3, mode = "FUTURE_MODE", hard = false, label = " ",
+            startedAt = 2_000, completedAt = 1_000, seconds = 59, stepsCompleted = 0,
+        )
+        assertFailsWith<BackupError.Inconsistent> {
+            codec.decode(codec.encode(document(cardioSessions = listOf(invalid))))
+        }
     }
 
     @Test

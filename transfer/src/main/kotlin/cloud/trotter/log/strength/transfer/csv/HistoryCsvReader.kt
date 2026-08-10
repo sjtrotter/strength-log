@@ -84,15 +84,22 @@ object HistoryCsvReader {
         // Cardio / bodyweight rows (both weight and reps blank) aren't strength
         // sets we model, so parseRow returns null for them and they're dropped
         // here rather than rejecting the whole file.
+        val cardioRows = mutableListOf<PreviewCardioSession>()
         val parsedRows = dataRows.mapIndexedNotNull { index, fields ->
-            parseRow(fields, line = index + 2, columns = columns, zone = zone, weightUnit = weightUnitResolver)
+            val line = index + 2
+            if (isCardioMarker(fields, columns)) {
+                cardioRows += checkNotNull(parseCardioRow(fields, line, columns, zone))
+                null
+            } else {
+                parseRow(fields, line = line, columns = columns, zone = zone, weightUnit = weightUnitResolver)
+            }
         }
 
         val sessions = groupIntoSessions(parsedRows)
         val unmatched = matchExerciseNames(sessions, catalog)
         val matchedSessions = resolveExerciseIds(sessions, catalog)
 
-        return CsvImportPreview(sessions = matchedSessions, unmatchedNames = unmatched)
+        return CsvImportPreview(sessions = matchedSessions, unmatchedNames = unmatched, cardioSessions = cardioRows)
     }
 
     // --- header mapping --------------------------------------------------
@@ -140,6 +147,50 @@ object HistoryCsvReader {
             "kg", "kgs" -> WeightUnit.KG
             else -> throw CsvImportError.MalformedRow(line, "unknown weight unit '$raw'")
         }
+
+    private fun isCardioMarker(fields: List<String>, columns: Map<HistoryField, Int>): Boolean =
+        columns[HistoryField.WORKOUT_NOTES]?.let { fields.getOrNull(it)?.trim() } == CARDIO_MARKER
+
+    /** Cardio is routed before strength matching, so its label can never create
+     * an unmatched-exercise prompt or a synthetic strength set. */
+    private fun parseCardioRow(
+        fields: List<String>,
+        line: Int,
+        columns: Map<HistoryField, Int>,
+        zone: ZoneId,
+    ): PreviewCardioSession? {
+        if (!isCardioMarker(fields, columns)) return null
+        fun required(field: HistoryField): String {
+            val index = columns[field] ?: throw CsvImportError.MalformedRow(line, "cardio row needs ${field.name}")
+            return fields.getOrNull(index)
+                ?: throw CsvImportError.MalformedRow(line, "row is too short for column ${field.name}")
+        }
+        val completedAt = parseDate(required(HistoryField.DATE).trim(), zone)
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio date")
+        val label = Csv.deneutralizeFormula(required(HistoryField.EXERCISE_NAME))
+        if (label.isBlank() || label.length > 80) {
+            throw CsvImportError.MalformedRow(line, "cardio label must be non-blank and at most 80 characters")
+        }
+        val seconds = required(HistoryField.SECONDS).trim().toIntOrNull()
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio seconds")
+        if (seconds !in 60..86_400) throw CsvImportError.MalformedRow(line, "cardio seconds out of range")
+        val mode = required(HistoryField.NOTES).trim().ifBlank { "OUTDOOR_RUN" }
+        val hard = required(HistoryField.DISTANCE_UNIT).trim().toBooleanStrictOrNull()
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio hard flag")
+        val steps = required(HistoryField.RPE).trim().toIntOrNull()
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio steps completed")
+        if (steps < 0) throw CsvImportError.MalformedRow(line, "cardio steps completed must not be negative")
+        return PreviewCardioSession(
+            dayId = Csv.deneutralizeFormula(required(HistoryField.WORKOUT_NAME)).ifBlank { null },
+            mode = mode,
+            hard = hard,
+            label = label,
+            startedAt = completedAt - seconds * 1_000L,
+            completedAt = completedAt,
+            seconds = seconds,
+            stepsCompleted = steps,
+        )
+    }
 
     // --- row parsing -------------------------------------------------------
 

@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.SessionDurationBounds
 import java.time.Instant
@@ -40,6 +41,7 @@ object HistoryCsvWriter {
         sessionSets: List<SessionSetEntity>,
         unit: WeightUnit,
         zone: ZoneId = ZoneId.systemDefault(),
+        cardioSessions: List<CardioSessionEntity> = emptyList(),
     ): String {
         val setsBySession = sessionSets.groupBy { it.sessionId }
         val orderedSessions = sessions.sortedWith(compareBy({ it.completedAt }, { it.id }))
@@ -83,6 +85,27 @@ object HistoryCsvWriter {
                 )
             }
         }
+        for (session in cardioSessions.sortedWith(compareBy({ it.completedAt }, { it.id }))) {
+            val date = DATE_FORMAT.format(Instant.ofEpochMilli(session.completedAt).atZone(zone))
+            rows.add(
+                listOf(
+                    date,
+                    Csv.neutralizeFormula(session.dayId.orEmpty()),
+                    formatDuration(session.seconds),
+                    Csv.neutralizeFormula(session.label),
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    session.hard.toString(),
+                    session.seconds.toString(),
+                    session.mode,
+                    CARDIO_MARKER,
+                    session.stepsCompleted.toString(),
+                ),
+            )
+        }
         return rows.joinToString("\r\n", postfix = "\r\n") { Csv.writeRow(it) }
     }
 
@@ -108,4 +131,7 @@ object HistoryCsvWriter {
         val seconds = totalSeconds % 60
         return "%d:%02d:%02d".format(hours, minutes, seconds)
     }
+
+    private fun formatDuration(totalSeconds: Int): String =
+        "%d:%02d:%02d".format(totalSeconds / 3600, totalSeconds % 3600 / 60, totalSeconds % 60)
 }

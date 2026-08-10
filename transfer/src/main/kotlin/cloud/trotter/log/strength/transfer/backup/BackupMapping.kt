@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.transfer.backup
 
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
@@ -133,6 +134,13 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 },
             )
         },
+        cardioSessions = cardioSessions.map {
+            CardioSessionBackup(
+                id = it.id, dayId = it.dayId, mode = it.mode, hard = it.hard,
+                label = it.label, startedAt = it.startedAt, completedAt = it.completedAt,
+                seconds = it.seconds, stepsCompleted = it.stepsCompleted,
+            )
+        },
     )
 }
 
@@ -253,6 +261,13 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         logs = logEntities,
         sessions = sessionEntities,
         sessionSets = sessionSetEntities,
+        cardioSessions = cardioSessions.map {
+            CardioSessionEntity(
+                id = it.id, dayId = it.dayId, mode = it.mode, hard = it.hard,
+                label = it.label, startedAt = it.startedAt, completedAt = it.completedAt,
+                seconds = it.seconds, stepsCompleted = it.stepsCompleted,
+            )
+        },
     )
 }
 

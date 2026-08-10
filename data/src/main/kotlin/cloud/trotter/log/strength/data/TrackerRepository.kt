@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
@@ -32,6 +33,7 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -45,6 +47,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.IOException
 import java.time.Clock
 import java.time.LocalDate
+import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -83,6 +86,7 @@ open class TrackerRepository(
      *  a caller supplies, reads, or would substitute — and threading it through
      *  every construction site would claim otherwise. */
     private val restoreMarkerDao = db.restoreMarkerDao()
+    private val cardioSessionDao = db.cardioSessionDao()
 
     // --- config & preferences ------------------------------------------------
 
@@ -479,6 +483,34 @@ open class TrackerRepository(
 
     val sessionsFlow: Flow<List<WorkoutSessionEntity>> = sessionDao.observeSessions()
 
+    /**
+     * Append-only cardio history, newest completion first. Labels are valid only
+     * when non-blank and at most [CARDIO_LABEL_MAX_LENGTH] characters. A mode is
+     * persisted as [CardioMode.name]; readers must use [decodedCardioMode], whose
+     * `entries.firstOrNull` fallback keeps an unknown future name readable.
+     */
+    val cardioSessionsFlow: Flow<List<CardioSessionEntity>> = cardioSessionDao.observeSessions()
+
+    /**
+     * Commits one completed cardio mutation immediately. The transaction is
+     * deliberately explicit even though C1 writes one row: this is the single
+     * write boundary future paired effects must join, never a UI-held staging
+     * value. Labels are non-blank and capped at 80 characters; modes are stored
+     * by enum name and decoded with [decodedCardioMode]'s fallback on read.
+     */
+    suspend fun logCardioSession(session: CardioSessionEntity): Long {
+        require(session.label.isNotBlank()) { "cardio label must not be blank" }
+        require(session.label.length <= CARDIO_LABEL_MAX_LENGTH) {
+            "cardio label must be at most $CARDIO_LABEL_MAX_LENGTH characters"
+        }
+        require(CardioMode.entries.any { it.name == session.mode }) {
+            "cardio mode must be stored as CardioMode.name"
+        }
+        return db.withTransaction { cardioSessionDao.insert(session.copy(id = 0)) }
+    }
+
+    suspend fun cardioSession(id: Long): CardioSessionEntity? = cardioSessionDao.byId(id)
+
     /** The Log screen's list (#14): every session newest-first, with its total
      *  set count pre-aggregated (no per-row query as history grows). */
     val sessionSummariesFlow: Flow<List<SessionSummaryRow>> = sessionDao.observeSessionSummaries()
@@ -643,6 +675,7 @@ open class TrackerRepository(
         logs = programDao.allLogs(),
         sessions = sessionDao.allSessions(),
         sessionSets = sessionDao.allSessionSets(),
+        cardioSessions = cardioSessionDao.all(),
     )
 
     /**
@@ -696,6 +729,7 @@ open class TrackerRepository(
             programDao.deleteAllDays()
             sessionDao.deleteAllSessionSets()
             sessionDao.deleteAllSessions()
+            cardioSessionDao.deleteAll()
             customExerciseDao.deleteAll()
 
             customExerciseDao.upsertAll(snapshot.customExercises)
@@ -704,6 +738,7 @@ open class TrackerRepository(
             programDao.insertLogs(snapshot.logs)
             sessionDao.insertSessions(snapshot.sessions)
             sessionDao.insertSets(snapshot.sessionSets)
+            cardioSessionDao.insertAll(snapshot.cardioSessions)
             restoreMarkerDao.put(RestoreMarkerEntity(nonce = nonce))
         }
         withContext(NonCancellable) {
@@ -768,6 +803,7 @@ open class TrackerRepository(
         unit = settings.unitFlow.first(),
         sessions = sessionDao.allSessions(),
         sessionSets = sessionDao.allSessionSets(),
+        cardioSessions = cardioSessionDao.all(),
     )
 
     /**
@@ -791,15 +827,31 @@ open class TrackerRepository(
     suspend fun importSessionHistory(
         sessions: List<ImportedSession>,
         newCustomExercises: List<CustomExerciseEntity>,
+        cardioSessions: List<CardioSessionEntity> = emptyList(),
     ) {
         db.withTransaction {
             if (newCustomExercises.isNotEmpty()) customExerciseDao.upsertAll(newCustomExercises)
-            sessions.forEach { imported ->
+            val strengthIdentities = sessionDao.allSessions().mapTo(HashSet()) {
+                Triple(it.completedAt / 1_000L, normalizeCsvIdentity(it.dayTitle), "strength")
+            }
+            sessions.filter { imported ->
+                strengthIdentities.add(
+                    Triple(imported.session.completedAt / 1_000L, normalizeCsvIdentity(imported.session.dayTitle), "strength"),
+                )
+            }.forEach { imported ->
                 val sessionId = sessionDao.insertSession(imported.session.copy(id = 0))
                 if (imported.sets.isNotEmpty()) {
                     sessionDao.insertSets(imported.sets.map { it.copy(id = 0, sessionId = sessionId) })
                 }
             }
+            val cardioIdentities = cardioSessionDao.all().mapTo(HashSet()) {
+                Triple(it.completedAt / 1_000L, normalizeCsvIdentity(it.label), "cardio")
+            }
+            cardioSessions.filter { session ->
+                cardioIdentities.add(
+                    Triple(session.completedAt / 1_000L, normalizeCsvIdentity(session.label), "cardio"),
+                )
+            }.forEach { cardioSessionDao.insert(it.copy(id = 0)) }
         }
     }
 
@@ -815,6 +867,9 @@ open class TrackerRepository(
         )
     }
 
+    private fun normalizeCsvIdentity(value: String): String =
+        value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
+
     private fun ExerciseLogEntity.toLoggedSlot(today: String): LoggedSlot {
         val stored = SetJson.decodeSets(setsJson)
         return LoggedSlot(
@@ -824,4 +879,12 @@ open class TrackerRepository(
             checkDate = checkDate,
         )
     }
+
+    companion object {
+        const val CARDIO_LABEL_MAX_LENGTH = 80
+    }
 }
+
+/** Unknown stored enum names fall back without making the history row unreadable. */
+fun CardioSessionEntity.decodedCardioMode(): CardioMode =
+    CardioMode.entries.find { it.name == mode } ?: CardioMode.OUTDOOR_RUN

@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
@@ -15,4 +16,5 @@ data class SessionHistorySnapshot(
     val unit: WeightUnit,
     val sessions: List<WorkoutSessionEntity>,
     val sessionSets: List<SessionSetEntity>,
+    val cardioSessions: List<CardioSessionEntity> = emptyList(),
 )

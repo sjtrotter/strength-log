@@ -21,7 +21,9 @@ class CsvHistoryService(private val repository: TrackerRepository) {
 
     suspend fun exportTo(out: OutputStream) {
         val history = repository.exportSessionHistory()
-        val csv = HistoryCsvWriter.export(history.sessions, history.sessionSets, history.unit)
+        val csv = HistoryCsvWriter.export(
+            history.sessions, history.sessionSets, history.unit, cardioSessions = history.cardioSessions,
+        )
         out.write(csv.toByteArray(Charsets.UTF_8))
         out.flush()
     }
@@ -48,6 +50,6 @@ class CsvHistoryService(private val repository: TrackerRepository) {
      */
     suspend fun commit(preview: CsvImportPreview, approvedPatterns: Map<String, MovementPattern> = emptyMap()) {
         val plan = CsvHistoryImporter.commit(preview, approvedPatterns, repository.exportSessionHistory())
-        repository.importSessionHistory(plan.sessions, plan.newCustomExercises)
+        repository.importSessionHistory(plan.sessions, plan.newCustomExercises, plan.cardioSessions)
     }
 }

@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
  * by the same decoder and reinterpreted only where a field's *meaning* changed
  * (v5's session bodyweight), never by a parallel set of old model classes.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 5
+const val CURRENT_SCHEMA_VERSION: Int = 6
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -42,6 +42,20 @@ data class BackupDocument(
     val program: List<ProgramDayBackup> = emptyList(),
     val liveLogs: List<LiveLogBackup> = emptyList(),
     val sessions: List<SessionBackup> = emptyList(),
+    val cardioSessions: List<CardioSessionBackup> = emptyList(),
+)
+
+@Serializable
+data class CardioSessionBackup(
+    val id: Long,
+    val dayId: String? = null,
+    val mode: String,
+    val hard: Boolean,
+    val label: String,
+    val startedAt: Long,
+    val completedAt: Long,
+    val seconds: Int,
+    val stepsCompleted: Int,
 )
 
 /**

@@ -105,3 +105,16 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         )
     }
 }
+
+/** v5 → v6 (cardio history, #154): additive append-only cardio sessions. */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `cardio_session` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `dayId` TEXT, " +
+                "`mode` TEXT NOT NULL, `hard` INTEGER NOT NULL, `label` TEXT NOT NULL, " +
+                "`startedAt` INTEGER NOT NULL, `completedAt` INTEGER NOT NULL, " +
+                "`seconds` INTEGER NOT NULL, `stepsCompleted` INTEGER NOT NULL)",
+        )
+    }
+}

@@ -33,7 +33,10 @@ val HISTORY_CSV_HEADER: List<String> = listOf(
  * column (Duration, RPE, Notes, ...) is accepted in the header but ignored,
  * matching what this app tracks (PLAN.md A1). SECONDS carries a TIMED hold/carry.
  */
-internal enum class HistoryField { DATE, WORKOUT_NAME, EXERCISE_NAME, SET_ORDER, WEIGHT, WEIGHT_UNIT, REPS, SECONDS, DISTANCE }
+internal enum class HistoryField {
+    DATE, WORKOUT_NAME, DURATION, EXERCISE_NAME, SET_ORDER, WEIGHT, WEIGHT_UNIT,
+    REPS, SECONDS, DISTANCE, DISTANCE_UNIT, NOTES, WORKOUT_NOTES, RPE,
+}
 
 /** Header spellings recognized for each field, matched case/whitespace-
  *  insensitively so the mapping is header-driven, not positional — a Hevy
@@ -50,7 +53,14 @@ internal val HISTORY_FIELD_ALIASES: Map<HistoryField, List<String>> = mapOf(
     // Read only to tell a cardio row (has a distance) apart from a TIMED hold
     // (seconds, no distance); the value itself isn't imported.
     HistoryField.DISTANCE to listOf("Distance"),
+    HistoryField.DURATION to listOf("Duration"),
+    HistoryField.DISTANCE_UNIT to listOf("Distance Unit"),
+    HistoryField.NOTES to listOf("Notes"),
+    HistoryField.WORKOUT_NOTES to listOf("Workout Notes"),
+    HistoryField.RPE to listOf("RPE"),
 )
+
+internal const val CARDIO_MARKER = "Set Type = cardio"
 
 /**
  * The unit a [HistoryField.WEIGHT] header spelling implies on its own, for

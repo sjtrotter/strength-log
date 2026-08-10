@@ -39,6 +39,10 @@ interface SessionPublisher {
      */
     suspend fun publishAll(sessionIds: List<Long>): Boolean
 
+    suspend fun publishCardio(cardioSessionId: Long) = Unit
+
+    suspend fun publishAllCardio(cardioSessionIds: List<Long>): Boolean = true
+
     /** The binding used when Health Connect is not wired in (tests, and the
      *  safety net if a device can't provide it at all). */
     object NoOp : SessionPublisher {
@@ -46,5 +50,7 @@ interface SessionPublisher {
 
         /** Nothing was published, so the caller must not record a backfill as done. */
         override suspend fun publishAll(sessionIds: List<Long>) = false
+        override suspend fun publishCardio(cardioSessionId: Long) = Unit
+        override suspend fun publishAllCardio(cardioSessionIds: List<Long>) = false
     }
 }

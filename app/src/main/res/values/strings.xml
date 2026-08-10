@@ -272,6 +272,8 @@
 <string name="log_set_summary">%1$s: %2$s</string>
 <string name="log_share_label">Share session</string>
 <string name="log_share_button">SHARE</string>
+<string name="log_cardio_semantics">cardio session, %1$s, %2$s</string>
+<string name="log_cardio_summary">%1$s · %2$s</string>
 <string name="log_bodyweight_title">Bodyweight changed</string>
 <string name="log_bodyweight_body">Health Connect has %1$s; your GOALs use %2$s. Update your bodyweight to recompute GOALs?</string>
 <string name="log_bodyweight_update_button">Update</string>

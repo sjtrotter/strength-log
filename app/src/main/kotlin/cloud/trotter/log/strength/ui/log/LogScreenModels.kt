@@ -80,6 +80,11 @@ data class SessionListItem(
     val bodyweightDisplay: String?,
     val expanded: Boolean,
     val exerciseGroups: List<SessionExerciseGroup>? = null,
+    val completedAt: Long = 0,
+    val cardioId: Long? = null,
+    val cardioSummary: String? = null,
+    val cardioSemantics: String? = null,
+    val cardioDuration: String? = null,
 )
 
 /** One exercise's sets within an expanded session, in first-appearance order. */

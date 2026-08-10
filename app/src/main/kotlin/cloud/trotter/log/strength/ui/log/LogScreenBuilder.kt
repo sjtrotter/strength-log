@@ -1,6 +1,9 @@
 package cloud.trotter.log.strength.ui.log
 
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.decodedCardioMode
+import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -51,6 +54,40 @@ object LogScreenBuilder {
      *  drops the line rather than printing a placeholder. */
     fun bodyweightDisplay(bodyweightLb: Int?, unit: WeightUnit): String? =
         bodyweightLb?.let { WeightStepper.format(unit.fromLb(it.toDouble())) }
+
+    fun cardioModeDisplay(session: CardioSessionEntity): String = when (session.decodedCardioMode()) {
+        CardioMode.OUTDOOR_RUN -> "OUTDOOR RUN"
+        CardioMode.TREADMILL -> "TREADMILL"
+        CardioMode.LOW_IMPACT -> "LOW IMPACT"
+        CardioMode.NONE -> "NONE"
+        null -> session.mode.replace('_', ' ')
+    }
+
+    fun durationDisplay(seconds: Int): String = "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
+
+    fun interleave(
+        strength: List<SessionListItem>,
+        cardio: List<SessionListItem>,
+    ): List<SessionListItem> = (strength + cardio).sortedByDescending { it.completedAt }
+
+    fun cardioItem(session: CardioSessionEntity): SessionListItem {
+        val duration = durationDisplay(session.seconds)
+        return SessionListItem(
+            sessionId = session.id,
+            dateDisplay = dateDisplay(session.completedAt),
+            dayLetter = session.dayId.orEmpty(),
+            dayIndex = dayIndex(session.dayId.orEmpty()),
+            dayTitle = session.label,
+            setCount = 0,
+            bodyweightDisplay = null,
+            expanded = false,
+            completedAt = session.completedAt,
+            cardioId = session.id,
+            cardioSummary = cardioModeDisplay(session),
+            cardioSemantics = session.label,
+            cardioDuration = duration,
+        )
+    }
 
     /**
      * Groups a session's flat [sets] by exercise id, preserving first-appearance

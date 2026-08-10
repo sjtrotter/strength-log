@@ -99,7 +99,7 @@ fun SelectionCard(
                 )
                 if (selected) {
                     Text(
-                        stringResource(R.string.components_checkmark_glyph),
+                        "✓",
                         color = onAccent,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.clearAndSetSemantics {},

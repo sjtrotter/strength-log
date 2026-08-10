@@ -232,7 +232,7 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: ()
             }
             Spacer(Modifier.size(8.dp))
             Text(
-                stringResource(R.string.log_expand_glyph),
+                "\u25BC",
                 color = TextFaint,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.rotate(chevronRotation).clearAndSetSemantics {},
@@ -255,7 +255,7 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: ()
 
 @Composable
 private fun ExerciseGroupRow(group: SessionExerciseGroup) {
-    val separator = stringResource(R.string.log_set_separator)
+    val separator = " \u00B7 "
     val summaries = group.sets.map {
         stringResource(R.string.log_set_summary, it.kindLabel, it.weightRepsDisplay)
     }

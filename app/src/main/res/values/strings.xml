@@ -17,8 +17,6 @@
 <string name="today_open_log_description">Open log</string>
 <string name="today_log_button">LOG</string>
 <string name="today_settings_description">Settings</string>
-<string name="today_settings_icon">⚙</string>
-<string name="today_list_separator">", "</string>
 <plurals name="today_lift_set_count">
     <item quantity="one">%1$d set</item>
     <item quantity="other">%1$d sets</item>
@@ -27,7 +25,6 @@
 <!-- Setup -->
 <string name="setup_title">SETUP</string>
 <string name="setup_back_description">Back</string>
-<string name="setup_back_icon">‹</string>
 <string name="setup_training_section">TRAINING</string>
 <string name="setup_display_section">DISPLAY</string>
 <string name="setup_watch_section">WATCH</string>
@@ -157,13 +154,10 @@
 <string name="wizard_back_button">BACK</string>
 <string name="wizard_generate_program_button">GENERATE PROGRAM</string>
 <string name="wizard_next_button">NEXT</string>
-<string name="wizard_list_separator">", "</string>
-<string name="wizard_anchor_separator">" · "</string>
 
 <!-- Backup -->
 <string name="backup_title">DATA / BACKUP</string>
 <string name="backup_back_label">Back</string>
-<string name="backup_back_glyph">‹</string>
 <string name="backup_full_title">Full backup</string>
 <string name="backup_full_body">Everything you own — program, logs, custom exercises, and history — as one JSON file.</string>
 <string name="backup_export_button">EXPORT BACKUP</string>
@@ -217,7 +211,6 @@
 <!-- Log -->
 <string name="log_title">Log</string>
 <string name="log_back_label">Back</string>
-<string name="log_back_glyph">←</string>
 <string name="log_trajectory_header">TRAJECTORY</string>
 <string name="log_volume_header">VOLUME</string>
 <string name="log_calendar_header">CALENDAR</string>
@@ -231,9 +224,7 @@
     <item quantity="other">%1$d sets</item>
 </plurals>
 <string name="log_session_bodyweight">BW %1$s</string>
-<string name="log_expand_glyph">▼</string>
 <string name="log_session_loading">Loading…</string>
-<string name="log_set_separator">" · "</string>
 <string name="log_set_summary">%1$s: %2$s</string>
 <string name="log_share_label">Share session</string>
 <string name="log_share_button">SHARE</string>
@@ -262,16 +253,13 @@
 <string name="log_weekday_friday">F</string>
 <string name="log_weekday_saturday">S</string>
 <string name="log_weekday_sunday">S</string>
-<string name="log_calendar_previous_glyph">‹</string>
 <string name="log_calendar_previous_month">Previous month</string>
-<string name="log_calendar_next_glyph">›</string>
 <string name="log_calendar_next_month">Next month</string>
 <string name="log_calendar_show_session">Show session</string>
 
 <!-- Licenses -->
 <string name="licenses_title">OSS LICENSES</string>
 <string name="licenses_back_label">Back</string>
-<string name="licenses_back_glyph">‹</string>
 
 <!-- Authored states -->
 <string name="authored_preparing_program">PREPARING YOUR PROGRAM</string>
@@ -283,11 +271,6 @@
 <string name="authored_run_setup_button">RUN THE SETUP WIZARD</string>
 
 <!-- Shared set controls -->
-<string name="components_checkmark_glyph">✓</string>
-<string name="components_superset_partner_glyph">↳</string>
-<string name="components_remove_glyph">×</string>
-<string name="components_decrease_glyph">−</string>
-<string name="components_increase_glyph">+</string>
 <string name="stepper_decrease_action">decrease</string>
 <string name="stepper_increase_action">increase</string>
 <string name="set_row_done_description">Set done</string>
@@ -305,9 +288,6 @@
 <!-- Day -->
 <string name="day_header_label">DAY %1$s</string>
 <string name="day_edit_action">Edit day</string>
-<string name="day_edit_glyph">✎</string>
-<string name="day_swap_glyph">⇄</string>
-<string name="day_expand_glyph">▼</string>
 <string name="day_override_suggested_prefix">OVERRIDE · SUGGESTED NEXT: </string>
 <string name="day_tab_description">Day %1$s</string>
 <string name="day_tab_suggested_description">Day %1$s, suggested next</string>
@@ -367,8 +347,6 @@
 <string name="day_edit_no_matches">No matching exercises.</string>
 <string name="day_edit_create_exercise_button">+ Create exercise</string>
 <string name="day_edit_back_action">Back</string>
-<string name="day_edit_back_glyph">←</string>
-<string name="day_edit_list_separator">", "</string>
 <string name="day_edit_search_hint">Search exercises</string>
 <string name="day_edit_reset_confirm_title">Reset day to template?</string>
 <string name="day_edit_reset_confirm_body">This regenerates the day from your setup wizard answers. Any swaps, adds, or removes you made here are discarded — logged history is not affected.</string>
@@ -406,7 +384,6 @@
 <string name="receipt_back_to_today_button">BACK TO TODAY</string>
 
 <!-- Custom exercise -->
-<string name="custom_exercise_cancel_glyph">✕</string>
 <string name="custom_exercise_title">New exercise</string>
 <string name="custom_exercise_cancel_action">Cancel</string>
 <string name="custom_exercise_name_label">Name</string>
@@ -459,5 +436,4 @@
     <string name="health_rationale_write_workouts_bullet">Write your completed workouts, so other fitness apps can see them.</string>
     <string name="health_rationale_read_sessions_bullet">Read strength sessions from other apps, to list them in your Log.</string>
     <string name="health_rationale_read_bodyweight_bullet">Read your latest bodyweight, to offer to update your training GOALs.</string>
-    <string name="health_rationale_bullet_format">•  %1$s</string>
 </resources>

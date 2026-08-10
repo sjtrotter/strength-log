@@ -297,13 +297,13 @@ internal fun CalendarCardView(
                 modifier = Modifier.weight(1f),
             )
             MonthChevron(
-                stringResource(R.string.log_calendar_previous_glyph),
+                "‹",
                 stringResource(R.string.log_calendar_previous_month),
                 month.canPageBack,
             ) { onPage(-1) }
             Spacer(Modifier.size(6.dp))
             MonthChevron(
-                stringResource(R.string.log_calendar_next_glyph),
+                "›",
                 stringResource(R.string.log_calendar_next_month),
                 month.canPageForward,
             ) { onPage(1) }

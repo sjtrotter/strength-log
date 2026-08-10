@@ -121,7 +121,7 @@ fun Stepper(
             .border(1.dp, Border, CapsuleShape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StepSegment(symbol = stringResource(R.string.components_decrease_glyph), contentDescription = resolvedDecreaseDescription) {
+        StepSegment(symbol = "−", contentDescription = resolvedDecreaseDescription) {
             onValueChange(maxOf(minValue, round(value - step(value))))
         }
         Text(
@@ -133,7 +133,7 @@ fun Stepper(
             color = valueColor,
             style = valueTextStyle,
         )
-        StepSegment(symbol = stringResource(R.string.components_increase_glyph), contentDescription = resolvedIncreaseDescription) {
+        StepSegment(symbol = "+", contentDescription = resolvedIncreaseDescription) {
             onValueChange(maxOf(minValue, round(value + step(value))))
         }
     }

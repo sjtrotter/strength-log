@@ -103,7 +103,7 @@ fun CheckmarkToggle(
         ) {
             if (checked) {
                 Text(
-                    text = stringResource(R.string.components_checkmark_glyph),
+                    text = "✓",
                     color = Background,
                     style = TickGlyph,
                     modifier = Modifier.clearAndSetSemantics {},

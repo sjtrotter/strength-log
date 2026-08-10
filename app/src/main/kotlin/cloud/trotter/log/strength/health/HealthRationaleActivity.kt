@@ -66,7 +66,7 @@ private fun RationaleScreen() {
 @Composable
 private fun Bullet(text: String) {
     Text(
-        stringResource(R.string.health_rationale_bullet_format, text),
+        "•  $text",
         color = TextSecondary,
         style = MaterialTheme.typography.bodyMedium,
         modifier = Modifier.padding(vertical = 6.dp),

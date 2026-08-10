@@ -292,7 +292,7 @@ private fun AnchorsStep(state: WizardUiState, actions: WizardActions) {
     }
     val allAnchors = ProgramGenerator.anchorIds(answers)
     if (answers.split == SplitTemplate.FULL_BODY && state.activeAnchorIds.size < allAnchors.size) {
-        val names = state.activeAnchorIds.joinToString(stringResource(R.string.wizard_list_separator)) {
+        val names = state.activeAnchorIds.joinToString(", ") {
             ExerciseLibrary.get(it).name
         }
         Spacer(Modifier.size(4.dp))
@@ -321,7 +321,7 @@ private fun anchorNames(scheme: AnchorScheme, deadlift: DeadliftVariant): String
     val ids = ProgramGenerator.anchorIds(
         WizardAnswers(anchorScheme = scheme, deadliftVariant = deadlift),
     )
-    return ids.joinToString(stringResource(R.string.wizard_anchor_separator)) { ExerciseLibrary.get(it).name }
+    return ids.joinToString(" · ") { ExerciseLibrary.get(it).name }
 }
 
 @Composable

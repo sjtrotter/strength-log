@@ -185,7 +185,7 @@ fun SetRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = if (isSubRow) stringResource(R.string.components_superset_partner_glyph) else kindLabel,
+            text = if (isSubRow) "↳" else kindLabel,
             color = if (isTop) accent else if (isSubRow) TextFaint else TextSecondary,
             style = SetKindLabel,
             maxLines = 1,
@@ -282,7 +282,7 @@ private fun RemoveButton(onClick: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = stringResource(R.string.components_remove_glyph),
+                text = "×",
                 color = TextFaint,
                 style = RemoveGlyph,
                 modifier = Modifier.clearAndSetSemantics {},

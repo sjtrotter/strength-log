@@ -138,7 +138,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                     state.rotation.forEach {
                         rotationDays += stringResource(R.string.today_rotation_day, it.dayId)
                     }
-                    val days = rotationDays.joinToString(stringResource(R.string.today_list_separator))
+                    val days = rotationDays.joinToString(", ")
                     val description = if (nextId != null) {
                         stringResource(R.string.today_rotation_description_next, days, nextId)
                     } else {
@@ -226,7 +226,7 @@ private fun SettingsButton(onClick: () -> Unit) {
             .semantics { contentDescription = settings },
         contentAlignment = Alignment.Center,
     ) {
-        Text(stringResource(R.string.today_settings_icon), color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
+        Text("⚙", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
     }
 }
 

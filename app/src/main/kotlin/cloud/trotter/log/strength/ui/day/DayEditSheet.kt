@@ -478,7 +478,7 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly (#17
                 items(results, key = { it.id }) { entry ->
                     SelectionCard(
                         title = entry.name,
-                        subtitle = entry.equipment.joinToString(stringResource(R.string.day_edit_list_separator)) {
+                        subtitle = entry.equipment.joinToString(", ") {
                             equipmentLabel(it)
                         },
                         selected = false,

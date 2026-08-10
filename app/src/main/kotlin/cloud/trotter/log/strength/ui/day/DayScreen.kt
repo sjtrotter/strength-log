@@ -371,7 +371,7 @@ private fun EditDayButton(onClick: () -> Unit) {
         colors = IconButtonDefaults.outlinedIconButtonColors(containerColor = Surface2, contentColor = TextSecondary),
     ) {
         Text(
-            stringResource(R.string.day_edit_glyph),
+            "✎",
             color = TextSecondary,
             style = TabLetter.copy(fontSize = 15.sp),
             modifier = Modifier.clearAndSetSemantics {},
@@ -592,7 +592,7 @@ private fun ExerciseCard(
                     if (card.hasWarmupHint) Badge(stringResource(R.string.day_warmup_badge), Color.Transparent, TextSecondary, outlined = true)
                     if (card.allDone) {
                         Badge(
-                            stringResource(R.string.components_checkmark_glyph),
+                            "✓",
                             Done,
                             Background,
                             description = stringResource(R.string.day_all_sets_done_description),
@@ -846,7 +846,7 @@ internal fun SwapExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                stringResource(R.string.day_swap_glyph),
+                "⇄",
                 color = TextSecondary,
                 style = TabLetter.copy(fontSize = 13.sp),
                 modifier = Modifier.clearAndSetSemantics {},
@@ -990,7 +990,7 @@ private fun CardioCard(cardio: CardioSuggestion) {
                 )
             }
             Text(
-                stringResource(R.string.day_expand_glyph),
+                "▼",
                 color = TextFaint,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.rotate(chevronRotation).clearAndSetSemantics {},

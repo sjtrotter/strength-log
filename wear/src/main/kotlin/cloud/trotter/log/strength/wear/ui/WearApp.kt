@@ -142,11 +142,17 @@ fun WearApp(
                         copy = loadingCopy,
                         onAction = {
                             if (loadingState == LoadingDialState.INSTALL_NEEDED) {
-                                remoteActivity.startRemoteActivity(
+                                val send = remoteActivity.startRemoteActivity(
                                     Intent(Intent.ACTION_VIEW)
                                         .setData(Uri.parse(PHONE_PLAY_LISTING))
                                         .addCategory(Intent.CATEGORY_BROWSABLE),
                                 )
+                                // A hand-off that can't be delivered must not leave the
+                                // dial silently claiming an install is on its way.
+                                send.addListener({
+                                    val failed = runCatching { send.get() }.isFailure
+                                    if (failed) loadingMachine.remoteLaunchFailed()
+                                }, ContextCompat.getMainExecutor(context))
                             } else {
                                 loadingMachine.retry()
                             }
@@ -190,6 +196,7 @@ fun WearApp(
 @Composable
 private fun rememberLoadingDialCopy() = LoadingDialCopy(
     phoneAppNeeded = stringResource(R.string.dial_phone_app_needed),
+    openPhoneApp = stringResource(R.string.dial_open_phone_app),
     installPhone = stringResource(R.string.dial_install_phone),
     installAction = stringResource(R.string.dial_install_phone_action),
     phoneUnreachable = stringResource(R.string.dial_phone_unreachable),

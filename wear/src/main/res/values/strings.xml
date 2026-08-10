@@ -47,6 +47,7 @@
     <string name="dial_top_label">TOP</string>
     <string name="dial_backoff_label">B/O</string>
     <string name="dial_phone_app_needed">phone app needed</string>
+    <string name="dial_open_phone_app">open the phone app</string>
     <string name="dial_install_phone">install on phone</string>
     <string name="dial_install_phone_action">open phone install</string>
     <string name="dial_phone_unreachable">phone unreachable</string>

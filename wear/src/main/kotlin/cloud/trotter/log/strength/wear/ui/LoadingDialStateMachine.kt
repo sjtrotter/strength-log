@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 
 internal enum class LoadingDialState {
     LOADING,
+    OPEN_PHONE_APP,
     INSTALL_NEEDED,
     PHONE_UNREACHABLE,
     ERROR,
@@ -43,6 +44,12 @@ internal class LoadingDialStateMachine(
         check = scope.launch { detect() }
     }
 
+    /** The install hand-off to the phone could not be sent; retry is the way out. */
+    fun remoteLaunchFailed() {
+        if (mutableState.value == LoadingDialState.SNAPSHOT_READY) return
+        mutableState.value = LoadingDialState.ERROR
+    }
+
     fun snapshotArrived() {
         check?.cancel()
         mutableState.value = LoadingDialState.SNAPSHOT_READY
@@ -51,7 +58,7 @@ internal class LoadingDialStateMachine(
     private suspend fun detect() {
         try {
             mutableState.value = when (detector.detect()) {
-                CompanionPresence.INSTALLED -> LoadingDialState.ERROR
+                CompanionPresence.INSTALLED -> LoadingDialState.OPEN_PHONE_APP
                 CompanionPresence.INSTALL_NEEDED -> LoadingDialState.INSTALL_NEEDED
                 CompanionPresence.UNREACHABLE -> LoadingDialState.PHONE_UNREACHABLE
             }

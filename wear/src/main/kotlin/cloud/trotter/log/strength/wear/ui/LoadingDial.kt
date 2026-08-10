@@ -106,6 +106,7 @@ internal fun LoadingDial(
                 Text(
                     text = when (state) {
                         LoadingDialState.INSTALL_NEEDED -> copy.phoneAppNeeded
+                        LoadingDialState.OPEN_PHONE_APP -> copy.openPhoneApp
                         LoadingDialState.PHONE_UNREACHABLE -> copy.phoneUnreachable
                         else -> copy.syncError
                     },
@@ -131,6 +132,7 @@ internal fun LoadingDial(
 
 internal data class LoadingDialCopy(
     val phoneAppNeeded: String,
+    val openPhoneApp: String,
     val installPhone: String,
     val installAction: String,
     val phoneUnreachable: String,

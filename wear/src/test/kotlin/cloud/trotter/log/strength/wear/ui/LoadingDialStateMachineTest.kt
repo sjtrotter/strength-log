@@ -77,6 +77,51 @@ class LoadingDialStateMachineTest {
     }
 
     @Test
+    fun `an installed companion that hasn't synced asks to open the phone app`() = runTest {
+        val machine = LoadingDialStateMachine(
+            FakeCompanionDetector(CompanionPresence.INSTALLED),
+            backgroundScope,
+            timeoutMillis = 0,
+        )
+
+        machine.start()
+        runCurrent()
+
+        assertEquals(LoadingDialState.OPEN_PHONE_APP, machine.state.value)
+    }
+
+    @Test
+    fun `start is idempotent across recomposition`() = runTest {
+        val detector = FakeCompanionDetector(CompanionPresence.UNREACHABLE)
+        val machine = LoadingDialStateMachine(detector, backgroundScope)
+
+        machine.start()
+        machine.start()
+        advanceTimeBy(LOADING_TIMEOUT_MILLIS)
+        runCurrent()
+
+        assertEquals(1, detector.reads)
+    }
+
+    @Test
+    fun `a failed install hand-off surfaces as the retryable error`() = runTest {
+        val machine = LoadingDialStateMachine(
+            FakeCompanionDetector(CompanionPresence.INSTALL_NEEDED),
+            backgroundScope,
+            timeoutMillis = 0,
+        )
+        machine.start()
+        runCurrent()
+
+        machine.remoteLaunchFailed()
+        assertEquals(LoadingDialState.ERROR, machine.state.value)
+
+        machine.snapshotArrived()
+        machine.remoteLaunchFailed()
+        assertEquals(LoadingDialState.SNAPSHOT_READY, machine.state.value)
+    }
+
+    @Test
     fun `snapshot preempts every waiting outcome`() = runTest {
         val beforeTimeout = FakeCompanionDetector(CompanionPresence.UNREACHABLE)
         val stillLoading = LoadingDialStateMachine(beforeTimeout, backgroundScope)
@@ -88,12 +133,14 @@ class LoadingDialStateMachineTest {
         assertEquals(0, beforeTimeout.reads)
 
         listOf(
+            LoadingDialState.OPEN_PHONE_APP,
             LoadingDialState.INSTALL_NEEDED,
             LoadingDialState.PHONE_UNREACHABLE,
             LoadingDialState.ERROR,
         ).forEach { outcome ->
             val detector = FakeCompanionDetector(
                 when (outcome) {
+                    LoadingDialState.OPEN_PHONE_APP -> CompanionPresence.INSTALLED
                     LoadingDialState.INSTALL_NEEDED -> CompanionPresence.INSTALL_NEEDED
                     LoadingDialState.PHONE_UNREACHABLE -> CompanionPresence.UNREACHABLE
                     else -> IOException("transient")

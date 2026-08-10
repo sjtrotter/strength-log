@@ -122,14 +122,59 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
-    fun rebootDivergenceUsesWallAnchor() = test {
+    fun rebootHandsElapsedToTheWallClock() = test {
         val vm = runningVm()
         clock.wall += 610_000
         clock.elapsed = 2_000
+        clock.boot += 1
         advanceTimeBy(1_001)
         runCurrent()
         assertEquals(610, vm.uiState.value.cardio?.elapsedSeconds)
         assertEquals("HARD", vm.uiState.value.cardio?.currentStepLabel)
+    }
+
+    @Test
+    fun rebootWithLongerUptimeStillHandsElapsedToTheWallClock() = test {
+        val vm = runningVm()
+        clock.wall += 610_000
+        clock.elapsed += 300_000_000
+        clock.boot += 1
+        advanceTimeBy(1_001)
+        runCurrent()
+        assertEquals(610, vm.uiState.value.cardio?.elapsedSeconds)
+    }
+
+    @Test
+    fun wallClockJumpCannotHijackALiveMonotonicClock() = test {
+        val vm = runningVm()
+        clock.advance(120_000)
+        clock.wall += 3_600_000
+        advanceTimeBy(1_001)
+        runCurrent()
+        assertEquals(120, vm.uiState.value.cardio?.elapsedSeconds)
+    }
+
+    @Test
+    fun stopAtExactlySixtySecondsLogs() = test {
+        val vm = runningVm()
+        clock.advance(60_000)
+        vm.stopCardio()
+        advanceUntilIdle()
+        assertEquals(1, repo.cardioSessionsFlow.first().size)
+        assertEquals(60, repo.cardioSessionsFlow.first().single().seconds)
+    }
+
+    @Test
+    fun doubleTapStartReservesOneBlock() = test {
+        val vm = runningVm()
+        val startedWall = clock.wall
+        clock.advance(30_000)
+        vm.startCardio()
+        advanceUntilIdle()
+        clock.advance(90_000)
+        vm.stopCardio()
+        advanceUntilIdle()
+        assertEquals(startedWall, repo.cardioSessionsFlow.first().single().startedAt)
     }
 
     @Test
@@ -183,9 +228,11 @@ class DayViewModelCardioExecutionTest {
     private class FakeCardioClock(
         var wall: Long = 1_800_000_000_000L,
         var elapsed: Long = 9_000_000L,
+        var boot: Int = 7,
     ) : CardioClock {
         override fun wallMillis() = wall
         override fun elapsedRealtimeMillis() = elapsed
+        override fun bootCount() = boot
         fun advance(millis: Long) { wall += millis; elapsed += millis }
     }
 

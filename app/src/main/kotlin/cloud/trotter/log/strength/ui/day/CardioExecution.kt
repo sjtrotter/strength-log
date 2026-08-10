@@ -12,16 +12,22 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** The two clocks cardio needs. Keeping both behind one seam makes reboot derivation testable. */
+/** The clocks cardio needs, plus the boot counter that arbitrates between them.
+ *  Keeping all three behind one seam makes reboot derivation testable. */
 interface CardioClock {
     fun wallMillis(): Long
     fun elapsedRealtimeMillis(): Long
+    fun bootCount(): Int
 }
 
 @Singleton
-class SystemCardioClock @Inject constructor() : CardioClock {
+class SystemCardioClock @Inject constructor(
+    @ApplicationContext private val context: Context,
+) : CardioClock {
     override fun wallMillis(): Long = System.currentTimeMillis()
     override fun elapsedRealtimeMillis(): Long = SystemClock.elapsedRealtime()
+    override fun bootCount(): Int =
+        android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.BOOT_COUNT, 0)
 }
 
 /** One in-process exact elapsed-realtime alarm. Implementations replace any pending alarm. */

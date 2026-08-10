@@ -7,6 +7,7 @@ class FixedCardioClock(
 ) : CardioClock {
     override fun wallMillis(): Long = wall
     override fun elapsedRealtimeMillis(): Long = elapsed
+    override fun bootCount(): Int = 0
 }
 
 object InertCardioAlarm : CardioAlarm {

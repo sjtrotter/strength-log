@@ -106,6 +106,7 @@ class DayViewModel @Inject constructor(
     private val cardioPlanIdentity = savedState.getStateFlow<String?>(KEY_CARDIO_PLAN, null)
     private val cardioStartedWall = savedState.getStateFlow<Long?>(KEY_CARDIO_WALL, null)
     private val cardioStartedElapsed = savedState.getStateFlow<Long?>(KEY_CARDIO_ELAPSED, null)
+    private val cardioStartedBoot = savedState.getStateFlow<Int?>(KEY_CARDIO_BOOT, null)
     private val cardioTick = MutableStateFlow(0L)
     private var cardioScreenLive = false
 
@@ -169,8 +170,8 @@ class DayViewModel @Inject constructor(
      * every time a lifter flips a switch mid-workout.
      */
     private val cardioAnchors = combine(
-        cardioPlanIdentity, cardioStartedWall, cardioStartedElapsed,
-    ) { identity, wall, elapsed -> CardioAnchors(identity, wall, elapsed) }
+        cardioPlanIdentity, cardioStartedWall, cardioStartedElapsed, cardioStartedBoot,
+    ) { identity, wall, elapsed, boot -> CardioAnchors(identity, wall, elapsed, boot) }
 
     val uiState: StateFlow<DayUiState> =
         combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick) { a, _ -> a }) {
@@ -266,14 +267,16 @@ class DayViewModel @Inject constructor(
         if (cardioPlanIdentity.value != null) return
         val dayId = currentDay() ?: return
         val suggestion = uiState.value.cardio?.takeIf { it.phase == CardioPhase.SUGGESTION } ?: return
-        viewModelScope.launch {
+        mutate {
+            // Re-checked under the lock: a double tap's second pass lands here
+            // after the first has reserved the block, and must be a no-op.
+            if (cardioPlanIdentity.value != null) return@mutate
             val prefs = repo.wizardAnswersFlow.first().cardio
-            if (prefs.mode == CardioMode.NONE) return@launch
+            if (prefs.mode == CardioMode.NONE) return@mutate
             val identity = CardioPlanIdentity(dayId, prefs.mode, prefs.fiveKGoal, suggestion.hard, suggestion.label)
-            val wall = cardioClock.wallMillis()
-            val elapsed = cardioClock.elapsedRealtimeMillis()
-            savedState[KEY_CARDIO_WALL] = wall
-            savedState[KEY_CARDIO_ELAPSED] = elapsed
+            savedState[KEY_CARDIO_WALL] = cardioClock.wallMillis()
+            savedState[KEY_CARDIO_ELAPSED] = cardioClock.elapsedRealtimeMillis()
+            savedState[KEY_CARDIO_BOOT] = cardioClock.bootCount()
             savedState[KEY_CARDIO_PLAN] = identity.encode()
             cardioTick.value++
         }
@@ -284,27 +287,35 @@ class DayViewModel @Inject constructor(
         val wall = cardioStartedWall.value ?: return
         val elapsed = cardioStartedElapsed.value ?: return
         val identity = CardioPlanIdentity.decode(encoded) ?: return clearCardioExecution()
-        val anchors = CardioAnchors(encoded, wall, elapsed)
+        val boot = cardioStartedBoot.value
+        val anchors = CardioAnchors(encoded, wall, elapsed, boot)
         val elapsedSeconds = derivedElapsedMillis(anchors).div(1_000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        clearCardioExecution()
-        if (elapsedSeconds < CARDIO_LOG_THRESHOLD_SECONDS) return
+        if (elapsedSeconds < CARDIO_LOG_THRESHOLD_SECONDS) return clearCardioExecution()
         val plan = cardioPlan(identity)
         val completedAt = cardioClock.wallMillis()
         val stepsCompleted = plan.steps.runningFold(0) { total, step -> total + step.seconds }
             .drop(1).count { it <= elapsedSeconds }
         mutate {
-            repo.logCardioSession(
-                CardioSessionEntity(
-                    dayId = identity.dayId,
-                    mode = identity.mode.name,
-                    hard = identity.hard,
-                    label = identity.label,
-                    startedAt = wall,
-                    completedAt = completedAt,
-                    seconds = elapsedSeconds,
-                    stepsCompleted = stepsCompleted,
-                ),
-            )
+            // Insert THEN clear: a crash in between leaves the block running and
+            // the row present — the duplicate guard makes a second STOP a no-op
+            // logging-wise, so no path loses a ≥60s session (write-on-mutation).
+            val alreadyLogged = repo.cardioSessionsFlow.first()
+                .any { it.dayId == identity.dayId && it.startedAt == wall }
+            if (!alreadyLogged) {
+                repo.logCardioSession(
+                    CardioSessionEntity(
+                        dayId = identity.dayId,
+                        mode = identity.mode.name,
+                        hard = identity.hard,
+                        label = identity.label,
+                        startedAt = wall,
+                        completedAt = completedAt,
+                        seconds = elapsedSeconds,
+                        stepsCompleted = stepsCompleted,
+                    ),
+                )
+            }
+            clearCardioExecution()
         }
     }
 
@@ -792,11 +803,12 @@ class DayViewModel @Inject constructor(
     private fun derivedElapsedMillis(anchors: CardioAnchors): Long {
         val wallDelta = (cardioClock.wallMillis() - (anchors.wallMillis ?: return 0L)).coerceAtLeast(0L)
         val elapsedAnchor = anchors.elapsedMillis ?: return wallDelta
-        val elapsedNow = cardioClock.elapsedRealtimeMillis()
-        val elapsedDelta = if (elapsedNow >= elapsedAnchor) elapsedNow - elapsedAnchor else -1L
-        // elapsedRealtime restarts at boot. A materially younger monotonic delta
-        // than the wall delta therefore means the saved anchor crossed a reboot.
-        return if (elapsedDelta < 0L || elapsedDelta + REBOOT_DIVERGENCE_MS < wallDelta) wallDelta else elapsedDelta
+        // The boot counter decides exactly: same boot, the monotonic clock is
+        // live and wall adjustments (NTP, manual) can never hijack elapsed;
+        // different boot, the monotonic anchor is meaningless and wall time is
+        // the only witness left.
+        if (anchors.bootCount != cardioClock.bootCount()) return wallDelta
+        return (cardioClock.elapsedRealtimeMillis() - elapsedAnchor).coerceAtLeast(0L)
     }
 
     private fun cardioPlan(identity: CardioPlanIdentity): CardioPlan = CardioIntervals.plan(
@@ -809,6 +821,7 @@ class DayViewModel @Inject constructor(
         savedState[KEY_CARDIO_PLAN] = null
         savedState[KEY_CARDIO_WALL] = null
         savedState[KEY_CARDIO_ELAPSED] = null
+        savedState[KEY_CARDIO_BOOT] = null
         cardioTick.value++
     }
 
@@ -940,6 +953,7 @@ class DayViewModel @Inject constructor(
         val identity: String?,
         val wallMillis: Long?,
         val elapsedMillis: Long?,
+        val bootCount: Int?,
     )
 
     private data class CardioPlanIdentity(
@@ -975,10 +989,10 @@ class DayViewModel @Inject constructor(
         const val KEY_CARDIO_PLAN = "day_cardio_plan"
         const val KEY_CARDIO_WALL = "day_cardio_started_wall"
         const val KEY_CARDIO_ELAPSED = "day_cardio_started_elapsed"
+        const val KEY_CARDIO_BOOT = "day_cardio_started_boot"
         const val STOP_TIMEOUT_MS = 5_000L
         const val CARDIO_TICK_MS = 1_000L
         const val CARDIO_LOG_THRESHOLD_SECONDS = 60
-        const val REBOOT_DIVERGENCE_MS = 5_000L
         const val IDENTITY_SEPARATOR = "."
 
         /** How long a removed set stays undoable (#124). Long enough to notice

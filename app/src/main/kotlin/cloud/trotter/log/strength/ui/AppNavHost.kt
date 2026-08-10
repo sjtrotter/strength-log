@@ -358,10 +358,16 @@ private fun BackupRoute(onBack: () -> Unit, viewModel: BackupViewModel = hiltVie
     val importCsvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(viewModel::beginImportCsv)
     }
+    val automaticBackupFolderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let(viewModel::enableAutomaticBackup)
+    }
 
     BackupScreen(
         state = state,
         actions = BackupActions(
+            onAutomaticBackupChange = { enabled ->
+                if (enabled) automaticBackupFolderLauncher.launch(null) else viewModel.disableAutomaticBackup()
+            },
             onExportBackupClick = { exportBackupLauncher.launch("strength-log-backup-$today.json") },
             onImportBackupClick = { importBackupLauncher.launch(arrayOf("application/json")) },
             onExportCsvClick = { exportCsvLauncher.launch("strength-log-history-$today.csv") },

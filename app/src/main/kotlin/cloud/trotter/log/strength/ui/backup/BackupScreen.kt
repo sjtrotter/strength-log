@@ -57,6 +57,7 @@ import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.SelectionMode
+import cloud.trotter.log.strength.ui.components.SwitchToggle
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -100,6 +101,7 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
+                item { AutomaticBackupCard(state.automatic, actions.onAutomaticBackupChange) }
                 item {
                     SectionCard(
                         title = stringResource(R.string.backup_full_title),
@@ -135,6 +137,33 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
         }
         state.csvImport?.let { csvImport ->
             CsvImportPreviewOverlay(csvImport, actions)
+        }
+    }
+}
+
+@Composable
+private fun AutomaticBackupCard(
+    state: AutomaticBackupUiState,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    AppCard {
+        Text(stringResource(R.string.backup_automatic_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.size(6.dp))
+        Text(stringResource(R.string.backup_automatic_body), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.size(10.dp))
+        SwitchToggle(
+            label = stringResource(R.string.backup_automatic_toggle),
+            checked = state.enabled,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        state.detailLine?.let {
+            Spacer(Modifier.size(6.dp))
+            Text(it, color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
+        }
+        state.resultLine?.let {
+            Spacer(Modifier.size(4.dp))
+            Text(it, color = TextFaint, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -480,6 +509,7 @@ private fun BackupScreenCsvPreviewPreview() {
 }
 
 private fun previewActions() = BackupActions(
+    onAutomaticBackupChange = {},
     onExportBackupClick = {}, onImportBackupClick = {}, onExportCsvClick = {}, onImportCsvClick = {},
     onConfirmRestore = {}, onCancelRestore = {}, onUnmatchedPatternChange = { _, _ -> },
     onConfirmCsvImport = {}, onCancelCsvImport = {}, onDismissMessage = {}, onBack = {},

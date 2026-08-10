@@ -100,6 +100,7 @@ class BackupViewModelRestoreTest {
             context,
             BackupService(repo, RestoreJournal(journalStore, settings)),
             CsvHistoryService(repo),
+            settings,
             appScope,
         )
     }

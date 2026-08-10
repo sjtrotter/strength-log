@@ -181,6 +181,7 @@ class ChromeTouchTargetTest {
     )
 
     private fun backupActions() = BackupActions(
+        onAutomaticBackupChange = {},
         onExportBackupClick = {}, onImportBackupClick = {}, onExportCsvClick = {}, onImportCsvClick = {},
         onConfirmRestore = {}, onCancelRestore = {}, onUnmatchedPatternChange = { _, _ -> },
         onConfirmCsvImport = {}, onCancelCsvImport = {}, onDismissMessage = {}, onBack = {},

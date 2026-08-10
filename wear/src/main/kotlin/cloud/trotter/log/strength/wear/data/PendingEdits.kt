@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.wear.data
 
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
+import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
@@ -41,6 +42,13 @@ import kotlin.math.abs
  * can't confirm.
  */
 object PendingEdits {
+
+    /** Cardio settles only when the phone snapshot exposes this exact logged start. */
+    fun reconcileCardio(pending: List<CardioDelta>, snapshot: WatchSnapshot): List<CardioDelta> =
+        pending.filter { delta ->
+            delta.dayId == snapshot.day.dayId &&
+                snapshot.cardio?.loggedStartedAt != delta.startedAt
+        }
 
     /** The deltas still worth re-sending after reconciling against [snapshot]. */
     fun reconcile(pending: List<SetEditDelta>, snapshot: WatchSnapshot): List<SetEditDelta> =

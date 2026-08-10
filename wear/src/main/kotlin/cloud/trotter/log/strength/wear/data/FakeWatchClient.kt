@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.wear.data
 
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
+import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchDay
@@ -59,6 +60,18 @@ class FakeWatchClient : WatchTrackerClient {
         // As with sendEdit, the bump stands in for the phone's confirming snapshot.
         state.update { snapshot ->
             applyDelta(snapshot, swap).copy(revision = snapshot.revision + 1)
+        }
+    }
+
+    override fun sendCardio(delta: CardioDelta) {
+        state.update { snapshot ->
+            snapshot.copy(
+                revision = snapshot.revision + 1,
+                cardio = snapshot.cardio?.copy(
+                    loggedStartedAt = delta.startedAt,
+                    loggedSeconds = delta.seconds,
+                ),
+            )
         }
     }
 

@@ -13,6 +13,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.sync.SetEditApplier
+import cloud.trotter.log.strength.sync.CardioDeltaApplier
+import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.sync.TodaySnapshotSource
 import cloud.trotter.log.strength.sync.WearSyncPublisher
 import cloud.trotter.log.strength.sync.WearSyncStore
@@ -53,6 +55,14 @@ object WearSyncModule {
         store: WearSyncStore,
         @CivilDay today: Flow<LocalDate>,
     ): SetEditApplier = SetEditApplier(repo, store, today)
+
+    @Provides
+    @Singleton
+    fun cardioDeltaApplier(
+        repo: TrackerRepository,
+        store: WearSyncStore,
+        publisher: SessionPublisher,
+    ): CardioDeltaApplier = CardioDeltaApplier(repo, store, publisher)
 
     /** One source, every glance surface: the widget observer reads this same
      *  instance (glance-surfaces.md §4.2). */

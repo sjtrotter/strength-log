@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
+import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
@@ -39,6 +40,9 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
     suspend fun allSwaps(): List<ExerciseSwapDelta> =
         SyncCodec.decodeSwapQueue(dataStore.data.first()[SWAP_QUEUE].orEmpty())
 
+    suspend fun allCardio(): List<CardioDelta> =
+        SyncCodec.decodeCardioQueue(dataStore.data.first()[CARDIO_QUEUE].orEmpty())
+
     /** The queue itself, live — the one decode the projections below share. */
     fun queueFlow(): Flow<List<SetEditDelta>> =
         dataStore.data.map { prefs -> SyncCodec.decodeDeltaQueue(prefs[QUEUE].orEmpty()) }
@@ -49,12 +53,14 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
         dataStore.data.map { prefs -> SyncCodec.decodeSwapQueue(prefs[SWAP_QUEUE].orEmpty()) }
 
     /** Live queue depth — the wire behind [WatchTrackerClient.pendingCountFlow].
-     *  Both queues count: a swap the phone hasn't answered is exactly the kind of
+     *  All queues count: a swap or cardio completion the phone hasn't answered is
+     *  exactly the kind of
      *  thing "2 QUEUED" is there to admit to. */
     fun countFlow(): Flow<Int> =
         dataStore.data.map { prefs ->
             SyncCodec.decodeDeltaQueue(prefs[QUEUE].orEmpty()).size +
-                SyncCodec.decodeSwapQueue(prefs[SWAP_QUEUE].orEmpty()).size
+                SyncCodec.decodeSwapQueue(prefs[SWAP_QUEUE].orEmpty()).size +
+                SyncCodec.decodeCardioQueue(prefs[CARDIO_QUEUE].orEmpty()).size
         }
 
     /** Which exercises have an edit still unacked — the wire behind
@@ -91,6 +97,13 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    suspend fun enqueueCardio(delta: CardioDelta) {
+        dataStore.edit { prefs ->
+            val current = SyncCodec.decodeCardioQueue(prefs[CARDIO_QUEUE].orEmpty())
+            prefs[CARDIO_QUEUE] = SyncCodec.encodeCardioQueue(current + delta)
+        }
+    }
+
     /** Atomically drops every queued delta [PendingEdits.reconcile] and every queued
      *  swap [PendingEdits.reconcileSwaps] settles against [snapshot]; entries enqueued
      *  concurrently are preserved (see the class doc's concurrency note). Both queues
@@ -107,6 +120,11 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
             val stillSwapping = PendingEdits.reconcileSwaps(swaps, snapshot)
             if (stillSwapping.size != swaps.size) {
                 prefs[SWAP_QUEUE] = SyncCodec.encodeSwapQueue(stillSwapping)
+            }
+            val cardio = SyncCodec.decodeCardioQueue(prefs[CARDIO_QUEUE].orEmpty())
+            val stillCardio = PendingEdits.reconcileCardio(cardio, snapshot)
+            if (stillCardio.size != cardio.size) {
+                prefs[CARDIO_QUEUE] = SyncCodec.encodeCardioQueue(stillCardio)
             }
         }
     }
@@ -126,6 +144,7 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
     private companion object {
         val QUEUE = stringPreferencesKey("pending_edits")
         val SWAP_QUEUE = stringPreferencesKey("pending_swaps")
+        val CARDIO_QUEUE = stringPreferencesKey("pending_cardio")
         val LAST_ISSUED = longPreferencesKey("last_issued_stamp")
     }
 }

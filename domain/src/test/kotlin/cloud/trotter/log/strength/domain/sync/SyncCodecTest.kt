@@ -267,4 +267,22 @@ class SyncCodecTest {
         assertEquals(emptyList(), SyncCodec.decodeSwapQueue(""))
         assertEquals(emptyList(), SyncCodec.decodeSwapQueue("   "))
     }
+
+    @Test
+    fun cardio_delta_round_trips_and_ignores_future_fields() {
+        val delta = CardioDelta(1, "A", "OUTDOOR_RUN", true, "Intervals", 100L, 70_100L, 70, 2, 91L)
+        assertEquals(delta, SyncCodec.decodeCardio(SyncCodec.encodeCardio(delta)))
+
+        val future = """{"dayId":"A","mode":"OUTDOOR_RUN","hard":false,"label":"Easy Zone 2","startedAt":100,"completedAt":60100,"seconds":60,"stepsCompleted":1,"stamp":92,"future":true}"""
+        val decoded = SyncCodec.decodeCardio(future.encodeToByteArray())
+        assertEquals(1, decoded.schemaVersion)
+        assertEquals(92L, decoded.stamp)
+    }
+
+    @Test
+    fun snapshot_cardio_is_additive_and_defaulted() {
+        val oldJson = SyncCodec.encodeSnapshot(snapshot).decodeToString()
+            .replace(Regex(",?\\\"cardio\\\":(?:null|\\{.*?\\})(?=,?\\\"|})"), "")
+        assertEquals(null, SyncCodec.decodeSnapshot(oldJson.encodeToByteArray()).cardio)
+    }
 }

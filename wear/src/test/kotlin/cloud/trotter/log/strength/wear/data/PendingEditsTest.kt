@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.wear.data
 
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
+import cloud.trotter.log.strength.domain.sync.CardioDelta
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchDay
@@ -107,6 +109,14 @@ class PendingEditsTest {
             sets = listOf(WatchSet(245.0, 5, "TOP", done = false), WatchSet(185.0, 8, "BACKOFF", done = false)),
         )
         assertTrue(PendingEdits.reconcile(listOf(delta(setIndex = 0, weightLb = 245.0)), reflected).isEmpty())
+    }
+
+    @Test
+    fun `cardio stays queued until its exact LOGGED start is exposed`() {
+        val delta = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy Zone 2", 100L, 60_100L, 60, 0, 9L)
+        assertEquals(listOf(delta), PendingEdits.reconcileCardio(listOf(delta), snapshot()))
+        val logged = snapshot().copy(cardio = CardioSuggestion("Easy Zone 2", "", false, 100L, 60))
+        assertTrue(PendingEdits.reconcileCardio(listOf(delta), logged).isEmpty())
     }
 
     @Test

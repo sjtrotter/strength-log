@@ -79,6 +79,7 @@ fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseAc
             Header(actions)
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(bottom = FooterHeight),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item { NameField(state.name, actions.onNameChange) }
@@ -302,9 +303,9 @@ private fun Footer(
     actions: CustomExerciseActions,
 ) {
     Column(Modifier.fillMaxWidth().background(Background)) {
-        HorizontalDivider(thickness = 1.dp, color = Border)
+        HorizontalDivider(thickness = FooterDividerThickness, color = Border)
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = FooterVerticalPadding),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             FilledTonalButton(
@@ -315,7 +316,7 @@ private fun Footer(
                     containerColor = Border,
                     contentColor = TextPrimary,
                 ),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(vertical = FooterButtonVerticalPadding),
             ) {
                 FooterButtonLabel(stringResource(R.string.custom_exercise_cancel_button))
             }
@@ -333,7 +334,7 @@ private fun Footer(
                     disabledContainerColor = accent,
                     disabledContentColor = onAccent,
                 ),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(vertical = FooterButtonVerticalPadding),
             ) {
                 FooterButtonLabel(stringResource(R.string.custom_exercise_save_button))
             }
@@ -348,7 +349,7 @@ private fun FooterButtonLabel(label: String) {
         style = DoneButtonLabel,
         textAlign = TextAlign.Center,
         maxLines = 2,
-        modifier = Modifier.heightIn(min = 36.dp),
+        modifier = Modifier.heightIn(min = FooterLabelMinHeight),
     )
 }
 
@@ -380,6 +381,14 @@ private fun equipmentLabel(equipment: Equipment): String = equipment.name
     .joinToString(" ") { it.lowercase().replaceFirstChar(Char::uppercase) }
 
 private val NameFieldShape = RoundedCornerShape(10.dp)
+private val FooterDividerThickness = 1.dp
+private val FooterVerticalPadding = 10.dp
+private val FooterButtonVerticalPadding = 8.dp
+private val FooterLabelMinHeight = 36.dp
+private val FooterHeight = FooterDividerThickness +
+    FooterVerticalPadding * 2 +
+    FooterButtonVerticalPadding * 2 +
+    FooterLabelMinHeight
 private val NameFieldStyle: TextStyle
     @Composable get() = MaterialTheme.typography.bodyLarge
 

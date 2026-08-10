@@ -313,7 +313,9 @@ class A11ySemanticsTest {
             }
         }
 
-        composeTestRule.onNodeWithContentDescription("Day A").assertIsSelected()
+        composeTestRule.onNodeWithContentDescription("Day A")
+            .assertIsSelected()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
     }
 
     // --- Today took the app-wide chrome off Day (#121) ---------------------------

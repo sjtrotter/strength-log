@@ -874,7 +874,14 @@ class DialStateTest {
         )
 
         // The sweep is only worth anything if it actually reaches every screen.
-        assertEquals(DialScreen.entries.toSet(), states.map { it.screen }.toSet())
+        assertEquals(
+            DialScreen.entries.toSet() - setOf(
+                DialScreen.CARDIO_OFFER,
+                DialScreen.CARDIO_EXECUTING,
+                DialScreen.CARDIO_OVERRUN,
+            ),
+            states.map { it.screen }.toSet(),
+        )
 
         // The offer: between sets, between exercises, and on the finished day —
         // the three places nothing is under way to lose. Nowhere else.

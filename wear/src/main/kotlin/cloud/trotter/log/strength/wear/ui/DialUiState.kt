@@ -17,7 +17,7 @@ package cloud.trotter.log.strength.wear.ui
 enum class DialFace { OVERVIEW, WORKOUT }
 
 /** The dial's screens (§5): the overview, and the six of the workout face. */
-enum class DialScreen { OVERVIEW, READY, LIFTING, REST, REST_OVER, TIMED_HOLD, DAY_DONE }
+enum class DialScreen { OVERVIEW, READY, LIFTING, REST, REST_OVER, TIMED_HOLD, CARDIO_OFFER, CARDIO_EXECUTING, CARDIO_OVERRUN, DAY_DONE }
 
 /** Disc grammar (§4) — the fill states the mode, and the mode states what a tap does. */
 enum class DiscStyle { FILLED, OUTLINED, FLAT, DASHED, DIMMED, FILLED_GREEN }
@@ -64,6 +64,7 @@ enum class DialTap {
     SKIP_REST,
     CONFIRM_SWAP,
     DISMISS,
+    START_CARDIO,
 }
 
 /**
@@ -95,7 +96,12 @@ data class CycleSegment(val dayLabel: String, val accentIndex: Int, val mark: Cy
  * nothing is logged to take back. [disc] is what the disc says while the hold
  * fills; the fill itself is the disc's own ring, drawn by the composable.
  */
-data class DialHold(val target: UndoTarget, val disc: DiscContent)
+enum class DialHoldAction { UNDO, STOP_CARDIO }
+data class DialHold(
+    val action: DialHoldAction,
+    val disc: DiscContent,
+    val target: UndoTarget? = null,
+)
 
 data class DialUiState(
     val screen: DialScreen,
@@ -126,7 +132,7 @@ data class DialUiState(
 )
 
 /** The state machine offers undo by supplying the target the gesture will undo. */
-val DialUiState.isUndoAvailable: Boolean get() = hold != null
+val DialUiState.isUndoAvailable: Boolean get() = hold?.action == DialHoldAction.UNDO
 
 /**
  * The wall clock yields to workout content, never the reverse. In particular,

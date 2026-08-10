@@ -86,4 +86,9 @@ data class CardioSuggestion(
     /** Snapshot-only acknowledgement facts. Program suggestions leave these null. */
     val loggedStartedAt: Long? = null,
     val loggedSeconds: Int? = null,
+    /** Snapshot-only execution facts: without them a watch cannot honestly
+     *  build the plan or the delta, so a null mode suppresses the wrist offer
+     *  (an old phone degrades to lifts-only rather than logging a guess). */
+    val mode: String? = null,
+    val fiveK: Boolean? = null,
 )

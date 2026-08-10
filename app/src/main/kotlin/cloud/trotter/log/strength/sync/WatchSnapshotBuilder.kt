@@ -67,6 +67,8 @@ object WatchSnapshotBuilder {
         equipment: Set<Equipment> = Equipment.entries.toSet(),
         loggedCardio: CardioSessionEntity? = null,
         cardioAckStamp: Long = 0L,
+        cardioMode: String? = null,
+        cardioFiveK: Boolean? = null,
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val dayIndex = program.days.indexOfFirst { it.id == dayId }
@@ -98,6 +100,8 @@ object WatchSnapshotBuilder {
             cycle = program.days.map { it.toCycleDay(catalog) },
             cardioAckStamp = cardioAckStamp,
             cardio = day.cardio?.copy(
+                mode = cardioMode,
+                fiveK = cardioFiveK,
                 loggedStartedAt = loggedCardio?.takeIf { it.dayId == dayId }?.startedAt,
                 loggedSeconds = loggedCardio?.takeIf { it.dayId == dayId }?.seconds,
             ),

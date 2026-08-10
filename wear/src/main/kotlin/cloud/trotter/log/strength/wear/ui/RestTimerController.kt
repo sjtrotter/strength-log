@@ -81,7 +81,7 @@ class RestTimerController(
     var activeRest by mutableStateOf<ActiveRest?>(null)
         private set
 
-    data class ActiveRest(val deadlineMillis: Long, val totalSeconds: Int)
+    data class ActiveRest(val deadlineMillis: Long, val totalSeconds: Int, val ambientLabel: String? = null)
 
     /**
      * Proof that a delivered alarm is still the controller's latest completion.
@@ -100,13 +100,14 @@ class RestTimerController(
     fun arm(
         deadlineMillis: Long,
         totalSeconds: Int,
+        ambientLabel: String? = null,
         onFired: ((Firing) -> Unit)? = null,
     ) {
         if (activeRest?.deadlineMillis == deadlineMillis) return
         disarm()
         if (RestTimer.isExpired(deadlineMillis, elapsedRealtime())) return
 
-        val armed = ActiveRest(deadlineMillis, totalSeconds)
+        val armed = ActiveRest(deadlineMillis, totalSeconds, ambientLabel)
         activeRest = armed
         alarmScheduler.schedule(deadlineMillis) {
             // Identity, not equality: a disarm-and-re-arm at the SAME deadline

@@ -58,7 +58,7 @@ class TodaySnapshotSource(
                     repo.restSettingsFlow,
                     repo.wizardAnswersFlow,
                 ) { cfg, catalog, unit, rest, answers ->
-                    Context(cfg, catalog, unit, rest, answers.equipment)
+                    Context(cfg, catalog, unit, rest, answers.equipment, answers.cardio.mode.name, answers.cardio.fiveKGoal)
                 }
                 combine(
                     program, context, repo.cardioSessionsFlow, today,
@@ -81,6 +81,8 @@ class TodaySnapshotSource(
                         equipment = ctx.equipment,
                         loggedCardio = loggedCardio,
                         cardioAckStamp = cardioAck,
+                        cardioMode = ctx.cardioMode,
+                        cardioFiveK = ctx.cardioFiveK,
                     )
                 }
             }
@@ -94,5 +96,7 @@ class TodaySnapshotSource(
         val unit: WeightUnit,
         val restSettings: RestSettings,
         val equipment: Set<Equipment>,
+        val cardioMode: String,
+        val cardioFiveK: Boolean,
     )
 }

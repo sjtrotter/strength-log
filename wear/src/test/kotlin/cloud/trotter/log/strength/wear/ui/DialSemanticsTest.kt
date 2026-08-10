@@ -60,7 +60,7 @@ class DialSemanticsTest {
                 Dial(
                     state = state(DialTap.START_SET, hold = currentHold.value),
                     onTap = {},
-                    onHoldComplete = { undos++; received = it },
+                    onHoldComplete = { undos++; received = it.target },
                 )
             }
         }
@@ -73,6 +73,27 @@ class DialSemanticsTest {
         composeTestRule.runOnIdle { currentHold.value = null }
         composeTestRule.onNode(hasClickLabel("start set")).assertExists()
         composeTestRule.onAllNodes(hasLongClickLabel("undo last set")).assertCountEquals(0)
+    }
+
+    @Test
+    fun `cardio hold exposes stop and log label`() {
+        var action: DialHoldAction? = null
+        val hold = DialHold(
+            action = DialHoldAction.STOP_CARDIO,
+            disc = DiscContent(DiscStyle.FLAT, emptyList()),
+        )
+        composeTestRule.setContent {
+            WearTrackerTheme {
+                Dial(
+                    state = state(DialTap.NONE, hold),
+                    onTap = {},
+                    onHoldComplete = { action = it.action },
+                )
+            }
+        }
+        composeTestRule.onNode(hasLongClickLabel("stop and log cardio"))
+            .performSemanticsAction(SemanticsActions.OnLongClick)
+        assertEquals(DialHoldAction.STOP_CARDIO, action)
     }
 
     @Test
@@ -114,6 +135,7 @@ class DialSemanticsTest {
             DialTap.TICK -> DialScreen.LIFTING
             DialTap.SKIP_REST -> DialScreen.REST
             DialTap.DISMISS -> DialScreen.DAY_DONE
+            DialTap.START_CARDIO -> DialScreen.CARDIO_OFFER
         },
         accentIndex = 0,
         cycle = emptyList(),
@@ -132,6 +154,7 @@ class DialSemanticsTest {
     )
 
     private fun hold(target: UndoTarget) = DialHold(
+        action = DialHoldAction.UNDO,
         target = target,
         disc = DiscContent(DiscStyle.FLAT, emptyList()),
     )
@@ -143,6 +166,7 @@ class DialSemanticsTest {
         DialTap.SKIP_REST to "skip rest",
         DialTap.CONFIRM_SWAP to "confirm swap",
         DialTap.DISMISS to "dismiss",
+        DialTap.START_CARDIO to "start finisher",
     )
 
     private fun hasClickLabel(label: String) = SemanticsMatcher("click label '$label'") { node ->

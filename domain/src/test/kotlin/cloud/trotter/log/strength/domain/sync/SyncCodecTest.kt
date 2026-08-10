@@ -280,6 +280,16 @@ class SyncCodecTest {
     }
 
     @Test
+    fun old_cardio_suggestion_without_execution_facts_decodes_null_mode() {
+        val stripped = SyncCodec.encodeSnapshot(snapshot).decodeToString()
+            .replace(Regex(",?\"mode\":(?:null|\"[A-Z_]+\")"), "")
+            .replace(Regex(",?\"fiveK\":(?:null|true|false)"), "")
+        val decoded = SyncCodec.decodeSnapshot(stripped.encodeToByteArray())
+        assertEquals(null, decoded.cardio?.mode)
+        assertEquals(null, decoded.cardio?.fiveK)
+    }
+
+    @Test
     fun snapshot_cardio_is_additive_and_defaulted() {
         val oldJson = SyncCodec.encodeSnapshot(snapshot).decodeToString()
             .replace(Regex(",?\\\"cardio\\\":(?:null|\\{.*?\\})(?=,?\\\"|})"), "")

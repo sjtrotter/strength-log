@@ -14,6 +14,8 @@ private val TEST_DIAL_COPY = DialCopy(
     releaseToReturn = "↺ release to return", queued = { "$it queued" },
     noProgram = "no program", setUpOnPhone = "set up on your phone",
     rampLabel = { "R$it" }, topLabel = "TOP", backoffLabel = "B/O",
+    cardio = "cardio", cardioStart = "start finisher",
+    cardioHoldToStop = "hold to stop", cardioStop = "stop + log",
 )
 
 fun dialUiState(inputs: DialInputs): DialUiState = dialUiState(inputs, TEST_DIAL_COPY)

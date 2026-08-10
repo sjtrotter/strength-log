@@ -32,4 +32,8 @@ data class DialCopy(
     val rampLabel: (Int) -> String,
     val topLabel: String,
     val backoffLabel: String,
+    val cardio: String,
+    val cardioStart: String,
+    val cardioHoldToStop: String,
+    val cardioStop: String,
 )

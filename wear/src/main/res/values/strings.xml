@@ -47,6 +47,11 @@
     <string name="dial_ramp_label">R%1$d</string>
     <string name="dial_top_label">TOP</string>
     <string name="dial_backoff_label">B/O</string>
+    <string name="dial_cardio">cardio</string>
+    <string name="dial_cardio_start">start finisher</string>
+    <string name="dial_cardio_hold_to_stop">hold to stop</string>
+    <string name="dial_cardio_stop">stop + log</string>
+    <string name="dial_cardio_stop_action">stop and log cardio</string>
     <string name="dial_phone_app_needed">phone app needed</string>
     <string name="dial_open_phone_app">open the phone app</string>
     <string name="dial_install_phone">install on phone</string>

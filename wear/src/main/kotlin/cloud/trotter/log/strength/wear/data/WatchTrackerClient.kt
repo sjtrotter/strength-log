@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.wear.data
 
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
+import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import kotlinx.coroutines.flow.Flow
@@ -64,4 +65,7 @@ interface WatchTrackerClient {
      * echoes the name and nothing else — it cannot seed.
      */
     fun sendSwap(swap: ExerciseSwapDelta)
+
+    /** Queues a completed cardio session until its LOGGED snapshot acknowledgement. */
+    fun sendCardio(delta: CardioDelta)
 }

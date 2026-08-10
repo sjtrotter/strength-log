@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.domain.sync
 
 import kotlinx.serialization.Serializable
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
 
 /**
  * The one item the phone publishes to the Wearable Data Layer (D6, m5-wear.md
@@ -64,6 +65,12 @@ data class WatchSnapshot(
      * adopted across it.
      */
     val epoch: Long = 0L,
+    /** The suggested day's finisher, including defaulted LOGGED acknowledgement facts. */
+    val cardio: CardioSuggestion? = null,
+    /** Highest wrist cardio stamp the phone has processed — the queue's ack.
+     *  Additive with default, like [cardio]; an old phone publishes 0 and the
+     *  watch simply keeps re-sending into its dedupe. */
+    val cardioAckStamp: Long = 0L,
 )
 
 /** One day of the program as the cycle ring and its day-browse preview read it. */

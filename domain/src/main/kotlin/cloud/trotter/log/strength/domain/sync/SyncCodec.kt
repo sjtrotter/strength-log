@@ -26,6 +26,7 @@ object SyncCodec {
     private val deltaListSerializer = ListSerializer(SetEditDelta.serializer())
 
     private val swapListSerializer = ListSerializer(ExerciseSwapDelta.serializer())
+    private val cardioListSerializer = ListSerializer(CardioDelta.serializer())
 
     fun encodeSnapshot(snapshot: WatchSnapshot): ByteArray =
         json.encodeToString(WatchSnapshot.serializer(), snapshot).encodeToByteArray()
@@ -45,6 +46,12 @@ object SyncCodec {
     fun decodeSwap(bytes: ByteArray): ExerciseSwapDelta =
         json.decodeFromString(ExerciseSwapDelta.serializer(), bytes.decodeToString())
 
+    fun encodeCardio(delta: CardioDelta): ByteArray =
+        json.encodeToString(CardioDelta.serializer(), delta).encodeToByteArray()
+
+    fun decodeCardio(bytes: ByteArray): CardioDelta =
+        json.decodeFromString(CardioDelta.serializer(), bytes.decodeToString())
+
     /** The watch persists its unacked outbound deltas as one JSON array (queue). */
     fun encodeDeltaQueue(deltas: List<SetEditDelta>): String =
         json.encodeToString(deltaListSerializer, deltas)
@@ -58,4 +65,10 @@ object SyncCodec {
 
     fun decodeSwapQueue(text: String): List<ExerciseSwapDelta> =
         if (text.isBlank()) emptyList() else json.decodeFromString(swapListSerializer, text)
+
+    fun encodeCardioQueue(deltas: List<CardioDelta>): String =
+        json.encodeToString(cardioListSerializer, deltas)
+
+    fun decodeCardioQueue(text: String): List<CardioDelta> =
+        if (text.isBlank()) emptyList() else json.decodeFromString(cardioListSerializer, text)
 }

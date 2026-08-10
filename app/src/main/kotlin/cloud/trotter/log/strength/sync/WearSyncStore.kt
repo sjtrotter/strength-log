@@ -4,7 +4,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 /**
  * The phone side's small, durable sync bookkeeping, kept out of the app's main
@@ -64,6 +67,9 @@ class WearSyncStore(
     override suspend fun markApplied(rowKey: String, editedAtMillis: Long) {
         dataStore.edit { it[appliedKey(rowKey)] = editedAtMillis }
     }
+
+    override fun lastAppliedFlow(rowKey: String): Flow<Long> =
+        dataStore.data.map { it[appliedKey(rowKey)] ?: 0L }.distinctUntilChanged()
 
     private fun appliedKey(rowKey: String) = longPreferencesKey("$APPLIED_PREFIX$rowKey")
 

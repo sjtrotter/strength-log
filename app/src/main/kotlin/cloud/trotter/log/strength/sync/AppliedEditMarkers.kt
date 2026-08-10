@@ -17,4 +17,9 @@ interface AppliedEditMarkers {
     suspend fun lastApplied(rowKey: String): Long
 
     suspend fun markApplied(rowKey: String, editedAtMillis: Long)
+
+    /** [lastApplied] as a cold flow, for values the snapshot must republish on
+     *  (the cardio ack stamp — settlement rides the snapshot, so an advance
+     *  that never republishes would strand the watch queue). */
+    fun lastAppliedFlow(rowKey: String): kotlinx.coroutines.flow.Flow<Long>
 }

@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.wear.data
 
 import android.util.Log
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
+import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
@@ -130,6 +131,15 @@ class DataLayerWatchClient(
         sendSwapMessage(stamped)
     }
 
+    override fun sendCardio(delta: CardioDelta) = launchSend("sending cardio") {
+        val stamped = installing.withLock {
+            val event = delta.copy(stamp = queue.issueStamp(delta.stamp))
+            queue.enqueueCardio(event)
+            event
+        }
+        sendCardioMessage(stamped)
+    }
+
     /**
      * The lifter felt the CONFIRM buzz before this call returned, so from here on the
      * tick must reach the durable queue no matter what happens to the caller. Running
@@ -213,6 +223,7 @@ class DataLayerWatchClient(
     private suspend fun drainQueue() = draining.withLock {
         queue.all().forEach { send(it) }
         queue.allSwaps().forEach { sendSwapMessage(it) }
+        queue.allCardio().forEach { sendCardioMessage(it) }
     }
 
     private suspend fun send(delta: SetEditDelta) =
@@ -220,6 +231,9 @@ class DataLayerWatchClient(
 
     private suspend fun sendSwapMessage(swap: ExerciseSwapDelta) =
         link.send(WearSyncPaths.EXERCISE_SWAP, SyncCodec.encodeSwap(swap))
+
+    private suspend fun sendCardioMessage(delta: CardioDelta) =
+        link.send(WearSyncPaths.CARDIO, SyncCodec.encodeCardio(delta))
 
     /**
      * Registering a Data Layer listener can fail transiently — Play services updating,

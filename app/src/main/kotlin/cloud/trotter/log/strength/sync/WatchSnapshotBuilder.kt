@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
@@ -64,6 +65,8 @@ object WatchSnapshotBuilder {
         revision: Long,
         restSettings: RestSettings = RestSettings(),
         equipment: Set<Equipment> = Equipment.entries.toSet(),
+        loggedCardio: CardioSessionEntity? = null,
+        cardioAckStamp: Long = 0L,
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val dayIndex = program.days.indexOfFirst { it.id == dayId }
@@ -93,6 +96,11 @@ object WatchSnapshotBuilder {
             ),
             unit = unit.name.lowercase(),
             cycle = program.days.map { it.toCycleDay(catalog) },
+            cardioAckStamp = cardioAckStamp,
+            cardio = day.cardio?.copy(
+                loggedStartedAt = loggedCardio?.takeIf { it.dayId == dayId }?.startedAt,
+                loggedSeconds = loggedCardio?.takeIf { it.dayId == dayId }?.seconds,
+            ),
         )
     }
 

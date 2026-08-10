@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.wear.data
 
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
+import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchDay
@@ -107,6 +108,27 @@ class PendingEditsTest {
             sets = listOf(WatchSet(245.0, 5, "TOP", done = false), WatchSet(185.0, 8, "BACKOFF", done = false)),
         )
         assertTrue(PendingEdits.reconcile(listOf(delta(setIndex = 0, weightLb = 245.0)), reflected).isEmpty())
+    }
+
+    @Test
+    fun `cardio stays queued until the phone's ack stamp covers it`() {
+        val delta = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy Zone 2", 100L, 60_100L, 60, 0, 9L)
+        assertEquals(listOf(delta), PendingEdits.reconcileCardio(listOf(delta), snapshot()))
+        assertEquals(listOf(delta), PendingEdits.reconcileCardio(listOf(delta), snapshot().copy(cardioAckStamp = 8L)))
+        assertTrue(PendingEdits.reconcileCardio(listOf(delta), snapshot().copy(cardioAckStamp = 9L)).isEmpty())
+    }
+
+    @Test
+    fun `a cardio completion is history and survives the phone moving to another day`() {
+        val delta = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy Zone 2", 100L, 60_100L, 60, 0, 9L)
+        assertEquals(listOf(delta), PendingEdits.reconcileCardio(listOf(delta), snapshot(dayId = "B")))
+    }
+
+    @Test
+    fun `two same-day completions both settle on one covering ack`() {
+        val first = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy Zone 2", 100L, 60_100L, 60, 0, 9L)
+        val second = CardioDelta(1, "A", "OUTDOOR_RUN", true, "Tempo", 200_000L, 260_000L, 60, 0, 10L)
+        assertTrue(PendingEdits.reconcileCardio(listOf(first, second), snapshot().copy(cardioAckStamp = 10L)).isEmpty())
     }
 
     @Test

@@ -9,6 +9,8 @@ import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -33,6 +35,7 @@ import kotlinx.coroutines.flow.flowOf
 class TodaySnapshotSource(
     private val repo: TrackerRepository,
     @CivilDay private val today: Flow<LocalDate>,
+    private val markers: AppliedEditMarkers,
 ) {
 
     val snapshots: Flow<WatchSnapshot?> =
@@ -57,7 +60,14 @@ class TodaySnapshotSource(
                 ) { cfg, catalog, unit, rest, answers ->
                     Context(cfg, catalog, unit, rest, answers.equipment)
                 }
-                combine(program, context) { (prog, slots, logs), ctx ->
+                combine(
+                    program, context, repo.cardioSessionsFlow, today,
+                    markers.lastAppliedFlow(CardioDeltaApplier.MARKER_KEY),
+                ) { (prog, slots, logs), ctx, cardioHistory, civilDate, cardioAck ->
+                    val loggedCardio = cardioHistory.firstOrNull { session ->
+                        session.dayId == dayId &&
+                            Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
+                    }
                     WatchSnapshotBuilder.build(
                         program = prog,
                         suggestedDayId = dayId,
@@ -69,6 +79,8 @@ class TodaySnapshotSource(
                         revision = 0L,
                         restSettings = ctx.restSettings,
                         equipment = ctx.equipment,
+                        loggedCardio = loggedCardio,
+                        cardioAckStamp = cardioAck,
                     )
                 }
             }

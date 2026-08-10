@@ -30,6 +30,7 @@ import kotlinx.coroutines.runBlocking
 class StrengthLogWearListenerService : WearableListenerService() {
 
     @Inject lateinit var applier: SetEditApplier
+    @Inject lateinit var cardioApplier: CardioDeltaApplier
 
     override fun onMessageReceived(event: MessageEvent) {
         when (event.path) {
@@ -39,6 +40,8 @@ class StrengthLogWearListenerService : WearableListenerService() {
             // rather than failing to decode them as a set edit.
             WearSyncPaths.EXERCISE_SWAP ->
                 receive("exercise-swap", { SyncCodec.decodeSwap(event.data) }) { applier.apply(it) }
+            WearSyncPaths.CARDIO ->
+                receive("cardio", { SyncCodec.decodeCardio(event.data) }) { cardioApplier.apply(it) }
         }
     }
 
@@ -47,7 +50,7 @@ class StrengthLogWearListenerService : WearableListenerService() {
     private fun <T> receive(
         kind: String,
         decode: () -> T,
-        apply: suspend (T) -> SetEditApplier.Outcome,
+        apply: suspend (T) -> Any,
     ) {
         val message = try {
             decode()

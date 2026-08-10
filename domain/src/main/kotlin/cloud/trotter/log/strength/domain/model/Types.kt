@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.domain.model
 
+import kotlinx.serialization.Serializable
+
 enum class ExperienceLevel { NOVICE, INTERMEDIATE, ADVANCED }
 
 enum class GoalEmphasis { STRENGTH, BALANCED, PHYSIQUE }
@@ -76,4 +78,12 @@ data class CardioPrefs(
     val fiveKGoal: Boolean = true, // loose target, shapes suggestion copy
 )
 
-data class CardioSuggestion(val label: String, val detail: String, val hard: Boolean)
+@Serializable
+data class CardioSuggestion(
+    val label: String,
+    val detail: String,
+    val hard: Boolean,
+    /** Snapshot-only acknowledgement facts. Program suggestions leave these null. */
+    val loggedStartedAt: Long? = null,
+    val loggedSeconds: Int? = null,
+)

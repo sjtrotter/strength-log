@@ -145,6 +145,45 @@ class CsvHistoryServiceTest {
     }
 
     @Test
+    fun `exporting and re-importing native history inserts nothing`() = runTest {
+        val nativeSession = ImportedSession(
+            session = WorkoutSessionEntity(
+                id = 0,
+                dayId = "day-a",
+                dayTitle = "Day A",
+                startedAt = 1_720_000_000_123L,
+                completedAt = 1_720_000_900_789L,
+                bodyweightLb = 180,
+            ),
+            sets = listOf(
+                SessionSetEntity(
+                    id = 0,
+                    sessionId = 0,
+                    exerciseId = "bb_back_squat",
+                    exerciseName = "Barbell Back Squat",
+                    slot = Slot.SS,
+                    setIndex = 3,
+                    kind = SetKind.TOP.name,
+                    weightLb = 225.0,
+                    reps = 5,
+                    done = true,
+                    seconds = 0,
+                    startedAtMillis = 1_720_000_100_456L,
+                    completedAtMillis = 1_720_000_130_987L,
+                ),
+            ),
+        )
+        repo.importSessionHistory(listOf(nativeSession), emptyList())
+        val before = repo.exportSessionHistory()
+
+        val out = ByteArrayOutputStream()
+        service.exportTo(out)
+        service.commit(service.preview(ByteArrayInputStream(out.toByteArray())))
+
+        assertEquals(before, repo.exportSessionHistory())
+    }
+
+    @Test
     fun `kg weights round-trip export to import to export byte-identical`() = runTest {
         repo.setUnit(WeightUnit.KG)
         // Canonical storage is lb; these are exactly toLb(100 / 102.5 / 42.5 kg).

@@ -93,49 +93,49 @@ object CsvHistoryImporter {
             )
         }
         val seen = existingHistory?.let { history ->
+            val setsBySession = history.sessionSets.groupBy { it.sessionId }
             history.sessions.mapTo(mutableSetOf()) { session ->
-                sessionFingerprint(session, history.sessionSets.filter { it.sessionId == session.id })
+                normalizedSessionFingerprint(session, setsBySession[session.id].orEmpty())
             }
         } ?: mutableSetOf()
-        val newSessions = sessions.filter { seen.add(sessionFingerprint(it.session, it.sets)) }
+        val newSessions = sessions.filter { seen.add(normalizedSessionFingerprint(it.session, it.sets)) }
         return CommitPlan(newSessions, newCustomExercises)
     }
 
-    /** Row ids are deliberately absent: a CSV re-import necessarily receives new
-     * ids, while its title, completion stamp, and ordered set contents are stable. */
-    private fun sessionFingerprint(session: WorkoutSessionEntity, sets: List<SessionSetEntity>) =
-        SessionFingerprint(session.dayTitle, session.completedAt, sets.map { it.contentFingerprint() })
+    /**
+     * Normalizes both native and imported history to exactly what CSV preserves:
+     * title, whole-second completion time, and ordered exercise/value tuples.
+     * Row ids and native-only set metadata are deliberately absent. Consequently,
+     * two truly identical sessions completed within one second collide; that is
+     * an acceptable limitation of the interchange format's second precision.
+     */
+    private fun normalizedSessionFingerprint(
+        session: WorkoutSessionEntity,
+        sets: List<SessionSetEntity>,
+    ) = SessionFingerprint(
+        dayTitle = session.dayTitle,
+        completedAtSeconds = session.completedAt / 1_000,
+        sets = sets.map { it.normalizedSetFingerprint() },
+    )
 
-    private fun SessionSetEntity.contentFingerprint() = SetFingerprint(
+    private fun SessionSetEntity.normalizedSetFingerprint() = SetFingerprint(
         exerciseName = exerciseName,
-        slot = slot,
-        setIndex = setIndex,
-        kind = kind,
         weightLb = weightLb,
         reps = reps,
-        done = done,
         seconds = seconds,
-        startedAtMillis = startedAtMillis,
-        completedAtMillis = completedAtMillis,
     )
 
     private data class SessionFingerprint(
         val dayTitle: String,
-        val completedAt: Long,
+        val completedAtSeconds: Long,
         val sets: List<SetFingerprint>,
     )
 
     private data class SetFingerprint(
         val exerciseName: String,
-        val slot: String,
-        val setIndex: Int,
-        val kind: String,
         val weightLb: Double,
         val reps: Int,
-        val done: Boolean,
         val seconds: Int,
-        val startedAtMillis: Long?,
-        val completedAtMillis: Long?,
     )
 
     private fun newCustomExercise(name: String, pattern: MovementPattern) = CustomExerciseEntity(

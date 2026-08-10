@@ -113,24 +113,13 @@ class ChromeTouchTargetTest {
         assertTouchContract()
     }
 
-    /** A row half-clipped at the list viewport's bottom edge reports its FULL
-     *  unclipped touchBoundsInRoot, which the harness then sees overlapping the
-     *  footer siblings below — inherent to any list above a footer, tap depth
-     *  resolves it on device. Recorded, not real (#210 closed; harness
-     *  refinement to clip touch bounds is #224). */
-    private val issue210ViewportEdgeArtifact = mapOf(
-        setOf("Vertical pull", "CANCEL") to 1,
-        setOf("Vertical pull", "SAVE") to 1,
-    )
-
     @Test
     fun customExerciseCloseKeepsItsTargetClear() {
         composeTestRule.setContent {
             AppTheme { CustomExerciseScreen(CustomExerciseUiState(), customExerciseActions()) }
         }
 
-        composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
-        composeTestRule.assertOverlappingTouchTargetsAreExactly(issue210ViewportEdgeArtifact)
+        assertTouchContract()
     }
 
     private fun assertTouchContract() {

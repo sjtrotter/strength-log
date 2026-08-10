@@ -217,8 +217,9 @@ private fun LogButton(onClick: () -> Unit) {
 }
 
 /**
- * Compact settings action. Material 3 IconButton owns a 48dp layout/state-layer
- * slot, while this header reserves a 40dp visual slot with a separate target.
+ * Compact settings action. Material 3 IconButton cannot render in this header's
+ * 40dp visual slot — it owns a 48dp layout/state-layer slot with no smaller
+ * option, and the 48dp target here is provided separately.
  */
 @Composable
 private fun SettingsButton(onClick: () -> Unit) {

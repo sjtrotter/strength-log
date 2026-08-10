@@ -43,6 +43,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // AndroidX ships two native libs (graphics.path, datastore); the
+            // symbol table rides inside the bundle so Play can symbolicate
+            // their crash frames — no separate symbols upload.
+            ndk { debugSymbolLevel = "SYMBOL_TABLE" }
             if (releaseStoreFile.isPresent) {
                 signingConfig = signingConfigs.getByName("release")
             }

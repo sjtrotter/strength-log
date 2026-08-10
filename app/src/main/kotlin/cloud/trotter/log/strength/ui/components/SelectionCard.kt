@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.CardDefaults
@@ -84,6 +85,12 @@ fun SelectionCard(
     OutlinedCard(
         modifier = modifier
             .fillMaxWidth()
+            // A row shorter than the 48dp minimum gets its TOUCH bounds grown
+            // past its layout — at a list viewport's bottom edge that growth
+            // bleeds into whatever sits below (#210). A layout floor keeps the
+            // target on the row's own ground; on-device text already renders
+            // rows at or above it, so nothing visible changes.
+            .heightIn(min = 48.dp)
             .then(interaction),
         shape = shape,
         colors = CardDefaults.outlinedCardColors(containerColor = background),

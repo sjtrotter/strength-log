@@ -9,14 +9,20 @@ with minimal taps — steppers not keyboards, checkmarks not forms.
 - **Rotation, not calendar.** Workouts advance A→B→C on completion. Missed days
   shift the plan; they never skip a muscle.
 - **GOAL vs ACTUAL.** Calculated maintenance targets from bodyweight-ratio
-  standards, age-adjusted; your actual log is the living record.
-- **Yours to take.** Full JSON backup, Strong-compatible CSV export/import, and
-  Health Connect integration.
+  standards, age-adjusted; your actual log is the living record. Hit your
+  numbers and the next targets cascade.
+- **A watch that logs.** The Wear OS dial runs a whole session from the wrist —
+  offline-safe, syncing back when the phone reappears, never doubled.
+- **Cardio finishers.** Zone work, tempo, or intervals timed on either device,
+  logged into the same journal.
+- **Yours to take.** Full JSON backup (manual or automatic to a folder you
+  choose), Strong-compatible CSV export/import, Health Connect integration,
+  and a shareable workout card.
 
 ## Status
 
-In daily use on the developer's own phone and watch; preparing a Play Store
-release. See [`STRENGTH_TRACKER_SPEC.md`](STRENGTH_TRACKER_SPEC.md) for the
+In daily use on the developer's own phone and watch; on Google Play in
+internal testing, working toward release. See [`STRENGTH_TRACKER_SPEC.md`](STRENGTH_TRACKER_SPEC.md) for the
 product spec and [`docs/PLAN.md`](docs/PLAN.md) for the delivery plan.
 
 ## Stack

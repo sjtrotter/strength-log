@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="launcher_accent">#C1440E</color>
+    <color name="launcher_on_accent">#F2F2F0</color>
+</resources>

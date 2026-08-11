@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: July 9, 2026**
+**Last updated: August 10, 2026**
 
 strength-log is a strength-training tracker for Android and Wear OS. This
 page explains what the app does and doesn't do with your data. It's short
@@ -61,6 +61,23 @@ it, because the app never had network access to send it anywhere itself.
 
 Restoring from a backup or importing a CSV works the same way in reverse:
 you pick the file, the app reads it.
+
+If you turn on automatic backup, the app writes its backup file on a daily
+schedule to a folder you chose once, through the same Storage Access
+Framework grant. What happens to that folder is between you and whatever
+owns it — if you picked a folder that a cloud app syncs, that app's rules
+apply, not ours; strength-log itself still has no network access. Turning
+automatic backup off (or revoking the folder) stops the writing.
+
+## Sharing a workout
+
+Completing a workout offers a share card — an image of that session's
+numbers (the day, the date, your lifts) rendered entirely on your device.
+Tapping share hands that image to Android's share sheet, and *you* choose
+where it goes: a messaging app, your photos, nowhere. The app draws the
+picture; the sending is done by the app you pick, under that app's policies.
+Nothing is shared unless you tap share, and the card contains only what you
+can see on it.
 
 ## Children's privacy
 

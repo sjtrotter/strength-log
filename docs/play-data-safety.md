@@ -13,6 +13,12 @@ strength-log has no INTERNET permission, no backend, no analytics SDK, and no
 third-party SDKs that collect data. Nothing the app touches is ever
 transmitted off the device by the app itself.
 
+The share card (a workout-summary image handed to the system share sheet)
+and the SAF backup/export files are **user-initiated transfers via Android's
+own mechanisms**, which Play's data-safety definitions explicitly exclude
+from "data sharing" — the user chooses the destination each time (or, for
+automatic backup, chose the folder once).
+
 Per-category form answers, for reference:
 
 | Category | Collected? | Shared? | Notes |

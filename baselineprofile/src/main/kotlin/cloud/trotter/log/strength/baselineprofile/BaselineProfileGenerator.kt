@@ -90,13 +90,15 @@ class BaselineProfileGenerator {
         }
 
         /** Down and back up, so the profile covers composing items on the way in
-         *  *and* the reuse path on the way back. */
+         *  *and* the reuse path on the way back. The scrollable is re-queried
+         *  per gesture: the first fling recomposes the list, and a handle held
+         *  across that goes stale (the M3 migration made this real). */
         fun fling(device: UiDevice) {
-            val scroller = device.findObject(By.scrollable(true)) ?: return
-            scroller.setGestureMargin(device.displayWidth / 5)
-            scroller.fling(Direction.DOWN)
+            fun scroller() = device.findObject(By.scrollable(true))
+                ?.also { it.setGestureMargin(device.displayWidth / 5) }
+            scroller()?.fling(Direction.DOWN) ?: return
             device.waitForIdle(WAIT_MS)
-            scroller.fling(Direction.UP)
+            scroller()?.fling(Direction.UP)
             device.waitForIdle(WAIT_MS)
         }
     }

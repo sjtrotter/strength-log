@@ -39,7 +39,7 @@ class SetupSectionsTest {
         // The list virtualises, so each header has to be scrolled into range
         // before it exists at all. Exact (not substring) text matching keeps
         // "DATA" off the DATA / BACKUP button and "DISPLAY" off the unit switch.
-        listOf("TRAINING", "DISPLAY", "WATCH", "DATA", "ABOUT").forEach { label ->
+        listOf("TRAINING", "DISPLAY", "REST TIMER", "DATA", "ABOUT").forEach { label ->
             composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
             composeTestRule.onNodeWithText(label).assertExists().assertHasNoClickAction()
         }

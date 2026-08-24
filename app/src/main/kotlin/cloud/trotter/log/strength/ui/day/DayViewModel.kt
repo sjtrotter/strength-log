@@ -192,7 +192,7 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    private val phoneRestState = repo.phoneRestFlow.flatMapLatest { rest ->
+    private val phoneRestState: Flow<RestUiState?> = repo.phoneRestFlow.flatMapLatest { rest ->
         if (rest == null) flowOf(null) else flow {
             while (true) {
                 val now = clock.millis()

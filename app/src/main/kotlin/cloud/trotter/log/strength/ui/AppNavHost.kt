@@ -132,7 +132,14 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
     }
 
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = start) {
+    NavHost(
+        navController = navController,
+        startDestination = start,
+        enterTransition = { routeEnterTransition },
+        exitTransition = { routeExitTransition },
+        popEnterTransition = { routePopEnterTransition },
+        popExitTransition = { routePopExitTransition },
+    ) {
         composable(Routes.TODAY) {
             TodayRoute(
                 // launchSingleTop: a double-tap on START is one workout, not two
@@ -146,7 +153,13 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         // Pushed from Today, never the start destination (#121), so system back
         // out of the workout screen is a plain pop to Today — no BackHandler,
         // no popUpTo, just the stack doing its job.
-        composable(Routes.DAY) {
+        composable(
+            route = Routes.DAY,
+            enterTransition = { dayFadeThroughEnterTransition },
+            exitTransition = { dayFadeThroughExitTransition },
+            popEnterTransition = { dayFadeThroughEnterTransition },
+            popExitTransition = { dayFadeThroughExitTransition },
+        ) {
             DayRoute(
                 onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
@@ -300,6 +313,7 @@ private fun DayRoute(
             viewModel.dismissSessionReceipt()
             onFinishSession()
         },
+        onBack = onFinishSession,
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
     )

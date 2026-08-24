@@ -148,6 +148,7 @@ fun DayScreen(
     sessionReceipt: SessionReceipt? = null,
     onShareSession: () -> Unit = {},
     onFinishSession: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
 ) {
@@ -172,6 +173,15 @@ fun DayScreen(
     val swappableSlotIds = remember(dayEditState.slots) {
         dayEditState.slots.filter { it.pattern != null }.mapTo(mutableSetOf()) { it.programExerciseId }
     }
+    val dayBackProgress = rememberBackGestureProgress(
+        enabled = onBack != null &&
+            !showEditSheet &&
+            swapCardSlotId == null &&
+            !confirmingClearChecks &&
+            cascadeCeremony == null &&
+            sessionReceipt == null,
+        onBack = { onBack?.invoke() },
+    )
     val view = LocalView.current
     val cardioRunning = state.cardio?.phase == CardioPhase.EXECUTING || state.cardio?.phase == CardioPhase.OVERRUN
     // The keep-screen-on PREFERENCE is a window flag owned by MainActivity; this
@@ -199,7 +209,12 @@ fun DayScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Background)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+            .backGesturePreview { dayBackProgress.value },
+    ) {
         if (!state.hasProgram) {
             // Two different silences (#127): one that ends on its own, and one
             // that only ends when the lifter does something about it.

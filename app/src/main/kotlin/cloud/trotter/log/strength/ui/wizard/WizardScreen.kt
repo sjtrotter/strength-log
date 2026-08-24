@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -48,6 +49,7 @@ import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
+import cloud.trotter.log.strength.ui.wizardStepTransition
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -124,15 +126,22 @@ private fun stepTitle(step: WizardStep): String = when (step) {
 
 @Composable
 private fun StepContent(state: WizardUiState, actions: WizardActions) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        when (state.step) {
-            WizardStep.EMPHASIS -> EmphasisStep(state, actions)
-            WizardStep.DAYS_PER_WEEK -> DaysPerWeekStep(state.answers, actions)
-            WizardStep.SPLIT -> SplitStep(state, actions)
-            WizardStep.ANCHORS -> AnchorsStep(state, actions)
-            WizardStep.CARDIO -> CardioStep(state.answers, actions)
-            WizardStep.ABOUT_YOU -> AboutYouStep(state.answers, actions)
-            WizardStep.EQUIPMENT -> EquipmentStep(state.answers, actions)
+    AnimatedContent(
+        targetState = state,
+        contentKey = { it.step },
+        transitionSpec = { wizardStepTransition() },
+        label = "wizard step",
+    ) { stepState ->
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            when (stepState.step) {
+                WizardStep.EMPHASIS -> EmphasisStep(stepState, actions)
+                WizardStep.DAYS_PER_WEEK -> DaysPerWeekStep(stepState.answers, actions)
+                WizardStep.SPLIT -> SplitStep(stepState, actions)
+                WizardStep.ANCHORS -> AnchorsStep(stepState, actions)
+                WizardStep.CARDIO -> CardioStep(stepState.answers, actions)
+                WizardStep.ABOUT_YOU -> AboutYouStep(stepState.answers, actions)
+                WizardStep.EQUIPMENT -> EquipmentStep(stepState.answers, actions)
+            }
         }
     }
 }

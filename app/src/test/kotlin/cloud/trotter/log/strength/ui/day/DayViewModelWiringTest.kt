@@ -625,6 +625,22 @@ class DayViewModelWiringTest {
     // --- Health Connect publish trigger (#17, D7) --------------------------------
 
     @Test
+    fun completeDayWithNothingLoggedDoesNotWriteOrAdvance() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.completeDay()
+        advanceUntilIdle()
+
+        assertTrue(repo.sessionSummariesFlow.first().isEmpty())
+        assertEquals("A", repo.suggestedDayFlow.first())
+        assertNull(vm.sessionReceipt.value)
+        collect.cancel()
+    }
+
+    @Test
     fun completeDayPublishesTheNewlyRecordedSession() = runVmTest {
         insertProgram()
         val published = mutableListOf<Long>()
@@ -640,6 +656,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
+        vm.toggleDone(slotId("bb_back_squat"), index = 0, checked = true, isSuperset = false)
+        advanceUntilIdle()
         vm.completeDay()
         advanceUntilIdle()
 

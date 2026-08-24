@@ -531,6 +531,9 @@ class DayViewModel @Inject constructor(
      *  because from the next line on "the current day" means the next one. */
     fun completeDay() {
         val day = currentDay() ?: return
+        val completedSetCount = uiState.value.doneSets
+        val totalSetCount = uiState.value.totalSets
+        if (completedSetCount == 0) return
         closeUndoWindow()
         mutate {
             val program = repo.programFlow.first()
@@ -558,6 +561,8 @@ class DayViewModel @Inject constructor(
                 dayId = day,
                 dayIndex = dayIndex.coerceAtLeast(0),
                 dayTitle = program.days.firstOrNull { it.id == day }?.title.orEmpty(),
+                completedSetCount = completedSetCount,
+                totalSetCount = totalSetCount,
                 sessionSets = sessionSets,
                 nextDayId = nextDayId,
                 nextDayTitle = program.days.firstOrNull { it.id == nextDayId }?.title.orEmpty(),

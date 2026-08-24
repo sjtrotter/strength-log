@@ -31,6 +31,12 @@ import cloud.trotter.log.strength.ui.today.TodayScreenBuilder
  */
 object DayScreenBuilder {
 
+    fun doneButtonState(doneSets: Int, totalSets: Int): DoneButtonState = when {
+        doneSets <= 0 -> DoneButtonState.NOTHING_LOGGED
+        totalSets > 0 && doneSets >= totalSets -> DoneButtonState.ALL_DONE
+        else -> DoneButtonState.PARTIAL
+    }
+
     /** Marks exactly the first undone row in the first unfinished card. */
     fun markNext(cards: List<ExerciseCardState>): List<ExerciseCardState> {
         val nextCardIndex = cards.indexOfFirst { card -> card.rows.any { !it.done } }

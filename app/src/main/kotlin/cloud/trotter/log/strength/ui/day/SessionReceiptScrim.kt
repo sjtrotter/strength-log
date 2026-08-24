@@ -207,6 +207,8 @@ private fun SessionReceiptScrimPreview() {
                 dayIndex = 0,
                 headline = "DAY A COMPLETE",
                 dayTitle = "Lower — Squat",
+                completedSetCount = 18,
+                totalSetCount = 18,
                 setCount = 18,
                 strongest = ReceiptLift("Barbell Back Squat", "245×5"),
                 nextDayLine = "DAY B · UPPER",

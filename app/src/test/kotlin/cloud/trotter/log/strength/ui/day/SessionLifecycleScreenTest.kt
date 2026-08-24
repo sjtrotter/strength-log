@@ -175,6 +175,8 @@ class SessionLifecycleScreenTest {
         dayIndex = 0,
         headline = "DAY A COMPLETE",
         dayTitle = "Lower",
+        completedSetCount = 18,
+        totalSetCount = 18,
         setCount = 18,
         strongest = ReceiptLift("Barbell Back Squat", "235×3"),
         nextDayLine = "DAY B · UPPER",

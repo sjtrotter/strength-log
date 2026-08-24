@@ -11,21 +11,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.DisplayXl
@@ -34,6 +42,8 @@ import cloud.trotter.log.strength.ui.theme.StepperValue
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 /**
  * The cascade's moment (docs/briefs/journal.md §2): a scrim over the day screen
@@ -71,25 +81,70 @@ internal fun CascadeScrim(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            ceremony.lifts.forEach { lift ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        lift.name.uppercase(),
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.size(6.dp))
-                    Text(
-                        lift.metDisplay,
-                        color = TextSecondary,
-                        style = StepperValue.copy(textDecoration = TextDecoration.LineThrough),
-                    )
-                    Text(lift.newDisplay, color = accentEmphasis(ceremony.dayIndex), style = DisplayXl)
-                }
+            ceremony.lifts.forEachIndexed { index, lift ->
+                CascadeLiftRow(lift, ceremony.dayIndex, index)
             }
             Text(stringResource(R.string.cascade_new_ramp_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
         }
+    }
+}
+
+@Composable
+private fun CascadeLiftRow(lift: CascadeLift, dayIndex: Int, index: Int) {
+    val decimalPlaces = maxOf(
+        lift.metDisplay.substringAfter('.', "").length,
+        lift.newDisplay.substringAfter('.', "").length,
+    )
+    val countScale = when (decimalPlaces) {
+        0 -> 1
+        1 -> 10
+        else -> 100
+    }
+    val oldGoal = lift.metDisplay.toDoubleOrNull()?.let { (it * countScale).roundToInt() }
+    val newGoal = lift.newDisplay.toDoubleOrNull()?.let { (it * countScale).roundToInt() }
+    val strike = remember(lift) { Animatable(0f) }
+    var countTarget by remember(lift) { mutableIntStateOf(oldGoal ?: 0) }
+    val displayedGoal by animateIntAsState(countTarget, tween(500), label = "cascadeGoalCount")
+
+    LaunchedEffect(lift, index) {
+        delay(index * 80L)
+        strike.animateTo(1f, tween(300))
+        if (newGoal != null) countTarget = newGoal
+    }
+
+    // Read in composition; drawBehind is not a composable scope.
+    val strikeColor = TextSecondary
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            lift.name.uppercase(),
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.size(6.dp))
+        Text(
+            lift.metDisplay,
+            color = TextSecondary,
+            style = StepperValue,
+            modifier = Modifier.drawBehind {
+                val y = size.height / 2f
+                drawLine(
+                    color = strikeColor,
+                    start = Offset(0f, y),
+                    end = Offset(size.width * strike.value, y),
+                    strokeWidth = 2.dp.toPx(),
+                )
+            },
+        )
+        Text(
+            text = if (oldGoal != null && newGoal != null) {
+                WeightStepper.format(displayedGoal.toDouble() / countScale)
+            } else {
+                lift.newDisplay
+            },
+            color = accentEmphasis(dayIndex),
+            style = DisplayXl,
+        )
     }
 }
 

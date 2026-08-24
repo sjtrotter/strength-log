@@ -375,26 +375,35 @@ fun DayScreen(
     // pop the route out from under it. Gating on the cascade keeps the
     // experienced order — the news the session made, then the ledger of it,
     // then the way out — and keeps it true after a rotation restores both.
-    if (cascadeCeremony == null) {
-        sessionReceipt?.let {
-            // These two get the gesture and the app's other back handlers don't:
-            // back here dismisses a surface the lifter is looking at, so the
-            // drag should show it going rather than snap it away at the end.
-            val backProgress = rememberBackGestureProgress(onBack = onFinishSession)
+    var renderedReceipt by remember { mutableStateOf<SessionReceipt?>(null) }
+    val receiptVisible = cascadeCeremony == null && sessionReceipt != null
+    if (receiptVisible) renderedReceipt = sessionReceipt
+    val receiptVisibility = remember { MutableTransitionState(false) }
+    receiptVisibility.targetState = receiptVisible
+    val receiptBackProgress = rememberBackGestureProgress(enabled = receiptVisible, onBack = onFinishSession)
+    AnimatedVisibility(visibleState = receiptVisibility, enter = fadeIn(tween(260)), exit = fadeOut(tween(160))) {
+        renderedReceipt?.let {
             SessionReceiptScrim(
                 receipt = it,
                 onShare = onShareSession,
                 onFinish = onFinishSession,
-                modifier = Modifier.backGesturePreview { backProgress.value },
+                modifier = Modifier.backGesturePreview { receiptBackProgress.value },
             )
         }
     }
 
     // Above everything, including the edit sheet: the cascade only ever arrives
     // straight off a DONE, when nothing else is open (journal brief §2).
-    cascadeCeremony?.let {
-        val backProgress = rememberBackGestureProgress(onBack = onDismissCascade)
-        CascadeScrim(it, onDismissCascade, Modifier.backGesturePreview { backProgress.value })
+    var renderedCascade by remember { mutableStateOf<CascadeCeremony?>(null) }
+    if (cascadeCeremony != null) renderedCascade = cascadeCeremony
+    val cascadeVisible = cascadeCeremony != null
+    val cascadeVisibility = remember { MutableTransitionState(false) }
+    cascadeVisibility.targetState = cascadeVisible
+    val cascadeBackProgress = rememberBackGestureProgress(enabled = cascadeVisible, onBack = onDismissCascade)
+    AnimatedVisibility(visibleState = cascadeVisibility, enter = fadeIn(tween(260)), exit = fadeOut(tween(160))) {
+        renderedCascade?.let {
+            CascadeScrim(it, onDismissCascade, Modifier.backGesturePreview { cascadeBackProgress.value })
+        }
     }
 }
 

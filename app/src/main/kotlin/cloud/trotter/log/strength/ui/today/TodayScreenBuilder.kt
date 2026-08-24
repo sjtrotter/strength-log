@@ -5,9 +5,16 @@ import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.ui.log.LogScreenBuilder
+import cloud.trotter.log.strength.ui.log.JournalBuilder
 import cloud.trotter.log.strength.ui.text.TodayActionKind
 import cloud.trotter.log.strength.ui.text.UiText
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.YearMonth
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
 
 /**
  * The pure decision logic behind the Today screen (#121): the statement's
@@ -20,6 +27,44 @@ import cloud.trotter.log.strength.ui.text.UiText
  * prints the same day and stat lines as the widget and the watch.
  */
 object TodayScreenBuilder {
+
+    /** Exactly one derived journal fact, in editorial priority order. */
+    fun lifeLine(
+        mains: List<JournalBuilder.MainLift>,
+        sessions: List<SessionSummaryRow>,
+        topSets: List<TopSetRow>,
+        strengthDays: Int,
+        now: CivilTime,
+    ): UiText? {
+        val goalFact = mains.mapNotNull { lift ->
+            val count = topSets.asSequence()
+                .filter { it.exerciseId == lift.exerciseId }
+                .toList()
+                .takeLastWhile { it.topWeightLb >= lift.goalLb }
+                .size
+            count.takeIf { it > 0 }?.let { Triple(lift.name, count, mains.indexOf(lift)) }
+        }.maxWithOrNull(compareBy<Triple<String, Int, Int>> { it.second }.thenBy { -it.third })
+        if (goalFact != null) return UiText.TodayGoalLife(goalFact.first, goalFact.second)
+
+        val dated = sessions.map { row ->
+            row to Instant.ofEpochMilli(row.session.completedAt).atZone(now.zone).toLocalDate()
+        }
+        val weekStart = now.date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val thisWeek = dated.count { (_, date) -> date >= weekStart && date <= now.date }
+        val lastDate = dated.firstOrNull()?.second
+        if (thisWeek > 0 && lastDate != null) {
+            return UiText.TodayWeekLife(thisWeek, strengthDays, daysBetween(lastDate, now.date))
+        }
+        if (lastDate != null) {
+            val month = YearMonth.from(now.date)
+            val thisMonth = dated.count { (_, date) -> YearMonth.from(date) == month }
+            return UiText.TodayHistoryLife(daysBetween(lastDate, now.date), thisMonth)
+        }
+        return null
+    }
+
+    private fun daysBetween(from: java.time.LocalDate, to: java.time.LocalDate): Int =
+        ChronoUnit.DAYS.between(from, to).coerceAtLeast(0).toInt()
 
     fun standaloneCardioLine(hasCardioDays: Boolean): String? =
         "CARDIO + CORE · 25 MIN · LOG".takeIf { hasCardioDays }

@@ -9,17 +9,17 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.time.CivilTime
+import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
+import cloud.trotter.log.strength.ui.log.JournalBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -45,7 +45,7 @@ import kotlinx.coroutines.flow.stateIn
 @HiltViewModel
 class TodayViewModel @Inject constructor(
     private val repo: TrackerRepository,
-    @CivilDay private val today: Flow<LocalDate>,
+    private val civilTimeSource: CivilTimeSource,
 ) : ViewModel() {
 
     private val contextFlow =
@@ -69,16 +69,16 @@ class TodayViewModel @Inject constructor(
             // pause. Loading is the state before this flow emits at all, which
             // is [uiState]'s initial value below (#127).
             flowOf(TodayUiState())
-        } else {
-            combine(
-                repo.daySlotsFlow(dayId),
-                repo.logFlow(dayId, today),
-                repo.sessionSummariesFlow,
-                repo.topSetHistoryFlow,
-            ) { slots, logs, sessions, topSets ->
-                build(ctx, dayId, slots, logs, sessions, topSets)
+        } else civilTimeSource.civilTime.flatMapLatest { now ->
+                combine(
+                    repo.daySlotsFlow(dayId),
+                    repo.logFlow(dayId, flowOf(now.date)),
+                    repo.sessionSummariesFlow,
+                    repo.topSetHistoryFlow,
+                ) { slots, logs, sessions, topSets ->
+                    build(ctx, dayId, slots, logs, sessions, topSets, now)
+                }
             }
-        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TodayUiState(loading = true))
 
     private fun build(
@@ -88,6 +88,7 @@ class TodayViewModel @Inject constructor(
         logs: List<LoggedSlot>,
         sessions: List<SessionSummaryRow>,
         topSets: List<TopSetRow>,
+        now: CivilTime,
     ): TodayUiState {
         val day = ctx.program.days.first { it.id == dayId }
         val dayIndex = ctx.program.strengthDays.indexOfFirst { it.id == dayId }
@@ -125,6 +126,13 @@ class TodayViewModel @Inject constructor(
             },
             actionLabel = TodayScreenBuilder.actionLabel(dayId, doneSets, totalSets),
             lastSession = TodayScreenBuilder.lastSessionLine(sessions, topSets, ctx.catalog, ctx.unit),
+            lifeLine = TodayScreenBuilder.lifeLine(
+                mains = JournalBuilder.mainLifts(ctx.program, ctx.catalog, ctx.cfg),
+                sessions = sessions,
+                topSets = topSets,
+                strengthDays = ctx.program.strengthDays.size,
+                now = now,
+            ),
             rotation = TodayScreenBuilder.rotationMarks(ctx.program.strengthDays.map { it.id }, dayId),
         )
     }

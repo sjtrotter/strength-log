@@ -15,6 +15,18 @@
 <string name="today_rotation_description_next">Rotation: %1$s. Next is Day %2$s.</string>
 <string name="today_last_session_label">LAST SESSION</string>
 <string name="today_open_log_description">Open log</string>
+<plurals name="today_life_goal">
+    <item quantity="one">%1$s · %2$d SESSION AT GOAL</item>
+    <item quantity="other">%1$s · %2$d SESSIONS AT GOAL</item>
+</plurals>
+<plurals name="today_life_week">
+    <item quantity="one">THIS WEEK · %1$d OF %2$d · LAST %3$d DAY AGO</item>
+    <item quantity="other">THIS WEEK · %1$d OF %2$d · LAST %3$d DAYS AGO</item>
+</plurals>
+<plurals name="today_life_history">
+    <item quantity="one">LAST SESSION %1$d DAY AGO · %2$d THIS MONTH</item>
+    <item quantity="other">LAST SESSION %1$d DAYS AGO · %2$d THIS MONTH</item>
+</plurals>
 <string name="today_log_button">LOG</string>
 <string name="today_action_start">START DAY %1$s</string>
 <string name="today_action_continue">CONTINUE — %1$d OF %2$d SETS</string>

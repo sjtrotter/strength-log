@@ -31,6 +31,8 @@ data class TodayUiState(
     val actionLabel: UiText.TodayAction = UiText.TodayAction(cloud.trotter.log.strength.ui.text.TodayActionKind.START, "", 0, 0),
     /** "Jul 30, 2026 · 18 sets · Back Squat 245"; null with no history. */
     val lastSession: String? = null,
+    /** One quiet derived history fact; null on a fresh install. */
+    val lifeLine: UiText? = null,
     val rotation: List<RotationMark> = emptyList(),
 )
 

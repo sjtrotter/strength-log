@@ -73,7 +73,7 @@ class ThemeWiringTest {
         // AppIndication is constructed from this opaque color and bounded flag;
         // Indication does not expose those constructor values for inspection.
         assertEquals(true, AppRippleBounded)
-        assertEquals(AppRipplePressedAlpha, configuration?.rippleAlpha?.pressedAlpha)
+        assertEquals(DarkAppRipplePressedAlpha, configuration?.rippleAlpha?.pressedAlpha)
         assertEquals(0.04f, configuration?.rippleAlpha?.hoveredAlpha)
         assertEquals(0.04f, configuration?.rippleAlpha?.draggedAlpha)
         // The bespoke inset ring remains the only focus treatment.
@@ -92,7 +92,7 @@ class ThemeWiringTest {
         }
         assertSame(LightAppColorScheme, colors)
         assertEquals(LightAppColorScheme.onSurfaceVariant, configuration?.color)
-        assertEquals(AppRipplePressedAlpha, configuration?.rippleAlpha?.pressedAlpha)
+        assertEquals(LightAppRipplePressedAlpha, configuration?.rippleAlpha?.pressedAlpha)
         assertEquals(0.04f, configuration?.rippleAlpha?.hoveredAlpha)
         assertEquals(0.04f, configuration?.rippleAlpha?.draggedAlpha)
         assertEquals(0f, configuration?.rippleAlpha?.focusedAlpha)

@@ -64,6 +64,8 @@ class RestoreJournal(
             suggestedDay = snapshot.suggestedDay,
             restSettings = snapshot.restSettings,
             keepScreenOn = snapshot.keepScreenOn,
+            topSetHelperSeen = snapshot.topSetHelperSeen,
+            supersetHelperSeen = snapshot.supersetHelperSeen,
             themePreference = snapshot.themePreference,
         )
         dataStore.edit { it[Keys.NONCE] = nonce }
@@ -103,6 +105,8 @@ class RestoreJournal(
             suggestedDay = staged.suggestedDayFlow.first(),
             restSettings = staged.restSettingsFlow.first(),
             keepScreenOn = staged.keepScreenOnFlow.first(),
+            topSetHelperSeen = staged.topSetHelperSeenFlow.first(),
+            supersetHelperSeen = staged.supersetHelperSeenFlow.first(),
             themePreference = staged.themePreferenceFlow.first(),
         )
         clear()

@@ -100,6 +100,8 @@ open class TrackerRepository(
      *  the wake follows the app rather than whichever screen happens to be
      *  composed — see `MainActivity`. */
     val keepScreenOnFlow: Flow<Boolean> = settings.keepScreenOnFlow
+    val topSetHelperSeenFlow: Flow<Boolean> = settings.topSetHelperSeenFlow
+    val supersetHelperSeenFlow: Flow<Boolean> = settings.supersetHelperSeenFlow
     val themePreferenceFlow = settings.themePreferenceFlow
     val wizardCompleteFlow: Flow<Boolean> = settings.wizardCompleteFlow
     val wizardAnswersFlow: Flow<WizardAnswers> = settings.wizardAnswersFlow
@@ -141,6 +143,14 @@ open class TrackerRepository(
     /** Flips the keep-screen-on preference (the day screen's bottom-bar switch). */
     suspend fun setKeepScreenOn(on: Boolean) {
         settings.setKeepScreenOn(on)
+    }
+
+    suspend fun markTopSetHelperSeen() {
+        settings.markTopSetHelperSeen()
+    }
+
+    suspend fun markSupersetHelperSeen() {
+        settings.markSupersetHelperSeen()
     }
 
     suspend fun setThemePreference(theme: cloud.trotter.log.strength.domain.theme.ThemePreference) {
@@ -713,6 +723,8 @@ open class TrackerRepository(
         suggestedDay = settings.suggestedDayFlow.first(),
         restSettings = settings.restSettingsFlow.first(),
         keepScreenOn = settings.keepScreenOnFlow.first(),
+        topSetHelperSeen = settings.topSetHelperSeenFlow.first(),
+        supersetHelperSeen = settings.supersetHelperSeenFlow.first(),
         themePreference = settings.themePreferenceFlow.first(),
         customExercises = customExerciseDao.allOrdered(),
         days = programDao.allDays(),
@@ -795,6 +807,8 @@ open class TrackerRepository(
                     suggestedDay = snapshot.suggestedDay,
                     restSettings = snapshot.restSettings,
                     keepScreenOn = snapshot.keepScreenOn,
+                    topSetHelperSeen = snapshot.topSetHelperSeen,
+                    supersetHelperSeen = snapshot.supersetHelperSeen,
                     themePreference = snapshot.themePreference,
                 )
             } catch (e: IOException) {

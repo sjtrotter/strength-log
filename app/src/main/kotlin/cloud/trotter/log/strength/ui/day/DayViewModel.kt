@@ -211,12 +211,24 @@ class DayViewModel @Inject constructor(
         }
     }
 
+    private val dayPreferences = combine(
+        repo.keepScreenOnFlow,
+        repo.topSetHelperSeenFlow,
+        repo.supersetHelperSeenFlow,
+    ) { keepOn, topSeen, supersetSeen -> Triple(keepOn, topSeen, supersetSeen) }
+
     val uiState: StateFlow<DayUiState> =
-        combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
-                state, keepOn, history, anchors, rest ->
+        combine(dayState, dayPreferences, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
+                state, preferences, history, anchors, rest ->
             val cardio = buildCardioState(state, history, anchors)
             maybeArmCardioBoundary(cardio, anchors)
-            state.copy(keepScreenOn = keepOn, cardio = cardio, rest = rest)
+            state.copy(
+                keepScreenOn = preferences.first,
+                showMainHelper = !preferences.second,
+                showSupersetHelper = !preferences.third,
+                cardio = cardio,
+                rest = rest,
+            )
         }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState(loading = true))
 
@@ -374,6 +386,7 @@ class DayViewModel @Inject constructor(
             if (index !in sets.indices) return@mutate
             val updated = SetEditor.editWeight(sets, index, unit.toLb(newDisplayWeight))
             repo.updateSets(day, programExerciseId, slot, updated)
+            if (sets[index].kind == SetKind.TOP && updated != sets) repo.markTopSetHelperSeen()
         }
     }
 
@@ -382,7 +395,9 @@ class DayViewModel @Inject constructor(
         mutate {
             val sets = trackFor(day, programExerciseId, slot)
             if (index !in sets.indices) return@mutate
-            repo.updateSets(day, programExerciseId, slot, SetEditor.editReps(sets, index, newReps))
+            val updated = SetEditor.editReps(sets, index, newReps)
+            repo.updateSets(day, programExerciseId, slot, updated)
+            if (sets[index].kind == SetKind.TOP && updated != sets) repo.markTopSetHelperSeen()
         }
     }
 
@@ -419,6 +434,7 @@ class DayViewModel @Inject constructor(
             } else {
                 repo.updateSets(day, programExerciseId, Slot.MAIN, newMain)
             }
+            if (checked && isSuperset && newMain != main) repo.markSupersetHelperSeen()
             if (checked && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
                 val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
                 val set = main.getOrNull(index)

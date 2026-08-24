@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -46,6 +47,7 @@ import cloud.trotter.log.strength.ui.theme.StepperGlyph
 import cloud.trotter.log.strength.ui.theme.StepperRepsValue
 import cloud.trotter.log.strength.ui.theme.StepperValue
 import cloud.trotter.log.strength.ui.theme.Surface2
+import cloud.trotter.log.strength.ui.theme.Surface3
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
@@ -167,16 +169,12 @@ fun Stepper(
  * still a valid tap in Compose's gesture detector — is skipped instead of
  * appending one extra, unrepeatable step.
  *
- * Both of those are deliberately kept out of the snapshot system (#156). This
- * is the app's most-multiplied composable — four segments to a weighted set row,
- * two dozen to a card — so an extra collector coroutine per segment, and a
- * recomposition every time a finger lands on one, is a bill the scroll pays.
- * One collector reads the interactions directly; [repeated] is a plain holder
- * only the click lambda ever reads.
+ * The interaction source also drives the authored [Surface3] pressed fill.
  */
 @Composable
 private fun StepSegment(symbol: String, contentDescription: String, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     // The effect below outlives any one value of [onClick] (it is keyed on the
     // source, which never changes), and the lambda it must call is the *current*
     // one — a repeat that stepped from the value the row had when it first
@@ -210,7 +208,7 @@ private fun StepSegment(symbol: String, contentDescription: String, onClick: () 
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier.width(32.dp).fillMaxHeight(),
+            modifier = Modifier.width(32.dp).fillMaxHeight().background(if (pressed) Surface3 else Color.Transparent),
             contentAlignment = Alignment.Center,
         ) {
             Text(text = symbol, color = TextSecondary, style = StepperGlyph, modifier = Modifier.clearAndSetSemantics {})

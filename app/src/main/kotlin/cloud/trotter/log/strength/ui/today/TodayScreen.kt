@@ -28,9 +28,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -266,7 +269,12 @@ private fun SettingsButton(onClick: () -> Unit) {
             .semantics { contentDescription = settings },
         contentAlignment = Alignment.Center,
     ) {
-        Text("⚙", color = TextSecondary, style = TabLetter.copy(fontSize = 15.sp), modifier = Modifier.clearAndSetSemantics {})
+        Icon(
+            imageVector = Icons.Outlined.Settings,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(20.dp).clearAndSetSemantics {},
+        )
     }
 }
 

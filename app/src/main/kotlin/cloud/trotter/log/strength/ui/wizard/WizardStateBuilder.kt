@@ -4,6 +4,8 @@ import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.SplitDefaults
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /**
  * The pure decision logic behind the wizard: which split stays valid when the
@@ -33,6 +35,8 @@ object WizardStateBuilder {
         answers: WizardAnswers,
         isComplete: Boolean,
         restore: WizardRestoreState = WizardRestoreState(),
+        unit: WeightUnit = WeightUnit.LB,
+        previewProgram: Program? = null,
     ): WizardUiState {
         val clamped = stepIndex.coerceIn(0, WizardStep.entries.lastIndex)
         return WizardUiState(
@@ -41,6 +45,8 @@ object WizardStateBuilder {
             answers = answers,
             splitOptions = SplitDefaults.optionsFor(answers.daysPerWeek),
             activeAnchorIds = ProgramGenerator.activeAnchorIds(answers),
+            unit = unit,
+            previewProgram = previewProgram,
             isComplete = isComplete,
             restore = restore,
         )

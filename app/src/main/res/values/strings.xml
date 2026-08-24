@@ -141,7 +141,7 @@
 <string name="wizard_cardio_placement_separate_days">Separate days</string>
 <string name="wizard_cardio_placement_both">Both</string>
 <string name="wizard_cardio_placement_none">None</string>
-<string name="wizard_bodyweight_label">Bodyweight (lb)</string>
+<string name="wizard_bodyweight_label">Bodyweight (%1$s)</string>
 <string name="wizard_decrease_bodyweight_description">Decrease bodyweight</string>
 <string name="wizard_increase_bodyweight_description">Increase bodyweight</string>
 <string name="wizard_age_label">Age</string>
@@ -163,8 +163,12 @@
 <string name="wizard_equipment_pullup_bar">Pullup Bar</string>
 <string name="wizard_equipment_ez_bar">Ez Bar</string>
 <string name="wizard_equipment_kettlebell">Kettlebell</string>
+<string name="wizard_rotation_title">Your rotation</string>
+<string name="wizard_rotation_day">DAY %1$s</string>
+<string name="wizard_rotation_goal_label">GOAL</string>
+<string name="wizard_rotation_continuity">Missing a day never skips the next workout.</string>
 <string name="wizard_back_button">BACK</string>
-<string name="wizard_generate_program_button">GENERATE PROGRAM</string>
+<string name="wizard_start_button">START</string>
 <string name="wizard_next_button">NEXT</string>
 
 <!-- Backup -->

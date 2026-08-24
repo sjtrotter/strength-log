@@ -45,10 +45,10 @@ class WizardStateBuilderTest {
     }
 
     @Test
-    fun buildUiState_last_step_is_equipment() {
+    fun buildUiState_last_step_is_rotation() {
         val last = WizardStep.entries.size - 1
         val state = WizardStateBuilder.buildUiState(last, WizardAnswers(), isComplete = false)
-        assertEquals(WizardStep.EQUIPMENT, state.step)
+        assertEquals(WizardStep.ROTATION, state.step)
         assertTrue(state.isLastStep)
     }
 

@@ -22,6 +22,8 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.ui.backup.TransferErrorMessages
@@ -46,9 +48,9 @@ import kotlinx.coroutines.launch
  * persists it in, so rotation/process death mid-wizard loses nothing (data
  * principle: no unsaved truth in a bare ViewModel field).
  *
- * [Finish][finish] is the only program creator left in the app (D3): it
- * persists the wizard answers and `wizardComplete`, generates via
- * [ProgramGenerator], and replaces the program through
+ * [Finish][finish] is the only program creator left in the app (D3): the
+ * rotation reveal generates via [ProgramGenerator], then finish persists the
+ * wizard answers and `wizardComplete` and replaces the previewed program through
  * [TrackerRepository.replaceProgram] — the `:data` surface the day-edit
  * sheet's "reset day to template" already relies on.
  *
@@ -67,6 +69,7 @@ class WizardViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val backupService: BackupService,
     @ApplicationScope private val appScope: CoroutineScope,
+    private val deviceWeightUnitProvider: DeviceWeightUnitProvider,
 ) : ViewModel() {
 
     private object Keys {
@@ -92,6 +95,7 @@ class WizardViewModel @Inject constructor(
         const val LEVEL = "wizard_level"
         const val EMPHASIS = "wizard_emphasis"
         const val EQUIPMENT = "wizard_equipment"
+        const val UNIT = "wizard_unit"
     }
 
     private val defaults = WizardAnswers()
@@ -113,6 +117,8 @@ class WizardViewModel @Inject constructor(
     private val emphasis: StateFlow<String> = savedState.getStateFlow(Keys.EMPHASIS, defaults.config.emphasis.name)
     private val equipment: StateFlow<List<String>> =
         savedState.getStateFlow(Keys.EQUIPMENT, defaults.equipment.map { it.name })
+    private val unit: StateFlow<String> = savedState.getStateFlow(Keys.UNIT, WeightUnit.LB.name)
+    private val previewProgram = MutableStateFlow<Program?>(null)
 
     private val isComplete = MutableStateFlow(false)
 
@@ -173,13 +179,26 @@ class WizardViewModel @Inject constructor(
         equipment.value,
     )
 
+    private data class CompletionGroup(
+        val complete: Boolean,
+        val firstRun: Boolean,
+        val restore: RestoreProgress,
+        val preview: Program?,
+    )
+
+    private val completionGroup = combine(isComplete, firstRun, restoreProgress, previewProgram) { complete, first, restore, preview ->
+        CompletionGroup(complete, first, restore, preview)
+    }
+
     val uiState: StateFlow<WizardUiState> =
-        combine(stepIndex, answersFlow, isComplete, firstRun, restoreProgress) { step, answers, complete, offered, progress ->
+        combine(stepIndex, answersFlow, unit, completionGroup) { step, answers, unitName, completion ->
             WizardStateBuilder.buildUiState(
                 stepIndex = step,
                 answers = answers,
-                isComplete = complete,
-                restore = WizardRestoreState(offered = offered, inFlight = progress.inFlight, error = progress.error),
+                isComplete = completion.complete,
+                restore = WizardRestoreState(offered = completion.firstRun, inFlight = completion.restore.inFlight, error = completion.restore.error),
+                unit = enumOf(unitName, WeightUnit.LB),
+                previewProgram = completion.preview,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), WizardUiState())
 
@@ -187,9 +206,16 @@ class WizardViewModel @Inject constructor(
         if (savedState.get<Boolean>(Keys.INITIALIZED) != true) {
             viewModelScope.launch {
                 applyAnswers(repo.wizardAnswersFlow.first())
-                savedState[Keys.FIRST_RUN] = !repo.wizardCompleteFlow.first()
+                val isFirstRun = !repo.wizardCompleteFlow.first()
+                savedState[Keys.FIRST_RUN] = isFirstRun
+                savedState[Keys.UNIT] = if (isFirstRun) deviceWeightUnitProvider.defaultUnit().name else repo.unitFlow.first().name
+                if (stepIndex.value == WizardStep.ROTATION.ordinal) {
+                    previewProgram.value = ProgramGenerator.generate(currentAnswers()).program
+                }
                 savedState[Keys.INITIALIZED] = true
             }
+        } else if (stepIndex.value == WizardStep.ROTATION.ordinal) {
+            previewProgram.value = ProgramGenerator.generate(currentAnswers()).program
         }
     }
 
@@ -208,13 +234,19 @@ class WizardViewModel @Inject constructor(
         if (current >= WizardStep.entries.lastIndex) {
             finish()
         } else {
+            if (current == WizardStep.EQUIPMENT.ordinal) {
+                previewProgram.value = ProgramGenerator.generate(currentAnswers()).program
+            }
             savedState[Keys.STEP] = current + 1
         }
     }
 
     fun onBack() {
         val current = stepIndex.value
-        if (current > 0) savedState[Keys.STEP] = current - 1
+        if (current > 0) {
+            if (current == WizardStep.ROTATION.ordinal) previewProgram.value = null
+            savedState[Keys.STEP] = current - 1
+        }
     }
 
     // --- field setters -----------------------------------------------------------
@@ -258,6 +290,10 @@ class WizardViewModel @Inject constructor(
         savedState[Keys.BODYWEIGHT] = value.coerceAtLeast(1)
     }
 
+    fun setUnit(value: WeightUnit) {
+        savedState[Keys.UNIT] = value.name
+    }
+
     fun setAge(value: Int) {
         savedState[Keys.AGE] = value.coerceAtLeast(1)
     }
@@ -274,7 +310,7 @@ class WizardViewModel @Inject constructor(
     // --- finish --------------------------------------------------------------
 
     /**
-     * Persists the answers, generates the program via `:domain`, replaces it,
+     * Persists the answers and selected unit, replaces the previewed program,
      * and only then marks the wizard complete (spec §6, D3: the only program
      * creator).
      *
@@ -308,12 +344,13 @@ class WizardViewModel @Inject constructor(
                 if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
                 val answers = currentAnswers()
                 repo.setWizardAnswers(answers)
+                repo.setUnit(enumOf(unit.value, WeightUnit.LB))
                 // Taking only .program drops GeneratedProgram.cardioDays: standalone
                 // Cardio+Core day cards (spec §6.4, SEPARATE_DAYS/BOTH placements)
                 // aren't modeled in :data or the day screen yet — tracked in
                 // docs/briefs/m6-polish-ledger.md. Deliberately dropped whole here
                 // rather than half-persisted.
-                repo.replaceProgram(ProgramGenerator.generate(answers).program)
+                repo.replaceProgram(previewProgram.value ?: ProgramGenerator.generate(answers).program)
                 repo.setWizardComplete(true)
             }
             // Either branch leaves the device set up, so the wizard leaves.

@@ -11,6 +11,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -27,7 +28,11 @@ import cloud.trotter.log.strength.ui.theme.TextSecondary
  * The look is the prototype's utilitarian near-black, not a floating M3 card.
  */
 @Composable
-fun AppCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+fun AppCard(
+    modifier: Modifier = Modifier,
+    borderColor: Color = MaterialTheme.colorScheme.outline,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     OutlinedCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -35,7 +40,7 @@ fun AppCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, borderColor),
         elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp),
     ) {
         AppCardContent(content)

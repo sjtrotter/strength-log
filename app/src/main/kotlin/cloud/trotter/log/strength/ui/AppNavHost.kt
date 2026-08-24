@@ -525,6 +525,7 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
                 onCardioPlacementChange = viewModel::setCardioPlacement,
                 onFiveKChange = viewModel::setFiveK,
                 onBodyweightChange = viewModel::setBodyweight,
+                onUnitChange = viewModel::setUnit,
                 onAgeChange = viewModel::setAge,
                 onLevelChange = viewModel::setLevel,
                 onEquipmentToggle = viewModel::toggleEquipment,

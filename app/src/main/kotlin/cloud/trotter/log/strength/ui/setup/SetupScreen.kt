@@ -48,11 +48,12 @@ import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
-import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.BodyweightStepper
+import cloud.trotter.log.strength.ui.components.BodyweightInput
 import cloud.trotter.log.strength.ui.components.BackAction
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
@@ -95,7 +96,7 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 item { Spacer(Modifier.size(4.dp)) }
                 item { SectionHeader(stringResource(R.string.setup_training_section)) }
                 item { GoalPreviewCard(state.goalPreview, accent) }
-                item { BodyweightCard(state.bodyweightDisplay, state.unit, actions.onBodyweightChange) }
+                item { BodyweightCard(state.config.bodyweightLb, state.unit, actions.onBodyweightChange) }
                 item { AgeCard(state.config.age, actions.onAgeChange) }
                 item { LevelSection(state.config.level, actions.onLevelChange) }
                 item { EmphasisSection(state.config.emphasis, actions.onEmphasisChange) }
@@ -225,22 +226,16 @@ private fun GoalPreviewCard(items: List<GoalPreviewItem>, accent: Color) {
 // --- bodyweight / age steppers ------------------------------------------------
 
 @Composable
-private fun BodyweightCard(displayValue: Double, unit: WeightUnit, onChange: (Double) -> Unit) {
+private fun BodyweightCard(canonicalLb: Int, unit: WeightUnit, onChange: (Double) -> Unit) {
     AppCard {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.setup_bodyweight_label, unit.name.lowercase()), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.size(8.dp))
-            Stepper(
-                value = displayValue,
-                onValueChange = onChange,
-                step = { WeightStepper.increment(it, unit) },
-                minValue = 1.0,
-                format = WeightStepper::format,
-                round = { WeightStepper.round(it, unit) },
-                decreaseDescription = stringResource(R.string.setup_decrease_bodyweight_description),
-                increaseDescription = stringResource(R.string.setup_increase_bodyweight_description),
-            )
-        }
+        BodyweightStepper(
+            canonicalLb = canonicalLb,
+            unit = unit,
+            label = stringResource(R.string.setup_bodyweight_label, unit.name.lowercase()),
+            decreaseDescription = stringResource(R.string.setup_decrease_bodyweight_description),
+            increaseDescription = stringResource(R.string.setup_increase_bodyweight_description),
+            onCanonicalLbChange = { onChange(BodyweightInput.display(it, unit)) },
+        )
     }
 }
 

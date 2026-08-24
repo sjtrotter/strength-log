@@ -23,6 +23,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -44,7 +47,11 @@ import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.GoalFormatter
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.BodyweightStepper
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.Stepper
@@ -54,6 +61,7 @@ import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
+import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
@@ -62,6 +70,7 @@ import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
 import cloud.trotter.log.strength.ui.text.resolve
+import cloud.trotter.log.strength.ui.today.LiftRow
 
 /**
  * The setup wizard (spec §6.1, PLAN.md A4). Stateless: renders [state] and
@@ -122,6 +131,7 @@ private fun stepTitle(step: WizardStep): String = when (step) {
     WizardStep.CARDIO -> stringResource(R.string.wizard_cardio_title)
     WizardStep.ABOUT_YOU -> stringResource(R.string.wizard_about_you_title)
     WizardStep.EQUIPMENT -> stringResource(R.string.wizard_equipment_title)
+    WizardStep.ROTATION -> stringResource(R.string.wizard_rotation_title)
 }
 
 @Composable
@@ -139,8 +149,9 @@ private fun StepContent(state: WizardUiState, actions: WizardActions) {
                 WizardStep.SPLIT -> SplitStep(stepState, actions)
                 WizardStep.ANCHORS -> AnchorsStep(stepState, actions)
                 WizardStep.CARDIO -> CardioStep(stepState.answers, actions)
-                WizardStep.ABOUT_YOU -> AboutYouStep(stepState.answers, actions)
+                WizardStep.ABOUT_YOU -> AboutYouStep(stepState, actions)
                 WizardStep.EQUIPMENT -> EquipmentStep(stepState.answers, actions)
+                WizardStep.ROTATION -> RotationStep(stepState)
             }
         }
     }
@@ -403,21 +414,18 @@ private fun cardioPlacementLabel(placement: CardioPlacement): String = when (pla
 // --- step 6: about you -------------------------------------------------------------
 
 @Composable
-private fun AboutYouStep(answers: WizardAnswers, actions: WizardActions) {
+private fun AboutYouStep(state: WizardUiState, actions: WizardActions) {
+    val answers = state.answers
+    UnitChoice(unit = state.unit, onChange = actions.onUnitChange)
     AppCard {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.wizard_bodyweight_label), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.size(8.dp))
-            Stepper(
-                value = answers.config.bodyweightLb.toDouble(),
-                onValueChange = { actions.onBodyweightChange(it.toInt()) },
-                step = { 5.0 },
-                minValue = 1.0,
-                format = { it.toInt().toString() },
-                decreaseDescription = stringResource(R.string.wizard_decrease_bodyweight_description),
-                increaseDescription = stringResource(R.string.wizard_increase_bodyweight_description),
-            )
-        }
+        BodyweightStepper(
+            canonicalLb = answers.config.bodyweightLb,
+            unit = state.unit,
+            label = stringResource(R.string.wizard_bodyweight_label, state.unit.name.lowercase()),
+            decreaseDescription = stringResource(R.string.wizard_decrease_bodyweight_description),
+            increaseDescription = stringResource(R.string.wizard_increase_bodyweight_description),
+            onCanonicalLbChange = actions.onBodyweightChange,
+        )
     }
     AppCard {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -444,6 +452,20 @@ private fun AboutYouStep(answers: WizardAnswers, actions: WizardActions) {
                 title = levelLabel(level),
                 selected = answers.config.level == level,
                 onClick = { actions.onLevelChange(level) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun UnitChoice(unit: WeightUnit, onChange: (WeightUnit) -> Unit) {
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        WeightUnit.entries.forEachIndexed { index, option ->
+            SegmentedButton(
+                selected = unit == option,
+                onClick = { onChange(option) },
+                shape = SegmentedButtonDefaults.itemShape(index, WeightUnit.entries.size),
+                label = { Text(option.name) },
             )
         }
     }
@@ -490,6 +512,53 @@ private fun equipmentLabel(equipment: Equipment): String = when (equipment) {
     Equipment.KETTLEBELL -> stringResource(R.string.wizard_equipment_kettlebell)
 }
 
+// --- step 8: generated rotation -------------------------------------------------
+
+@Composable
+private fun RotationStep(state: WizardUiState) {
+    state.previewProgram?.days.orEmpty().forEachIndexed { index, day ->
+        val accent = dayAccent(index)
+        val main = day.exercises.firstOrNull { it.isMain } ?: day.exercises.firstOrNull()
+        AppCard(borderColor = accent) {
+            Text(stringResource(R.string.wizard_rotation_day, day.id), color = accent, style = MaterialTheme.typography.labelSmall)
+            Spacer(Modifier.size(5.dp))
+            Text(day.title.uppercase(), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            if (day.emphasisLine.isNotBlank()) {
+                Spacer(Modifier.size(4.dp))
+                Text(day.emphasisLine.uppercase(), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            }
+            main?.let { exercise ->
+                val entry = ExerciseLibrary.get(exercise.exerciseId)
+                Spacer(Modifier.size(8.dp))
+                HorizontalDivider(thickness = 1.dp, color = Border)
+                LiftRow(entry.name, isMain = true) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(stringResource(R.string.wizard_rotation_goal_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
+                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(
+                                GoalFormatter.label(
+                                    GoalCalculator.targetFor(entry, state.answers.config),
+                                    state.unit,
+                                ),
+                                color = accent,
+                                style = DisplayXl,
+                            )
+                            if (entry.perHand) {
+                                Text(stringResource(R.string.setup_per_hand_suffix), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Text(
+        stringResource(R.string.wizard_rotation_continuity),
+        color = TextFaint,
+        style = MaterialTheme.typography.bodySmall,
+    )
+}
+
 // --- footer: back / next / finish --------------------------------------------------
 
 @Composable
@@ -519,7 +588,7 @@ private fun WizardFooter(
                 )
             }
             FooterButton(
-                label = if (state.isLastStep) stringResource(R.string.wizard_generate_program_button) else stringResource(R.string.wizard_next_button),
+                label = if (state.isLastStep) stringResource(R.string.wizard_start_button) else stringResource(R.string.wizard_next_button),
                 fill = accent,
                 textColor = onAccent,
                 modifier = Modifier.weight(if (state.isFirstStep) 1f else 2f),
@@ -570,6 +639,7 @@ private fun WizardScreenPreview() {
                 onSplitChange = {}, onAnchorSchemeChange = {}, onDeadliftVariantChange = {},
                 onCardioModeChange = {}, onCardioPlacementChange = {}, onFiveKChange = {},
                 onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEquipmentToggle = {},
+                onUnitChange = {},
                 onRestoreFromBackup = {},
             ),
         )

@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -58,6 +60,8 @@ import cloud.trotter.log.strength.ui.theme.StepperRepsValue
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
+import cloud.trotter.log.strength.ui.text.UiText
+import cloud.trotter.log.strength.ui.text.resolve
 import cloud.trotter.log.strength.ui.theme.accentSoft
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import kotlinx.coroutines.delay
@@ -144,6 +148,8 @@ fun SetRow(
     seconds: Int = 0,
     onSecondsChange: (Int) -> Unit = {},
     showTimedWeight: Boolean = false,
+    isNext: Boolean = false,
+    trailingLine: UiText? = null,
 ) {
     val supersetPartnerDescription = stringResource(R.string.set_row_superset_partner_description)
     val decreaseWeightDescription = stringResource(R.string.set_row_decrease_weight_action)
@@ -174,8 +180,9 @@ fun SetRow(
         label = "setRowTickedFade",
     )
 
+    Column(modifier.fillMaxWidth()) {
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = if (isSubRow) SubRowMinHeight else PrimaryRowMinHeight)
             .then(if (isSubRow) Modifier.dashedTopBorder(Border) else Modifier)
@@ -191,7 +198,7 @@ fun SetRow(
     ) {
         Text(
             text = if (isSubRow) "↳" else kindLabel,
-            color = if (isTop) accent else if (isSubRow) TextFaint else TextSecondary,
+            color = if (isTop || isNext) accent else if (isSubRow) TextFaint else TextSecondary,
             style = SetKindLabel,
             maxLines = 1,
             softWrap = false,
@@ -267,6 +274,15 @@ fun SetRow(
             CheckmarkToggle(checked = ticked, onCheckedChange = onToggleDone)
             RemoveButton(onClick = onRemove)
         }
+    }
+    trailingLine?.let {
+        Text(
+            text = it.resolve(),
+            color = TextFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.align(Alignment.End).padding(end = 10.dp, bottom = 3.dp),
+        )
+    }
     }
 }
 

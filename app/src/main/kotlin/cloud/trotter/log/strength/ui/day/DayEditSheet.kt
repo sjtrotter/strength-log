@@ -477,9 +477,10 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly (#17
                 items(results, key = { it.id }) { entry ->
                     SelectionCard(
                         title = entry.name,
-                        subtitle = entry.equipment.joinToString(", ") {
-                            equipmentLabel(it)
-                        },
+                        subtitle = listOf(
+                            patternLabel(entry.pattern),
+                            entry.equipment.joinToString(", ") { equipmentLabel(it) },
+                        ).filter(String::isNotBlank).joinToString(stringResource(R.string.day_edit_metadata_separator)),
                         selected = false,
                         onClick = { onPick(entry) },
                         mode = SelectionMode.Action,

@@ -10,10 +10,14 @@ import androidx.compose.ui.test.hasText
 import androidx.activity.ComponentDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -47,7 +51,8 @@ import org.robolectric.shadows.ShadowDialog
  * the first tap now cost something. What's pinned here is the *gate*, not the
  * dialog's pixels — the rare ones (clear the day's checkmarks, reset the rest
  * timers) must not reach their action until a confirm is taken, and the
- * frequent one (× on a set row) must reach its undo in one tap.
+ * frequent one (swipe / TalkBack remove on a set row) must reach its undo
+ * without a confirmation.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
@@ -87,13 +92,26 @@ class DestructiveActionsTest {
     // --- the × on a set row: undo, not confirm --------------------------------
 
     @Test
-    fun removingASetStaysOneTap() {
+    fun swipingASetRevealsTheGlyphAndRemovesIt() {
         var removed = 0
         setDayContent(onRemoveSet = { removed++ })
 
-        composeTestRule.onNodeWithContentDescription("Remove set").performClick()
+        composeTestRule.onNodeWithTag("setRowSwipe").performTouchInput { swipeLeft() }
 
-        assertEquals("the × must not grow a confirm", 1, removed)
+        composeTestRule.onNodeWithTag("removeSetReveal", useUnmergedTree = true).assertExists()
+        assertEquals("the swipe must remove without a confirm", 1, removed)
+    }
+
+    @Test
+    fun talkBackCanRemoveASetWithoutSwiping() {
+        var removed = 0
+        setDayContent(onRemoveSet = { removed++ })
+
+        composeTestRule.onNodeWithTag("setRowSwipe").performSemanticsAction(SemanticsActions.CustomActions) { actions ->
+            actions.single { it.label == "Remove set" }.action()
+        }
+
+        assertEquals(1, removed)
     }
 
     @Test

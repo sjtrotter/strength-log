@@ -9,16 +9,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.background
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,7 +45,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -58,6 +63,7 @@ import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.RemoveGlyph
 import cloud.trotter.log.strength.ui.theme.SetKindLabel
 import cloud.trotter.log.strength.ui.theme.StepperRepsValue
+import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
@@ -84,7 +90,7 @@ private const val TICK_FADE_MS = 200
  * watch does not, so this stays UI-layer only (no `ui/day` model imports —
  * every value is a primitive/callback the caller already has on hand).
  *
- * Layout: `[kind label][weight capsule][reps capsule][spacer][tick][remove ×]`,
+ * Layout: `[kind label][weight capsule][reps capsule][spacer][tick]`,
  * 8dp gaps, min height 52dp (46dp for a superset sub-row, [isSubRow]).
  *
  * - [isTop] paints the [accentSoft] fill (rounded, 3dp [accent] left bar) across
@@ -121,10 +127,9 @@ private const val TICK_FADE_MS = 200
  * GOAL declares an added load, e.g. a weighted plank) — never derived from
  * whether this particular row's weight happens to be nonzero.
  *
- * Material 3 has no row component for this width budget, exact-overlap touch
- * map, TOP/cascade choreography, and dashed superset structure. Its IconButton
- * also owns a 48dp layout slot, while the remove leaf deliberately reserves
- * only 24dp of row width around a separately expanded 48dp touch target.
+ * Material 3 has no row component for this width budget, TOP/cascade
+ * choreography, and dashed superset structure. M3's SwipeToDismissBox owns the
+ * standard removal gesture around that authored row.
  */
 @Composable
 fun SetRow(
@@ -185,8 +190,9 @@ fun SetRow(
         label = "setRowTickedFade",
     )
 
-    Column(modifier.fillMaxWidth()) {
-    Row(
+    SetRowSwipeContainer(modifier, isSubRow, onRemove) {
+        Column(Modifier.fillMaxWidth()) {
+            Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = if (isSubRow) SubRowMinHeight else PrimaryRowMinHeight)
@@ -300,44 +306,63 @@ fun SetRow(
 
         if (!isSubRow) {
             CheckmarkToggle(checked = ticked, onCheckedChange = onToggleDone)
-            RemoveButton(onClick = onRemove)
         }
     }
-    trailingLine?.let {
-        Text(
-            text = it.resolve(),
-            color = TextFaint,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.align(Alignment.End).padding(end = 10.dp, bottom = 3.dp),
-        )
-    }
+            trailingLine?.let {
+                Text(
+                    text = it.resolve(),
+                    color = TextFaint,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.End).padding(end = 10.dp, bottom = 3.dp),
+                )
+            }
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RemoveButton(onClick: () -> Unit) {
-    val removeDescription = stringResource(R.string.set_row_remove_action)
-    Box(
-        modifier = Modifier
-            .minimumInteractiveComponentSize()
-            .pressable(onClickLabel = removeDescription, role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = removeDescription },
-        contentAlignment = Alignment.Center,
-    ) {
-        // Both axes are floors: large type keeps the remove glyph whole; 1.0x
-        // keeps #136's separate row-budget problem unchanged.
-        Box(
-            modifier = Modifier.defaultMinSize(minWidth = 24.dp, minHeight = 48.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "×",
-                color = TextFaint,
-                style = RemoveGlyph,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
-        }
+private fun SetRowSwipeContainer(
+    modifier: Modifier,
+    isSubRow: Boolean,
+    onRemove: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    if (isSubRow) {
+        Box(modifier.fillMaxWidth()) { content() }
+        return
     }
+    val removeDescription = stringResource(R.string.set_row_remove_action)
+    val dismissState = rememberSwipeToDismissBoxState()
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("setRowSwipe")
+            .semantics {
+                customActions = listOf(CustomAccessibilityAction(removeDescription) {
+                    onRemove()
+                    true
+                })
+            },
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
+        onDismiss = { value -> if (value == SwipeToDismissBoxValue.EndToStart) onRemove() },
+        backgroundContent = {
+            Box(
+                Modifier.fillMaxWidth().heightIn(min = PrimaryRowMinHeight).background(Surface2).padding(end = 18.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Text(
+                    text = "×",
+                    color = TextFaint,
+                    style = RemoveGlyph,
+                    modifier = Modifier.clearAndSetSemantics {}.testTag("removeSetReveal"),
+                )
+            }
+        },
+        content = content,
+    )
 }
 
 /** Rounded accent-soft fill + 3dp accent left bar, drawn within the row's own

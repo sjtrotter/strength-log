@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -44,6 +45,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MediumTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButtonDefaults
@@ -68,6 +72,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
@@ -210,6 +215,7 @@ fun DayScreen(
     val view = LocalView.current
     val accessibilityManager = LocalAccessibilityManager.current
     val listState = rememberLazyListState()
+    val topBarScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scope = rememberCoroutineScope()
     val cardioRunning = state.cardio?.phase == CardioPhase.EXECUTING || state.cardio?.phase == CardioPhase.OVERRUN
     // The keep-screen-on PREFERENCE is a window flag owned by MainActivity; this
@@ -257,8 +263,14 @@ fun DayScreen(
         // readableWidth, not fillMaxSize: a full-bleed set row on a tablet is
         // 900dp of empty card with a stepper marooned at each end, so the column
         // caps and centres. That is all it does — two-pane is #29.
-        Column(readableWidth()) {
-            TopBar(state, accent, soft, actions, editable = !standaloneCardio, onEditDay = { showEditSheet = true })
+        Column(readableWidth().nestedScroll(topBarScrollBehavior.nestedScrollConnection)) {
+            DayTabStrip(state, accent, actions)
+            TopBar(
+                state, accent, soft, actions,
+                editable = !standaloneCardio,
+                scrollBehavior = topBarScrollBehavior,
+                onEditDay = { showEditSheet = true },
+            )
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
@@ -438,8 +450,50 @@ fun DayScreen(
     }
 }
 
-// --- fixed top bar: tabs, day title, the ✎ chip ------------------------------
+// --- pinned tabs + collapsing M3 day app bar ---------------------------------
 
+/**
+ * The rotation rail stays bespoke because M3 tabs cannot draw the suggested-day
+ * dot against each tab's measured scrolling geometry or express that distinct
+ * suggested-versus-selected state.
+ */
+@Composable
+private fun DayTabStrip(state: DayUiState, accent: Color, actions: DayActions) {
+    val selectedIndex = state.tabs.indexOfFirst { it.isSelected }.coerceAtLeast(0)
+    if (state.tabs.isEmpty()) return
+    val tabScrollState = rememberScrollState()
+    var tabGeometry by remember(state.tabs.map { it.dayId }) {
+        mutableStateOf(List<TabGeometry?>(state.tabs.size) { null })
+    }
+    PrimaryScrollableTabRow(
+        selectedTabIndex = selectedIndex,
+        scrollState = tabScrollState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .drawSuggestedDayDecoration(state.tabs, tabGeometry, tabScrollState, Background)
+            .padding(top = 2.dp),
+        containerColor = Background,
+        contentColor = accent,
+        edgePadding = 16.dp,
+        minTabWidth = 0.dp,
+        divider = {},
+        indicator = {},
+    ) {
+        state.tabs.forEachIndexed { index, tab ->
+            Box(Modifier.onGloballyPositioned { coordinates ->
+                val measured = TabGeometry(coordinates.positionInParent().x, coordinates.size.width.toFloat())
+                if (tabGeometry[index] != measured) {
+                    tabGeometry = tabGeometry.toMutableList().also { it[index] = measured }
+                }
+            }) {
+                DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(
     state: DayUiState,
@@ -447,76 +501,26 @@ private fun TopBar(
     accentSoftColor: Color,
     actions: DayActions,
     editable: Boolean,
+    scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior,
     onEditDay: () -> Unit,
 ) {
-    val verticalPadding = chromeVerticalPadding()
     Column {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = verticalPadding),
-            // Landscape chrome once consumed over half the window before a set
-            // row; tighten its rhythm instead of shrinking the list to nothing.
-            verticalArrangement = Arrangement.spacedBy(verticalPadding),
-        ) {
-            // Day selection is the only thing left in this row (#121: ⚙ and LOG
-            // moved to Today), and it scrolls — a 6-day program overflows 360dp.
-            // M3 owns scrolling, selectable-group semantics, and the intentional
-            // platform-conventional auto-scroll that brings a newly selected day
-            // into view (especially useful for 6+-day programs). The decoration
-            // uses each tab's measured geometry, so it follows the real layout.
-            val selectedIndex = state.tabs.indexOfFirst { it.isSelected }.coerceAtLeast(0)
-            if (state.tabs.isNotEmpty()) {
-                val tabScrollState = rememberScrollState()
-                var tabGeometry by remember(state.tabs.map { it.dayId }) {
-                    mutableStateOf(List<TabGeometry?>(state.tabs.size) { null })
-                }
-                PrimaryScrollableTabRow(
-                    selectedTabIndex = selectedIndex,
-                    scrollState = tabScrollState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        // The 2dp top inset owns the dot's overhang; neither the
-                        // decoration nor its clipping contract escapes this row.
-                        .height(50.dp)
-                        .drawSuggestedDayDecoration(state.tabs, tabGeometry, tabScrollState, Background)
-                        .padding(top = 2.dp),
-                    containerColor = Color.Transparent,
-                    contentColor = accent,
-                    edgePadding = 16.dp,
-                    minTabWidth = 0.dp,
-                    divider = {},
-                    indicator = {},
-                ) {
-                    state.tabs.forEachIndexed { index, tab ->
-                        Box(
-                            Modifier.onGloballyPositioned { coordinates ->
-                                val measured = TabGeometry(
-                                    offsetX = coordinates.positionInParent().x,
-                                    width = coordinates.size.width.toFloat(),
-                                )
-                                if (tabGeometry[index] != measured) {
-                                    tabGeometry = tabGeometry.toMutableList().also { it[index] = measured }
-                                }
-                            },
-                        ) {
-                            DayTab(tab, onClick = { actions.onSelectDay(tab.dayId) })
-                        }
-                    }
-                }
-            }
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    state.viewDayId?.let {
-                        Text(text = stringResource(R.string.day_header_label, it.uppercase()), color = accent, style = MaterialTheme.typography.labelSmall)
-                    }
+        val collapsed = scrollBehavior.state.collapsedFraction > .5f
+        val dayLabel = state.viewDayId?.let { stringResource(R.string.day_header_label, it.uppercase()) }.orEmpty()
+        val status = DayScreenBuilder.sessionStatusLine(state.doneSets, state.totalSets)?.resolve()
+        MediumTopAppBar(
+            title = {
+                if (collapsed) {
+                    Text(dayLabel, color = accent, style = MaterialTheme.typography.titleMedium)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            status?.let { stringResource(R.string.day_header_with_status, dayLabel, it) } ?: dayLabel,
+                            color = accent,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
                     Text(text = state.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                     Text(text = state.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                    DayScreenBuilder.sessionStatusLine(state.doneSets, state.totalSets)?.let { status ->
-                        Text(text = status.resolve(), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-                    }
                     state.watchStatus?.let { watch ->
                         val label = when (watch.kind) {
                             WatchStatusKind.ACTIVE -> stringResource(R.string.watch_status_active)
@@ -541,17 +545,23 @@ private fun TopBar(
                         }
                     }
                     if (state.isOverride && state.suggestedDayId != null) {
-                        Spacer(Modifier.size(3.dp))
                         OverridePill(accent = accent, accentSoftColor = accentSoftColor, suggestedDayId = state.suggestedDayId)
                     }
                 }
-                // Opens the day-edit sheet (#11, spec §8.3: "a gear icon in the
-                // day header"). The only chrome left on this screen: app-wide
-                // Setup and the Log both live on Today now (#121), and
-                // keep-screen-on moved down beside DONE (#125).
-                if (editable) EditDayButton(onClick = onEditDay)
-            }
-        }
+                }
+            },
+            actions = { if (editable) EditDayButton(onClick = onEditDay) },
+            collapsedHeight = 48.dp,
+            expandedHeight = 112.dp,
+            windowInsets = WindowInsets(0),
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Background,
+                scrolledContainerColor = Background,
+                titleContentColor = TextPrimary,
+                actionIconContentColor = TextSecondary,
+            ),
+            scrollBehavior = scrollBehavior,
+        )
         ProgressHairline(
             progress = if (state.totalSets > 0) state.doneSets.toFloat() / state.totalSets else 0f,
             accent = accent,

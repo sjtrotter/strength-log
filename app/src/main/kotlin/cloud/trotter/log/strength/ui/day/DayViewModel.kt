@@ -533,9 +533,9 @@ class DayViewModel @Inject constructor(
         val day = currentDay() ?: return
         closeUndoWindow()
         mutate {
-            // Counted from the built state, not uiState.value: with nobody
-            // collecting, that value is still the loading placeholder.
-            val counted = dayState.first()
+            // Not uiState.value — with nobody collecting, that is still the
+            // loading placeholder. first{} subscribes and waits for a real one.
+            val counted = uiState.first { !it.loading }
             val completedSetCount = counted.doneSets
             val totalSetCount = counted.totalSets
             if (completedSetCount == 0) return@mutate

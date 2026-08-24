@@ -713,8 +713,11 @@ class DayViewModel @Inject constructor(
         DayUiState(hasProgram = false, loading = ctx.program.days.isNotEmpty())
 
     private fun resolveDay(program: Program, suggested: String?, override: String?): String? {
-        val ids = program.days.map { it.id }
-        return override?.takeIf { it in ids } ?: suggested?.takeIf { it in ids } ?: ids.firstOrNull()
+        val allIds = program.days.map { it.id }
+        val strengthIds = program.strengthDays.map { it.id }
+        return override?.takeIf { it in allIds }
+            ?: suggested?.takeIf { it in strengthIds }
+            ?: strengthIds.firstOrNull()
     }
 
     /** One batched read for the whole day's "last time" chips (#14 A1 bonus)
@@ -736,10 +739,10 @@ class DayViewModel @Inject constructor(
         val program = ctx.program
         val day = program.days.firstOrNull { it.id == dayId }
             ?: return noDayState(ctx)
-        val dayIndex = program.days.indexOfFirst { it.id == dayId }
+        val dayIndex = program.strengthDays.indexOfFirst { it.id == dayId }.coerceAtLeast(0)
         return DayUiState(
             hasProgram = true,
-            tabs = program.days.mapIndexed { i, d ->
+            tabs = program.strengthDays.mapIndexed { i, d ->
                 DayTab(d.id, i, isSuggested = d.id == ctx.suggested, isSelected = d.id == dayId)
             },
             viewDayId = dayId,
@@ -748,7 +751,8 @@ class DayViewModel @Inject constructor(
             emphasisLine = day.emphasisLine,
             unit = ctx.unit,
             suggestedDayId = ctx.suggested,
-            nextDayId = Rotation.next(program, dayId),
+            nextDayId = dayId.takeIf { id -> program.strengthDays.any { it.id == id } }
+                ?.let { Rotation.next(program, it) },
             exercises = DayScreenBuilder.markNext(
                 slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse, history) },
             ),

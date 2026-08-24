@@ -23,6 +23,8 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -210,12 +212,12 @@ class WizardViewModel @Inject constructor(
                 savedState[Keys.FIRST_RUN] = isFirstRun
                 savedState[Keys.UNIT] = if (isFirstRun) deviceWeightUnitProvider.defaultUnit().name else repo.unitFlow.first().name
                 if (stepIndex.value == WizardStep.ROTATION.ordinal) {
-                    previewProgram.value = ProgramGenerator.generate(currentAnswers()).program
+                    previewProgram.value = generatePreview(currentAnswers())
                 }
                 savedState[Keys.INITIALIZED] = true
             }
         } else if (stepIndex.value == WizardStep.ROTATION.ordinal) {
-            previewProgram.value = ProgramGenerator.generate(currentAnswers()).program
+            previewProgram.value = generatePreview(currentAnswers())
         }
     }
 
@@ -235,7 +237,7 @@ class WizardViewModel @Inject constructor(
             finish()
         } else {
             if (current == WizardStep.EQUIPMENT.ordinal) {
-                previewProgram.value = ProgramGenerator.generate(currentAnswers()).program
+                previewProgram.value = generatePreview(currentAnswers())
             }
             savedState[Keys.STEP] = current + 1
         }
@@ -345,17 +347,26 @@ class WizardViewModel @Inject constructor(
                 val answers = currentAnswers()
                 repo.setWizardAnswers(answers)
                 repo.setUnit(enumOf(unit.value, WeightUnit.LB))
-                // Taking only .program drops GeneratedProgram.cardioDays: standalone
-                // Cardio+Core day cards (spec §6.4, SEPARATE_DAYS/BOTH placements)
-                // aren't modeled in :data or the day screen yet — tracked in
-                // docs/briefs/m6-polish-ledger.md. Deliberately dropped whole here
-                // rather than half-persisted.
-                repo.replaceProgram(previewProgram.value ?: ProgramGenerator.generate(answers).program)
+                repo.replaceProgram(previewProgram.value ?: generatePreview(answers))
                 repo.setWizardComplete(true)
             }
             // Either branch leaves the device set up, so the wizard leaves.
             isComplete.value = true
         }
+    }
+
+    private fun generatePreview(answers: WizardAnswers): Program {
+        val generated = ProgramGenerator.generate(answers)
+        return Program(generated.program.days + generated.cardioDays.map { day ->
+            ProgramDay(
+                id = day.id,
+                title = day.title,
+                emphasisLine = day.cardio.detail,
+                exercises = listOf(day.core),
+                cardio = day.cardio,
+                kind = ProgramDayKind.CARDIO,
+            )
+        })
     }
 
     // --- restore from backup (first run only) ----------------------------------

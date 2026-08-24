@@ -87,7 +87,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // backup must always restore. A newer version is still rejected
             // loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj)))
-            5, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
+            5, 6, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -216,6 +216,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val slotIds = HashSet<Long>()
         for (day in program) {
             if (!dayIds.add(day.dayId)) throw BackupError.Inconsistent("duplicate day id '${day.dayId}'")
+            if (day.kind != "STRENGTH" && day.kind != "CARDIO") {
+                throw BackupError.Inconsistent("unknown program day kind '${day.kind}'")
+            }
             decodePayload("cardioJson of day '${day.dayId}'") { CardioDto.decode(day.cardioJson) }
             for (ex in day.exercises) {
                 if (!slotIds.add(ex.id)) throw BackupError.Inconsistent("duplicate program exercise id ${ex.id}")

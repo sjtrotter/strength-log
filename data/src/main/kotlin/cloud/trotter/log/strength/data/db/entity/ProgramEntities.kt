@@ -35,6 +35,8 @@ data class ProgramDayEntity(
     val emphasisLine: String,
     /** Serialized [CardioDto], or null when the day has no finisher. */
     val cardioJson: String?,
+    /** [ProgramDayKind.name]; pre-v7 rows migrate to STRENGTH. */
+    val kind: String = "STRENGTH",
 )
 
 /** One exercise slot inside a day, ordered by [position] within its [dayId] (spec §7). */

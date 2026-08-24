@@ -241,7 +241,7 @@ open class TrackerRepository(
                 }
             }
         }
-        program.days.firstOrNull()?.let { settings.setSuggestedDay(it.id) }
+        program.strengthDays.firstOrNull()?.let { settings.setSuggestedDay(it.id) }
     }
 
     /** Swaps the exercise in a slot (spec §8.3). Keeps the slot's stable id but

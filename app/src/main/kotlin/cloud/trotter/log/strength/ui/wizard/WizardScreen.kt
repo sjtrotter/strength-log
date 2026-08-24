@@ -520,7 +520,12 @@ private fun RotationStep(state: WizardUiState) {
         val accent = dayAccent(index)
         val main = day.exercises.firstOrNull { it.isMain } ?: day.exercises.firstOrNull()
         AppCard(borderColor = accent) {
-            Text(stringResource(R.string.wizard_rotation_day, day.id), color = accent, style = MaterialTheme.typography.labelSmall)
+            Text(
+                if (day.kind == cloud.trotter.log.strength.domain.model.ProgramDayKind.CARDIO) "${day.id} · CARDIO"
+                else stringResource(R.string.wizard_rotation_day, day.id),
+                color = accent,
+                style = MaterialTheme.typography.labelSmall,
+            )
             Spacer(Modifier.size(5.dp))
             Text(day.title.uppercase(), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
             if (day.emphasisLine.isNotBlank()) {

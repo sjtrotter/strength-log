@@ -21,6 +21,9 @@ import cloud.trotter.log.strength.ui.text.UiText
  */
 object TodayScreenBuilder {
 
+    fun standaloneCardioLine(hasCardioDays: Boolean): String? =
+        "CARDIO + CORE · 25 MIN · LOG".takeIf { hasCardioDays }
+
     /**
      * The statement's overline. Reads the same three phases the day itself has,
      * with the `>=` (not `==`) completion test GlanceLines documents: an

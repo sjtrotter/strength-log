@@ -29,7 +29,7 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
         RestoreMarkerEntity::class,
         CardioSessionEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class StrengthDatabase : RoomDatabase() {
@@ -51,7 +51,7 @@ abstract class StrengthDatabase : RoomDatabase() {
         fun build(context: Context): StrengthDatabase =
             Room.databaseBuilder(context.applicationContext, StrengthDatabase::class.java, NAME)
                 .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build()
     }
 }

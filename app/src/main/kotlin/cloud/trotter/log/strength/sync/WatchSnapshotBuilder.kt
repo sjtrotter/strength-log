@@ -71,9 +71,10 @@ object WatchSnapshotBuilder {
         cardioFiveK: Boolean? = null,
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
-        val dayIndex = program.days.indexOfFirst { it.id == dayId }
+        val strengthDays = program.strengthDays
+        val dayIndex = strengthDays.indexOfFirst { it.id == dayId }
         if (dayIndex < 0) return null
-        val day = program.days[dayIndex]
+        val day = strengthDays[dayIndex]
 
         val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
         val previewSeeds = DayScreenBuilder.seedPlan(
@@ -97,7 +98,7 @@ object WatchSnapshotBuilder {
                 emphasisLine = day.emphasisLine,
             ),
             unit = unit.name.lowercase(),
-            cycle = program.days.map { it.toCycleDay(catalog) },
+            cycle = strengthDays.map { it.toCycleDay(catalog) },
             cardioAckStamp = cardioAckStamp,
             cardio = day.cardio?.copy(
                 mode = cardioMode,

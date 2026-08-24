@@ -107,6 +107,19 @@ class BackupCodecTest {
     }
 
     @Test
+    fun `standalone cardio program days round-trip`() {
+        val cardioDay = ProgramDayBackup(
+            dayId = "C1",
+            title = "Cardio + Core",
+            emphasisLine = "20–30 min conversational",
+            cardioJson = """{"label":"Easy Zone 2","detail":"25 min","hard":false}""",
+            kind = "CARDIO",
+        )
+        val decoded = codec.decode(codec.encode(document(program = listOf(cardioDay))))
+        assertEquals(cardioDay, decoded.program.single())
+    }
+
+    @Test
     fun `cardio sessions round-trip`() {
         val cardio = CardioSessionBackup(
             id = 3, dayId = "A", mode = "OUTDOOR_RUN", hard = false,

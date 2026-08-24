@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.generator.DayKind
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.generator.SplitDefaults
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -28,6 +29,13 @@ import kotlin.test.assertTrue
  * §12). Slot ids are pinned so the prototype-faithful shape can't silently drift.
  */
 class ProgramGeneratorTest {
+    @Test fun `rotation ignores standalone cardio days`() {
+        val generated = ProgramGenerator.generate(WizardAnswers())
+        val strength = generated.program.days.take(2)
+        val cardio = strength.first().copy(id = "C1", kind = ProgramDayKind.CARDIO)
+        assertEquals(strength[1].id, Rotation.next(cloud.trotter.log.strength.domain.model.Program(strength + cardio), strength[0].id))
+        assertEquals(strength[0].id, Rotation.next(cloud.trotter.log.strength.domain.model.Program(strength + cardio), strength[1].id))
+    }
 
     private fun ids(day: ProgramDay) = day.exercises.map { it.exerciseId }
 

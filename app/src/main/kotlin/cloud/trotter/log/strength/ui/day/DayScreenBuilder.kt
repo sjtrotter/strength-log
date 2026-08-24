@@ -31,6 +31,15 @@ import cloud.trotter.log.strength.ui.today.TodayScreenBuilder
  */
 object DayScreenBuilder {
 
+    /** Marks exactly the first undone row in the first unfinished card. */
+    fun markNext(cards: List<ExerciseCardState>): List<ExerciseCardState> {
+        val nextCardIndex = cards.indexOfFirst { card -> card.rows.any { !it.done } }
+        return cards.mapIndexed { cardIndex, card ->
+            val nextRowIndex = if (cardIndex == nextCardIndex) card.rows.indexOfFirst { !it.done } else -1
+            card.copy(rows = card.rows.mapIndexed { rowIndex, row -> row.copy(isNext = rowIndex == nextRowIndex) })
+        }
+    }
+
     /** One log write emitted by [seedPlan]. */
     data class SeedWrite(
         val programExerciseId: Long,

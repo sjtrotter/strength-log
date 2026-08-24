@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -63,6 +64,7 @@ fun CheckmarkToggle(
     modifier: Modifier = Modifier,
     description: String? = null,
 ) {
+    val view = LocalView.current
     val resolvedDescription = description ?: stringResource(R.string.set_row_done_description)
     val resolvedStateDescription = stringResource(if (checked) R.string.set_row_done_state else R.string.set_row_not_done_state)
     // Resting scale is always 1.0; 0.7 is only the transient start of the pop.
@@ -86,7 +88,10 @@ fun CheckmarkToggle(
             .minimumInteractiveComponentSize()
             .pressableToggleable(
                 value = checked,
-                onValueChange = onCheckedChange,
+                onValueChange = {
+                    AppHaptics.perform(view, if (it) AppHaptics.Cue.CONFIRM_TICK else AppHaptics.Cue.UNTICK)
+                    onCheckedChange(it)
+                },
                 shape = ToggleShape,
                 role = Role.Checkbox,
             )

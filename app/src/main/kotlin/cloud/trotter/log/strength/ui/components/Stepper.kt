@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -113,6 +114,7 @@ fun Stepper(
     decreaseDescription: String? = null,
     increaseDescription: String? = null,
 ) {
+    val view = LocalView.current
     val resolvedDecreaseDescription = decreaseDescription ?: stringResource(R.string.stepper_decrease_action)
     val resolvedIncreaseDescription = increaseDescription ?: stringResource(R.string.stepper_increase_action)
     Row(
@@ -125,7 +127,9 @@ fun Stepper(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StepSegment(symbol = "−", contentDescription = resolvedDecreaseDescription) {
-            onValueChange(maxOf(minValue, round(value - step(value))))
+            val next = maxOf(minValue, round(value - step(value)))
+            AppHaptics.perform(view, if (next == value) AppHaptics.Cue.BOUNDARY else AppHaptics.Cue.STEP_DETENT)
+            if (next != value) onValueChange(next)
         }
         Text(
             text = format(value),
@@ -137,7 +141,9 @@ fun Stepper(
             style = valueTextStyle,
         )
         StepSegment(symbol = "+", contentDescription = resolvedIncreaseDescription) {
-            onValueChange(maxOf(minValue, round(value + step(value))))
+            val next = maxOf(minValue, round(value + step(value)))
+            AppHaptics.perform(view, if (next == value) AppHaptics.Cue.BOUNDARY else AppHaptics.Cue.STEP_DETENT)
+            if (next != value) onValueChange(next)
         }
     }
 }

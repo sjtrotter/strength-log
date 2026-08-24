@@ -26,6 +26,34 @@ import kotlin.test.assertTrue
 
 class DayScreenBuilderTest {
 
+    @Test
+    fun markNext_marks_first_undone_row_of_first_unfinished_card_only() {
+        fun card(id: Long, done: List<Boolean>) = ExerciseCardState(
+            programExerciseId = id,
+            position = id.toInt(),
+            title = "Card $id",
+            isMain = false,
+            isSuperset = false,
+            hasWarmupHint = false,
+            goalDisplay = "",
+            perHand = false,
+            allDone = done.isNotEmpty() && done.all { it },
+            collapsed = false,
+            collapsedSummary = "",
+            rows = done.mapIndexed { index, checked ->
+                SetRowState(index, "${index + 1}", false, 0.0, 1, checked)
+            },
+        )
+
+        val cards = DayScreenBuilder.markNext(
+            listOf(card(1, listOf(true)), card(2, listOf(true, false, false)), card(3, listOf(false))),
+        )
+
+        assertEquals(listOf(false), cards[0].rows.map { it.isNext })
+        assertEquals(listOf(false, true, false), cards[1].rows.map { it.isNext })
+        assertEquals(listOf(false), cards[2].rows.map { it.isNext })
+    }
+
     private val cfg = LifterConfig() // bw 235, age 40, INTERMEDIATE, BALANCED
     private val catalog = ExerciseCatalog.CODE_ONLY
 

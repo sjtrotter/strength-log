@@ -2,6 +2,12 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -30,6 +36,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +58,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -69,6 +77,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -96,6 +105,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
+import cloud.trotter.log.strength.ui.components.AppHaptics
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.NoProgramState
@@ -129,6 +139,7 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.text.resolve
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * The day screen (spec §8.2). Stateless in the Compose sense: it renders a
@@ -173,6 +184,9 @@ fun DayScreen(
         dayEditState.slots.filter { it.pattern != null }.mapTo(mutableSetOf()) { it.programExerciseId }
     }
     val view = LocalView.current
+    val accessibilityManager = LocalAccessibilityManager.current
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     val cardioRunning = state.cardio?.phase == CardioPhase.EXECUTING || state.cardio?.phase == CardioPhase.OVERRUN
     // The keep-screen-on PREFERENCE is a window flag owned by MainActivity; this
     // view flag belongs to a running cardio block alone, so dispose always clears it.
@@ -217,6 +231,7 @@ fun DayScreen(
         Column(readableWidth()) {
             TopBar(state, accent, soft, actions, onEditDay = { showEditSheet = true })
             LazyColumn(
+                state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -244,6 +259,25 @@ fun DayScreen(
                         onSwapExercise = { swapCardSlotId = card.programExerciseId },
                         undoSlotIndex = openOffer?.takeIf { it.programExerciseId == card.programExerciseId }?.index,
                         onUndoRemoveSet = onUndoRemoveSet,
+                        autoCollapseDelayMillis = accessibilityManager?.calculateRecommendedTimeoutMillis(
+                            originalTimeoutMillis = 420L,
+                            containsIcons = true,
+                            containsText = true,
+                        ) ?: 420L,
+                        onAutoCollapsed = {
+                            val collapsedCardIndex = state.exercises.indexOfFirst {
+                                it.programExerciseId == card.programExerciseId
+                            }
+                            val nextCardIndex = state.exercises.indices.firstOrNull { index ->
+                                index > collapsedCardIndex && state.exercises[index].rows.any { !it.done }
+                            } ?: -1
+                            if (nextCardIndex >= 0) {
+                                scope.launch {
+                                    val viewportHeight = listState.layoutInfo.run { viewportEndOffset - viewportStartOffset }
+                                    listState.animateScrollToItem(nextCardIndex + 1, -(viewportHeight / 3))
+                                }
+                            }
+                        },
                     )
                 }
                 state.cardio?.let { cardio ->
@@ -603,6 +637,8 @@ private fun ExerciseCard(
     onSwapExercise: () -> Unit,
     undoSlotIndex: Int? = null,
     onUndoRemoveSet: () -> Unit = {},
+    autoCollapseDelayMillis: Long = 420L,
+    onAutoCollapsed: () -> Unit = {},
 ) {
     val expandAction = stringResource(R.string.day_expand_action)
     val collapseAction = stringResource(R.string.day_collapse_action)
@@ -641,8 +677,9 @@ private fun ExerciseCard(
                 // animation-layer delay, not a change to DayScreenBuilder's
                 // (already-tested) collapse decision. A manual header tap
                 // collapses/expands instantly (below).
-                delay(420)
+                delay(autoCollapseDelayMillis)
                 displayCollapsed = true
+                onAutoCollapsed()
             }
             else -> displayCollapsed = card.collapsed
         }
@@ -737,15 +774,28 @@ private fun ExerciseCard(
 
         // Widen this section 10dp into the card gutter so the TOP row can bleed
         // (see [bleedHorizontal]); every other element is inset back to the card
-        // content edge. Collapse swaps content directly (no animateContentSize —
-        // it made every card re-measure as it scrolled into the LazyColumn, which
-        // read as scroll jank).
+        // content edge. The collapse animates the two body states in and out
+        // rather than the card's size: animateContentSize made every card
+        // re-measure as it scrolled into the LazyColumn, which read as jank,
+        // while AnimatedVisibility measures only during the transition.
         val rowInset = Modifier.padding(horizontal = 10.dp)
         Column(Modifier.bleedHorizontal(10.dp).fillMaxWidth()) {
-            if (displayCollapsed) {
-                Spacer(Modifier.size(6.dp))
-                Text(card.collapsedSummary, color = TextSecondary, style = SummaryLine, modifier = rowInset)
-            } else {
+            AnimatedVisibility(
+                visible = displayCollapsed,
+                enter = expandVertically(tween(320)) + fadeIn(tween(320)),
+                exit = shrinkVertically(tween(320)) + fadeOut(tween(320)),
+            ) {
+                Column {
+                    Spacer(Modifier.size(6.dp))
+                    Text(card.collapsedSummary, color = TextSecondary, style = SummaryLine, modifier = rowInset)
+                }
+            }
+            AnimatedVisibility(
+                visible = !displayCollapsed,
+                enter = expandVertically(tween(320)) + fadeIn(tween(320)),
+                exit = shrinkVertically(tween(320)) + fadeOut(tween(320)),
+            ) {
+                Column {
                 if (card.isMain) {
                     Spacer(Modifier.size(6.dp))
                     Text(stringResource(R.string.day_main_helper), color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
@@ -753,15 +803,6 @@ private fun ExerciseCard(
                 if (card.isSuperset) {
                     Spacer(Modifier.size(6.dp))
                     Text(stringResource(R.string.day_superset_helper), color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
-                }
-
-                card.plateLine?.let {
-                    Text(
-                        it.resolve(),
-                        color = TextFaint,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = rowInset.padding(bottom = 3.dp),
-                    )
                 }
 
                 Spacer(Modifier.size(4.dp))
@@ -808,6 +849,8 @@ private fun ExerciseCard(
                         seconds = row.seconds,
                         onSecondsChange = { actions.onSecondsChange(card.programExerciseId, Slot.MAIN, row.index, it) },
                         showTimedWeight = card.timedShowsWeight,
+                        isNext = row.isNext,
+                        trailingLine = card.plateLine.takeIf { row.isNext },
                     )
                     val partner = row.partner
                     if (card.isSuperset && partner != null) {
@@ -843,6 +886,7 @@ private fun ExerciseCard(
                 if (card.rows.isNotEmpty()) {
                     Spacer(Modifier.size(2.dp))
                     AddSetButton(modifier = rowInset, isSuperset = card.isSuperset) { actions.onAddSet(card.programExerciseId, card.isSuperset) }
+                }
                 }
             }
         }
@@ -1027,22 +1071,27 @@ private fun AddSetButton(modifier: Modifier = Modifier, isSuperset: Boolean, onC
 @Composable
 private fun UndoRemovedSetRow(accent: Color, modifier: Modifier = Modifier, onUndo: () -> Unit) {
     val undoDescription = stringResource(R.string.day_undo_remove_set_action)
-    TextButton(
-        onClick = onUndo,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .semantics { onClick(label = undoDescription, action = null) },
-        colors = ButtonDefaults.textButtonColors(contentColor = accent),
-        contentPadding = PaddingValues(0.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+    // A plain `visible = true` never animates its first frame; the transition
+    // state starts hidden so the row actually fades in.
+    val appearance = remember { MutableTransitionState(false).apply { targetState = true } }
+    AnimatedVisibility(visibleState = appearance, enter = fadeIn(tween(140))) {
+        TextButton(
+            onClick = onUndo,
+            modifier = modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .semantics { onClick(label = undoDescription, action = null) },
+            colors = ButtonDefaults.textButtonColors(contentColor = accent),
+            contentPadding = PaddingValues(0.dp),
         ) {
-            Text(stringResource(R.string.day_set_removed_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
-            Spacer(Modifier.weight(1f))
-            Text(stringResource(R.string.day_undo_button), color = accent, style = DoneButtonLabel)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.day_set_removed_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.weight(1f))
+                Text(stringResource(R.string.day_undo_button), color = accent, style = DoneButtonLabel)
+            }
         }
     }
 }
@@ -1194,6 +1243,7 @@ private fun DoneButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -1202,7 +1252,10 @@ private fun DoneButton(
         label = "doneButtonPress",
     )
     Button(
-        onClick = onClick,
+        onClick = {
+            AppHaptics.perform(view, AppHaptics.Cue.FINISH)
+            onClick()
+        },
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
             // heightIn(min), not height (A7 font-scale): the longer "ADVANCE TO

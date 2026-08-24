@@ -739,7 +739,9 @@ class DayViewModel @Inject constructor(
             unit = ctx.unit,
             suggestedDayId = ctx.suggested,
             nextDayId = Rotation.next(program, dayId),
-            exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse, history) },
+            exercises = DayScreenBuilder.markNext(
+                slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse, history) },
+            ),
             cardio = day.cardio?.let {
                 CardioCardState(label = it.label, detail = it.detail, hard = it.hard)
             },

@@ -148,6 +148,7 @@ data class SetRowState(
     val partner: PartnerRowState? = null,
     /** TIMED tracks only; 0 (ignored) for WEIGHTED/REPS (§2.2). */
     val seconds: Int = 0,
+    val isNext: Boolean = false,
 )
 
 /**

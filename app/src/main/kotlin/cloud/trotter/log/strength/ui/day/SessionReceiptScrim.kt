@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
@@ -73,6 +74,7 @@ internal fun SessionReceiptScrim(
     receipt: SessionReceipt,
     onShare: () -> Unit,
     onFinish: () -> Unit,
+    onEditNote: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val accent = dayAccent(receipt.dayIndex)
@@ -167,6 +169,19 @@ internal fun SessionReceiptScrim(
                 }
             }
             ReceiptRule()
+
+            if (receipt.note.isNotBlank()) {
+                Text(
+                    receipt.note,
+                    color = TextFaint,
+                    style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                    maxLines = 1,
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                )
+            }
+            TextButton(onClick = onEditNote, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                Text(stringResource(R.string.note_add_action), style = MaterialTheme.typography.labelLarge)
+            }
 
             Spacer(Modifier.size(28.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

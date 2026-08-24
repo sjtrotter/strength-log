@@ -67,6 +67,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
             keepScreenOn = keepScreenOn,
             topSetHelperSeen = topSetHelperSeen,
             supersetHelperSeen = supersetHelperSeen,
+            sessionNotes = sessionNotes,
             theme = themePreference.name,
         ),
         customExercises = customExercises.map {
@@ -251,6 +252,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         keepScreenOn = settings.keepScreenOn,
         topSetHelperSeen = settings.topSetHelperSeen,
         supersetHelperSeen = settings.supersetHelperSeen,
+        sessionNotes = settings.sessionNotes,
         themePreference = enumOrDefault(settings.theme, ThemePreference.SYSTEM),
         customExercises = customExercises.map {
             CustomExerciseEntity(

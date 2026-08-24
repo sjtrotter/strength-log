@@ -27,6 +27,9 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 
 /**
  * All app preferences (spec §7 DataStore list, plus the kg/lb unit from A5 and the
@@ -96,6 +99,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
         val TOP_SET_HELPER_SEEN = booleanPreferencesKey("top_set_helper_seen")
         val SUPERSET_HELPER_SEEN = booleanPreferencesKey("superset_helper_seen")
+
+        // TODO(schema): Move these values onto workout_session once the next
+        // coordinated Room schema version is available.
+        val SESSION_NOTES = stringPreferencesKey("session_notes")
 
         // Device-local SAF automation state. These keys are deliberately not
         // part of the versioned backup document: a persisted grant belongs to
@@ -197,6 +204,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     val supersetHelperSeenFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.SUPERSET_HELPER_SEEN] ?: false }
+
+    val sessionNotesFlow: Flow<Map<Long, String>> =
+        dataStore.data.map { decodeSessionNotes(it[Keys.SESSION_NOTES]) }
+
+    fun sessionNoteFlow(sessionId: Long): Flow<String> =
+        sessionNotesFlow.map { it[sessionId].orEmpty() }
 
     val themePreferenceFlow: Flow<ThemePreference> =
         dataStore.data.map { it.enum(Keys.THEME, ThemePreference.SYSTEM) }
@@ -337,6 +350,14 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun markSupersetHelperSeen() =
         dataStore.edit { it[Keys.SUPERSET_HELPER_SEEN] = true }
 
+    suspend fun setSessionNote(sessionId: Long, text: String) = dataStore.edit { prefs ->
+        val notes = decodeSessionNotes(prefs[Keys.SESSION_NOTES]).toMutableMap()
+        val clean = text.trim().take(120)
+        if (clean.isEmpty()) notes.remove(sessionId) else notes[sessionId] = clean
+        if (notes.isEmpty()) prefs.remove(Keys.SESSION_NOTES)
+        else prefs[Keys.SESSION_NOTES] = SessionNotesJson.encodeToString(SessionNotesSerializer, notes)
+    }
+
     suspend fun setThemePreference(theme: ThemePreference) =
         dataStore.edit { it[Keys.THEME] = theme.name }
 
@@ -391,6 +412,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         keepScreenOn: Boolean,
         topSetHelperSeen: Boolean = false,
         supersetHelperSeen: Boolean = false,
+        sessionNotes: Map<Long, String> = emptyMap(),
         themePreference: ThemePreference = ThemePreference.SYSTEM,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
@@ -421,6 +443,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         prefs[Keys.KEEP_SCREEN_ON] = keepScreenOn
         prefs[Keys.TOP_SET_HELPER_SEEN] = topSetHelperSeen
         prefs[Keys.SUPERSET_HELPER_SEEN] = supersetHelperSeen
+        if (sessionNotes.isNotEmpty()) {
+            prefs[Keys.SESSION_NOTES] = SessionNotesJson.encodeToString(SessionNotesSerializer, sessionNotes)
+        }
         autoEnabled?.let { prefs[Keys.AUTO_BACKUP_ENABLED] = it }
         autoTreeUri?.let { prefs[Keys.AUTO_BACKUP_TREE_URI] = it }
         autoFolderName?.let { prefs[Keys.AUTO_BACKUP_FOLDER_NAME] = it }
@@ -430,6 +455,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         autoPermissionLost?.let { prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = it }
         prefs[Keys.THEME] = themePreference.name
     }
+
+    private fun decodeSessionNotes(value: String?): Map<Long, String> =
+        value?.let { runCatching { SessionNotesJson.decodeFromString(SessionNotesSerializer, it) }.getOrDefault(emptyMap()) }
+            ?: emptyMap()
 
     // --- read/write helpers --------------------------------------------------
 
@@ -479,6 +508,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val DEFAULT_ANSWERS = WizardAnswers()
     }
 }
+
+private val SessionNotesJson = Json { ignoreUnknownKeys = true }
+private val SessionNotesSerializer = MapSerializer(Long.serializer(), String.serializer())
 
 /** A session-start stamp paired with the calendar [date] it was recorded on, so
  *  a reader can drop one that outlived its day (session-start capture). [date]

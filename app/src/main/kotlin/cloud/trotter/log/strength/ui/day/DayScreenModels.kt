@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.standards.PhoneRest
+import cloud.trotter.log.strength.sync.RemoteTick
 
 /**
  * Immutable render model for the whole day screen (UDF: the ViewModel's single output).
@@ -40,6 +41,8 @@ data class DayUiState(
     val showMainHelper: Boolean = true,
     val showSupersetHelper: Boolean = true,
     val rest: RestUiState? = null,
+    val watchStatus: WatchStatus? = null,
+    val remoteTick: RemoteTick? = null,
 ) {
     /** True when the viewed day isn't the suggested-next one (spec §8.2 override note). */
     val isOverride: Boolean
@@ -63,6 +66,9 @@ data class DayUiState(
 
 @Immutable
 data class RestUiState(val rest: PhoneRest, val remainingSeconds: Int, val remainingFraction: Float, val over: Boolean)
+
+enum class WatchStatusKind { ACTIVE, SYNCING, OFFLINE_QUEUED }
+data class WatchStatus(val kind: WatchStatusKind, val changeCount: Int = 0)
 
 enum class DoneButtonState { ALL_DONE, PARTIAL, NOTHING_LOGGED }
 
@@ -100,6 +106,7 @@ data class ExerciseCardState(
      *  needs, which the ADD/REMOVE WEIGHT pill ([weightSwap]) reuses verbatim. */
     val position: Int,
     val title: String,
+    val note: String = "",
     val isMain: Boolean,
     val isSuperset: Boolean,
     val hasWarmupHint: Boolean,
@@ -158,6 +165,8 @@ data class SetRowState(
     /** TIMED tracks only; 0 (ignored) for WEIGHTED/REPS (§2.2). */
     val seconds: Int = 0,
     val isNext: Boolean = false,
+    val justTickedRemotely: Boolean = false,
+    val remoteTickEventId: Long = 0L,
 )
 
 /**

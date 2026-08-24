@@ -299,6 +299,20 @@ open class TrackerRepository(
         }
     }
 
+    suspend fun setExerciseNote(programExerciseId: Long, text: String) {
+        programDao.setExerciseNote(programExerciseId, text.trim().take(120))
+    }
+
+    // TODO(schema): Store this on workout_session when the coordinated Room
+    // schema bump lands; DataStore is the migration-free local-first bridge.
+    val sessionNotesFlow: Flow<Map<Long, String>> = settings.sessionNotesFlow
+
+    fun sessionNoteFlow(sessionId: Long): Flow<String> = settings.sessionNoteFlow(sessionId)
+
+    suspend fun setSessionNote(sessionId: Long, text: String) {
+        settings.setSessionNote(sessionId, text)
+    }
+
     /**
      * Attaches [partnerExerciseId] to the slot at [position] as its superset
      * partner (#93) — the same call covers adding a partner to a plain slot and
@@ -725,6 +739,7 @@ open class TrackerRepository(
         keepScreenOn = settings.keepScreenOnFlow.first(),
         topSetHelperSeen = settings.topSetHelperSeenFlow.first(),
         supersetHelperSeen = settings.supersetHelperSeenFlow.first(),
+        sessionNotes = settings.sessionNotesFlow.first(),
         themePreference = settings.themePreferenceFlow.first(),
         customExercises = customExerciseDao.allOrdered(),
         days = programDao.allDays(),
@@ -809,6 +824,7 @@ open class TrackerRepository(
                     keepScreenOn = snapshot.keepScreenOn,
                     topSetHelperSeen = snapshot.topSetHelperSeen,
                     supersetHelperSeen = snapshot.supersetHelperSeen,
+                    sessionNotes = snapshot.sessionNotes,
                     themePreference = snapshot.themePreference,
                 )
             } catch (e: IOException) {

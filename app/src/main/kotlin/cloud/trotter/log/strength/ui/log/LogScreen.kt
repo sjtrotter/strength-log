@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,6 +63,7 @@ import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.theme.StepperRepsValue
 import cloud.trotter.log.strength.ui.components.DayBadge
 import cloud.trotter.log.strength.ui.components.EmptyJournalState
+import cloud.trotter.log.strength.ui.components.NoteSheet
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -91,6 +93,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var deleteConfirmation by remember { mutableStateOf<Long?>(null) }
+    var noteSessionId by remember { mutableStateOf<Long?>(null) }
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
             LogHeader(actions.onBack)
@@ -162,6 +165,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                                 onSecondsChange = { setId, value -> actions.onSecondsChange(session.sessionId, setId, value) },
                                 onDoneChange = { setId, value -> actions.onDoneChange(session.sessionId, setId, value) },
                                 onDelete = { deleteConfirmation = session.sessionId },
+                                onEditNote = { noteSessionId = session.sessionId },
                             )
                     }
                 }
@@ -191,6 +195,11 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                     TextButton(onClick = { deleteConfirmation = null }) { Text(stringResource(R.string.log_delete_keep)) }
                 },
             )
+        }
+        noteSessionId?.let { sessionId ->
+            val item = state.sessions.firstOrNull { it.sessionId == sessionId }
+            if (item != null) NoteSheet(item.note, { actions.onSetSessionNote(sessionId, it) }, { noteSessionId = null })
+            else noteSessionId = null
         }
     }
 }
@@ -260,6 +269,7 @@ private fun SessionCard(
     onSecondsChange: (Long, Int) -> Unit,
     onDoneChange: (Long, Boolean) -> Unit,
     onDelete: () -> Unit,
+    onEditNote: () -> Unit,
 ) {
     val chevronRotation by animateFloatAsState(if (item.expanded) 180f else 0f, tween(200), label = "logChevron")
     val disclosureLabel = stringResource(if (item.expanded) R.string.log_collapse_label else R.string.log_expand_label)
@@ -308,6 +318,14 @@ private fun SessionCard(
         Column(Modifier.animateContentSize(tween(220))) {
             if (item.expanded) {
                 Spacer(Modifier.size(10.dp))
+                if (item.note.isNotBlank()) {
+                    Text(
+                        item.note,
+                        color = TextFaint,
+                        style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                        maxLines = 1,
+                    )
+                }
                 if (item.exerciseGroups == null) {
                     Text(stringResource(R.string.log_session_loading), color = TextFaint, style = MaterialTheme.typography.bodySmall)
                 } else {
@@ -317,7 +335,7 @@ private fun SessionCard(
                         ) else ExerciseGroupRow(group)
                     }
                     Spacer(Modifier.size(4.dp))
-                    SessionFooter(item, onShare, onToggleEdit, onDelete)
+                    SessionFooter(item, onShare, onToggleEdit, onDelete, onEditNote)
                 }
             }
         }
@@ -380,9 +398,12 @@ private fun EditableExerciseGroupRow(
 }
 
 @Composable
-private fun SessionFooter(item: SessionListItem, onShare: () -> Unit, onToggleEdit: () -> Unit, onDelete: () -> Unit) {
+private fun SessionFooter(item: SessionListItem, onShare: () -> Unit, onToggleEdit: () -> Unit, onDelete: () -> Unit, onEditNote: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         if (item.editing) {
+            TextButton(onClick = onEditNote) {
+                Text(stringResource(R.string.note_action), style = MaterialTheme.typography.labelLarge)
+            }
             TextButton(
                 onClick = onDelete,
                 colors = ButtonDefaults.textButtonColors(contentColor = TextSecondary),
@@ -575,6 +596,7 @@ data class LogActions(
     val onDoneChange: (Long, Long, Boolean) -> Unit = { _, _, _ -> },
     val onDeleteSession: (Long) -> Unit = {},
     val onUndoDeleteSession: () -> Unit = {},
+    val onSetSessionNote: (Long, String) -> Unit = { _, _ -> },
     /** The empty journal's way out (#127): straight to the workout that will fill it. */
     val onStartSession: () -> Unit,
     /** The same slot's way out when there is no program to start (#127). */

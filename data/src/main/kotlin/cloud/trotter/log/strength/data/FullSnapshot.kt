@@ -38,6 +38,7 @@ data class FullSnapshot(
     val keepScreenOn: Boolean = false,
     val topSetHelperSeen: Boolean = false,
     val supersetHelperSeen: Boolean = false,
+    val sessionNotes: Map<Long, String> = emptyMap(),
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
     val customExercises: List<CustomExerciseEntity>,
     val days: List<ProgramDayEntity>,

@@ -1,4 +1,15 @@
 <resources>
+    <string name="note_label">NOTE</string>
+    <string name="note_done">DONE</string>
+    <string name="note_add_action">ADD A NOTE</string>
+    <string name="note_action">NOTE</string>
+    <string name="watch_status_active">WATCH ACTIVE</string>
+    <plurals name="watch_status_syncing">
+        <item quantity="one">WATCH SYNCING %d CHANGE</item>
+        <item quantity="other">WATCH SYNCING %d CHANGES</item>
+    </plurals>
+    <string name="watch_status_offline_queued">WATCH OFFLINE · %1$d CHANGES QUEUED</string>
+    <string name="watch_status_open_rest_timer">Open Rest timer settings</string>
     <string name="app_name">strength.log</string>
     <string name="stepper_type_action">Type %1$s</string>
     <string name="stepper_value_label">value</string>

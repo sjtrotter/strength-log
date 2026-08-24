@@ -108,6 +108,9 @@ data class SettingsBackup(
     val keepScreenOn: Boolean = false,
     val topSetHelperSeen: Boolean = false,
     val supersetHelperSeen: Boolean = false,
+    /** Temporary DataStore-backed session notes; no schema-version bump while
+     *  Room/backup v7 is reserved by the parallel cardio work. */
+    val sessionNotes: Map<Long, String> = emptyMap(),
     /** Theme preference. Defaulted so pre-light-theme backups follow SYSTEM. */
     val theme: String = "SYSTEM",
 )

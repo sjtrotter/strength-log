@@ -36,6 +36,7 @@ import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
+import cloud.trotter.log.strength.sync.WatchContinuitySource
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -103,6 +104,7 @@ class DayViewModel @Inject constructor(
     private val cardioAlarm: CardioAlarm,
     private val phoneRestRuntime: RestRuntime = NoOpRestRuntime,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
+    private val watchContinuity: WatchContinuitySource = WatchContinuitySource.None,
 ) : ViewModel() {
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
@@ -217,7 +219,7 @@ class DayViewModel @Inject constructor(
         repo.supersetHelperSeenFlow,
     ) { keepOn, topSeen, supersetSeen -> Triple(keepOn, topSeen, supersetSeen) }
 
-    val uiState: StateFlow<DayUiState> =
+    private val baseUiState: Flow<DayUiState> =
         combine(dayState, dayPreferences, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
                 state, preferences, history, anchors, rest ->
             val cardio = buildCardioState(state, history, anchors)
@@ -230,6 +232,23 @@ class DayViewModel @Inject constructor(
                 rest = rest,
             )
         }
+
+    val uiState: StateFlow<DayUiState> = combine(
+        baseUiState,
+        watchContinuity.continuityFlow,
+        watchContinuity.remoteTickFlow,
+    ) { state, continuity, remoteTick ->
+        DayScreenBuilder.markRemoteTick(
+            state.copy(
+                watchStatus = DayScreenBuilder.watchStatusLine(
+                    continuity.lastContactMillis, continuity.syncingChanges,
+                    queuedChanges = 0, watchConnected = continuity.lastContactMillis > 0L,
+                    nowMillis = clock.millis(),
+                ),
+            ),
+            remoteTick,
+        )
+    }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState(loading = true))
 
     /** Render model for the day-edit sheet (#11, spec §8.3) — a second view over
@@ -584,6 +603,19 @@ class DayViewModel @Inject constructor(
         // Under the lock: a mutation that read its track before the clear must not
         // write stale done-flags back after it.
         mutate { repo.clearChecks(day) }
+    }
+
+    fun setExerciseNote(programExerciseId: Long, text: String) {
+        viewModelScope.launch { repo.setExerciseNote(programExerciseId, text) }
+    }
+
+    fun setReceiptNote(text: String) {
+        val sessionId = _sessionReceipt.value?.sessionId ?: return
+        val clean = text.trim().take(120)
+        viewModelScope.launch {
+            repo.setSessionNote(sessionId, clean)
+            _sessionReceipt.update { it?.takeIf { receipt -> receipt.sessionId == sessionId }?.copy(note = clean) }
+        }
     }
 
     /** DONE — advance: record the session (A1), reset collapse, follow the new
@@ -970,6 +1002,7 @@ class DayViewModel @Inject constructor(
             } else {
                 name
             },
+            note = pe.note,
             isMain = pe.isMain,
             isSuperset = pe.superset != null,
             hasWarmupHint = pe.hasWarmupHint,

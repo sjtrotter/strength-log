@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ButtonDefaults
@@ -22,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -81,15 +83,20 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
  * this screen never loses an edit.
  */
 @Composable
-fun SetupScreen(state: SetupUiState, actions: SetupActions) {
+fun SetupScreen(state: SetupUiState, actions: SetupActions, openRestTimer: Boolean = false) {
     var showRerunConfirm by rememberSaveable { mutableStateOf(false) }
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
     val accent = accentEmphasis(0)
+    val listState = rememberLazyListState()
+    LaunchedEffect(openRestTimer) {
+        if (openRestTimer) listState.scrollToItem(12)
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
             SetupHeader(actions.onBack)
             LazyColumn(
+                state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {

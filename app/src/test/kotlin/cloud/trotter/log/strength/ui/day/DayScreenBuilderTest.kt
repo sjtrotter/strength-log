@@ -19,12 +19,37 @@ import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.sync.RemoteTick
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DayScreenBuilderTest {
+
+    @Test
+    fun watchStatusBuilderCoversActiveSyncingAndOfflineQueued() {
+        assertEquals(WatchStatus(WatchStatusKind.ACTIVE), DayScreenBuilder.watchStatusLine(900, 0, 0, true, 1_000))
+        assertEquals(WatchStatus(WatchStatusKind.SYNCING, 2), DayScreenBuilder.watchStatusLine(900, 2, 0, true, 1_000))
+        assertEquals(WatchStatus(WatchStatusKind.OFFLINE_QUEUED, 3), DayScreenBuilder.watchStatusLine(900, 0, 3, false, 1_000))
+    }
+
+    @Test
+    fun remoteTickMarksOnlyItsAffectedRow() {
+        val card = ExerciseCardState(
+            programExerciseId = 7, position = 0, title = "Squat", isMain = true,
+            isSuperset = false, hasWarmupHint = false, goalDisplay = "235", perHand = false,
+            allDone = false, collapsed = false, collapsedSummary = "", rows = listOf(
+                SetRowState(0, "R1", false, 135.0, 5, false),
+                SetRowState(1, "TOP", true, 235.0, 5, true),
+            ),
+        )
+        val marked = DayScreenBuilder.markRemoteTick(
+            DayUiState(hasProgram = true, viewDayId = "A", exercises = listOf(card)),
+            RemoteTick("A", 7, 1, eventId = 9),
+        )
+        assertEquals(listOf(false, true), marked.exercises.single().rows.map { it.justTickedRemotely })
+    }
 
     @Test
     fun doneButtonStateResolvesNothingPartialAndComplete() {

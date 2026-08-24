@@ -79,6 +79,7 @@ object Routes {
     fun cardio(dayId: String) = "$CARDIO/$dayId"
     const val WIZARD = "wizard"
     const val SETUP = "setup"
+    const val SETUP_REST = "setup?rest=true"
     const val LOG = "log"
     const val BACKUP = "backup"
     const val LICENSES = "licenses"
@@ -176,6 +177,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 // back already performs — a finished workout leaves the workout
                 // screen, and Today re-derives what the rotation now says.
                 onFinishSession = { navController.popBackStack() },
+                onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
             )
         }
         composable(
@@ -223,8 +225,12 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         ) {
             CustomExerciseRoute(onDone = { navController.popBackStack() })
         }
-        composable(Routes.SETUP) {
+        composable(
+            route = "${Routes.SETUP}?rest={rest}",
+            arguments = listOf(navArgument("rest") { type = NavType.BoolType; defaultValue = false }),
+        ) { entry ->
             SetupRoute(
+                openRestTimer = entry.arguments?.getBoolean("rest") == true,
                 onBack = { navController.popBackStack() },
                 onRerunWizard = { navController.navigate(Routes.WIZARD) },
                 onCreateCustomExercise = { navController.navigate(Routes.customExercise(null)) },
@@ -282,6 +288,7 @@ private fun DayRoute(
     onSetUpProgram: () -> Unit,
     onFinishSession: () -> Unit,
     initialDayId: String? = null,
+    onOpenRestTimer: () -> Unit,
     viewModel: DayViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(initialDayId) { initialDayId?.let(viewModel::selectDay) }
@@ -331,6 +338,9 @@ private fun DayRoute(
             onSkipRest = viewModel::skipRest,
             onCreateExercise = onCreateExercise,
             onSetUpProgram = onSetUpProgram,
+            onSetExerciseNote = viewModel::setExerciseNote,
+            onSetSessionNote = viewModel::setReceiptNote,
+            onOpenRestTimer = onOpenRestTimer,
         ),
         dayEditState = dayEditState,
         dayEditActions = DayEditActions(
@@ -358,6 +368,7 @@ private fun DayRoute(
 
 @Composable
 private fun SetupRoute(
+    openRestTimer: Boolean = false,
     onBack: () -> Unit,
     onRerunWizard: () -> Unit,
     onCreateCustomExercise: () -> Unit,
@@ -368,6 +379,7 @@ private fun SetupRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     SetupScreen(
         state = state,
+        openRestTimer = openRestTimer,
         actions = SetupActions(
             onBodyweightChange = viewModel::setBodyweight,
             onAgeChange = viewModel::setAge,
@@ -523,6 +535,7 @@ private fun LogRoute(
             onDoneChange = viewModel::updateSessionSetDone,
             onDeleteSession = viewModel::deleteSession,
             onUndoDeleteSession = viewModel::undoDeleteSession,
+            onSetSessionNote = viewModel::setSessionNote,
             onStartSession = onStartSession,
             onSetUpProgram = onSetUpProgram,
         ),

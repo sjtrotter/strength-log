@@ -284,6 +284,15 @@
 <string name="log_set_summary">%1$s: %2$s</string>
 <string name="log_share_label">Share session</string>
 <string name="log_share_button">SHARE</string>
+<string name="log_edit">EDIT</string>
+<string name="log_edit_done">DONE</string>
+<string name="log_delete_session">DELETE SESSION</string>
+<string name="log_delete_dialog_title">Delete this session?</string>
+<string name="log_delete_dialog_body">Its sets leave the log, the trajectories and Health Connect.</string>
+<string name="log_delete_confirm">DELETE</string>
+<string name="log_delete_keep">KEEP</string>
+<string name="log_session_deleted">SESSION DELETED</string>
+<string name="log_undo">UNDO</string>
 <string name="log_cardio_semantics">cardio session, %1$s, %2$s</string>
 <string name="log_cardio_summary">%1$s · %2$s</string>
 <string name="log_bodyweight_title">Bodyweight changed</string>

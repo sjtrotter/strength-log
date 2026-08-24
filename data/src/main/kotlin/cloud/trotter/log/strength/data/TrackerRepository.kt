@@ -542,6 +542,38 @@ open class TrackerRepository(
      *  with [sessionSets] to build the exported record. */
     suspend fun session(sessionId: Long): WorkoutSessionEntity? = sessionDao.sessionById(sessionId)
 
+    /** Exact rows removed by [deleteSession], retained briefly by the Log screen
+     *  so undo can restore their primary keys and denormalized history verbatim. */
+    data class DeletedSession(
+        val session: WorkoutSessionEntity,
+        val sets: List<SessionSetEntity>,
+    )
+
+    /**
+     * Corrects one archived set immediately. History edits only change recorded
+     * ACTUALs; they never retroactively fire or undo a GOAL cascade.
+     */
+    suspend fun updateSessionSet(set: SessionSetEntity) {
+        require(sessionDao.updateSet(set) == 1) { "Unknown session set ${set.id}" }
+    }
+
+    /** Deletes history only; in particular, the DataStore rotation pointer is untouched. */
+    suspend fun deleteSession(sessionId: Long): DeletedSession? = db.withTransaction {
+        val session = sessionDao.sessionById(sessionId) ?: return@withTransaction null
+        val sets = sessionDao.setsForSession(sessionId)
+        sessionDao.deleteSetsForSession(sessionId)
+        sessionDao.deleteSessionById(sessionId)
+        DeletedSession(session, sets)
+    }
+
+    /** Restores a just-deleted session exactly, including every original row id. */
+    suspend fun restoreSession(deleted: DeletedSession) {
+        db.withTransaction {
+            sessionDao.insertSessions(listOf(deleted.session))
+            if (deleted.sets.isNotEmpty()) sessionDao.insertSets(deleted.sets)
+        }
+    }
+
     /**
      * Batches the A1 "last time" chip for a whole day into one query (#14):
      * [exerciseIds]' most recent completed performance, keyed by exercise id. An
@@ -568,7 +600,7 @@ open class TrackerRepository(
     }
 
     /**
-     * "DONE — advance" (spec §7, PLAN.md A1): appends an immutable session record
+     * "DONE — advance" (spec §7, PLAN.md A1): appends a session record
      * for the completed day (denormalizing exercise names so history survives
      * later edits/deletions), clears that day's checkmarks, and advances the
      * rotation pointer to the following day.

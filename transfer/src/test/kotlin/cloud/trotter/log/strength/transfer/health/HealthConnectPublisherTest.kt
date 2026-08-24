@@ -292,6 +292,33 @@ class HealthConnectPublisherTest {
         assertTrue(client.storedRecords.values.all { it.metadata.clientRecordVersion == 0L })
     }
 
+    @Test
+    fun replacingAnEditedSessionDeletesStableClientIdsBeforeReinserting() = runTest {
+        val id = seedSession(listOf(set("bb_back_squat")))
+        val client = grantedClient()
+        val publisher = publisher(client)
+        publisher.publish(id)
+
+        publisher.replace(id)
+
+        assertTrue(SessionRecordMapper.clientRecordId(id) in client.deletedClientRecordIds)
+        assertTrue(CaloriesRecordMapper.clientRecordId(id) in client.deletedClientRecordIds)
+        assertTrue(SessionRecordMapper.clientRecordId(id) in client.storedRecords)
+    }
+
+    @Test
+    fun deletingASessionDeletesItsHealthConnectRecordsByStableClientId() = runTest {
+        val id = seedSession(listOf(set("bb_back_squat")))
+        val client = grantedClient()
+        val publisher = publisher(client)
+        publisher.publish(id)
+
+        publisher.delete(id)
+
+        assertFalse(SessionRecordMapper.clientRecordId(id) in client.storedRecords)
+        assertTrue(SessionRecordMapper.clientRecordId(id) in client.deletedClientRecordIds)
+    }
+
     /** A session that predates the bodyweight capture (#171, and every CSV
      *  import) still belongs in the backfill — it just has no calorie estimate
      *  to publish alongside it. */

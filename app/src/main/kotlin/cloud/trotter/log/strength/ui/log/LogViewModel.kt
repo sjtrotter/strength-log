@@ -31,11 +31,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.launch
 
 /**
  * The Log screen ViewModel (PLAN.md A1, issue #14; #17 Health Connect read
- * path; journal sections per docs/briefs/journal.md). A read-only,
+ * path; journal sections per docs/briefs/journal.md). An editable,
  * reverse-chronological view of the user's own session history, now led by the
  * three derived journal sections, plus a Health Connect section that lists
  * other apps' strength sessions (marked external) and surfaces the
@@ -75,6 +79,10 @@ class LogViewModel @Inject constructor(
 
     private val expandedSessionId: StateFlow<Long?> = savedState.getStateFlow(KEY_EXPANDED, null)
     private val expandedSets = MutableStateFlow<Map<Long, List<SessionSetEntity>>>(emptyMap())
+    private val editingSessionId: StateFlow<Long?> = savedState.getStateFlow(KEY_EDITING, null)
+    private val pendingDeletion = MutableStateFlow<PendingDeletion?>(null)
+    private var deletionExpiry: Job? = null
+    private val editMutex = Mutex()
     private val bodyweightDismissed: StateFlow<Boolean> = savedState.getStateFlow(KEY_BW_DISMISSED, false)
     private val healthData = MutableStateFlow(HealthData())
 
@@ -104,12 +112,17 @@ class LogViewModel @Inject constructor(
         repo.unitFlow,
         expandedSessionId,
         expandedSets,
-    ) { summaries, unit, expandedId, setsCache ->
-        summaries.map { summary -> buildItem(summary, unit, expandedId, setsCache[summary.session.id]) }
+        editingSessionId,
+    ) { summaries, unit, expandedId, setsCache, editingId ->
+        summaries.map { summary -> buildItem(summary, unit, expandedId, setsCache[summary.session.id], editingId) }
     }
 
-    private val historyItems = combine(ownSessions, repo.cardioSessionsFlow) { strength, cardio ->
-        LogScreenBuilder.interleave(strength, cardio.map(LogScreenBuilder::cardioItem))
+    private val historyItems = combine(ownSessions, repo.cardioSessionsFlow, pendingDeletion) { strength, cardio, deleted ->
+        val items = LogScreenBuilder.interleave(strength, cardio.map(LogScreenBuilder::cardioItem)).toMutableList()
+        deleted?.let { pending ->
+            items.add(pending.index.coerceIn(0, items.size), pending.item.copy(undoPending = true, editing = false))
+        }
+        items
     }
 
     private val mainLifts = combine(
@@ -196,6 +209,71 @@ class LogViewModel @Inject constructor(
         val next = if (expandedSessionId.value == sessionId) null else sessionId
         savedState[KEY_EXPANDED] = next
         if (next != null) fetchExpandedSets(next)
+    }
+
+    fun toggleEdit(sessionId: Long) {
+        savedState[KEY_EDITING] = if (editingSessionId.value == sessionId) null else sessionId
+        if (expandedSets.value[sessionId] == null) fetchExpandedSets(sessionId)
+    }
+
+    fun updateSessionSet(sessionId: Long, setId: Long, transform: (SessionSetEntity) -> SessionSetEntity) {
+        viewModelScope.launch {
+            val changed = editMutex.withLock {
+                val current = expandedSets.value[sessionId]?.firstOrNull { it.id == setId } ?: return@withLock false
+                val updated = transform(current)
+                repo.updateSessionSet(updated)
+                expandedSets.update { cache ->
+                    cache + (sessionId to cache.getValue(sessionId).map { if (it.id == setId) updated else it })
+                }
+                true
+            }
+            if (changed) sessionPublisher.replace(sessionId)
+        }
+    }
+
+    fun updateSessionSetWeight(sessionId: Long, setId: Long, displayWeight: Double) {
+        viewModelScope.launch {
+            val unit = repo.unitFlow.first()
+            updateSessionSet(sessionId, setId) { it.copy(weightLb = unit.toLb(displayWeight)) }
+        }
+    }
+
+    fun updateSessionSetReps(sessionId: Long, setId: Long, reps: Int) =
+        updateSessionSet(sessionId, setId) { it.copy(reps = reps) }
+
+    fun updateSessionSetSeconds(sessionId: Long, setId: Long, seconds: Int) =
+        updateSessionSet(sessionId, setId) { it.copy(seconds = seconds) }
+
+    fun updateSessionSetDone(sessionId: Long, setId: Long, done: Boolean) =
+        updateSessionSet(sessionId, setId) { it.copy(done = done) }
+
+    fun deleteSession(sessionId: Long) {
+        viewModelScope.launch {
+            val currentItems = uiState.value.sessions
+            val index = currentItems.indexOfFirst { it.sessionId == sessionId }
+            val item = currentItems.getOrNull(index) ?: return@launch
+            val deleted = repo.deleteSession(sessionId) ?: return@launch
+            savedState[KEY_EDITING] = null
+            savedState[KEY_EXPANDED] = null
+            expandedSets.update { it - sessionId }
+            pendingDeletion.value = PendingDeletion(item, deleted, index)
+            sessionPublisher.delete(sessionId)
+            deletionExpiry?.cancel()
+            deletionExpiry = launch {
+                delay(UNDO_WINDOW_MS)
+                pendingDeletion.value = null
+            }
+        }
+    }
+
+    fun undoDeleteSession() {
+        val pending = pendingDeletion.value ?: return
+        pendingDeletion.value = null
+        deletionExpiry?.cancel()
+        viewModelScope.launch {
+            repo.restoreSession(pending.deleted)
+            sessionPublisher.publish(pending.deleted.session.id)
+        }
     }
 
     /**
@@ -342,6 +420,7 @@ class LogViewModel @Inject constructor(
         unit: WeightUnit,
         expandedId: Long?,
         cachedSets: List<SessionSetEntity>?,
+        editingId: Long?,
     ): SessionListItem {
         val session = summary.session
         val expanded = session.id == expandedId
@@ -360,6 +439,8 @@ class LogViewModel @Inject constructor(
                 null
             },
             completedAt = session.completedAt,
+            editing = session.id == editingId,
+            unit = unit,
         )
     }
 
@@ -406,10 +487,18 @@ class LogViewModel @Inject constructor(
         val latestWeightLb: Double? = null,
     )
 
+    private data class PendingDeletion(
+        val item: SessionListItem,
+        val deleted: TrackerRepository.DeletedSession,
+        val index: Int,
+    )
+
     private companion object {
         const val KEY_EXPANDED = "log_expanded_session"
         const val KEY_BW_DISMISSED = "log_bodyweight_dismissed"
         const val KEY_MONTH_OFFSET = "log_calendar_month_offset"
+        const val KEY_EDITING = "log_editing_session"
         const val STOP_TIMEOUT_MS = 5_000L
+        const val UNDO_WINDOW_MS = 5_000L
     }
 }

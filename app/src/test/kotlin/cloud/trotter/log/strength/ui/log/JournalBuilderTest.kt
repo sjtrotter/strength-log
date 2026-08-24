@@ -89,6 +89,20 @@ class JournalBuilderTest {
     }
 
     @Test
+    fun changed_archived_top_set_changes_the_trajectory_point() {
+        val date = today.minusDays(3)
+        val before = JournalBuilder.trajectories(
+            listOf(squat), listOf(top("bb_back_squat", date, 205.0)), WeightUnit.LB, zone,
+        ).single()
+        val after = JournalBuilder.trajectories(
+            listOf(squat), listOf(top("bb_back_squat", date, 215.0)), WeightUnit.LB, zone,
+        ).single()
+
+        assertEquals(205f, before.points.single().value)
+        assertEquals(215f, after.points.single().value)
+    }
+
+    @Test
     fun trajectory_goal_line_flips_to_met_only_once_the_goal_is_reached() {
         val below = JournalBuilder.trajectories(
             listOf(squat),

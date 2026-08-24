@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.transfer.health
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.Record
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import cloud.trotter.log.strength.data.TrackerRepository
 import java.time.ZoneId
 
@@ -37,6 +39,17 @@ class HealthConnectPublisher(
 
     override suspend fun publish(sessionId: Long) {
         publishAll(listOf(sessionId))
+    }
+
+    override suspend fun replace(sessionId: Long) {
+        withExerciseClient { client, granted ->
+            deleteRecords(client, sessionId, granted)
+            publishSession(client, sessionId, HealthConnectPermissions.WRITE_CALORIES in granted)
+        }
+    }
+
+    override suspend fun delete(sessionId: Long) {
+        withExerciseClient { client, granted -> deleteRecords(client, sessionId, granted) }
     }
 
     override suspend fun publishCardio(cardioSessionId: Long) {
@@ -92,6 +105,29 @@ class HealthConnectPublisher(
 
     private suspend fun withExerciseClient(block: suspend (HealthConnectClient) -> Boolean): Boolean =
         withExerciseClient { client, _ -> block(client) }
+
+    private suspend fun deleteRecords(
+        client: HealthConnectClient,
+        sessionId: Long,
+        granted: Set<String>,
+    ): Boolean = try {
+        client.deleteRecords(
+            ExerciseSessionRecord::class,
+            recordIdsList = emptyList(),
+            clientRecordIdsList = listOf(SessionRecordMapper.clientRecordId(sessionId)),
+        )
+        if (HealthConnectPermissions.WRITE_CALORIES in granted) {
+            client.deleteRecords(
+                ActiveCaloriesBurnedRecord::class,
+                recordIdsList = emptyList(),
+                clientRecordIdsList = listOf(CaloriesRecordMapper.clientRecordId(sessionId)),
+            )
+        }
+        true
+    } catch (t: Throwable) {
+        Log.w(TAG, "Health Connect delete for session $sessionId failed; skipping", t)
+        false
+    }
 
     /**
      * True when [sessionId] was written **or** had nothing to write — a session

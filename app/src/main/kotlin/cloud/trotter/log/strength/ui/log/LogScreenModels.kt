@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.text.UiText
 
@@ -85,6 +87,9 @@ data class SessionListItem(
     val cardioSummary: String? = null,
     val cardioSemantics: String? = null,
     val cardioDuration: String? = null,
+    val editing: Boolean = false,
+    val undoPending: Boolean = false,
+    val unit: WeightUnit = WeightUnit.LB,
 )
 
 /** One exercise's sets within an expanded session, in first-appearance order. */
@@ -97,4 +102,10 @@ data class SessionExerciseGroup(
 data class SessionSetSummary(
     val kindLabel: String,
     val weightRepsDisplay: String,
+    val id: Long = 0,
+    val weightLb: Double = 0.0,
+    val reps: Int = 0,
+    val seconds: Int = 0,
+    val done: Boolean = false,
+    val tracking: TrackingType = TrackingType.WEIGHTED,
 )

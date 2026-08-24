@@ -20,6 +20,12 @@ interface SessionPublisher {
      */
     suspend fun publish(sessionId: Long)
 
+    /** Replaces records for an edited session under its stable client ids. */
+    suspend fun replace(sessionId: Long) = publish(sessionId)
+
+    /** Deletes every Health Connect record owned by [sessionId]. */
+    suspend fun delete(sessionId: Long) = Unit
+
     /**
      * Publishes [sessionIds] — the backfill a late grant needs (#159), since
      * [publish] only ever fires at completion time and history written before
@@ -47,6 +53,8 @@ interface SessionPublisher {
      *  safety net if a device can't provide it at all). */
     object NoOp : SessionPublisher {
         override suspend fun publish(sessionId: Long) = Unit
+        override suspend fun replace(sessionId: Long) = Unit
+        override suspend fun delete(sessionId: Long) = Unit
 
         /** Nothing was published, so the caller must not record a backfill as done. */
         override suspend fun publishAll(sessionIds: List<Long>) = false

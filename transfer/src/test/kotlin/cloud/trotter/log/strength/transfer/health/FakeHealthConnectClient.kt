@@ -40,6 +40,7 @@ class FakeHealthConnectClient(
 
     /** What the provider would hold afterwards, keyed by client record id. */
     val storedRecords = linkedMapOf<String, Record>()
+    val deletedClientRecordIds = mutableListOf<String>()
 
     var insertCallCount = 0
         private set
@@ -73,7 +74,10 @@ class FakeHealthConnectClient(
         recordType: KClass<out Record>,
         recordIdsList: List<String>,
         clientRecordIdsList: List<String>,
-    ) = notUsed()
+    ) {
+        deletedClientRecordIds += clientRecordIdsList
+        clientRecordIdsList.forEach(storedRecords::remove)
+    }
 
     override suspend fun deleteRecords(recordType: KClass<out Record>, timeRangeFilter: TimeRangeFilter) = notUsed()
     override suspend fun <T : Record> readRecord(recordType: KClass<T>, recordId: String): ReadRecordResponse<T> = notUsed()

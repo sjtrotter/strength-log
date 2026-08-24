@@ -25,4 +25,11 @@ class AppHapticsTest {
         assertEquals(HapticFeedbackConstants.CONFIRM, AppHaptics.feedbackConstant(AppHaptics.Cue.FINISH, 33))
         assertEquals(HapticFeedbackConstants.REJECT, AppHaptics.feedbackConstant(AppHaptics.Cue.BOUNDARY, 33))
     }
+
+    @Test fun `semantic cues fall back below api 30`() {
+        assertEquals(HapticFeedbackConstants.VIRTUAL_KEY, AppHaptics.feedbackConstant(AppHaptics.Cue.CONFIRM_TICK, 29))
+        assertEquals(HapticFeedbackConstants.VIRTUAL_KEY, AppHaptics.feedbackConstant(AppHaptics.Cue.FINISH, 26))
+        assertEquals(HapticFeedbackConstants.LONG_PRESS, AppHaptics.feedbackConstant(AppHaptics.Cue.BOUNDARY, 26))
+        assertEquals(HapticFeedbackConstants.CLOCK_TICK, AppHaptics.feedbackConstant(AppHaptics.Cue.UNTICK, 26))
+    }
 }

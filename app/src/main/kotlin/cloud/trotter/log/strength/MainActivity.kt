@@ -15,6 +15,8 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.icon.DayIconManager
 import cloud.trotter.log.strength.ui.AppNavHost
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.rest.PhoneRestRuntime
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -27,6 +29,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var dayIconManager: DayIconManager
+    @Inject lateinit var phoneRestRuntime: PhoneRestRuntime
 
     // Keeps the home-screen launcher icon in sync with the rotation day
     // (#22). Only recorded here, not applied — swapping the enabled
@@ -83,6 +86,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        if (!isChangingConfigurations) {
+            lifecycleScope.launch { phoneRestRuntime.setForeground(false, repository.phoneRestFlow.first()) }
+        }
         // Rotation also passes through onStop but recreates into the same task,
         // which would reopen the #96 teardown window while the user is still
         // looking at the app — apply only on a genuine exit (a skipped apply
@@ -90,5 +96,14 @@ class MainActivity : ComponentActivity() {
         // (dayIndexForIcon null-guards) and an unchanged day is a no-op
         // (shouldReapplyIcon), so calling this on every real stop is safe.
         if (!isChangingConfigurations) dayIconManager.applyDayIcon(iconDayId)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        lifecycleScope.launch {
+            val rest = repository.phoneRestFlow.first()
+            rest?.let(phoneRestRuntime::arm)
+            phoneRestRuntime.setForeground(true, rest)
+        }
     }
 }

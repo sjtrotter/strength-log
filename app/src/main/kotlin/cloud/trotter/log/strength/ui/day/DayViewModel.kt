@@ -29,6 +29,10 @@ import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
+import cloud.trotter.log.strength.domain.standards.PhoneRestTimer
+import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.rest.RestRuntime
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
@@ -97,6 +101,8 @@ class DayViewModel @Inject constructor(
     @CivilDay private val today: Flow<LocalDate>,
     private val cardioClock: CardioClock,
     private val cardioAlarm: CardioAlarm,
+    private val phoneRestRuntime: RestRuntime = NoOpRestRuntime,
+    private val clock: java.time.Clock = java.time.Clock.systemUTC(),
 ) : ViewModel() {
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
@@ -186,12 +192,30 @@ class DayViewModel @Inject constructor(
         }
     }
 
+    private val phoneRestState = repo.phoneRestFlow.flatMapLatest { rest ->
+        if (rest == null) flowOf(null) else flow {
+            while (true) {
+                val now = clock.millis()
+                val remaining = PhoneRestTimer.remainingSeconds(rest, now)
+                emit(RestUiState(rest, remaining, PhoneRestTimer.remainingFraction(rest, now), remaining == 0))
+                if (remaining == 0) {
+                    phoneRestRuntime.complete()
+                    delay(REST_OVER_MS)
+                    phoneRestRuntime.cancel()
+                    repo.setPhoneRest(null)
+                    break
+                }
+                delay(REST_TICK_MS)
+            }
+        }
+    }
+
     val uiState: StateFlow<DayUiState> =
-        combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }) {
-                state, keepOn, history, anchors ->
+        combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
+                state, keepOn, history, anchors, rest ->
             val cardio = buildCardioState(state, history, anchors)
             maybeArmCardioBoundary(cardio, anchors)
-            state.copy(keepScreenOn = keepOn, cardio = cardio)
+            state.copy(keepScreenOn = keepOn, cardio = cardio, rest = rest)
         }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState(loading = true))
 
@@ -207,6 +231,11 @@ class DayViewModel @Inject constructor(
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
+
+    val notificationPermissionAsked = repo.phoneRestNotificationAskedFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
+
+    fun markNotificationPermissionAsked() = viewModelScope.launch { repo.markPhoneRestNotificationAsked() }
 
     /**
      * The cascade scrim (journal brief §2). Intentionally a bare ViewModel field
@@ -389,8 +418,36 @@ class DayViewModel @Inject constructor(
             } else {
                 repo.updateSets(day, programExerciseId, Slot.MAIN, newMain)
             }
+            if (checked && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
+                val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
+                val set = main.getOrNull(index)
+                if (card != null && set != null) {
+                    val settings = repo.restSettingsFlow.first()
+                    val seconds = RestPolicy.effectiveRestSeconds(set.kind, card.tracking, settings.overrides)
+                    val projected = DayScreenBuilder.markNext(uiState.value.exercises.map { current ->
+                        if (current.programExerciseId != programExerciseId) current
+                        else current.copy(rows = current.rows.map { row -> if (row.index == index) row.copy(done = true) else row })
+                    })
+                    val nextCard = projected.firstOrNull { it.rows.any { row -> row.isNext } }
+                    val nextRow = nextCard?.rows?.firstOrNull { it.isNext }
+                    val next = if (nextCard != null && nextRow != null) "${nextCard.title} ${nextRow.kindLabel}" else ""
+                    PhoneRestTimer.start(clock.millis(), seconds, next)?.let { rest ->
+                        repo.setPhoneRest(rest)
+                        phoneRestRuntime.arm(rest)
+                    }
+                }
+            }
         }
     }
+
+    fun adjustRest(seconds: Int) = viewModelScope.launch {
+        val current = repo.phoneRestFlow.first() ?: return@launch
+        val adjusted = PhoneRestTimer.adjust(current, clock.millis(), seconds)
+        repo.setPhoneRest(adjusted)
+        if (adjusted == null) phoneRestRuntime.cancel() else phoneRestRuntime.arm(adjusted)
+    }
+
+    fun skipRest() = viewModelScope.launch { repo.setPhoneRest(null); phoneRestRuntime.cancel() }
 
     fun addSet(programExerciseId: Long, isSuperset: Boolean) {
         val day = currentDay() ?: return
@@ -1006,6 +1063,8 @@ class DayViewModel @Inject constructor(
     }
 
     private companion object {
+        const val REST_TICK_MS = 250L
+        const val REST_OVER_MS = 2_000L
         const val KEY_VIEW_DAY = "day_view_override"
         const val KEY_COLLAPSE = "day_collapse_overrides"
         const val KEY_CARDIO_PLAN = "day_cardio_plan"

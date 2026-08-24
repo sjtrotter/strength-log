@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.sync.WearSyncPublisher
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.widget.TodayWidgetUpdater
+import cloud.trotter.log.strength.rest.PhoneRestRuntime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -35,6 +36,12 @@ class StrengthLogApp : Application() {
     @InstallIn(SingletonComponent::class)
     interface RepositoryEntryPoint {
         fun trackerRepository(): TrackerRepository
+    }
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface RestRuntimeEntryPoint {
+        fun phoneRestRuntime(): PhoneRestRuntime
     }
 
     /** The widget's observer rides the same lifetime and the same source as the

@@ -93,6 +93,9 @@ open class TrackerRepository(
     val cardioPrefsFlow: Flow<CardioPrefs> = settings.cardioPrefsFlow
     val unitFlow: Flow<WeightUnit> = settings.unitFlow
     val restSettingsFlow: Flow<RestSettings> = settings.restSettingsFlow
+    val phoneRestTimerEnabledFlow = settings.phoneRestTimerEnabledFlow
+    val phoneRestFlow = settings.phoneRestFlow
+    val phoneRestNotificationAskedFlow = settings.phoneRestNotificationAskedFlow
     /** The keep-screen-on preference (#125). Collected once, by the activity, so
      *  the wake follows the app rather than whichever screen happens to be
      *  composed — see `MainActivity`. */
@@ -155,6 +158,10 @@ open class TrackerRepository(
     suspend fun setRestTimerEnabled(enabled: Boolean) {
         settings.setRestTimerEnabled(enabled)
     }
+
+    suspend fun setPhoneRestTimerEnabled(enabled: Boolean) = settings.setPhoneRestTimerEnabled(enabled)
+    suspend fun setPhoneRest(rest: cloud.trotter.log.strength.domain.standards.PhoneRest?) = settings.setPhoneRest(rest)
+    suspend fun markPhoneRestNotificationAsked() = settings.markPhoneRestNotificationAsked()
 
     /** Writes one per-category rest override from the Setup editor; clamping to
      *  [cloud.trotter.log.strength.domain.standards.RestPolicy]'s bounds is

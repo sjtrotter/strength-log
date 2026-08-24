@@ -122,6 +122,7 @@ import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.CardTitle
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
+import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.SummaryLine
 import cloud.trotter.log.strength.ui.theme.Surface
@@ -309,6 +310,7 @@ fun DayScreen(
                 item(contentType = "spacer") { Spacer(Modifier.size(8.dp)) }
             }
             if (!standaloneCardio) BottomBar(
+                rest = state.rest,
                 nextDayId = state.nextDayId,
                 doneSets = state.doneSets,
                 totalSets = state.totalSets,
@@ -318,6 +320,8 @@ fun DayScreen(
                 onConfirmPartial = { confirmingPartialFinish = true },
                 keepScreenOn = state.keepScreenOn,
                 onKeepScreenOnChange = actions.onKeepScreenOnChange,
+                onAdjustRest = actions.onAdjustRest,
+                onSkipRest = actions.onSkipRest,
             )
         }
     }
@@ -1249,6 +1253,7 @@ private fun formatCardioTime(seconds: Int): String = "%d:%02d".format(seconds / 
  */
 @Composable
 private fun BottomBar(
+    rest: RestUiState?,
     nextDayId: String?,
     doneSets: Int,
     totalSets: Int,
@@ -1258,6 +1263,8 @@ private fun BottomBar(
     onConfirmPartial: () -> Unit,
     keepScreenOn: Boolean,
     onKeepScreenOnChange: (Boolean) -> Unit,
+    onAdjustRest: (Int) -> Unit,
+    onSkipRest: () -> Unit,
 ) {
     val verticalPadding = chromeVerticalPadding()
     Column(Modifier.fillMaxWidth().background(Background)) {
@@ -1267,6 +1274,17 @@ private fun BottomBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // The last rest is kept so the pill fades out with its numbers
+            // rather than vanishing the frame the timer clears.
+            var shownRest by remember { mutableStateOf(rest) }
+            if (rest != null) shownRest = rest
+            AnimatedVisibility(
+                visible = rest != null,
+                enter = fadeIn(tween(160)),
+                exit = fadeOut(tween(160)),
+            ) {
+                shownRest?.let { RestPill(it, accent, onAdjustRest, onSkipRest) }
+            }
             DoneButton(
                 nextDayId = nextDayId,
                 doneSets = doneSets,
@@ -1283,6 +1301,33 @@ private fun BottomBar(
                 accent = accent,
                 onAccent = onAccent,
             )
+        }
+    }
+}
+
+/** M3 has no compact countdown/action cluster with a draining typographic
+ * hairline; composing text buttons keeps the one bespoke piece to that layout. */
+@Composable
+private fun RestPill(state: RestUiState, accent: Color, onAdjust: (Int) -> Unit, onSkip: () -> Unit) {
+    Column(Modifier.widthIn(min = 112.dp, max = 150.dp)) {
+        Text(
+            if (state.over) stringResource(R.string.rest_over) else "%d:%02d".format(state.remainingSeconds / 60, state.remainingSeconds % 60),
+            color = accent,
+            style = DisplayXl.copy(fontSize = 24.sp, lineHeight = 26.sp),
+        )
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Border)) {
+            Box(Modifier.fillMaxWidth(state.remainingFraction).height(1.dp).background(accent))
+        }
+        Row {
+            TextButton(onClick = { onAdjust(-15) }, contentPadding = PaddingValues(horizontal = 3.dp)) {
+                Text(stringResource(R.string.rest_minus_15), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
+            TextButton(onClick = { onAdjust(15) }, contentPadding = PaddingValues(horizontal = 3.dp)) {
+                Text(stringResource(R.string.rest_plus_15), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
+            TextButton(onClick = onSkip, contentPadding = PaddingValues(horizontal = 3.dp)) {
+                Text(stringResource(R.string.rest_skip), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
@@ -1510,6 +1555,8 @@ data class DayActions(
     val onStartCardio: () -> Unit = {},
     val onStopCardio: () -> Unit = {},
     val onCardioScreenLive: (Boolean) -> Unit = {},
+    val onAdjustRest: (Int) -> Unit = {},
+    val onSkipRest: () -> Unit = {},
 )
 
 // --- preview: the reference scenario (day_screen_reference.html) ------------

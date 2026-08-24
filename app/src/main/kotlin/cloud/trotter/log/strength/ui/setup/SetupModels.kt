@@ -35,6 +35,7 @@ data class SetupUiState(
     val bodyweightDisplay: Double = LifterConfig().bodyweightLb.toDouble(),
     val goalPreview: List<GoalPreviewItem> = emptyList(),
     val restTimerEnabled: Boolean = true,
+    val phoneRestTimerEnabled: Boolean = true,
     val restCategories: List<RestCategoryUiState> =
         RestCategory.entries.map { RestCategoryUiState(it, RestPolicy.defaultSeconds(it)) },
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
@@ -52,6 +53,7 @@ data class SetupActions(
     val onUnitToggle: (WeightUnit) -> Unit,
     val onThemePreferenceChange: (ThemePreference) -> Unit = {},
     val onRestTimerEnabledChange: (Boolean) -> Unit,
+    val onPhoneRestTimerEnabledChange: (Boolean) -> Unit = {},
     val onRestOverrideChange: (RestCategory, Int) -> Unit,
     val onRestOverridesReset: () -> Unit,
     val onRerunWizard: () -> Unit,

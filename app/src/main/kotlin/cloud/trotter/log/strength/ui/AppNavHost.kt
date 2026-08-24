@@ -11,6 +11,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import android.Manifest
+import android.os.Build
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -291,6 +295,15 @@ private fun DayRoute(
     // this is the call site that hands it to the chooser.
     val context = LocalContext.current
     val pendingShare by viewModel.pendingShare.collectAsStateWithLifecycle()
+    val notificationAsked by viewModel.notificationPermissionAsked.collectAsStateWithLifecycle()
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(state.rest, notificationAsked) {
+        if (state.rest != null && !notificationAsked && Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            viewModel.markNotificationPermissionAsked()
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     LaunchedEffect(pendingShare) {
         pendingShare?.let { intent ->
             context.startActivity(intent)
@@ -314,6 +327,8 @@ private fun DayRoute(
             onStartCardio = viewModel::startCardio,
             onStopCardio = viewModel::stopCardio,
             onCardioScreenLive = viewModel::setCardioScreenLive,
+            onAdjustRest = viewModel::adjustRest,
+            onSkipRest = viewModel::skipRest,
             onCreateExercise = onCreateExercise,
             onSetUpProgram = onSetUpProgram,
         ),
@@ -364,6 +379,7 @@ private fun SetupRoute(
             onUnitToggle = viewModel::setUnit,
             onThemePreferenceChange = viewModel::setThemePreference,
             onRestTimerEnabledChange = viewModel::setRestTimerEnabled,
+            onPhoneRestTimerEnabledChange = viewModel::setPhoneRestTimerEnabled,
             onRestOverrideChange = viewModel::setRestOverride,
             onRestOverridesReset = viewModel::clearRestOverrides,
             onRerunWizard = onRerunWizard,

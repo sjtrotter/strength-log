@@ -373,7 +373,7 @@ private fun EditableExerciseGroupRow(
                     )
                 }
                 Spacer(Modifier.weight(1f))
-                CheckmarkToggle(set.done) { onDoneChange(set.id, it) }
+                CheckmarkToggle(checked = set.done, onCheckedChange = { onDoneChange(set.id, it) })
             }
         }
     }

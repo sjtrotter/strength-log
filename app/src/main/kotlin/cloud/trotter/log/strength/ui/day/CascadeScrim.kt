@@ -112,6 +112,8 @@ private fun CascadeLiftRow(lift: CascadeLift, dayIndex: Int, index: Int) {
         if (newGoal != null) countTarget = newGoal
     }
 
+    // Read in composition; drawBehind is not a composable scope.
+    val strikeColor = TextSecondary
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             lift.name.uppercase(),
@@ -127,7 +129,7 @@ private fun CascadeLiftRow(lift: CascadeLift, dayIndex: Int, index: Int) {
             modifier = Modifier.drawBehind {
                 val y = size.height / 2f
                 drawLine(
-                    color = TextSecondary,
+                    color = strikeColor,
                     start = Offset(0f, y),
                     end = Offset(size.width * strike.value, y),
                     strokeWidth = 2.dp.toPx(),

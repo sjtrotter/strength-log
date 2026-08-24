@@ -26,10 +26,10 @@ object AppIcons {
             ) {
                 moveTo(7f, 1.5f); horizontalLineTo(13f); lineTo(14f, 5f)
                 moveTo(7f, 18.5f); horizontalLineTo(13f); lineTo(14f, 15f)
-                moveTo(6f, 5f); horizontalLineTo(14f); quadraticBezierTo(16f, 5f, 16f, 7f)
-                verticalLineTo(13f); quadraticBezierTo(16f, 15f, 14f, 15f)
-                horizontalLineTo(6f); quadraticBezierTo(4f, 15f, 4f, 13f)
-                verticalLineTo(7f); quadraticBezierTo(4f, 5f, 6f, 5f)
+                moveTo(6f, 5f); horizontalLineTo(14f); quadTo(16f, 5f, 16f, 7f)
+                verticalLineTo(13f); quadTo(16f, 15f, 14f, 15f)
+                horizontalLineTo(6f); quadTo(4f, 15f, 4f, 13f)
+                verticalLineTo(7f); quadTo(4f, 5f, 6f, 5f)
                 close()
             }
         }.build()

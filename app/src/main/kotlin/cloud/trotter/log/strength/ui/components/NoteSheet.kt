@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun NoteSheet(initialText: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
     var text by rememberSaveable(initialText) { mutableStateOf(initialText) }
     ModalBottomSheet(onDismissRequest = onDismiss) {

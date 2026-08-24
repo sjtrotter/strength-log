@@ -13,6 +13,9 @@ re-deriving design.
 - `m4-transfer.md` — #16 CSV, #17 Health Connect, #18 auto-backup.
 - `m5-wear.md` — #19 watch UI, #20 Data Layer sync, including the wire
   protocol both build against.
+- `feel-review-2026-08-24.md` — the two-model (Claude + Codex) product/feel
+  review before the paid launch: diagnosis, 21 ranked items, owner decisions.
+  `-codex-raw.md` beside it is Codex's unedited report.
 - `m6-polish-ledger.md` — #21–#23 plus the debt ledger reviews have
   accumulated (long-press-repeat, OFL packaging, manual verification gates).
 

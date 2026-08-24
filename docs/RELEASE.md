@@ -140,8 +140,9 @@ the listing. The publish pipeline (§6) only works after this is done once.
 
 1. **Developer account** — play.google.com/console, one-time $25.
 2. **Decide free vs paid FIRST.** A free app can never become paid under the
-   same applicationId — the decision is permanent at first publish. (The
-   2026-08-06 research note recommended paid at ~$4.99; decide before step 3.)
+   same applicationId — the decision is permanent at first publish.
+   **Decided 2026-08-24: paid, $4.99 USD, with every international price set
+   by hand to match rather than Play's auto-conversion.**
 3. **Create the app** (`cloud.trotter.log.strength`). The Play API cannot
    create apps; the first AAB of each form factor is also easiest uploaded
    by hand here, after which the pipeline takes over.

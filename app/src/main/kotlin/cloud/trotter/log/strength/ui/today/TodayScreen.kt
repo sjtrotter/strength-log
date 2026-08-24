@@ -250,24 +250,33 @@ private fun Hairline() {
 }
 
 @Composable
-private fun LiftRow(lift: TodayLift) {
+internal fun LiftRow(
+    name: String,
+    isMain: Boolean,
+    trailing: @Composable () -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            lift.name,
-            color = if (lift.isMain) TextPrimary else TextSecondary,
+            name,
+            color = if (isMain) TextPrimary else TextSecondary,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
         )
-        Text(
-            pluralStringResource(R.plurals.today_lift_set_count, lift.setCount, lift.setCount),
-            color = TextFaint,
-            style = MaterialTheme.typography.bodySmall,
-        )
+        trailing()
     }
+}
+
+@Composable
+private fun LiftRow(lift: TodayLift) = LiftRow(lift.name, lift.isMain) {
+    Text(
+        pluralStringResource(R.plurals.today_lift_set_count, lift.setCount, lift.setCount),
+        color = TextFaint,
+        style = MaterialTheme.typography.bodySmall,
+    )
 }
 
 @Composable

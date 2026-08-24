@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
+import cloud.trotter.log.strength.ui.components.BodyweightInput
 
 /**
  * Pure decision logic behind the setup screen (spec §8.4): the live main-lift
@@ -46,12 +47,12 @@ object SetupStateBuilder {
 
     /** [cfg]'s canonical-lb bodyweight converted to [unit] for the stepper's display value. */
     fun bodyweightDisplay(cfg: LifterConfig, unit: WeightUnit): Double =
-        unit.fromLb(cfg.bodyweightLb.toDouble())
+        BodyweightInput.display(cfg.bodyweightLb, unit)
 
     /** Converts a stepper's [unit]-display value back to the whole-pound canonical storage
      *  ([LifterConfig.bodyweightLb] is an Int — spec goal math is lb-integer-calibrated). */
     fun bodyweightLb(displayValue: Double, unit: WeightUnit): Int =
-        Math.round(unit.toLb(displayValue)).toInt()
+        BodyweightInput.canonicalLb(displayValue, unit)
 
     /**
      * The rest-timer editor's rows (W2c): every [RestCategory] paired with its

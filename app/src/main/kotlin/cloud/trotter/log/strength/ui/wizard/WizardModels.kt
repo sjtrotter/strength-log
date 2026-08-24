@@ -10,6 +10,8 @@ import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
 
 /**
@@ -24,6 +26,7 @@ enum class WizardStep {
     CARDIO,
     ABOUT_YOU,
     EQUIPMENT,
+    ROTATION,
 }
 
 /**
@@ -39,6 +42,8 @@ data class WizardUiState(
     val answers: WizardAnswers = WizardAnswers(),
     val splitOptions: SplitDefaults.Options = SplitDefaults.optionsFor(WizardAnswers().daysPerWeek),
     val activeAnchorIds: List<String> = emptyList(),
+    val unit: WeightUnit = WeightUnit.LB,
+    val previewProgram: Program? = null,
     val isComplete: Boolean = false,
     val restore: WizardRestoreState = WizardRestoreState(),
 ) {
@@ -75,6 +80,7 @@ data class WizardActions(
     val onCardioPlacementChange: (CardioPlacement) -> Unit,
     val onFiveKChange: (Boolean) -> Unit,
     val onBodyweightChange: (Int) -> Unit,
+    val onUnitChange: (WeightUnit) -> Unit,
     val onAgeChange: (Int) -> Unit,
     val onLevelChange: (ExperienceLevel) -> Unit,
     val onEquipmentToggle: (Equipment) -> Unit,

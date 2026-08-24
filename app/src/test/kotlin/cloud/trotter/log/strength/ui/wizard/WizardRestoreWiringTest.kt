@@ -125,7 +125,7 @@ class WizardRestoreWiringTest {
     }
 
     private fun newViewModel(): WizardViewModel =
-        WizardViewModel(repo, SavedStateHandle(), context, service, appScope).also { vms += it }
+        WizardViewModel(repo, SavedStateHandle(), context, service, appScope, DeviceWeightUnitProvider { cloud.trotter.log.strength.domain.units.WeightUnit.LB }).also { vms += it }
 
     /** A minimal but valid backup: one day, one real catalog exercise, and the
      *  wizard flag the test is about. */

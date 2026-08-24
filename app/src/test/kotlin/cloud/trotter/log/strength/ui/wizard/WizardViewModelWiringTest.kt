@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -21,6 +22,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.DayViewModel
@@ -173,6 +175,7 @@ class WizardViewModelWiringTest {
     private fun newViewModel(
         handle: SavedStateHandle = SavedStateHandle(),
         repository: TrackerRepository = repo,
+        defaultUnit: WeightUnit = WeightUnit.LB,
     ): WizardViewModel =
         WizardViewModel(
             repository,
@@ -180,6 +183,7 @@ class WizardViewModelWiringTest {
             context,
             BackupService(repository, journal),
             appScope,
+            DeviceWeightUnitProvider { defaultUnit },
         ).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
@@ -206,12 +210,52 @@ class WizardViewModelWiringTest {
 
         repeat(WizardStep.entries.size - 1) { vm.onNext() }
         advanceUntilIdle()
-        assertEquals(WizardStep.EQUIPMENT, vm.uiState.value.step)
+        assertEquals(WizardStep.ROTATION, vm.uiState.value.step)
         assertFalse(vm.uiState.value.isComplete)
 
         vm.onBack()
         advanceUntilIdle()
-        assertEquals(WizardStep.ABOUT_YOU, vm.uiState.value.step)
+        assertEquals(WizardStep.EQUIPMENT, vm.uiState.value.step)
+    }
+
+    @Test
+    fun metricLocale_defaultsToKg_onFirstRun() = runVmTest {
+        val vm = newViewModel(defaultUnit = WeightUnit.KG)
+        advanceUntilIdle()
+
+        assertEquals(WeightUnit.KG, vm.uiState.value.unit)
+    }
+
+    @Test
+    fun enteringRotation_generatesTheCurrentAnswersPreview() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        vm.setDaysPerWeek(3)
+
+        repeat(WizardStep.ROTATION.ordinal) { vm.onNext() }
+        advanceUntilIdle()
+
+        val expected = ProgramGenerator.generate(vm.uiState.value.answers).program
+        assertEquals(
+            expected.days.map { it.exercises.first { exercise -> exercise.isMain }.exerciseId },
+            vm.uiState.value.previewProgram!!.days.map { it.exercises.first { exercise -> exercise.isMain }.exerciseId },
+        )
+    }
+
+    @Test
+    fun backThenNext_regeneratesTheRotationPreview() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        repeat(WizardStep.ROTATION.ordinal) { vm.onNext() }
+        advanceUntilIdle()
+
+        vm.onBack()
+        vm.setDaysPerWeek(3)
+        vm.onNext()
+        advanceUntilIdle()
+
+        assertEquals(ProgramGenerator.generate(vm.uiState.value.answers).program, vm.uiState.value.previewProgram)
+        assertEquals(3, vm.uiState.value.previewProgram!!.days.size)
     }
 
     // --- field setters + SavedStateHandle round trip ----------------------------
@@ -283,6 +327,7 @@ class WizardViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         vm.setEmphasis(GoalEmphasis.PHYSIQUE)
+        vm.setUnit(WeightUnit.KG)
 
         repeat(WizardStep.entries.size - 1) { vm.onNext() }
         vm.onNext() // last step -> finish()
@@ -291,6 +336,7 @@ class WizardViewModelWiringTest {
         assertTrue(vm.uiState.value.isComplete)
         assertTrue(repo.wizardCompleteFlow.first())
         assertEquals(GoalEmphasis.PHYSIQUE, repo.wizardAnswersFlow.first().config.emphasis)
+        assertEquals(WeightUnit.KG, repo.unitFlow.first())
         assertEquals(4, repo.programFlow.first().days.size) // spec default: 4-day full-body
     }
 

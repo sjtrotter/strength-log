@@ -232,7 +232,7 @@ fun SetRow(
                     inputUnit = weightUnit,
                     decimalInput = true,
                     onNext = if (tracking == TrackingType.WEIGHTED) {
-                        { repsEditorRequest++ }
+                        { repsEditorRequest += 1 }
                     } else {
                         onNext
                     },

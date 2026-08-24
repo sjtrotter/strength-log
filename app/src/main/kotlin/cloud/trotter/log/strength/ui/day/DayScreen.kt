@@ -273,6 +273,9 @@ fun DayScreen(
                             } ?: -1
                             if (nextCardIndex >= 0) {
                                 scope.launch {
+                                    // Let the body finish shrinking (320ms) first, or the
+                                    // scroll aims at geometry that is still moving.
+                                    delay(320)
                                     val viewportHeight = listState.layoutInfo.run { viewportEndOffset - viewportStartOffset }
                                     listState.animateScrollToItem(nextCardIndex + 1, -(viewportHeight / 3))
                                 }

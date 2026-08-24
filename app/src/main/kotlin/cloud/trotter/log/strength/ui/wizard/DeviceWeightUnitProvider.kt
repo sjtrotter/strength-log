@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.wizard
 
 import android.content.Context
+import android.os.Build
 import android.icu.util.LocaleData
 import android.icu.util.ULocale
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -16,10 +17,13 @@ class AndroidDeviceWeightUnitProvider @Inject constructor(
 ) : DeviceWeightUnitProvider {
     override fun defaultUnit(): WeightUnit {
         val locale = context.resources.configuration.locales[0]
-        return if (LocaleData.getMeasurementSystem(ULocale.forLocale(locale)) == LocaleData.MeasurementSystem.SI) {
-            WeightUnit.KG
+        val metric = if (Build.VERSION.SDK_INT >= 28) {
+            LocaleData.getMeasurementSystem(ULocale.forLocale(locale)) == LocaleData.MeasurementSystem.SI
         } else {
-            WeightUnit.LB
+            // ICU's measurement data arrived in API 28; below it, the three
+            // customary-unit countries are the whole exception list.
+            locale.country !in setOf("US", "LR", "MM")
         }
+        return if (metric) WeightUnit.KG else WeightUnit.LB
     }
 }

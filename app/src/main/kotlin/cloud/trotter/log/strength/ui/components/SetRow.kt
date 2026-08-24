@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -150,6 +151,9 @@ fun SetRow(
     showTimedWeight: Boolean = false,
     isNext: Boolean = false,
     trailingLine: UiText? = null,
+    weightUnit: String = "lb",
+    onNext: (() -> Unit)? = null,
+    weightEditorRequest: Int = 0,
 ) {
     val supersetPartnerDescription = stringResource(R.string.set_row_superset_partner_description)
     val decreaseWeightDescription = stringResource(R.string.set_row_decrease_weight_action)
@@ -160,6 +164,7 @@ fun SetRow(
     val increaseHoldDescription = stringResource(R.string.set_row_increase_hold_action)
     var previousWeight by remember { mutableDoubleStateOf(weight) }
     var selfEdited by remember { mutableStateOf(false) }
+    var repsEditorRequest by rememberSaveable { mutableIntStateOf(0) }
     val flash = remember { Animatable(0f) }
 
     LaunchedEffect(weight) {
@@ -223,6 +228,15 @@ fun SetRow(
                     valueColor = lerp(TextPrimary, accent, flash.value),
                     decreaseDescription = decreaseWeightDescription,
                     increaseDescription = increaseWeightDescription,
+                    inputLabel = stringResource(R.string.stepper_weight_label),
+                    inputUnit = weightUnit,
+                    decimalInput = true,
+                    onNext = if (tracking == TrackingType.WEIGHTED) {
+                        { repsEditorRequest++ }
+                    } else {
+                        onNext
+                    },
+                    editorRequest = weightEditorRequest,
                 )
             }
             when (tracking) {
@@ -238,6 +252,11 @@ fun SetRow(
                         valueMinWidth = 36.dp,
                         decreaseDescription = decreaseRepsDescription,
                         increaseDescription = increaseRepsDescription,
+                        inputLabel = stringResource(R.string.stepper_reps_label),
+                        inputUnit = stringResource(R.string.stepper_reps_unit),
+                        round = { Math.round(it).toDouble() },
+                        editorRequest = repsEditorRequest,
+                        onNext = onNext,
                     )
                 }
                 TrackingType.REPS -> {
@@ -251,6 +270,9 @@ fun SetRow(
                         valueMinWidth = 36.dp,
                         decreaseDescription = decreaseRepsDescription,
                         increaseDescription = increaseRepsDescription,
+                        inputLabel = stringResource(R.string.stepper_reps_label),
+                        inputUnit = stringResource(R.string.stepper_reps_unit),
+                        round = { Math.round(it).toDouble() },
                     )
                 }
                 TrackingType.TIMED -> {
@@ -262,6 +284,12 @@ fun SetRow(
                         valueTextStyle = StepperRepsValue,
                         decreaseDescription = decreaseHoldDescription,
                         increaseDescription = increaseHoldDescription,
+                        inputLabel = stringResource(R.string.stepper_seconds_label),
+                        inputUnit = stringResource(R.string.stepper_seconds_unit),
+                        round = { secondsValue ->
+                            val increment = SecondsStepper.increment(secondsValue.toInt())
+                            Math.round(secondsValue / increment) * increment.toDouble()
+                        },
                     )
                     if (showTimedWeight) weightStepper()
                 }

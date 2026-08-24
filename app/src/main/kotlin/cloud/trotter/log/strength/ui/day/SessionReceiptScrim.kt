@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -22,9 +26,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +51,8 @@ import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * The session receipt (#126): the last thing a finished workout says. A ledger,
@@ -67,6 +76,25 @@ internal fun SessionReceiptScrim(
     modifier: Modifier = Modifier,
 ) {
     val accent = dayAccent(receipt.dayIndex)
+    val headlineScale = remember(receipt.sessionId) { Animatable(0.92f) }
+    val ledgerRows = 1 + (if (receipt.strongest != null) 1 else 0) + (if (receipt.nextDayLine != null) 1 else 0)
+    val rowProgress = remember(receipt.sessionId, ledgerRows) {
+        List(ledgerRows) { Animatable(0f) }
+    }
+    LaunchedEffect(receipt.sessionId) {
+        launch {
+            headlineScale.animateTo(
+                1f,
+                spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
+            )
+        }
+        rowProgress.forEachIndexed { index, progress ->
+            launch {
+                delay(index * 60L)
+                progress.animateTo(1f, tween(180))
+            }
+        }
+    }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -98,6 +126,10 @@ internal fun SessionReceiptScrim(
                 color = accent,
                 style = DisplayXl,
                 maxLines = 2,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = headlineScale.value
+                    scaleY = headlineScale.value
+                },
             )
             if (receipt.dayTitle.isNotBlank()) {
                 Text(
@@ -109,21 +141,30 @@ internal fun SessionReceiptScrim(
 
             Spacer(Modifier.size(24.dp))
             ReceiptRule()
-            ReceiptRow(label = stringResource(R.string.receipt_sets_label), value = receipt.setCount.toString())
+            LedgerEntrance(rowProgress[0]) {
+                ReceiptRow(label = stringResource(R.string.receipt_sets_label), value = receipt.setCount.toString())
+            }
+            var rowIndex = 1
             receipt.strongest?.let { lift ->
                 ReceiptRule()
-                ReceiptRow(label = stringResource(R.string.receipt_strongest_label), value = lift.value)
-                Text(
-                    text = lift.name.uppercase(),
-                    color = TextFaint,
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                )
+                LedgerEntrance(rowProgress[rowIndex++]) {
+                    Column {
+                        ReceiptRow(label = stringResource(R.string.receipt_strongest_label), value = lift.value)
+                        Text(
+                            text = lift.name.uppercase(),
+                            color = TextFaint,
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        )
+                    }
+                }
             }
             receipt.nextDayLine?.let { next ->
                 ReceiptRule()
-                ReceiptRow(label = stringResource(R.string.receipt_next_label), value = next, valueColor = TextSecondary, big = false)
+                LedgerEntrance(rowProgress[rowIndex]) {
+                    ReceiptRow(label = stringResource(R.string.receipt_next_label), value = next, valueColor = TextSecondary, big = false)
+                }
             }
             ReceiptRule()
 
@@ -153,6 +194,18 @@ internal fun SessionReceiptScrim(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LedgerEntrance(progress: Animatable<Float, *>, content: @Composable () -> Unit) {
+    Box(
+        Modifier.graphicsLayer {
+            alpha = progress.value
+            translationY = (1f - progress.value) * 12.dp.toPx()
+        },
+    ) {
+        content()
     }
 }
 

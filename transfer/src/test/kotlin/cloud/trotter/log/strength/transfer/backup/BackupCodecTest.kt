@@ -115,8 +115,10 @@ class BackupCodecTest {
             cardioJson = """{"label":"Easy Zone 2","detail":"25 min","hard":false}""",
             kind = "CARDIO",
         )
-        val decoded = codec.decode(codec.encode(document(program = listOf(cardioDay))))
-        assertEquals(cardioDay, decoded.program.single())
+        // Alongside the strength days: a backup whose only day is cardio has no
+        // day for the rotation pointer to name, and the codec rightly refuses it.
+        val decoded = codec.decode(codec.encode(document(program = document().program + cardioDay)))
+        assertEquals(cardioDay, decoded.program.last())
     }
 
     @Test

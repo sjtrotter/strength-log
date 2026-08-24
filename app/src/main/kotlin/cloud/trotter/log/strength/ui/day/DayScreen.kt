@@ -175,6 +175,7 @@ fun DayScreen(
     // Rare enough to be worth a question (#124) — unlike the × on a set row,
     // which is frequent enough to be worth an undo instead.
     var confirmingClearChecks by rememberSaveable { mutableStateOf(false) }
+    var confirmingPartialFinish by rememberSaveable { mutableStateOf(false) }
     // Only the newest removal is on offer: an older entry's index describes a
     // list that no longer exists, so drawing its line would point at the wrong
     // gap. Taking this one reveals the next (see DayViewModel.removedSets).
@@ -308,9 +309,12 @@ fun DayScreen(
             }
             BottomBar(
                 nextDayId = state.nextDayId,
+                doneSets = state.doneSets,
+                totalSets = state.totalSets,
                 accent = accent,
                 onAccent = onAccent,
                 onDone = actions.onDone,
+                onConfirmPartial = { confirmingPartialFinish = true },
                 keepScreenOn = state.keepScreenOn,
                 onKeepScreenOnChange = actions.onKeepScreenOnChange,
             )
@@ -324,6 +328,19 @@ fun DayScreen(
             accent = accent,
             onDismiss = { showEditSheet = false },
             onCreateExercise = actions.onCreateExercise,
+        )
+    }
+
+    if (confirmingPartialFinish) {
+        FinishDayConfirmDialog(
+            doneSets = state.doneSets,
+            totalSets = state.totalSets,
+            onConfirm = {
+                confirmingPartialFinish = false
+                AppHaptics.perform(view, AppHaptics.Cue.FINISH)
+                actions.onDone()
+            },
+            onDismiss = { confirmingPartialFinish = false },
         )
     }
 
@@ -1222,9 +1239,12 @@ private fun formatCardioTime(seconds: Int): String = "%d:%02d".format(seconds / 
 @Composable
 private fun BottomBar(
     nextDayId: String?,
+    doneSets: Int,
+    totalSets: Int,
     accent: Color,
     onAccent: Color,
     onDone: () -> Unit,
+    onConfirmPartial: () -> Unit,
     keepScreenOn: Boolean,
     onKeepScreenOnChange: (Boolean) -> Unit,
 ) {
@@ -1238,9 +1258,12 @@ private fun BottomBar(
         ) {
             DoneButton(
                 nextDayId = nextDayId,
+                doneSets = doneSets,
+                totalSets = totalSets,
                 accent = accent,
                 onAccent = onAccent,
                 onClick = onDone,
+                onConfirmPartial = onConfirmPartial,
                 modifier = Modifier.weight(1f),
             )
             KeepScreenOnSwitch(
@@ -1256,12 +1279,16 @@ private fun BottomBar(
 @Composable
 private fun DoneButton(
     nextDayId: String?,
+    doneSets: Int,
+    totalSets: Int,
     accent: Color,
     onAccent: Color,
     onClick: () -> Unit,
+    onConfirmPartial: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
+    val state = DayScreenBuilder.doneButtonState(doneSets, totalSets)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -1271,9 +1298,16 @@ private fun DoneButton(
     )
     Button(
         onClick = {
-            AppHaptics.perform(view, AppHaptics.Cue.FINISH)
-            onClick()
+            when (state) {
+                DoneButtonState.ALL_DONE -> {
+                    AppHaptics.perform(view, AppHaptics.Cue.FINISH)
+                    onClick()
+                }
+                DoneButtonState.PARTIAL -> onConfirmPartial()
+                DoneButtonState.NOTHING_LOGGED -> Unit
+            }
         },
+        enabled = state != DoneButtonState.NOTHING_LOGGED,
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
             // heightIn(min), not height (A7 font-scale): the longer "ADVANCE TO
@@ -1282,16 +1316,41 @@ private fun DoneButton(
             .heightIn(min = 56.dp),
         interactionSource = interactionSource,
         shape = MaterialTheme.shapes.large,
-        colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = accent,
+            contentColor = onAccent,
+            disabledContainerColor = Surface2,
+            disabledContentColor = TextFaint,
+        ),
         contentPadding = PaddingValues(vertical = 8.dp),
     ) {
         Text(
-            text = if (nextDayId != null) stringResource(R.string.day_done_advance_button, nextDayId.uppercase()) else stringResource(R.string.day_done_button),
+            text = when (state) {
+                DoneButtonState.ALL_DONE -> if (nextDayId != null) stringResource(R.string.day_done_advance_button, nextDayId.uppercase()) else stringResource(R.string.day_done_button)
+                DoneButtonState.PARTIAL -> stringResource(R.string.day_finish_partial_button, doneSets, totalSets)
+                DoneButtonState.NOTHING_LOGGED -> stringResource(R.string.day_nothing_logged_button)
+            },
             style = DoneButtonLabel,
             textAlign = TextAlign.Center,
             maxLines = 2,
         )
     }
+}
+
+@Composable
+private fun FinishDayConfirmDialog(
+    doneSets: Int,
+    totalSets: Int,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AppAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets)) },
+        text = { Text(stringResource(R.string.day_finish_partial_confirm_body)) },
+        confirmButton = { DialogAction(stringResource(R.string.day_finish_partial_confirm_button), Done, onConfirm) },
+        dismissButton = { DialogAction(stringResource(R.string.day_finish_partial_dismiss_button), TextSecondary, onDismiss) },
+    )
 }
 
 /** The scroll's tail: the rotation blurb and the quiet "clear checkmarks" action. */

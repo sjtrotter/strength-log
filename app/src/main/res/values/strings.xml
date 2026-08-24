@@ -374,6 +374,12 @@
 <string name="day_cardio_logged">LOGGED · %1$s</string>
 <string name="day_done_advance_button">DONE — ADVANCE TO DAY %1$s</string>
 <string name="day_done_button">DONE</string>
+<string name="day_finish_partial_button">FINISH · %1$d OF %2$d SETS</string>
+<string name="day_nothing_logged_button">NOTHING LOGGED</string>
+<string name="day_finish_partial_confirm_title">Finish with %1$d of %2$d sets?</string>
+<string name="day_finish_partial_confirm_body">The day is recorded as it stands and the rotation moves on.</string>
+<string name="day_finish_partial_confirm_button">FINISH</string>
+<string name="day_finish_partial_dismiss_button">KEEP GOING</string>
 <string name="day_rotation_footer">Rotation, not calendar — days advance when you finish them, not on a schedule. The weights you log are your living record; GOALs are a reference, not a rule.</string>
 <string name="day_clear_checks_confirm_title">Clear today\'s checkmarks?</string>
 <string name="day_clear_checks_confirm_body">Every ✓ on this day comes off. The weights and reps you logged stay where they are.</string>

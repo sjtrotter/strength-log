@@ -35,6 +35,8 @@ data class SessionReceipt(
     val headline: String,
     /** The completed day's title ("LOWER"); blank when the day has none. */
     val dayTitle: String,
+    val completedSetCount: Int,
+    val totalSetCount: Int,
     /** Rounds actually ticked — the count the header was showing a moment ago
      *  (see [Slot.isRound]), not a second way of counting the same day. */
     val setCount: Int,
@@ -82,6 +84,8 @@ object SessionReceiptBuilder {
         dayId: String,
         dayIndex: Int,
         dayTitle: String,
+        completedSetCount: Int,
+        totalSetCount: Int,
         sessionSets: List<SessionSetEntity>,
         nextDayId: String?,
         nextDayTitle: String,
@@ -95,8 +99,14 @@ object SessionReceiptBuilder {
         return SessionReceipt(
             sessionId = sessionId,
             dayIndex = dayIndex,
-            headline = "DAY ${dayId.uppercase()} COMPLETE",
+            headline = if (completedSetCount == totalSetCount) {
+                "DAY ${dayId.uppercase()} COMPLETE"
+            } else {
+                "DAY ${dayId.uppercase()} ENDED · $completedSetCount OF $totalSetCount"
+            },
             dayTitle = dayTitle,
+            completedSetCount = completedSetCount,
+            totalSetCount = totalSetCount,
             setCount = done.count { Slot.isRound(it.slot) },
             strongest = strongest?.let {
                 ReceiptLift(it.exerciseName, SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit))

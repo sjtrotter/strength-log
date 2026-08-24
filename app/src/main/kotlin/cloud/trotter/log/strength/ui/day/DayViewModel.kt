@@ -533,6 +533,14 @@ class DayViewModel @Inject constructor(
         val day = currentDay() ?: return
         closeUndoWindow()
         mutate {
+            // Counted from the log itself, under the lock: uiState is either
+            // the loading placeholder (nobody collecting) or fed by a flow
+            // that seeds under this same lock, so waiting on it here would
+            // deadlock. Rounds only — the header counts the same way.
+            val rounds = repo.logFlow(day).first().filter { Slot.isRound(it.slot) }
+            val completedSetCount = rounds.sumOf { track -> track.sets.count { it.done } }
+            val totalSetCount = rounds.sumOf { it.sets.size }
+            if (completedSetCount == 0) return@mutate
             val program = repo.programFlow.first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
             val dayIndex = program.days.indexOfFirst { it.id == day }
@@ -558,6 +566,8 @@ class DayViewModel @Inject constructor(
                 dayId = day,
                 dayIndex = dayIndex.coerceAtLeast(0),
                 dayTitle = program.days.firstOrNull { it.id == day }?.title.orEmpty(),
+                completedSetCount = completedSetCount,
+                totalSetCount = totalSetCount,
                 sessionSets = sessionSets,
                 nextDayId = nextDayId,
                 nextDayTitle = program.days.firstOrNull { it.id == nextDayId }?.title.orEmpty(),

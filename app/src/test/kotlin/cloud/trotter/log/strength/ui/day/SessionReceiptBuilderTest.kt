@@ -27,6 +27,15 @@ class SessionReceiptBuilderTest {
         assertEquals(7L, receipt.sessionId)
     }
 
+    @Test
+    fun partialDayUsesEndedHeadlineWithProgress() {
+        val receipt = build(sets = listOf(set(done = true)), completedSetCount = 7, totalSetCount = 18)
+
+        assertEquals("DAY A ENDED · 7 OF 18", receipt.headline)
+        assertEquals(7, receipt.completedSetCount)
+        assertEquals(18, receipt.totalSetCount)
+    }
+
     /**
      * The rotation always wraps, so a null next day is not an end-of-program
      * state — it is the guard for the completed day having left the program
@@ -157,11 +166,15 @@ class SessionReceiptBuilderTest {
         sets: List<SessionSetEntity>,
         nextDayId: String? = "B",
         unit: WeightUnit = WeightUnit.LB,
+        completedSetCount: Int = sets.count { it.done && Slot.isRound(it.slot) },
+        totalSetCount: Int = sets.count { Slot.isRound(it.slot) },
     ): SessionReceipt = SessionReceiptBuilder.from(
         sessionId = 7L,
         dayId = "A",
         dayIndex = 0,
         dayTitle = "Lower",
+        completedSetCount = completedSetCount,
+        totalSetCount = totalSetCount,
         sessionSets = sets,
         nextDayId = nextDayId,
         nextDayTitle = "Upper",

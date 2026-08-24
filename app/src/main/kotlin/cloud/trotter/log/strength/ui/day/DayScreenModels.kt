@@ -57,6 +57,8 @@ data class DayUiState(
     val totalSets: Int = exercises.sumOf { it.rows.size }
 }
 
+enum class DoneButtonState { ALL_DONE, PARTIAL, NOTHING_LOGGED }
+
 /** One entry in the day tab strip. */
 data class DayTab(
     val dayId: String,

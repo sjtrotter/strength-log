@@ -82,6 +82,8 @@ class WindowSizeTest {
                         dayIndex = 0,
                         headline = "DAY A COMPLETE",
                         dayTitle = "Lower — squat focus",
+                        completedSetCount = 18,
+                        totalSetCount = 18,
                         setCount = 18,
                         strongest = ReceiptLift("Barbell Back Squat", "235×3"),
                         nextDayLine = "DAY B · UPPER",

@@ -27,6 +27,13 @@ import kotlin.test.assertTrue
 class DayScreenBuilderTest {
 
     @Test
+    fun doneButtonStateResolvesNothingPartialAndComplete() {
+        assertEquals(DoneButtonState.NOTHING_LOGGED, DayScreenBuilder.doneButtonState(0, 18))
+        assertEquals(DoneButtonState.PARTIAL, DayScreenBuilder.doneButtonState(7, 18))
+        assertEquals(DoneButtonState.ALL_DONE, DayScreenBuilder.doneButtonState(18, 18))
+    }
+
+    @Test
     fun markNext_marks_first_undone_row_of_first_unfinished_card_only() {
         fun card(id: Long, done: List<Boolean>) = ExerciseCardState(
             programExerciseId = id,

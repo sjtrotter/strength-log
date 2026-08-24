@@ -531,11 +531,14 @@ class DayViewModel @Inject constructor(
      *  because from the next line on "the current day" means the next one. */
     fun completeDay() {
         val day = currentDay() ?: return
-        val completedSetCount = uiState.value.doneSets
-        val totalSetCount = uiState.value.totalSets
-        if (completedSetCount == 0) return
         closeUndoWindow()
         mutate {
+            // Counted from the built state, not uiState.value: with nobody
+            // collecting, that value is still the loading placeholder.
+            val counted = dayState.first()
+            val completedSetCount = counted.doneSets
+            val totalSetCount = counted.totalSets
+            if (completedSetCount == 0) return@mutate
             val program = repo.programFlow.first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
             val dayIndex = program.days.indexOfFirst { it.id == day }

@@ -66,7 +66,8 @@ class KeepScreenOnAndRotationTest {
                 collapsed = false,
                 collapsedSummary = "5 sets · GOAL 235",
                 rows = listOf(
-                    SetRowState(0, "R1", isTop = false, weightDisplay = 130.0, reps = 5, done = false),
+                    // Ticked: the label under test is the all-done one.
+                    SetRowState(0, "R1", isTop = false, weightDisplay = 130.0, reps = 5, done = true),
                 ),
                 weightSwap = WeightSwapAffordance("weighted_plank", "Weighted Plank", isRemove = false),
             ),

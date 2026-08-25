@@ -109,7 +109,7 @@ class DestructiveActionsTest {
         setDayContent(onRemoveSet = { removed++ })
 
         val actions = composeTestRule.onNodeWithTag("setRowSwipe").fetchSemanticsNode()
-            .config[SemanticsProperties.CustomActions]
+            .config[SemanticsActions.CustomActions]
         composeTestRule.runOnIdle { actions.single { it.label == "Remove set" }.action() }
 
         assertEquals(1, removed)

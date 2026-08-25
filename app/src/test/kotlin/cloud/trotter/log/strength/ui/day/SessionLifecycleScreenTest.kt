@@ -37,29 +37,27 @@ class SessionLifecycleScreenTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    // --- the in-progress status line -----------------------------------------
+    // --- progress folded into the day overline -------------------------------
 
     @Test
     fun aDayNothingIsTickedOnSaysNothingAboutProgress() {
         setDayContent(dayState(done = 0))
 
-        assertEquals(0, composeTestRule.onAllNodesWithText("IN PROGRESS", substring = true).fetchSemanticsNodes().size)
+        assertEquals(0, composeTestRule.onAllNodesWithText("OF 3", substring = true).fetchSemanticsNodes().size)
     }
 
     @Test
-    fun theStatusLineNamesThePhaseAndTheCountOnceTheFirstSetIsTicked() {
+    fun theOverlineAddsTheCountOnceTheFirstSetIsTicked() {
         setDayContent(dayState(done = 1))
 
-        composeTestRule.onNodeWithText("IN PROGRESS · 1 OF 3 SETS").assertExists()
+        composeTestRule.onNodeWithText("DAY A · 1 OF 3", useUnmergedTree = true).assertExists()
     }
 
-    /** The same three phases Today and the glance surfaces speak — a fully
-     *  ticked day is not still "in progress", it is waiting on DONE. */
     @Test
-    fun theStatusLineTurnsOverWhenEveryRoundIsTicked() {
+    fun theOverlineReachesTheTotalWhenEveryRoundIsTicked() {
         setDayContent(dayState(done = 3))
 
-        composeTestRule.onNodeWithText("READY TO FINISH · 3 OF 3 SETS").assertExists()
+        composeTestRule.onNodeWithText("DAY A · 3 OF 3", useUnmergedTree = true).assertExists()
     }
 
     // --- the receipt ---------------------------------------------------------

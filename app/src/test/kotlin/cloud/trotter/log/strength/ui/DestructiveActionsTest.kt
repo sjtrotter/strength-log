@@ -97,7 +97,10 @@ class DestructiveActionsTest {
         var removed = 0
         setDayContent(onRemoveSet = { removed++ })
 
-        composeTestRule.onNodeWithTag("setRowSwipe").performTouchInput { swipeLeft() }
+        composeTestRule.onNodeWithTag("setRowSwipe").performTouchInput {
+            swipeLeft(startX = right, endX = left)
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
 
         composeTestRule.onNodeWithTag("removeSetReveal", useUnmergedTree = true).assertExists()
         assertEquals("the swipe must remove without a confirm", 1, removed)

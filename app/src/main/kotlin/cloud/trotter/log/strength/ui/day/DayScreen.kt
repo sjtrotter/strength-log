@@ -508,7 +508,7 @@ private fun TopBar(
     Column {
         val collapsed = scrollBehavior.state.collapsedFraction > .5f
         val dayLabel = state.viewDayId?.let { stringResource(R.string.day_header_label, it.uppercase()) }.orEmpty()
-        val status = DayScreenBuilder.sessionStatusLine(state.doneSets, state.totalSets)?.resolve()
+        val hasProgress = state.doneSets > 0
         MediumTopAppBar(
             title = {
                 if (collapsed) {
@@ -516,7 +516,11 @@ private fun TopBar(
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            status?.let { stringResource(R.string.day_header_with_status, dayLabel, it) } ?: dayLabel,
+                            if (hasProgress) {
+                                stringResource(R.string.day_header_with_status, dayLabel, state.doneSets, state.totalSets)
+                            } else {
+                                dayLabel
+                            },
                             color = accent,
                             style = MaterialTheme.typography.labelSmall,
                         )
@@ -576,6 +580,7 @@ private fun EditDayButton(onClick: () -> Unit) {
     OutlinedIconButton(
         onClick = onClick,
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .defaultMinSize(40.dp, 40.dp)
             .semantics { contentDescription = description },
         shape = MaterialTheme.shapes.medium,

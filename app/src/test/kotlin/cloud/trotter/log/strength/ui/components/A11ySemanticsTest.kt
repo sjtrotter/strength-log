@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -162,7 +164,9 @@ class A11ySemanticsTest {
         composeTestRule.onNodeWithContentDescription("Increase weight").assertExists()
         composeTestRule.onNodeWithContentDescription("Decrease reps").assertExists()
         composeTestRule.onNodeWithContentDescription("Increase reps").assertExists()
-        composeTestRule.onNodeWithContentDescription("Remove set").assertExists()
+        val removeActions = composeTestRule.onNodeWithTag("setRowSwipe").fetchSemanticsNode()
+            .config[SemanticsActions.CustomActions]
+        assertTrue(removeActions.any { it.label == "Remove set" })
     }
 
     // --- per-type set rows (tracking-types §3) -----------------------------------

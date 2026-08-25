@@ -65,6 +65,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
             restWorkSeconds = restSettings.overrides[RestCategory.WORK],
             restLightSeconds = restSettings.overrides[RestCategory.LIGHT],
             keepScreenOn = keepScreenOn,
+            topSetHelperSeen = topSetHelperSeen,
+            supersetHelperSeen = supersetHelperSeen,
             theme = themePreference.name,
         ),
         customExercises = customExercises.map {
@@ -247,6 +249,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             overrides = settings.restOverrides(),
         ),
         keepScreenOn = settings.keepScreenOn,
+        topSetHelperSeen = settings.topSetHelperSeen,
+        supersetHelperSeen = settings.supersetHelperSeen,
         themePreference = enumOrDefault(settings.theme, ThemePreference.SYSTEM),
         customExercises = customExercises.map {
             CustomExerciseEntity(

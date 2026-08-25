@@ -95,6 +95,13 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
             ) {
                 item { Spacer(Modifier.size(4.dp)) }
                 item { SectionHeader(stringResource(R.string.setup_training_section)) }
+                item {
+                    Text(
+                        stringResource(R.string.day_rotation_footer),
+                        color = TextFaint,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 item { GoalPreviewCard(state.goalPreview, accent) }
                 item { BodyweightCard(state.config.bodyweightLb, state.unit, actions.onBodyweightChange) }
                 item { AgeCard(state.config.age, actions.onAgeChange) }

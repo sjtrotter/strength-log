@@ -37,6 +37,8 @@ data class DayUiState(
     val exercises: List<ExerciseCardState> = emptyList(),
     val cardio: CardioCardState? = null,
     val keepScreenOn: Boolean = false,
+    val showMainHelper: Boolean = true,
+    val showSupersetHelper: Boolean = true,
     val rest: RestUiState? = null,
 ) {
     /** True when the viewed day isn't the suggested-next one (spec §8.2 override note). */

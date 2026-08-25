@@ -277,7 +277,7 @@
 <string name="day_plates_per_side">Plates: %1$s a side</string>
 <string name="day_status_in_progress">IN PROGRESS · %1$d OF %2$d SETS</string>
 <string name="day_status_ready">READY TO FINISH · %1$d OF %2$d SETS</string>
-<string name="log_title">Log</string>
+<string name="log_title">LOG</string>
 <string name="log_back_label">Back</string>
 <string name="log_trajectory_header">TRAJECTORY</string>
 <string name="log_volume_header">VOLUME</string>

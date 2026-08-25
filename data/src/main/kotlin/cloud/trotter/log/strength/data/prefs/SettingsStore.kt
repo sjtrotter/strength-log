@@ -94,6 +94,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
          *  the user has to ask for it, and having asked once they keep it. */
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
 
+        val TOP_SET_HELPER_SEEN = booleanPreferencesKey("top_set_helper_seen")
+        val SUPERSET_HELPER_SEEN = booleanPreferencesKey("superset_helper_seen")
+
         // Device-local SAF automation state. These keys are deliberately not
         // part of the versioned backup document: a persisted grant belongs to
         // this Android install and cannot be restored on another device.
@@ -188,6 +191,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      *  Defaults off — the wake costs battery, so it is opt-in. */
     val keepScreenOnFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.KEEP_SCREEN_ON] ?: false }
+
+    val topSetHelperSeenFlow: Flow<Boolean> =
+        dataStore.data.map { it[Keys.TOP_SET_HELPER_SEEN] ?: false }
+
+    val supersetHelperSeenFlow: Flow<Boolean> =
+        dataStore.data.map { it[Keys.SUPERSET_HELPER_SEEN] ?: false }
 
     val themePreferenceFlow: Flow<ThemePreference> =
         dataStore.data.map { it.enum(Keys.THEME, ThemePreference.SYSTEM) }
@@ -322,6 +331,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setKeepScreenOn(on: Boolean) =
         dataStore.edit { it[Keys.KEEP_SCREEN_ON] = on }
 
+    suspend fun markTopSetHelperSeen() =
+        dataStore.edit { it[Keys.TOP_SET_HELPER_SEEN] = true }
+
+    suspend fun markSupersetHelperSeen() =
+        dataStore.edit { it[Keys.SUPERSET_HELPER_SEEN] = true }
+
     suspend fun setThemePreference(theme: ThemePreference) =
         dataStore.edit { it[Keys.THEME] = theme.name }
 
@@ -374,6 +389,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         suggestedDay: String?,
         restSettings: RestSettings,
         keepScreenOn: Boolean,
+        topSetHelperSeen: Boolean = false,
+        supersetHelperSeen: Boolean = false,
         themePreference: ThemePreference = ThemePreference.SYSTEM,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
@@ -402,6 +419,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             prefs[restOverrideKeys.getValue(category)] = seconds.coerceIn(0, RestPolicy.MAX_REST_SECONDS)
         }
         prefs[Keys.KEEP_SCREEN_ON] = keepScreenOn
+        prefs[Keys.TOP_SET_HELPER_SEEN] = topSetHelperSeen
+        prefs[Keys.SUPERSET_HELPER_SEEN] = supersetHelperSeen
         autoEnabled?.let { prefs[Keys.AUTO_BACKUP_ENABLED] = it }
         autoTreeUri?.let { prefs[Keys.AUTO_BACKUP_TREE_URI] = it }
         autoFolderName?.let { prefs[Keys.AUTO_BACKUP_FOLDER_NAME] = it }

@@ -102,6 +102,26 @@ class DayViewModelWiringTest {
     ): DayViewModel =
         DayViewModel(repo, publisher, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
 
+    @Test
+    fun firstTopSetEditDismissesTheMainHelperPermanently() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+        val topIndex = track(squatId, Slot.MAIN)!!.indexOfFirst { it.kind == SetKind.TOP }
+
+        assertFalse(repo.topSetHelperSeenFlow.first())
+        assertTrue(vm.uiState.value.showMainHelper)
+
+        vm.changeWeight(squatId, Slot.MAIN, topIndex, newDisplayWeight = 245.0)
+        advanceUntilIdle()
+
+        assertTrue(repo.topSetHelperSeenFlow.first())
+        assertFalse(vm.uiState.value.showMainHelper)
+        collect.cancel()
+    }
+
     /** Day A: a ramped main, an arms superset, an unknown-id slot, and a superset
      *  whose partner id is unknown (its SS track can never seed). */
     private suspend fun insertProgram() {

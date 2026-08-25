@@ -41,6 +41,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,6 +53,9 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -117,6 +121,7 @@ import cloud.trotter.log.strength.ui.components.pressableSelectable
 import cloud.trotter.log.strength.ui.components.pressableToggleable
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.ui.theme.AppIcons
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.CardTitle
@@ -271,6 +276,8 @@ fun DayScreen(
                         accent = accent,
                         onAccent = onAccent,
                         accentSoftColor = soft,
+                        showMainHelper = state.showMainHelper,
+                        showSupersetHelper = state.showSupersetHelper,
                         actions = actions,
                         onSwapWeight = dayEditActions.onSwap,
                         canSwapExercise = card.programExerciseId in swappableSlotIds,
@@ -522,11 +529,11 @@ private fun EditDayButton(onClick: () -> Unit) {
         border = BorderStroke(1.dp, Border),
         colors = IconButtonDefaults.outlinedIconButtonColors(containerColor = Surface2, contentColor = TextSecondary),
     ) {
-        Text(
-            "✎",
-            color = TextSecondary,
-            style = TabLetter.copy(fontSize = 15.sp),
-            modifier = Modifier.clearAndSetSemantics {},
+        Icon(
+            imageVector = Icons.Outlined.Edit,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(20.dp).clearAndSetSemantics {},
         )
     }
 }
@@ -681,6 +688,8 @@ private fun ExerciseCard(
     accent: Color,
     onAccent: Color,
     accentSoftColor: Color,
+    showMainHelper: Boolean,
+    showSupersetHelper: Boolean,
     actions: DayActions,
     onSwapWeight: (position: Int, targetExerciseId: String) -> Unit,
     canSwapExercise: Boolean,
@@ -846,11 +855,11 @@ private fun ExerciseCard(
                 exit = shrinkVertically(tween(320)) + fadeOut(tween(320)),
             ) {
                 Column {
-                if (card.isMain) {
+                if (card.isMain && showMainHelper) {
                     Spacer(Modifier.size(6.dp))
                     Text(stringResource(R.string.day_main_helper), color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
                 }
-                if (card.isSuperset) {
+                if (card.isSuperset && showSupersetHelper) {
                     Spacer(Modifier.size(6.dp))
                     Text(stringResource(R.string.day_superset_helper), color = TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = rowInset)
                 }
@@ -1034,11 +1043,11 @@ internal fun SwapExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier
                 .border(1.dp, Border, RoundedCornerShape(50)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                "⇄",
-                color = TextSecondary,
-                style = TabLetter.copy(fontSize = 13.sp),
-                modifier = Modifier.clearAndSetSemantics {},
+            Icon(
+                imageVector = AppIcons.SwapHoriz,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(20.dp).clearAndSetSemantics {},
             )
         }
     }
@@ -1191,9 +1200,11 @@ private fun CardioCard(
                     outlined = true,
                 )
             }
-            if (!executing) Text(
-                "▼", color = TextFaint, style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.rotate(chevronRotation).clearAndSetSemantics {},
+            if (!executing) Icon(
+                imageVector = Icons.Outlined.KeyboardArrowDown,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(20.dp).rotate(chevronRotation).clearAndSetSemantics {},
             )
         }
         Column(Modifier.animateContentSize(tween(320))) {
@@ -1409,15 +1420,10 @@ private fun FinishDayConfirmDialog(
     )
 }
 
-/** The scroll's tail: the rotation blurb and the quiet "clear checkmarks" action. */
+/** The scroll's tail: the quiet "clear checkmarks" action. */
 @Composable
 private fun Footer(onClearChecks: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            stringResource(R.string.day_rotation_footer),
-            color = TextFaint,
-            style = MaterialTheme.typography.bodySmall,
-        )
+    Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
         QuietButton(onClick = onClearChecks)
     }
 }

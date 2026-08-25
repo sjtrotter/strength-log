@@ -158,17 +158,18 @@ internal val LightAppColorScheme = lightColorScheme(
 
 // Ripple drawing replaces the input color's alpha with the configured alpha for
 // each interaction state. AppRippleConfiguration is therefore the single source
-// of the 5% pressed, 4% hover/drag, and 0% focus values for both paths: the
+// of the authored pressed, 4% hover/drag, and 0% focus values for both paths: the
 // wrapper ripple() in AppIndication and ripples created by stock M3 components.
 // Removing that configuration would restore Material's defaults, including a
 // 10% pressed alpha, so the configuration is load-bearing.
-internal const val AppRipplePressedAlpha = 0.05f
+internal const val DarkAppRipplePressedAlpha = 0.10f
+internal const val LightAppRipplePressedAlpha = 0.08f
 internal const val AppRippleBounded = true
 internal fun appIndication(color: Color): Indication = ripple(bounded = AppRippleBounded, color = color)
-internal fun appRippleConfiguration(color: Color) = RippleConfiguration(
+internal fun appRippleConfiguration(color: Color, pressedAlpha: Float) = RippleConfiguration(
     color = color,
     rippleAlpha = RippleAlpha(
-        pressedAlpha = AppRipplePressedAlpha,
+        pressedAlpha = pressedAlpha,
         focusedAlpha = 0f,
         hoveredAlpha = 0.04f,
         draggedAlpha = 0.04f,
@@ -191,10 +192,11 @@ fun AppTheme(
     val scheme = if (isDark) DarkAppColorScheme else LightAppColorScheme
     val palette = if (isDark) DarkAppPalette else LightAppPalette
     // White-based feedback disappears on paper; use scheme content while
-    // retaining the exact authored 5/4/4/0 percent alpha structure.
+    // retaining the authored theme-specific pressed and 4/4/0 percent alpha structure.
     val rippleColor = scheme.onSurfaceVariant
     val indication = appIndication(rippleColor)
-    val rippleConfiguration = appRippleConfiguration(rippleColor)
+    val pressedAlpha = if (isDark) DarkAppRipplePressedAlpha else LightAppRipplePressedAlpha
+    val rippleConfiguration = appRippleConfiguration(rippleColor, pressedAlpha)
     MaterialTheme(
         colorScheme = scheme,
         typography = AppTypography,

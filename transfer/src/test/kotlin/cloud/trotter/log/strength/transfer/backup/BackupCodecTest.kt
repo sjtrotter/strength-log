@@ -619,6 +619,19 @@ class BackupCodecTest {
     }
 
     @Test
+    fun `one-shot workout helpers survive a full export-import cycle`() {
+        val seen = restSnapshot(RestSettings()).copy(
+            topSetHelperSeen = true,
+            supersetHelperSeen = true,
+        )
+
+        val restored = codec.decode(codec.encode(seen.toDocument())).toSnapshot()
+
+        assertTrue(restored.topSetHelperSeen)
+        assertTrue(restored.supersetHelperSeen)
+    }
+
+    @Test
     fun `theme preference survives a full export-import cycle`() {
         val light = restSnapshot(RestSettings()).copy(themePreference = ThemePreference.LIGHT)
 

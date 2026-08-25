@@ -5,9 +5,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * An immutable record of one completed workout, appended when the user taps
- * "DONE — advance" (PLAN.md A1). Written once, never mutated, so it needs no
- * sync/consistency handling and is the source for CSV/Health-Connect export.
+ * A record of one completed workout, appended when the user taps
+ * "DONE — advance" (PLAN.md A1) and later editable in the history log.
  */
 @Entity(tableName = "workout_session")
 data class WorkoutSessionEntity(

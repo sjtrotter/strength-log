@@ -19,7 +19,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -181,5 +183,37 @@ class TrackerRepositoryHistoryReadTest {
         val sets = repo.sessionSets(sessionId)
 
         assertEquals(listOf("bb_back_squat", "bb_back_squat", "bb_back_squat", "bb_bench"), sets.map { it.exerciseId })
+    }
+
+    @Test
+    fun updateSessionSetPersistsEveryEditableField() = runTest {
+        seedOlderSession()
+        val sessionId = repo.sessionsFlow.first().single().id
+        val original = repo.sessionSets(sessionId).first()
+
+        repo.updateSessionSet(original.copy(weightLb = 142.5, reps = 7, seconds = 45, done = false))
+
+        val changed = repo.sessionSets(sessionId).first()
+        assertEquals(original.id, changed.id)
+        assertEquals(142.5, changed.weightLb, 0.0)
+        assertEquals(7, changed.reps)
+        assertEquals(45, changed.seconds)
+        assertFalse(changed.done)
+    }
+
+    @Test
+    fun deleteSessionAndUndoRestoreTheExactRows() = runTest {
+        seedOlderSession()
+        val session = repo.sessionsFlow.first().single()
+        val sets = repo.sessionSets(session.id)
+
+        val deleted = requireNotNull(repo.deleteSession(session.id))
+        assertTrue(repo.sessionSummariesFlow.first().isEmpty())
+        assertTrue(repo.sessionSets(session.id).isEmpty())
+
+        repo.restoreSession(deleted)
+
+        assertEquals(session, repo.sessionsFlow.first().single())
+        assertEquals(sets, repo.sessionSets(session.id))
     }
 }

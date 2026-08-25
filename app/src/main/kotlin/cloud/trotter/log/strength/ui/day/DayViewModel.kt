@@ -146,10 +146,11 @@ class DayViewModel @Inject constructor(
         if (dayId == null) {
             flowOf(noDayState(ctx))
         } else {
-            // Re-fetched only when the day's exercise ids change (a program edit),
-            // not on every weight/rep keystroke — both history chips are prior
-            // history, not live state, so neither needs log-level freshness.
-            val slotsWithHistory = repo.daySlotsFlow(dayId).flatMapLatest { slots ->
+            // Re-fetched when the day's exercise ids or archived history change.
+            // Live-set keystrokes still do not touch this path, while a Log edit
+            // immediately corrects both "last time" and "Best" on an open day.
+            val historyKeys = combine(repo.daySlotsFlow(dayId), repo.sessionSummariesFlow) { slots, _ -> slots }
+            val slotsWithHistory = historyKeys.flatMapLatest { slots ->
                 flow { emit(slots to fetchDayHistory(slots)) }
             }
             combine(slotsWithHistory, repo.logFlow(dayId, today), manualCollapse) { slotsAndHistory, logs, collapse ->

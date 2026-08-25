@@ -110,7 +110,16 @@ object LogScreenBuilder {
             SessionExerciseGroup(
                 exerciseName = group.first().exerciseName,
                 sets = group.mapIndexed { i, s ->
-                    SessionSetSummary(labels[i], SetFormatter.summaryOfValues(s.weightLb, s.reps, s.seconds, unit))
+                    SessionSetSummary(
+                        kindLabel = labels[i],
+                        weightRepsDisplay = SetFormatter.summaryOfValues(s.weightLb, s.reps, s.seconds, unit),
+                        id = s.id,
+                        weightLb = s.weightLb,
+                        reps = s.reps,
+                        seconds = s.seconds,
+                        done = s.done,
+                        tracking = SetFormatter.trackingOfValues(s.weightLb, s.reps, s.seconds),
+                    )
                 },
             )
         }

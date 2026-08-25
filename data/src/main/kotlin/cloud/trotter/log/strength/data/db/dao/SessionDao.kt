@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import kotlinx.coroutines.flow.Flow
@@ -67,7 +68,7 @@ data class SessionTonnageRow(
     val tonnageLb: Double,
 )
 
-/** Append-only workout history (PLAN.md A1). Rows are inserted, never updated. */
+/** Workout history (PLAN.md A1), editable in the single-user on-device store. */
 @Dao
 interface SessionDao {
 
@@ -195,6 +196,15 @@ interface SessionDao {
 
     @Insert
     suspend fun insertSets(sets: List<SessionSetEntity>)
+
+    @Update
+    suspend fun updateSet(set: SessionSetEntity): Int
+
+    @Query("DELETE FROM session_set WHERE sessionId = :sessionId")
+    suspend fun deleteSetsForSession(sessionId: Long)
+
+    @Query("DELETE FROM workout_session WHERE id = :sessionId")
+    suspend fun deleteSessionById(sessionId: Long)
 
     @Query("DELETE FROM workout_session")
     suspend fun deleteAllSessions()

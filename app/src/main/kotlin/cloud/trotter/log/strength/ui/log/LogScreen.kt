@@ -33,6 +33,8 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +53,13 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.BackAction
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
+import cloud.trotter.log.strength.ui.components.CheckmarkToggle
+import cloud.trotter.log.strength.ui.components.Stepper
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.units.SecondsStepper
+import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.ui.theme.StepperRepsValue
 import cloud.trotter.log.strength.ui.components.DayBadge
 import cloud.trotter.log.strength.ui.components.EmptyJournalState
 import cloud.trotter.log.strength.ui.components.pressable
@@ -81,6 +90,7 @@ import kotlinx.coroutines.launch
 fun LogScreen(state: LogUiState, actions: LogActions) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    var deleteConfirmation by remember { mutableStateOf<Long?>(null) }
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
             LogHeader(actions.onBack)
@@ -141,11 +151,17 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                     }
                 } else {
                     items(state.sessions, key = { if (it.cardioId != null) "cardio-${it.cardioId}" else "strength-${it.sessionId}" }) { session ->
-                        if (session.cardioId != null) CardioSessionCard(session) else
+                        if (session.undoPending) UndoDeletedSessionRow(session.dayIndex, actions.onUndoDeleteSession) else if (session.cardioId != null) CardioSessionCard(session) else
                             SessionCard(
                                 session,
                                 onToggle = { actions.onToggleExpanded(session.sessionId) },
                                 onShare = { actions.onShare(session.sessionId) },
+                                onToggleEdit = { actions.onToggleEdit(session.sessionId) },
+                                onWeightChange = { setId, value -> actions.onWeightChange(session.sessionId, setId, value) },
+                                onRepsChange = { setId, value -> actions.onRepsChange(session.sessionId, setId, value) },
+                                onSecondsChange = { setId, value -> actions.onSecondsChange(session.sessionId, setId, value) },
+                                onDoneChange = { setId, value -> actions.onDoneChange(session.sessionId, setId, value) },
+                                onDelete = { deleteConfirmation = session.sessionId },
                             )
                     }
                 }
@@ -159,6 +175,22 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
 
                 item { Spacer(Modifier.size(8.dp)) }
             }
+        }
+        deleteConfirmation?.let { sessionId ->
+            AppAlertDialog(
+                onDismissRequest = { deleteConfirmation = null },
+                title = { Text(stringResource(R.string.log_delete_dialog_title)) },
+                text = { Text(stringResource(R.string.log_delete_dialog_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        deleteConfirmation = null
+                        actions.onDeleteSession(sessionId)
+                    }) { Text(stringResource(R.string.log_delete_confirm)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { deleteConfirmation = null }) { Text(stringResource(R.string.log_delete_keep)) }
+                },
+            )
         }
     }
 }
@@ -218,7 +250,17 @@ private fun LogHeader(onBack: () -> Unit) {
 }
 
 @Composable
-private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: () -> Unit) {
+private fun SessionCard(
+    item: SessionListItem,
+    onToggle: () -> Unit,
+    onShare: () -> Unit,
+    onToggleEdit: () -> Unit,
+    onWeightChange: (Long, Double) -> Unit,
+    onRepsChange: (Long, Int) -> Unit,
+    onSecondsChange: (Long, Int) -> Unit,
+    onDoneChange: (Long, Boolean) -> Unit,
+    onDelete: () -> Unit,
+) {
     val chevronRotation by animateFloatAsState(if (item.expanded) 180f else 0f, tween(200), label = "logChevron")
     val disclosureLabel = stringResource(if (item.expanded) R.string.log_collapse_label else R.string.log_expand_label)
     val disclosureState = stringResource(if (item.expanded) R.string.log_expanded_state else R.string.log_collapsed_state)
@@ -269,12 +311,102 @@ private fun SessionCard(item: SessionListItem, onToggle: () -> Unit, onShare: ()
                 if (item.exerciseGroups == null) {
                     Text(stringResource(R.string.log_session_loading), color = TextFaint, style = MaterialTheme.typography.bodySmall)
                 } else {
-                    item.exerciseGroups.forEach { group -> ExerciseGroupRow(group) }
+                    item.exerciseGroups.forEach { group ->
+                        if (item.editing) EditableExerciseGroupRow(
+                            group, item.unit, onWeightChange, onRepsChange, onSecondsChange, onDoneChange,
+                        ) else ExerciseGroupRow(group)
+                    }
                     Spacer(Modifier.size(4.dp))
-                    ShareButton(dayIndex = item.dayIndex, onClick = onShare)
+                    SessionFooter(item, onShare, onToggleEdit, onDelete)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EditableExerciseGroupRow(
+    group: SessionExerciseGroup,
+    unit: cloud.trotter.log.strength.domain.units.WeightUnit,
+    onWeightChange: (Long, Double) -> Unit,
+    onRepsChange: (Long, Int) -> Unit,
+    onSecondsChange: (Long, Int) -> Unit,
+    onDoneChange: (Long, Boolean) -> Unit,
+) {
+    Column(Modifier.padding(vertical = 4.dp)) {
+        Text(group.exerciseName, color = TextPrimary, style = MaterialTheme.typography.labelLarge)
+        group.sets.forEach { set ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(set.kindLabel, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                if (set.tracking == TrackingType.WEIGHTED ||
+                    (set.tracking == TrackingType.TIMED && set.weightLb > 0.0)
+                ) {
+                    Stepper(
+                        value = unit.fromLb(set.weightLb),
+                        onValueChange = { onWeightChange(set.id, it) },
+                        step = { WeightStepper.increment(it, unit) },
+                        round = { WeightStepper.round(it, unit) },
+                        format = WeightStepper::format,
+                    )
+                }
+                if (set.tracking == TrackingType.TIMED) {
+                    Stepper(
+                        value = set.seconds.toDouble(),
+                        onValueChange = { onSecondsChange(set.id, it.toInt()) },
+                        step = { SecondsStepper.increment(it.toInt()).toDouble() },
+                        format = { SecondsStepper.format(it.toInt()) },
+                        valueTextStyle = StepperRepsValue,
+                    )
+                } else {
+                    Stepper(
+                        value = set.reps.toDouble(),
+                        onValueChange = { onRepsChange(set.id, it.toInt()) },
+                        step = { 1.0 },
+                        minValue = 1.0,
+                        format = { it.toInt().toString() },
+                        valueTextStyle = StepperRepsValue,
+                        valueMinWidth = 36.dp,
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                CheckmarkToggle(checked = set.done, onCheckedChange = { onDoneChange(set.id, it) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun SessionFooter(item: SessionListItem, onShare: () -> Unit, onToggleEdit: () -> Unit, onDelete: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        if (item.editing) {
+            TextButton(
+                onClick = onDelete,
+                colors = ButtonDefaults.textButtonColors(contentColor = TextSecondary),
+                contentPadding = PaddingValues(horizontal = 2.dp),
+            ) { Text(stringResource(R.string.log_delete_session), style = MaterialTheme.typography.labelLarge) }
+        }
+        Spacer(Modifier.weight(1f))
+        if (!item.editing) ShareButton(dayIndex = item.dayIndex, onClick = onShare)
+        TextButton(onClick = onToggleEdit) {
+            Text(stringResource(if (item.editing) R.string.log_edit_done else R.string.log_edit), style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+@Composable
+private fun UndoDeletedSessionRow(dayIndex: Int, onUndo: () -> Unit) {
+    TextButton(
+        onClick = onUndo,
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        colors = ButtonDefaults.textButtonColors(contentColor = accentEmphasis(dayIndex)),
+    ) {
+        Text(stringResource(R.string.log_session_deleted), color = TextFaint, style = MaterialTheme.typography.labelSmall)
+        Spacer(Modifier.weight(1f))
+        Text(stringResource(R.string.log_undo), style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -310,19 +442,13 @@ private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val shareLabel = stringResource(R.string.log_share_label)
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TextButton(
-            onClick = onClick,
-            modifier = Modifier.semantics { onClick(label = shareLabel, action = null) },
-            interactionSource = interactionSource,
-            colors = ButtonDefaults.textButtonColors(contentColor = if (pressed) accentEmphasis(dayIndex) else TextSecondary),
-            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),
-        ) { Text(stringResource(R.string.log_share_button), style = MaterialTheme.typography.labelLarge) }
-    }
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.semantics { onClick(label = shareLabel, action = null) },
+        interactionSource = interactionSource,
+        colors = ButtonDefaults.textButtonColors(contentColor = if (pressed) accentEmphasis(dayIndex) else TextSecondary),
+        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),
+    ) { Text(stringResource(R.string.log_share_button), style = MaterialTheme.typography.labelLarge) }
 }
 
 /**
@@ -442,6 +568,13 @@ data class LogActions(
     val onApplyBodyweight: () -> Unit,
     val onDismissBodyweight: () -> Unit,
     val onShare: (Long) -> Unit,
+    val onToggleEdit: (Long) -> Unit = {},
+    val onWeightChange: (Long, Long, Double) -> Unit = { _, _, _ -> },
+    val onRepsChange: (Long, Long, Int) -> Unit = { _, _, _ -> },
+    val onSecondsChange: (Long, Long, Int) -> Unit = { _, _, _ -> },
+    val onDoneChange: (Long, Long, Boolean) -> Unit = { _, _, _ -> },
+    val onDeleteSession: (Long) -> Unit = {},
+    val onUndoDeleteSession: () -> Unit = {},
     /** The empty journal's way out (#127): straight to the workout that will fill it. */
     val onStartSession: () -> Unit,
     /** The same slot's way out when there is no program to start (#127). */

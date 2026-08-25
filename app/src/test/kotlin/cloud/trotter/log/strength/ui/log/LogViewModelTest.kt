@@ -41,6 +41,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -133,9 +135,12 @@ class LogViewModelTest {
     ) : SessionPublisher {
         val backfilled = mutableListOf<List<Long>>()
         val cardioBackfilled = mutableListOf<List<Long>>()
+        val published = mutableListOf<Long>()
+        val deleted = mutableListOf<Long>()
 
         /** Session completion doesn't happen on the Log screen. */
-        override suspend fun publish(sessionId: Long) = Unit
+        override suspend fun publish(sessionId: Long) { published += sessionId }
+        override suspend fun delete(sessionId: Long) { deleted += sessionId }
 
         override suspend fun publishAll(sessionIds: List<Long>): Boolean {
             backfilled += sessionIds
@@ -331,6 +336,45 @@ class LogViewModelTest {
         val expanded = vm.uiState.value.sessions.first { it.sessionId == upperId }
         assertTrue(expanded.expanded)
         assertEquals(listOf("Barbell Bench Press", "Barbell Row"), expanded.exerciseGroups?.map { it.exerciseName })
+        collect.cancel()
+    }
+
+    @Test
+    fun deletedSessionOffersUndoForFiveSecondsAndUndoRestoresIt() = runVmTest {
+        seedTwoSessions()
+        val publisher = RecordingPublisher()
+        val vm = newViewModel(publisher = publisher)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val deletedId = vm.uiState.value.sessions.first().sessionId
+
+        vm.deleteSession(deletedId)
+        runCurrent()
+        advanceTimeBy(4_999)
+        assertTrue(vm.uiState.value.sessions.any { it.sessionId == deletedId && it.undoPending })
+        assertEquals(listOf(deletedId), publisher.deleted)
+
+        vm.undoDeleteSession()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.sessions.any { it.sessionId == deletedId && !it.undoPending })
+        assertEquals(listOf(deletedId), publisher.published)
+        collect.cancel()
+    }
+
+    @Test
+    fun deletedSessionUndoOfferExpiresAfterFiveSeconds() = runVmTest {
+        seedTwoSessions()
+        val vm = newViewModel(publisher = RecordingPublisher())
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val deletedId = vm.uiState.value.sessions.first().sessionId
+
+        vm.deleteSession(deletedId)
+        runCurrent()
+        advanceTimeBy(5_001)
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.sessions.any { it.sessionId == deletedId })
         collect.cancel()
     }
 

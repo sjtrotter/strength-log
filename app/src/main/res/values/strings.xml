@@ -395,6 +395,8 @@
 
 <!-- Day -->
 <string name="day_header_label">DAY %1$s</string>
+<string name="day_header_with_status">%1$s · %2$d OF %3$d</string>
+<string name="day_edit_metadata_separator"> · </string>
 <string name="day_edit_action">Edit day</string>
 <string name="day_override_suggested_prefix">OVERRIDE · SUGGESTED NEXT: </string>
 <string name="day_tab_description">Day %1$s</string>

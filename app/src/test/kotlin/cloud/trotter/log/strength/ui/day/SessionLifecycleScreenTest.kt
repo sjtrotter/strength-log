@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -37,29 +38,29 @@ class SessionLifecycleScreenTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    // --- the in-progress status line -----------------------------------------
+    // --- progress folded into the day overline -------------------------------
 
     @Test
     fun aDayNothingIsTickedOnSaysNothingAboutProgress() {
         setDayContent(dayState(done = 0))
 
-        assertEquals(0, composeTestRule.onAllNodesWithText("IN PROGRESS", substring = true).fetchSemanticsNodes().size)
+        assertEquals(0, composeTestRule.onAllNodesWithText("OF 3", substring = true).fetchSemanticsNodes().size)
     }
 
     @Test
-    fun theStatusLineNamesThePhaseAndTheCountOnceTheFirstSetIsTicked() {
+    fun theOverlineAddsTheCountOnceTheFirstSetIsTicked() {
         setDayContent(dayState(done = 1))
 
-        composeTestRule.onNodeWithText("IN PROGRESS · 1 OF 3 SETS").assertExists()
+        // MediumTopAppBar composes its title twice (collapsed and expanded rows).
+        composeTestRule.onAllNodesWithText("DAY A · 1 OF 3", useUnmergedTree = true).onFirst().assertExists()
     }
 
-    /** The same three phases Today and the glance surfaces speak — a fully
-     *  ticked day is not still "in progress", it is waiting on DONE. */
     @Test
-    fun theStatusLineTurnsOverWhenEveryRoundIsTicked() {
+    fun theOverlineReachesTheTotalWhenEveryRoundIsTicked() {
         setDayContent(dayState(done = 3))
 
-        composeTestRule.onNodeWithText("READY TO FINISH · 3 OF 3 SETS").assertExists()
+        // MediumTopAppBar composes its title twice (collapsed and expanded rows).
+        composeTestRule.onAllNodesWithText("DAY A · 3 OF 3", useUnmergedTree = true).onFirst().assertExists()
     }
 
     // --- the receipt ---------------------------------------------------------

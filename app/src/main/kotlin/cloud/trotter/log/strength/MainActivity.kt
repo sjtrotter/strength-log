@@ -5,6 +5,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -20,7 +21,11 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
-/** Single-activity Compose host. The nav graph lives in [AppNavHost]. */
+/**
+ * Single-activity Compose host. The nav graph lives in [AppNavHost].
+ * The system-qualified splash draws the first frame; DataStore's explicit theme
+ * preference intentionally overrides that system choice only after composition.
+ */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -40,6 +45,7 @@ class MainActivity : ComponentActivity() {
     private var iconDayId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {

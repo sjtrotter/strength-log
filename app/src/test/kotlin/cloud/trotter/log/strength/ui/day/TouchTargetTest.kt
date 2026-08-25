@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -35,23 +37,9 @@ class TouchTargetTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    /**
-     * A weighted set row asks for two ± steppers, a ✓ and a × on one line, and
-     * at 411dp that is ~100dp more than the card has. Measured against `main`
-     * at fefbc96 the numbers are identical to the ones here, so the squeeze
-     * predates #123 and belongs to whoever re-budgets the row: today the ✓ is
-     * clipped to 13dp of card and the × is off it entirely (#136).
-     *
-     * Re-checked when #125 put keep-screen-on beside DONE. This record is
-     * deliberately unchanged: DONE took the remaining width and the switch
-     * reserved its own slot. Without that reservation this exact map would
-     * have gained a {DONE, KEEP ON} pair.
-     *
-     * Pinned by identity *and* count — one occurrence per weighted row in the
-     * fixture, and nothing else. A third row, a different pair, or the same pair
-     * appearing anywhere new all fail; so does fixing #136, which is how it
-     * should be, because the record then needs updating.
-     */
+    // The × is off the row now (behind a swipe), so it no longer falls off the
+    // card — but at 411dp the reps + and the tick still share their 48dp halos.
+    // That remaining squeeze is what #136 stays open for.
     private val issue136SetRowSqueeze = mapOf(setOf("Increase reps", "Set done") to 2)
 
     @Test

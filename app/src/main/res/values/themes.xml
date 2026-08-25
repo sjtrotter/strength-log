@@ -7,13 +7,20 @@
       ActionBar titled with android:label ("strength.log") on top of the Compose
       content — hiding the real day header and clipping the top of the list,
       especially on a cold launch through a Launcher_Day* alias. NoActionBar
-      removes it. windowBackground is the near-black §8.5 fill (no launch flash);
+      removes it. The post-splash window background is system-qualified paper
+      or near-black so Compose never inherits the opposite-theme launch frame;
       the system bars are transparent so enableEdgeToEdge() draws behind them and
       the composables inset themselves via systemBarsPadding().
     -->
     <style name="Theme.StrengthLog" parent="@android:style/Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:windowBackground">@color/splash_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Theme.StrengthLog.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_day_a</item>
+        <item name="postSplashScreenTheme">@style/Theme.StrengthLog</item>
     </style>
 </resources>

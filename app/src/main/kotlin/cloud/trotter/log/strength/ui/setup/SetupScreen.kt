@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,6 +63,7 @@ import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
 import cloud.trotter.log.strength.ui.components.pressable
+import cloud.trotter.log.strength.ui.components.pressableSelectable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -242,7 +244,7 @@ private fun GoalPreviewCard(items: List<GoalPreviewItem>, accent: Color) {
 
 @Composable
 private fun BodyweightCard(canonicalLb: Int, unit: WeightUnit, onChange: (Double) -> Unit) {
-    AppCard {
+    RuledGroup {
         BodyweightStepper(
             canonicalLb = canonicalLb,
             unit = unit,
@@ -256,10 +258,10 @@ private fun BodyweightCard(canonicalLb: Int, unit: WeightUnit, onChange: (Double
 
 @Composable
 private fun AgeCard(age: Int, onChange: (Int) -> Unit) {
-    AppCard {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+    RuledGroup {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.setup_age_label), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.size(8.dp))
+            Spacer(Modifier.weight(1f))
             Stepper(
                 value = age.toDouble(),
                 onValueChange = { onChange(it.toInt()) },
@@ -282,11 +284,14 @@ private fun AgeCard(age: Int, onChange: (Int) -> Unit) {
 private fun LevelSection(level: ExperienceLevel, onChange: (ExperienceLevel) -> Unit) {
     Column(
         modifier = Modifier.selectableGroup(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(stringResource(R.string.setup_experience_level_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        ExperienceLevel.entries.forEach { entry ->
-            SelectionCard(title = levelLabel(entry), selected = level == entry, onClick = { onChange(entry) })
+        Spacer(Modifier.size(6.dp))
+        RuledGroup {
+            ExperienceLevel.entries.forEachIndexed { index, entry ->
+                InlineChoiceRow(levelLabel(entry), level == entry) { onChange(entry) }
+                if (index != ExperienceLevel.entries.lastIndex) HorizontalDivider(color = Border)
+            }
         }
     }
 }
@@ -351,7 +356,7 @@ private fun CardioSection(cardio: CardioPrefs, actions: SetupActions) {
                 }
             }
             Spacer(Modifier.size(2.dp))
-            AppCard {
+            RuledGroup {
                 SwitchToggle(label = stringResource(R.string.setup_cardio_five_k_toggle), checked = cardio.fiveKGoal, onCheckedChange = actions.onFiveKChange)
             }
         }
@@ -378,7 +383,7 @@ private fun cardioPlacementLabel(placement: CardioPlacement): String = when (pla
 
 @Composable
 private fun UnitCard(unit: WeightUnit, onToggle: (WeightUnit) -> Unit) {
-    AppCard {
+    RuledGroup {
         SwitchToggle(
             label = stringResource(R.string.setup_display_kilograms_toggle),
             checked = unit == WeightUnit.KG,
@@ -398,12 +403,13 @@ private fun RestTimerSection(
     onResetDefaults: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        AppCard {
+        RuledGroup {
             SwitchToggle(
                 label = stringResource(R.string.setup_rest_timer_toggle),
                 checked = enabled,
                 onCheckedChange = actions.onRestTimerEnabledChange,
             )
+            HorizontalDivider(color = Border)
             SwitchToggle(
                 label = stringResource(R.string.setup_phone_rest_timer_toggle),
                 checked = phoneEnabled,
@@ -411,10 +417,10 @@ private fun RestTimerSection(
             )
         }
         if (enabled || phoneEnabled) {
-            AppCard {
+            RuledGroup {
                 categories.forEachIndexed { index, row ->
                     RestCategoryRow(row, onChange = { seconds -> actions.onRestOverrideChange(row.category, seconds) })
-                    if (index != categories.lastIndex) Spacer(Modifier.size(10.dp))
+                    if (index != categories.lastIndex) HorizontalDivider(color = Border)
                 }
             }
             ResetRestDefaultsRow(onResetDefaults)
@@ -447,6 +453,36 @@ private fun RestCategoryRow(row: RestCategoryUiState, onChange: (Int) -> Unit) {
             inputUnit = stringResource(R.string.stepper_seconds_unit),
             maxValue = RestPolicy.MAX_REST_SECONDS.toDouble(),
         )
+    }
+}
+
+/**
+ * Setup's ruled settings group mirrors Today's editorial list; M3 has list
+ * items but no hairline-bounded settings section with this compact rhythm.
+ */
+@Composable
+private fun RuledGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        HorizontalDivider(thickness = 1.dp, color = Border)
+        Column(Modifier.padding(vertical = 6.dp), content = content)
+        HorizontalDivider(thickness = 1.dp, color = Border)
+    }
+}
+
+@Composable
+private fun InlineChoiceRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .pressableSelectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, color = if (selected) TextPrimary else TextSecondary, style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.weight(1f))
+        if (selected) {
+            Text("✓", color = accentEmphasis(0), modifier = Modifier.clearAndSetSemantics {})
+        }
     }
 }
 

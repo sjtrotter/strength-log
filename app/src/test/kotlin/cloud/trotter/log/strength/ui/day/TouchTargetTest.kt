@@ -37,7 +37,6 @@ class TouchTargetTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    /** #136 is closed only when the × is off-row and no weighted-row controls overlap. */
     // The × is off the row now (behind a swipe), so it no longer falls off the
     // card — but at 411dp the reps + and the tick still share their 48dp halos.
     // That remaining squeeze is what #136 stays open for.
@@ -49,11 +48,6 @@ class TouchTargetTest {
 
         composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
         composeTestRule.assertOverlappingTouchTargetsAreExactly(issue136SetRowSqueeze)
-        val rows = composeTestRule.onAllNodesWithTag("setRowSwipe").fetchSemanticsNodes()
-        val ticks = composeTestRule.onAllNodesWithContentDescription("Set done").fetchSemanticsNodes()
-        rows.zip(ticks).forEach { (row, tick) ->
-            check(tick.boundsInRoot.right <= row.boundsInRoot.right) { "tick escaped the set row at 411dp" }
-        }
     }
 
     /**

@@ -1,8 +1,9 @@
 package cloud.trotter.log.strength.ui.text
 
-import androidx.annotation.StringRes
+import androidx.annotation.AnyRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import cloud.trotter.log.strength.R
 
 /** User-visible copy selected below the Compose boundary without resolving it there. */
@@ -13,6 +14,9 @@ sealed interface UiText {
     data object FilePermissionLost : UiText
     data class TodayAction(val kind: TodayActionKind, val dayId: String, val done: Int, val total: Int) : UiText
     data class TodayCardio(val hard: Boolean, val label: String) : UiText
+    data class TodayGoalLife(val lift: String, val sessions: Int) : UiText
+    data class TodayWeekLife(val sessions: Int, val rotationDays: Int, val daysAgo: Int) : UiText
+    data class TodayHistoryLife(val daysAgo: Int, val monthSessions: Int) : UiText
     data class LogBackfill(val running: Boolean, val count: Int) : UiText
     data class DayPlate(val plates: String?) : UiText
     data class DayStatus(val ready: Boolean, val done: Int, val total: Int) : UiText
@@ -25,7 +29,7 @@ enum class BackupErrorKind { RESTORE_NOT_STARTED, SETTINGS_PENDING, CLEANUP_PEND
 enum class BackupStatusKind { BACKUP_EXPORTED, BACKUP_RESTORED, HISTORY_EXPORTED, HISTORY_IMPORTED }
 enum class TodayActionKind { START, CONTINUE, FINISH }
 
-@StringRes
+@AnyRes
 fun UiText.resourceId(): Int = when (this) {
     is UiText.BackupError -> when (kind) {
         BackupErrorKind.RESTORE_NOT_STARTED -> R.string.backup_error_restore_not_started
@@ -60,6 +64,9 @@ fun UiText.resourceId(): Int = when (this) {
         TodayActionKind.FINISH -> R.string.today_action_finish
     }
     is UiText.TodayCardio -> if (hard) R.string.today_cardio_hard else R.string.today_cardio_easy
+    is UiText.TodayGoalLife -> R.plurals.today_life_goal
+    is UiText.TodayWeekLife -> R.plurals.today_life_week
+    is UiText.TodayHistoryLife -> R.plurals.today_life_history
     is UiText.LogBackfill -> when {
         running -> R.string.log_backfill_publishing
         count == 1 -> R.string.log_backfill_publish_one
@@ -83,6 +90,9 @@ fun UiText.resolve(): String = when (this) {
         val rest = label.removePrefix(if (hard) "Hard " else "Easy ").replaceFirstChar(Char::uppercase)
         stringResource(resourceId(), rest)
     }
+    is UiText.TodayGoalLife -> pluralStringResource(resourceId(), sessions, lift.uppercase(), sessions)
+    is UiText.TodayWeekLife -> pluralStringResource(resourceId(), daysAgo, sessions, rotationDays, daysAgo)
+    is UiText.TodayHistoryLife -> pluralStringResource(resourceId(), daysAgo, daysAgo, monthSessions)
     is UiText.LogBackfill -> if (running) stringResource(resourceId()) else stringResource(resourceId(), count)
     is UiText.DayPlate -> if (plates == null) stringResource(resourceId()) else stringResource(resourceId(), plates)
     is UiText.DayStatus -> stringResource(resourceId(), done, total)

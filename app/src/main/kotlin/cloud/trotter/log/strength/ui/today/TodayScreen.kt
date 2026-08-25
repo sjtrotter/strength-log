@@ -179,6 +179,18 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                     Spacer(Modifier.size(4.dp))
                     Text(lastSession, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
+                state.lifeLine?.let { lifeLine ->
+                    Text(
+                        lifeLine.resolve(),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .minimumInteractiveComponentSize()
+                            .clickable(role = Role.Button, onClick = actions.onOpenLog)
+                            .padding(vertical = 12.dp),
+                    )
+                }
                 Spacer(Modifier.size(24.dp))
             }
             StartBar(state.actionLabel.resolve(), accent, onAccent, actions.onStart)

@@ -20,7 +20,10 @@ import cloud.trotter.log.strength.ui.day.DayViewModel
 import cloud.trotter.log.strength.ui.day.FixedCardioClock
 import cloud.trotter.log.strength.ui.day.InertCardioAlarm
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
+import cloud.trotter.log.strength.time.CivilTime
+import cloud.trotter.log.strength.time.CivilTimeSource
 import java.io.File
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -104,10 +107,17 @@ class TodayViewModelWiringTest {
      *  in the reference fixture — an active collector is required for `.value`
      *  to track updates at all. */
     private fun newTodayViewModel(): TodayViewModel =
-        TodayViewModel(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate())).also { vm ->
+        TodayViewModel(repo, FixedCivilTimeSource(repo.currentDate())).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
+
+    private class FixedCivilTimeSource(date: java.time.LocalDate) : CivilTimeSource {
+        override val civilTime = kotlinx.coroutines.flow.MutableStateFlow(
+            CivilTime(date.atStartOfDay(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault(), date),
+        )
+        override fun refresh() = Unit
+    }
 
     private fun newDayViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
         DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm).also { vm ->
@@ -184,6 +194,7 @@ class TodayViewModelWiringTest {
         assertEquals(suggestedDayId, nextMarks.first().dayId)
 
         assertNull("no history yet", state.lastSession)
+        assertNull("no derived life line yet", state.lifeLine)
     }
 
     // --- the preview invariant --------------------------------------------------

@@ -27,6 +27,16 @@ jobs:
       - name: Build
         run: ./gradlew build
 
+      # The failure log only says "AssertionError at Foo.kt:42"; the XML has
+      # the message and the stack, which is what a fix actually needs.
+      - name: Keep unit-test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: '**/build/test-results/**/*.xml'
+          if-no-files-found: ignore
+
       - name: Compile instrumented tests
         run: ./gradlew :data:assembleDebugAndroidTest :transfer:assembleDebugAndroidTest
 

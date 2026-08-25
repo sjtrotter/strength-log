@@ -78,6 +78,7 @@ object SetupStateBuilder {
         unit: WeightUnit,
         answers: WizardAnswers,
         restSettings: RestSettings = RestSettings(),
+        phoneRestTimerEnabled: Boolean = true,
         themePreference: ThemePreference = ThemePreference.SYSTEM,
     ): SetupUiState = SetupUiState(
         config = cfg,
@@ -86,6 +87,7 @@ object SetupStateBuilder {
         bodyweightDisplay = bodyweightDisplay(cfg, unit),
         goalPreview = goalPreview(cfg, answers, unit),
         restTimerEnabled = restSettings.enabled,
+        phoneRestTimerEnabled = phoneRestTimerEnabled,
         restCategories = restCategoryRows(restSettings),
         themePreference = themePreference,
     )

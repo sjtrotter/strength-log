@@ -104,10 +104,11 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions) {
                 item { SectionHeader(stringResource(R.string.setup_display_section)) }
                 item { UnitCard(state.unit, actions.onUnitToggle) }
                 item { ThemeSection(state.themePreference, actions.onThemePreferenceChange) }
-                item { SectionHeader(stringResource(R.string.setup_watch_section)) }
+                item { SectionHeader(stringResource(R.string.setup_rest_timer_section)) }
                 item {
                     RestTimerSection(
                         state.restTimerEnabled,
+                        state.phoneRestTimerEnabled,
                         state.restCategories,
                         actions,
                         onResetDefaults = { showRestResetConfirm = true },
@@ -374,6 +375,7 @@ private fun UnitCard(unit: WeightUnit, onToggle: (WeightUnit) -> Unit) {
 @Composable
 private fun RestTimerSection(
     enabled: Boolean,
+    phoneEnabled: Boolean,
     categories: List<RestCategoryUiState>,
     actions: SetupActions,
     onResetDefaults: () -> Unit,
@@ -385,8 +387,13 @@ private fun RestTimerSection(
                 checked = enabled,
                 onCheckedChange = actions.onRestTimerEnabledChange,
             )
+            SwitchToggle(
+                label = stringResource(R.string.setup_phone_rest_timer_toggle),
+                checked = phoneEnabled,
+                onCheckedChange = actions.onPhoneRestTimerEnabledChange,
+            )
         }
-        if (enabled) {
+        if (enabled || phoneEnabled) {
             AppCard {
                 categories.forEachIndexed { index, row ->
                     RestCategoryRow(row, onChange = { seconds -> actions.onRestOverrideChange(row.category, seconds) })

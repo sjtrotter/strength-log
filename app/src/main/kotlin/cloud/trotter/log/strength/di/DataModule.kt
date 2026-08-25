@@ -18,6 +18,8 @@ import cloud.trotter.log.strength.ui.day.AndroidCardioAlarm
 import cloud.trotter.log.strength.ui.day.CardioAlarm
 import cloud.trotter.log.strength.ui.day.CardioClock
 import cloud.trotter.log.strength.ui.day.SystemCardioClock
+import cloud.trotter.log.strength.rest.PhoneRestRuntime
+import cloud.trotter.log.strength.rest.RestRuntime
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Singleton
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.shareIn
 @Module
 @InstallIn(SingletonComponent::class)
 object DataModule {
+    @Provides @Singleton fun restRuntime(runtime: PhoneRestRuntime): RestRuntime = runtime
 
     @Provides
     @Singleton

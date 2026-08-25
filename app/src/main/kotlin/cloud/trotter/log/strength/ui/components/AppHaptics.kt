@@ -3,10 +3,14 @@ package cloud.trotter.log.strength.ui.components
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
+import android.content.Context
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 
 /** The phone's authored tactile vocabulary. Call sites name meaning, never hardware effects. */
 object AppHaptics {
-    enum class Cue { CONFIRM_TICK, UNTICK, FINISH, BOUNDARY, STEP_DETENT }
+    enum class Cue { CONFIRM_TICK, UNTICK, FINISH, BOUNDARY, STEP_DETENT, REST_COMPLETE }
 
     /** Pure resolver kept explicit so SDK fallbacks cannot drift between call sites. */
     fun feedbackConstant(cue: Cue, sdkInt: Int = Build.VERSION.SDK_INT): Int = when (cue) {
@@ -20,9 +24,20 @@ object AppHaptics {
         } else {
             HapticFeedbackConstants.CLOCK_TICK
         }
+        Cue.REST_COMPLETE -> error("REST_COMPLETE uses Vibrator, not view feedback")
     }
 
     fun perform(view: View, cue: Cue) {
         view.performHapticFeedback(feedbackConstant(cue))
+    }
+
+    fun restComplete(context: Context) {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+        vibrator?.vibrate(VibrationEffect.createOneShot(400L, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 }

@@ -98,8 +98,9 @@ class DayViewModelWiringTest {
     private fun newViewModel(
         handle: SavedStateHandle = SavedStateHandle(),
         publisher: SessionPublisher = SessionPublisher.NoOp,
+        restRuntime: cloud.trotter.log.strength.rest.RestRuntime = cloud.trotter.log.strength.rest.NoOpRestRuntime,
     ): DayViewModel =
-        DayViewModel(repo, publisher, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm).also { vms += it }
+        DayViewModel(repo, publisher, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
 
     /** Day A: a ramped main, an arms superset, an unknown-id slot, and a superset
      *  whose partner id is unknown (its SS track can never seed). */
@@ -698,6 +699,27 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
 
         assertNull("un-ticking is not performing a set", repo.sessionStartedAtFlow.first())
+    }
+
+    @Test
+    fun tickingWithPhoneRestTimerDisabledStartsNothing() = runVmTest {
+        insertProgram()
+        repo.setPhoneRestTimerEnabled(false)
+        val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
+            override val available = true
+            override fun arm(rest: cloud.trotter.log.strength.domain.standards.PhoneRest) = Unit
+            override fun cancel() = Unit
+            override fun complete() = true
+        }
+        val vm = newViewModel(restRuntime = runtime)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.toggleDone(slotId("bb_back_squat"), index = 0, checked = true, isSuperset = false)
+        advanceUntilIdle()
+
+        assertNull(repo.phoneRestFlow.first())
+        collect.cancel()
     }
 
     @Test

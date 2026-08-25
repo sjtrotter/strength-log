@@ -22,6 +22,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
+import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.coroutines.flow.Flow
@@ -77,6 +78,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val REST_BACKOFF_SECONDS = intPreferencesKey("rest_backoff_seconds")
         val REST_WORK_SECONDS = intPreferencesKey("rest_work_seconds")
         val REST_LIGHT_SECONDS = intPreferencesKey("rest_light_seconds")
+        val PHONE_REST_TIMER_ENABLED = booleanPreferencesKey("phone_rest_timer_enabled")
+        val PHONE_REST_DEADLINE = longPreferencesKey("phone_rest_deadline")
+        val PHONE_REST_TOTAL = intPreferencesKey("phone_rest_total")
+        val PHONE_REST_NEXT = stringPreferencesKey("phone_rest_next")
+        val PHONE_REST_NOTIFICATION_ASKED = booleanPreferencesKey("phone_rest_notification_asked")
 
         /** Set once the one-shot Health Connect backfill (#159) has published the
          *  history that predates the grant. Its presence is what makes the offer
@@ -170,6 +176,14 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         )
     }
 
+    val phoneRestTimerEnabledFlow: Flow<Boolean> = dataStore.data.map { it[Keys.PHONE_REST_TIMER_ENABLED] ?: true }
+    val phoneRestFlow: Flow<PhoneRest?> = dataStore.data.map { prefs ->
+        val deadline = prefs[Keys.PHONE_REST_DEADLINE] ?: return@map null
+        PhoneRest(deadline, prefs[Keys.PHONE_REST_TOTAL] ?: 0, prefs[Keys.PHONE_REST_NEXT].orEmpty())
+    }
+    val phoneRestNotificationAskedFlow: Flow<Boolean> =
+        dataStore.data.map { it[Keys.PHONE_REST_NOTIFICATION_ASKED] ?: false }
+
     /** Whether the screen is held awake while the app is in front (#125).
      *  Defaults off — the wake costs battery, so it is opt-in. */
     val keepScreenOnFlow: Flow<Boolean> =
@@ -248,6 +262,28 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     /** Flips the master rest-timer gate. */
     suspend fun setRestTimerEnabled(enabled: Boolean) =
         dataStore.edit { it[Keys.REST_TIMER_ENABLED] = enabled }
+
+    suspend fun setPhoneRestTimerEnabled(enabled: Boolean) = dataStore.edit {
+        it[Keys.PHONE_REST_TIMER_ENABLED] = enabled
+        if (!enabled) clearPhoneRest(it)
+    }
+
+    suspend fun setPhoneRest(rest: PhoneRest?) = dataStore.edit { prefs ->
+        if (rest == null) clearPhoneRest(prefs) else {
+            prefs[Keys.PHONE_REST_DEADLINE] = rest.deadlineEpochMillis
+            prefs[Keys.PHONE_REST_TOTAL] = rest.totalSeconds
+            prefs[Keys.PHONE_REST_NEXT] = rest.nextSetLabel
+        }
+    }
+
+    suspend fun markPhoneRestNotificationAsked() =
+        dataStore.edit { it[Keys.PHONE_REST_NOTIFICATION_ASKED] = true }
+
+    private fun clearPhoneRest(prefs: androidx.datastore.preferences.core.MutablePreferences) {
+        prefs.remove(Keys.PHONE_REST_DEADLINE)
+        prefs.remove(Keys.PHONE_REST_TOTAL)
+        prefs.remove(Keys.PHONE_REST_NEXT)
+    }
 
     /** Writes one per-category rest override, clamped to [RestPolicy]'s bounds so
      *  a stored value can never exceed what the resolver accepts. Writing a value

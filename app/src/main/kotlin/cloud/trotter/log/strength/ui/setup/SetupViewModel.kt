@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import cloud.trotter.log.strength.rest.RestRuntime
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
 
 /**
  * Setup screen ViewModel (spec §8.4). Unlike the wizard, there is no draft:
@@ -40,11 +42,14 @@ import kotlinx.coroutines.sync.withLock
  * single-key write, not a read-modify-write over a composite value.
  */
 @HiltViewModel
-class SetupViewModel @Inject constructor(private val repo: TrackerRepository) : ViewModel() {
+class SetupViewModel @Inject constructor(
+    private val repo: TrackerRepository,
+    private val restRuntime: RestRuntime = NoOpRestRuntime,
+) : ViewModel() {
 
     private val mutationLock = Mutex()
 
-    private val trainingState = combine(
+    private val trainingBasics = combine(
         repo.configFlow,
         repo.cardioPrefsFlow,
         repo.unitFlow,
@@ -52,6 +57,9 @@ class SetupViewModel @Inject constructor(private val repo: TrackerRepository) : 
         repo.restSettingsFlow,
     ) { cfg, cardio, unit, answers, restSettings ->
         SetupStateBuilder.buildUiState(cfg, cardio, unit, answers, restSettings)
+    }
+    private val trainingState = combine(trainingBasics, repo.phoneRestTimerEnabledFlow) { state, phoneEnabled ->
+        state.copy(phoneRestTimerEnabled = phoneEnabled)
     }
 
     val uiState: StateFlow<SetupUiState> = combine(trainingState, repo.themePreferenceFlow) { state, theme ->
@@ -84,6 +92,12 @@ class SetupViewModel @Inject constructor(private val repo: TrackerRepository) : 
 
     fun setRestTimerEnabled(enabled: Boolean) {
         viewModelScope.launch { repo.setRestTimerEnabled(enabled) }
+    }
+    fun setPhoneRestTimerEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repo.setPhoneRestTimerEnabled(enabled)
+            if (!enabled) restRuntime.cancel()
+        }
     }
 
     fun setRestOverride(category: RestCategory, seconds: Int) {

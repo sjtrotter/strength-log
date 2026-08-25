@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.standards.PhoneRest
 
 /**
  * Immutable render model for the whole day screen (UDF: the ViewModel's single output).
@@ -36,6 +37,7 @@ data class DayUiState(
     val exercises: List<ExerciseCardState> = emptyList(),
     val cardio: CardioCardState? = null,
     val keepScreenOn: Boolean = false,
+    val rest: RestUiState? = null,
 ) {
     /** True when the viewed day isn't the suggested-next one (spec §8.2 override note). */
     val isOverride: Boolean
@@ -56,6 +58,9 @@ data class DayUiState(
     /** Rounds this day holds in total, counted the same way as [doneSets]. */
     val totalSets: Int = exercises.sumOf { it.rows.size }
 }
+
+@Immutable
+data class RestUiState(val rest: PhoneRest, val remainingSeconds: Int, val remainingFraction: Float, val over: Boolean)
 
 enum class DoneButtonState { ALL_DONE, PARTIAL, NOTHING_LOGGED }
 

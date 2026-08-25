@@ -32,7 +32,7 @@
 <string name="setup_back_description">Back</string>
 <string name="setup_training_section">TRAINING</string>
 <string name="setup_display_section">DISPLAY</string>
-<string name="setup_watch_section">WATCH</string>
+    <string name="setup_rest_timer_section">REST TIMER</string>
 <string name="setup_data_section">DATA</string>
 <string name="setup_about_section">ABOUT</string>
 <string name="setup_goals_title">YOUR MAIN-LIFT GOALS</string>
@@ -73,7 +73,15 @@
 <string name="setup_theme_dark_description">Keep the lights low.</string>
 <string name="setup_theme_light_title">Light</string>
 <string name="setup_theme_light_description">Warm paper and ink.</string>
-<string name="setup_rest_timer_toggle">Rest timer on watch</string>
+    <string name="setup_rest_timer_toggle">Rest timer on watch</string>
+    <string name="setup_phone_rest_timer_toggle">Rest timer on phone</string>
+    <string name="rest_minus_15">−15</string>
+    <string name="rest_plus_15">+15</string>
+    <string name="rest_skip">SKIP</string>
+    <string name="rest_over">REST OVER</string>
+    <string name="rest_channel_name">Rest timer</string>
+    <string name="rest_notification_running">REST · %1$s next</string>
+    <string name="rest_notification_running_no_next">REST</string>
 <string name="setup_decrease_rest_description">Decrease %1$s rest</string>
 <string name="setup_increase_rest_description">Increase %1$s rest</string>
 <string name="setup_rest_category_warm_up">Warm-up</string>

@@ -43,6 +43,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -191,7 +195,11 @@ fun Stepper(
             .heightIn(min = 40.dp)
             .clip(CapsuleShape)
             .background(Surface2)
-            .border(1.dp, Border, CapsuleShape),
+            .border(1.dp, Border, CapsuleShape)
+            // Typing is a custom action on the stepper, not a third click target:
+            // the ± segments already claim 48dp each, and a button between them
+            // would have to share pixels with both (TouchTargetTest).
+            .semantics { customActions = listOf(CustomAccessibilityAction(typeDescription) { openEditor(); true }) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StepSegment(symbol = "−", contentDescription = resolvedDecreaseDescription) {
@@ -203,11 +211,7 @@ fun Stepper(
             text = format(value),
             modifier = Modifier
                 .widthIn(min = valueMinWidth)
-                .pressable(onClickLabel = typeDescription, role = Role.Button, onClick = ::openEditor)
-                .semantics {
-                    contentDescription = typeDescription
-                    role = Role.Button
-                }
+                .pointerInput(Unit) { detectTapGestures { openEditor() } }
                 .padding(horizontal = 2.dp),
             textAlign = TextAlign.Center,
             maxLines = 1,

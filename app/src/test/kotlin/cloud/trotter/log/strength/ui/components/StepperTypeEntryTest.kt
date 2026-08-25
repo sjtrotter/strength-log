@@ -53,9 +53,12 @@ class StepperTypeEntryTest {
             }
         }
 
-        composeTestRule.onNodeWithContentDescription("Type weight")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
-            .performClick()
+        val typeAction = composeTestRule.onNode(
+            SemanticsMatcher("offers Type weight") { node ->
+                node.config.getOrNull(SemanticsProperties.CustomActions)?.any { it.label == "Type weight" } == true
+            },
+        ).fetchSemanticsNode().config[SemanticsProperties.CustomActions].single { it.label == "Type weight" }
+        composeTestRule.runOnIdle { typeAction.action() }
         composeTestRule.onNode(hasSetTextAction()).performTextReplacement("137")
         composeTestRule.onNodeWithText("DONE").performClick()
 

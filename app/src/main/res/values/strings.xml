@@ -1,5 +1,20 @@
 <resources>
     <string name="app_name">strength.log</string>
+    <string name="stepper_type_action">Type %1$s</string>
+    <string name="stepper_value_label">value</string>
+    <string name="stepper_valid_range">Valid range: %1$s–%2$s</string>
+    <string name="stepper_valid_range_unbounded">Valid range: %1$s or more</string>
+    <string name="stepper_next_button">NEXT</string>
+    <string name="stepper_done_button">DONE</string>
+    <string name="stepper_weight_label">weight</string>
+    <string name="stepper_reps_label">reps</string>
+    <string name="stepper_seconds_label">seconds</string>
+    <string name="stepper_reps_unit">reps</string>
+    <string name="stepper_seconds_unit">sec</string>
+    <string name="stepper_bodyweight_label">bodyweight</string>
+    <string name="stepper_age_label">age</string>
+    <string name="stepper_years_unit">years</string>
+    <string name="stepper_rest_label">%1$s rest</string>
 
     <string name="widget_today_label">Today</string>
     <string name="widget_today_description">Today\'s day, its lifts and how far through the sets you are.</string>

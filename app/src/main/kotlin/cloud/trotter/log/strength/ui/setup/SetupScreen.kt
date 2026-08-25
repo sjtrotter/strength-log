@@ -261,6 +261,9 @@ private fun AgeCard(age: Int, onChange: (Int) -> Unit) {
                 format = { it.toInt().toString() },
                 decreaseDescription = stringResource(R.string.setup_decrease_age_description),
                 increaseDescription = stringResource(R.string.setup_increase_age_description),
+                inputLabel = stringResource(R.string.stepper_age_label),
+                inputUnit = stringResource(R.string.stepper_years_unit),
+                round = { Math.round(it).toDouble() },
             )
         }
     }
@@ -433,6 +436,9 @@ private fun RestCategoryRow(row: RestCategoryUiState, onChange: (Int) -> Unit) {
             valueColor = if (row.seconds == 0) TextFaint else TextPrimary,
             decreaseDescription = stringResource(R.string.setup_decrease_rest_description, label),
             increaseDescription = stringResource(R.string.setup_increase_rest_description, label),
+            inputLabel = stringResource(R.string.stepper_rest_label, label),
+            inputUnit = stringResource(R.string.stepper_seconds_unit),
+            maxValue = RestPolicy.MAX_REST_SECONDS.toDouble(),
         )
     }
 }

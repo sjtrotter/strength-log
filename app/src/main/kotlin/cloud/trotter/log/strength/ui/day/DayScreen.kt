@@ -866,7 +866,10 @@ private fun ExerciseCard(
 
                 Spacer(Modifier.size(4.dp))
                 var cascadeOrdinal = 0
-                card.rows.forEach { row ->
+                var requestedWeightIndex by rememberSaveable { mutableStateOf(-1) }
+                var weightEditorRequest by rememberSaveable { mutableStateOf(0) }
+                card.rows.forEachIndexed { rowPosition, row ->
+                    val nextWeightIndex = card.rows.getOrNull(rowPosition + 1)?.index
                     val ordinal = cascadeOrdinal
                     if (!row.isTop) cascadeOrdinal++
                     // The offer sits in the gap the removed row left, so undo is
@@ -910,6 +913,14 @@ private fun ExerciseCard(
                         showTimedWeight = card.timedShowsWeight,
                         isNext = row.isNext,
                         trailingLine = card.plateLine.takeIf { row.isNext },
+                        weightUnit = unit.name.lowercase(),
+                        weightEditorRequest = weightEditorRequest.takeIf { requestedWeightIndex == row.index } ?: 0,
+                        onNext = nextWeightIndex?.let { nextIndex ->
+                            {
+                                requestedWeightIndex = nextIndex
+                                weightEditorRequest++
+                            }
+                        },
                     )
                     val partner = row.partner
                     if (card.isSuperset && partner != null) {
@@ -934,6 +945,7 @@ private fun ExerciseCard(
                             seconds = partner.seconds,
                             onSecondsChange = { actions.onSecondsChange(card.programExerciseId, Slot.SS, row.index, it) },
                             showTimedWeight = card.partnerTimedShowsWeight,
+                            weightUnit = unit.name.lowercase(),
                         )
                     }
                 }

@@ -2,38 +2,59 @@ package cloud.trotter.log.strength.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -61,6 +82,18 @@ private val CapsuleShape = RoundedCornerShape(8.dp)
  *  reads as "held down", not stuttery. */
 private const val LONG_PRESS_INITIAL_DELAY_MS = 400L
 private const val LONG_PRESS_REPEAT_INTERVAL_MS = 90L
+private const val LONG_PRESS_FAST_INTERVAL_MS = 45L
+private const val LONG_PRESS_FAST_AFTER_STEPS = 8
+
+internal fun resolveStepperCommit(
+    draft: String,
+    minValue: Double,
+    maxValue: Double,
+    round: (Double) -> Double,
+): Double? = draft.trim().toDoubleOrNull()
+    ?.takeIf(Double::isFinite)
+    ?.let(round)
+    ?.coerceIn(minValue, maxValue)
 
 /**
  * The ± stepper capsule used for both set weight and set reps (design-pass
@@ -91,7 +124,8 @@ private const val LONG_PRESS_REPEAT_INTERVAL_MS = 90L
  *
  * Long-press auto-repeat (A7): holding either segment repeats [onValueChange]
  * — the very call a single tap makes, so min/round clamp identically — after
- * [LONG_PRESS_INITIAL_DELAY_MS], then every [LONG_PRESS_REPEAT_INTERVAL_MS].
+ * [LONG_PRESS_INITIAL_DELAY_MS], then every [LONG_PRESS_REPEAT_INTERVAL_MS],
+ * accelerating to [LONG_PRESS_FAST_INTERVAL_MS] after eight repeated steps.
  * A quick tap never reaches the initial delay, so it fires exactly once, via
  * the ordinary click path; holding suppresses that path's own click at
  * release so a long press doesn't tack on one extra step (see [StepSegment]).
@@ -101,6 +135,7 @@ private const val LONG_PRESS_REPEAT_INTERVAL_MS = 90L
  * Material 3 has no compound stepper with this shared capsule, value field,
  * overlapping minimum touch targets, and long-press auto-repeat behavior.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Stepper(
     value: Double,
@@ -115,27 +150,69 @@ fun Stepper(
     valueColor: Color = TextPrimary,
     decreaseDescription: String? = null,
     increaseDescription: String? = null,
+    inputLabel: String? = null,
+    inputUnit: String = "",
+    maxValue: Double = Double.POSITIVE_INFINITY,
+    decimalInput: Boolean = false,
+    onNext: (() -> Unit)? = null,
+    editorRequest: Int = 0,
 ) {
     val view = LocalView.current
     val resolvedDecreaseDescription = decreaseDescription ?: stringResource(R.string.stepper_decrease_action)
     val resolvedIncreaseDescription = increaseDescription ?: stringResource(R.string.stepper_increase_action)
+    val resolvedInputLabel = inputLabel ?: stringResource(R.string.stepper_value_label)
+    var editorOpen by rememberSaveable { mutableStateOf(false) }
+    var handledEditorRequest by rememberSaveable { mutableIntStateOf(editorRequest) }
+    var draft by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        val text = format(value)
+        mutableStateOf(TextFieldValue(text, TextRange(0, text.length)))
+    }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val focusRequester = remember { FocusRequester() }
+    val typeDescription = stringResource(R.string.stepper_type_action, resolvedInputLabel)
+
+    fun openEditor() {
+        val text = format(value)
+        draft = TextFieldValue(text, TextRange(0, text.length))
+        editorOpen = true
+    }
+
+    fun commit(advance: Boolean) {
+        val committed = resolveStepperCommit(draft.text, minValue, maxValue, round) ?: return
+        onValueChange(committed)
+        editorOpen = false
+        if (advance) onNext?.invoke()
+    }
+    LaunchedEffect(editorRequest) {
+        if (editorRequest > 0 && editorRequest != handledEditorRequest) {
+            handledEditorRequest = editorRequest
+            openEditor()
+        }
+    }
     Row(
         modifier = modifier
             // heightIn(min), not height (A7 font-scale): the numeral must grow past its 40dp floor.
             .heightIn(min = 40.dp)
             .clip(CapsuleShape)
             .background(Surface2)
-            .border(1.dp, Border, CapsuleShape),
+            .border(1.dp, Border, CapsuleShape)
+            // Typing is a custom action on the stepper, not a third click target:
+            // the ± segments already claim 48dp each, and a button between them
+            // would have to share pixels with both (TouchTargetTest).
+            .semantics { customActions = listOf(CustomAccessibilityAction(typeDescription) { openEditor(); true }) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StepSegment(symbol = "−", contentDescription = resolvedDecreaseDescription) {
-            val next = maxOf(minValue, round(value - step(value)))
+            val next = round(value - step(value)).coerceIn(minValue, maxValue)
             AppHaptics.perform(view, if (next == value) AppHaptics.Cue.BOUNDARY else AppHaptics.Cue.STEP_DETENT)
             if (next != value) onValueChange(next)
         }
         Text(
             text = format(value),
-            modifier = Modifier.widthIn(min = valueMinWidth).padding(horizontal = 2.dp),
+            modifier = Modifier
+                .widthIn(min = valueMinWidth)
+                .pointerInput(Unit) { detectTapGestures { openEditor() } }
+                .padding(horizontal = 2.dp),
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false,
@@ -143,9 +220,51 @@ fun Stepper(
             style = valueTextStyle,
         )
         StepSegment(symbol = "+", contentDescription = resolvedIncreaseDescription) {
-            val next = maxOf(minValue, round(value + step(value)))
+            val next = round(value + step(value)).coerceIn(minValue, maxValue)
             AppHaptics.perform(view, if (next == value) AppHaptics.Cue.BOUNDARY else AppHaptics.Cue.STEP_DETENT)
             if (next != value) onValueChange(next)
+        }
+    }
+    if (editorOpen) {
+        AppModalBottomSheet(onDismissRequest = { editorOpen = false }, sheetState = sheetState) {
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            val suffixContent: (@Composable () -> Unit)? = if (inputUnit.isBlank()) null else {
+                { Text(inputUnit) }
+            }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                    label = { Text(resolvedInputLabel) },
+                    suffix = suffixContent,
+                    supportingText = {
+                        val minimum = format(maxOf(minValue, round(minValue)))
+                        Text(
+                            if (maxValue.isFinite()) {
+                                stringResource(R.string.stepper_valid_range, minimum, format(maxValue))
+                            } else {
+                                stringResource(R.string.stepper_valid_range_unbounded, minimum)
+                            },
+                        )
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = if (decimalInput) KeyboardType.Decimal else KeyboardType.Number,
+                    ),
+                )
+                Row(Modifier.align(Alignment.End)) {
+                    if (onNext != null) {
+                        TextButton(onClick = { commit(advance = true) }) {
+                            Text(stringResource(R.string.stepper_next_button))
+                        }
+                    }
+                    TextButton(onClick = { commit(advance = false) }) {
+                        Text(stringResource(R.string.stepper_done_button))
+                    }
+                }
+                Spacer(Modifier.size(8.dp))
+            }
         }
     }
 }
@@ -186,10 +305,12 @@ private fun StepSegment(symbol: String, contentDescription: String, onClick: () 
             if (interaction !is PressInteraction.Press) return@collectLatest
             repeated[0] = false
             delay(LONG_PRESS_INITIAL_DELAY_MS)
+            var repeatCount = 0
             while (true) {
                 repeated[0] = true
                 currentOnClick()
-                delay(LONG_PRESS_REPEAT_INTERVAL_MS)
+                repeatCount++
+                delay(if (repeatCount >= LONG_PRESS_FAST_AFTER_STEPS) LONG_PRESS_FAST_INTERVAL_MS else LONG_PRESS_REPEAT_INTERVAL_MS)
             }
         }
     }

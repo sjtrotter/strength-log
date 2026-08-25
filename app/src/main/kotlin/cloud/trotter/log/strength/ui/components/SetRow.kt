@@ -359,7 +359,7 @@ private fun SetRowSwipeContainer(
                     text = "×",
                     color = TextFaint,
                     style = RemoveGlyph,
-                    modifier = Modifier.clearAndSetSemantics {}.testTag("removeSetReveal"),
+                    modifier = Modifier.testTag("removeSetReveal").clearAndSetSemantics {},
                 )
             }
         },

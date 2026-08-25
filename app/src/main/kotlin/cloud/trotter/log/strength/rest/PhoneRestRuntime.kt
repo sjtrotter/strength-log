@@ -77,6 +77,10 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
             .setSilent(true)
             .setContentIntent(openAppIntent(context))
             .build()
+        // Lint wants the permission check beside the call, not behind a helper.
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return
         NotificationManagerCompat.from(context).notify(RUNNING_ID, notification)
     }
 
@@ -137,7 +141,9 @@ class RestAlarmReceiver : BroadcastReceiver() {
                         .setDefaults(NotificationCompat.DEFAULT_VIBRATE)
                         .setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
                         .build()
-                    NotificationManagerCompat.from(context).notify(PhoneRestRuntime.OVER_ID, n)
+                    if (Build.VERSION.SDK_INT < 33 ||
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                    ) NotificationManagerCompat.from(context).notify(PhoneRestRuntime.OVER_ID, n)
                 }
             } finally { pending.finish() }
         }

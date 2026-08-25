@@ -51,7 +51,7 @@ class TodayScreenBuilderTest {
     fun lifeLine_uses_this_calendar_week_when_no_main_is_at_goal() {
         // Weeks start on Monday: from Saturday the 22nd, the 20th and the 18th
         // are both this week. (From Monday the 24th nothing earlier would be.)
-        val saturday = CivilTime(Instant.parse("2026-08-22T17:00:00Z"), now.zone)
+        val saturday = CivilTime(Instant.parse("2026-08-22T17:00:00Z"), now.zone, LocalDate.of(2026, 8, 22))
         assertEquals(
             UiText.TodayWeekLife(sessions = 2, rotationDays = 4, daysAgo = 2),
             TodayScreenBuilder.lifeLine(

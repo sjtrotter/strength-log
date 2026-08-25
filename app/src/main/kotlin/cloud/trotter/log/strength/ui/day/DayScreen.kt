@@ -13,6 +13,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
@@ -86,6 +87,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -95,6 +97,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -113,6 +116,7 @@ import cloud.trotter.log.strength.ui.components.AppHaptics
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.NoProgramState
+import cloud.trotter.log.strength.ui.components.NoteSheet
 import cloud.trotter.log.strength.ui.components.ProgramLoadingState
 import cloud.trotter.log.strength.ui.components.SetRow
 import cloud.trotter.log.strength.ui.components.backGesturePreview
@@ -183,6 +187,8 @@ fun DayScreen(
     // which is frequent enough to be worth an undo instead.
     var confirmingClearChecks by rememberSaveable { mutableStateOf(false) }
     var confirmingPartialFinish by rememberSaveable { mutableStateOf(false) }
+    var noteCardId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var receiptNoteOpen by rememberSaveable { mutableStateOf(false) }
     // Only the newest removal is on offer: an older entry's index describes a
     // list that no longer exists, so drawing its line would point at the wrong
     // gap. Taking this one reveals the next (see DayViewModel.removedSets).
@@ -306,6 +312,7 @@ fun DayScreen(
                                 }
                             }
                         },
+                        onEditNote = { noteCardId = card.programExerciseId },
                     )
                 }
                 state.cardio?.let { cardio ->
@@ -379,6 +386,17 @@ fun DayScreen(
         )
     }
 
+    noteCardId?.let { id ->
+        val card = state.exercises.firstOrNull { it.programExerciseId == id }
+        if (card != null) {
+            NoteSheet(card.note, { actions.onSetExerciseNote(id, it) }, { noteCardId = null })
+        } else noteCardId = null
+    }
+
+    if (receiptNoteOpen) {
+        NoteSheet(sessionReceipt?.note.orEmpty(), actions.onSetSessionNote) { receiptNoteOpen = false }
+    }
+
     // The finished session's receipt (#126), over a day screen that has already
     // advanced — but only once the cascade has been read. One DONE can raise
     // both, and the order they arrive in is a composition rule, not a drawing
@@ -399,6 +417,7 @@ fun DayScreen(
                 receipt = it,
                 onShare = onShareSession,
                 onFinish = onFinishSession,
+                onEditNote = { receiptNoteOpen = true },
                 modifier = Modifier.backGesturePreview { receiptBackProgress.value },
             )
         }
@@ -497,6 +516,29 @@ private fun TopBar(
                     Text(text = state.emphasisLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                     DayScreenBuilder.sessionStatusLine(state.doneSets, state.totalSets)?.let { status ->
                         Text(text = status.resolve(), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    }
+                    state.watchStatus?.let { watch ->
+                        val label = when (watch.kind) {
+                            WatchStatusKind.ACTIVE -> stringResource(R.string.watch_status_active)
+                            WatchStatusKind.SYNCING -> pluralStringResource(
+                                R.plurals.watch_status_syncing, watch.changeCount, watch.changeCount,
+                            )
+                            WatchStatusKind.OFFLINE_QUEUED -> stringResource(
+                                R.string.watch_status_offline_queued, watch.changeCount,
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.pressable(
+                                onClickLabel = stringResource(R.string.watch_status_open_rest_timer),
+                                role = Role.Button,
+                                onClick = actions.onOpenRestTimer,
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(AppIcons.Watch, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+                            Text(label, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                     if (state.isOverride && state.suggestedDayId != null) {
                         Spacer(Modifier.size(3.dp))
@@ -698,6 +740,7 @@ private fun ExerciseCard(
     onUndoRemoveSet: () -> Unit = {},
     autoCollapseDelayMillis: Long = 420L,
     onAutoCollapsed: () -> Unit = {},
+    onEditNote: () -> Unit = {},
 ) {
     val expandAction = stringResource(R.string.day_expand_action)
     val collapseAction = stringResource(R.string.day_collapse_action)
@@ -750,6 +793,15 @@ private fun ExerciseCard(
         label = "cardDoneEdge",
     )
     val doneColor = Done
+    val cardView = LocalView.current
+    val remoteTickEvent = card.rows.maxOfOrNull { it.remoteTickEventId } ?: 0L
+    val previousRemoteTickEvent = remember { longArrayOf(remoteTickEvent) }
+    LaunchedEffect(remoteTickEvent) {
+        if (remoteTickEvent > 0L && remoteTickEvent != previousRemoteTickEvent[0]) {
+            AppHaptics.perform(cardView, AppHaptics.Cue.CONFIRM_TICK)
+        }
+        previousRemoteTickEvent[0] = remoteTickEvent
+    }
     AppCard(modifier = Modifier.drawWithContent {
         drawContent()
         // A finished card gets a 3dp green left edge (spec §8.2); non-done cards
@@ -770,7 +822,24 @@ private fun ExerciseCard(
                     )
                     .semantics { stateDescription = if (displayCollapsed) collapsedState else expandedState },
             ) {
-                Text(card.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    card.title,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.combinedClickable(
+                        onClick = { actions.onToggleCollapse(card.programExerciseId) },
+                        onLongClick = onEditNote,
+                    ),
+                )
+                if (card.note.isNotBlank()) {
+                    Text(
+                        card.note,
+                        color = TextFaint,
+                        style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
+                }
                 // Centered, because the swap pill reserves a 48dp target (#123)
                 // and so sets this row's height whenever one is present; the
                 // badges beside it must stay on the pill's centre line.
@@ -1575,6 +1644,9 @@ data class DayActions(
     val onCardioScreenLive: (Boolean) -> Unit = {},
     val onAdjustRest: (Int) -> Unit = {},
     val onSkipRest: () -> Unit = {},
+    val onSetExerciseNote: (Long, String) -> Unit = { _, _ -> },
+    val onSetSessionNote: (String) -> Unit = {},
+    val onOpenRestTimer: () -> Unit = {},
 )
 
 // --- preview: the reference scenario (day_screen_reference.html) ------------

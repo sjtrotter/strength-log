@@ -10,6 +10,31 @@ import androidx.compose.ui.unit.dp
 
 /** Icons that are not available in the app's material-icons-core dependency. */
 object AppIcons {
+    val Watch: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Watch",
+            defaultWidth = 20.dp,
+            defaultHeight = 20.dp,
+            viewportWidth = 20f,
+            viewportHeight = 20f,
+        ).apply {
+            path(
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 1.6f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(7f, 1.5f); horizontalLineTo(13f); lineTo(14f, 5f)
+                moveTo(7f, 18.5f); horizontalLineTo(13f); lineTo(14f, 15f)
+                moveTo(6f, 5f); horizontalLineTo(14f); quadTo(16f, 5f, 16f, 7f)
+                verticalLineTo(13f); quadTo(16f, 15f, 14f, 15f)
+                horizontalLineTo(6f); quadTo(4f, 15f, 4f, 13f)
+                verticalLineTo(7f); quadTo(4f, 5f, 6f, 5f)
+                close()
+            }
+        }.build()
+    }
+
     val SwapHoriz: ImageVector by lazy {
         ImageVector.Builder(
             name = "SwapHoriz",

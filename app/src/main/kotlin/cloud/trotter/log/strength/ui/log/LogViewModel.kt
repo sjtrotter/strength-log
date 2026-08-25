@@ -107,14 +107,20 @@ class LogViewModel @Inject constructor(
     /** Months back from the current one, never positive (journal §1.3). */
     private val calendarOffset: StateFlow<Int> = savedState.getStateFlow(KEY_MONTH_OFFSET, 0)
 
+    private val summariesWithNotes = combine(repo.sessionSummariesFlow, repo.sessionNotesFlow) { summaries, notes ->
+        summaries to notes
+    }
+
     private val ownSessions = combine(
-        repo.sessionSummariesFlow,
+        summariesWithNotes,
         repo.unitFlow,
         expandedSessionId,
         expandedSets,
         editingSessionId,
-    ) { summaries, unit, expandedId, setsCache, editingId ->
-        summaries.map { summary -> buildItem(summary, unit, expandedId, setsCache[summary.session.id], editingId) }
+    ) { summariesAndNotes, unit, expandedId, setsCache, editingId ->
+        summariesAndNotes.first.map { summary ->
+            buildItem(summary, unit, expandedId, setsCache[summary.session.id], editingId, summariesAndNotes.second[summary.session.id].orEmpty())
+        }
     }
 
     private val historyItems = combine(ownSessions, repo.cardioSessionsFlow, pendingDeletion) { strength, cardio, deleted ->
@@ -246,6 +252,10 @@ class LogViewModel @Inject constructor(
 
     fun updateSessionSetDone(sessionId: Long, setId: Long, done: Boolean) =
         updateSessionSet(sessionId, setId) { it.copy(done = done) }
+
+    fun setSessionNote(sessionId: Long, text: String) {
+        viewModelScope.launch { repo.setSessionNote(sessionId, text) }
+    }
 
     fun deleteSession(sessionId: Long) {
         viewModelScope.launch {
@@ -421,6 +431,7 @@ class LogViewModel @Inject constructor(
         expandedId: Long?,
         cachedSets: List<SessionSetEntity>?,
         editingId: Long?,
+        note: String,
     ): SessionListItem {
         val session = summary.session
         val expanded = session.id == expandedId
@@ -440,6 +451,7 @@ class LogViewModel @Inject constructor(
             },
             completedAt = session.completedAt,
             editing = session.id == editingId,
+            note = note,
             unit = unit,
         )
     }

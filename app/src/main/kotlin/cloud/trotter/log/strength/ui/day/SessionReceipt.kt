@@ -46,6 +46,7 @@ data class SessionReceipt(
     /** "DAY B · UPPER" — where the rotation now stands; null at the end of a
      *  program with no successor. */
     val nextDayLine: String?,
+    val note: String = "",
 )
 
 /** The strongest-set row: the lift's name and its set, already formatted. */

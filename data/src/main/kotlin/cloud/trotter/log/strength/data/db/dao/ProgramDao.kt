@@ -81,6 +81,9 @@ interface ProgramDao {
     @Query("UPDATE program_exercise SET exerciseId = :exerciseId WHERE id = :id")
     suspend fun setExerciseId(id: Long, exerciseId: String)
 
+    @Query("UPDATE program_exercise SET note = :note WHERE id = :id")
+    suspend fun setExerciseNote(id: Long, note: String)
+
     /** Sets (or with a null [partnerId], clears) a slot's superset partner (#93). */
     @Query("UPDATE program_exercise SET supersetExerciseId = :partnerId WHERE id = :id")
     suspend fun setSupersetExerciseId(id: Long, partnerId: String?)

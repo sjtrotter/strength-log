@@ -30,6 +30,37 @@ import cloud.trotter.log.strength.ui.today.TodayScreenBuilder
  * (SSOT via [WeightUnit]/[WeightStepper]); nothing downstream does lb/kg math.
  */
 object DayScreenBuilder {
+    fun watchStatusLine(
+        lastContactMillis: Long,
+        syncingChanges: Int,
+        queuedChanges: Int,
+        watchConnected: Boolean,
+        nowMillis: Long,
+    ): WatchStatus? = when {
+        syncingChanges > 0 -> WatchStatus(WatchStatusKind.SYNCING, syncingChanges)
+        queuedChanges > 0 && !watchConnected -> WatchStatus(WatchStatusKind.OFFLINE_QUEUED, queuedChanges)
+        lastContactMillis > 0L && nowMillis - lastContactMillis <= WATCH_ACTIVE_WINDOW_MS -> WatchStatus(WatchStatusKind.ACTIVE)
+        else -> null
+    }
+
+    fun markRemoteTick(state: DayUiState, tick: cloud.trotter.log.strength.sync.RemoteTick?): DayUiState {
+        if (tick == null || tick.dayId != state.viewDayId) return state.copy(remoteTick = tick)
+        return state.copy(
+            remoteTick = tick,
+            exercises = state.exercises.map { card ->
+                if (card.programExerciseId != tick.programExerciseId) card else card.copy(
+                    rows = card.rows.map { row ->
+                        row.copy(
+                            justTickedRemotely = row.index == tick.setIndex,
+                            remoteTickEventId = if (row.index == tick.setIndex) tick.eventId else 0L,
+                        )
+                    },
+                )
+            },
+        )
+    }
+
+    private const val WATCH_ACTIVE_WINDOW_MS = 2 * 60 * 1000L
 
     fun doneButtonState(doneSets: Int, totalSets: Int): DoneButtonState = when {
         doneSets <= 0 -> DoneButtonState.NOTHING_LOGGED

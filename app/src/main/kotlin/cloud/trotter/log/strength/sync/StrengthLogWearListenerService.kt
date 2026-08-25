@@ -31,17 +31,37 @@ class StrengthLogWearListenerService : WearableListenerService() {
 
     @Inject lateinit var applier: SetEditApplier
     @Inject lateinit var cardioApplier: CardioDeltaApplier
+    @Inject lateinit var syncStore: WearSyncStore
 
     override fun onMessageReceived(event: MessageEvent) {
         when (event.path) {
-            WearSyncPaths.SET_EDIT ->
-                receive("set-edit", { SyncCodec.decodeDelta(event.data) }) { applier.apply(it) }
+            WearSyncPaths.SET_EDIT -> receiveSetEdit(event.data)
             // Swaps ride their own path (#90) so an older phone drops them by filter
             // rather than failing to decode them as a set edit.
             WearSyncPaths.EXERCISE_SWAP ->
                 receive("exercise-swap", { SyncCodec.decodeSwap(event.data) }) { applier.apply(it) }
             WearSyncPaths.CARDIO ->
                 receive("cardio", { SyncCodec.decodeCardio(event.data) }) { cardioApplier.apply(it) }
+        }
+    }
+
+    private fun receiveSetEdit(bytes: ByteArray) {
+        val delta = try { SyncCodec.decodeDelta(bytes) } catch (e: Exception) {
+            Log.w(TAG, "dropping malformed set-edit payload", e)
+            return
+        }
+        try {
+            runBlocking {
+                syncStore.beginIncomingChange()
+                val outcome = applier.apply(delta)
+                val tick = if (outcome == SetEditApplier.Outcome.APPLIED && delta.done == true) {
+                    RemoteTick(delta.dayId, delta.programExerciseId, delta.setIndex)
+                } else null
+                syncStore.finishIncomingChange(tick)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "dropping set-edit that failed to apply", e)
+            runCatching { runBlocking { syncStore.finishIncomingChange(null) } }
         }
     }
 

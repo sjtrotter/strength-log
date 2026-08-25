@@ -88,6 +88,7 @@ data class SessionListItem(
     val cardioSemantics: String? = null,
     val cardioDuration: String? = null,
     val editing: Boolean = false,
+    val note: String = "",
     val undoPending: Boolean = false,
     val unit: WeightUnit = WeightUnit.LB,
 )

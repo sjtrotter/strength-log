@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.sync.TodaySnapshotSource
 import cloud.trotter.log.strength.sync.WearSyncPublisher
 import cloud.trotter.log.strength.sync.WearSyncStore
+import cloud.trotter.log.strength.sync.WatchContinuitySource
 import java.time.LocalDate
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -42,6 +43,9 @@ object WearSyncModule {
     @Singleton
     fun wearSyncStore(@ApplicationContext context: Context): WearSyncStore =
         WearSyncStore(context.wearSyncDataStore)
+
+    @Provides
+    fun watchContinuitySource(store: WearSyncStore): WatchContinuitySource = store
 
     @Provides
     @Singleton

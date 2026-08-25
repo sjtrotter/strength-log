@@ -6,6 +6,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -55,9 +57,9 @@ class StepperTypeEntryTest {
 
         val typeAction = composeTestRule.onNode(
             SemanticsMatcher("offers Type weight") { node ->
-                node.config.getOrNull(SemanticsProperties.CustomActions)?.any { it.label == "Type weight" } == true
+                node.config.getOrNull(SemanticsActions.CustomActions)?.any { it.label == "Type weight" } == true
             },
-        ).fetchSemanticsNode().config[SemanticsProperties.CustomActions].single { it.label == "Type weight" }
+        ).fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == "Type weight" }
         composeTestRule.runOnIdle { typeAction.action() }
         composeTestRule.onNode(hasSetTextAction()).performTextReplacement("137")
         composeTestRule.onNodeWithText("DONE").performClick()

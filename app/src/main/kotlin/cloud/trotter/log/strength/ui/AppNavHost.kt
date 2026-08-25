@@ -190,6 +190,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
                 onFinishSession = { navController.popBackStack() },
                 initialDayId = dayId,
+                onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
             )
         }
         composable(Routes.WIZARD) {

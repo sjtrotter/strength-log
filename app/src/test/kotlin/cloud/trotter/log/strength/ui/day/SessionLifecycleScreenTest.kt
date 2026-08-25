@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -50,14 +51,16 @@ class SessionLifecycleScreenTest {
     fun theOverlineAddsTheCountOnceTheFirstSetIsTicked() {
         setDayContent(dayState(done = 1))
 
-        composeTestRule.onNodeWithText("DAY A · 1 OF 3", useUnmergedTree = true).assertExists()
+        // MediumTopAppBar composes its title twice (collapsed and expanded rows).
+        composeTestRule.onAllNodesWithText("DAY A · 1 OF 3", useUnmergedTree = true).onFirst().assertExists()
     }
 
     @Test
     fun theOverlineReachesTheTotalWhenEveryRoundIsTicked() {
         setDayContent(dayState(done = 3))
 
-        composeTestRule.onNodeWithText("DAY A · 3 OF 3", useUnmergedTree = true).assertExists()
+        // MediumTopAppBar composes its title twice (collapsed and expanded rows).
+        composeTestRule.onAllNodesWithText("DAY A · 3 OF 3", useUnmergedTree = true).onFirst().assertExists()
     }
 
     // --- the receipt ---------------------------------------------------------

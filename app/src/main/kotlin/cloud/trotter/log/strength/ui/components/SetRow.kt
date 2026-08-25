@@ -302,7 +302,9 @@ fun SetRow(
             }
         }
 
-        Spacer(Modifier.weight(1f))
+        // At least 16dp: the reps + segment and the tick each grow 8dp past
+        // their visuals to reach 48dp, and those halos must not overlap.
+        Spacer(Modifier.weight(1f).widthIn(min = 16.dp))
 
         if (!isSubRow) {
             CheckmarkToggle(checked = ticked, onCheckedChange = onToggleDone)

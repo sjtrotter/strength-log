@@ -97,12 +97,14 @@ class DestructiveActionsTest {
         var removed = 0
         setDayContent(onRemoveSet = { removed++ })
 
+        // The glyph sits behind the row from the start; once the swipe lands
+        // the row (and its reveal) are gone, so look before, not after.
+        composeTestRule.onNodeWithTag("removeSetReveal", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithTag("setRowSwipe").performTouchInput {
             swipeLeft(startX = right, endX = left)
         }
         composeTestRule.mainClock.advanceTimeBy(1_000)
 
-        composeTestRule.onNodeWithTag("removeSetReveal", useUnmergedTree = true).assertExists()
         assertEquals("the swipe must remove without a confirm", 1, removed)
     }
 

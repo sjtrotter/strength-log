@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -107,9 +108,9 @@ class DestructiveActionsTest {
         var removed = 0
         setDayContent(onRemoveSet = { removed++ })
 
-        composeTestRule.onNodeWithTag("setRowSwipe").performSemanticsAction(SemanticsActions.CustomActions) { actions ->
-            actions.single { it.label == "Remove set" }.action()
-        }
+        val actions = composeTestRule.onNodeWithTag("setRowSwipe").fetchSemanticsNode()
+            .config[SemanticsProperties.CustomActions]
+        composeTestRule.runOnIdle { actions.single { it.label == "Remove set" }.action() }
 
         assertEquals(1, removed)
     }

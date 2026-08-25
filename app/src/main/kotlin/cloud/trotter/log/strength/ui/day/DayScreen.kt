@@ -163,6 +163,7 @@ import kotlinx.coroutines.launch
  * (AppCard/SetRow/dayAccent, spec §8.5, design-pass restyle per
  * docs/design-handoff — visual QA is against `day_screen_reference.html`).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayScreen(
     state: DayUiState,

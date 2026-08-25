@@ -361,7 +361,7 @@ private fun SetRowSwipeContainer(
                 )
             }
         },
-        content = content,
+        content = { content() },
     )
 }
 

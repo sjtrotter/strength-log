@@ -86,6 +86,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 title = day.title,
                 emphasisLine = day.emphasisLine,
                 cardioJson = day.cardioJson,
+                kind = day.kind,
                 exercises = exercisesByDay[day.dayId].orEmpty().map { ex ->
                     ProgramExerciseBackup(
                         id = ex.id,
@@ -177,6 +178,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             title = day.title,
             emphasisLine = day.emphasisLine,
             cardioJson = day.cardioJson,
+            kind = day.kind,
         )
     }
     val exerciseEntities = program.flatMap { day ->

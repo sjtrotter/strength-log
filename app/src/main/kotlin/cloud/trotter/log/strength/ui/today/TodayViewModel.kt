@@ -56,8 +56,8 @@ class TodayViewModel @Inject constructor(
             repo.unitFlow,
             repo.configFlow,
         ) { program, suggested, catalog, unit, cfg ->
-            val dayId = suggested?.takeIf { id -> program.days.any { it.id == id } }
-                ?: program.days.firstOrNull()?.id
+            val dayId = suggested?.takeIf { id -> program.strengthDays.any { it.id == id } }
+                ?: program.strengthDays.firstOrNull()?.id
             TodayContext(program, dayId, catalog, unit, cfg)
         }
 
@@ -90,7 +90,8 @@ class TodayViewModel @Inject constructor(
         topSets: List<TopSetRow>,
     ): TodayUiState {
         val day = ctx.program.days.first { it.id == dayId }
-        val dayIndex = ctx.program.days.indexOfFirst { it.id == dayId }
+        val dayIndex = ctx.program.strengthDays.indexOfFirst { it.id == dayId }
+        val standalone = ctx.program.cardioDays.firstOrNull()
         // Rounds, the same count the widget, the watch and the session receipt
         // show — see [Slot.isRound] for why a superset partner isn't one.
         val mainLogs = logs.filter { Slot.isRound(it.slot) }.associateBy { it.programExerciseId }
@@ -119,9 +120,12 @@ class TodayViewModel @Inject constructor(
                 )
             },
             cardio = day.cardio?.let { TodayCardio(it.label, it.detail, it.hard) },
+            standaloneCardio = standalone?.let {
+                StandaloneCardio(it.id, TodayScreenBuilder.standaloneCardioLine(true)!!)
+            },
             actionLabel = TodayScreenBuilder.actionLabel(dayId, doneSets, totalSets),
             lastSession = TodayScreenBuilder.lastSessionLine(sessions, topSets, ctx.catalog, ctx.unit),
-            rotation = TodayScreenBuilder.rotationMarks(ctx.program.days.map { it.id }, dayId),
+            rotation = TodayScreenBuilder.rotationMarks(ctx.program.strengthDays.map { it.id }, dayId),
         )
     }
 

@@ -10,7 +10,7 @@ object Rotation {
 
     /** The day id that follows [currentId] in [program], wrapping at the end. */
     fun next(program: Program, currentId: String): String {
-        val days = program.days
+        val days = program.strengthDays
         require(days.isNotEmpty()) { "program has no days" }
         val idx = days.indexOfFirst { it.id == currentId }
         require(idx >= 0) { "unknown day id: $currentId" }

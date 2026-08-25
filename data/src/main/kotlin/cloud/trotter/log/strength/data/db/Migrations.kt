@@ -118,3 +118,10 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         )
     }
 }
+
+/** v6 -> v7: classify program days; every existing day is a strength day. */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE program_day ADD COLUMN kind TEXT NOT NULL DEFAULT 'STRENGTH'")
+    }
+}

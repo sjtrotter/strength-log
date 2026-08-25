@@ -162,6 +162,7 @@ fun DayScreen(
     onBack: (() -> Unit)? = null,
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
+    standaloneCardio: Boolean = false,
 ) {
     val accent = dayAccent(state.dayIndex)
     val onAccent = onDayAccent(state.dayIndex)
@@ -245,7 +246,7 @@ fun DayScreen(
         // 900dp of empty card with a stepper marooned at each end, so the column
         // caps and centres. That is all it does — two-pane is #29.
         Column(readableWidth()) {
-            TopBar(state, accent, soft, actions, onEditDay = { showEditSheet = true })
+            TopBar(state, accent, soft, actions, editable = !standaloneCardio, onEditDay = { showEditSheet = true })
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
@@ -304,10 +305,10 @@ fun DayScreen(
                         CardioCard(cardio, accent, onAccent, actions.onStartCardio, actions.onStopCardio)
                     }
                 }
-                item(contentType = "footer") { Footer(onClearChecks = { confirmingClearChecks = true }) }
+                if (!standaloneCardio) item(contentType = "footer") { Footer(onClearChecks = { confirmingClearChecks = true }) }
                 item(contentType = "spacer") { Spacer(Modifier.size(8.dp)) }
             }
-            BottomBar(
+            if (!standaloneCardio) BottomBar(
                 nextDayId = state.nextDayId,
                 doneSets = state.doneSets,
                 totalSets = state.totalSets,
@@ -415,6 +416,7 @@ private fun TopBar(
     accent: Color,
     accentSoftColor: Color,
     actions: DayActions,
+    editable: Boolean,
     onEditDay: () -> Unit,
 ) {
     val verticalPadding = chromeVerticalPadding()
@@ -494,7 +496,7 @@ private fun TopBar(
                 // day header"). The only chrome left on this screen: app-wide
                 // Setup and the Log both live on Today now (#121), and
                 // keep-screen-on moved down beside DONE (#125).
-                EditDayButton(onClick = onEditDay)
+                if (editable) EditDayButton(onClick = onEditDay)
             }
         }
         ProgressHairline(

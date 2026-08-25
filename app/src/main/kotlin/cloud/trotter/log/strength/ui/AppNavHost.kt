@@ -69,6 +69,10 @@ import kotlinx.coroutines.withContext
 object Routes {
     const val TODAY = "today"
     const val DAY = "day"
+    const val CARDIO = "cardio"
+    const val CARDIO_DAY_ARG = "dayId"
+    const val CARDIO_ROUTE = "$CARDIO/{$CARDIO_DAY_ARG}"
+    fun cardio(dayId: String) = "$CARDIO/$dayId"
     const val WIZARD = "wizard"
     const val SETUP = "setup"
     const val LOG = "log"
@@ -145,6 +149,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 // launchSingleTop: a double-tap on START is one workout, not two
                 // stacked copies of it to back out of.
                 onStart = { navController.navigate(Routes.DAY) { launchSingleTop = true } },
+                onOpenCardio = { navController.navigate(Routes.cardio(it)) },
                 onOpenSettings = { navController.navigate(Routes.SETUP) },
                 onOpenLog = { navController.navigate(Routes.LOG) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
@@ -167,6 +172,18 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 // back already performs — a finished workout leaves the workout
                 // screen, and Today re-derives what the rotation now says.
                 onFinishSession = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = Routes.CARDIO_ROUTE,
+            arguments = listOf(navArgument(Routes.CARDIO_DAY_ARG) { type = NavType.StringType }),
+        ) { entry ->
+            val dayId = entry.arguments?.getString(Routes.CARDIO_DAY_ARG).orEmpty()
+            DayRoute(
+                onCreateExercise = {},
+                onSetUpProgram = { navController.navigate(Routes.WIZARD) },
+                onFinishSession = { navController.popBackStack() },
+                initialDayId = dayId,
             )
         }
         composable(Routes.WIZARD) {
@@ -236,6 +253,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
 @Composable
 private fun TodayRoute(
     onStart: () -> Unit,
+    onOpenCardio: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenLog: () -> Unit,
     onSetUpProgram: () -> Unit,
@@ -246,6 +264,7 @@ private fun TodayRoute(
         state = state,
         actions = TodayActions(
             onStart = onStart,
+            onOpenCardio = onOpenCardio,
             onOpenSettings = onOpenSettings,
             onOpenLog = onOpenLog,
             onSetUpProgram = onSetUpProgram,
@@ -258,8 +277,10 @@ private fun DayRoute(
     onCreateExercise: (MovementPattern) -> Unit,
     onSetUpProgram: () -> Unit,
     onFinishSession: () -> Unit,
+    initialDayId: String? = null,
     viewModel: DayViewModel = hiltViewModel(),
 ) {
+    LaunchedEffect(initialDayId) { initialDayId?.let(viewModel::selectDay) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
     val cascadeCeremony by viewModel.cascadeCeremony.collectAsStateWithLifecycle()
@@ -316,6 +337,7 @@ private fun DayRoute(
         onBack = onFinishSession,
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
+        standaloneCardio = initialDayId != null,
     )
 }
 

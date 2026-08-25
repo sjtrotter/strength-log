@@ -51,15 +51,21 @@ data class ProgramExercise(
     val note: String = "",
 )
 
+enum class ProgramDayKind { STRENGTH, CARDIO }
+
 data class ProgramDay(
     val id: String, // "A", "B", ...
     val title: String,
     val emphasisLine: String, // muscle-angle emphasis, shown under title
     val exercises: List<ProgramExercise>,
     val cardio: CardioSuggestion?, // null if user opted out of finishers
+    val kind: ProgramDayKind = ProgramDayKind.STRENGTH,
 )
 
-data class Program(val days: List<ProgramDay>)
+data class Program(val days: List<ProgramDay>) {
+    val strengthDays: List<ProgramDay> get() = days.filter { it.kind == ProgramDayKind.STRENGTH }
+    val cardioDays: List<ProgramDay> get() = days.filter { it.kind == ProgramDayKind.CARDIO }
+}
 
 data class LifterConfig(
     val bodyweightLb: Int = 235,

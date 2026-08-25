@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -154,6 +155,20 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                     ) {
                         state.rotation.forEach { mark -> RotationChip(mark) }
                     }
+                }
+
+                state.standaloneCardio?.let { cardioDay ->
+                    Spacer(Modifier.size(14.dp))
+                    Text(
+                        cardioDay.line,
+                        color = accent,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .minimumInteractiveComponentSize()
+                            .clickable(role = Role.Button) { actions.onOpenCardio(cardioDay.dayId) }
+                            .padding(vertical = 12.dp),
+                    )
                 }
 
                 state.lastSession?.let { lastSession ->

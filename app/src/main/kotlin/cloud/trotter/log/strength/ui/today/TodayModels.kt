@@ -26,6 +26,7 @@ data class TodayUiState(
     val statLine: String = "",
     val lifts: List<TodayLift> = emptyList(),
     val cardio: TodayCardio? = null,
+    val standaloneCardio: StandaloneCardio? = null,
     /** "START DAY B" / "CONTINUE — 4 OF 18 SETS" / "FINISH DAY B". */
     val actionLabel: UiText.TodayAction = UiText.TodayAction(cloud.trotter.log.strength.ui.text.TodayActionKind.START, "", 0, 0),
     /** "Jul 30, 2026 · 18 sets · Back Squat 245"; null with no history. */
@@ -38,6 +39,7 @@ data class TodayLift(val name: String, val setCount: Int, val isMain: Boolean)
 
 /** The day's cardio finisher, if it has one. */
 data class TodayCardio(val label: String, val detail: String, val hard: Boolean)
+data class StandaloneCardio(val dayId: String, val line: String)
 
 /** One day of the rotation rail; [isNext] marks the day Today is offering. */
 data class RotationMark(val dayId: String, val dayIndex: Int, val isNext: Boolean)
@@ -49,4 +51,5 @@ data class TodayActions(
     val onOpenLog: () -> Unit,
     /** The recovery out of the no-program state (#127): back into the wizard. */
     val onSetUpProgram: () -> Unit,
+    val onOpenCardio: (String) -> Unit = {},
 )

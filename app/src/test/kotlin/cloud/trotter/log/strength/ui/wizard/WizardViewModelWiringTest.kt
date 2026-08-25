@@ -362,6 +362,21 @@ class WizardViewModelWiringTest {
     }
 
     @Test
+    fun finish_persists_standalone_cardio_days() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        vm.setCardioMode(cloud.trotter.log.strength.domain.model.CardioMode.OUTDOOR_RUN)
+        vm.setCardioPlacement(cloud.trotter.log.strength.domain.model.CardioPlacement.SEPARATE_DAYS)
+        repeat(WizardStep.entries.size - 1) { vm.onNext() }
+        vm.onNext()
+        advanceUntilIdle()
+
+        val program = repo.programFlow.first()
+        assertEquals(2, program.cardioDays.size)
+        assertTrue(program.cardioDays.all { it.exercises.size == 1 && it.cardio != null })
+    }
+
+    @Test
     fun finish_stepsAsideWhenARestoreLandedUnderTheFirstRunWizard() = runVmTest {
         // #172: the app opens on the wizard whenever wizardComplete reads false,
         // so an interrupted restore whose settings half is still pending puts the

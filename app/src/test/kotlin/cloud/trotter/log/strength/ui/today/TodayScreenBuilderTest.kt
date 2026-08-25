@@ -13,6 +13,11 @@ import org.junit.Test
 
 class TodayScreenBuilderTest {
 
+    @Test fun standalone_cardio_line_only_exists_when_program_has_cardio_days() {
+        assertNull(TodayScreenBuilder.standaloneCardioLine(false))
+        assertEquals("CARDIO + CORE · 25 MIN · LOG", TodayScreenBuilder.standaloneCardioLine(true))
+    }
+
     private val catalog = ExerciseCatalog.CODE_ONLY
 
     @Test

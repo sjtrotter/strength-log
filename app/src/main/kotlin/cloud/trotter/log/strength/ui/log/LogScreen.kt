@@ -53,7 +53,6 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.components.AppCard
-import cloud.trotter.log.strength.ui.components.BackAction
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.CheckmarkToggle
 import cloud.trotter.log.strength.ui.components.Stepper
@@ -61,7 +60,8 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.theme.StepperRepsValue
-import cloud.trotter.log.strength.ui.components.DayBadge
+import cloud.trotter.log.strength.ui.components.DayIndex
+import cloud.trotter.log.strength.ui.components.DayIndexSize
 import cloud.trotter.log.strength.ui.components.EmptyJournalState
 import cloud.trotter.log.strength.ui.components.NoteSheet
 import cloud.trotter.log.strength.ui.components.pressable
@@ -96,7 +96,7 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
     var noteSessionId by remember { mutableStateOf<Long?>(null) }
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(readableWidth()) {
-            LogHeader(actions.onBack)
+            LogHeader()
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
@@ -214,7 +214,7 @@ private fun CardioSessionCard(item: SessionListItem) {
         },
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            DayBadge(dayIndex = item.dayIndex, letter = item.dayLetter)
+            DayIndex(item.dayIndex, item.dayLetter, DayIndexSize.Medium)
             Spacer(Modifier.size(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(item.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
@@ -244,14 +244,13 @@ private fun sessionRowIndex(state: LogUiState, sessionId: Long): Int? {
 }
 
 @Composable
-private fun LogHeader(onBack: () -> Unit) {
+private fun LogHeader() {
     Column {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            BackAction(onBack)
             Text(stringResource(R.string.log_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         }
         HorizontalDivider(thickness = 1.dp, color = Border)
@@ -291,7 +290,7 @@ private fun SessionCard(
                 .semantics { stateDescription = disclosureState },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DayBadge(dayIndex = item.dayIndex, letter = item.dayLetter)
+            DayIndex(item.dayIndex, item.dayLetter, DayIndexSize.Medium)
             Spacer(Modifier.size(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(item.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
@@ -580,7 +579,6 @@ private fun ExternalSessionCard(row: ExternalSessionRow) {
 
 /** Callbacks the screen forwards to [LogViewModel]. */
 data class LogActions(
-    val onBack: () -> Unit,
     val onToggleExpanded: (Long) -> Unit,
     val onPageCalendar: (Int) -> Unit,
     val onConnectHealth: () -> Unit,
@@ -728,7 +726,6 @@ private fun LogScreenPreviewContent(theme: ThemePreference) {
         LogScreen(
             state = state,
             actions = LogActions(
-                onBack = {},
                 onToggleExpanded = {},
                 onPageCalendar = {},
                 onConnectHealth = {},

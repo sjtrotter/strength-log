@@ -55,11 +55,11 @@ class AuthoredStatesTest {
 
         composeTestRule.mainClock.advanceTimeBy(LOADING_REVEAL_DELAY_MS - 60)
         composeTestRule.onNodeWithText("PREPARING YOUR PROGRAM").assertDoesNotExist()
-        composeTestRule.onNodeWithText("NO PROGRAM YET").assertDoesNotExist()
+        composeTestRule.onNodeWithText("No program yet").assertDoesNotExist()
 
         composeTestRule.mainClock.advanceTimeBy(120)
         composeTestRule.onNodeWithText("PREPARING YOUR PROGRAM").assertIsDisplayed()
-        composeTestRule.onNodeWithText("NO PROGRAM YET").assertDoesNotExist()
+        composeTestRule.onNodeWithText("No program yet").assertDoesNotExist()
     }
 
     @Test
@@ -71,11 +71,11 @@ class AuthoredStatesTest {
 
         composeTestRule.mainClock.advanceTimeBy(LOADING_REVEAL_DELAY_MS - 60)
         composeTestRule.onNodeWithText("PREPARING YOUR PROGRAM").assertDoesNotExist()
-        composeTestRule.onNodeWithText("NO PROGRAM YET").assertDoesNotExist()
+        composeTestRule.onNodeWithText("No program yet").assertDoesNotExist()
 
         composeTestRule.mainClock.advanceTimeBy(120)
         composeTestRule.onNodeWithText("PREPARING YOUR PROGRAM").assertIsDisplayed()
-        composeTestRule.onNodeWithText("NO PROGRAM YET").assertDoesNotExist()
+        composeTestRule.onNodeWithText("No program yet").assertDoesNotExist()
     }
 
     // --- no program ---------------------------------------------------------
@@ -85,8 +85,8 @@ class AuthoredStatesTest {
         var opened = 0
         setDayContent(DayUiState(hasProgram = false, loading = false), onSetUpProgram = { opened++ })
 
-        composeTestRule.onNodeWithText("NO PROGRAM YET").assertIsDisplayed()
-        composeTestRule.onNodeWithText("RUN THE SETUP WIZARD").performClick()
+        composeTestRule.onNodeWithText("No program yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Set up a program").performClick()
 
         assertEquals(1, opened)
     }
@@ -98,8 +98,8 @@ class AuthoredStatesTest {
             AppTheme { TodayScreen(TodayUiState(), todayActions(onSetUpProgram = { opened++ })) }
         }
 
-        composeTestRule.onNodeWithText("NO PROGRAM YET").assertIsDisplayed()
-        composeTestRule.onNodeWithText("RUN THE SETUP WIZARD").performClick()
+        composeTestRule.onNodeWithText("No program yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Set up a program").performClick()
 
         assertEquals(1, opened)
     }
@@ -123,8 +123,8 @@ class AuthoredStatesTest {
         setLogContent(LogUiState(hasProgram = false), onSetUpProgram = { opened++ })
 
         composeTestRule.onNodeWithText("START A SESSION").assertDoesNotExist()
-        composeTestRule.onNodeWithText("NO PROGRAM YET").assertIsDisplayed()
-        composeTestRule.onNodeWithText("RUN THE SETUP WIZARD").performClick()
+        composeTestRule.onNodeWithText("No program yet").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Set up a program").performClick()
 
         assertEquals(1, opened)
     }
@@ -212,7 +212,6 @@ class AuthoredStatesTest {
         onStartSession: () -> Unit = {},
         onSetUpProgram: () -> Unit = {},
     ) = LogActions(
-        onBack = {},
         onToggleExpanded = {},
         onPageCalendar = {},
         onConnectHealth = {},

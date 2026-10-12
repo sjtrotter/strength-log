@@ -5,6 +5,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.R
 
@@ -44,6 +46,13 @@ val DisplayXl = TextStyle(
     fontSize = 40.sp,
     lineHeight = 44.sp,
     fontFeatureSettings = "tnum",
+)
+
+val DayIndexLetter = TextStyle(
+    fontFamily = Condensed,
+    fontWeight = FontWeight.Bold,
+    lineHeight = 1.em,
+    platformStyle = PlatformTextStyle(includeFontPadding = false),
 )
 
 /** Weight stepper value — token `--type-display-2`, the hero of the set row. */

@@ -17,7 +17,6 @@ import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.PlateMath
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.today.TodayScreenBuilder
 
 /**
  * The pure §8.2 decision logic behind the day screen: set-row labels, the
@@ -304,10 +303,8 @@ object DayScreenBuilder {
      * "IN PROGRESS · 4 OF 18 SETS", or `null` before the first tick, when the
      * day has nothing to report and shows no line at all.
      *
-     * The phase vocabulary is [TodayScreenBuilder.overline]'s: the day screen
-     * speaks the same three phases Today, the widget and the watch already
-     * speak rather than inventing a fourth, so "READY TO FINISH" means the same
-     * thing everywhere it appears.
+     * "READY TO FINISH" uses the same completion threshold as the widget and
+     * watch: an over-count is complete rather than an impossible ratio.
      */
     fun sessionStatusLine(doneSets: Int, totalSets: Int): cloud.trotter.log.strength.ui.text.UiText.DayStatus? =
         if (doneSets <= 0) {

@@ -12,7 +12,6 @@ import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.chromeVerticalPadding
 import cloud.trotter.log.strength.ui.theme.isShortWindow
-import cloud.trotter.log.strength.ui.today.RotationMark
 import cloud.trotter.log.strength.ui.today.TodayActions
 import cloud.trotter.log.strength.ui.today.TodayLift
 import cloud.trotter.log.strength.ui.today.TodayScreen
@@ -40,8 +39,8 @@ class WindowSizeTest {
         setTodayContent()
 
         val rootWidth = composeTestRule.onRoot().fetchSemanticsNode().size.width.toFloat()
-        val today = composeTestRule.onNodeWithText("TODAY").fetchSemanticsNode().boundsInRoot
-        val start = composeTestRule.onNodeWithText("START DAY B").fetchSemanticsNode().boundsInRoot
+        val dayLabel = composeTestRule.onNodeWithText("Day B").fetchSemanticsNode().boundsInRoot
+        val start = composeTestRule.onNodeWithText("Start day B").fetchSemanticsNode().boundsInRoot
         val readable = with(composeTestRule.density) { ReadableWidth.toPx() }
         val gutters = with(composeTestRule.density) { 32.dp.toPx() }
         val leftGap = start.left
@@ -56,8 +55,8 @@ class WindowSizeTest {
             abs(leftGap - rightGap) <= 2f,
         )
         assertTrue(
-            "TODAY at ${today.left}..${today.right}px escaped the centred $readable px band",
-            today.left >= (rootWidth - readable) / 2f && today.right <= (rootWidth + readable) / 2f,
+            "Day label at ${dayLabel.left}..${dayLabel.right}px escaped the centred $readable px band",
+            dayLabel.left >= (rootWidth - readable) / 2f && dayLabel.right <= (rootWidth + readable) / 2f,
         )
     }
 
@@ -154,20 +153,22 @@ class WindowSizeTest {
 
     @Test
     @Config(qualifiers = "w891dp-h360dp")
-    fun shortLandscapeWindowLeavesMostOfItsHeightForTheSummary() {
+    fun shortLandscapeWindowKeepsTheDayAndPrimaryActionVisible() {
         setTodayContent()
 
         val rootHeight = composeTestRule.onRoot().fetchSemanticsNode().size.height.toFloat()
-        val headerBottom = composeTestRule.onNodeWithText("TODAY")
+        val headerBottom = composeTestRule.onNodeWithText("Day B")
             .fetchSemanticsNode().boundsInRoot.bottom
-        val startTop = composeTestRule.onNodeWithText("START DAY B")
-            .fetchSemanticsNode().boundsInRoot.top
-        // More than half the measured window must remain between the two fixed chrome bands.
-        val summaryHeight = startTop - headerBottom
+        val start = composeTestRule.onNodeWithText("Start day B")
+            .fetchSemanticsNode().boundsInRoot
 
         assertTrue(
-            "summary height $summaryHeight px was not more than half of $rootHeight px",
-            summaryHeight > rootHeight / 2f,
+            "day header at $headerBottom px overlaps the primary action at ${start.top} px",
+            headerBottom < start.top,
+        )
+        assertTrue(
+            "primary action bottom ${start.bottom}px escaped the $rootHeight px window",
+            start.bottom <= rootHeight,
         )
     }
 
@@ -181,13 +182,9 @@ class WindowSizeTest {
         hasProgram = true,
         dayId = "B",
         dayIndex = 1,
-        dayLine = "DAY B · LOWER",
-        overline = "NEXT IN ROTATION",
-        emphasisLine = "hip-hinge hamstrings",
-        statLine = "5 LIFTS · 21 SETS",
-        lifts = listOf(TodayLift("Barbell Back Squat", 5, isMain = true)),
+        dayTitle = "Lower body",
+        lifts = listOf(TodayLift("Barbell Back Squat", 5)),
         actionLabel = cloud.trotter.log.strength.ui.today.TodayScreenBuilder.actionLabel("B", 0, 18),
-        rotation = listOf(RotationMark("B", 1, isNext = true)),
     )
 
     private fun todayActions() = TodayActions(

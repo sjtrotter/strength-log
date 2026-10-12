@@ -57,6 +57,15 @@ class A11ySemanticsTest {
     val composeTestRule = createComposeRule()
 
     @Test
+    fun dayIndexExposesTheDayDescription() {
+        composeTestRule.setContent {
+            AppTheme { DayIndex(dayIndex = 3, letter = "D", size = DayIndexSize.Large) }
+        }
+
+        composeTestRule.onNodeWithContentDescription("Day D").assertExists()
+    }
+
+    @Test
     fun stepperSegmentsExposeTheirDecreaseAndIncreaseLabels() {
         composeTestRule.setContent {
             AppTheme {

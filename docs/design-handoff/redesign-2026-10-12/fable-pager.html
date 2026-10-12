@@ -1,0 +1,422 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Workout as cards</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Roboto:wght@400;500&display=swap">
+<style>
+/* Layout: a short brief, then phone frames in a wrapping row; each frame is one screen of the
+   proposed app at Pixel density (1 CSS px = 1 dp). The product is dark-first; the page chrome
+   follows the viewer's theme, the frames stay in the product's own dark expression.
+   Revision 2 (12 Oct, after the owner's review): day index block, bottom navigation bar,
+   standard checkboxes, bottom-sheet editing, fold with one checkbox, no rotation band. */
+:root {
+  --bg: #0D0D0F; --fg: #F2F2F0; --fg-2: #9A9AA2; --fg-3: #6B6B73;
+  --surface: #16161A; --surface-2: #1D1D22; --line: #2A2A30;
+  --a: #C1440E; --b: #2D5A3D; --c: #B8860B; --d: #1F4E5F; --done: #3E8E5A;
+  /* accent as TEXT: the app's brightHex rule, 35% toward text primary, AA on near-black */
+  --a-t: #D2815D; --b-t: #728F7C; --c-t: #CCAC5B; --d-t: #698792;
+  --cond: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --sans: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --bg: #F1EFEA; --fg: #1A1917; --fg-2: #5E5B55; --fg-3: #8A867E; --surface: #FFFFFF; --surface-2: #E8E5DF; --line: #D9D5CD; color-scheme: light; }
+}
+:root[data-theme="light"] { --bg: #F1EFEA; --fg: #1A1917; --fg-2: #5E5B55; --fg-3: #8A867E; --surface: #FFFFFF; --surface-2: #E8E5DF; --line: #D9D5CD; color-scheme: light; }
+
+/* The frames are always the product's dark theme. */
+.phone { --bg: #0D0D0F; --fg: #F2F2F0; --fg-2: #9A9AA2; --fg-3: #6B6B73; --surface: #16161A; --surface-2: #1D1D22; --line: #2A2A30; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1480px; margin: 0 auto; padding-block: 40px 96px; padding-inline: 20px; }
+h1 { font-family: var(--cond); font-weight: 700; font-size: 44px; line-height: 1; margin: 0 0 8px; text-wrap: balance; }
+.lede { color: var(--fg-2); max-width: 62ch; margin: 0 0 28px; }
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px 28px; margin: 0 0 40px; padding: 0; list-style: none; max-width: 1100px; }
+.principles li { font-size: 15px; color: var(--fg-2); border-top: 1px solid var(--line); padding-top: 10px; }
+.principles b { color: var(--fg); font-weight: 500; display: block; }
+h2 { font-family: var(--cond); font-weight: 700; font-size: 26px; line-height: 1.1; margin: 48px 0 6px; }
+.note { color: var(--fg-2); max-width: 62ch; margin: 0 0 20px; font-size: 15px; }
+.row { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+figcaption { font-size: 14px; color: var(--fg-2); max-width: 412px; }
+figcaption b { color: var(--fg); font-weight: 500; }
+.built-from { display: block; margin-top: 6px; font-size: 13px; color: var(--fg-3); }
+
+/* ---------- the phone ---------- */
+.phone { width: 412px; max-width: 100%; height: 892px; background: var(--bg); color: var(--fg); border: 1px solid #2A2A30; border-radius: 30px; overflow: hidden; position: relative; font-family: var(--sans); flex: none; }
+.screen { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+.screen::-webkit-scrollbar { display: none; }
+.pad { padding: 8px 20px 120px; }
+.phone.nav-cta .pad { padding-bottom: 184px; }
+.phone.nav-only .pad { padding-bottom: 104px; }
+.phone.nobar .pad { padding-bottom: 40px; }
+
+/* type roles inside the phone */
+.num { font-family: var(--cond); font-weight: 700; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+.num-s { font-family: var(--cond); font-weight: 600; font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; }
+.title { font-family: var(--cond); font-weight: 700; font-size: 24px; line-height: 1.15; }
+.statement { font-family: var(--cond); font-weight: 600; font-size: 34px; line-height: 1.05; }
+.body { font-size: 16px; line-height: 23px; }
+.meta { font-size: 14px; line-height: 20px; color: var(--fg-2); }
+.faint { color: var(--fg-3); }
+.nota { font-family: var(--cond); font-weight: 500; font-size: 13px; line-height: 16px; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.A { color: var(--a-t); } .B { color: var(--b-t); } .C { color: var(--c-t); } .D { color: var(--d-t); }
+
+/* M3 TopAppBar: 64dp, titleLarge 22sp, 48dp icon buttons */
+.appbar { height: 64px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 20px; }
+.appbar.nav { padding-left: 4px; }
+.appbar .t { font-family: var(--cond); font-weight: 600; font-size: 22px; flex: 1; }
+.appbar .t .sub { font-family: var(--sans); font-weight: 400; font-size: 14px; color: var(--fg-2); margin-left: 10px; }
+.ib { width: 48px; height: 48px; display: grid; place-items: center; color: var(--fg); flex: none; position: relative; }
+.ib svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tbtn { height: 40px; padding: 0 12px; display: flex; align-items: center; font-weight: 500; font-size: 14px; color: var(--fg); }
+
+/* the day index: a Surface with one Text */
+.dx { display: grid; place-items: center; font-family: var(--cond); font-weight: 700; line-height: 1; color: #F2F2F0; border-radius: 8px; flex: none; }
+.dx.lg { width: 112px; height: 128px; font-size: 104px; }
+.dx.md { width: 44px; height: 52px; font-size: 38px; border-radius: 6px; }
+.dx.sm { width: 32px; height: 36px; font-size: 26px; border-radius: 5px; }
+.dx.a { background: var(--a); } .dx.b { background: var(--b); } .dx.c { background: var(--c); color: #0D0D0F; } .dx.d { background: var(--d); }
+.hero { display: flex; gap: 18px; align-items: center; margin-top: 8px; }
+.hero .col { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.hero .col .title { font-size: 30px; }
+
+/* index list on Today */
+.index { margin: 24px 0 0; padding: 0; list-style: none; }
+.index li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); }
+.index li:last-child { border-bottom: 1px solid var(--line); }
+.index .n { font-family: var(--cond); font-weight: 600; font-size: 18px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.index .sub { color: var(--fg-2); }
+
+/* M3 NavigationBar: 80dp, surface container, 64x32 active indicator, labelMedium 12sp */
+.navbar { position: absolute; left: 0; right: 0; bottom: 0; height: 80px; background: var(--surface); display: flex; justify-content: space-around; padding: 12px 8px 16px; }
+.navbar .item { width: 80px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--fg-2); font-size: 12px; font-weight: 500; letter-spacing: .03em; }
+.navbar .item .pill { width: 64px; height: 32px; border-radius: 16px; display: grid; place-items: center; }
+.navbar .item.on { color: var(--fg); }
+.navbar .item.on .pill { background: var(--surface-2); }
+.navbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* bottom bar (workout) and the CTA above the navigation bar */
+.bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 20px 24px; background: linear-gradient(to top, var(--bg) 70%, transparent); display: flex; gap: 10px; align-items: stretch; }
+.cta { position: absolute; left: 20px; right: 20px; bottom: 96px; display: flex; gap: 10px; }
+.btn { flex: 1; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: var(--cond); font-weight: 600; font-size: 19px; letter-spacing: .01em; color: #fff; background: var(--btn, var(--surface-2)); }
+.btn.quiet { color: var(--fg); background: var(--surface-2); flex: .7; }
+.btn.c-ink { color: #0D0D0F; }
+.rest { flex: none; width: 132px; height: 56px; border-radius: 28px; background: var(--surface-2); display: grid; grid-template-columns: 1fr; align-content: center; padding: 0 16px; }
+.rest .t { font-family: var(--cond); font-weight: 700; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+.rest .ops { display: flex; gap: 10px; font-size: 12px; color: var(--fg-2); margin-top: 3px; }
+
+/* workout */
+.wbar { position: sticky; top: 0; background: var(--bg); z-index: 2; }
+.prog { height: 2px; background: var(--line); position: relative; }
+.prog i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--d); }
+.ex { padding: 22px 0 8px; border-top: 1px solid var(--line); }
+.ex:first-of-type { border-top: 0; padding-top: 14px; }
+.ex .h { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.ex .ref { text-align: right; flex: none; }
+.ex .goal { font-family: var(--cond); font-weight: 600; font-size: 17px; color: var(--fg-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ex .goal b { color: var(--fg); font-weight: 700; font-size: 22px; }
+.ex .last { font-size: 13px; line-height: 18px; color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sets { margin: 8px 0 0; padding: 0; list-style: none; }
+.set { display: grid; grid-template-columns: 44px 1fr 48px; align-items: center; min-height: 56px; gap: 8px; position: relative; padding-left: 4px; }
+.set .v { font-family: var(--cond); font-weight: 700; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; justify-self: start; }
+.set .v small { font-weight: 500; font-size: 22px; color: var(--fg-2); margin: 0 4px; }
+.set .v .u { font-weight: 500; font-size: 16px; color: var(--fg-2); margin-left: 2px; }
+/* M3 Checkbox: 18dp box, 2dp stroke, 2dp radius, centred in a 48dp target */
+.cb { width: 48px; height: 48px; display: grid; place-items: center; justify-self: end; position: relative; }
+.cb::before { content: ""; width: 18px; height: 18px; border: 2px solid var(--fg-2); border-radius: 2px; }
+.set.done .v, .set.done .nota { color: var(--fg-3); }
+.cb.on::before, .set.done .cb::before { background: var(--done); border-color: var(--done); }
+.cb.on::after, .set.done .cb::after { content: ""; position: absolute; left: 20px; top: 17px; width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.set.next::before { content: ""; position: absolute; left: -20px; top: 8px; bottom: 8px; width: 3px; background: var(--d); }
+.set.next .v, .set.next .nota { color: var(--d-t); }
+.set.next .cb::before { border-color: var(--fg); }
+.set.sel .v { box-shadow: 0 0 0 2px var(--fg-2); border-radius: 4px; padding: 4px 6px; margin: -4px -6px; }
+.addset { min-height: 48px; display: flex; align-items: center; margin-left: 48px; font-size: 14px; color: var(--fg-3); }
+.fold { display: grid; grid-template-columns: 1fr 48px; align-items: center; gap: 8px; min-height: 56px; }
+.fold .title { color: var(--fg-2); }
+.fold .summary { font-family: var(--cond); font-weight: 500; font-size: 16px; color: var(--fg-3); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.ex.done { padding: 10px 0 6px; }
+
+/* M3 ModalBottomSheet */
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.5); z-index: 3; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; background: var(--surface-2); border-radius: 28px 28px 0 0; padding: 8px 24px 32px; }
+.handle { width: 32px; height: 4px; border-radius: 2px; background: var(--fg-3); margin: 8px auto 20px; }
+.sheet .h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.stepper { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; gap: 4px; }
+.otf { height: 56px; border: 1px solid var(--fg-3); border-radius: 4px; display: flex; align-items: center; padding: 0 16px; position: relative; }
+.otf label { position: absolute; top: -8px; left: 12px; background: var(--surface-2); padding: 0 4px; font-size: 12px; color: var(--fg-2); }
+.otf .v { font-family: var(--cond); font-weight: 700; font-size: 28px; font-variant-numeric: tabular-nums; }
+.steppers { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
+.ib.minus::before { content: "−"; font-size: 24px; } .ib.plus::before { content: "+"; font-size: 24px; }
+
+/* receipt */
+.ledger { margin: 28px 0 0; padding: 0; list-style: none; }
+.ledger li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.ledger li:last-child { border-bottom: 1px solid var(--line); }
+
+/* log */
+.sess { margin: 10px 0 0; padding: 0; list-style: none; }
+.sess li { display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.sess li:last-child { border-bottom: 1px solid var(--line); }
+.sess .r { text-align: right; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px 4px; margin-top: 14px; }
+.cal div { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-family: var(--cond); font-weight: 500; font-size: 15px; color: var(--fg-3); border-radius: 8px; font-variant-numeric: tabular-nums; }
+.cal .wd { aspect-ratio: auto; font-size: 12px; color: var(--fg-3); letter-spacing: .04em; }
+.cal .on { color: #fff; font-weight: 700; }
+.cal .today { box-shadow: inset 0 0 0 1px var(--fg-2); color: var(--fg); }
+.cal .ink { color: #0D0D0F; }
+
+/* plan / settings: M3 ListItem rows, 56dp, HorizontalDivider between */
+.goals { margin: 10px 0 0; padding: 0; list-style: none; }
+.goals li { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
+.goals li:last-child { border-bottom: 1px solid var(--line); }
+.field { display: flex; justify-content: space-between; align-items: center; min-height: 56px; border-top: 1px solid var(--line); gap: 12px; }
+.field:last-of-type { border-bottom: 1px solid var(--line); }
+.field .k { font-size: 16px; }
+.field .v { font-family: var(--cond); font-weight: 600; font-size: 20px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.field .v.on { color: var(--fg); }
+.sw { width: 52px; height: 32px; border-radius: 16px; background: var(--surface-2); border: 2px solid var(--fg-3); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--fg-3); }
+.sw.on { background: var(--fg); border-color: var(--fg); }
+.sw.on::after { left: 24px; top: 2px; width: 24px; height: 24px; background: var(--bg); }
+.sec { margin-top: 28px; }
+.sec .title { font-size: 20px; margin-bottom: 4px; }
+.quietbtn { display: inline-block; margin-top: 26px; padding: 0 20px; height: 40px; line-height: 38px; border-radius: 20px; border: 1px solid var(--fg-3); font-weight: 500; font-size: 14px; color: var(--fg); }
+.chev { color: var(--fg-3); }
+.days { margin: 16px 0 0; padding: 0; list-style: none; }
+.days li { display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.days li:last-child { border-bottom: 1px solid var(--line); }
+.days .r { text-align: right; }
+
+@media (max-width: 460px) { .phone { height: 820px; } }
+
+/* ---------- pager exploration ---------- */
+/* day progress: one segment per exercise, the watch's exercise ring laid flat. Row of Box. */
+.segs { display: flex; gap: 6px; padding: 10px 20px 0; }
+.segs i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.segs i.done { background: var(--done); }
+.segs i.cur { background: var(--d); }
+.segs i.part { background: linear-gradient(to right, var(--done) 50%, var(--d) 50%); }
+.segs-cap { display: flex; justify-content: space-between; padding: 8px 20px 0; font-size: 13px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+/* HorizontalPager: contentPadding(start 20, end 40), pageSpacing 12 → the next card peeks */
+.pager { position: absolute; left: 0; right: 0; top: 116px; bottom: 92px; overflow: hidden; }
+.pager .track { position: absolute; left: 20px; top: 0; bottom: 0; display: flex; gap: 12px; }
+.card { width: 352px; flex: none; align-self: flex-start; background: var(--surface); border-radius: 12px; padding: 20px 20px 12px; display: flex; flex-direction: column; overflow: hidden; }
+.card.peek { padding: 20px 20px 12px 20px; color: var(--fg-3); }
+.card .h { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.card .title { font-size: 28px; line-height: 1.1; }
+.card .ref { text-align: right; flex: none; }
+.card .goal { font-family: var(--cond); font-weight: 600; font-size: 17px; color: var(--fg-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.card .goal b { color: var(--fg); font-weight: 700; font-size: 22px; }
+.card .last { font-size: 13px; line-height: 18px; color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.card .sets { margin-top: 12px; }
+.card .set { grid-template-columns: 44px 1fr 48px; }
+.card .set.next::before { left: -20px; }
+.card .addset { margin-left: 44px; }
+.card .ck { display: grid; grid-template-columns: 1fr 48px; align-items: center; gap: 8px; }
+/* variant B: the set in focus */
+.focus { margin-top: 28px; display: flex; flex-direction: column; gap: 6px; }
+.focus .nota { font-size: 14px; }
+.focus .big { font-family: var(--cond); font-weight: 700; font-size: 88px; line-height: .95; font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: var(--d-t); }
+.focus .big small { font-weight: 500; font-size: 44px; color: var(--fg-2); margin: 0 8px; }
+.focus .big .u { font-weight: 500; font-size: 32px; color: var(--fg-2); margin-left: 6px; }
+.focus .big.quiet { color: var(--fg-3); }
+.setsegs { display: flex; gap: 6px; margin-top: 22px; }
+.setsegs i { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.setsegs i.done { background: var(--done); }
+.setsegs i.cur { background: var(--d); }
+.setsegs-cap { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.card .btn { margin-top: 24px; flex: none; }
+.card .tb { margin-top: 6px; min-height: 48px; display: flex; align-items: center; justify-content: center; color: var(--fg-2); font-weight: 500; font-size: 14px; }
+.summary-l { font-family: var(--cond); font-weight: 500; font-size: 18px; color: var(--fg-2); font-variant-numeric: tabular-nums; margin-top: 10px; }
+.card .cb.on { justify-self: end; }
+.var { margin-top: 10px; }
+.cmp { width: 100%; border-collapse: collapse; font-size: 15px; max-width: 1100px; margin: 8px 0 0; }
+.cmp th, .cmp td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-top: 1px solid var(--line); }
+.cmp th { font-family: var(--cond); font-weight: 600; font-size: 16px; }
+.cmp td { color: var(--fg-2); } .cmp td:first-child { color: var(--fg); width: 22%; }
+.prose { max-width: 66ch; color: var(--fg-2); font-size: 15px; }
+.prose b { color: var(--fg); font-weight: 500; }
+</style></head><body>
+
+<div class="wrap">
+  <h1>The workout as cards you swipe</h1>
+  <p class="lede">An exploration, 12 October, evening. The owner asked: instead of a list of exercises, a card per exercise the lifter swipes through, with the sets left shown another way, so the phone mirrors the watch. Two variants below, both on revision 2's decisions (day index, standard checkboxes, goal and last at the right, rest pill only while resting, bottom-sheet editing). Everything is a Material 3 component or a plain composition; the pager is the library's own.</p>
+
+  <h2>What the watch already does</h2>
+  <p class="prose">The watch has two faces. The overview is a dial: an outer ring of program days, an inner ring with one segment per lift that fills green as lifts finish, and a disc that reads Start or Continue over "Set 3 of 6". The workout face shows one set at a time: the prescribed weight and reps, tap the disc to log, then the rest. A swipe left at the start of a set moves to the next lift, wrapping. There is no list on the watch. So a phone that mirrors it has one lift in view, one set in focus, progress as segments, and a horizontal swipe between lifts.</p>
+
+  <h2>Variant A: one card per lift, all its sets</h2>
+  <p class="note">The ledger's rows, but one lift at a time. The pager replaces vertical scrolling; the segment row replaces the overview.</p>
+  <div class="row">
+    <figure id="a-perform">
+      <div class="phone">
+        <div class="appbar nav"><span class="ib"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span><div class="dx sm d">D</div><span class="t" style="margin-left:10px">Full body<span class="sub">2 of 21</span></span><span class="ib"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg></span></div>
+        <div class="segs"><i class="part"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div><div class="segs-cap"><span>Overhead press, 3 of 6 sets</span><span>Lift 1 of 6</span></div>
+        <div class="pager"><div class="track">
+          <div class="card">
+            <div class="h"><span class="title">Overhead press</span><div class="ref"><div class="goal">Goal <b>120</b></div><div class="last">Last 120 × 5</div></div></div>
+            <ul class="sets">
+              <li class="set done"><span class="nota">R1</span><span class="v">65<small>×</small>5</span><span class="cb"></span></li><li class="set done"><span class="nota">R2</span><span class="v">85<small>×</small>5</span><span class="cb"></span></li><li class="set next"><span class="nota">R3</span><span class="v">95<small>×</small>5</span><span class="cb"></span></li>
+              <li class="set "><span class="nota">R4</span><span class="v">110<small>×</small>3</span><span class="cb"></span></li><li class="set "><span class="nota">Top</span><span class="v">120<small>×</small>5</span><span class="cb"></span></li><li class="set "><span class="nota">B/O</span><span class="v">90<small>×</small>8</span><span class="cb"></span></li>
+            </ul>
+            <div class="addset">Add a set</div>
+          </div>
+          <div class="card peek" style="height:260px"></div>
+        </div></div>
+        <div class="bar"><div class="rest"><div class="t">1:30</div><div class="ops"><span>−15</span><span>+15</span><span>skip</span></div></div><div class="btn" style="--btn:var(--d)">Finish day D</div></div>
+      </div>
+      <figcaption><b>A, performing.</b> One card per lift in a horizontal pager; the next card peeks at the right edge so the swipe is discoverable. The card keeps the decided row grammar: value, standard checkbox, goal and last at the right. Above it, one segment per lift is the day's progress, the watch's exercise ring laid flat; tapping a segment jumps to that lift when a station is busy.
+        <span class="built-from">Built from: Scaffold, TopAppBar (no scrollBehavior), Row of Box (segments, Google's own pager-indicator sample), HorizontalPager with rememberPagerState, key and contentPadding, Card, Row + Text + Checkbox per set, TextButton, the rest pill Surface, Button.</span></figcaption>
+    </figure>
+    <figure id="a-done">
+      <div class="phone">
+        <div class="appbar nav"><span class="ib"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span><div class="dx sm d">D</div><span class="t" style="margin-left:10px">Full body<span class="sub">6 of 21</span></span><span class="ib"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg></span></div>
+        <div class="segs"><i class="done"></i><i class="cur"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div><div class="segs-cap"><span>Overhead press, done</span><span>Lift 1 of 6</span></div>
+        <div class="pager"><div class="track">
+          <div class="card">
+            <div class="ck"><div><span class="title" style="color:var(--fg-2)">Overhead press</span><div class="summary-l">65×5, 85×5, 95×5, 110×3, 120×5, 90×8</div></div><span class="cb on"></span></div>
+            <ul class="sets" style="margin-top:16px">
+              <li class="set done"><span class="nota">R1</span><span class="v">65<small>×</small>5</span><span class="cb"></span></li><li class="set done"><span class="nota">R2</span><span class="v">85<small>×</small>5</span><span class="cb"></span></li><li class="set done"><span class="nota">R3</span><span class="v">95<small>×</small>5</span><span class="cb"></span></li>
+              <li class="set done"><span class="nota">R4</span><span class="v">110<small>×</small>3</span><span class="cb"></span></li><li class="set done"><span class="nota">Top</span><span class="v">120<small>×</small>5</span><span class="cb"></span></li><li class="set done"><span class="nota">B/O</span><span class="v">90<small>×</small>8</span><span class="cb"></span></li>
+            </ul>
+            <div class="tb">Go to Bulgarian split squat</div>
+          </div>
+          <div class="card peek" style="height:260px"></div>
+        </div></div>
+        <div class="bar"><div class="rest"><div class="t">1:30</div><div class="ops"><span>−15</span><span>+15</span><span>skip</span></div></div><div class="btn" style="--btn:var(--d)">Finish day D</div></div>
+      </div>
+      <figcaption><b>A, a lift finished.</b> The card does not fold; the whole card is the accomplishment. Its segment turns green, the name goes quiet with the summary line and one checked checkbox at the right, the rows stay as the record. Nothing moves on its own: a text button or the swipe takes the lifter to the next card.
+        <span class="built-from">Built from: the same page; Checkbox(checked = true) in the header, TextButton calling pagerState.animateScrollToPage.</span></figcaption>
+    </figure></div>
+
+  <h2>Variant B: one set in focus, the watch's grammar</h2>
+  <p class="note">The closest mirror. The current set is the biggest thing on the screen, the lift's sets are a row of segments, and there is one action.</p>
+  <div class="row">
+    <figure id="b-perform">
+      <div class="phone">
+        <div class="appbar nav"><span class="ib"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span><div class="dx sm d">D</div><span class="t" style="margin-left:10px">Full body<span class="sub">2 of 21</span></span><span class="ib"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg></span></div>
+        <div class="segs"><i class="part"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div><div class="segs-cap"><span>Lift 1 of 6</span><span>Next: Bulgarian split squat</span></div>
+        <div class="pager"><div class="track">
+          <div class="card">
+            <div class="h"><span class="title">Overhead press</span><div class="ref"><div class="goal">Goal <b>120</b></div><div class="last">Last 120 × 5</div></div></div>
+            <div class="focus"><span class="nota">Ramp set 3</span><div class="big">95<small>×</small>5</div></div><div class="setsegs"><i class="done"></i><i class="done"></i><i class="cur"></i><i class=""></i><i class=""></i><i class=""></i></div><div class="setsegs-cap"><span>Set 3 of 6</span><span>110 × 3 next</span></div>
+            <div class="btn" style="--btn:var(--d)">Log 95 × 5</div>
+            <div class="tb">All sets</div>
+          </div>
+          <div class="card peek" style="height:260px"></div>
+        </div></div>
+        <div class="bar"><div class="btn" style="--btn:var(--d)">Finish day D</div></div>
+      </div>
+      <figcaption><b>B, performing.</b> The watch's grammar on the phone: one lift per card, one set in focus at display size, the lift's sets as a row of segments under it, and one action. Tapping the numeral opens the edit sheet. "All sets" opens the lift's list in a sheet for a correction to an earlier set.
+        <span class="built-from">Built from: HorizontalPager as in A, Card, Text (displayLarge, tabular numerals), Row of Box (set segments), Button, TextButton; ModalBottomSheet for All sets.</span></figcaption>
+    </figure>
+    <figure id="b-rest">
+      <div class="phone">
+        <div class="appbar nav"><span class="ib"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span><div class="dx sm d">D</div><span class="t" style="margin-left:10px">Full body<span class="sub">3 of 21</span></span><span class="ib"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg></span></div>
+        <div class="segs"><i class="part"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div><div class="segs-cap"><span>Lift 1 of 6</span><span>Next: Bulgarian split squat</span></div>
+        <div class="pager"><div class="track">
+          <div class="card">
+            <div class="h"><span class="title">Overhead press</span><div class="ref"><div class="goal">Goal <b>120</b></div><div class="last">Last 120 × 5</div></div></div>
+            <div class="focus"><span class="nota">Ramp set 4</span><div class="big">110<small>×</small>3</div></div><div class="setsegs"><i class="done"></i><i class="done"></i><i class="done"></i><i class="cur"></i><i class=""></i><i class=""></i></div><div class="setsegs-cap"><span>Set 4 of 6</span><span>Top set 120 × 5 next</span></div>
+            <div class="btn" style="--btn:var(--surface-2);color:var(--fg)">Log 110 × 3</div>
+            <div class="tb">All sets</div>
+          </div>
+          <div class="card peek" style="height:260px"></div>
+        </div></div>
+        <div class="bar"><div class="rest"><div class="t">1:30</div><div class="ops"><span>−15</span><span>+15</span><span>skip</span></div></div><div class="btn" style="--btn:var(--d)">Finish day D</div></div>
+      </div>
+      <figcaption><b>B, resting.</b> After a log the focus moves to the next set and the rest pill appears in the bottom bar, as decided. While the rest runs the Log button is tonal, not the day accent: the accent returns when the rest ends. No timer takes over the card.
+        <span class="built-from">Built from: the same page; FilledTonalButton while resting, Button otherwise; the rest pill Surface.</span></figcaption>
+    </figure>
+    <figure id="b-edit">
+      <div class="phone">
+        <div class="appbar nav"><span class="ib"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span><div class="dx sm d">D</div><span class="t" style="margin-left:10px">Full body<span class="sub">2 of 21</span></span><span class="ib"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg></span></div>
+        <div class="segs"><i class="part"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div><div class="segs-cap"><span>Lift 1 of 6</span><span>Next: Bulgarian split squat</span></div>
+        <div class="pager"><div class="track">
+          <div class="card">
+            <div class="h"><span class="title">Overhead press</span><div class="ref"><div class="goal">Goal <b>120</b></div><div class="last">Last 120 × 5</div></div></div>
+            <div class="focus"><span class="nota">Ramp set 3</span><div class="big"><span style="outline:2px solid var(--fg-2);outline-offset:8px;border-radius:6px">95<small>×</small>5</span></div></div><div class="setsegs"><i class="done"></i><i class="done"></i><i class="cur"></i><i class=""></i><i class=""></i><i class=""></i></div><div class="setsegs-cap"><span>Set 3 of 6</span><span>110 × 3 next</span></div>
+            <div class="btn" style="--btn:var(--d)">Log 95 × 5</div>
+            <div class="tb">All sets</div>
+          </div>
+          <div class="card peek" style="height:260px"></div>
+        </div></div>
+        <div class="bar"><div class="btn" style="--btn:var(--d)">Finish day D</div></div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="handle"></div>
+          <div class="h"><div><div class="title">Ramp set 3</div><div class="meta">Overhead press</div></div><span class="ib"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg></span></div>
+          <div class="steppers">
+            <div class="stepper"><span class="ib minus"></span><div class="otf"><label>Weight, lb</label><span class="v">95</span></div><span class="ib plus"></span></div>
+            <div class="stepper"><span class="ib minus"></span><div class="otf"><label>Reps</label><span class="v">5</span></div><span class="ib plus"></span></div>
+          </div>
+          <p class="meta" style="margin:16px 0 0">25 a side on the bar. Only this set changes.</p>
+          <div style="display:flex;gap:10px;margin-top:24px"><div class="btn" style="--btn:var(--d)">Done</div></div>
+        </div>
+      </div>
+      <figcaption><b>B, editing the set.</b> The same sheet as revision 2, unchanged: two steppers, the plate note, Remove set in the menu. The pager is inert under the scrim.
+        <span class="built-from">Built from: ModalBottomSheet, IconButton, OutlinedTextField, Text, DropdownMenu, Button.</span></figcaption>
+    </figure>
+    <figure id="b-done">
+      <div class="phone">
+        <div class="appbar nav"><span class="ib"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span><div class="dx sm d">D</div><span class="t" style="margin-left:10px">Full body<span class="sub">6 of 21</span></span><span class="ib"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg></span></div>
+        <div class="segs"><i class="done"></i><i class="cur"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div><div class="segs-cap"><span>Lift 1 of 6</span><span>Next: Bulgarian split squat</span></div>
+        <div class="pager"><div class="track">
+          <div class="card">
+            <div class="ck"><div><span class="title" style="color:var(--fg-2)">Overhead press</span></div><span class="cb on"></span></div>
+            <div class="focus"><span class="nota">Top set</span><div class="big quiet">120<small>×</small>5</div></div><div class="setsegs"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i></div><div class="setsegs-cap"><span>6 of 6 sets</span><span></span></div>
+            <div class="summary-l" style="margin-top:18px">65×5, 85×5, 95×5, 110×3, 120×5, 90×8</div>
+            <div class="btn" style="--btn:var(--d);margin-top:28px">Bulgarian split squat</div>
+            <div class="tb">All sets</div>
+          </div>
+          <div class="card peek" style="height:260px"></div>
+        </div></div>
+        <div class="bar"><div class="rest"><div class="t">1:30</div><div class="ops"><span>−15</span><span>+15</span><span>skip</span></div></div><div class="btn" style="--btn:var(--d)">Finish day D</div></div>
+      </div>
+      <figcaption><b>B, a lift finished.</b> Six green segments, the top set kept on the card as the number that mattered, the summary line as the record, one checked checkbox at the right. The primary action now names the next lift; the swipe does the same thing.
+        <span class="built-from">Built from: the same page; Button calling pagerState.animateScrollToPage.</span></figcaption>
+    </figure>
+    <figure id="six">
+      <div class="phone">
+        <div class="appbar nav"><span class="ib"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span><div class="dx sm d">D</div><span class="t" style="margin-left:10px">Full body<span class="sub">16 of 21</span></span><span class="ib"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg></span></div>
+        <div class="segs"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="cur"></i><i class=""></i><i class=""></i></div><div class="segs-cap"><span>Lift 5 of 7</span><span>Next: Plank</span></div>
+        <div class="pager"><div class="track">
+          <div class="card">
+            <div class="h"><span class="title">Cable lateral raise</span><div class="ref"><div class="goal">Goal <b>15</b></div><div class="last">Last 15 × 10</div></div></div>
+            <div class="focus"><span class="nota">Set 2</span><div class="big">15<small>×</small>10</div></div><div class="setsegs"><i class="done"></i><i class="cur"></i><i class=""></i></div><div class="setsegs-cap"><span>Set 2 of 3</span><span>15 × 10 next</span></div>
+            <div class="btn" style="--btn:var(--d)">Log 15 × 10</div>
+            <div class="tb">All sets</div>
+          </div>
+          <div class="card peek" style="height:260px"></div>
+        </div></div>
+        <div class="bar"><div class="btn" style="--btn:var(--d)">Finish day D</div></div>
+      </div>
+      <figcaption><b>Later in the day, B.</b> Four lifts done, the fifth in hand, the plank and the run still to come as two unfilled segments. The segment row is the whole overview the ledger used to give; the receipt gives the rest at the end.
+        <span class="built-from">Built from: the same page; the run is a page like any other, with its OutlinedButton (Start the run) in place of Log.</span></figcaption>
+    </figure></div>
+
+  <h2>What the cards gain and what they cost</h2>
+  <table class="cmp">
+    <tr><th></th><th>Ledger (revision 2)</th><th>A, card of rows</th><th>B, set in focus</th></tr>
+    <tr><td>Vertical scrolling</td><td>Yes; the jank in #260 is a rule to keep.</td><td>Only inside a card with more sets than fit; the pager itself never scrolls vertically.</td><td>None. The screen is fixed. #260 cannot recur.</td></tr>
+    <tr><td>Overview of the day</td><td>Always; scroll to see it.</td><td>Six segments and the peeking next card; the receipt at the end.</td><td>The same segments, plus "Next:" in the caption; the lift's own sets as segments.</td></tr>
+    <tr><td>Skipping a busy station</td><td>Scroll past it; the next-set accent stays on the skipped lift.</td><td>Swipe or tap a segment. The focus follows the card.</td><td>Same.</td></tr>
+    <tr><td>Correcting an earlier set</td><td>Tap its row.</td><td>Tap its row.</td><td>"All sets" opens the list in a sheet. One more tap.</td></tr>
+    <tr><td>The accomplishment</td><td>The fold.</td><td>A green segment and a checked card.</td><td>Six green segments, the top set left standing, a checked card.</td></tr>
+    <tr><td>Numeral size</td><td>30 sp in a row.</td><td>30 sp in a row.</td><td>About 88 sp. Readable from the rack.</td></tr>
+    <tr><td>Accidental input</td><td>None new.</td><td>A horizontal drag over a checkbox: the pager's touch slop and snap mean a tap stays a tap and a half-swipe springs back. No horizontal gesture may live inside a card.</td><td>Same, and fewer targets.</td></tr>
+    <tr><td>Mirrors the watch</td><td>No.</td><td>Half: swipe between lifts, segments as the ring.</td><td>Fully: one set, one action, segments, swipe to the next lift.</td></tr>
+    <tr><td>What the watch could borrow</td><td>Nothing.</td><td>Nothing it lacks.</td><td>The "Next:" line and the set segments inside the disc, if the dial wants a flat progress reading; the phone borrows the ring's segment grammar.</td></tr>
+  </table>
+
+  <h2>Where the current page lives</h2>
+  <p class="prose">The page the lifter is on is UI state and survives process death on its own: the pager's state is saveable, so after a kill the app comes back on the same card. The first unfinished lift is derived from the session, so a fresh open lands there; a swipe overrides it only until the next log. Every checkbox and every log still writes to the database on the tap, exactly as the ledger does. Nothing new is held in memory.</p>
+
+  <h2>Compose contract for the pager</h2>
+  <p class="prose"><b>Components.</b> HorizontalPager with rememberPagerState (pageCount from the session's exercise list), key per exercise id, beyondViewportPageCount of one so the peeking card is composed, contentPadding of 20 dp at the start and 40 dp at the end with pageSpacing 12 dp for the peek, PagerDefaults.flingBehavior with its default snap. The segment row is a Row of Box with RoundedCornerShape, each given a 48 dp tall clickable area that calls animateScrollToPage; this is the indicator from Google's own Pager documentation, with a click added. Card for the page, Text in displayLarge with tabular numerals for the set in focus, Button for the log action, FilledTonalButton while a rest runs, TextButton for All sets, ModalBottomSheet for editing and for the list. The app bar has no scrollBehavior; nothing on the screen reads scroll state.</p>
+  <p class="prose"><b>Guidance followed, by title, cited from memory.</b> "Pager in Compose" (state, keys, contentPadding, the indicator sample, scrolling to a page). "Lists and grids" for the sheet list. "Follow best practices" for performance: no backwards writes, no state read in composition that changes every frame; the pager's currentPage is read in a derivedStateOf where it drives the caption. "State and Jetpack Compose" and "Architecting your Compose UI" for hoisting and unidirectional data flow. "Material Design 3 in Compose" for theming through MaterialTheme and the component Defaults. "Accessibility in Compose" for 48 dp targets, mergeDescendants on the set row and a contentDescription on each segment that reads the lift's name and state. "Navigation with Compose" for the workout as its own destination with the navigation bar hidden.</p>
+
+  <h2>Recommendation</h2>
+  <p class="prose">Variant B, if the phone should mirror the watch; otherwise keep the ledger. A is the weaker middle: it gives up the overview and keeps the list, so it pays the cost of both. B pays the overview cost once and buys the biggest numeral the app has ever shown, a screen that never scrolls, and one vocabulary on both devices. The real risk in B is the correction path: a lifter who logged the wrong reps two sets ago needs All sets, then the row, then the sheet. The segments can shorten that: tapping a filled segment opens that set's sheet directly, which is one tap more than the ledger, not two. I would build B with that, keep the ledger's row grammar inside the All sets sheet so nothing is invented, and let the receipt carry the day's record.</p>
+</div>
+</body></html>

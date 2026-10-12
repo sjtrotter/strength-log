@@ -77,9 +77,9 @@ class UiTextMappingTest {
     @Test
     fun today_actions_resolve_every_kind_and_uppercase_day_ids_at_the_resource_boundary() {
         val expected = mapOf(
-            TodayActionKind.START to "START DAY B",
-            TodayActionKind.CONTINUE to "CONTINUE — 4 OF 18 SETS",
-            TodayActionKind.FINISH to "FINISH DAY B",
+            TodayActionKind.START to "Start day B",
+            TodayActionKind.CONTINUE to "Continue day B",
+            TodayActionKind.FINISH to "Finish day B",
         )
 
         assertEquals(TodayActionKind.entries.toSet(), expected.keys)
@@ -87,10 +87,13 @@ class UiTextMappingTest {
     }
 
     @Test
-    fun today_cardio_resolves_both_variants() {
+    fun today_coach_and_progress_lines_resolve_their_resource_copy() {
         assertAllResolve(listOf(
-            UiText.TodayCardio(false, "Easy Zone 2") to "EASY · Zone 2",
-            UiText.TodayCardio(true, "Hard cardio — intervals") to "HARD · Cardio — intervals",
+            UiText.TodayCoach(TodayCoachKind.TODAY) to "Last trained today.",
+            UiText.TodayCoach(TodayCoachKind.YESTERDAY) to "Last trained yesterday.",
+            UiText.TodayCoach(TodayCoachKind.DAYS, "19 Aug", 5) to "Last trained 19 Aug, 5 days ago.",
+            UiText.TodayCoach(TodayCoachKind.WEEKS, "16 Jun", 10) to "Last trained 16 Jun, 10 weeks ago.",
+            UiText.TodayProgress(4, 21) to "4 of 21 sets logged.",
         ))
     }
 

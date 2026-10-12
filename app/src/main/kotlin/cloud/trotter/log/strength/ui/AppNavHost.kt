@@ -4,6 +4,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,6 +27,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,6 +51,12 @@ import cloud.trotter.log.strength.ui.licenses.LicensesScreen
 import cloud.trotter.log.strength.ui.log.LogActions
 import cloud.trotter.log.strength.ui.log.LogScreen
 import cloud.trotter.log.strength.ui.log.LogViewModel
+import cloud.trotter.log.strength.ui.navigation.AppNavigationBar
+import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
+import cloud.trotter.log.strength.ui.navigation.navigateToTopLevel
+import cloud.trotter.log.strength.ui.plan.PlanActions
+import cloud.trotter.log.strength.ui.plan.PlanScreen
+import cloud.trotter.log.strength.ui.plan.PlanViewModel
 import cloud.trotter.log.strength.ui.setup.SetupActions
 import cloud.trotter.log.strength.ui.setup.SetupScreen
 import cloud.trotter.log.strength.ui.setup.SetupViewModel
@@ -68,19 +79,21 @@ import kotlinx.coroutines.withContext
 /**
  * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / re-run),
  * `today` (home, #121), `day` (the workout screen, pushed from Today), `setup`
- * (the gear, #12), `customExercise` (creation, #13), and `log` (history, #14, D2).
+ * (the gear, #12), `customExercise` (creation, #13), `log` (history, #14, D2),
+ * and `plan`. Today, Log, and Plan share the navigation bar; the workout and
+ * every other destination hide it.
  */
 object Routes {
     const val TODAY = "today"
     const val DAY = "day"
-    const val CARDIO = "cardio"
-    const val CARDIO_DAY_ARG = "dayId"
-    const val CARDIO_ROUTE = "$CARDIO/{$CARDIO_DAY_ARG}"
-    fun cardio(dayId: String) = "$CARDIO/$dayId"
+    const val DAY_ID_ARG = "dayId"
+    const val DAY_WITH_ID = "$DAY/{$DAY_ID_ARG}"
+    fun day(dayId: String) = "$DAY/$dayId"
     const val WIZARD = "wizard"
     const val SETUP = "setup"
     const val SETUP_REST = "setup?rest=true"
     const val LOG = "log"
+    const val PLAN = "plan"
     const val BACKUP = "backup"
     const val LICENSES = "licenses"
 
@@ -128,6 +141,10 @@ class StartDestinationViewModel @Inject constructor(repo: TrackerRepository) : V
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 }
 
+/**
+ * Hosts the app graph and its three top-level bar destinations; the workout
+ * and every other destination hide the bar.
+ */
 @Composable
 fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
     val destination by startViewModel.startDestination.collectAsStateWithLifecycle()
@@ -141,22 +158,33 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
     }
 
     val navController = rememberNavController()
-    NavHost(
-        navController = navController,
-        startDestination = start,
-        enterTransition = { routeEnterTransition },
-        exitTransition = { routeExitTransition },
-        popEnterTransition = { routePopEnterTransition },
-        popExitTransition = { routePopExitTransition },
-    ) {
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+    Scaffold(
+        contentWindowInsets = WindowInsets(0),
+        bottomBar = {
+            if (TopLevelDestination.showsBarOn(currentRoute)) {
+                AppNavigationBar(navController)
+            }
+        },
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = start,
+            modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
+            enterTransition = { routeEnterTransition },
+            exitTransition = { routeExitTransition },
+            popEnterTransition = { routePopEnterTransition },
+            popExitTransition = { routePopExitTransition },
+        ) {
         composable(Routes.TODAY) {
             TodayRoute(
                 // launchSingleTop: a double-tap on START is one workout, not two
                 // stacked copies of it to back out of.
                 onStart = { navController.navigate(Routes.DAY) { launchSingleTop = true } },
-                onOpenCardio = { navController.navigate(Routes.cardio(it)) },
+                onOpenCardio = { navController.navigate(Routes.day(it)) },
                 onOpenSettings = { navController.navigate(Routes.SETUP) },
-                onOpenLog = { navController.navigate(Routes.LOG) },
+                onOpenLog = { navController.navigateToTopLevel(TopLevelDestination.LOG) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
         }
@@ -181,12 +209,12 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
             )
         }
         composable(
-            route = Routes.CARDIO_ROUTE,
-            arguments = listOf(navArgument(Routes.CARDIO_DAY_ARG) { type = NavType.StringType }),
+            route = Routes.DAY_WITH_ID,
+            arguments = listOf(navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType }),
         ) { entry ->
-            val dayId = entry.arguments?.getString(Routes.CARDIO_DAY_ARG).orEmpty()
+            val dayId = entry.arguments?.getString(Routes.DAY_ID_ARG).orEmpty()
             DayRoute(
-                onCreateExercise = {},
+                onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
                 onFinishSession = { navController.popBackStack() },
                 initialDayId = dayId,
@@ -244,15 +272,21 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         // not on the empty list the lifter just left.
         composable(Routes.LOG) {
             LogRoute(
-                onBack = { navController.popBackStack() },
                 onStartSession = {
                     navController.navigate(Routes.DAY) { popUpTo(Routes.TODAY) }
                 },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
         }
+        composable(Routes.PLAN) {
+            PlanRoute(
+                onOpenDay = { navController.navigate(Routes.day(it)) },
+                onSetUpAgain = { navController.navigate(Routes.WIZARD) },
+            )
+        }
         composable(Routes.BACKUP) { BackupRoute(onBack = { navController.popBackStack() }) }
         composable(Routes.LICENSES) { LicensesRoute(onBack = { navController.popBackStack() }) }
+        }
     }
 }
 
@@ -284,6 +318,22 @@ private fun TodayRoute(
 }
 
 @Composable
+private fun PlanRoute(
+    onOpenDay: (String) -> Unit,
+    onSetUpAgain: () -> Unit,
+    viewModel: PlanViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    PlanScreen(
+        state = state,
+        actions = PlanActions(
+            onOpenDay = onOpenDay,
+            onSetUpAgain = onSetUpAgain,
+        ),
+    )
+}
+
+@Composable
 private fun DayRoute(
     onCreateExercise: (MovementPattern) -> Unit,
     onSetUpProgram: () -> Unit,
@@ -292,7 +342,6 @@ private fun DayRoute(
     onOpenRestTimer: () -> Unit,
     viewModel: DayViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(initialDayId) { initialDayId?.let(viewModel::selectDay) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
     val cascadeCeremony by viewModel.cascadeCeremony.collectAsStateWithLifecycle()
@@ -363,7 +412,7 @@ private fun DayRoute(
         onBack = onFinishSession,
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
-        standaloneCardio = initialDayId != null,
+        standaloneCardio = initialDayId != null && state.tabs.none { it.dayId == state.viewDayId },
     )
 }
 
@@ -487,7 +536,6 @@ private fun LicensesRoute(onBack: () -> Unit) {
  */
 @Composable
 private fun LogRoute(
-    onBack: () -> Unit,
     onStartSession: () -> Unit,
     onSetUpProgram: () -> Unit,
     viewModel: LogViewModel = hiltViewModel(),
@@ -521,7 +569,6 @@ private fun LogRoute(
     LogScreen(
         state = state,
         actions = LogActions(
-            onBack = onBack,
             onToggleExpanded = viewModel::toggleExpanded,
             onPageCalendar = viewModel::pageCalendar,
             onConnectHealth = { permissionLauncher.launch(viewModel.requestedPermissions) },

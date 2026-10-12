@@ -35,6 +35,7 @@ import cloud.trotter.log.strength.rest.RestRuntime
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
+import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import cloud.trotter.log.strength.sync.WatchContinuitySource
 import java.time.LocalDate
@@ -319,6 +320,9 @@ class DayViewModel @Inject constructor(
     private var undoWindowJob: Job? = null
 
     init {
+        if (savedState.get<String>(KEY_VIEW_DAY) == null) {
+            savedState.get<String>(Routes.DAY_ID_ARG)?.let(::selectDay)
+        }
         seedMissingLogs()
     }
 

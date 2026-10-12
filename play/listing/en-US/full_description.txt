@@ -1,0 +1,13 @@
+strength.log is a strength-training tracker that keeps your data on your phone. No account, no ads, no network permission. You pay once.
+
+A short setup wizard builds a maintenance-oriented plan from your bodyweight and age: two to six training days in a rotation, each with calculated goal loads for the main lifts. You log against those goals with as few taps as possible: one lift at a time, the set in front of you, one button to log it. The rest timer starts itself.
+
+Workouts advance through the rotation as you finish them. A missed day shifts the plan; it never skips a muscle. Hit your numbers and the next goals cascade.
+
+The Wear OS app runs a whole session from your wrist: the prescribed set on the dial, a tap to log it, the rest counting down. It works offline and syncs back when the phone is near, without doubling anything.
+
+Cardio finishers, zone work, tempo or intervals, are timed on either device and land in the same journal.
+
+Your data is yours to take: a full JSON backup, manual or automatic to a folder you choose, CSV export and import compatible with Strong, Health Connect integration, and a shareable workout card.
+
+Built for people who want a log, not a feed.

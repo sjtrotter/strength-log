@@ -104,6 +104,113 @@ class DayViewModelWiringTest {
         DayViewModel(repo, publisher, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
 
     @Test
+    fun selectedPageSurvivesViewModelRecreation() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        vm.selectPage("exercise:$id")
+        advanceUntilIdle()
+        assertEquals("exercise:$id", vm.uiState.value.selectedPageKey)
+        collect.cancel()
+        val revived = newViewModel(handle)
+        val revivedCollect = launch { revived.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("exercise:$id", revived.uiState.value.selectedPageKey)
+        assertEquals(id, revived.uiState.value.pages[revived.uiState.value.currentPage].exerciseId)
+        revivedCollect.cancel()
+    }
+
+    @Test
+    fun openSetEditorSurvivesViewModelRecreation() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.openSetEditor(id, 2)
+        advanceUntilIdle()
+        assertEquals(id, vm.uiState.value.editSetId)
+        assertEquals(2, vm.uiState.value.editSetIndex)
+        collect.cancel()
+        vm.viewModelScope.cancel()
+
+        val revived = newViewModel(handle)
+        val revivedCollect = launch { revived.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(id, revived.uiState.value.editSetId)
+        assertEquals(2, revived.uiState.value.editSetIndex)
+        revived.closeSetEditor()
+        advanceUntilIdle()
+        assertNull(revived.uiState.value.editSetId)
+        revivedCollect.cancel()
+    }
+
+    @Test
+    fun allSetsSurvivesViewModelRecreationAndOpeningEditorClosesIt() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.openAllSets(id)
+        advanceUntilIdle()
+        collect.cancel()
+        vm.viewModelScope.cancel()
+
+        val revived = newViewModel(handle)
+        val revivedCollect = launch { revived.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(id, revived.uiState.value.allSetsId)
+        revived.openSetEditor(id, 1)
+        advanceUntilIdle()
+        assertNull(revived.uiState.value.allSetsId)
+        assertEquals(id, revived.uiState.value.editSetId)
+        revivedCollect.cancel()
+    }
+
+    @Test
+    fun cardioSelectionSurvivesViewModelRecreation() = runVmTest {
+        insertProgram(cardio = cloud.trotter.log.strength.domain.model.CardioSuggestion("Run", "20 minutes", false))
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.selectPage("cardio")
+        advanceUntilIdle()
+        assertEquals("cardio", vm.uiState.value.pages[vm.uiState.value.currentPage].key)
+        collect.cancel()
+        vm.viewModelScope.cancel()
+
+        val revived = newViewModel(handle)
+        val revivedCollect = launch { revived.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("cardio", revived.uiState.value.selectedPageKey)
+        assertEquals("cardio", revived.uiState.value.pages[revived.uiState.value.currentPage].key)
+        revivedCollect.cancel()
+    }
+
+    @Test
+    fun removingSelectedExerciseFallsBackToFirstUnfinishedPage() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val selected = vm.uiState.value.exercises.last()
+        vm.selectPage("exercise:${selected.programExerciseId}")
+        advanceUntilIdle()
+        vm.removeDaySlot(selected.position)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.exercises.none { it.programExerciseId == selected.programExerciseId })
+        assertEquals(0, vm.uiState.value.currentPage)
+        collect.cancel()
+    }
+
+    @Test
     fun firstTopSetEditDismissesTheMainHelperPermanently() = runVmTest {
         insertProgram()
         val vm = newViewModel()
@@ -113,19 +220,19 @@ class DayViewModelWiringTest {
         val topIndex = track(squatId, Slot.MAIN)!!.indexOfFirst { it.kind == SetKind.TOP }
 
         assertFalse(repo.topSetHelperSeenFlow.first())
-        assertTrue(vm.uiState.value.showMainHelper)
 
         vm.changeWeight(squatId, Slot.MAIN, topIndex, newDisplayWeight = 245.0)
         advanceUntilIdle()
 
         assertTrue(repo.topSetHelperSeenFlow.first())
-        assertFalse(vm.uiState.value.showMainHelper)
         collect.cancel()
     }
 
     /** Day A: a ramped main, an arms superset, an unknown-id slot, and a superset
      *  whose partner id is unknown (its SS track can never seed). */
-    private suspend fun insertProgram() {
+    private suspend fun insertProgram(
+        cardio: cloud.trotter.log.strength.domain.model.CardioSuggestion? = null,
+    ) {
         repo.replaceProgram(
             Program(
                 listOf(
@@ -139,7 +246,7 @@ class DayViewModelWiringTest {
                             ProgramExercise("ghost_unknown"),
                             ProgramExercise("db_lateral", targetSets = 2, superset = SupersetPartner("nope_unknown")),
                         ),
-                        cardio = null,
+                        cardio = cardio,
                     ),
                 ),
             ),
@@ -551,42 +658,6 @@ class DayViewModelWiringTest {
         collectEdit.cancel()
     }
 
-    @Test
-    fun swapDaySlotClearsTheManualCollapseOverride() = runVmTest {
-        insertProgram()
-        val vm = newViewModel()
-        val collectUi = launch { vm.uiState.collect {} }
-        val collectEdit = launch { vm.dayEditState.collect {} }
-        advanceUntilIdle()
-        val squatId = slotId("bb_back_squat")
-
-        vm.toggleCollapse(squatId)
-        advanceUntilIdle()
-        assertTrue(
-            "manual override should collapse the card",
-            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
-        )
-
-        val position = vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.position
-        vm.swapDaySlot(position, "hack_squat")
-        advanceUntilIdle()
-        assertFalse(
-            "the stale override must not follow the slot onto the swapped-in exercise (#95)",
-            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
-        )
-
-        val sets = track(squatId, Slot.MAIN)!!.size
-        repeat(sets) { i -> vm.toggleDone(squatId, index = i, checked = true, isSuperset = false) }
-        advanceUntilIdle()
-        assertTrue(
-            "auto-collapse must still work on the swapped-in exercise",
-            vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
-        )
-
-        collectUi.cancel()
-        collectEdit.cancel()
-    }
-
     // --- superset partner editing (#93) ---
 
     @Test
@@ -660,32 +731,6 @@ class DayViewModelWiringTest {
     }
 
     // --- collapse overrides survive process death (PLAN.md A6) -------------------
-
-    @Test
-    fun collapseOverrideSurvivesViewModelRecreation() = runVmTest {
-        insertProgram()
-        val handle = SavedStateHandle()
-        val vm = newViewModel(handle)
-        val collect = launch { vm.uiState.collect {} }
-        advanceUntilIdle()
-        val squatId = slotId("bb_back_squat")
-        assertFalse(vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed)
-
-        vm.toggleCollapse(squatId)
-        advanceUntilIdle()
-        assertTrue(vm.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed)
-        collect.cancel()
-
-        // Same SavedStateHandle, fresh ViewModel — the process-death analog.
-        val revived = newViewModel(handle)
-        val collectRevived = launch { revived.uiState.collect {} }
-        advanceUntilIdle()
-        assertTrue(
-            "manual collapse override was lost across recreation",
-            revived.uiState.value.exercises.first { it.programExerciseId == squatId }.collapsed,
-        )
-        collectRevived.cancel()
-    }
 
     // --- Health Connect publish trigger (#17, D7) --------------------------------
 

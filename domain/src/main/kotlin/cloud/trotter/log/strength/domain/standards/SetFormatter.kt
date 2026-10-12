@@ -20,16 +20,21 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  */
 object SetFormatter {
 
-    /** The `w×r` / `×r` / `Ns (+load)` summary for one performed set in [unit]. */
+    /**
+     * The `w×r` / `×r` / `Ns (+load)` summary for one performed set in [unit].
+     * [spaced] adds space around the multiplication sign for the workout display;
+     * compact summaries keep their existing notation by default.
+     */
     fun summary(
         tracking: TrackingType,
         weightLb: Double,
         reps: Int,
         seconds: Int,
         unit: WeightUnit,
+        spaced: Boolean = false,
     ): String = when (tracking) {
-        TrackingType.WEIGHTED -> "${WeightStepper.format(unit.fromLb(weightLb))}×$reps"
-        TrackingType.REPS -> "×$reps"
+        TrackingType.WEIGHTED -> "${WeightStepper.format(unit.fromLb(weightLb))}${if (spaced) " × " else "×"}$reps"
+        TrackingType.REPS -> "${if (spaced) " × " else "×"}$reps"
         TrackingType.TIMED ->
             if (weightLb > 0.0) {
                 "${SecondsStepper.format(seconds)} +${WeightStepper.format(unit.fromLb(weightLb))}"
@@ -59,6 +64,11 @@ object SetFormatter {
     }
 
     /** The set's VALUE-driven summary — see [trackingOfValues] for the classification rule. */
-    fun summaryOfValues(weightLb: Double, reps: Int, seconds: Int, unit: WeightUnit): String =
-        summary(trackingOfValues(weightLb, reps, seconds), weightLb, reps, seconds, unit)
+    fun summaryOfValues(
+        weightLb: Double,
+        reps: Int,
+        seconds: Int,
+        unit: WeightUnit,
+        spaced: Boolean = false,
+    ): String = summary(trackingOfValues(weightLb, reps, seconds), weightLb, reps, seconds, unit, spaced)
 }

@@ -2,6 +2,9 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.standards.PhoneRest
@@ -26,42 +29,38 @@ data class DayUiState(
      *  the lifter has to act on — and the screen says so instead of preparing
      *  forever. */
     val loading: Boolean = false,
-    val tabs: List<DayTab> = emptyList(),
+    val isProgramDay: Boolean = true,
+    val selectedPageKey: String? = null,
+    val editSetId: Long? = null,
+    val editSetIndex: Int = 0,
+    val allSetsId: Long? = null,
     val viewDayId: String? = null,
     val dayIndex: Int = 0,
     val dayTitle: String = "",
     val emphasisLine: String = "",
     val unit: WeightUnit = WeightUnit.LB,
-    val suggestedDayId: String? = null,
     /** The day DONE advances to (rotation successor of the viewed day). */
     val nextDayId: String? = null,
     val exercises: List<ExerciseCardState> = emptyList(),
     val cardio: CardioCardState? = null,
     val keepScreenOn: Boolean = false,
-    val showMainHelper: Boolean = true,
-    val showSupersetHelper: Boolean = true,
     val rest: RestUiState? = null,
     val watchStatus: WatchStatus? = null,
     val remoteTick: RemoteTick? = null,
 ) {
-    /** True when the viewed day isn't the suggested-next one (spec §8.2 override note). */
-    val isOverride: Boolean
-        get() = suggestedDayId != null && viewDayId != null && viewDayId != suggestedDayId
-
-    /** Rounds ticked across the day's MAIN tracks — the same count the widget,
-     *  the watch and Today show, since a superset partner rides inside its
-     *  round rather than adding one (glance-surfaces.md §4.2).
-     *
-     *  Counted once here rather than on every read (#156): these two are read
-     *  four times over in the header alone — the status line takes both, and
-     *  the progress rule's fraction takes both again — so as `get()` accessors
-     *  they walked every row of every card four times per composition of the
-     *  chrome. They are derived from `exercises`, which cannot change under
-     *  them, so once per state is the honest number of times to count. */
+    /** Rounds ticked across MAIN tracks, matching Today and the widget. A
+     *  superset partner shares its round. Recomputed once per state, including copy(). */
     val doneSets: Int = exercises.sumOf { card -> card.rows.count { it.done } }
 
     /** Rounds this day holds in total, counted the same way as [doneSets]. */
     val totalSets: Int = exercises.sumOf { it.rows.size }
+
+    val pages: List<WorkoutPage> = exercises.map { card ->
+        WorkoutPage(card.programExerciseId, card.title, card.rows.count { it.done }, card.rows.size, card.allDone)
+    } + listOfNotNull(cardio?.let {
+        WorkoutPage(null, it.label, if (it.loggedSeconds != null) 1 else 0, 1, it.loggedSeconds != null)
+    })
+    val currentPage: Int = DayScreenBuilder.currentPage(pages.map { it.key }, selectedPageKey, exercises)
 }
 
 @Immutable
@@ -71,14 +70,6 @@ enum class WatchStatusKind { ACTIVE, SYNCING, OFFLINE_QUEUED }
 data class WatchStatus(val kind: WatchStatusKind, val changeCount: Int = 0)
 
 enum class DoneButtonState { ALL_DONE, PARTIAL, NOTHING_LOGGED }
-
-/** One entry in the day tab strip. */
-data class DayTab(
-    val dayId: String,
-    val dayIndex: Int,
-    val isSuggested: Boolean,
-    val isSelected: Boolean,
-)
 
 @Immutable
 data class CardioCardState(
@@ -96,14 +87,14 @@ data class CardioCardState(
 enum class CardioPhase { SUGGESTION, EXECUTING, OVERRUN }
 
 /** One exercise card (spec §8.2). [Immutable] for the reason [DayUiState]
- *  carries it: this is the type the LazyColumn compares per item. */
+ *  carries it: this is the type the pager compares per page. */
 @Immutable
 data class ExerciseCardState(
     val programExerciseId: Long,
     /** The slot's stable position in the day (spec §8.3) — the key
      *  [DayEditActions.onSwap]/[TrackerRepository.swapExercise][
      *  cloud.trotter.log.strength.data.TrackerRepository.swapExercise]
-     *  needs, which the ADD/REMOVE WEIGHT pill ([weightSwap]) reuses verbatim. */
+     *  needs, which the Add/Remove weight menu ([weightSwap]) reuses verbatim. */
     val position: Int,
     val title: String,
     val note: String = "",
@@ -126,7 +117,7 @@ data class ExerciseCardState(
     val partnerTracking: TrackingType? = null,
     /** TIMED-only, mirrors [timedShowsWeight] for the superset partner track. */
     val partnerTimedShowsWeight: Boolean = false,
-    /** "185×8"-style chip (PLAN.md A1 bonus); null when never performed before. */
+    /** "185 × 8"-style chip (PLAN.md A1 bonus); null when never performed before. */
     val lastTimeDisplay: String? = null,
     /** "245×5"-style all-time-best chip (docs/briefs/performance-profile.md Phase
      *  1); null when there is no record, or when it equals [lastTimeDisplay] —
@@ -136,15 +127,19 @@ data class ExerciseCardState(
      *  #127); null when the card has no TOP set to compare — see
      *  [DayScreenBuilder.topSetComparison]. */
     val topSetComparison: String? = null,
-    /** "Plates: 45 + 25 + 2.5 a side"-style line (issue #101), keyed to the
+    /** Per-side plate values, e.g. "45 + 25 + 2.5" (issue #101), keyed to the
      *  first undone MAIN-slot set's weight; null for non-barbell exercises,
      *  finished cards, or an unloadable weight — see [DayScreenBuilder.plateLine]. */
-    val plateLine: cloud.trotter.log.strength.ui.text.UiText.DayPlate? = null,
+    val plateLine: String? = null,
     val allDone: Boolean,
-    val collapsed: Boolean,
-    val collapsedSummary: String,
     val rows: List<SetRowState>,
-    /** The ADD WEIGHT / REMOVE WEIGHT pill (§4.2); null when this slot's
+    val focusIndex: Int = DayScreenBuilder.focusIndex(rows),
+    val focusLabel: UiText.SetLabel = UiText.SetLabel(SetKind.WORK, 1),
+    val summaryLine: String = "",
+    val nextSetDisplay: String? = null,
+    val partnerTitle: String? = null,
+    val equipment: List<Equipment> = emptyList(),
+    /** The Add weight / Remove weight menu (§4.2); null when this slot's
      *  exercise has no weighted-pair link at all. */
     val weightSwap: WeightSwapAffordance? = null,
 )
@@ -164,16 +159,16 @@ data class SetRowState(
     val partner: PartnerRowState? = null,
     /** TIMED tracks only; 0 (ignored) for WEIGHTED/REPS (§2.2). */
     val seconds: Int = 0,
-    val isNext: Boolean = false,
     val justTickedRemotely: Boolean = false,
     val remoteTickEventId: Long = 0L,
+    val kind: SetKind = SetKind.WORK,
+    /** One-based among RAMP sets; zero for every other kind. */
+    val rampIndex: Int = 0,
 )
 
 /**
- * The row a × just took off a card, for as long as the undo offer stands
- * (#124). The screen reads [programExerciseId] and [index] to draw the offer in
- * the slot the row left; [DayViewModel] reads the rest to put the row back
- * exactly as it was, rather than appending a fresh copy.
+ * The removed round retained while the Snackbar offers Undo. [DayViewModel]
+ * restores its tracks at [index], rather than appending a fresh copy.
  *
  * Deliberately not persisted (same reasoning as [CascadeCeremony]): a
  * five-second courtesy is not user data, and an offer that came back from the
@@ -200,7 +195,7 @@ data class PartnerRowState(
 )
 
 /**
- * The ADD WEIGHT / REMOVE WEIGHT card affordance (§4.2): a labeled pill backed
+ * The Add weight / Remove weight menu affordance (§4.2), backed
  * by the existing slot swap ([cloud.trotter.log.strength.data.TrackerRepository.swapExercise]),
  * never a new mutation path. [isRemove] picks the pill's label/copy; the
  * affordance itself is exactly "swap this slot to [targetExerciseId]".
@@ -210,3 +205,9 @@ data class WeightSwapAffordance(
     val targetName: String,
     val isRemove: Boolean,
 )
+
+/** Stable pager identity; cardio has no exercise id and uses its own string key. */
+@Immutable
+data class WorkoutPage(val exerciseId: Long?, val title: String, val done: Int, val total: Int, val allDone: Boolean) {
+    val key: String = exerciseId?.let { "exercise:$it" } ?: "cardio"
+}

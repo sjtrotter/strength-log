@@ -149,7 +149,7 @@ class DayViewModelLastPerformedTest {
         advanceUntilIdle()
 
         val card = vm2.uiState.value.exercises.first { it.programExerciseId == squatId }
-        assertEquals("235×5", card.lastTimeDisplay)
+        assertEquals("235 × 5", card.lastTimeDisplay)
         collect2.cancel()
     }
 

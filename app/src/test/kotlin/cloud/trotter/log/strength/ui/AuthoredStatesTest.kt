@@ -184,7 +184,7 @@ class AuthoredStatesTest {
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> },
-        onToggleCollapse = {},
+        onSelectPage = {},
         onKeepScreenOnChange = {},
         onClearChecks = {},
         onDone = {},

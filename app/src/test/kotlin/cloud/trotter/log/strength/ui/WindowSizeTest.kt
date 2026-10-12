@@ -1,13 +1,23 @@
 package cloud.trotter.log.strength.ui
 
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.ui.day.DayEditUiState
+import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.ReceiptLift
 import cloud.trotter.log.strength.ui.day.SessionReceipt
 import cloud.trotter.log.strength.ui.day.SessionReceiptScrim
+import cloud.trotter.log.strength.ui.day.pagerActions
+import cloud.trotter.log.strength.ui.day.pagerEditActions
+import cloud.trotter.log.strength.ui.day.pagerFixture
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.chromeVerticalPadding
@@ -170,6 +180,18 @@ class WindowSizeTest {
             "primary action bottom ${start.bottom}px escaped the $rootHeight px window",
             start.bottom <= rootHeight,
         )
+    }
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp")
+    fun workoutLogAndAllSetsRemainReachableInAShortWindow() {
+        composeTestRule.setContent {
+            AppTheme { DayScreen(pagerFixture(), pagerActions(), DayEditUiState(), pagerEditActions()) }
+        }
+        composeTestRule.onNodeWithText("Log 95 × 5").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNode(
+            hasText("All sets") and hasAnyAncestor(hasTestTag("exercise-page:2")),
+        ).performScrollTo().assertIsDisplayed()
     }
 
     private fun setTodayContent() {

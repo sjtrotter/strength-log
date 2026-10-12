@@ -41,26 +41,35 @@ class SessionLifecycleScreenTest {
     // --- progress folded into the day overline -------------------------------
 
     @Test
-    fun aDayNothingIsTickedOnSaysNothingAboutProgress() {
+    fun aDayWithNoTicksShowsZeroInTheAppBar() {
         setDayContent(dayState(done = 0))
 
-        assertEquals(0, composeTestRule.onAllNodesWithText("OF 3", substring = true).fetchSemanticsNodes().size)
+        composeTestRule.onNodeWithText("0 of 3").assertExists()
     }
 
     @Test
-    fun theOverlineAddsTheCountOnceTheFirstSetIsTicked() {
+    fun theAppBarShowsTheSavedSetCount() {
         setDayContent(dayState(done = 1))
 
-        // MediumTopAppBar composes its title twice (collapsed and expanded rows).
-        composeTestRule.onAllNodesWithText("DAY A · 1 OF 3", useUnmergedTree = true).onFirst().assertExists()
+        composeTestRule.onAllNodesWithText("1 of 3", useUnmergedTree = true).onFirst().assertExists()
     }
 
     @Test
-    fun theOverlineReachesTheTotalWhenEveryRoundIsTicked() {
+    fun theAppBarReachesTheTotalWhenEveryRoundIsTicked() {
         setDayContent(dayState(done = 3))
 
-        // MediumTopAppBar composes its title twice (collapsed and expanded rows).
-        composeTestRule.onAllNodesWithText("DAY A · 3 OF 3", useUnmergedTree = true).onFirst().assertExists()
+        composeTestRule.onAllNodesWithText("3 of 3", useUnmergedTree = true).onFirst().assertExists()
+    }
+
+    @Test
+    fun theAppBarCountsRoundsAcrossEveryPage() {
+        val base = pagerFixture()
+        val cards = List(7) { index ->
+            val source = base.exercises[index.coerceAtMost(2)]
+            source.copy(programExerciseId = index + 1L, position = index)
+        }
+        setDayContent(base.copy(exercises = cards))
+        composeTestRule.onNodeWithText("4 of 21").assertExists()
     }
 
     // --- the receipt ---------------------------------------------------------
@@ -185,13 +194,12 @@ class SessionLifecycleScreenTest {
 
     private fun dayState(done: Int) = DayUiState(
         hasProgram = true,
-        tabs = listOf(DayTab("A", 0, isSuggested = true, isSelected = true)),
+
         viewDayId = "A",
         dayIndex = 0,
         dayTitle = "Lower",
         emphasisLine = "",
         unit = WeightUnit.LB,
-        suggestedDayId = "A",
         nextDayId = "B",
         exercises = listOf(
             ExerciseCardState(
@@ -204,8 +212,7 @@ class SessionLifecycleScreenTest {
                 goalDisplay = "235",
                 perHand = false,
                 allDone = done >= 3,
-                collapsed = false,
-                collapsedSummary = "3 sets · GOAL 235",
+
                 rows = List(3) { index ->
                     SetRowState(
                         index = index,
@@ -251,7 +258,7 @@ class SessionLifecycleScreenTest {
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> },
-        onToggleCollapse = {},
+        onSelectPage = {},
         onKeepScreenOnChange = {},
         onClearChecks = {},
         onDone = {},

@@ -1,14 +1,15 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -16,25 +17,13 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Issue #125, the two halves the ViewModel can't answer for.
- *
- * First: keep-screen-on now lives in the bottom bar beside DONE, and the switch
- * is a pure reflection of the persisted preference — it renders what it is given
- * and reports taps outward, with no local copy to drift; its line also keeps
- * both controls seated when the system font is doubled.
- *
- * Second: the swap confirmation survives a configuration change. Rotating the
- * phone with "Switch to …?" on screen used to answer the question by throwing it
- * away, because the pending swap lived in a plain `remember`.
- */
+/** The menu reflects the persisted preference; swap and set-edit selections survive rotation. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class KeepScreenOnAndRotationTest {
@@ -44,13 +33,12 @@ class KeepScreenOnAndRotationTest {
 
     private val dayState = DayUiState(
         hasProgram = true,
-        tabs = listOf(DayTab("A", 0, isSuggested = false, isSelected = true)),
+
         viewDayId = "A",
         dayIndex = 0,
         dayTitle = "Lower — squat focus",
         emphasisLine = "",
         unit = WeightUnit.LB,
-        suggestedDayId = "A",
         nextDayId = "B",
         exercises = listOf(
             ExerciseCardState(
@@ -63,8 +51,7 @@ class KeepScreenOnAndRotationTest {
                 goalDisplay = "235",
                 perHand = false,
                 allDone = false,
-                collapsed = false,
-                collapsedSummary = "5 sets · GOAL 235",
+
                 rows = listOf(
                     // Ticked: the label under test is the all-done one.
                     SetRowState(0, "R1", isTop = false, weightDisplay = 130.0, reps = 5, done = true),
@@ -88,66 +75,32 @@ class KeepScreenOnAndRotationTest {
         ),
     )
 
-    // --- the switch, in its new home -----------------------------------------
-
     @Test
-    fun theKeepScreenOnSwitchSitsInTheBottomBarBesideDone() {
-        setDayContent()
-
-        val switch = composeTestRule.onNodeWithText("KEEP ON").fetchSemanticsNode().boundsInRoot
-        val done = composeTestRule.onNodeWithText("DONE — ADVANCE TO DAY B").fetchSemanticsNode().boundsInRoot
-
-        assertTrue("the switch is not on DONE's line", switch.overlaps(done.copy(left = 0f, right = 10_000f)))
-        assertTrue("the switch is not to the right of DONE", switch.left >= done.right)
-    }
-
-    /** The #138 review gap: "DONE — ADVANCE TO DAY B" is the longest label in the app
-     *  and it shares its line with the keep-on switch. At 2.0x it must still wrap
-     *  inside its own pill instead of pushing the switch off the bar. */
-    @Test
-    fun theBottomBarStillSeatsBothControlsAtDoubleFontScale() {
-        setDayContent(fontScale = 2f)
-
-        val root = composeTestRule.onRoot().fetchSemanticsNode().size
-        val switch = composeTestRule.onNodeWithText("KEEP ON").fetchSemanticsNode().boundsInRoot
-        val done = composeTestRule.onNodeWithText("DONE — ADVANCE TO DAY B")
-            .fetchSemanticsNode().boundsInRoot
-
-        assertTrue("the switch is not to the right of DONE", switch.left >= done.right)
-        assertTrue("the switch ran off the right edge", switch.right <= root.width.toFloat())
-        assertTrue(
-            "the bottom bar fell off the bottom of the window",
-            switch.bottom <= root.height.toFloat(),
-        )
-        assertTrue("DONE's label lost its pill", done.height > 0f && done.width > 0f)
-    }
-
-    /** It moved out of the header, it did not get cloned into it. */
-    @Test
-    fun theHeaderNoLongerCarriesAKeepScreenOnControl() {
-        setDayContent()
-
-        assertEquals(1, composeTestRule.onAllNodesWithText("KEEP ON").fetchSemanticsNodes().size)
-    }
-
-    @Test
-    fun theSwitchRendersThePreferenceAndReportsTapsOutward() {
+    fun theMenuRendersThePreferenceAndReportsTapsOutward() {
         val taps = mutableListOf<Boolean>()
         setDayContent(dayState = dayState.copy(keepScreenOn = true), onKeepScreenOnChange = { taps += it })
 
-        composeTestRule.onNodeWithText("KEEP ON").assertIsOn().performClick()
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText("Keep screen on").performClick()
 
-        // The switch owns no copy of the state: it asked for OFF and stayed ON,
+        // The menu owns no copy of the state: it asked for OFF and stayed ON,
         // because only the persisted preference can turn it off.
         assertEquals(listOf(false), taps)
-        composeTestRule.onNodeWithText("KEEP ON").assertIsOn()
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText("Keep screen on").assertIsOn()
     }
 
     @Test
-    fun theSwitchReadsOffWhenThePreferenceIsOff() {
+    fun theMenuReadsOffWhenThePreferenceIsOff() {
         setDayContent()
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText("Keep screen on").assertIsOff()
+    }
 
-        composeTestRule.onNodeWithText("KEEP ON").assertIsOff()
+    @Test
+    fun finishRemainsReachableAtDoubleFontScale() {
+        setDayContent(fontScale = 2f)
+        composeTestRule.onNodeWithText("Finish day A").assertIsDisplayed()
     }
 
     // --- rotation ------------------------------------------------------------
@@ -166,7 +119,8 @@ class KeepScreenOnAndRotationTest {
             }
         }
 
-        composeTestRule.onNodeWithText("+ ADD WEIGHT").performClick()
+        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("Add weight").performClick()
         composeTestRule.onNodeWithText("Switch to Weighted Plank?").assertExists()
 
         restoration.emulateSavedInstanceStateRestore()
@@ -191,11 +145,26 @@ class KeepScreenOnAndRotationTest {
             }
         }
 
-        composeTestRule.onNodeWithText("+ ADD WEIGHT").performClick()
+        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("Add weight").performClick()
         restoration.emulateSavedInstanceStateRestore()
         composeTestRule.onNodeWithText("Switch").performClick()
 
         assertEquals(listOf(0 to "weighted_plank"), swaps)
+    }
+
+    @Test
+    fun theOpenSetIdentitySurvivesRotation() {
+        val restoration = StateRestorationTester(composeTestRule)
+        val state = mutableStateOf(pagerFixture())
+        val actions = pagerActions().copy(onOpenSetEditor = { id, index ->
+            state.value = state.value.copy(editSetId = id, editSetIndex = index)
+        })
+        restoration.setContent { AppTheme { DayScreen(state.value, actions, DayEditUiState(), pagerEditActions()) } }
+        composeTestRule.onNodeWithText("95 × 5").performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        composeTestRule.onNodeWithText("Weight, lb").assertExists()
+        composeTestRule.onNodeWithText("Done").assertExists()
     }
 
     private fun setDayContent(
@@ -226,7 +195,7 @@ class KeepScreenOnAndRotationTest {
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> },
-        onToggleCollapse = {},
+        onSelectPage = {},
         onKeepScreenOnChange = onKeepScreenOnChange,
         onClearChecks = {},
         onDone = {},

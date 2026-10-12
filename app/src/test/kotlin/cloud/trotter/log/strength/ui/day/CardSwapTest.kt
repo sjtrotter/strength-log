@@ -1,8 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
-import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -11,7 +10,6 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -20,7 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Pins issue #122: a card's swap chip reaches the same swap mutation as the
+ * Pins issue #122: a page's swap menu reaches the same swap mutation as the
  * day-edit sheet's Edit -> Swap.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -32,13 +30,12 @@ class CardSwapTest {
 
     private val dayState = DayUiState(
         hasProgram = true,
-        tabs = listOf(DayTab("A", 0, isSuggested = false, isSelected = true)),
+
         viewDayId = "A",
         dayIndex = 0,
         dayTitle = "Lower — squat focus",
         emphasisLine = "",
         unit = WeightUnit.LB,
-        suggestedDayId = "A",
         nextDayId = "B",
         exercises = listOf(
             ExerciseCardState(
@@ -51,8 +48,7 @@ class CardSwapTest {
                 goalDisplay = "235",
                 perHand = false,
                 allDone = false,
-                collapsed = false,
-                collapsedSummary = "5 sets · GOAL 235",
+
                 rows = listOf(
                     SetRowState(0, "R1", isTop = false, weightDisplay = 130.0, reps = 5, done = false),
                 ),
@@ -75,12 +71,13 @@ class CardSwapTest {
     )
 
     @Test
-    fun swapChipOnAnExpandedCardOpensThePickerAndRecordsThePositionAndTargetId() {
+    fun pageMenuOpensThePickerAndRecordsThePositionAndTargetId() {
         val swaps = mutableListOf<Pair<Int, String>>()
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
         setDayContent(dayEditActions = swapRecorder(swaps))
 
-        composeTestRule.onNodeWithContentDescription("Swap exercise").performClick()
+        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
 
         assertEquals(listOf(0 to target.id), swaps)
@@ -89,17 +86,19 @@ class CardSwapTest {
     /** The whole point of #122: the shortcut is the same mutation, not a
      *  second swap path that could drift from the sheet's. */
     @Test
-    fun theCardSwapChipAndTheSheetSwapProduceTheSameMutation() {
+    fun thePageMenuAndTheSheetSwapProduceTheSameMutation() {
         val swaps = mutableListOf<Pair<Int, String>>()
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
         setDayContent(dayEditActions = swapRecorder(swaps))
 
-        // From the card: chip -> pick.
-        composeTestRule.onNodeWithContentDescription("Swap exercise").performClick()
+        // From the page menu: Swap exercise -> pick.
+        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
 
-        // From the sheet: ✎ -> Edit -> Swap exercise -> pick.
-        composeTestRule.onNodeWithContentDescription("Edit day").performClick()
+        // From the day menu: Edit day -> Edit -> Swap exercise -> pick.
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText("Edit day").performClick()
         composeTestRule.onNodeWithText("Edit").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
@@ -107,70 +106,18 @@ class CardSwapTest {
         assertEquals(listOf(0 to target.id, 0 to target.id), swaps)
     }
 
-    /**
-     * The chip's touch target is Material's 48dp minimum, which is larger than
-     * the chip. It must claim that space, not borrow it: a tap on the ADD
-     * WEIGHT pill, or anywhere on the collapse toggle, has to do what it looks
-     * like it does.
-     */
     @Test
-    fun theSwapChipsTouchTargetOverlapsNeitherTheWeightPillNorTheCollapseToggle() {
-        val state = dayState.copy(
-            exercises = listOf(
-                dayState.exercises.single().copy(
-                    weightSwap = WeightSwapAffordance("weighted_plank", "Weighted Plank", isRemove = false),
-                ),
-            ),
-        )
-        setDayContent(dayState = state)
-
-        val chip = composeTestRule.onNodeWithContentDescription("Swap exercise").fetchSemanticsNode().boundsInRoot
-        val pill = composeTestRule.onNodeWithText("+ ADD WEIGHT").fetchSemanticsNode().boundsInRoot
-        val collapse = composeTestRule.onNode(hasStateDescription("Expanded")).fetchSemanticsNode().boundsInRoot
-
-        assertFalse("the chip's target reaches the ADD WEIGHT pill", chip.overlaps(pill))
-        assertFalse("the chip's target sits on the collapse toggle", chip.overlaps(collapse))
-    }
-
-    @Test
-    fun aSlotWithNoResolvablePatternGetsNoSwapChip() {
+    fun aSlotWithNoResolvablePatternGetsNoSwapMenuItem() {
         val state = dayEditState.copy(
             slots = listOf(dayEditState.slots.single().copy(pattern = null)),
         )
         setDayContent(dayEditState = state)
 
+        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
         assertTrue(
-            composeTestRule.onAllNodesWithContentDescription("Swap exercise")
+            composeTestRule.onAllNodesWithText("Swap exercise")
                 .fetchSemanticsNodes().isEmpty(),
         )
-    }
-
-    @Test
-    fun collapsedCardsHideTheSwapChip() {
-        val state = dayState.copy(
-            exercises = listOf(dayState.exercises.single().copy(collapsed = true)),
-        )
-        setDayContent(dayState = state)
-
-        assertTrue(
-            composeTestRule.onAllNodesWithContentDescription("Swap exercise")
-                .fetchSemanticsNodes().isEmpty(),
-        )
-    }
-
-    @Test
-    fun swapChipExposesItsAccessibleNameAndFires() {
-        var tapped = false
-        composeTestRule.setContent {
-            AppTheme {
-                SwapExerciseChip(onClick = { tapped = true })
-            }
-        }
-
-        val chip = composeTestRule.onNodeWithContentDescription("Swap exercise")
-        chip.assertExists()
-        chip.performClick()
-        assertTrue(tapped)
     }
 
     private fun setDayContent(
@@ -198,7 +145,7 @@ class CardSwapTest {
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> },
-        onToggleCollapse = {},
+        onSelectPage = {},
         onKeepScreenOnChange = {},
         onClearChecks = {},
         onDone = {},

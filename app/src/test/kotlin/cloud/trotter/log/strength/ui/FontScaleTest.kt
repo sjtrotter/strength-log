@@ -12,15 +12,11 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.components.SetRow
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.DAY_INDEX_LETTER_TAG
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
-import cloud.trotter.log.strength.ui.day.DayTab
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.ui.theme.accentSoft
-import cloud.trotter.log.strength.ui.theme.dayAccent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -54,45 +50,6 @@ class FontScaleTest {
 
         assertTrue(
             "Stepper height $actual px did not exceed its 40dp/$floor px floor",
-            actual > floor,
-        )
-    }
-
-    @Test
-    fun dayTabGrowsPastItsOldFloorAtDoubleFontScale() {
-        // DayTab is both the composable and its state class; the import carries
-        // both and each call resolves by shape, as it does inside DayScreen.kt.
-        val actual = heightAt(2f) {
-            DayTab(tab = DayTab("A", 0, isSuggested = false, isSelected = true), onClick = {})
-        }
-        val floor = with(composeTestRule.density) { 40.dp.roundToPx() }
-
-        assertTrue(
-            "DayTab height $actual px did not exceed its 40dp/$floor px floor",
-            actual > floor,
-        )
-    }
-
-    @Test
-    fun weightedSetRowGrowsPastItsPrimaryFloorAtLargeFontScale() {
-        val actual = heightAt(1.3f) {
-            SetRow(
-                kindLabel = "R1",
-                accent = dayAccent(0),
-                accentSoft = accentSoft(0),
-                weight = 135.0,
-                onWeightChange = {},
-                weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
-                weightFormat = WeightStepper::format,
-                weightRound = { WeightStepper.round(it, WeightUnit.LB) },
-                reps = 5,
-                onRepsChange = {},
-            )
-        }
-        val floor = with(composeTestRule.density) { 52.dp.roundToPx() }
-
-        assertTrue(
-            "SetRow height $actual px did not exceed its 52dp/$floor px floor",
             actual > floor,
         )
     }

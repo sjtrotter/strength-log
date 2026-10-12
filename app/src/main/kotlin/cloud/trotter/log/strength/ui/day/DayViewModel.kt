@@ -68,9 +68,9 @@ import kotlinx.coroutines.sync.withLock
  * Day screen ViewModel (spec §8.2, MVVM/UDF). Holds no working truth of its own:
  * every render value derives from Room/DataStore flows, and every mutation writes
  * straight back through [TrackerRepository]. Ephemeral UI state — the view-day
- * override, keep-screen-on, and the manual collapse overrides — lives in
+ * override and per-day exercise selection — lives in
  * [SavedStateHandle] per PLAN.md A6, so rotation and process death can't lose it;
- * collapse overrides still reset when a session advances (spec §8.2).
+ * exercise selection is keyed by the viewed day.
  *
  * Log mutations are read-modify-write over a whole set track, so they are
  * serialized through [mutationLock] — without it two rapid intents on one slot
@@ -109,8 +109,11 @@ class DayViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
-    private val manualCollapse: StateFlow<Map<Long, Boolean>> =
-        savedState.getStateFlow(KEY_COLLAPSE, emptyMap())
+    private val selectedPages: StateFlow<Map<String, String>> =
+        savedState.getStateFlow(KEY_SELECTED_PAGE, emptyMap())
+    private val editSetId = savedState.getStateFlow<Long?>(KEY_EDIT_SET_ID, null)
+    private val editSetIndex = savedState.getStateFlow(KEY_EDIT_SET_INDEX, 0)
+    private val allSetsId = savedState.getStateFlow<Long?>(KEY_ALL_SETS_ID, null)
     private val cardioPlanIdentity = savedState.getStateFlow<String?>(KEY_CARDIO_PLAN, null)
     private val cardioStartedWall = savedState.getStateFlow<Long?>(KEY_CARDIO_WALL, null)
     private val cardioStartedElapsed = savedState.getStateFlow<Long?>(KEY_CARDIO_ELAPSED, null)
@@ -156,9 +159,9 @@ class DayViewModel @Inject constructor(
             val slotsWithHistory = historyKeys.flatMapLatest { slots ->
                 flow { emit(slots to fetchDayHistory(slots)) }
             }
-            combine(slotsWithHistory, repo.logFlow(dayId, today), manualCollapse) { slotsAndHistory, logs, collapse ->
+            combine(slotsWithHistory, repo.logFlow(dayId, today), selectedPages) { slotsAndHistory, logs, selections ->
                 val (slots, history) = slotsAndHistory
-                buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, collapse, history)
+                buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, selections[dayId], history)
             }
                 // flatMapLatest cancels the day the lifter just left, but nothing
                 // *publishes* that — [uiState] keeps handing out the old day's
@@ -214,28 +217,24 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    private val dayPreferences = combine(
-        repo.keepScreenOnFlow,
-        repo.topSetHelperSeenFlow,
-        repo.supersetHelperSeenFlow,
-    ) { keepOn, topSeen, supersetSeen -> Triple(keepOn, topSeen, supersetSeen) }
-
     private val baseUiState: Flow<DayUiState> =
-        combine(dayState, dayPreferences, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
+        combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
                 state, preferences, history, anchors, rest ->
             val cardio = buildCardioState(state, history, anchors)
             maybeArmCardioBoundary(cardio, anchors)
             state.copy(
-                keepScreenOn = preferences.first,
-                showMainHelper = !preferences.second,
-                showSupersetHelper = !preferences.third,
+                keepScreenOn = preferences,
                 cardio = cardio,
                 rest = rest,
             )
         }
 
+    private val sheetUiState = combine(baseUiState, editSetId, editSetIndex, allSetsId) { state, id, index, allId ->
+        state.copy(editSetId = id, editSetIndex = index, allSetsId = allId)
+    }
+
     val uiState: StateFlow<DayUiState> = combine(
-        baseUiState,
+        sheetUiState,
         watchContinuity.continuityFlow,
         watchContinuity.remoteTickFlow,
     ) { state, continuity, remoteTick ->
@@ -330,6 +329,10 @@ class DayViewModel @Inject constructor(
 
     fun selectDay(dayId: String) {
         closeUndoWindow()
+        if (effectiveDayId.value != null && dayId != effectiveDayId.value) {
+            closeSetEditor()
+            closeAllSets()
+        }
         savedState[KEY_VIEW_DAY] = dayId
     }
 
@@ -464,12 +467,12 @@ class DayViewModel @Inject constructor(
                 if (card != null && set != null) {
                     val settings = repo.restSettingsFlow.first()
                     val seconds = RestPolicy.effectiveRestSeconds(set.kind, card.tracking, settings.overrides)
-                    val projected = DayScreenBuilder.markNext(uiState.value.exercises.map { current ->
+                    val projected = uiState.value.exercises.map { current ->
                         if (current.programExerciseId != programExerciseId) current
                         else current.copy(rows = current.rows.map { row -> if (row.index == index) row.copy(done = true) else row })
-                    })
-                    val nextCard = projected.firstOrNull { it.rows.any { row -> row.isNext } }
-                    val nextRow = nextCard?.rows?.firstOrNull { it.isNext }
+                    }
+                    val nextCard = projected.firstOrNull { it.rows.any { row -> !row.done } }
+                    val nextRow = nextCard?.rows?.firstOrNull { !it.done }
                     val next = if (nextCard != null && nextRow != null) "${nextCard.title} ${nextRow.kindLabel}" else ""
                     PhoneRestTimer.start(clock.millis(), seconds, next)?.let { rest ->
                         repo.setPhoneRest(rest)
@@ -590,9 +593,28 @@ class DayViewModel @Inject constructor(
         _removedSets.value = emptyList()
     }
 
-    fun toggleCollapse(programExerciseId: Long) {
-        val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return
-        savedState[KEY_COLLAPSE] = manualCollapse.value + (programExerciseId to !card.collapsed)
+    fun selectPage(key: String) {
+        val day = currentDay() ?: return
+        savedState[KEY_SELECTED_PAGE] = selectedPages.value + (day to key)
+    }
+
+    fun openSetEditor(id: Long, index: Int) {
+        closeAllSets()
+        savedState[KEY_EDIT_SET_INDEX] = index
+        savedState[KEY_EDIT_SET_ID] = id
+    }
+
+    fun closeSetEditor() {
+        savedState[KEY_EDIT_SET_ID] = null
+    }
+
+    fun openAllSets(id: Long) {
+        closeSetEditor()
+        savedState[KEY_ALL_SETS_ID] = id
+    }
+
+    fun closeAllSets() {
+        savedState[KEY_ALL_SETS_ID] = null
     }
 
     /** Writes the keep-screen-on preference (#125). It lives in DataStore, not
@@ -622,7 +644,7 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    /** DONE — advance: record the session (A1), reset collapse, follow the new
+    /** DONE — advance: record the session (A1), follow the new
      *  suggested day, then hand the just-written session to Health Connect
      *  (#17/D7 trigger point). The publish is fired after `advanceDay` returns
      *  and never blocks or fails the completion — [SessionPublisher] swallows
@@ -661,7 +683,6 @@ class DayViewModel @Inject constructor(
             // throwing on a workout that was already committed.
             val nextDayId = if (dayIndex >= 0) Rotation.next(program, day) else null
             val sessionId = repo.advanceDay(day, today.first())
-            savedState[KEY_COLLAPSE] = emptyMap<Long, Boolean>()
             savedState[KEY_VIEW_DAY] = null
             val unit = repo.unitFlow.first()
             val sessionSets = repo.sessionSets(sessionId)
@@ -718,15 +739,11 @@ class DayViewModel @Inject constructor(
     /** Confirming a swap in the substitution picker. The old log stays keyed to
      *  the slot's [position]; the repository clears it so the new exercise
      *  seeds fresh from its own GOAL (D4 — seeding happens on next observation,
-     *  never here). Also clears any manual collapse override held on the slot's
-     *  stable id, so the swapped-in exercise starts in pure auto-collapse (#95). */
+     *  never here). */
     fun swapDaySlot(position: Int, newExerciseId: String) {
         val day = currentDay() ?: return
         mutate {
-            val slotId = repo.daySlotsFlow(day).first()
-                .firstOrNull { it.position == position }?.programExerciseId
             repo.swapExercise(day, position, newExerciseId)
-            if (slotId != null) savedState[KEY_COLLAPSE] = manualCollapse.value - slotId
         }
     }
 
@@ -843,7 +860,7 @@ class DayViewModel @Inject constructor(
         dayId: String,
         slots: List<ProgramSlot>,
         logsByKey: Map<Pair<Long, String>, cloud.trotter.log.strength.data.LoggedSlot>,
-        collapse: Map<Long, Boolean>,
+        selectedPageKey: String?,
         history: DayHistory,
     ): DayUiState {
         val program = ctx.program
@@ -852,20 +869,16 @@ class DayViewModel @Inject constructor(
         val dayIndex = program.strengthDays.indexOfFirst { it.id == dayId }.coerceAtLeast(0)
         return DayUiState(
             hasProgram = true,
-            tabs = program.strengthDays.mapIndexed { i, d ->
-                DayTab(d.id, i, isSuggested = d.id == ctx.suggested, isSelected = d.id == dayId)
-            },
+            isProgramDay = program.strengthDays.any { it.id == dayId },
+            selectedPageKey = selectedPageKey,
             viewDayId = dayId,
             dayIndex = dayIndex,
             dayTitle = day.title,
             emphasisLine = day.emphasisLine,
             unit = ctx.unit,
-            suggestedDayId = ctx.suggested,
             nextDayId = dayId.takeIf { id -> program.strengthDays.any { it.id == id } }
                 ?.let { Rotation.next(program, it) },
-            exercises = DayScreenBuilder.markNext(
-                slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, collapse, history) },
-            ),
+            exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, history) },
             cardio = day.cardio?.let {
                 CardioCardState(label = it.label, detail = it.detail, hard = it.hard)
             },
@@ -963,7 +976,6 @@ class DayViewModel @Inject constructor(
         cfg: LifterConfig,
         unit: WeightUnit,
         catalog: ExerciseCatalog,
-        collapse: Map<Long, Boolean>,
         history: DayHistory,
     ): ExerciseCardState {
         val pe = slot.exercise
@@ -982,10 +994,13 @@ class DayViewModel @Inject constructor(
         val partnerSets = pe.superset?.let { logsByKey[id to Slot.SS]?.sets }
 
         val labels = DayScreenBuilder.kindLabels(main)
+        var rampIndex = 0
         val rows = main.mapIndexed { i, s ->
             SetRowState(
                 index = i,
                 kindLabel = labels.getOrElse(i) { "" },
+                kind = s.kind,
+                rampIndex = if (s.kind == SetKind.RAMP) ++rampIndex else 0,
                 isTop = s.kind == SetKind.TOP,
                 weightDisplay = unit.fromLb(s.weightLb),
                 reps = s.reps,
@@ -1001,11 +1016,9 @@ class DayViewModel @Inject constructor(
         return ExerciseCardState(
             programExerciseId = id,
             position = slot.position,
-            title = if (pe.superset != null) {
-                "SS: $name + ${partnerEntry?.name ?: pe.superset!!.exerciseId}"
-            } else {
-                name
-            },
+            title = name,
+            partnerTitle = partnerEntry?.name ?: pe.superset?.exerciseId,
+            equipment = entry?.equipment.orEmpty(),
             note = pe.note,
             isMain = pe.isMain,
             isSuperset = pe.superset != null,
@@ -1021,11 +1034,10 @@ class DayViewModel @Inject constructor(
             topSetComparison = DayScreenBuilder.topSetComparison(main, lastPerformed, unit),
             plateLine = DayScreenBuilder.plateLine(main, entry?.equipment.orEmpty(), unit),
             allDone = DayScreenBuilder.allDone(main),
-            collapsed = DayScreenBuilder.collapsed(main, collapse[id]),
-            collapsedSummary = DayScreenBuilder.collapsedSummary(
-                main, partnerSets, goalDisplay, unit,
-                tracking = tracking, partnerTracking = partnerTracking ?: TrackingType.WEIGHTED,
-            ),
+            focusIndex = DayScreenBuilder.focusIndex(rows),
+            focusLabel = DayScreenBuilder.focusLabel(main.map { it.kind }, DayScreenBuilder.focusIndex(rows)),
+            summaryLine = DayScreenBuilder.summaryLine(main, partnerSets, tracking, partnerTracking ?: TrackingType.WEIGHTED, unit),
+            nextSetDisplay = DayScreenBuilder.nextSetDisplay(rows, DayScreenBuilder.focusIndex(rows), tracking, unit),
             rows = rows,
             weightSwap = DayScreenBuilder.weightSwapAffordance(entry, catalog),
         )
@@ -1120,7 +1132,10 @@ class DayViewModel @Inject constructor(
         const val REST_TICK_MS = 250L
         const val REST_OVER_MS = 2_000L
         const val KEY_VIEW_DAY = "day_view_override"
-        const val KEY_COLLAPSE = "day_collapse_overrides"
+        const val KEY_EDIT_SET_ID = "day_edit_set_id"
+        const val KEY_EDIT_SET_INDEX = "day_edit_set_index"
+        const val KEY_ALL_SETS_ID = "day_all_sets_id"
+        const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_CARDIO_PLAN = "day_cardio_plan"
         const val KEY_CARDIO_WALL = "day_cardio_started_wall"
         const val KEY_CARDIO_ELAPSED = "day_cardio_started_elapsed"

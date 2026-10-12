@@ -20,7 +20,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /**
  * The pure §8.2 decision logic behind the day screen: set-row labels, the
- * collapsed-summary formats, auto/manual collapse resolution, the seeding-once
+ * pager focus and summary formats, the seeding-once
  * plan, and the one-tick-per-round rule. Kept free of Android and coroutines so
  * every behavior in the contract is unit-testable on the JVM; [DayViewModel] only
  * wires these to flows and repository writes.
@@ -67,14 +67,25 @@ object DayScreenBuilder {
         else -> DoneButtonState.PARTIAL
     }
 
-    /** Marks exactly the first undone row in the first unfinished card. */
-    fun markNext(cards: List<ExerciseCardState>): List<ExerciseCardState> {
-        val nextCardIndex = cards.indexOfFirst { card -> card.rows.any { !it.done } }
-        return cards.mapIndexed { cardIndex, card ->
-            val nextRowIndex = if (cardIndex == nextCardIndex) card.rows.indexOfFirst { !it.done } else -1
-            card.copy(rows = card.rows.mapIndexed { rowIndex, row -> row.copy(isNext = rowIndex == nextRowIndex) })
-        }
+    fun focusIndex(rows: List<SetRowState>): Int = rows.indexOfFirst { !it.done }
+
+    fun focusLabel(kinds: List<SetKind>, index: Int): cloud.trotter.log.strength.ui.text.UiText.SetLabel {
+        val kind = kinds.getOrElse(index) { SetKind.WORK }
+        val number = if (kind == SetKind.RAMP) kinds.take(index + 1).count { it == SetKind.RAMP } else index + 1
+        return cloud.trotter.log.strength.ui.text.UiText.SetLabel(kind, number)
     }
+
+    fun currentPage(pageKeys: List<String>, selectedKey: String?, exercises: List<ExerciseCardState>): Int {
+        if (selectedKey != null) pageKeys.indexOf(selectedKey).takeIf { it >= 0 }?.let { return it }
+        val firstUndone = exercises.firstOrNull { it.rows.any { row -> !row.done } }
+        val fallback = firstUndone ?: exercises.lastOrNull()
+        return fallback?.let { pageKeys.indexOf("exercise:${it.programExerciseId}").coerceAtLeast(0) } ?: 0
+    }
+
+    fun nextSetDisplay(rows: List<SetRowState>, focusIndex: Int, tracking: TrackingType, unit: WeightUnit): String? =
+        if (focusIndex < 0) null else rows.getOrNull(focusIndex + 1)?.let {
+            SetFormatter.summary(tracking, unit.toLb(it.weightDisplay), it.reps, it.seconds, unit, spaced = true)
+        }
 
     /** One log write emitted by [seedPlan]. */
     data class SeedWrite(
@@ -168,31 +179,16 @@ object DayScreenBuilder {
         }
     }
 
-    /**
-     * The collapsed one-line summary (spec §8.2): completed rows formatted per
-     * [tracking]/[partnerTracking] (SSOT: [SetFormatter], never an ad-hoc
-     * `w×r`), joined by " · ", or `main(partner)` joined by " / " for a
-     * superset. When nothing is checked yet, `{n} sets · GOAL {g}`.
-     */
-    fun collapsedSummary(
+    /** Every recorded prescription, including unfinished rows; SetFormatter owns the units. */
+    fun summaryLine(
         main: List<LoggedSet>,
         partner: List<LoggedSet>?,
-        goalDisplay: String,
+        tracking: TrackingType,
+        partnerTracking: TrackingType,
         unit: WeightUnit,
-        tracking: TrackingType = TrackingType.WEIGHTED,
-        partnerTracking: TrackingType = TrackingType.WEIGHTED,
-    ): String {
-        val doneIndices = main.indices.filter { main[it].done }
-        if (doneIndices.isEmpty()) return "${main.size} sets · GOAL $goalDisplay"
-        return if (partner == null) {
-            doneIndices.joinToString(" · ") { i -> setSummary(main[i], tracking, unit) }
-        } else {
-            doneIndices.joinToString(" / ") { i ->
-                val ss = partner.getOrNull(i)
-                val mainText = setSummary(main[i], tracking, unit)
-                if (ss == null) mainText else "$mainText(${setSummary(ss, partnerTracking, unit)})"
-            }
-        }
+    ): String = main.indices.joinToString(", ") { index ->
+        val mainText = setSummary(main[index], tracking, unit)
+        partner?.getOrNull(index)?.let { "$mainText(${setSummary(it, partnerTracking, unit)})" } ?: mainText
     }
 
     /**
@@ -205,7 +201,7 @@ object DayScreenBuilder {
      * history is never touched by the P3 fixup, only live logs are).
      */
     fun lastTimeDisplay(last: LastPerformed?, unit: WeightUnit): String? =
-        last?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit) }
+        last?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit, spaced = true) }
 
     /**
      * The "Best: …" chip's value (docs/briefs/performance-profile.md Phase 1)
@@ -217,7 +213,8 @@ object DayScreenBuilder {
      */
     fun personalRecordDisplay(record: PersonalRecord?, lastTime: LastPerformed?, unit: WeightUnit): String? {
         val display = record?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit) } ?: return null
-        return display.takeIf { it != lastTimeDisplay(lastTime, unit) }
+        val lastDisplay = lastTime?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit) }
+        return display.takeIf { it != lastDisplay }
     }
 
     /**
@@ -291,34 +288,15 @@ object DayScreenBuilder {
      * [PlateMath.perSide] can't load the weight exactly. Superset partners
      * aren't considered (spec: main slot only in v1).
      */
-    fun plateLine(main: List<LoggedSet>, equipment: List<Equipment>, unit: WeightUnit): cloud.trotter.log.strength.ui.text.UiText.DayPlate? {
+    fun plateLine(main: List<LoggedSet>, equipment: List<Equipment>, unit: WeightUnit): String? {
         if (Equipment.BARBELL !in equipment) return null
         val next = main.firstOrNull { !it.done } ?: return null
         val perSide = PlateMath.perSide(unit.fromLb(next.weightLb), unit) ?: return null
-        return cloud.trotter.log.strength.ui.text.UiText.DayPlate(perSide.takeIf { it.isNotEmpty() }?.joinToString(" + ") { WeightStepper.format(it) })
+        return perSide.joinToString(" + ") { WeightStepper.format(it) }.ifEmpty { "0" }
     }
 
-    /**
-     * The day header's status line once the session is underway (#126) —
-     * "IN PROGRESS · 4 OF 18 SETS", or `null` before the first tick, when the
-     * day has nothing to report and shows no line at all.
-     *
-     * "READY TO FINISH" uses the same completion threshold as the widget and
-     * watch: an over-count is complete rather than an impossible ratio.
-     */
-    fun sessionStatusLine(doneSets: Int, totalSets: Int): cloud.trotter.log.strength.ui.text.UiText.DayStatus? =
-        if (doneSets <= 0) {
-            null
-        } else {
-            cloud.trotter.log.strength.ui.text.UiText.DayStatus(totalSets > 0 && doneSets >= totalSets, doneSets, totalSets)
-        }
-
-    /** True once every round is ticked — drives the green chip and auto-collapse. */
+    /** True once every round is ticked; drives the finished page and green segments. */
     fun allDone(main: List<LoggedSet>): Boolean = main.isNotEmpty() && main.all { it.done }
-
-    /** Manual choice wins over auto (spec §8.2): auto-collapses only when all done. */
-    fun collapsed(main: List<LoggedSet>, manualOverride: Boolean?): Boolean =
-        manualOverride ?: allDone(main)
 
     private fun setSummary(set: LoggedSet, tracking: TrackingType, unit: WeightUnit): String =
         SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, unit)

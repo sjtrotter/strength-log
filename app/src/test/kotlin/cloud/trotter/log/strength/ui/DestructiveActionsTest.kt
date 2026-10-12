@@ -10,15 +10,10 @@ import androidx.compose.ui.test.hasText
 import androidx.activity.ComponentDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeLeft
-import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.semantics.SemanticsProperties
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -30,7 +25,6 @@ import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayEditSlotState
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.DayScreen
-import cloud.trotter.log.strength.ui.day.DayTab
 import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.ExerciseCardState
 import cloud.trotter.log.strength.ui.day.RemovedSet
@@ -52,7 +46,7 @@ import org.robolectric.shadows.ShadowDialog
  * the first tap now cost something. What's pinned here is the *gate*, not the
  * dialog's pixels — the rare ones (clear the day's checkmarks, reset the rest
  * timers) must not reach their action until a confirm is taken, and the
- * frequent one (swipe / TalkBack remove on a set row) must reach its undo
+ * frequent one (Remove set in the editor) must reach its undo
  * without a confirmation.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -62,15 +56,16 @@ class DestructiveActionsTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    // --- "Clear today's checkmarks" (day screen footer) -----------------------
+    // --- Clear checks (day menu) -----------------------
 
     @Test
     fun clearingTheDaysChecksAsksFirstAndOnlyFiresOnConfirm() {
         var cleared = 0
         setDayContent(onClearChecks = { cleared++ })
 
-        composeTestRule.onNodeWithText("Clear today's checkmarks").performClick()
-        assertEquals("the footer tap must only open the dialog", 0, cleared)
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText("Clear checks").performClick()
+        assertEquals("the menu tap must only open the dialog", 0, cleared)
 
         composeTestRule.onNodeWithText("Clear").performClick()
         assertEquals(1, cleared)
@@ -81,60 +76,34 @@ class DestructiveActionsTest {
         var cleared = 0
         setDayContent(onClearChecks = { cleared++ })
 
-        composeTestRule.onNodeWithText("Clear today's checkmarks").performClick()
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText("Clear checks").performClick()
         composeTestRule.onNodeWithText("Cancel").performClick()
 
         assertEquals(0, cleared)
-        // The dialog is gone, so the footer action is reachable again.
-        composeTestRule.onNodeWithText("Clear today's checkmarks").performClick()
+        // The dialog is gone, so the menu action is reachable again.
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText("Clear checks").performClick()
         assertEquals(0, cleared)
     }
 
-    // --- the × on a set row: undo, not confirm --------------------------------
-
-    @Test
-    fun swipingASetRevealsTheGlyphAndRemovesIt() {
-        var removed = 0
-        setDayContent(onRemoveSet = { removed++ })
-
-        // The glyph sits behind the row from the start; once the swipe lands
-        // the row (and its reveal) are gone, so look before, not after.
-        composeTestRule.onNodeWithTag("removeSetReveal", useUnmergedTree = true).assertExists()
-        composeTestRule.onNodeWithTag("setRowSwipe").performTouchInput {
-            swipeLeft(startX = right, endX = left)
-        }
-        composeTestRule.mainClock.advanceTimeBy(1_000)
-
-        assertEquals("the swipe must remove without a confirm", 1, removed)
-    }
-
-    @Test
-    fun talkBackCanRemoveASetWithoutSwiping() {
-        var removed = 0
-        setDayContent(onRemoveSet = { removed++ })
-
-        val actions = composeTestRule.onNodeWithTag("setRowSwipe").fetchSemanticsNode()
-            .config[SemanticsActions.CustomActions]
-        composeTestRule.runOnIdle { actions.single { it.label == "Remove set" }.action() }
-
-        assertEquals(1, removed)
-    }
+    // --- set removal: Snackbar undo --------------------------------
 
     @Test
     fun theUndoOfferIsOneTapBackToTheRow() {
         var undone = 0
         setDayContent(removedSets = listOf(offer(index = 0)), onUndoRemoveSet = { undone++ })
 
-        composeTestRule.onNodeWithText("UNDO").performClick()
+        composeTestRule.onNodeWithText("Undo").performClick()
 
         assertEquals(1, undone)
     }
 
     @Test
-    fun noUndoOfferShowsOnACardThatDidNotLoseARow() {
+    fun snackbarUndoRemainsAvailableAfterLeavingTheRemovedSetsPage() {
         setDayContent(removedSets = listOf(offer(programExerciseId = 99L)))
 
-        composeTestRule.onNodeWithText("UNDO").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Undo").assertExists()
     }
 
     /**
@@ -146,17 +115,12 @@ class DestructiveActionsTest {
     fun onlyTheNewestRemovalIsOffered() {
         setDayContent(removedSets = listOf(offer(index = 0), offer(index = 0)))
 
-        composeTestRule.onAllNodesWithText("UNDO").assertCountEquals(1)
+        composeTestRule.onAllNodesWithText("Undo").assertCountEquals(1)
     }
 
-    /**
-     * The case that would have made the five-second promise a lie: removing the
-     * last unfinished row finishes the card, which asks it to fold — taking the
-     * offer with it, because a collapsed card renders a summary and no rows.
-     * The fold has to wait for the window.
-     */
+    /** Finishing a lift by removing its last undone set must not hide Snackbar undo. */
     @Test
-    fun aRemovalThatFinishesTheCardKeepsItOpenUntilTheOfferIsGone() {
+    fun aRemovalThatFinishesTheCardKeepsSnackbarUndoUntilTheOfferIsGone() {
         var state by mutableStateOf(dayState())
         var offers by mutableStateOf(emptyList<RemovedSet>())
         composeTestRule.setContent {
@@ -173,16 +137,16 @@ class DestructiveActionsTest {
         }
 
         // Same order the ViewModel writes them in: the offer opens, then the
-        // shortened track lands and the card reads as finished.
+        // shortened track lands and the page reads as finished.
         offers = listOf(offer(index = 1))
         state = state.copy(
-            exercises = listOf(state.exercises.single().copy(allDone = true, collapsed = true)),
+            exercises = listOf(state.exercises.single().copy(allDone = true)),
         )
-        composeTestRule.onNodeWithText("UNDO").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Undo").assertIsDisplayed()
 
         offers = emptyList()
-        composeTestRule.onNodeWithText("UNDO").assertDoesNotExist()
-        composeTestRule.onNodeWithText("5 sets · GOAL 235").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Undo").assertDoesNotExist()
+        composeTestRule.onNodeWithText("All sets").assertIsDisplayed()
     }
 
     // --- dismissing a confirm is not taking it --------------------------------
@@ -198,7 +162,8 @@ class DestructiveActionsTest {
         var cleared = 0
         setDayContent(onClearChecks = { cleared++ })
 
-        composeTestRule.onNodeWithText("Clear today's checkmarks").performClick()
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText("Clear checks").performClick()
         composeTestRule.onNodeWithText("Clear").assertIsDisplayed()
 
         composeTestRule.runOnIdle { (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed() }
@@ -295,13 +260,12 @@ class DestructiveActionsTest {
      */
     private fun dayState() = DayUiState(
         hasProgram = true,
-        tabs = listOf(DayTab("A", 0, isSuggested = false, isSelected = true)),
+
         viewDayId = "A",
         dayIndex = 0,
         dayTitle = "Lower — squat focus",
         emphasisLine = "",
         unit = WeightUnit.LB,
-        suggestedDayId = "A",
         nextDayId = "B",
         exercises = listOf(
             ExerciseCardState(
@@ -315,8 +279,7 @@ class DestructiveActionsTest {
                 perHand = false,
                 tracking = TrackingType.REPS,
                 allDone = false,
-                collapsed = false,
-                collapsedSummary = "5 sets · GOAL 235",
+
                 rows = listOf(
                     SetRowState(0, "R1", isTop = false, weightDisplay = 130.0, reps = 5, done = false),
                 ),
@@ -346,7 +309,7 @@ class DestructiveActionsTest {
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> onRemoveSet() },
-        onToggleCollapse = {},
+        onSelectPage = {},
         onKeepScreenOnChange = {},
         onClearChecks = onClearChecks,
         onDone = {},

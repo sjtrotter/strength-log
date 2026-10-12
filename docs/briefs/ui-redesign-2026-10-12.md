@@ -335,3 +335,16 @@ the receipt, rotation counter deferred. Astra's Exercises sheet (names + saved/t
 tap to jump) is kept as the day-overview behind the segment caption; it is a
 ModalBottomSheet of ListItems, nothing bespoke. The handoff is
 `docs/design-handoff/redesign-2026-10-12/HANDOFF.md`.
+
+### Implementation notes (12 Oct, late)
+
+PR #261 landed Today, the navigation bar, a minimal Plan and the day index. The workout pager
+(variant B) followed as PR 2. Two things changed against the handoff during its review, both for
+Material's 48 dp touch targets: the day and set **segments are indicators, not buttons** (six to
+eight of them cannot each be 48 dp wide on a 360 dp phone; navigation is the swipe, the Exercises
+sheet behind the caption, and the next-lift button; corrections go through All sets or the focus
+numeral), and the **rest pill** is a time button that opens a small menu for 15 s less / 15 s more,
+beside Skip, instead of three tiny text buttons. The card's content also scrolls inside itself in
+a window too short to hold it (411 dp landscape); on a phone in portrait nothing scrolls, and no
+chrome is ever scroll-linked. `SetFormatter` in `:domain` gained a default-off spaced option so
+the workout's "95 × 5" and the Log's compact "95×5" come from one formatter.

@@ -6,7 +6,6 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.TouchTargets.assertEveryTouchTargetIsAtLeast48dp
 import cloud.trotter.log.strength.ui.TouchTargets.assertNoOverlappingTouchTargets
-import cloud.trotter.log.strength.ui.TouchTargets.assertOverlappingTouchTargetsAreExactly
 import cloud.trotter.log.strength.ui.backup.BackupActions
 import cloud.trotter.log.strength.ui.backup.BackupScreen
 import cloud.trotter.log.strength.ui.backup.BackupUiState
@@ -18,11 +17,12 @@ import cloud.trotter.log.strength.ui.licenses.LicensesScreen
 import cloud.trotter.log.strength.ui.log.LogActions
 import cloud.trotter.log.strength.ui.log.LogScreen
 import cloud.trotter.log.strength.ui.log.LogUiState
+import cloud.trotter.log.strength.ui.navigation.AppNavigationBar
 import cloud.trotter.log.strength.ui.setup.SetupActions
 import cloud.trotter.log.strength.ui.setup.SetupScreen
 import cloud.trotter.log.strength.ui.setup.SetupUiState
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.ui.today.RotationMark
+import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.today.TodayActions
 import cloud.trotter.log.strength.ui.today.TodayLift
 import cloud.trotter.log.strength.ui.today.TodayScreen
@@ -46,7 +46,7 @@ class ChromeTouchTargetTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun todaysHeaderAndStartBarKeepTheirTargetsApart() {
+    fun todaySettingsAndStartButtonKeepTheirTargetsApart() {
         composeTestRule.setContent {
             AppTheme { TodayScreen(state = todayState(), actions = todayActions()) }
         }
@@ -84,9 +84,18 @@ class ChromeTouchTargetTest {
     }
 
     @Test
-    fun logHeaderKeepsItsTargetClear() {
+    fun logScreenWithoutBackArrowKeepsItsTargetsClear() {
         composeTestRule.setContent {
             AppTheme { LogScreen(LogUiState(), logActions()) }
+        }
+
+        assertTouchContract()
+    }
+
+    @Test
+    fun navigationBarKeepsThreeClearTargets() {
+        composeTestRule.setContent {
+            AppTheme { AppNavigationBar(selectedRoute = Routes.TODAY, onSelect = {}) }
         }
 
         assertTouchContract()
@@ -131,24 +140,21 @@ class ChromeTouchTargetTest {
         hasProgram = true,
         dayId = "B",
         dayIndex = 1,
-        dayLine = "DAY B · LOWER",
-        overline = "NEXT IN ROTATION",
-        emphasisLine = "hip-hinge hamstrings",
-        statLine = "5 LIFTS · 21 SETS",
+        dayTitle = "Lower body",
         lifts = listOf(
-            TodayLift("Barbell Back Squat", 5, isMain = true),
-            TodayLift("Seated Leg Curl", 3, isMain = false),
+            TodayLift("Barbell Back Squat", 5),
+            TodayLift("Seated Leg Curl", 3),
         ),
+        lifeLine = UiText.TodayHistoryLife(daysAgo = 2, monthSessions = 3),
         actionLabel = cloud.trotter.log.strength.ui.today.TodayScreenBuilder.actionLabel("B", 0, 18),
-        lastSession = "Jul 30, 2026 · 18 sets · Back Squat 245",
-        rotation = listOf(
-            RotationMark("A", 0, isNext = false),
-            RotationMark("B", 1, isNext = true),
-            RotationMark("C", 2, isNext = false),
-        ),
     )
 
-    private fun todayActions() = TodayActions(onStart = {}, onOpenSettings = {}, onOpenLog = {}, onSetUpProgram = {})
+    private fun todayActions() = TodayActions(
+        onStart = {},
+        onOpenSettings = {},
+        onOpenLog = {},
+        onSetUpProgram = {},
+    )
 
     private fun setupActions() = SetupActions(
         onBodyweightChange = {},
@@ -177,7 +183,7 @@ class ChromeTouchTargetTest {
     )
 
     private fun logActions() = LogActions(
-        onBack = {}, onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {},
+        onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {},
         onPublishPastWorkouts = {}, onApplyBodyweight = {}, onDismissBodyweight = {}, onShare = {},
         onStartSession = {}, onSetUpProgram = {},
     )

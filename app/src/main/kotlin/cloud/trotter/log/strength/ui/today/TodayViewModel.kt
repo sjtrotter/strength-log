@@ -9,10 +9,8 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
@@ -30,9 +28,9 @@ import kotlinx.coroutines.flow.stateIn
 /**
  * Today screen ViewModel (#121, MVVM/UDF). Holds no working truth of its own:
  * every render value derives from repository flows, and every formatting
- * decision is delegated to the pure [TodayScreenBuilder] or to
- * [GlanceLines] — Today has no state to save, because it has no intents to
- * save it from. Read-only by design: it never seeds a log and never writes one.
+ * decision is delegated to the pure [TodayScreenBuilder]. Today has no state
+ * to save, because it has no intents to save it from. Read-only by design: it
+ * never seeds a log and never writes one.
  *
  * Seeding stays [cloud.trotter.log.strength.ui.day.DayViewModel]'s job, but the
  * *rules* are `:domain`'s, so Today can run them without writing anything: a day
@@ -53,12 +51,11 @@ class TodayViewModel @Inject constructor(
             repo.programFlow,
             repo.suggestedDayFlow,
             repo.catalogFlow,
-            repo.unitFlow,
             repo.configFlow,
-        ) { program, suggested, catalog, unit, cfg ->
+        ) { program, suggested, catalog, cfg ->
             val dayId = suggested?.takeIf { id -> program.strengthDays.any { it.id == id } }
                 ?: program.strengthDays.firstOrNull()?.id
-            TodayContext(program, dayId, catalog, unit, cfg)
+            TodayContext(program, dayId, catalog, cfg)
         }
 
     val uiState: StateFlow<TodayUiState> = contextFlow.flatMapLatest { ctx ->
@@ -109,23 +106,27 @@ class TodayViewModel @Inject constructor(
             hasProgram = true,
             dayId = dayId,
             dayIndex = dayIndex,
-            dayLine = GlanceLines.dayLine(dayId, day.title),
-            overline = TodayScreenBuilder.overline(doneSets, totalSets),
-            emphasisLine = day.emphasisLine,
-            statLine = GlanceLines.statLine(slots.size, doneSets, totalSets),
+            dayTitle = day.title,
+            coachLine = if (doneSets == 0) {
+                TodayScreenBuilder.coachLine(
+                    sessions.firstOrNull()?.session?.completedAt?.let(java.time.Instant::ofEpochMilli),
+                    now.instant,
+                    now.zone,
+                )
+            } else {
+                TodayScreenBuilder.progressLine(doneSets, totalSets)
+            },
             lifts = slots.map { slot ->
                 TodayLift(
                     name = ctx.catalog.find(slot.exercise.exerciseId)?.name ?: slot.exercise.exerciseId,
                     setCount = countBySlot.getValue(slot.programExerciseId),
-                    isMain = slot.exercise.isMain,
                 )
             },
-            cardio = day.cardio?.let { TodayCardio(it.label, it.detail, it.hard) },
+            cardio = day.cardio?.let { TodayCardio(it.label, it.detail) },
             standaloneCardio = standalone?.let {
                 StandaloneCardio(it.id, TodayScreenBuilder.standaloneCardioLine(true)!!)
             },
             actionLabel = TodayScreenBuilder.actionLabel(dayId, doneSets, totalSets),
-            lastSession = TodayScreenBuilder.lastSessionLine(sessions, topSets, ctx.catalog, ctx.unit),
             lifeLine = TodayScreenBuilder.lifeLine(
                 mains = JournalBuilder.mainLifts(ctx.program, ctx.catalog, ctx.cfg),
                 sessions = sessions,
@@ -133,7 +134,6 @@ class TodayViewModel @Inject constructor(
                 strengthDays = ctx.program.strengthDays.size,
                 now = now,
             ),
-            rotation = TodayScreenBuilder.rotationMarks(ctx.program.strengthDays.map { it.id }, dayId),
         )
     }
 
@@ -155,7 +155,6 @@ class TodayViewModel @Inject constructor(
         val program: Program,
         val dayId: String?,
         val catalog: ExerciseCatalog,
-        val unit: WeightUnit,
         val cfg: LifterConfig,
     )
 

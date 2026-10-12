@@ -47,11 +47,10 @@ import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
-import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.BodyweightStepper
+import cloud.trotter.log.strength.ui.components.LiftListItem
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.Stepper
@@ -61,7 +60,6 @@ import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
-import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
@@ -70,7 +68,6 @@ import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
 import cloud.trotter.log.strength.ui.text.resolve
-import cloud.trotter.log.strength.ui.today.LiftRow
 
 /**
  * The setup wizard (spec §6.1, PLAN.md A4). Stateless: renders [state] and
@@ -536,24 +533,7 @@ private fun RotationStep(state: WizardUiState) {
                 val entry = ExerciseLibrary.get(exercise.exerciseId)
                 Spacer(Modifier.size(8.dp))
                 HorizontalDivider(thickness = 1.dp, color = Border)
-                LiftRow(entry.name, isMain = true) {
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(stringResource(R.string.wizard_rotation_goal_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
-                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text(
-                                GoalFormatter.label(
-                                    GoalCalculator.targetFor(entry, state.answers.config),
-                                    state.unit,
-                                ),
-                                color = accent,
-                                style = DisplayXl,
-                            )
-                            if (entry.perHand) {
-                                Text(stringResource(R.string.setup_per_hand_suffix), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
-                }
+                LiftListItem(number = 1, name = entry.name, setCount = exercise.targetSets)
             }
         }
     }

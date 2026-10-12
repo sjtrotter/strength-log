@@ -13,7 +13,8 @@ sealed interface UiText {
     data class FileAccessFailure(val detail: String?) : UiText
     data object FilePermissionLost : UiText
     data class TodayAction(val kind: TodayActionKind, val dayId: String, val done: Int, val total: Int) : UiText
-    data class TodayCardio(val hard: Boolean, val label: String) : UiText
+    data class TodayCoach(val kind: TodayCoachKind, val date: String = "", val elapsed: Int = 0) : UiText
+    data class TodayProgress(val done: Int, val total: Int) : UiText
     data class TodayGoalLife(val lift: String, val sessions: Int) : UiText
     data class TodayWeekLife(val sessions: Int, val rotationDays: Int, val daysAgo: Int) : UiText
     data class TodayHistoryLife(val daysAgo: Int, val monthSessions: Int) : UiText
@@ -28,6 +29,7 @@ enum class BackupErrorKind { RESTORE_NOT_STARTED, SETTINGS_PENDING, CLEANUP_PEND
     CSV_MALFORMED_ROW, CSV_MISSING_APPROVAL }
 enum class BackupStatusKind { BACKUP_EXPORTED, BACKUP_RESTORED, HISTORY_EXPORTED, HISTORY_IMPORTED }
 enum class TodayActionKind { START, CONTINUE, FINISH }
+enum class TodayCoachKind { TODAY, YESTERDAY, DAYS, WEEKS }
 
 @AnyRes
 fun UiText.resourceId(): Int = when (this) {
@@ -63,7 +65,13 @@ fun UiText.resourceId(): Int = when (this) {
         TodayActionKind.CONTINUE -> R.string.today_action_continue
         TodayActionKind.FINISH -> R.string.today_action_finish
     }
-    is UiText.TodayCardio -> if (hard) R.string.today_cardio_hard else R.string.today_cardio_easy
+    is UiText.TodayCoach -> when (kind) {
+        TodayCoachKind.TODAY -> R.string.today_coach_today
+        TodayCoachKind.YESTERDAY -> R.string.today_coach_yesterday
+        TodayCoachKind.DAYS -> R.string.today_coach_days
+        TodayCoachKind.WEEKS -> R.string.today_coach_weeks
+    }
+    is UiText.TodayProgress -> R.string.today_progress
     is UiText.TodayGoalLife -> R.plurals.today_life_goal
     is UiText.TodayWeekLife -> R.plurals.today_life_week
     is UiText.TodayHistoryLife -> R.plurals.today_life_history
@@ -82,15 +90,13 @@ fun UiText.resolve(): String = when (this) {
     is UiText.BackupStatus -> stringResource(resourceId(), first, second)
     is UiText.FileAccessFailure -> stringResource(resourceId(), detail.orEmpty())
     UiText.FilePermissionLost -> stringResource(resourceId())
-    is UiText.TodayAction -> when (kind) {
-        TodayActionKind.CONTINUE -> stringResource(resourceId(), done, total)
-        else -> stringResource(resourceId(), dayId.uppercase())
+    is UiText.TodayAction -> stringResource(resourceId(), dayId.uppercase())
+    is UiText.TodayCoach -> when (kind) {
+        TodayCoachKind.TODAY, TodayCoachKind.YESTERDAY -> stringResource(resourceId())
+        TodayCoachKind.DAYS, TodayCoachKind.WEEKS -> stringResource(resourceId(), date, elapsed)
     }
-    is UiText.TodayCardio -> {
-        val rest = label.removePrefix(if (hard) "Hard " else "Easy ").replaceFirstChar(Char::uppercase)
-        stringResource(resourceId(), rest)
-    }
-    is UiText.TodayGoalLife -> pluralStringResource(resourceId(), sessions, lift.uppercase(), sessions)
+    is UiText.TodayProgress -> stringResource(resourceId(), done, total)
+    is UiText.TodayGoalLife -> pluralStringResource(resourceId(), sessions, lift, sessions)
     is UiText.TodayWeekLife -> pluralStringResource(resourceId(), daysAgo, sessions, rotationDays, daysAgo)
     is UiText.TodayHistoryLife -> pluralStringResource(resourceId(), daysAgo, daysAgo, monthSessions)
     is UiText.LogBackfill -> if (running) stringResource(resourceId()) else stringResource(resourceId(), count)

@@ -33,36 +33,50 @@
          inflated by the host before any Kotlin runs, so it can't ask for it. -->
     <string name="widget_no_program">SET UP YOUR PROGRAM</string>
 <!-- Today -->
-<string name="today_title">TODAY</string>
-<string name="today_cardio_finisher_label">CARDIO FINISHER</string>
-<string name="today_rotation_label">ROTATION</string>
-<string name="today_rotation_day">Day %1$s</string>
-<string name="today_rotation_description">Rotation: %1$s.</string>
-<string name="today_rotation_description_next">Rotation: %1$s. Next is Day %2$s.</string>
-<string name="today_last_session_label">LAST SESSION</string>
-<string name="today_open_log_description">Open log</string>
+<string name="today_day_label">Day %1$s</string>
+<string name="day_index_description">Day %1$s</string>
+<string name="today_coach_today">Last trained today.</string>
+<string name="today_coach_yesterday">Last trained yesterday.</string>
+<string name="today_coach_days">Last trained %1$s, %2$d days ago.</string>
+<string name="today_coach_weeks">Last trained %1$s, %2$d weeks ago.</string>
+<string name="today_progress">%1$d of %2$d sets logged.</string>
 <plurals name="today_life_goal">
-    <item quantity="one">%1$s · %2$d SESSION AT GOAL</item>
-    <item quantity="other">%1$s · %2$d SESSIONS AT GOAL</item>
+    <item quantity="one">%1$s, %2$d session at goal.</item>
+    <item quantity="other">%1$s, %2$d sessions at goal.</item>
 </plurals>
 <plurals name="today_life_week">
-    <item quantity="one">THIS WEEK · %1$d OF %2$d · LAST %3$d DAY AGO</item>
-    <item quantity="other">THIS WEEK · %1$d OF %2$d · LAST %3$d DAYS AGO</item>
+    <item quantity="one">This week, %1$d of %2$d. Last session %3$d day ago.</item>
+    <item quantity="other">This week, %1$d of %2$d. Last session %3$d days ago.</item>
 </plurals>
 <plurals name="today_life_history">
-    <item quantity="one">LAST SESSION %1$d DAY AGO · %2$d THIS MONTH</item>
-    <item quantity="other">LAST SESSION %1$d DAYS AGO · %2$d THIS MONTH</item>
+    <item quantity="one">Last session %1$d day ago, %2$d this month.</item>
+    <item quantity="other">Last session %1$d days ago, %2$d this month.</item>
 </plurals>
-<string name="today_log_button">LOG</string>
-<string name="today_action_start">START DAY %1$s</string>
-<string name="today_action_continue">CONTINUE — %1$d OF %2$d SETS</string>
-<string name="today_action_finish">FINISH DAY %1$s</string>
-<string name="today_cardio_easy">EASY · %1$s</string>
-<string name="today_cardio_hard">HARD · %1$s</string>
+<string name="today_action_start">Start day %1$s</string>
+<string name="today_action_continue">Continue day %1$s</string>
+<string name="today_action_finish">Finish day %1$s</string>
 <string name="today_settings_description">Settings</string>
 <plurals name="today_lift_set_count">
-    <item quantity="one">%1$d set</item>
-    <item quantity="other">%1$d sets</item>
+    <item quantity="one">%d set</item>
+    <item quantity="other">%d sets</item>
+</plurals>
+
+<!-- Top-level navigation -->
+<string name="nav_today">Today</string>
+<string name="nav_log">Log</string>
+<string name="nav_plan">Plan</string>
+
+<!-- Plan -->
+<string name="plan_title">Plan</string>
+<string name="plan_setup_again">Set up again</string>
+<string name="plan_next">Next</string>
+<plurals name="plan_lifts">
+    <item quantity="one">%d lift</item>
+    <item quantity="other">%d lifts</item>
+</plurals>
+<plurals name="plan_sets">
+    <item quantity="one">%d set</item>
+    <item quantity="other">%d sets</item>
 </plurals>
 
 <!-- Setup -->
@@ -303,8 +317,7 @@
 <string name="day_plates_per_side">Plates: %1$s a side</string>
 <string name="day_status_in_progress">IN PROGRESS · %1$d OF %2$d SETS</string>
 <string name="day_status_ready">READY TO FINISH · %1$d OF %2$d SETS</string>
-<string name="log_title">LOG</string>
-<string name="log_back_label">Back</string>
+<string name="log_title">Log</string>
 <string name="log_trajectory_header">TRAJECTORY</string>
 <string name="log_volume_header">VOLUME</string>
 <string name="log_calendar_header">CALENDAR</string>
@@ -374,9 +387,9 @@
 <string name="authored_empty_journal_title">YOUR FIRST SESSION WILL LAND HERE</string>
 <string name="authored_empty_journal_body">Finish a workout and it lands in this list — every set, the day it belonged to, and what it added to your trajectory.</string>
 <string name="authored_start_session_button">START A SESSION</string>
-<string name="authored_no_program_title">NO PROGRAM YET</string>
+<string name="authored_no_program_title">No program yet</string>
 <string name="authored_no_program_body">The wizard builds your rotation from a few answers — days, emphasis, and the equipment you actually have.</string>
-<string name="authored_run_setup_button">RUN THE SETUP WIZARD</string>
+<string name="authored_run_setup_button">Set up a program</string>
 
 <!-- Shared set controls -->
 <string name="stepper_decrease_action">decrease</string>

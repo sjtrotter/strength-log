@@ -10,7 +10,6 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -20,6 +19,8 @@ import cloud.trotter.log.strength.ui.day.DayViewModel
 import cloud.trotter.log.strength.ui.day.FixedCardioClock
 import cloud.trotter.log.strength.ui.day.InertCardioAlarm
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
+import cloud.trotter.log.strength.ui.text.TodayCoachKind
+import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
 import java.io.File
@@ -39,7 +40,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -173,7 +173,7 @@ class TodayViewModelWiringTest {
 
         assertTrue(state.hasProgram)
         assertEquals(suggestedDayId, state.dayId)
-        assertEquals("NEXT IN ROTATION", state.overline)
+        assertEquals("Day A", state.dayTitle)
         assertEquals(cloud.trotter.log.strength.ui.text.TodayActionKind.START, state.actionLabel.kind)
         assertEquals(suggestedDayId, state.actionLabel.dayId)
 
@@ -184,16 +184,8 @@ class TodayViewModelWiringTest {
         // Nothing has seeded a log yet, so these are previews — run through
         // :domain's seeding rules, not the slots' targetSets (3 and 4).
         assertEquals(listOf(6, 4), state.lifts.map { it.setCount })
-        assertEquals(GlanceLines.statLine(2, 0, 10), state.statLine)
-
-        // One rotation mark per program day, exactly one of them next, and it's
-        // the suggested day.
-        assertEquals(repo.programFlow.first().days.size, state.rotation.size)
-        val nextMarks = state.rotation.filter { it.isNext }
-        assertEquals(1, nextMarks.size)
-        assertEquals(suggestedDayId, nextMarks.first().dayId)
-
-        assertNull("no history yet", state.lastSession)
+        assertEquals(10, state.actionLabel.total)
+        assertNull("no history yet", state.coachLine)
         assertNull("no derived life line yet", state.lifeLine)
     }
 
@@ -238,20 +230,18 @@ class TodayViewModelWiringTest {
         advanceUntilIdle()
 
         val state = today.uiState.value
-        assertEquals("IN PROGRESS", state.overline)
-
         assertEquals(cloud.trotter.log.strength.ui.text.TodayActionKind.CONTINUE, state.actionLabel.kind)
         assertEquals(3, state.actionLabel.done)
 
         // 6 seeded rows for the main + 4 for the accessory, from the live logs.
         assertEquals(10, state.actionLabel.total)
-        assertEquals(GlanceLines.statLine(2, 3, 10), state.statLine)
+        assertEquals(UiText.TodayProgress(3, 10), state.coachLine)
     }
 
-    // --- last-session strip ---------------------------------------------------------
+    // --- coach line ---------------------------------------------------------
 
     @Test
-    fun lastSessionStrip_appearsOnceADayIsCompleted() = runVmTest {
+    fun coachLine_showsHistoryOnAFreshDayAndProgressOnceASetIsLogged() = runVmTest {
         insertProgram()
         val today = newTodayViewModel()
         newDayViewModel() // triggers day A's seed pass
@@ -260,14 +250,15 @@ class TodayViewModelWiringTest {
         repo.advanceDay("A")
         advanceUntilIdle()
 
-        val lastSession = today.uiState.value.lastSession
-        assertNotNull("expected a last-session line once a day is completed", lastSession)
-        assertTrue("expected a set count fragment in: $lastSession", lastSession!!.contains(" sets"))
-        // Device-local "MMM d, yyyy" (LogScreenBuilder.dateDisplay) always carries
-        // a comma before the year — assert the shape, not the exact date.
-        assertTrue(
-            "expected a comma-and-year date fragment in: $lastSession",
-            Regex(""", \d{4}""").containsMatchIn(lastSession),
-        )
+        val history = today.uiState.value.coachLine
+        assertEquals(UiText.TodayCoach(TodayCoachKind.TODAY), history)
+
+        val dayVm = newDayViewModel()
+        advanceUntilIdle()
+        val curlId = slotId("B", "ez_curl")
+        dayVm.toggleDone(curlId, index = 0, checked = true, isSuperset = true)
+        advanceUntilIdle()
+
+        assertEquals(UiText.TodayProgress(1, 2), today.uiState.value.coachLine)
     }
 }

@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
+import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -154,6 +155,37 @@ class DayViewModelWiringTest {
     // --- seeding trigger (M2 rule: VM seeds once, then the log persists) -------
 
     @Test
+    fun navArgumentSelectsItsDayWhenNoViewDayWasSaved() = runVmTest {
+        insertSelectionProgram()
+        val vm = newViewModel(SavedStateHandle(mapOf(Routes.DAY_ID_ARG to "B")))
+        val collect = launch { vm.uiState.collect {} }
+
+        advanceUntilIdle()
+
+        assertEquals("B", vm.uiState.value.viewDayId)
+        collect.cancel()
+    }
+
+    @Test
+    fun savedViewDayWinsOverTheNavArgument() = runVmTest {
+        insertSelectionProgram()
+        val vm = newViewModel(
+            SavedStateHandle(
+                mapOf(
+                    "day_view_override" to "C",
+                    Routes.DAY_ID_ARG to "B",
+                ),
+            ),
+        )
+        val collect = launch { vm.uiState.collect {} }
+
+        advanceUntilIdle()
+
+        assertEquals("C", vm.uiState.value.viewDayId)
+        collect.cancel()
+    }
+
+    @Test
     fun seedsEveryKnownSlotOnceIncludingSupersetPartner() = runVmTest {
         insertProgram()
         newViewModel()
@@ -166,6 +198,18 @@ class DayViewModelWiringTest {
         // Unknown ids can't resolve a GOAL — no log rows for them.
         assertNull(track(slotId("ghost_unknown"), Slot.MAIN))
         assertNull(track(slotId("db_lateral"), Slot.SS))
+    }
+
+    private suspend fun insertSelectionProgram() {
+        repo.replaceProgram(
+            Program(
+                listOf(
+                    ProgramDay("A", "Day A", "", listOf(ProgramExercise("ez_curl")), cardio = null),
+                    ProgramDay("B", "Day B", "", listOf(ProgramExercise("rope_pushdown")), cardio = null),
+                    ProgramDay("C", "Day C", "", listOf(ProgramExercise("face_pull")), cardio = null),
+                ),
+            ),
+        )
     }
 
     @Test

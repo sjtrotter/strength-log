@@ -59,7 +59,6 @@ class LogScreenInteractionTest {
                 LogScreen(
                     LogUiState(sessions = listOf(item(expanded)), health = health),
                     LogActions(
-                        onBack = {},
                         onToggleExpanded = onToggle,
                         onPageCalendar = {},
                         onConnectHealth = onConnectHealth,

@@ -39,7 +39,9 @@ def service():
     creds = service_account.Credentials.from_service_account_info(
         info, scopes=["https://www.googleapis.com/auth/androidpublisher"],
     )
-    return build("androidpublisher", "v3", credentials=creds, cache_discovery=False)
+    # Live discovery: the client's bundled document lags the API and lacks
+    # commit's changesInReviewBehavior, which the upload relies on.
+    return build("androidpublisher", "v3", credentials=creds, cache_discovery=False, static_discovery=False)
 
 
 def inspect(api, edit_id):

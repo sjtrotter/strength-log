@@ -73,12 +73,16 @@ Decision record: `docs/briefs/ui-redesign-2026-10-12.md`.
  ( 1:30  −15 +15 skip )   [ Finish day D ]      ← rest pill only while resting; Button
 ```
 
+Day segments are indicators only: six to eight cannot each fit a 48 dp touch target on a 360 dp
+phone. Navigate by swiping, the Exercises caption button, or the next-lift button.
+
 States (see the mock frames):
 - **performing** (`b-perform`): focus is the first unlogged set of the current page's exercise.
 - **resting** (`b-rest`): after a log the focus advances; the rest pill appears beside Finish;
   the Log button is tonal until the rest ends or is skipped. The card never becomes a timer.
-- **editing** (`b-edit`): tapping the big numeral, or a filled set segment, opens the revision-2
-  `ModalBottomSheet`: title "Ramp set 3" / exercise, two steppers (IconButton −, OutlinedTextField
+- **editing** (`b-edit`): tapping the big numeral or a value in All sets opens the revision-2
+  `ModalBottomSheet`; set segments are indicators because six to eight cannot each have a 48 dp
+  touch target on a 360 dp phone. Sheet content: title "Ramp set 3" / exercise, two steppers (IconButton −, OutlinedTextField
   numeric, IconButton +), plate line ("25 a side on the bar. Only this set changes." / for TOP:
   "Warm-ups and back-off follow this weight."), Done button, overflow menu with Remove set.
 - **finished** (`b-done`): all segments green, the top set stays as the numeral (quiet colour),
@@ -105,7 +109,7 @@ The big numeral's label reads "Ramp set 3", "Top set", "Back-off", "Set 2".
 | Today | `Surface`+`Text` (index), `Column`, `ListItem`+`HorizontalDivider`, `Button`, `NavigationBar`+`NavigationBarItem` |
 | Workout pager | `HorizontalPager`, `rememberPagerState(pageCount = { exercises.size })`, `key = { exercises[it].id }`, `beyondViewportPageCount = 1`, `contentPadding = PaddingValues(start = 20.dp, end = 40.dp)`, `pageSpacing = 12.dp`, `PagerDefaults.flingBehavior(state)` |
 | Page | `Card` (filled), `Text` displayLarge with `fontFeatureSettings = "tnum"`, `Button` / `FilledTonalButton`, `TextButton` |
-| Segments | `Row` of `Box(RoundedCornerShape)` per Google's "Pager in Compose" indicator sample; each inside a 48 dp tall `clickable` with a `contentDescription` naming the item and its state |
+| Segments | `Row` of `Box(RoundedCornerShape)` per Google's "Pager in Compose" indicator sample; indicators only with a `contentDescription` naming the item and its state; six to eight segments cannot each fit a 48 dp touch target on a 360 dp phone |
 | Sheets | `ModalBottomSheet` (edit, All sets, Exercises), `IconButton`, `OutlinedTextField`, `DropdownMenu`, `LazyColumn` with `key`/`contentType` inside the list sheets |
 | Rest pill | tonal `Surface` holding `Text` + `TextButton`s |
 | Navigation | Navigation Compose, type-safe routes, bar with `saveState`/`restoreState` |

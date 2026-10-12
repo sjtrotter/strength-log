@@ -8,7 +8,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
-import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -154,8 +153,7 @@ class ScrollPathStabilityTest {
         goalDisplay = "100",
         perHand = false,
         allDone = false,
-        collapsed = false,
-        collapsedSummary = "",
+
         rows = List(rows) { i ->
             SetRowState(index = i, kindLabel = "${i + 1}", isTop = false, weightDisplay = 100.0, reps = 5, done = i < done)
         },

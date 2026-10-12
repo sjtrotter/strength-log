@@ -92,8 +92,6 @@ class MaterialComponentConventionTest {
         // Named in the Phase 10 brief. Wear/dial code is excluded by sourceRoot.
         val standingExceptions = setOf(
             "SelectionCard",
-            "SetRow",
-            "RemoveButton",
             "EquipmentFilterRow",
             "SheetButton",
         )

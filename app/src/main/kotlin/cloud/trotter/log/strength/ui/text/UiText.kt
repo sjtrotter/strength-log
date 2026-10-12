@@ -19,8 +19,7 @@ sealed interface UiText {
     data class TodayWeekLife(val sessions: Int, val rotationDays: Int, val daysAgo: Int) : UiText
     data class TodayHistoryLife(val daysAgo: Int, val monthSessions: Int) : UiText
     data class LogBackfill(val running: Boolean, val count: Int) : UiText
-    data class DayPlate(val plates: String?) : UiText
-    data class DayStatus(val ready: Boolean, val done: Int, val total: Int) : UiText
+    data class SetLabel(val kind: cloud.trotter.log.strength.domain.model.SetKind, val number: Int) : UiText
 }
 
 enum class BackupErrorKind { RESTORE_NOT_STARTED, SETTINGS_PENDING, CLEANUP_PENDING, BACKUP_TOO_LARGE,
@@ -80,8 +79,12 @@ fun UiText.resourceId(): Int = when (this) {
         count == 1 -> R.string.log_backfill_publish_one
         else -> R.string.log_backfill_publish_many
     }
-    is UiText.DayPlate -> if (plates == null) R.string.day_plates_empty else R.string.day_plates_per_side
-    is UiText.DayStatus -> if (ready) R.string.day_status_ready else R.string.day_status_in_progress
+    is UiText.SetLabel -> when (kind) {
+        cloud.trotter.log.strength.domain.model.SetKind.RAMP -> R.string.set_label_ramp
+        cloud.trotter.log.strength.domain.model.SetKind.TOP -> R.string.set_label_top
+        cloud.trotter.log.strength.domain.model.SetKind.BACKOFF -> R.string.set_label_backoff
+        else -> R.string.set_label_plain
+    }
 }
 
 @Composable
@@ -100,6 +103,5 @@ fun UiText.resolve(): String = when (this) {
     is UiText.TodayWeekLife -> pluralStringResource(resourceId(), daysAgo, sessions, rotationDays, daysAgo)
     is UiText.TodayHistoryLife -> pluralStringResource(resourceId(), daysAgo, daysAgo, monthSessions)
     is UiText.LogBackfill -> if (running) stringResource(resourceId()) else stringResource(resourceId(), count)
-    is UiText.DayPlate -> if (plates == null) stringResource(resourceId()) else stringResource(resourceId(), plates)
-    is UiText.DayStatus -> stringResource(resourceId(), done, total)
+    is UiText.SetLabel -> stringResource(resourceId(), number)
 }

@@ -14,25 +14,28 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-// DayTab is both a data class (DayScreenModels) and the day-tab composable
-// (DayScreen, made `internal` for this test) living in the same package —
-// the wildcard import resolves each call by shape, exactly as it already
-// does inside DayScreen.kt itself. WeightSwapPill/WeightSwapConfirmDialog/
-// WeightSwapAffordance (§4.2) resolve the same way.
-import cloud.trotter.log.strength.ui.day.*
+import cloud.trotter.log.strength.ui.day.AllSetsSheet
+import cloud.trotter.log.strength.ui.day.DayEditUiState
+import cloud.trotter.log.strength.ui.day.DayScreen
+import cloud.trotter.log.strength.ui.day.EquipmentFilterRow
+import cloud.trotter.log.strength.ui.day.PartnerRowState
+import cloud.trotter.log.strength.ui.day.SetEditSheet
+import cloud.trotter.log.strength.ui.day.WeightSwapAffordance
+import cloud.trotter.log.strength.ui.day.WeightSwapConfirmDialog
+import cloud.trotter.log.strength.ui.day.pagerActions
+import cloud.trotter.log.strength.ui.day.pagerEditActions
+import cloud.trotter.log.strength.ui.day.pagerFixture
 import cloud.trotter.log.strength.ui.licenses.LicenseEntry
 import cloud.trotter.log.strength.ui.licenses.LicensesScreen
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.ui.theme.accentSoft
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -83,6 +86,65 @@ class A11ySemanticsTest {
 
         composeTestRule.onNodeWithContentDescription("Decrease weight").assertExists()
         composeTestRule.onNodeWithContentDescription("Increase weight").assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun allSetsCheckboxNamesTheSetAndItsValue() {
+        val card = pagerFixture().exercises[1]
+        val row = card.rows[1].copy(kind = SetKind.RAMP, rampIndex = 3)
+        composeTestRule.setContent {
+            AppTheme { AllSetsSheet(card.copy(rows = listOf(row)), pagerActions(), onEdit = {}, onDismiss = {}) }
+        }
+        composeTestRule.onNodeWithContentDescription("Ramp set 3, 95 × 5")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
+            .assertIsOff()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun editSteppersNameTheirFieldAndPartnerTrack() {
+        val card = pagerFixture().exercises[1].copy(
+            isSuperset = true,
+            partnerTitle = "Pull-up",
+            partnerTracking = TrackingType.REPS,
+        )
+        val row = card.rows[1].copy(partner = PartnerRowState(0.0, 6))
+        composeTestRule.setContent {
+            AppTheme { SetEditSheet(card, row, WeightUnit.LB, 3, pagerActions(), onDismiss = {}) }
+        }
+        listOf(
+            "Weight, 5 less", "Weight, 5 more", "Reps, one less", "Reps, one more",
+            "Pull-up, Reps, one less", "Pull-up, Reps, one more",
+        ).forEach { composeTestRule.onNodeWithContentDescription(it).assertExists() }
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun timedEditSteppersNameSecondsOnBothTracks() {
+        val card = pagerFixture().exercises[1].copy(
+            tracking = TrackingType.TIMED,
+            isSuperset = true,
+            partnerTitle = "Plank",
+            partnerTracking = TrackingType.TIMED,
+        )
+        val row = card.rows[1].copy(seconds = 45, partner = PartnerRowState(0.0, 0, seconds = 30))
+        composeTestRule.setContent {
+            AppTheme { SetEditSheet(card, row, WeightUnit.LB, 3, pagerActions(), onDismiss = {}) }
+        }
+        listOf("Seconds, 5 less", "Seconds, 5 more", "Plank, Seconds, 5 less", "Plank, Seconds, 5 more")
+            .forEach { composeTestRule.onNodeWithContentDescription(it).assertExists() }
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun focusNumeralIsAButtonWithAnEditAction() {
+        composeTestRule.setContent {
+            AppTheme { DayScreen(pagerFixture(), pagerActions(), DayEditUiState(), pagerEditActions()) }
+        }
+        val numeral = composeTestRule.onNodeWithText("95 × 5")
+        numeral.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        assertEquals("Edit", numeral.fetchSemanticsNode().config.getOrNull(SemanticsActions.OnClick)?.label)
     }
 
     @Test
@@ -151,153 +213,6 @@ class A11ySemanticsTest {
     }
 
     @Test
-    fun setRowExposesWeightAndRepsDescriptions() {
-        composeTestRule.setContent {
-            AppTheme {
-                SetRow(
-                    kindLabel = "R1",
-                    accent = dayAccent(0),
-                    accentSoft = accentSoft(0),
-                    weight = 135.0,
-                    onWeightChange = {},
-                    weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
-                    weightFormat = WeightStepper::format,
-                    weightRound = { WeightStepper.round(it, WeightUnit.LB) },
-                    reps = 5,
-                    onRepsChange = {},
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithContentDescription("Decrease weight").assertExists()
-        composeTestRule.onNodeWithContentDescription("Increase weight").assertExists()
-        composeTestRule.onNodeWithContentDescription("Decrease reps").assertExists()
-        composeTestRule.onNodeWithContentDescription("Increase reps").assertExists()
-        val removeActions = composeTestRule.onNodeWithTag("setRowSwipe").fetchSemanticsNode()
-            .config[SemanticsActions.CustomActions]
-        assertTrue(removeActions.any { it.label == "Remove set" })
-    }
-
-    // --- per-type set rows (tracking-types §3) -----------------------------------
-
-    @Test
-    fun repsTrackRowHasNoWeightControlAtAll() {
-        composeTestRule.setContent {
-            AppTheme {
-                SetRow(
-                    kindLabel = "1",
-                    accent = dayAccent(0),
-                    accentSoft = accentSoft(0),
-                    weight = 0.0,
-                    onWeightChange = {},
-                    weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
-                    weightFormat = WeightStepper::format,
-                    weightRound = { WeightStepper.round(it, WeightUnit.LB) },
-                    reps = 12,
-                    onRepsChange = {},
-                    tracking = TrackingType.REPS,
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithContentDescription("Decrease weight").assertDoesNotExist()
-        composeTestRule.onNodeWithContentDescription("Increase weight").assertDoesNotExist()
-        composeTestRule.onNodeWithContentDescription("Decrease reps").assertExists()
-        composeTestRule.onNodeWithContentDescription("Increase reps").assertExists()
-    }
-
-    @Test
-    fun timedTrackRowShowsAHoldStepperAndHidesWeightUnlessTheGoalCarriesLoad() {
-        composeTestRule.setContent {
-            AppTheme {
-                SetRow(
-                    kindLabel = "1",
-                    accent = dayAccent(0),
-                    accentSoft = accentSoft(0),
-                    weight = 0.0,
-                    onWeightChange = {},
-                    weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
-                    weightFormat = WeightStepper::format,
-                    weightRound = { WeightStepper.round(it, WeightUnit.LB) },
-                    reps = 0,
-                    onRepsChange = {},
-                    tracking = TrackingType.TIMED,
-                    seconds = 45,
-                    showTimedWeight = false,
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithContentDescription("Decrease hold").assertExists()
-        composeTestRule.onNodeWithContentDescription("Increase hold").assertExists()
-        composeTestRule.onNodeWithText("45s").assertExists()
-        composeTestRule.onNodeWithContentDescription("Decrease weight").assertDoesNotExist()
-    }
-
-    @Test
-    fun timedTrackRowShowsTheWeightStepperWhenTheGoalCarriesLoad() {
-        composeTestRule.setContent {
-            AppTheme {
-                SetRow(
-                    kindLabel = "1",
-                    accent = dayAccent(0),
-                    accentSoft = accentSoft(0),
-                    weight = 25.0,
-                    onWeightChange = {},
-                    weightStep = { WeightStepper.increment(it, WeightUnit.LB) },
-                    weightFormat = WeightStepper::format,
-                    weightRound = { WeightStepper.round(it, WeightUnit.LB) },
-                    reps = 0,
-                    onRepsChange = {},
-                    tracking = TrackingType.TIMED,
-                    seconds = 90,
-                    showTimedWeight = true,
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithContentDescription("Decrease weight").assertExists()
-        // 90s crosses the m:ss threshold, same as the GOAL chip/history formatters.
-        composeTestRule.onNodeWithText("1:30").assertExists()
-    }
-
-    // --- ADD WEIGHT / REMOVE WEIGHT pill (§4.2) ----------------------------------
-
-    @Test
-    fun addWeightPillReadsAsALabeledAffordanceAndFiresOnClick() {
-        var tapped = false
-        composeTestRule.setContent {
-            AppTheme {
-                WeightSwapPill(
-                    swap = WeightSwapAffordance("weighted_plank", "Weighted Plank", isRemove = false),
-                    accent = dayAccent(0),
-                    onClick = { tapped = true },
-                )
-            }
-        }
-
-        val pill = composeTestRule.onNodeWithText("+ ADD WEIGHT")
-        pill.assertExists()
-        pill.performClick()
-        assertTrue(tapped)
-    }
-
-    @Test
-    fun removeWeightPillReadsDifferentlyFromAddWeight() {
-        composeTestRule.setContent {
-            AppTheme {
-                WeightSwapPill(
-                    swap = WeightSwapAffordance("plank", "Plank / Side Plank", isRemove = true),
-                    accent = dayAccent(0),
-                    onClick = {},
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("− REMOVE WEIGHT").assertExists()
-    }
-
-    @Test
     fun weightSwapConfirmDialogNamesTheTargetAndConfirmingInvokesTheCallback() {
         var confirmed = false
         composeTestRule.setContent {
@@ -313,133 +228,6 @@ class A11ySemanticsTest {
         composeTestRule.onNodeWithText("Switch to Weighted Pull-Up?").assertExists()
         composeTestRule.onNodeWithText("Switch").performClick()
         assertTrue(confirmed)
-    }
-
-    @Test
-    fun dayTabExposesSelectedState() {
-        composeTestRule.setContent {
-            AppTheme {
-                DayTab(
-                    tab = DayTab(dayId = "A", dayIndex = 0, isSuggested = false, isSelected = true),
-                    onClick = {},
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithContentDescription("Day A")
-            .assertIsSelected()
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
-    }
-
-    // --- Today took the app-wide chrome off Day (#121) ---------------------------
-
-    /** Pins #121: Settings and "Open log" left the day header for Today. Also
-     *  renders the complete tab row to pin its one-node-per-day a11y contract.
-     *  Selection intentionally uses M3's auto-scroll-to-selected behavior. */
-    @Test
-    fun dayScreenScrollsAllDayTabsAndNoLongerHostsSettingsOrLog() {
-        val state = DayUiState(
-            hasProgram = true,
-            tabs = listOf(
-                DayTab("A", 0, isSuggested = false, isSelected = true),
-                DayTab("B", 1, isSuggested = false, isSelected = false),
-                DayTab("C", 2, isSuggested = false, isSelected = false),
-                DayTab("D", 3, isSuggested = false, isSelected = false),
-                DayTab("E", 4, isSuggested = false, isSelected = false),
-                DayTab("F", 5, isSuggested = false, isSelected = false),
-            ),
-            viewDayId = "A",
-            dayIndex = 0,
-            dayTitle = "Lower — squat focus",
-            emphasisLine = "hip-hinge hamstrings · gastroc calves",
-            unit = WeightUnit.LB,
-            suggestedDayId = "A",
-            nextDayId = "B",
-            exercises = listOf(
-                ExerciseCardState(
-                    programExerciseId = 1,
-                    position = 0,
-                    title = "Barbell Back Squat",
-                    isMain = true,
-                    isSuperset = false,
-                    hasWarmupHint = true,
-                    goalDisplay = "235",
-                    perHand = false,
-                    allDone = false,
-                    collapsed = false,
-                    collapsedSummary = "5 sets · GOAL 235",
-                    rows = listOf(
-                        SetRowState(0, "R1", isTop = false, weightDisplay = 130.0, reps = 5, done = false),
-                        SetRowState(1, "TOP", isTop = true, weightDisplay = 235.0, reps = 5, done = false),
-                    ),
-                ),
-            ),
-            keepScreenOn = false,
-        )
-
-        composeTestRule.setContent {
-            AppTheme {
-                DayScreen(
-                    state = state,
-                    actions = DayActions(
-                        onSelectDay = {},
-                        onWeightChange = { _, _, _, _ -> },
-                        onRepsChange = { _, _, _, _ -> },
-                        onSecondsChange = { _, _, _, _ -> },
-                        onToggleDone = { _, _, _, _ -> },
-                        onAddSet = { _, _ -> },
-                        onRemoveSet = { _, _, _ -> },
-                        onToggleCollapse = {},
-                        onKeepScreenOnChange = {},
-                        onClearChecks = {},
-                        onDone = {},
-                        onCreateExercise = {},
-                        onSetUpProgram = {},
-                    ),
-                    dayEditState = DayEditUiState(),
-                    dayEditActions = DayEditActions(
-                        onSwap = { _, _ -> },
-                        onAdd = {},
-                        onRemove = {},
-                        onSetSuperset = { _, _ -> },
-                        onRemoveSuperset = {},
-                        onResetToTemplate = {},
-                    ),
-                )
-            }
-        }
-
-        val dayIds = listOf("A", "B", "C", "D", "E", "F")
-        val tabNodes = composeTestRule
-            .onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
-            .fetchSemanticsNodes()
-
-        assertEquals("one tab semantics node per day", dayIds.size, tabNodes.size)
-        assertEquals(
-            "every day is announced exactly once",
-            dayIds.map { listOf("Day $it") },
-            tabNodes.map { it.config.getOrNull(SemanticsProperties.ContentDescription) },
-        )
-        assertEquals(
-            "exactly one day tab is selected",
-            1,
-            tabNodes.count { it.config.getOrNull(SemanticsProperties.Selected) == true },
-        )
-        assertTrue(
-            "tab letters must not create duplicate announcements",
-            tabNodes.all { it.config.getOrNull(SemanticsProperties.Text).isNullOrEmpty() },
-        )
-
-        assertTrue(
-            "Settings must not reappear on Day — it moved to Today (#121)",
-            composeTestRule.onAllNodesWithContentDescription("Settings").fetchSemanticsNodes().isEmpty(),
-        )
-        assertTrue(
-            "Open log must not reappear on Day — it moved to Today (#121)",
-            composeTestRule.onAllNodesWithContentDescription("Open log").fetchSemanticsNodes().isEmpty(),
-        )
-
-        composeTestRule.onNodeWithContentDescription("Edit day").assertExists()
     }
 
     // --- License navigation ---------------------------------------------------

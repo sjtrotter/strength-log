@@ -28,6 +28,78 @@ import kotlin.test.assertTrue
 class DayScreenBuilderTest {
 
     @Test
+    fun focusIndexFindsFirstUndoneOrMinusOne() {
+        val rows = List(3) { SetRowState(it, "${it + 1}", false, 95.0, 5, false) }
+        assertEquals(0, DayScreenBuilder.focusIndex(rows))
+        assertEquals(2, DayScreenBuilder.focusIndex(rows.mapIndexed { index, row -> row.copy(done = index < 2) }))
+        assertEquals(-1, DayScreenBuilder.focusIndex(rows.map { it.copy(done = true) }))
+        assertEquals(-1, DayScreenBuilder.focusIndex(emptyList()))
+    }
+
+    @Test
+    fun focusLabelsDistinguishRampsTopBackoffAndWork() {
+        val kinds = listOf(SetKind.RAMP, SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF, SetKind.WORK)
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.SetLabel(SetKind.RAMP, 2), DayScreenBuilder.focusLabel(kinds, 1))
+        assertEquals(SetKind.TOP, DayScreenBuilder.focusLabel(kinds, 2).kind)
+        assertEquals(SetKind.BACKOFF, DayScreenBuilder.focusLabel(kinds, 3).kind)
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.SetLabel(SetKind.WORK, 5), DayScreenBuilder.focusLabel(kinds, 4))
+    }
+
+    @Test
+    fun rowLabelsUseKindAndRampIndexInsteadOfNotation() {
+        val row = SetRowState(4, "not a kind", false, 95.0, 5, false, kind = SetKind.RAMP, rampIndex = 3)
+        assertEquals(cloud.trotter.log.strength.ui.text.UiText.SetLabel(SetKind.RAMP, 3), setLabel(row))
+        assertEquals(SetKind.BACKOFF, setLabel(row.copy(kind = SetKind.BACKOFF, rampIndex = 0)).kind)
+        assertEquals(SetKind.EXTRA, setLabel(row.copy(kind = SetKind.EXTRA, rampIndex = 0)).kind)
+    }
+
+    @Test
+    fun summaryLineIncludesEveryOverheadPressPrescriptionInOrder() {
+        val rows = listOf(65.0 to 5, 85.0 to 5, 95.0 to 5, 110.0 to 3, 120.0 to 5, 90.0 to 8)
+            .map { (weight, reps) -> work(weight, reps) }
+        assertEquals("65×5, 85×5, 95×5, 110×3, 120×5, 90×8",
+            DayScreenBuilder.summaryLine(rows, null, TrackingType.WEIGHTED, TrackingType.WEIGHTED, WeightUnit.LB))
+    }
+
+    @Test
+    fun summaryLineFormatsSupersetTracksIndependentlyIncludingUndoneRows() {
+        assertEquals("60×12(×6), 60×10(×5)", DayScreenBuilder.summaryLine(
+            listOf(work(60.0, 12, true), work(60.0, 10)), listOf(work(0.0, 6), work(0.0, 5)),
+            TrackingType.WEIGHTED, TrackingType.REPS, WeightUnit.LB))
+        assertEquals("45s", DayScreenBuilder.summaryLine(listOf(work(0.0, 0, seconds = 45)), null,
+            TrackingType.TIMED, TrackingType.WEIGHTED, WeightUnit.LB))
+    }
+
+    @Test
+    fun currentPageHonorsSelectionThenUndoneThenLastLift() {
+        val cards = pagerFixture().exercises
+        val keys = listOf("exercise:1", "exercise:2", "exercise:3", "cardio")
+        assertEquals(2, DayScreenBuilder.currentPage(keys, "exercise:3", cards))
+        assertEquals(1, DayScreenBuilder.currentPage(keys, "exercise:99", cards))
+        assertEquals(1, DayScreenBuilder.currentPage(keys, null, cards))
+        assertEquals(3, DayScreenBuilder.currentPage(keys, "cardio", cards))
+        assertEquals(2, DayScreenBuilder.currentPage(keys, null, cards.map { card -> card.copy(rows = card.rows.map { it.copy(done = true) }) }))
+        assertEquals(0, DayScreenBuilder.currentPage(listOf("cardio"), null, emptyList()))
+    }
+
+    @Test
+    fun currentPageFallsBackToPageZeroWhenEveryExerciseIsUnseeded() {
+        val cards = pagerFixture().exercises.map { it.copy(rows = emptyList()) }
+        val keys = listOf("exercise:1", "exercise:2", "exercise:3", "cardio")
+        assertEquals(0, DayScreenBuilder.currentPage(keys, null, cards))
+        assertEquals(0, DayScreenBuilder.currentPage(keys, "exercise:99", cards))
+        assertEquals(3, DayScreenBuilder.currentPage(keys, "cardio", cards))
+    }
+
+    @Test
+    fun nextSetDisplayUsesTheFollowingRowAndStopsAtTheEnd() {
+        val rows = listOf(SetRowState(0, "R3", false, 95.0, 5, false), SetRowState(1, "R4", false, 110.0, 3, false))
+        assertEquals("110 × 3", DayScreenBuilder.nextSetDisplay(rows, 0, TrackingType.WEIGHTED, WeightUnit.LB))
+        assertNull(DayScreenBuilder.nextSetDisplay(rows, 1, TrackingType.WEIGHTED, WeightUnit.LB))
+        assertNull(DayScreenBuilder.nextSetDisplay(rows, -1, TrackingType.WEIGHTED, WeightUnit.LB))
+    }
+
+    @Test
     fun watchStatusBuilderCoversActiveSyncingAndOfflineQueued() {
         assertEquals(WatchStatus(WatchStatusKind.ACTIVE), DayScreenBuilder.watchStatusLine(900, 0, 0, true, 1_000))
         assertEquals(WatchStatus(WatchStatusKind.SYNCING, 2), DayScreenBuilder.watchStatusLine(900, 2, 0, true, 1_000))
@@ -39,7 +111,7 @@ class DayScreenBuilderTest {
         val card = ExerciseCardState(
             programExerciseId = 7, position = 0, title = "Squat", isMain = true,
             isSuperset = false, hasWarmupHint = false, goalDisplay = "235", perHand = false,
-            allDone = false, collapsed = false, collapsedSummary = "", rows = listOf(
+            allDone = false, rows = listOf(
                 SetRowState(0, "R1", false, 135.0, 5, false),
                 SetRowState(1, "TOP", true, 235.0, 5, true),
             ),
@@ -56,34 +128,6 @@ class DayScreenBuilderTest {
         assertEquals(DoneButtonState.NOTHING_LOGGED, DayScreenBuilder.doneButtonState(0, 18))
         assertEquals(DoneButtonState.PARTIAL, DayScreenBuilder.doneButtonState(7, 18))
         assertEquals(DoneButtonState.ALL_DONE, DayScreenBuilder.doneButtonState(18, 18))
-    }
-
-    @Test
-    fun markNext_marks_first_undone_row_of_first_unfinished_card_only() {
-        fun card(id: Long, done: List<Boolean>) = ExerciseCardState(
-            programExerciseId = id,
-            position = id.toInt(),
-            title = "Card $id",
-            isMain = false,
-            isSuperset = false,
-            hasWarmupHint = false,
-            goalDisplay = "",
-            perHand = false,
-            allDone = done.isNotEmpty() && done.all { it },
-            collapsed = false,
-            collapsedSummary = "",
-            rows = done.mapIndexed { index, checked ->
-                SetRowState(index, "${index + 1}", false, 0.0, 1, checked)
-            },
-        )
-
-        val cards = DayScreenBuilder.markNext(
-            listOf(card(1, listOf(true)), card(2, listOf(true, false, false)), card(3, listOf(false))),
-        )
-
-        assertEquals(listOf(false), cards[0].rows.map { it.isNext })
-        assertEquals(listOf(false, true, false), cards[1].rows.map { it.isNext })
-        assertEquals(listOf(false), cards[2].rows.map { it.isNext })
     }
 
     private val cfg = LifterConfig() // bw 235, age 40, INTERMEDIATE, BALANCED
@@ -233,89 +277,7 @@ class DayScreenBuilderTest {
         assertEquals(listOf("1", "2", "3"), DayScreenBuilder.kindLabels(work))
     }
 
-    // --- collapsed summary ---------------------------------------------------
-
-    @Test
-    fun collapsedSummary_shows_count_and_goal_when_nothing_checked() {
-        val main = listOf(work(60.0, 10), work(60.0, 10), work(60.0, 10))
-        assertEquals(
-            "3 sets · GOAL 60",
-            DayScreenBuilder.collapsedSummary(main, partner = null, goalDisplay = "60", unit = WeightUnit.LB),
-        )
-    }
-
-    @Test
-    fun collapsedSummary_lists_completed_plain_sets() {
-        val main = listOf(work(100.0, 12, done = true), work(100.0, 10, done = true), work(100.0, 8))
-        assertEquals(
-            "100×12 · 100×10",
-            DayScreenBuilder.collapsedSummary(main, partner = null, goalDisplay = "100", unit = WeightUnit.LB),
-        )
-    }
-
-    @Test
-    fun collapsedSummary_uses_superset_form() {
-        val main = listOf(work(60.0, 12, done = true), work(60.0, 11, done = true))
-        val partner = listOf(work(50.0, 15), work(50.0, 14))
-        assertEquals(
-            "60×12(50×15) / 60×11(50×14)",
-            DayScreenBuilder.collapsedSummary(main, partner, goalDisplay = "60", unit = WeightUnit.LB),
-        )
-    }
-
-    @Test
-    fun collapsedSummary_formats_a_REPS_track_with_no_weight_at_all() {
-        val main = listOf(work(0.0, 12, done = true), work(0.0, 10, done = true))
-        assertEquals(
-            "×12 · ×10",
-            DayScreenBuilder.collapsedSummary(main, partner = null, goalDisplay = "12 reps", unit = WeightUnit.LB, tracking = TrackingType.REPS),
-        )
-    }
-
-    @Test
-    fun collapsedSummary_formats_a_TIMED_track_as_a_hold() {
-        val main = listOf(work(0.0, 0, done = true, seconds = 45))
-        assertEquals(
-            "45s",
-            DayScreenBuilder.collapsedSummary(main, partner = null, goalDisplay = "45s", unit = WeightUnit.LB, tracking = TrackingType.TIMED),
-        )
-    }
-
-    @Test
-    fun collapsedSummary_formats_main_and_partner_independently_when_their_tracking_differs() {
-        // A weighted main superset with a TIMED accessory partner — valid per
-        // §3 (only mains must be WEIGHTED); each track formats by its own type.
-        val main = listOf(work(60.0, 12, done = true))
-        val partner = listOf(work(0.0, 0, seconds = 30))
-        assertEquals(
-            "60×12(30s)",
-            DayScreenBuilder.collapsedSummary(
-                main, partner, goalDisplay = "60", unit = WeightUnit.LB,
-                tracking = TrackingType.WEIGHTED, partnerTracking = TrackingType.TIMED,
-            ),
-        )
-    }
-
     // --- collapse resolution -------------------------------------------------
-
-    @Test
-    fun allDone_and_autocollapse_only_when_every_round_checked() {
-        val partial = listOf(work(60.0, 10, done = true), work(60.0, 10))
-        val complete = listOf(work(60.0, 10, done = true), work(60.0, 10, done = true))
-        assertEquals(false, DayScreenBuilder.allDone(partial))
-        assertEquals(true, DayScreenBuilder.allDone(complete))
-        assertEquals(false, DayScreenBuilder.collapsed(partial, manualOverride = null))
-        assertEquals(true, DayScreenBuilder.collapsed(complete, manualOverride = null))
-    }
-
-    @Test
-    fun manual_override_wins_over_auto_collapse() {
-        val complete = listOf(work(60.0, 10, done = true))
-        val partial = listOf(work(60.0, 10))
-        // Manually expanded a finished card, and manually collapsed an unfinished one.
-        assertEquals(false, DayScreenBuilder.collapsed(complete, manualOverride = false))
-        assertEquals(true, DayScreenBuilder.collapsed(partial, manualOverride = true))
-    }
 
     // --- one tick per round --------------------------------------------------
 
@@ -360,10 +322,10 @@ class DayScreenBuilderTest {
 
     @Test
     fun lastTimeDisplay_formats_weight_and_reps_in_the_display_unit() {
-        assertEquals("185×8", DayScreenBuilder.lastTimeDisplay(LastPerformed(185.0, 8), WeightUnit.LB))
+        assertEquals("185 × 8", DayScreenBuilder.lastTimeDisplay(LastPerformed(185.0, 8), WeightUnit.LB))
         // 44.092452436 lb == exactly 20 kg — an even round trip so the assertion
         // isn't sensitive to WeightStepper's decimal formatting.
-        assertEquals("20×8", DayScreenBuilder.lastTimeDisplay(LastPerformed(44.092452436, 8), WeightUnit.KG))
+        assertEquals("20 × 8", DayScreenBuilder.lastTimeDisplay(LastPerformed(44.092452436, 8), WeightUnit.KG))
     }
 
     @Test
@@ -381,7 +343,7 @@ class DayScreenBuilderTest {
         // Logged before the exercise's reclassification to TIMED: seconds is
         // still 0, the hold sits in reps (P3 Decision 5's assumption) — the
         // history chip must read the value, not "0s".
-        assertEquals("×45", DayScreenBuilder.lastTimeDisplay(LastPerformed(0.0, 45), WeightUnit.LB))
+        assertEquals(" × 45", DayScreenBuilder.lastTimeDisplay(LastPerformed(0.0, 45), WeightUnit.LB))
     }
 
     // --- "Best" profile chip (performance-profile.md Phase 1) ----------------
@@ -460,7 +422,7 @@ class DayScreenBuilderTest {
     @Test
     fun plateLine_shows_the_load_for_a_barbell_exercise() {
         val main = listOf(work(235.0, 5))
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate("45 + 45 + 5"), DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals("45 + 45 + 5", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
     }
 
     @Test
@@ -479,21 +441,21 @@ class DayScreenBuilderTest {
             work(210.0, 1),
         )
         // First two ramp sets are ticked, so the line reads the next one (190), not the TOP.
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate("45 + 25 + 2.5"), DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals("45 + 25 + 2.5", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
     }
 
     @Test
     fun plateLine_updates_when_the_next_sets_weight_is_edited() {
         val main = listOf(work(235.0, 5))
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate("45 + 45 + 5"), DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals("45 + 45 + 5", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
         val edited = listOf(work(245.0, 5))
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate("45 + 45 + 10"), DayScreenBuilder.plateLine(edited, barbellEquipment, WeightUnit.LB))
+        assertEquals("45 + 45 + 10", DayScreenBuilder.plateLine(edited, barbellEquipment, WeightUnit.LB))
     }
 
     @Test
     fun plateLine_reads_empty_bar_at_bar_weight() {
         val main = listOf(work(45.0, 5))
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayPlate(null), DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
+        assertEquals("0", DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
     }
 
     @Test
@@ -506,31 +468,6 @@ class DayScreenBuilderTest {
     fun plateLine_is_null_when_the_weight_cannot_be_loaded_exactly() {
         val main = listOf(work(137.0, 5))
         assertNull(DayScreenBuilder.plateLine(main, barbellEquipment, WeightUnit.LB))
-    }
-
-    // --- the in-progress status line (#126) ----------------------------------
-
-    @Test
-    fun sessionStatusLine_is_null_before_the_first_tick() {
-        assertNull(DayScreenBuilder.sessionStatusLine(doneSets = 0, totalSets = 18))
-    }
-
-    @Test
-    fun sessionStatusLine_reads_in_progress_with_the_count() {
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayStatus(false, 4, 18), DayScreenBuilder.sessionStatusLine(4, 18))
-    }
-
-    /** The same phase vocabulary Today speaks — a fully ticked day is waiting
-     *  on DONE, not still in progress. */
-    @Test
-    fun sessionStatusLine_turns_over_once_every_round_is_ticked() {
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayStatus(true, 18, 18), DayScreenBuilder.sessionStatusLine(18, 18))
-    }
-
-    /** An over-count reads as a finished day, matching GlanceLines' `>=` rule. */
-    @Test
-    fun sessionStatusLine_treats_an_over_count_as_finished() {
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.DayStatus(true, 19, 18), DayScreenBuilder.sessionStatusLine(19, 18))
     }
 
     // --- TOP set comparison -------------------------------------------------

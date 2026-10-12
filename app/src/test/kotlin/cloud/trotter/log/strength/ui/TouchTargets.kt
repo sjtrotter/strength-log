@@ -6,7 +6,7 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
-import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -31,7 +31,9 @@ object TouchTargets {
      * Every node a tap, toggle or selection can reach *and see*. Nodes clipped
      * out of a scrolling viewport keep their semantics but report empty bounds;
      * they are skipped, because a target the user cannot reach cannot collide
-     * with one they can.
+     * with one they can. With a sheet or menu open there is more than one root
+     * window; the audit walks the topmost one, which is the only one a finger
+     * can reach.
      */
     private fun ComposeContentTestRule.interactiveNodes(): List<SemanticsNode> {
         val all = mutableListOf<SemanticsNode>()
@@ -39,7 +41,7 @@ object TouchTargets {
             if (node.config.contains(SemanticsActions.OnClick) && !node.boundsInRoot.isEmpty) all += node
             node.children.forEach(::walk)
         }
-        walk(onRoot().fetchSemanticsNode())
+        walk(onAllNodes(isRoot()).fetchSemanticsNodes().last())
         return all
     }
 

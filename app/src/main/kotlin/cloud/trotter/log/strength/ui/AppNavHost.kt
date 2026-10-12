@@ -377,7 +377,11 @@ private fun DayRoute(
             onToggleDone = viewModel::toggleDone,
             onAddSet = viewModel::addSet,
             onRemoveSet = viewModel::removeSet,
-            onToggleCollapse = viewModel::toggleCollapse,
+            onSelectPage = viewModel::selectPage,
+            onOpenSetEditor = viewModel::openSetEditor,
+            onCloseSetEditor = viewModel::closeSheet,
+            onOpenAllSets = viewModel::openAllSets,
+            onCloseAllSets = viewModel::closeSheet,
             onKeepScreenOnChange = viewModel::setKeepScreenOn,
             onClearChecks = viewModel::clearChecks,
             onDone = viewModel::completeDay,
@@ -412,7 +416,7 @@ private fun DayRoute(
         onBack = onFinishSession,
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
-        standaloneCardio = initialDayId != null && state.tabs.none { it.dayId == state.viewDayId },
+        standaloneCardio = initialDayId != null && !state.isProgramDay,
     )
 }
 

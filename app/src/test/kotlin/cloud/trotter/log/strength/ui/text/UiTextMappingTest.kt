@@ -107,18 +107,6 @@ class UiTextMappingTest {
     }
 
     @Test
-    fun day_copy_resolves_both_plate_and_status_branches_and_both_helpers() {
-        assertAllResolve(listOf(
-            UiText.DayPlate(null) to "Plates: empty bar",
-            UiText.DayPlate("45 + 5") to "Plates: 45 + 5 a side",
-            UiText.DayStatus(false, 4, 18) to "IN PROGRESS · 4 OF 18 SETS",
-            UiText.DayStatus(true, 18, 18) to "READY TO FINISH · 18 OF 18 SETS",
-        ))
-        assertEquals("Change the TOP set — ramp & back-off recalculate.", context.getString(R.string.day_main_helper))
-        assertEquals("One tick checks the whole round — both moves, back-to-back.", context.getString(R.string.day_superset_helper))
-    }
-
-    @Test
     fun widget_default_resource_is_the_only_copy() {
         assertEquals("SET UP YOUR PROGRAM", context.getString(R.string.widget_no_program))
     }

@@ -36,7 +36,7 @@ class TouchTargetTest {
     private fun auditPagerAndOpenEditor() {
         val state = mutableStateOf(pagerFixture())
         val actions = pagerActions().copy(onOpenSetEditor = { id, index ->
-            state.value = state.value.copy(editSetId = id, editSetIndex = index)
+            state.value = state.value.copy(openSheet = OpenSheet("D", OpenSheet.Kind.EDITOR, id, index))
         })
         rule.setContent { AppTheme { DayScreen(state.value, actions, DayEditUiState(), pagerEditActions()) } }
         rule.onNodeWithContentDescription("Day menu").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)

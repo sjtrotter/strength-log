@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -20,6 +21,7 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -49,7 +52,7 @@ import org.robolectric.annotation.Config
  * Wiring tests for the [DayViewModel] seams the pure [DayScreenBuilder] tests
  * can't reach: the seeding trigger, mutation serialization (lost-update race),
  * paired-track writes, the empty-track guards, and the SavedStateHandle
- * collapse overrides. Robolectric + a real in-memory Room DB on the test
+ * page selection and sheet identity. Robolectric + a real in-memory Room DB on the test
  * dispatcher, so `advanceUntilIdle` is deterministic end to end.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -63,6 +66,7 @@ class DayViewModelWiringTest {
     private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<DayViewModel>()
+    private var historyGate: CompletableDeferred<Unit>? = null
 
     @Before
     fun setUp() {
@@ -76,13 +80,18 @@ class DayViewModelWiringTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("day-vm-settings", ".preferences_pb")
         }
-        repo = TrackerRepository(
+        repo = object : TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
             settings = SettingsStore(dataStore),
-        )
+        ) {
+            override suspend fun lastPerformed(exerciseIds: List<String>): Map<String, LastPerformed> {
+                historyGate?.await()
+                return super.lastPerformed(exerciseIds)
+            }
+        }
         shareCardService = ShareCardService(context, repo)
     }
 
@@ -133,24 +142,23 @@ class DayViewModelWiringTest {
         val id = slotId("bb_back_squat")
         vm.openSetEditor(id, 2)
         advanceUntilIdle()
-        assertEquals(id, vm.uiState.value.editSetId)
-        assertEquals(2, vm.uiState.value.editSetIndex)
+        val editor = OpenSheet("A", OpenSheet.Kind.EDITOR, id, 2)
+        assertEquals(editor, vm.uiState.value.openSheet)
         collect.cancel()
         vm.viewModelScope.cancel()
 
         val revived = newViewModel(handle)
         val revivedCollect = launch { revived.uiState.collect {} }
         advanceUntilIdle()
-        assertEquals(id, revived.uiState.value.editSetId)
-        assertEquals(2, revived.uiState.value.editSetIndex)
-        revived.closeSetEditor()
+        assertEquals(editor, revived.uiState.value.openSheet)
+        revived.closeSheet()
         advanceUntilIdle()
-        assertNull(revived.uiState.value.editSetId)
+        assertNull(revived.uiState.value.openSheet)
         revivedCollect.cancel()
     }
 
     @Test
-    fun allSetsSurvivesViewModelRecreationAndOpeningEditorClosesIt() = runVmTest {
+    fun allSetsSurvivesViewModelRecreationAndEditorReplacesItInOneWrite() = runVmTest {
         insertProgram()
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
@@ -165,16 +173,24 @@ class DayViewModelWiringTest {
         val revived = newViewModel(handle)
         val revivedCollect = launch { revived.uiState.collect {} }
         advanceUntilIdle()
-        assertEquals(id, revived.uiState.value.allSetsId)
+        val allSets = OpenSheet("A", OpenSheet.Kind.ALL_SETS, id, 0)
+        assertEquals(allSets, revived.uiState.value.openSheet)
+        val writes = mutableListOf<OpenSheet?>()
+        val savedCollect = launch(UnconfinedTestDispatcher(testScheduler)) {
+            handle.getStateFlow<OpenSheet?>("day_open_sheet", null).collect { writes += it }
+        }
         revived.openSetEditor(id, 1)
         advanceUntilIdle()
-        assertNull(revived.uiState.value.allSetsId)
-        assertEquals(id, revived.uiState.value.editSetId)
+        val editor = OpenSheet("A", OpenSheet.Kind.EDITOR, id, 1)
+        assertEquals(listOf(allSets, editor), writes)
+        assertEquals(editor, handle.get<OpenSheet>("day_open_sheet"))
+        assertEquals(editor, revived.uiState.value.openSheet)
+        savedCollect.cancel()
         revivedCollect.cancel()
     }
 
     @Test
-    fun removingTheEditedExtraRowClearsExposedAndSavedIdentity() = runVmTest {
+    fun removingTheEditedExtraRowResolvesToNullWithoutClearingSavedIdentity() = runVmTest {
         insertSelectionProgram()
         val id = slotId("ez_curl")
         val rows = List(3) { LoggedSet(50.0, 8, SetKind.WORK, done = false) }
@@ -188,18 +204,17 @@ class DayViewModelWiringTest {
         assertEquals(SetKind.EXTRA, track(id, Slot.MAIN)!![3].kind)
         vm.openSetEditor(id, 3)
         advanceUntilIdle()
-        assertEquals(id, vm.uiState.value.editSetId)
-        assertEquals(3, vm.uiState.value.editSetIndex)
-        assertEquals("A", handle.get<String>("day_sheet_day_id"))
+        val editor = OpenSheet("A", OpenSheet.Kind.EDITOR, id, 3)
+        assertEquals(editor, vm.uiState.value.openSheet)
+        assertEquals(editor, handle.get<OpenSheet>("day_open_sheet"))
 
         // A remote reseed bypasses the sheet's Remove set/dismiss callbacks.
         repo.updateSets("A", id, Slot.MAIN, rows)
         advanceUntilIdle()
 
-        assertNull(vm.uiState.value.editSetId)
-        assertNull(handle.get<Long>("day_edit_set_id"))
-        assertNull(handle.get<Int>("day_edit_set_index"))
-        assertNull(handle.get<String>("day_sheet_day_id"))
+        // The screen's Back gate reads this resolved null, never the saved identity.
+        assertNull(vm.uiState.value.openSheet)
+        assertEquals(editor, handle.get<OpenSheet>("day_open_sheet"))
         collect.cancel()
     }
 
@@ -213,71 +228,212 @@ class DayViewModelWiringTest {
         val id = slotId("ez_curl")
         vm.openAllSets(id)
         advanceUntilIdle()
-        assertEquals(id, vm.uiState.value.allSetsId)
-        assertEquals("A", handle.get<String>("day_sheet_day_id"))
+        val allSets = OpenSheet("A", OpenSheet.Kind.ALL_SETS, id, 0)
+        assertEquals(allSets, vm.uiState.value.openSheet)
+        assertEquals(allSets, handle.get<OpenSheet>("day_open_sheet"))
 
         vm.selectDay("B")
         advanceUntilIdle()
 
         assertEquals("B", vm.uiState.value.viewDayId)
-        assertNull(vm.uiState.value.allSetsId)
-        assertNull(handle.get<Long>("day_all_sets_id"))
-        assertNull(handle.get<String>("day_sheet_day_id"))
+        assertNull(vm.uiState.value.openSheet)
+        assertNull(handle.get<OpenSheet>("day_open_sheet"))
         collect.cancel()
     }
 
     @Test
-    fun restoredSheetFromAnotherDayIsUnresolvedEvenWhenTheExerciseExists() = runVmTest {
-        insertSelectionProgram()
-        val id = slotId("ez_curl")
-        val handle = SavedStateHandle(
-            mapOf(
-                "day_view_override" to "A",
-                "day_all_sets_id" to id,
-                "day_sheet_day_id" to "B",
-            ),
-        )
-        val vm = newViewModel(handle)
-        val collect = launch { vm.uiState.collect {} }
-        advanceUntilIdle()
-
-        assertTrue(vm.uiState.value.exercises.any { it.programExerciseId == id })
-        assertNull(vm.uiState.value.allSetsId)
-        assertNull(handle.get<Long>("day_all_sets_id"))
-        assertNull(handle.get<String>("day_sheet_day_id"))
-        collect.cancel()
-    }
-
-    @Test
-    fun selectPageIgnoresAnUnseededDayThenAcceptsSelectionOnceRowsExist() = runVmTest {
-        // An unknown catalog entry keeps seeding pending without racing the test dispatcher.
-        repo.replaceProgram(
-            Program(
-                listOf(ProgramDay("A", "Day A", "", listOf(ProgramExercise("ghost_unknown")), cardio = null)),
-            ),
-        )
+    fun selectingTheCurrentDayKeepsPageAndSheet() = runVmTest {
+        insertProgram(cardio = cloud.trotter.log.strength.domain.model.CardioSuggestion("Run", "20 minutes", false))
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        val id = slotId("ghost_unknown")
-        assertFalse(vm.uiState.value.loading)
-        assertEquals(1, vm.uiState.value.exercises.size)
-        assertTrue(vm.uiState.value.exercises.all { it.rows.isEmpty() })
-
-        vm.selectPage("exercise:$id")
+        vm.selectPage("cardio")
+        val id = slotId("ez_curl")
+        vm.openAllSets(id)
+        vm.selectDay("A")
         advanceUntilIdle()
-        assertNull(vm.uiState.value.selectedPageKey)
-        assertTrue(handle.get<Map<String, String>>("selectedPageKey").orEmpty().isEmpty())
+        assertEquals("cardio", handle.get<String>("selectedPageKey"))
+        assertEquals(OpenSheet("A", OpenSheet.Kind.ALL_SETS, id, 0), handle.get<OpenSheet>("day_open_sheet"))
+        collect.cancel()
+    }
 
+    @Test
+    fun switchingDayClearsPageBeforeTheNewDayCanPin() = runVmTest {
+        insertSelectionProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("exercise:${slotId("ez_curl")}", handle.get<String>("selectedPageKey"))
+        val gate = CompletableDeferred<Unit>()
+        historyGate = gate
+        vm.selectDay("B")
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.loading)
+        assertNull(handle.get<String>("selectedPageKey"))
+        gate.complete(Unit)
+        advanceUntilIdle()
+        val state = vm.uiState.value
+        assertEquals("B", state.viewDayId)
+        assertEquals(state.pages.first().key, handle.get<String>("selectedPageKey"))
+        collect.cancel()
+    }
+
+    @Test
+    fun completingDayClearsPageAndSheetBeforeTheNextDayArrives() = runVmTest {
+        insertSelectionProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        vm.toggleDone(id, 0, true, isSuperset = false)
+        vm.openSetEditor(id, 0)
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        historyGate = gate
+        vm.completeDay()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.loading)
+        assertNull(handle.get<String>("selectedPageKey"))
+        assertNull(handle.get<OpenSheet>("day_open_sheet"))
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals("B", vm.uiState.value.viewDayId)
+        assertNull(vm.uiState.value.openSheet)
+        collect.cancel()
+    }
+
+    @Test
+    fun restoringFromNavArgumentPreservesSavedPageAndSheet() = runVmTest {
+        insertProgram(cardio = cloud.trotter.log.strength.domain.model.CardioSuggestion("Run", "20 minutes", false))
+        val sheet = OpenSheet("A", OpenSheet.Kind.EDITOR, slotId("ez_curl"), 0)
+        val handle = SavedStateHandle(mapOf(
+            Routes.DAY_ID_ARG to "A", "selectedPageKey" to "cardio", "day_open_sheet" to sheet,
+        ))
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("cardio", vm.uiState.value.selectedPageKey)
+        assertEquals(sheet, vm.uiState.value.openSheet)
+        collect.cancel()
+    }
+
+    @Test
+    fun restoredSheetFromAnotherDayResolvesToNullAndStaysSavedUntilClose() = runVmTest {
+        insertSelectionProgram()
+        val id = slotId("ez_curl")
+        val stale = OpenSheet("B", OpenSheet.Kind.EDITOR, id, 0)
+        val handle = SavedStateHandle(mapOf("day_view_override" to "A", "day_open_sheet" to stale))
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.exercises.any { it.programExerciseId == id && it.rows.isNotEmpty() })
+        assertNull(vm.uiState.value.openSheet)
+        assertEquals(stale, handle.get<OpenSheet>("day_open_sheet"))
+        vm.closeSheet()
+        assertNull(handle.get<OpenSheet>("day_open_sheet"))
+        collect.cancel()
+    }
+
+    @Test
+    fun editorOpenedWhileDayIsLoadingResolvesWhenDayArrivesWithImmediateDispatcher() = runVmTest {
+        insertSelectionProgram()
+        val id = slotId("ez_curl")
+        val gate = CompletableDeferred<Unit>()
+        historyGate = gate
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.loading)
+
+        vm.openSetEditor(id, 1)
+        val editor = OpenSheet("A", OpenSheet.Kind.EDITOR, id, 1)
+        assertEquals(editor, handle.get<OpenSheet>("day_open_sheet"))
+        assertNull(vm.uiState.value.openSheet)
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(editor, handle.get<OpenSheet>("day_open_sheet"))
+        assertEquals(editor, vm.uiState.value.openSheet)
+        collect.cancel()
+    }
+
+    @Test
+    fun cardioSelectionBeforeSeedingIsKeptAndSurvivesRecreation() = runVmTest {
+        // Unknown catalog entries leave real pages available before any rows exist.
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Day A", "", listOf(ProgramExercise("ghost_unknown")),
+            cloud.trotter.log.strength.domain.model.CardioSuggestion("Run", "20 minutes", false),
+        ))))
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.exercises.all { it.rows.isEmpty() })
+        assertEquals(0, vm.uiState.value.currentPage)
+        vm.selectPage("cardio")
+        advanceUntilIdle()
+        assertEquals("cardio", handle.get<String>("selectedPageKey"))
+        assertEquals("cardio", vm.uiState.value.selectedPageKey)
+        collect.cancel()
+        vm.viewModelScope.cancel()
+
+        val revived = newViewModel(handle)
+        val revivedCollect = launch { revived.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("cardio", revived.uiState.value.selectedPageKey)
+        val id = slotId("ghost_unknown")
         repo.updateSets("A", id, Slot.MAIN, listOf(LoggedSet(50.0, 8, SetKind.WORK, done = false)))
         advanceUntilIdle()
-        assertTrue(vm.uiState.value.exercises.single().rows.isNotEmpty())
-        vm.selectPage("exercise:$id")
-        advanceUntilIdle()
+        assertTrue(revived.uiState.value.exercises.single().rows.isNotEmpty())
+        assertEquals("cardio", revived.uiState.value.pages[revived.uiState.value.currentPage].key)
+        assertEquals("cardio", handle.get<String>("selectedPageKey"))
+        revivedCollect.cancel()
+    }
 
-        assertEquals("exercise:$id", vm.uiState.value.selectedPageKey)
-        assertEquals(mapOf("A" to "exercise:$id"), handle.get<Map<String, String>>("selectedPageKey"))
+    @Test
+    fun seededDayPinsFirstUnfinishedPageWithoutScreenAndCompletingItDoesNotMoveSelection() = runVmTest {
+        insertProgram()
+        val squatId = slotId("bb_back_squat")
+        repo.updateSets("A", squatId, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        // Pinning belongs to the ViewModel even when nobody collects uiState.
+        advanceUntilIdle()
+        val curlId = slotId("ez_curl")
+        assertEquals("exercise:$curlId", handle.get<String>("selectedPageKey"))
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(1, vm.uiState.value.currentPage)
+
+        track(curlId, Slot.MAIN)!!.indices.forEach { vm.toggleDone(curlId, it, true, isSuperset = true) }
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.exercises[1].allDone)
+        assertTrue(vm.uiState.value.exercises.last().rows.any { !it.done })
+        assertEquals(1, vm.uiState.value.currentPage)
+        assertEquals("exercise:$curlId", handle.get<String>("selectedPageKey"))
+        collect.cancel()
+    }
+
+    @Test
+    fun unknownPageKeysAreIgnored() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val selected = vm.uiState.value.selectedPageKey
+        vm.selectPage("exercise:-1")
+        vm.selectPage("cardio") // This program has no cardio page.
+        vm.selectPage("unknown")
+        advanceUntilIdle()
+        assertEquals(selected, handle.get<String>("selectedPageKey"))
+        assertEquals(selected, vm.uiState.value.selectedPageKey)
         collect.cancel()
     }
 

@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
+import android.os.Parcelable
 import androidx.compose.runtime.Immutable
+import kotlinx.parcelize.Parcelize
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -31,9 +33,7 @@ data class DayUiState(
     val loading: Boolean = false,
     val isProgramDay: Boolean = true,
     val selectedPageKey: String? = null,
-    val editSetId: Long? = null,
-    val editSetIndex: Int = 0,
-    val allSetsId: Long? = null,
+    val openSheet: OpenSheet? = null,
     val viewDayId: String? = null,
     val dayIndex: Int = 0,
     val dayTitle: String = "",
@@ -61,6 +61,18 @@ data class DayUiState(
         WorkoutPage(null, it.label, if (it.loggedSeconds != null) 1 else 0, 1, it.loggedSeconds != null)
     })
     val currentPage: Int = DayScreenBuilder.currentPage(pages.map { it.key }, selectedPageKey, exercises)
+}
+
+/** Saved as one value; DayUiState exposes only an identity resolved against its day. */
+@Parcelize
+@Immutable
+data class OpenSheet(
+    val dayId: String,
+    val kind: Kind,
+    val programExerciseId: Long,
+    val setIndex: Int,
+) : Parcelable {
+    enum class Kind { EDITOR, ALL_SETS }
 }
 
 @Immutable

@@ -83,6 +83,15 @@ class DayScreenBuilderTest {
     }
 
     @Test
+    fun currentPageFallsBackToPageZeroWhenEveryExerciseIsUnseeded() {
+        val cards = pagerFixture().exercises.map { it.copy(rows = emptyList()) }
+        val keys = listOf("exercise:1", "exercise:2", "exercise:3", "cardio")
+        assertEquals(0, DayScreenBuilder.currentPage(keys, null, cards))
+        assertEquals(0, DayScreenBuilder.currentPage(keys, "exercise:99", cards))
+        assertEquals(3, DayScreenBuilder.currentPage(keys, "cardio", cards))
+    }
+
+    @Test
     fun nextSetDisplayUsesTheFollowingRowAndStopsAtTheEnd() {
         val rows = listOf(SetRowState(0, "R3", false, 95.0, 5, false), SetRowState(1, "R4", false, 110.0, 3, false))
         assertEquals("110 × 3", DayScreenBuilder.nextSetDisplay(rows, 0, TrackingType.WEIGHTED, WeightUnit.LB))

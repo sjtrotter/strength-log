@@ -100,7 +100,6 @@ import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.LocalAppPalette
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 /** Cards scroll internally when needed. TopAppBar has no scrollBehavior or nested-scroll connection. */
@@ -142,12 +141,10 @@ fun DayScreen(
     }
     var menuOpen by remember { mutableStateOf(false) }
     var exercisesOpen by rememberSaveable(state.viewDayId) { mutableStateOf(false) }
-    val allSetsId = state.allSetsId
-    val editSetId = state.editSetId
-    val editSetIndex = state.editSetIndex
+    val openSheet = state.openSheet
     val dayBackProgress = rememberBackGestureProgress(
         enabled = onBack != null &&
-            !showEditSheet && !exercisesOpen && allSetsId == null && editSetId == null &&
+            !showEditSheet && !exercisesOpen && openSheet == null &&
             noteCardId == null && !confirmingPartialFinish &&
             swapCardSlotId == null &&
             !confirmingClearChecks &&
@@ -219,7 +216,7 @@ fun DayScreen(
             val latestPages by rememberUpdatedState(pages)
             val latestSelect by rememberUpdatedState(actions.onSelectPage)
             LaunchedEffect(pagerState) {
-                snapshotFlow { pagerState.settledPage }.drop(1).collect { page ->
+                snapshotFlow { pagerState.settledPage }.collect { page ->
                     latestPages.getOrNull(page)?.key?.let(latestSelect)
                 }
             }
@@ -429,24 +426,26 @@ fun DayScreen(
         }
     }
 
-    state.exercises.firstOrNull { it.programExerciseId == allSetsId }?.let { card ->
-        AllSetsSheet(
-            card = card,
-            actions = actions,
-            onEdit = { index -> actions.onOpenSetEditor(card.programExerciseId, index) },
-            onDismiss = actions.onCloseAllSets,
-        )
-    }
-    state.exercises.firstOrNull { it.programExerciseId == editSetId }?.let { card ->
-        card.rows.getOrNull(editSetIndex)?.let { row ->
-            SetEditSheet(
-                card = card,
-                row = row,
-                unit = state.unit,
-                dayIndex = state.dayIndex,
-                actions = actions,
-                onDismiss = actions.onCloseSetEditor,
-            )
+    openSheet?.let { sheet ->
+        state.exercises.firstOrNull { it.programExerciseId == sheet.programExerciseId }?.let { card ->
+            when (sheet.kind) {
+                OpenSheet.Kind.ALL_SETS -> AllSetsSheet(
+                    card = card,
+                    actions = actions,
+                    onEdit = { index -> actions.onOpenSetEditor(card.programExerciseId, index) },
+                    onDismiss = actions.onCloseAllSets,
+                )
+                OpenSheet.Kind.EDITOR -> card.rows.getOrNull(sheet.setIndex)?.let { row ->
+                    SetEditSheet(
+                        card = card,
+                        row = row,
+                        unit = state.unit,
+                        dayIndex = state.dayIndex,
+                        actions = actions,
+                        onDismiss = actions.onCloseSetEditor,
+                    )
+                }
+            }
         }
     }
 

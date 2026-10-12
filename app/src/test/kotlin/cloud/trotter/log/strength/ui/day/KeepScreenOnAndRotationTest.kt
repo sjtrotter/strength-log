@@ -158,7 +158,7 @@ class KeepScreenOnAndRotationTest {
         val restoration = StateRestorationTester(composeTestRule)
         val state = mutableStateOf(pagerFixture())
         val actions = pagerActions().copy(onOpenSetEditor = { id, index ->
-            state.value = state.value.copy(editSetId = id, editSetIndex = index)
+            state.value = state.value.copy(openSheet = OpenSheet("D", OpenSheet.Kind.EDITOR, id, index))
         })
         restoration.setContent { AppTheme { DayScreen(state.value, actions, DayEditUiState(), pagerEditActions()) } }
         composeTestRule.onNodeWithText("95 × 5").performClick()

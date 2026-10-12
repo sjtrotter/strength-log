@@ -68,9 +68,18 @@ import kotlinx.coroutines.sync.withLock
  * Day screen ViewModel (spec §8.2, MVVM/UDF). Holds no working truth of its own:
  * every render value derives from Room/DataStore flows, and every mutation writes
  * straight back through [TrackerRepository]. Ephemeral UI state — the view-day
- * override and per-day exercise selection — lives in
- * [SavedStateHandle] per PLAN.md A6, so rotation and process death can't lose it;
- * exercise selection is keyed by the viewed day.
+ * override, page selection and sheet identity — lives in [SavedStateHandle].
+ *
+ * The open sheet is one atomic, day-scoped identity; rendering and Back use only
+ * its resolution against the loaded day's exercises and rows. Resolution never
+ * mutates saved state: only opening, closing, switching days or completing a day
+ * replaces or clears it. Page selection is one saved key, accepted only from the
+ * current pages even before rows exist. The ViewModel collects authoritative day
+ * data after seeding and pins a null selection to the derived page once rows
+ * exist; subsequent log changes cannot move that selection. The pager reports
+ * every settle, including its initial page (page zero while unseeded), and follows
+ * the resolved selection only while idle. A day switch or completion clears both
+ * identities.
  *
  * Log mutations are read-modify-write over a whole set track, so they are
  * serialized through [mutationLock] — without it two rapid intents on one slot
@@ -109,12 +118,8 @@ class DayViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
-    private val selectedPages: StateFlow<Map<String, String>> =
-        savedState.getStateFlow(KEY_SELECTED_PAGE, emptyMap())
-    private val editSetId = savedState.getStateFlow<Long?>(KEY_EDIT_SET_ID, null)
-    private val editSetIndex = savedState.getStateFlow<Int?>(KEY_EDIT_SET_INDEX, null)
-    private val allSetsId = savedState.getStateFlow<Long?>(KEY_ALL_SETS_ID, null)
-    private val sheetDayId = savedState.getStateFlow<String?>(KEY_SHEET_DAY_ID, null)
+    private val selectedPage = savedState.getStateFlow<String?>(KEY_SELECTED_PAGE, null)
+    private val openSheet = savedState.getStateFlow<OpenSheet?>(KEY_OPEN_SHEET, null)
     private val cardioPlanIdentity = savedState.getStateFlow<String?>(KEY_CARDIO_PLAN, null)
     private val cardioStartedWall = savedState.getStateFlow<Long?>(KEY_CARDIO_WALL, null)
     private val cardioStartedElapsed = savedState.getStateFlow<Long?>(KEY_CARDIO_ELAPSED, null)
@@ -148,7 +153,9 @@ class DayViewModel @Inject constructor(
             // re-read and now would blank a day the lifter is standing in.
             .distinctUntilChanged()
 
-    private val dayState: Flow<DayUiState> = contextFlow.flatMapLatest { ctx ->
+    // Only repository data drives this flow. Saved-selection writes cannot emit
+    // an old day's rows back into the pinning collector during a day switch.
+    private val dayState: StateFlow<DayUiState> = contextFlow.flatMapLatest { ctx ->
         val dayId = ctx.dayId
         if (dayId == null) {
             flowOf(noDayState(ctx))
@@ -158,11 +165,15 @@ class DayViewModel @Inject constructor(
             // immediately corrects both "last time" and "Best" on an open day.
             val historyKeys = combine(repo.daySlotsFlow(dayId), repo.sessionSummariesFlow) { slots, _ -> slots }
             val slotsWithHistory = historyKeys.flatMapLatest { slots ->
-                flow { emit(slots to fetchDayHistory(slots)) }
+                flow {
+                    ensureSeeded(dayId, slots)
+                    emit(slots to fetchDayHistory(slots))
+                }
             }
-            combine(slotsWithHistory, repo.logFlow(dayId, today), selectedPages) { slotsAndHistory, logs, selections ->
-                val (slots, history) = slotsAndHistory
-                buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, selections[dayId], history)
+            slotsWithHistory.flatMapLatest { (slots, history) ->
+                repo.logFlow(dayId, today).map { logs ->
+                    buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, history)
+                }
             }
                 // flatMapLatest cancels the day the lifter just left, but nothing
                 // *publishes* that — [uiState] keeps handing out the old day's
@@ -174,7 +185,7 @@ class DayViewModel @Inject constructor(
                 // sets into the day they walked away from.
                 .onStart { emit(DayUiState(loading = true)) }
         }
-    }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, DayUiState(loading = true))
 
     /**
      * Keep-screen-on rides on the outside, not through [contextFlow]: it changes
@@ -230,25 +241,16 @@ class DayViewModel @Inject constructor(
             )
         }
 
-    private val sheetUiState = combine(
-        baseUiState, editSetId, editSetIndex, allSetsId, sheetDayId,
-    ) { state, id, index, allId, dayId ->
-        val matchesDay = !state.loading && dayId != null && dayId == state.viewDayId
-        val resolvedEditId = id?.takeIf {
-            matchesDay && index != null &&
-                state.exercises.firstOrNull { card -> card.programExerciseId == it }?.rows?.getOrNull(index) != null
-        }
-        val resolvedAllId = allId?.takeIf {
-            matchesDay && state.exercises.any { card -> card.programExerciseId == it }
-        }
-        // Loading is not evidence that a restored sheet's row has disappeared.
-        if (!state.loading && (id != null && resolvedEditId == null || allId != null && resolvedAllId == null)) {
-            clearSheetIdentity()
-        }
+    private val sheetUiState = combine(baseUiState, selectedPage, openSheet) { state, selection, savedSheet ->
         state.copy(
-            editSetId = resolvedEditId,
-            editSetIndex = if (resolvedEditId != null) index ?: 0 else 0,
-            allSetsId = resolvedAllId,
+            selectedPageKey = selection,
+            openSheet = savedSheet?.takeIf { sheet ->
+                !state.loading && sheet.dayId == state.viewDayId &&
+                    state.exercises.any { card ->
+                        card.programExerciseId == sheet.programExerciseId &&
+                            (sheet.kind == OpenSheet.Kind.ALL_SETS || card.rows.getOrNull(sheet.setIndex) != null)
+                    }
+            },
         )
     }
 
@@ -339,16 +341,29 @@ class DayViewModel @Inject constructor(
 
     init {
         if (savedState.get<String>(KEY_VIEW_DAY) == null) {
-            savedState.get<String>(Routes.DAY_ID_ARG)?.let(::selectDay)
+            savedState.get<String>(Routes.DAY_ID_ARG)?.let { savedState[KEY_VIEW_DAY] = it }
         }
-        seedMissingLogs()
+        viewModelScope.launch {
+            dayState.collect { state ->
+                if (!state.loading && state.viewDayId == currentDay() &&
+                    selectedPage.value == null &&
+                    state.exercises.any { it.rows.isNotEmpty() }
+                ) {
+                    state.pages.getOrNull(state.currentPage)?.key?.let { savedState[KEY_SELECTED_PAGE] = it }
+                }
+            }
+        }
     }
 
     // --- user intents --------------------------------------------------------
 
     fun selectDay(dayId: String) {
-        closeUndoWindow()
+        val previousDay = currentDay()
         savedState[KEY_VIEW_DAY] = dayId
+        if (dayId == previousDay) return
+        closeUndoWindow()
+        savedState[KEY_SELECTED_PAGE] = null
+        closeSheet()
     }
 
     fun startCardio() {
@@ -609,40 +624,23 @@ class DayViewModel @Inject constructor(
     }
 
     fun selectPage(key: String) {
-        val day = currentDay() ?: return
-        val state = uiState.value
-        if (state.viewDayId != day || state.exercises.all { it.rows.isEmpty() }) return
-        savedState[KEY_SELECTED_PAGE] = selectedPages.value + (day to key)
+        val state = dayState.value
+        if (state.viewDayId != currentDay() || state.pages.none { it.key == key }) return
+        savedState[KEY_SELECTED_PAGE] = key
     }
 
     fun openSetEditor(id: Long, index: Int) {
         val day = currentDay() ?: return
-        clearSheetIdentity()
-        savedState[KEY_SHEET_DAY_ID] = day
-        savedState[KEY_EDIT_SET_INDEX] = index
-        savedState[KEY_EDIT_SET_ID] = id
-    }
-
-    fun closeSetEditor() {
-        if (editSetId.value != null) clearSheetIdentity()
+        savedState[KEY_OPEN_SHEET] = OpenSheet(day, OpenSheet.Kind.EDITOR, id, index)
     }
 
     fun openAllSets(id: Long) {
         val day = currentDay() ?: return
-        clearSheetIdentity()
-        savedState[KEY_SHEET_DAY_ID] = day
-        savedState[KEY_ALL_SETS_ID] = id
+        savedState[KEY_OPEN_SHEET] = OpenSheet(day, OpenSheet.Kind.ALL_SETS, id, 0)
     }
 
-    fun closeAllSets() {
-        if (allSetsId.value != null) clearSheetIdentity()
-    }
-
-    private fun clearSheetIdentity() {
-        savedState[KEY_EDIT_SET_ID] = null
-        savedState[KEY_EDIT_SET_INDEX] = null
-        savedState[KEY_ALL_SETS_ID] = null
-        savedState[KEY_SHEET_DAY_ID] = null
+    fun closeSheet() {
+        savedState[KEY_OPEN_SHEET] = null
     }
 
     /** Writes the keep-screen-on preference (#125). It lives in DataStore, not
@@ -712,6 +710,8 @@ class DayViewModel @Inject constructor(
             val nextDayId = if (dayIndex >= 0) Rotation.next(program, day) else null
             val sessionId = repo.advanceDay(day, today.first())
             savedState[KEY_VIEW_DAY] = null
+            savedState[KEY_SELECTED_PAGE] = null
+            closeSheet()
             val unit = repo.unitFlow.first()
             val sessionSets = repo.sessionSets(sessionId)
             _cascadeCeremony.value = CascadeCeremonyBuilder.from(
@@ -819,18 +819,7 @@ class DayViewModel @Inject constructor(
 
     // --- seeding & bootstrap -------------------------------------------------
 
-    /** Seeds each day's logs from GOAL exactly once (M2 rule: seeding is the VM's job). */
-    private fun seedMissingLogs() {
-        viewModelScope.launch {
-            effectiveDayId
-                .flatMapLatest { day ->
-                    if (day == null) flowOf(null) else repo.daySlotsFlow(day).map { day to it }
-                }
-                .distinctUntilChanged()
-                .collect { pair -> pair?.let { (day, slots) -> ensureSeeded(day, slots) } }
-        }
-    }
-
+    /** Seeds each day's logs before its authoritative rows are observed. */
     private suspend fun ensureSeeded(dayId: String, slots: List<ProgramSlot>) = mutationLock.withLock {
         val existing = repo.logFlow(dayId, today).first()
             .associate { (it.programExerciseId to it.slot) to it.sets.size }
@@ -888,7 +877,6 @@ class DayViewModel @Inject constructor(
         dayId: String,
         slots: List<ProgramSlot>,
         logsByKey: Map<Pair<Long, String>, cloud.trotter.log.strength.data.LoggedSlot>,
-        selectedPageKey: String?,
         history: DayHistory,
     ): DayUiState {
         val program = ctx.program
@@ -898,7 +886,6 @@ class DayViewModel @Inject constructor(
         return DayUiState(
             hasProgram = true,
             isProgramDay = program.strengthDays.any { it.id == dayId },
-            selectedPageKey = selectedPageKey,
             viewDayId = dayId,
             dayIndex = dayIndex,
             dayTitle = day.title,
@@ -1160,10 +1147,7 @@ class DayViewModel @Inject constructor(
         const val REST_TICK_MS = 250L
         const val REST_OVER_MS = 2_000L
         const val KEY_VIEW_DAY = "day_view_override"
-        const val KEY_EDIT_SET_ID = "day_edit_set_id"
-        const val KEY_EDIT_SET_INDEX = "day_edit_set_index"
-        const val KEY_ALL_SETS_ID = "day_all_sets_id"
-        const val KEY_SHEET_DAY_ID = "day_sheet_day_id"
+        const val KEY_OPEN_SHEET = "day_open_sheet"
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_CARDIO_PLAN = "day_cardio_plan"
         const val KEY_CARDIO_WALL = "day_cardio_started_wall"

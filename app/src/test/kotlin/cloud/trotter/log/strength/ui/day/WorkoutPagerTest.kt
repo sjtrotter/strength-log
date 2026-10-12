@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -143,13 +145,83 @@ class WorkoutPagerTest {
         rule.onNodeWithText("Finish day D").assertDoesNotExist()
     }
 
+    @Test fun resolvedNullSheetReenablesDayBack() {
+        var state by mutableStateOf(pagerFixture().copy(openSheet = OpenSheet("D", OpenSheet.Kind.EDITOR, 2L, 2)))
+        var backDispatcher: OnBackPressedDispatcher? = null
+        var exits = 0
+        rule.setContent {
+            backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+            AppTheme {
+                DayScreen(state, pagerActions(), DayEditUiState(), pagerEditActions(), onBack = { exits++ })
+            }
+        }
+        rule.onNodeWithText("Weight, lb").assertExists()
+        rule.runOnIdle {
+            // The ViewModel resolves a removed edited row to null; the screen receives only that result.
+            state = state.copy(openSheet = null, exercises = state.exercises.map { card ->
+                if (card.programExerciseId == 2L) card.copy(rows = card.rows.dropLast(1)) else card
+            })
+        }
+        rule.waitForIdle()
+        rule.onNodeWithText("Weight, lb").assertDoesNotExist()
+        rule.runOnUiThread { backDispatcher!!.onBackPressed() }
+        rule.waitForIdle()
+        assertEquals(1, exits)
+    }
+
+    @Test fun initialSettleReportsPageZeroKeyWhenUnseeded() {
+        val unseeded = pagerFixture().let { state ->
+            state.copy(exercises = state.exercises.map { it.copy(rows = emptyList(), allDone = false, focusIndex = -1) })
+        }
+        val selected = mutableListOf<String>()
+        show(unseeded, pagerActions().copy(onSelectPage = { selected += it }))
+        rule.waitForIdle()
+        rule.onNodeWithText("Lift 1 of 3").assertIsDisplayed()
+        assertEquals(listOf("exercise:1"), selected)
+    }
+
+    @Test fun completingPinnedFirstLiftLeavesPagerOnIt() {
+        var state by mutableStateOf(pagerFixture().let { base ->
+            base.copy(
+                selectedPageKey = "exercise:1",
+                exercises = base.exercises.map { card ->
+                    if (card.programExerciseId == 1L) card.copy(
+                        rows = listOf(card.rows.first().copy(done = false)), allDone = false, focusIndex = 0,
+                    ) else card
+                },
+            )
+        })
+        val selected = mutableListOf<String>()
+        val actions = pagerActions().copy(
+            onSelectPage = { key ->
+                selected += key
+                state = state.copy(selectedPageKey = key)
+            },
+            onToggleDone = { id, index, checked, _ ->
+                state = state.copy(exercises = state.exercises.map { card ->
+                    if (card.programExerciseId == id) card.copy(
+                        rows = card.rows.map { if (it.index == index) it.copy(done = checked) else it },
+                        allDone = true, focusIndex = -1,
+                    ) else card
+                })
+            },
+        )
+        rule.setContent { AppTheme { DayScreen(state, actions, DayEditUiState(), pagerEditActions()) } }
+        // The peeking neighbour page is composed too and may carry the same label.
+        rule.onNode(hasText("Log 85 × 5") and hasAnyAncestor(hasTestTag("exercise-page:1"))).performClick()
+        rule.waitForIdle()
+        rule.onNodeWithText("Lift 1 of 3").assertIsDisplayed()
+        assertEquals(0, state.currentPage)
+        assertEquals(listOf("exercise:1"), selected)
+    }
+
     private fun show(state: DayUiState = pagerFixture(), actions: DayActions = pagerActions()) {
         var current by mutableStateOf(state)
         val wiredActions = actions.copy(
-            onOpenSetEditor = { id, index -> current = current.copy(editSetId = id, editSetIndex = index, allSetsId = null) },
-            onCloseSetEditor = { current = current.copy(editSetId = null) },
-            onOpenAllSets = { id -> current = current.copy(allSetsId = id, editSetId = null) },
-            onCloseAllSets = { current = current.copy(allSetsId = null) },
+            onOpenSetEditor = { id, index -> current = current.copy(openSheet = OpenSheet("D", OpenSheet.Kind.EDITOR, id, index)) },
+            onCloseSetEditor = { current = current.copy(openSheet = null) },
+            onOpenAllSets = { id -> current = current.copy(openSheet = OpenSheet("D", OpenSheet.Kind.ALL_SETS, id, 0)) },
+            onCloseAllSets = { current = current.copy(openSheet = null) },
         )
         rule.setContent { AppTheme { DayScreen(current, wiredActions, DayEditUiState(), pagerEditActions()) } }
     }

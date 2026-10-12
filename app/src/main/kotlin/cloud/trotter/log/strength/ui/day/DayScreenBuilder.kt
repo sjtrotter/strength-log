@@ -78,6 +78,7 @@ object DayScreenBuilder {
     fun currentPage(pageKeys: List<String>, selectedKey: String?, exercises: List<ExerciseCardState>): Int {
         if (selectedKey != null) pageKeys.indexOf(selectedKey).takeIf { it >= 0 }?.let { return it }
         val firstUndone = exercises.firstOrNull { it.rows.any { row -> !row.done } }
+        if (firstUndone == null && exercises.all { it.rows.isEmpty() }) return 0
         val fallback = firstUndone ?: exercises.lastOrNull()
         return fallback?.let { pageKeys.indexOf("exercise:${it.programExerciseId}").coerceAtLeast(0) } ?: 0
     }

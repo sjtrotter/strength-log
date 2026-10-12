@@ -112,8 +112,9 @@ class DayViewModel @Inject constructor(
     private val selectedPages: StateFlow<Map<String, String>> =
         savedState.getStateFlow(KEY_SELECTED_PAGE, emptyMap())
     private val editSetId = savedState.getStateFlow<Long?>(KEY_EDIT_SET_ID, null)
-    private val editSetIndex = savedState.getStateFlow(KEY_EDIT_SET_INDEX, 0)
+    private val editSetIndex = savedState.getStateFlow<Int?>(KEY_EDIT_SET_INDEX, null)
     private val allSetsId = savedState.getStateFlow<Long?>(KEY_ALL_SETS_ID, null)
+    private val sheetDayId = savedState.getStateFlow<String?>(KEY_SHEET_DAY_ID, null)
     private val cardioPlanIdentity = savedState.getStateFlow<String?>(KEY_CARDIO_PLAN, null)
     private val cardioStartedWall = savedState.getStateFlow<Long?>(KEY_CARDIO_WALL, null)
     private val cardioStartedElapsed = savedState.getStateFlow<Long?>(KEY_CARDIO_ELAPSED, null)
@@ -229,8 +230,26 @@ class DayViewModel @Inject constructor(
             )
         }
 
-    private val sheetUiState = combine(baseUiState, editSetId, editSetIndex, allSetsId) { state, id, index, allId ->
-        state.copy(editSetId = id, editSetIndex = index, allSetsId = allId)
+    private val sheetUiState = combine(
+        baseUiState, editSetId, editSetIndex, allSetsId, sheetDayId,
+    ) { state, id, index, allId, dayId ->
+        val matchesDay = !state.loading && dayId != null && dayId == state.viewDayId
+        val resolvedEditId = id?.takeIf {
+            matchesDay && index != null &&
+                state.exercises.firstOrNull { card -> card.programExerciseId == it }?.rows?.getOrNull(index) != null
+        }
+        val resolvedAllId = allId?.takeIf {
+            matchesDay && state.exercises.any { card -> card.programExerciseId == it }
+        }
+        // Loading is not evidence that a restored sheet's row has disappeared.
+        if (!state.loading && (id != null && resolvedEditId == null || allId != null && resolvedAllId == null)) {
+            clearSheetIdentity()
+        }
+        state.copy(
+            editSetId = resolvedEditId,
+            editSetIndex = if (resolvedEditId != null) index ?: 0 else 0,
+            allSetsId = resolvedAllId,
+        )
     }
 
     val uiState: StateFlow<DayUiState> = combine(
@@ -329,10 +348,6 @@ class DayViewModel @Inject constructor(
 
     fun selectDay(dayId: String) {
         closeUndoWindow()
-        if (effectiveDayId.value != null && dayId != effectiveDayId.value) {
-            closeSetEditor()
-            closeAllSets()
-        }
         savedState[KEY_VIEW_DAY] = dayId
     }
 
@@ -595,26 +610,39 @@ class DayViewModel @Inject constructor(
 
     fun selectPage(key: String) {
         val day = currentDay() ?: return
+        val state = uiState.value
+        if (state.viewDayId != day || state.exercises.all { it.rows.isEmpty() }) return
         savedState[KEY_SELECTED_PAGE] = selectedPages.value + (day to key)
     }
 
     fun openSetEditor(id: Long, index: Int) {
-        closeAllSets()
+        val day = currentDay() ?: return
+        clearSheetIdentity()
+        savedState[KEY_SHEET_DAY_ID] = day
         savedState[KEY_EDIT_SET_INDEX] = index
         savedState[KEY_EDIT_SET_ID] = id
     }
 
     fun closeSetEditor() {
-        savedState[KEY_EDIT_SET_ID] = null
+        if (editSetId.value != null) clearSheetIdentity()
     }
 
     fun openAllSets(id: Long) {
-        closeSetEditor()
+        val day = currentDay() ?: return
+        clearSheetIdentity()
+        savedState[KEY_SHEET_DAY_ID] = day
         savedState[KEY_ALL_SETS_ID] = id
     }
 
     fun closeAllSets() {
+        if (allSetsId.value != null) clearSheetIdentity()
+    }
+
+    private fun clearSheetIdentity() {
+        savedState[KEY_EDIT_SET_ID] = null
+        savedState[KEY_EDIT_SET_INDEX] = null
         savedState[KEY_ALL_SETS_ID] = null
+        savedState[KEY_SHEET_DAY_ID] = null
     }
 
     /** Writes the keep-screen-on preference (#125). It lives in DataStore, not
@@ -1135,6 +1163,7 @@ class DayViewModel @Inject constructor(
         const val KEY_EDIT_SET_ID = "day_edit_set_id"
         const val KEY_EDIT_SET_INDEX = "day_edit_set_index"
         const val KEY_ALL_SETS_ID = "day_all_sets_id"
+        const val KEY_SHEET_DAY_ID = "day_sheet_day_id"
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_CARDIO_PLAN = "day_cardio_plan"
         const val KEY_CARDIO_WALL = "day_cardio_started_wall"

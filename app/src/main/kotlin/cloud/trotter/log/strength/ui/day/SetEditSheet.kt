@@ -169,7 +169,7 @@ private fun SetFields(
     actions: DayActions,
 ) {
     val partnerName = card.partnerTitle.takeIf { slot == Slot.SS }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (tracking == TrackingType.WEIGHTED || timedWeight) {
             NumericSetField(
                 identity = "${card.programExerciseId}:$slot:${row.index}:weight",
@@ -177,7 +177,7 @@ private fun SetFields(
                 label = stringResource(R.string.set_edit_weight, unit.name.lowercase()),
                 field = stringResource(R.string.set_edit_weight_field),
                 partnerName = partnerName,
-                modifier = Modifier.weight(1.3f),
+                modifier = Modifier.fillMaxWidth(),
                 minimum = 0.0,
                 decimal = true,
                 step = { WeightStepper.increment(it, unit) },
@@ -192,7 +192,7 @@ private fun SetFields(
                 label = stringResource(R.string.set_edit_seconds),
                 field = stringResource(R.string.set_edit_seconds),
                 partnerName = partnerName,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 minimum = 0.0,
                 step = { SecondsStepper.increment(it.toInt()).toDouble() },
                 round = {
@@ -208,7 +208,7 @@ private fun SetFields(
                 label = stringResource(R.string.set_edit_reps),
                 field = stringResource(R.string.set_edit_reps),
                 partnerName = partnerName,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 minimum = 1.0,
                 step = { 1.0 },
                 onChange = { actions.onRepsChange(card.programExerciseId, slot, row.index, it.toInt()) },

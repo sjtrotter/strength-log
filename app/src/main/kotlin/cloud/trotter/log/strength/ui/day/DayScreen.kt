@@ -25,8 +25,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
@@ -98,6 +100,7 @@ import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.LocalAppPalette
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 /** Cards scroll internally when needed. TopAppBar has no scrollBehavior or nested-scroll connection. */
@@ -216,7 +219,7 @@ fun DayScreen(
             val latestPages by rememberUpdatedState(pages)
             val latestSelect by rememberUpdatedState(actions.onSelectPage)
             LaunchedEffect(pagerState) {
-                snapshotFlow { pagerState.settledPage }.collect { page ->
+                snapshotFlow { pagerState.settledPage }.drop(1).collect { page ->
                     latestPages.getOrNull(page)?.key?.let(latestSelect)
                 }
             }
@@ -639,7 +642,7 @@ private fun CardioPage(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp)
                 .then(if (!executing) Modifier.clickable { open = !open } else Modifier)
                 .semantics { if (!executing) stateDescription = if (open) expandedState else collapsedState },
         ) {

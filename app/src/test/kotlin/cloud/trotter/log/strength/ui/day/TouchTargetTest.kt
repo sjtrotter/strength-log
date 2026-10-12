@@ -24,6 +24,16 @@ class TouchTargetTest {
     @get:Rule val rule = createComposeRule()
 
     @Test fun pagerNavigationAndLoggingHaveMaterialTargets() {
+        auditPagerAndOpenEditor()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h891dp")
+    fun pagerAndOpenEditorHaveMaterialTargetsAt360dp() {
+        auditPagerAndOpenEditor()
+    }
+
+    private fun auditPagerAndOpenEditor() {
         val state = mutableStateOf(pagerFixture())
         val actions = pagerActions().copy(onOpenSetEditor = { id, index ->
             state.value = state.value.copy(editSetId = id, editSetIndex = index)

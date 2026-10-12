@@ -174,6 +174,114 @@ class DayViewModelWiringTest {
     }
 
     @Test
+    fun removingTheEditedExtraRowClearsExposedAndSavedIdentity() = runVmTest {
+        insertSelectionProgram()
+        val id = slotId("ez_curl")
+        val rows = List(3) { LoggedSet(50.0, 8, SetKind.WORK, done = false) }
+        repo.updateSets("A", id, Slot.MAIN, rows)
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.addSet(id, isSuperset = false)
+        advanceUntilIdle()
+        assertEquals(SetKind.EXTRA, track(id, Slot.MAIN)!![3].kind)
+        vm.openSetEditor(id, 3)
+        advanceUntilIdle()
+        assertEquals(id, vm.uiState.value.editSetId)
+        assertEquals(3, vm.uiState.value.editSetIndex)
+        assertEquals("A", handle.get<String>("day_sheet_day_id"))
+
+        // A remote reseed bypasses the sheet's Remove set/dismiss callbacks.
+        repo.updateSets("A", id, Slot.MAIN, rows)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.editSetId)
+        assertNull(handle.get<Long>("day_edit_set_id"))
+        assertNull(handle.get<Int>("day_edit_set_index"))
+        assertNull(handle.get<String>("day_sheet_day_id"))
+        collect.cancel()
+    }
+
+    @Test
+    fun switchingDayClearsAllSetsAndItsSavedIdentity() = runVmTest {
+        insertSelectionProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        vm.openAllSets(id)
+        advanceUntilIdle()
+        assertEquals(id, vm.uiState.value.allSetsId)
+        assertEquals("A", handle.get<String>("day_sheet_day_id"))
+
+        vm.selectDay("B")
+        advanceUntilIdle()
+
+        assertEquals("B", vm.uiState.value.viewDayId)
+        assertNull(vm.uiState.value.allSetsId)
+        assertNull(handle.get<Long>("day_all_sets_id"))
+        assertNull(handle.get<String>("day_sheet_day_id"))
+        collect.cancel()
+    }
+
+    @Test
+    fun restoredSheetFromAnotherDayIsUnresolvedEvenWhenTheExerciseExists() = runVmTest {
+        insertSelectionProgram()
+        val id = slotId("ez_curl")
+        val handle = SavedStateHandle(
+            mapOf(
+                "day_view_override" to "A",
+                "day_all_sets_id" to id,
+                "day_sheet_day_id" to "B",
+            ),
+        )
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.exercises.any { it.programExerciseId == id })
+        assertNull(vm.uiState.value.allSetsId)
+        assertNull(handle.get<Long>("day_all_sets_id"))
+        assertNull(handle.get<String>("day_sheet_day_id"))
+        collect.cancel()
+    }
+
+    @Test
+    fun selectPageIgnoresAnUnseededDayThenAcceptsSelectionOnceRowsExist() = runVmTest {
+        // An unknown catalog entry keeps seeding pending without racing the test dispatcher.
+        repo.replaceProgram(
+            Program(
+                listOf(ProgramDay("A", "Day A", "", listOf(ProgramExercise("ghost_unknown")), cardio = null)),
+            ),
+        )
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ghost_unknown")
+        assertFalse(vm.uiState.value.loading)
+        assertEquals(1, vm.uiState.value.exercises.size)
+        assertTrue(vm.uiState.value.exercises.all { it.rows.isEmpty() })
+
+        vm.selectPage("exercise:$id")
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.selectedPageKey)
+        assertTrue(handle.get<Map<String, String>>("selectedPageKey").orEmpty().isEmpty())
+
+        repo.updateSets("A", id, Slot.MAIN, listOf(LoggedSet(50.0, 8, SetKind.WORK, done = false)))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.exercises.single().rows.isNotEmpty())
+        vm.selectPage("exercise:$id")
+        advanceUntilIdle()
+
+        assertEquals("exercise:$id", vm.uiState.value.selectedPageKey)
+        assertEquals(mapOf("A" to "exercise:$id"), handle.get<Map<String, String>>("selectedPageKey"))
+        collect.cancel()
+    }
+
+    @Test
     fun cardioSelectionSurvivesViewModelRecreation() = runVmTest {
         insertProgram(cardio = cloud.trotter.log.strength.domain.model.CardioSuggestion("Run", "20 minutes", false))
         val handle = SavedStateHandle()

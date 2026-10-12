@@ -19,7 +19,7 @@ from the manifest and `docs/play-data-safety.md`; if either changes, change this
 | Data safety | Collects: No. Shares: No. Encryption in transit: N/A (no network). Deletion: uninstall removes everything; see `docs/play-data-safety.md` for the per-category table. Security practices: data is not encrypted at rest beyond the device's own; no account to delete. |
 | Government apps | No. |
 | Financial features | None. |
-| Health apps | Yes, the app uses Health Connect. Declare: writes exercise sessions, reads exercise sessions, reads weight; purpose "fitness and wellness"; on-device only; link the same privacy policy. The declared use must match the three Health Connect permissions in `app/src/main/AndroidManifest.xml`. |
+| Health apps | Yes, the app uses Health Connect. Declare: writes exercise sessions and active calories burned, reads exercise sessions, reads weight; purpose "fitness and wellness"; on-device only; link the same privacy policy. The declared use must match the four Health Connect permissions in `app/src/main/AndroidManifest.xml`. |
 
 ## Store presence
 

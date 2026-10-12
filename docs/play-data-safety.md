@@ -45,11 +45,13 @@ what actually happens with health data.
 ## Health Connect (declared separately, per Play's Health Connect policy)
 
 strength-log integrates with Health Connect, Android's on-device health data
-broker, for three permissions — requested individually, lazily, only when
+broker, for four permissions — requested individually, lazily, only when
 the user takes the corresponding action:
 
 - `WRITE_EXERCISE` (write `ExerciseSessionRecord`) — publishes completed
   workouts the user logged in strength-log into Health Connect.
+- `WRITE_ACTIVE_CALORIES_BURNED` (write `ActiveCaloriesBurnedRecord`) — the
+  estimate that accompanies a published session.
 - `READ_EXERCISE` (read `ExerciseSessionRecord`) — reads workout sessions
   other apps have written, to show a combined history.
 - `READ_WEIGHT` (read `WeightRecord`) — reads the latest bodyweight to offer

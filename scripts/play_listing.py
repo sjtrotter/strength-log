@@ -25,6 +25,7 @@ from googleapiclient.http import MediaFileUpload
 
 PACKAGE = "cloud.trotter.log.strength"
 LISTING_DIR = Path("play/listing")
+LOCALES = ("en-US",)  # only what the listing actually maintains; a stray folder must not publish
 IMAGE_TYPES = {
     "icon.png": "icon",
     "featureGraphic.png": "featureGraphic",
@@ -55,8 +56,8 @@ def inspect(api, edit_id):
 
 def upload(api, edit_id):
     edits = api.edits()
-    for locale_dir in sorted(LISTING_DIR.iterdir()):
-        locale = locale_dir.name
+    for locale in LOCALES:
+        locale_dir = LISTING_DIR / locale
         body = {
             "language": locale,
             "title": (locale_dir / "title.txt").read_text().strip(),
@@ -80,7 +81,8 @@ def upload(api, edit_id):
                     media_body=MediaFileUpload(str(file), mimetype="image/png"),
                 ).execute()
                 print(f"{locale}: {image_type} <- {file.name}")
-    edits.commit(packageName=PACKAGE, editId=edit_id).execute()
+    # Never cancel a release that is sitting in review to get a listing out.
+    edits.commit(packageName=PACKAGE, editId=edit_id, changesInReviewBehavior="ERROR_IF_IN_REVIEW").execute()
     print("committed")
 
 
@@ -91,8 +93,10 @@ def main():
     if mode == "upload":
         upload(api, edit_id)
     else:
-        inspect(api, edit_id)
-        api.edits().delete(packageName=PACKAGE, editId=edit_id).execute()
+        try:
+            inspect(api, edit_id)
+        finally:
+            api.edits().delete(packageName=PACKAGE, editId=edit_id).execute()
 
 
 if __name__ == "__main__":

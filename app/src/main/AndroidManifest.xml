@@ -4,16 +4,18 @@
       Health Connect permissions (#17, PLAN.md A3). These are on-device IPC
       permissions granted through the Health Connect provider — NOT INTERNET
       (the app still declares no android.permission.INTERNET, so the local-first
-      promise holds). Requested lazily and individually at runtime from the Log
-      screen; the app is fully functional with any or none of them granted.
+      promise holds). All four are requested together, from the Log screen's
+      Connect card; the user can allow or deny each one, and the app is fully
+      functional with any or none of them granted.
     -->
-    <!-- Cardio step boundaries buzz (#154 C1b); install-time, not runtime. -->
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
     <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
+
+    <!-- Cardio step boundaries buzz (#154 C1b); install-time, not runtime. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!--
       Lets HealthConnectClient.getSdkStatus see the Health Connect provider on

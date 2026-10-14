@@ -16,10 +16,10 @@ from the manifest and `docs/play-data-safety.md`; if either changes, change this
 | Target audience | Age group 18 and over only. Not designed for children. |
 | News app | No. |
 | COVID-19 contact tracing / health status | No. |
-| Data safety | Collects: No. Shares: No. Encryption in transit: N/A (no network). Deletion: uninstall removes everything; see `docs/play-data-safety.md` for the per-category table. Security practices: data is not encrypted at rest beyond the device's own; no account to delete. |
+| Data safety | Collects: No. Shares: No. Encryption in transit: N/A (the app has no internet permission). Deletion: uninstall removes everything, individual sessions can be deleted in the app, and re-running setup keeps history; see `docs/play-data-safety.md` for the per-category table. Security practices: data is not encrypted at rest beyond the device's own; no account to delete. |
 | Government apps | No. |
 | Financial features | None. |
-| Health apps | Yes, the app uses Health Connect. Declare: writes exercise sessions and active calories burned, reads exercise sessions, reads weight; purpose "fitness and wellness"; on-device only; link the same privacy policy. The declared use must match the four Health Connect permissions in `app/src/main/AndroidManifest.xml`. |
+| Health apps | Yes, the app uses Health Connect. Declare: writes exercise sessions and active calories burned, reads exercise sessions, reads weight; purpose "fitness and wellness"; on-device only; link the same privacy policy. The four permissions are requested together from the Log screen and each can be denied individually. The declared use must match the four Health Connect permissions in `app/src/main/AndroidManifest.xml`. |
 
 ## Store presence
 

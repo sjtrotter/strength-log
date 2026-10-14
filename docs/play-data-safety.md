@@ -9,8 +9,12 @@ privacy policy is the one Play links to and users actually read.
 
 **No.**
 
-strength-log has no INTERNET permission, no backend, no analytics SDK, and no
-third-party SDKs that collect data. Nothing the app touches is ever
+strength.log does not request the INTERNET permission, has no backend, no analytics SDK, and no
+third-party SDKs that collect data. (Libraries such as WorkManager add
+ACCESS_NETWORK_STATE, RECEIVE_BOOT_COMPLETED, WAKE_LOCK and FOREGROUND_SERVICE;
+the app never opens a network connection.) Phone-to-watch sync uses Google Play
+services' Wearable Data Layer, which normally runs directly between the paired
+devices; the app sends nothing to the developer or any server. Nothing the app touches is ever
 transmitted off the device by the app itself.
 
 The share card (a workout-summary image handed to the system share sheet)
@@ -39,29 +43,33 @@ Per-category form answers, for reference:
 | Device or other IDs | No | No | — |
 
 \* "Collected" in Play's sense means transmitted off-device to the developer
-or a third party. strength-log never does this. See the next section for
+or a third party. strength.log never does this. See the next section for
 what actually happens with health data.
 
 ## Health Connect (declared separately, per Play's Health Connect policy)
 
-strength-log integrates with Health Connect, Android's on-device health data
-broker, for four permissions — requested individually, lazily, only when
-the user takes the corresponding action:
+strength.log integrates with Health Connect, Android's on-device health data
+broker, for four permissions. They are requested together in one system dialog
+from the "Connect Health Connect" card in the Log screen, and the user can
+allow or deny each one individually:
 
-- `WRITE_EXERCISE` (write `ExerciseSessionRecord`) — publishes completed
-  workouts the user logged in strength-log into Health Connect.
-- `WRITE_ACTIVE_CALORIES_BURNED` (write `ActiveCaloriesBurnedRecord`) — the
-  estimate that accompanies a published session.
-- `READ_EXERCISE` (read `ExerciseSessionRecord`) — reads workout sessions
-  other apps have written, to show a combined history.
-- `READ_WEIGHT` (read `WeightRecord`) — reads the latest bodyweight to offer
-  a training-goal update prompt.
+- `WRITE_EXERCISE` (write `ExerciseSessionRecord`): publishes each finished
+  workout into Health Connect. Deleting a session in the app also removes the
+  records it wrote.
+- `WRITE_ACTIVE_CALORIES_BURNED` (write `ActiveCaloriesBurnedRecord`): an
+  estimate for each finished strength session (5 MET x bodyweight x duration),
+  written only if bodyweight and a start time are recorded.
+- `READ_EXERCISE` (read `ExerciseSessionRecord`): reads strength sessions other
+  apps wrote in the past year, to list them in the Log.
+- `READ_WEIGHT` (read `WeightRecord`): reads the latest bodyweight from the
+  past year; if it differs, the Log offers to update the user's bodyweight and
+  recompute goals, and nothing changes until the user taps.
 
-None of this data leaves the device through strength-log. Health Connect
+None of this data leaves the device through strength.log. Health Connect
 itself is on-device IPC (not a network service), and the user grants or
 revokes each permission independently from Health Connect's own settings at
 any time. The app remains fully functional with none, some, or all of these
-permissions denied.
+permissions denied. The watch app does not use Health Connect.
 
 ## Is all user data encrypted in transit?
 
@@ -70,16 +78,13 @@ N/A — the app has no network transmission to encrypt.
 ## Does your app provide a way for users to request that their data be
 ## deleted?
 
-Yes, trivially: uninstalling the app deletes its local database, since that
-database is the only place the data ever lived. There is also an in-app
-"re-run setup wizard" path that resets the program, and users can delete
-individual custom exercises and history entries from within the app.
+Yes: uninstalling the app deletes its local database, since that database is
+the only place the data ever lived. Within the app, users can delete individual
+history sessions (with undo), and re-running the setup wizard replaces the
+program but keeps history. Custom exercises can be created but not deleted in
+the app.
 
 ## Privacy policy URL
 
-`docs/privacy.md` in this repository, published via GitHub Pages once
-enabled for the `sjtrotter/strength-log` repo (Settings → Pages → source:
-`main` branch, `/docs` folder). Expected URL:
-`https://sjtrotter.github.io/strength-log/privacy` (or `/privacy.html`,
-depending on how Pages renders the Markdown — confirm the exact URL once
-Pages is turned on and paste it into the Play Console listing).
+`https://sjtrotter.github.io/strength-log/privacy`, published from
+`docs/privacy.md` via GitHub Pages (confirmed reachable).

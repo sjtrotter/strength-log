@@ -47,8 +47,12 @@ per-machine secrets like this to live.
 ## 3. Build
 
 ```
-JAVA_HOME=/usr/lib/jvm/java-17-temurin-jdk ./gradlew :app:bundleRelease
+JAVA_HOME=/usr/lib/jvm/java-21-temurin-jdk ./gradlew :app:bundleRelease
 ```
+
+Gradle 9.6.1 and AGP 9.2.1 need the Gradle daemon on JDK 21 (CI uses Temurin
+21); the modules still compile to a JVM 17 target through toolchains.
+`:wear:bundleRelease` builds the watch bundle the same way.
 
 This produces a signed `.aab` at `app/build/outputs/bundle/release/` — the
 format Play wants. `:app:assembleRelease` also works if you need a signed
@@ -114,8 +118,8 @@ reflection-sensitive path once:
   wrong/empty data).
 - **CSV import** — import a Strong-style CSV, confirm an unmatched-exercise
   pattern, commit the import.
-- **Health Connect publish** — connect Health Connect from Setup or Log,
-  grant permissions, complete a day, confirm the session shows up in Health
+- **Health Connect publish** — connect Health Connect from the card in the Log
+  screen, grant permissions, complete a day, confirm the session shows up in Health
   Connect (or another HC-reading app). Exercises the Health Connect client's
   AIDL-backed calls under R8.
 
@@ -129,9 +133,11 @@ around it.
 - (Historical: `:wear` used to be unminified and unsigned. It now shrinks
   with R8 and signs with the same four properties as `:app`, and §6's
   pipeline publishes it to its own Wear form-factor track.)
-- Play listing copy, store screenshots, and the actual Play Console upload
-  flow aren't covered here — this document stops at "you have a signed
-  `.aab` on disk."
+- Listing text and images live in `play/listing/en-US/` and are pushed by the
+  manual "Play store listing" workflow (`.github/workflows/play-listing.yml`,
+  modes `inspect` and `upload`; the service account needs store-presence
+  permission). The answers for the Console forms are in
+  `docs/play-console-checklist.md`.
 
 ## 5. Play Console: one-time setup (owner-only — nothing here is scriptable)
 

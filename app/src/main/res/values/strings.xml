@@ -517,6 +517,7 @@
     <string name="health_rationale_title">Health Connect</string>
     <string name="health_rationale_body">strength.log uses Health Connect only on this device — it needs no internet access. You choose which of these to allow, and the app works fully without any of them:</string>
     <string name="health_rationale_write_workouts_bullet">Write your completed workouts, so other fitness apps can see them.</string>
+    <string name="health_rationale_write_calories_bullet">Write an estimate of the calories burned in each strength workout, when your bodyweight is recorded.</string>
     <string name="health_rationale_read_sessions_bullet">Read strength sessions from other apps, to list them in your Log.</string>
     <string name="health_rationale_read_bodyweight_bullet">Read your latest bodyweight, to offer to update your training GOALs.</string>
     <string name="day_count_of">%1$d of %2$d</string>

@@ -74,6 +74,7 @@ private fun RationaleScreen() {
         )
         Spacer(Modifier.size(16.dp))
         Bullet(stringResource(R.string.health_rationale_write_workouts_bullet))
+        Bullet(stringResource(R.string.health_rationale_write_calories_bullet))
         Bullet(stringResource(R.string.health_rationale_read_sessions_bullet))
         Bullet(stringResource(R.string.health_rationale_read_bodyweight_bullet))
     }

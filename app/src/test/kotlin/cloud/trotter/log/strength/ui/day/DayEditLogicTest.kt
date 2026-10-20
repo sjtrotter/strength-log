@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import kotlin.test.Test
@@ -10,6 +11,16 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DayEditLogicTest {
+
+    @Test
+    fun authored_removal_stops_at_one_and_generated_removal_stops_at_three() {
+        assertFalse(DayEditRules.canRemove(1, PlanOrigin.AUTHORED))
+        assertTrue(DayEditRules.canRemove(2, PlanOrigin.AUTHORED))
+        assertTrue(DayEditRules.canRemove(3, PlanOrigin.AUTHORED))
+        assertFalse(DayEditRules.canRemove(3, PlanOrigin.GENERATED))
+        assertTrue(DayEditRules.canRemove(4, PlanOrigin.GENERATED))
+    }
+
 
     private val catalog = ExerciseCatalog.CODE_ONLY
 

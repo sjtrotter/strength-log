@@ -312,11 +312,15 @@ private fun SlotOptionsScreen(
             enabled = slot.pattern != null,
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.size(8.dp))
-        if (slot.partnerExerciseId == null) {
-            SheetButton(stringResource(R.string.day_edit_add_superset_button), onClick = onSupersetClick, modifier = Modifier.fillMaxWidth())
-        } else {
-            SheetButton(stringResource(R.string.day_edit_swap_superset_button), onClick = onSupersetClick, modifier = Modifier.fillMaxWidth())
+        if (slot.canSetSuperset) {
+            Spacer(Modifier.size(8.dp))
+            SheetButton(
+                stringResource(if (slot.partnerExerciseId == null) R.string.day_edit_add_superset_button else R.string.day_edit_swap_superset_button),
+                onClick = onSupersetClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (slot.partnerExerciseId != null) {
             Spacer(Modifier.size(8.dp))
             SheetButton(
                 stringResource(R.string.day_edit_remove_superset_button),

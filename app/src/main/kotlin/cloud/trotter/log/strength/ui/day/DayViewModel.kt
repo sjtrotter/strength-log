@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.di.CivilDay
@@ -24,6 +25,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
@@ -281,8 +283,9 @@ class DayViewModel @Inject constructor(
         if (dayId == null) {
             flowOf(DayEditUiState())
         } else {
-            combine(repo.daySlotsFlow(dayId), repo.catalogFlow, repo.wizardAnswersFlow) { slots, catalog, answers ->
-                buildEditState(slots, catalog, answers.equipment)
+            combine(repo.daySlotsFlow(dayId), repo.catalogFlow, repo.wizardAnswersFlow, repo.selectedPlanFlow) { slots, catalog, answers, plan ->
+                val origin = PlanOrigin.entries.firstOrNull { it.name == plan?.origin } ?: PlanOrigin.GENERATED
+                buildEditState(slots, catalog, answers.equipment, origin)
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
@@ -797,14 +800,16 @@ class DayViewModel @Inject constructor(
         mutate { repo.addExercise(day, ProgramExercise(exerciseId = exerciseId, repSchemeLabel = "8–12")) }
     }
 
-    /** Removes a slot, enforcing the minimum-3-exercises-per-day floor (spec
-     *  §8.3) against a fresh read so the guard can't race a concurrent add. */
+    /** Removes a slot, checking the selected plan's floor against a fresh read. */
     fun removeDaySlot(position: Int) {
         val day = currentDay() ?: return
         mutate {
             val slots = repo.daySlotsFlow(day).first()
-            if (!DayEditRules.canRemove(slots.size)) return@mutate
-            repo.removeExercise(day, position)
+            val slot = slots.firstOrNull { it.position == position } ?: return@mutate
+            val plan = repo.selectedPlanFlow.first()
+            val origin = PlanOrigin.entries.firstOrNull { it.name == plan?.origin } ?: PlanOrigin.GENERATED
+            if (!DayEditRules.canRemove(slots.size, origin)) return@mutate
+            repo.removeExercise(slot.programExerciseId)
         }
     }
 
@@ -1013,8 +1018,13 @@ class DayViewModel @Inject constructor(
         val name = entry?.name ?: pe.exerciseId
         val goalTarget = entry?.let { GoalCalculator.targetFor(it, cfg) }
             ?: GoalTarget.Weight(0.0, perHand = false)
-        val tracking = entry?.tracking ?: TrackingType.WEIGHTED
-        val timedShowsWeight = (goalTarget as? GoalTarget.Time)?.let { it.addedLb > 0.0 } ?: false
+        val tracking = pe.prescription?.tracking ?: entry?.tracking ?: TrackingType.WEIGHTED
+        val timedShowsWeight = when (val target = pe.prescription?.target) {
+            null -> (goalTarget as? GoalTarget.Time)?.let { it.addedLb > 0.0 } ?: false
+            is PrescribedTarget.LoadReps -> true
+            is PrescribedTarget.Hold -> target.addedLb > 0.0
+            is PrescribedTarget.Reps, is PrescribedTarget.RepsInTime -> false
+        }
         val main = logsByKey[id to Slot.MAIN]?.sets ?: emptyList()
         val partnerEntry = pe.superset?.let { catalog.find(it.exerciseId) }
         val partnerGoalTarget = partnerEntry?.let { GoalCalculator.targetFor(it, cfg) }
@@ -1076,6 +1086,7 @@ class DayViewModel @Inject constructor(
         slots: List<ProgramSlot>,
         catalog: ExerciseCatalog,
         equipment: Set<Equipment>,
+        origin: PlanOrigin,
     ): DayEditUiState {
         val rows = slots.map { slot ->
             val pe = slot.exercise
@@ -1090,11 +1101,12 @@ class DayViewModel @Inject constructor(
                 isSuperset = pe.superset != null,
                 partnerExerciseId = partnerId,
                 partnerTitle = partnerId?.let { catalog.find(it)?.name ?: it },
+                canSetSuperset = pe.prescription == null,
             )
         }
         return DayEditUiState(
             slots = rows,
-            canRemove = DayEditRules.canRemove(rows.size),
+            canRemove = DayEditRules.canRemove(rows.size, origin),
             defaultEquipmentFilter = equipment,
             catalog = catalog,
         )

@@ -15,6 +15,9 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
@@ -91,6 +94,42 @@ class SetEditApplierTest {
         // completion handler, which a bare cancel() does not wait for.
         runBlocking { storeScope.coroutineContext.job.cancelAndJoin() }
         db.close()
+    }
+
+    @Test
+    fun `an authored rep window overrides weighted catalog tracking and logs only the count`() = runTest {
+        val prescription = Prescription(PrescribedTarget.RepsInTime(120, 50))
+        val exercise = ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription)
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise), null))))
+        val id = squatId()
+        repo.seedIfEmpty("A", id, Slot.MAIN, SetSeeder.seedPrescribed(2, prescription))
+
+        val outcome = applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            weightLb = 99.0, reps = 42, seconds = 10, editedAtMillis = 1L,
+        ))
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(listOf(
+            LoggedSet(0.0, 42, SetKind.WORK),
+            LoggedSet(0.0, 0, SetKind.WORK),
+        ), track(id, Slot.MAIN))
+    }
+
+    @Test
+    fun `eager watch swap reseeds from the slot prescription`() = runTest {
+        val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8))
+        val exercise = ProgramExercise("bb_back_squat", isMain = true, targetSets = 2, prescription = prescription)
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise), null))))
+        val id = squatId()
+        repo.updateSets("A", id, Slot.MAIN, listOf(LoggedSet(50.0, 10, SetKind.WORK, done = true)))
+        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+
+        val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 1L))
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(List(2) { LoggedSet(37.5, 8, SetKind.WORK) }, track(id, Slot.MAIN))
+        assertEquals(prescription, repo.daySlotsFlow("A").first().single().exercise.prescription)
     }
 
     /** Day A: a ramped squat (with a TOP row) and an arms superset. */

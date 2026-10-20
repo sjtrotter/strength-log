@@ -568,16 +568,19 @@ open class TrackerRepository(
         }
     }
 
-    /** Removes the exercise at [position] and its live log (spec §8.3). The
-     *  min-exercises-per-day rule is a UI concern and is not enforced here. */
-    suspend fun removeExercise(dayId: String, position: Int) {
-        val planId = selectedPlanId() ?: return
+    /** Removes a slot and its live log (spec §8.3), enforcing its own plan's
+     *  day floor in the same transaction. Selection changes cannot retarget it. */
+    suspend fun removeExercise(programExerciseId: Long): Boolean =
         db.withTransaction {
-            val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
-            programDao.deleteLogsForExercise(planId, dayId, row.id)
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
+            val plan = planDao.plan(row.planId) ?: return@withTransaction false
+            val origin = PlanOrigin.entries.firstOrNull { it.name == plan.origin } ?: PlanOrigin.GENERATED
+            val count = programDao.exercisesForDay(row.planId, row.dayId).size
+            if (count <= minExercisesPerDay(origin)) return@withTransaction false
+            programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
             programDao.deleteExercise(row.id)
+            true
         }
-    }
 
     suspend fun setExerciseNote(programExerciseId: Long, text: String) {
         programDao.setExerciseNote(programExerciseId, text.trim().take(120))
@@ -596,7 +599,7 @@ open class TrackerRepository(
     /**
      * Attaches [partnerExerciseId] to the slot at [position] as its superset
      * partner (#93) — the same call covers adding a partner to a plain slot and
-     * swapping an existing one.
+     * swapping an existing one. Prescribed slots refuse either change.
      *
      * Only the SS track is cleared, so the new partner reseeds from its own GOAL
      * on the next observation while the slot's MAIN track — the lifter's living
@@ -608,6 +611,7 @@ open class TrackerRepository(
         val planId = selectedPlanId() ?: return
         db.withTransaction {
             val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
+            if (row.toDomain().prescription != null) return@withTransaction
             programDao.setSupersetExerciseId(row.id, partnerExerciseId)
             programDao.deleteLogForSlot(planId, dayId, row.id, Slot.SS)
         }
@@ -652,7 +656,8 @@ open class TrackerRepository(
      * hollow hold, weighted plank, suitcase carry) were tracked with the only
      * field the UI offered — reps — so a timed hold was recorded there; this moves
      * it into `seconds` and zeroes reps for exactly those slots. It never touches
-     * any other exercise and never deletes a row.
+     * any other exercise and never deletes a row. Prescribed main tracks keep
+     * their authored meaning even when the catalog classifies them as TIMED.
      *
      * One-shot on two fronts: a DataStore flag short-circuits it after the first
      * run, and the underlying [reinterpretRepsAsSeconds] only moves an *unfixed*
@@ -667,6 +672,7 @@ open class TrackerRepository(
             val slotsById = programDao.allExercises().associateBy { it.id }
             for (log in programDao.allLogs()) {
                 val pe = slotsById[log.programExerciseId] ?: continue
+                if (log.slot == Slot.MAIN && pe.toDomain().prescription != null) continue
                 val exerciseId = if (log.slot == Slot.SS) pe.supersetExerciseId else pe.exerciseId
                 if (exerciseId == null || exerciseId !in ExerciseLibrary.RECLASSIFIED_TO_TIMED_IDS) continue
                 val original = SetJson.decodeSets(log.setsJson)
@@ -1015,6 +1021,8 @@ open class TrackerRepository(
      * later edits/deletions), clears that day's checkmarks, and advances the
      * rotation pointer to the following day only for strength days (§6.4).
      *
+     * Authored live logs are deleted after archiving so the next run reseeds from its prescription.
+     *
      * Takes the completed day id because the user may have completed a manually
      * overridden day, not the suggested one; the spec's bare `advanceDay()` can't
      * express that.
@@ -1099,6 +1107,9 @@ open class TrackerRepository(
             if (sessionSets.isNotEmpty()) sessionDao.insertSets(sessionSets)
 
             programDao.clearChecksForDay(plan.id, completedDayId)
+            slotsById.values.filter { it.toDomain().prescription != null }.forEach {
+                programDao.deleteLogsForExercise(plan.id, completedDayId, it.id)
+            }
 
             val program = assemble(days, exercises)
             if (program.strengthDays.any { it.id == completedDayId }) {

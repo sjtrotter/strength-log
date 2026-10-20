@@ -12,6 +12,8 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
@@ -26,6 +28,22 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DayScreenBuilderTest {
+
+    @Test
+    fun `authored seeds and previews use the prescription even for main or unknown catalog entries`() {
+        val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8), eachSide = true)
+        val slots = listOf("bb_back_squat", "unknown").mapIndexed { index, exerciseId ->
+            ProgramSlot(index + 1L, index, ProgramExercise(exerciseId, isMain = true, targetSets = 2, prescription = prescription))
+        }
+        val expected = List(2) { LoggedSet(37.5, 8, SetKind.WORK) }
+        val writes = DayScreenBuilder.seedPlan(slots, emptyMap(), LifterConfig(), ExerciseCatalog.CODE_ONLY)
+        assertEquals(slots.map { it.programExerciseId }, writes.map { it.programExerciseId })
+        assertTrue(writes.all { it.sets == expected && it.slot == Slot.MAIN })
+        slots.forEach { assertEquals(expected, DayScreenBuilder.previewMainSets(it, LifterConfig(), ExerciseCatalog.CODE_ONLY)) }
+        val existing = slots.associate { (it.programExerciseId to Slot.MAIN) to 1 }
+        assertTrue(DayScreenBuilder.seedPlan(slots, existing, LifterConfig(), ExerciseCatalog.CODE_ONLY).isEmpty())
+    }
+
 
     @Test
     fun focusIndexFindsFirstUndoneOrMinusOne() {

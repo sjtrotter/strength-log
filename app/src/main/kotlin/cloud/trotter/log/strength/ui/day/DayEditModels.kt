@@ -34,6 +34,8 @@ data class DayEditSlotState(
     /** The partner's catalog name, falling back to its raw id when the id
      *  doesn't resolve — same rule as [title]. */
     val partnerTitle: String? = null,
+    /** Authored slots cannot attach or swap a superset partner. */
+    val canSetSuperset: Boolean = true,
 )
 
 /** Callbacks the day-edit sheet forwards to [DayViewModel]. */

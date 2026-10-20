@@ -366,11 +366,11 @@ class BackupV8Test {
     }
 
     @Test
-    fun `schema 10 is rejected as unsupported`() {
-        val error = assertFailsWith<BackupError.UnsupportedSchemaVersion> { decode(document().copy(schemaVersion = 10)) }
-        assertEquals(10, error.found)
-        assertEquals(9, error.supported)
-        assertTrue("Unsupported backup schema version 10" in error.message.orEmpty())
+    fun `a future schema is rejected as unsupported`() {
+        val error = assertFailsWith<BackupError.UnsupportedSchemaVersion> { decode(document().copy(schemaVersion = CURRENT_SCHEMA_VERSION + 1)) }
+        assertEquals(CURRENT_SCHEMA_VERSION + 1, error.found)
+        assertEquals(CURRENT_SCHEMA_VERSION, error.supported)
+        assertTrue("Unsupported backup schema version ${CURRENT_SCHEMA_VERSION + 1}" in error.message.orEmpty())
     }
 
     @Test

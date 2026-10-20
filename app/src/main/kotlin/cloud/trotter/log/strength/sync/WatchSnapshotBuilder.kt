@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
@@ -143,13 +144,12 @@ object WatchSnapshotBuilder {
         val pe = slot.exercise
         val id = slot.programExerciseId
         val entry = catalog.find(pe.exerciseId)
-        val tracking = entry?.tracking ?: TrackingType.WEIGHTED
+        val tracking = pe.prescription?.tracking ?: entry?.tracking ?: TrackingType.WEIGHTED
         // Routed through targetFor so a reclassified REPS/TIMED slot never hits
-        // goalFor's error() branch. The numeric goal stays canonical lb (0 for
-        // rep/time targets, which carry no weight); the watch still renders from
-        // it for weighted slots. goalLabel is the type-safe display groundwork.
+        // goalFor's error() branch. The numeric goal stays canonical lb, including
+        // a prescribed hold's added load. goalLabel is the type-safe display groundwork.
         val target = entry?.let { GoalCalculator.targetFor(it, cfg) }
-        val goalLb = when (target) {
+        val goalLb = (pe.prescription?.target as? PrescribedTarget.Hold)?.addedLb ?: when (target) {
             is GoalTarget.Weight -> target.lb
             is GoalTarget.Time -> target.addedLb
             is GoalTarget.Reps, null -> 0.0

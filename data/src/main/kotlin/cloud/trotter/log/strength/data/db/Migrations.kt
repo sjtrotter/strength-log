@@ -225,3 +225,10 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
         db.execSQL("ALTER TABLE plan ADD COLUMN suggestedDayId TEXT")
     }
 }
+
+/** Authored targets are absent on all existing, generated slots. */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE program_exercise ADD COLUMN prescriptionJson TEXT")
+    }
+}

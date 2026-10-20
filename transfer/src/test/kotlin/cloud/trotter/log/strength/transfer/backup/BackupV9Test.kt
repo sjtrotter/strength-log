@@ -73,7 +73,7 @@ class BackupV9Test {
         val decoded = codec.decode(encoded)
         val restored = decoded.toSnapshot()
 
-        assertEquals(9, decoded.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, decoded.schemaVersion)
         assertEquals(before.plans, restored.plans)
         assertEquals(before.days, restored.days)
         assertEquals(listOf("B", "C", null), restored.plans.map { it.suggestedDayId })
@@ -162,7 +162,7 @@ class BackupV9Test {
     fun `v9 rejects a non-empty legacy program`() {
         val document = snapshot().toDocument()
         val error = assertFailsWith<BackupError.Malformed> {
-            decode(document.copy(program = document.plans.first().days))
+            decode(document.copy(schemaVersion = 9, program = document.plans.first().days))
         }
         assertTrue("program must be empty in schema v9" in error.message.orEmpty())
     }

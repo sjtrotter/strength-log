@@ -102,6 +102,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                                 hasWarmupHint = ex.hasWarmupHint,
                                 supersetExerciseId = ex.supersetExerciseId,
                                 note = ex.note,
+                                prescriptionJson = ex.prescriptionJson,
                             )
                         },
                     )
@@ -223,6 +224,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                     hasWarmupHint = ex.hasWarmupHint,
                     supersetExerciseId = ex.supersetExerciseId,
                     note = ex.note,
+                    prescriptionJson = if (schemaVersion >= 10) ex.prescriptionJson else null,
                 )
             }
         }

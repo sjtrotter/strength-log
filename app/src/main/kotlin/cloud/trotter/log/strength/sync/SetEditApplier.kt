@@ -108,7 +108,8 @@ class SetEditApplier(
         val catalog = repo.catalogFlow.first()
         val editedExerciseId =
             if (delta.slot == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
-        val tracking = editedExerciseId?.let { catalog.find(it)?.tracking } ?: TrackingType.WEIGHTED
+        val prescription = slot.exercise.prescription.takeIf { delta.slot == Slot.MAIN }
+        val tracking = prescription?.tracking ?: editedExerciseId?.let { catalog.find(it)?.tracking } ?: TrackingType.WEIGHTED
         val guarded = delta.guardedFor(tracking)
 
         if (guarded.done == true && planId == repo.selectedPlanIdFlow.first()) {

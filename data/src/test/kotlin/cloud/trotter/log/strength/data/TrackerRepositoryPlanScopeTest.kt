@@ -18,14 +18,20 @@ import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.standards.SetFormatter
 import java.io.File
 import java.time.Clock
 import java.time.Instant
@@ -742,6 +748,150 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals("bb_back_squat", db.programDao().exerciseAt(1, "A", 0)!!.exerciseId)
         assertEquals(slotTwo, db.programDao().exerciseAt(2, "A", 0)!!.id)
         assertEquals("db_goblet_squat", db.programDao().exerciseAt(2, "A", 0)!!.exerciseId)
+    }
+
+    @Test
+    fun `a completed rep window archives as a plain reps row`() = runTest {
+        val prescription = Prescription(PrescribedTarget.RepsInTime(120, 50))
+        val day = program("Rep window", "bb_back_squat").days.single().copy(exercises = listOf(
+            ProgramExercise("bb_back_squat", targetSets = 1, prescription = prescription),
+        ))
+        repo.replaceProgram(Program(listOf(day)))
+        val id = repo.daySlotsFlow("A").first().single().programExerciseId
+        val completed = SetSeeder.seedPrescribed(1, prescription).single().copy(reps = 42, done = true)
+        repo.updateSets("A", id, Slot.MAIN, listOf(completed))
+
+        val sessionId = repo.advanceDay("A", repo.currentDate())
+
+        val row = repo.sessionSets(sessionId).single()
+        assertEquals(0.0, row.weightLb, 0.0)
+        assertEquals(42, row.reps)
+        assertEquals(0, row.seconds)
+        assertEquals(SetKind.WORK.name, row.kind)
+        assertTrue(row.done)
+        assertEquals(TrackingType.REPS, SetFormatter.trackingOfValues(row.weightLb, row.reps, row.seconds))
+    }
+
+    @Test
+    fun `removal uses the slot plan floor even when the other origin is selected`() = runTest {
+        db.planDao().insertPlans(listOf(
+            plan(1, "Generated", 0),
+            plan(2, "Authored", 1).copy(origin = PlanOrigin.AUTHORED.name),
+        ))
+        val day = program("Day", "bb_back_squat").days.single().copy(exercises = List(4) { ProgramExercise("bb_back_squat") })
+        listOf(1L, 2L).forEach { planId ->
+            db.programDao().upsertDay(day.toEntity(planId))
+            day.exercises.forEachIndexed { position, exercise ->
+                db.programDao().insertExercise(exercise.toEntity(planId, "A", position))
+            }
+        }
+        val generated = db.programDao().exercisesForDay(1, "A")
+        val authored = db.programDao().exercisesForDay(2, "A")
+        db.programDao().upsertLog(log(1, generated[0].id, sets(235.0)))
+        db.programDao().upsertLog(log(1, generated[1].id, sets(225.0)))
+        db.programDao().upsertLog(log(2, authored.last().id, sets(25.0)))
+
+        settings.setSelectedPlanId(2)
+        assertTrue(repo.removeExercise(generated[0].id))
+        assertFalse(repo.removeExercise(generated[1].id))
+        assertEquals(generated.drop(1), db.programDao().exercisesForDay(1, "A"))
+        assertEquals(1, db.programDao().logsForDay(1, "A").size)
+        assertEquals(2L, settings.selectedPlanIdFlow.first())
+
+        settings.setSelectedPlanId(1)
+        authored.take(3).forEach { assertTrue(repo.removeExercise(it.id)) }
+        assertFalse(repo.removeExercise(authored.last().id))
+        assertEquals(listOf(authored.last()), db.programDao().exercisesForDay(2, "A"))
+        assertEquals(1, db.programDao().logsForDay(2, "A").size)
+        assertEquals(1L, settings.selectedPlanIdFlow.first())
+        assertFalse(repo.removeExercise(-1L))
+    }
+
+    @Test
+    fun `superset assignment refuses a prescribed slot without touching either track`() = runTest {
+        val prescribed = ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Reps(12)))
+        val day = program("Authored", "plank").days.single().copy(exercises = listOf(prescribed))
+        repo.replaceProgram(Program(listOf(day)))
+        val slot = db.programDao().allExercises().single()
+        db.programDao().upsertLog(log(slot.planId, slot.id, listOf(LoggedSet(0.0, 12, SetKind.WORK))))
+        val mainOnly = db.programDao().allLogs()
+
+        repo.setSupersetPartner("A", 0, "rope_pushdown")
+
+        assertEquals(slot, db.programDao().exercise(slot.id))
+        assertEquals(mainOnly, db.programDao().allLogs())
+
+        // Restored slots with an existing partner cannot swap it either.
+        db.programDao().setSupersetExerciseId(slot.id, "plank")
+        db.programDao().upsertLog(log(slot.planId, slot.id, sets(25.0)).copy(slot = Slot.SS))
+        val paired = db.programDao().allLogs()
+        repo.setSupersetPartner("A", 0, "rope_pushdown")
+        assertEquals("plank", db.programDao().exercise(slot.id)!!.supersetExerciseId)
+        assertEquals(paired, db.programDao().allLogs())
+    }
+
+    @Test
+    fun `finishing authored slots archives edits and reseeds targets while generated logs persist`() = runTest {
+        val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8), resistance = "red band")
+        val day = program("Physio", "bb_back_squat").days.single().copy(exercises = listOf(
+            ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription),
+            ProgramExercise("bb_bench"),
+        ))
+        repo.replaceProgram(Program(listOf(day, day.copy(id = "B"))))
+        val plan = repo.plansFlow.first().single()
+        db.planDao().updatePlan(plan.copy(origin = PlanOrigin.AUTHORED.name, recipeJson = null))
+        val slots = repo.daySlotsFlow("A").first()
+        val authoredId = slots[0].programExerciseId
+        val generatedId = slots[1].programExerciseId
+        val otherDayId = repo.daySlotsFlow("B").first().first().programExerciseId
+        repo.updateSets("A", authoredId, Slot.MAIN, sets(50.0))
+        repo.updateSets("A", generatedId, Slot.MAIN, sets(135.0))
+        repo.updateSets("B", otherDayId, Slot.MAIN, sets(60.0))
+        val otherDayLogs = db.programDao().logsForDay(plan.id, "B")
+
+        val sessionId = repo.advanceDay("A", repo.currentDate())
+
+        val archived = repo.sessionSets(sessionId)
+        assertEquals(mapOf("bb_back_squat" to 50.0, "bb_bench" to 135.0), archived.associate { it.exerciseId to it.weightLb })
+        assertTrue(archived.all { it.done })
+        assertEquals(listOf(generatedId), db.programDao().logsForDay(plan.id, "A").map { it.programExerciseId })
+        assertEquals(otherDayLogs, db.programDao().logsForDay(plan.id, "B"))
+        assertEquals("B", repo.suggestedDayFlow.first())
+        val session = db.sessionDao().sessionById(sessionId)!!
+        assertEquals(plan.id, session.planId)
+        assertEquals(plan.name, session.planName)
+
+        // The next observation sees the missing authored track and uses the stored target.
+        val next = repo.daySlotsFlow("A").first().first().exercise
+        val seed = SetSeeder.seedPrescribed(next.targetSets, next.prescription!!)
+        assertTrue(repo.seedIfEmpty("A", authoredId, Slot.MAIN, seed))
+        assertFalse(repo.seedIfEmpty("A", generatedId, Slot.MAIN, seed))
+        val logs = repo.logFlow("A").first().associate { it.programExerciseId to it.sets }
+        assertEquals(List(2) { LoggedSet(37.5, 8, SetKind.WORK) }, logs[authoredId])
+        assertEquals(sets(135.0).map { it.copy(done = false) }, logs[generatedId])
+        assertEquals(archived, repo.sessionSets(sessionId))
+    }
+
+    @Test
+    fun `duplicate preserves every prescription and rekeys its slot`() = runTest {
+        val targets = listOf(
+            PrescribedTarget.LoadReps(37.5, 8), PrescribedTarget.Reps(12),
+            PrescribedTarget.Hold(45, 25.0), PrescribedTarget.RepsInTime(120, 50),
+        )
+        val day = program("Authored", "plank").days.single().copy(exercises = targets.map {
+            ProgramExercise("plank", prescription = Prescription(it, true, "red band"))
+        })
+        repo.replaceProgram(Program(listOf(day)))
+        val source = repo.plansFlow.first().single()
+        val originals = db.programDao().exercisesForPlan(source.id)
+        originals.forEach { PrescriptionJson.validate(it.prescriptionJson!!) }
+
+        val copyId = repo.duplicatePlan(source.id, "Copy")
+
+        val copies = db.programDao().exercisesForPlan(copyId)
+        assertEquals(originals.map { it.prescriptionJson }, copies.map { it.prescriptionJson })
+        assertTrue(copies.map { it.id }.toSet().intersect(originals.map { it.id }.toSet()).isEmpty())
+        assertEquals(day.exercises, repo.slotsFor(copyId, "A").first().map { it.exercise })
     }
 
     private fun program(title: String, exerciseId: String) = Program(

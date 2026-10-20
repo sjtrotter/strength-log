@@ -8,6 +8,11 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
 import java.time.LocalTime
@@ -67,6 +72,28 @@ class JournalBuilderTest {
         assertEquals(235.0, squatLift.goalLb)
         assertEquals(0, squatLift.dayIndex, "day A's index is the accent key")
         assertEquals(mains.map { it.exerciseId }.distinct(), mains.map { it.exerciseId })
+    }
+
+    @Test
+    fun mainLifts_excludes_prescribed_mains_from_trajectories() {
+        val targets = listOf(
+            PrescribedTarget.LoadReps(37.5, 8), PrescribedTarget.Reps(12),
+            PrescribedTarget.Hold(45, 25.0), PrescribedTarget.RepsInTime(120, 50),
+        )
+        targets.forEach { target ->
+            val program = Program(listOf(ProgramDay(
+                "A", "Mixed", "", listOf(
+                    ProgramExercise("bb_back_squat", isMain = true, prescription = Prescription(target)),
+                    ProgramExercise("bb_bench", isMain = true),
+                ), null,
+            )))
+            val history = listOf(top("bb_back_squat", today, 235.0), top("bb_bench", today, 195.0))
+
+            val mains = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, LifterConfig())
+
+            assertEquals(listOf("bb_bench"), mains.map { it.exerciseId })
+            assertEquals(listOf("bb_bench"), JournalBuilder.trajectories(mains, history, WeightUnit.LB, zone).map { it.exerciseId })
+        }
     }
 
     // --- trajectory -----------------------------------------------------------

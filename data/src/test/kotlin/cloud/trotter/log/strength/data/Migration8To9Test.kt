@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_8_9
+import cloud.trotter.log.strength.data.db.MIGRATION_9_10
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import kotlinx.coroutines.test.runTest
@@ -64,7 +65,7 @@ class Migration8To9Test {
             helper.close()
         }
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_8_9)
+            .addMigrations(MIGRATION_8_9, MIGRATION_9_10)
             .allowMainThreadQueries()
             .build()
         try {

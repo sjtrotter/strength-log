@@ -8,9 +8,13 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -83,6 +87,28 @@ class LegacyTimedFixupTest {
             db.programDao().logsForDay(PlanEntity.LEGACY_ID, "A")
                 .first { it.programExerciseId == slotId }.setsJson,
         )
+
+    @Test
+    fun `a prescribed plank keeps its rep count while its legacy partner is fixed`() = runTest {
+        val id = db.programDao().insertExercise(
+            ProgramExerciseEntity(
+                0, PlanEntity.LEGACY_ID, "A", 0, "plank", false, 3, "", false, "plank", "",
+                prescriptionJson = PrescriptionJson.encode(Prescription(PrescribedTarget.Reps(12))),
+            ),
+        )
+        val main = listOf(LoggedSet(0.0, 12, SetKind.WORK, done = true))
+        writeLog(id, main)
+        db.programDao().upsertLog(
+            ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", id, Slot.SS, SetJson.encodeSets(main), "2026-07-11", 1L),
+        )
+
+        // A restore clears the flag, so prescribed rows must be safe on every run.
+        repo.runLegacyTimedFixupIfNeeded()
+
+        val logs = db.programDao().allLogs().associate { it.slot to SetJson.decodeSets(it.setsJson) }
+        assertEquals(main, logs[Slot.MAIN])
+        assertEquals(listOf(LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 12)), logs[Slot.SS])
+    }
 
     @Test
     fun `plank reps become seconds, squat untouched, and it never runs twice`() = runTest {

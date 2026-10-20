@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.wear.ui
 
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
+import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /**
  * The watch's one outbound mutation: a set is done, here is when it started and
@@ -20,6 +21,7 @@ fun buildTickDelta(
     startedAtMillis: Long?,
     completedAtMillis: Long,
     editedAtMillis: Long = completedAtMillis,
+    snapshot: WatchSnapshot? = null,
 ): SetEditDelta = SetEditDelta(
     dayId = dayId,
     programExerciseId = programExerciseId,
@@ -27,6 +29,7 @@ fun buildTickDelta(
     setIndex = setIndex,
     done = true,
     editedAtMillis = editedAtMillis,
+    planId = snapshot?.planId,
     startedAtMillis = startedAtMillis?.takeIf { it > 0L },
     completedAtMillis = completedAtMillis,
 )
@@ -43,6 +46,7 @@ fun buildUndoDelta(
     programExerciseId: Long,
     setIndex: Int,
     editedAtMillis: Long,
+    snapshot: WatchSnapshot? = null,
 ): SetEditDelta = SetEditDelta(
     dayId = dayId,
     programExerciseId = programExerciseId,
@@ -50,6 +54,7 @@ fun buildUndoDelta(
     setIndex = setIndex,
     done = false,
     editedAtMillis = editedAtMillis,
+    planId = snapshot?.planId,
 )
 
 /** The watch only ever ticks the main track; a superset partner follows its round. */

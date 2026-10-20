@@ -39,33 +39,33 @@ class TodaySnapshotSource(
 ) {
 
     val snapshots: Flow<WatchSnapshot?> =
-        repo.suggestedDayFlow.flatMapLatest { dayId ->
-            if (dayId == null) {
+        repo.selectedPlanFlow.flatMapLatest { plan ->
+            val dayId = plan?.suggestedDayId
+            if (plan == null || dayId == null) {
                 flowOf(null)
             } else {
                 val program = combine(
-                    repo.programFlow,
-                    repo.daySlotsFlow(dayId),
-                    repo.logFlow(dayId, today),
+                    repo.programFor(plan.id),
+                    repo.slotsFor(plan.id, dayId),
+                    repo.logsFor(plan.id, dayId, today),
                 ) { program, slots, logs -> Triple(program, slots, logs) }
                 // restSettingsFlow rides the context combine so a Setup edit (master
                 // toggle or a duration) republishes immediately — the watch never
                 // counts a stale rest for longer than one sync hop.
                 val context = combine(
-                    repo.configFlow,
+                    repo.wizardAnswersFor(plan.id),
                     repo.catalogFlow,
                     repo.unitFlow,
                     repo.restSettingsFlow,
-                    repo.wizardAnswersFlow,
-                ) { cfg, catalog, unit, rest, answers ->
-                    Context(cfg, catalog, unit, rest, answers.equipment, answers.cardio.mode.name, answers.cardio.fiveKGoal)
+                ) { answers, catalog, unit, rest ->
+                    Context(answers.config, catalog, unit, rest, answers.equipment, answers.cardio.mode.name, answers.cardio.fiveKGoal)
                 }
                 combine(
-                    program, context, repo.selectedPlanCardioSessionsFlow, today,
+                    program, context, repo.cardioSessionsFlow, today,
                     markers.lastAppliedFlow(CardioDeltaApplier.MARKER_KEY),
                 ) { (prog, slots, logs), ctx, cardioHistory, civilDate, cardioAck ->
                     val loggedCardio = cardioHistory.firstOrNull { session ->
-                        session.dayId == dayId &&
+                        session.planId == plan.id && session.dayId == dayId &&
                             Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
                     }
                     WatchSnapshotBuilder.build(
@@ -83,6 +83,8 @@ class TodaySnapshotSource(
                         cardioAckStamp = cardioAck,
                         cardioMode = ctx.cardioMode,
                         cardioFiveK = ctx.cardioFiveK,
+                        planId = plan.id,
+                        planName = plan.name,
                     )
                 }
             }

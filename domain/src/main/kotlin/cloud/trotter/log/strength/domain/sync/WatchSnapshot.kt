@@ -71,6 +71,10 @@ data class WatchSnapshot(
      *  Additive with default, like [cardio]; an old phone publishes 0 and the
      *  watch simply keeps re-sending into its dedupe. */
     val cardioAckStamp: Long = 0L,
+    /** The published day's plan. Additive with a null default for older publishers. */
+    val planId: Long? = null,
+    /** That plan's current name. Additive with a null default, like [planId]. */
+    val planName: String? = null,
 )
 
 /** One day of the program as the cycle ring and its day-browse preview read it. */

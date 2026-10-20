@@ -69,6 +69,8 @@ object WatchSnapshotBuilder {
         cardioAckStamp: Long = 0L,
         cardioMode: String? = null,
         cardioFiveK: Boolean? = null,
+        planId: Long? = null,
+        planName: String? = null,
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val strengthDays = program.strengthDays
@@ -100,6 +102,8 @@ object WatchSnapshotBuilder {
             unit = unit.name.lowercase(),
             cycle = strengthDays.map { it.toCycleDay(catalog) },
             cardioAckStamp = cardioAckStamp,
+            planId = planId,
+            planName = planName,
             cardio = day.cardio?.copy(
                 mode = cardioMode,
                 fiveK = cardioFiveK,

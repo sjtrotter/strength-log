@@ -19,6 +19,28 @@ import kotlin.test.assertTrue
  */
 class PendingEditsTest {
 
+    @Test
+    fun `queued work survives another plan's Day A and settles when its own plan reflects it`() {
+        val edit = delta(done = true).copy(planId = 1L)
+        val replacement = swap().copy(planId = 1L)
+        val reflected = snapshot(
+            sets = listOf(WatchSet(235.0, 5, "TOP", done = true)),
+            exerciseId = "front_squat",
+        ).copy(planId = 1L)
+        // Q has its own globally unique slot, even when its values match P's work.
+        val otherPlan = reflected.copy(
+            planId = 2L,
+            day = reflected.day.copy(exercises = reflected.day.exercises.map { it.copy(programExerciseId = 2L) }),
+        )
+
+        val edits = PendingEdits.reconcile(listOf(edit), otherPlan)
+        val swaps = PendingEdits.reconcileSwaps(listOf(replacement), otherPlan)
+        assertEquals(listOf(edit), edits)
+        assertEquals(listOf(replacement), swaps)
+        assertTrue(PendingEdits.reconcile(edits, reflected).isEmpty())
+        assertTrue(PendingEdits.reconcileSwaps(swaps, reflected).isEmpty())
+    }
+
     private fun swap(
         dayId: String = "A",
         programExerciseId: Long = 1L,

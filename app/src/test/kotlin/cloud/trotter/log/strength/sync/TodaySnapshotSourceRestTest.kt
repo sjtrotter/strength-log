@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.widget.TodayWidgetContent
 import cloud.trotter.log.strength.widget.todayWidgetContent
 import java.io.File
@@ -137,6 +138,37 @@ class TodaySnapshotSourceRestTest {
         assertEquals(120, source.snapshots.first { it != null }?.cardio?.loggedSeconds)
         repo.selectPlan(firstPlan)
         assertEquals(60, source.snapshots.first { it != null }?.cardio?.loggedSeconds)
+    }
+
+    @Test
+    fun `live snapshots carry the selected plan and name across same-day plan switches`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+        ))))
+        val planP = repo.selectedPlanIdFlow.first()!!
+        repo.renamePlan(planP, "Strength")
+        val planQ = repo.duplicatePlan(planP, "Running")
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
+        backgroundScope.launch { source.snapshots.collect { if (it != null) snapshots.send(it) } }
+        suspend fun awaitPlan(planId: Long): WatchSnapshot {
+            while (true) {
+                val snapshot = snapshots.receive()
+                if (snapshot.planId == planId) return snapshot
+            }
+        }
+
+        val first = awaitPlan(planP)
+        assertEquals("Strength", first.planName)
+        assertEquals("A", first.day.dayId)
+        assertEquals(repo.slotsFor(planP, "A").first().single().programExerciseId, first.day.exercises.single().programExerciseId)
+        repo.selectPlan(planQ)
+        val second = awaitPlan(planQ)
+        assertEquals("Running", second.planName)
+        assertEquals("A", second.day.dayId)
+        assertEquals(repo.slotsFor(planQ, "A").first().single().programExerciseId, second.day.exercises.single().programExerciseId)
+        repo.selectPlan(planP)
+        assertEquals("Strength", awaitPlan(planP).planName)
     }
 
     @Test

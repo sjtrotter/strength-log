@@ -21,7 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -91,7 +91,7 @@ fun WearApp(
     val pendingExercises by client.pendingExercisesFlow().collectAsState(initial = emptySet())
     val pendingSwaps by client.pendingSwapsFlow().collectAsState(initial = emptySet())
     val dayId = snapshot?.day?.dayId
-    var localSessionStartedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
+    var localSessionStartedAtMillis by rememberSaveable(snapshot?.planId, dayId) { mutableLongStateOf(0L) }
     val context = LocalContext.current
     // The exact-alarm listener lives at the root so it outlives the ambient swap.
     val restController = remember(context) { restTimerController(context.applicationContext) }
@@ -102,8 +102,9 @@ fun WearApp(
     var cardioStartedAtWall by rememberSaveable(cardioDayId) { mutableLongStateOf(0L) }
     var cardioStartedAtElapsed by rememberSaveable(cardioDayId) { mutableLongStateOf(0L) }
     var cardioStartedAtBoot by rememberSaveable(cardioDayId) { mutableIntStateOf(0) }
+    var cardioPlanId by rememberSaveable(cardioDayId) { mutableStateOf<Long?>(null) }
     val cardioAnchors = cardioStartedAtElapsed.takeIf { it > 0L }?.let {
-        CardioAnchors(cardioStartedAtWall, it, cardioStartedAtBoot)
+        CardioAnchors(cardioStartedAtWall, it, cardioStartedAtBoot, cardioPlanId)
     }
     val rootView = LocalView.current
     fun bootCountNow(): Int = android.provider.Settings.Global.getInt(
@@ -111,6 +112,7 @@ fun WearApp(
     )
 
     fun startCardio() {
+        cardioPlanId = snapshot?.planId
         cardioStartedAtWall = System.currentTimeMillis()
         cardioStartedAtElapsed = SystemClock.elapsedRealtime()
         cardioStartedAtBoot = bootCountNow()
@@ -130,10 +132,13 @@ fun WearApp(
             // A null mode can only mean a phone downgrade mid-run: discard rather
             // than log a guessed mode or leave the hold dead.
             suggestion.mode?.let { mode ->
-                buildCardioDelta(dayId, mode, suggestion.hard, suggestion.label, anchors, progress, System.currentTimeMillis())
-                    ?.let(client::sendCardio)
+                buildCardioDelta(
+                    dayId, mode, suggestion.hard, suggestion.label, anchors, progress,
+                    System.currentTimeMillis(),
+                )?.let(client::sendCardio)
             }
         }
+        cardioPlanId = null
         cardioStartedAtWall = 0L
         cardioStartedAtElapsed = 0L
         cardioStartedAtBoot = 0
@@ -145,7 +150,7 @@ fun WearApp(
     // finally-disarm covers every vanish path — day change, dismiss, restore
     // past the end — not just the explicit stop (review M3).
     val cardioPlanRoot = snapshot?.cardio?.let { CardioIntervals.plan(it, it.fiveK ?: false) }
-    LaunchedEffect(cardioAnchors, cardioPlanRoot) {
+    LaunchedEffect(snapshot?.planId, cardioAnchors, cardioPlanRoot) {
         if (cardioAnchors == null || cardioPlanRoot == null) return@LaunchedEffect
         try {
             while (true) {
@@ -178,9 +183,9 @@ fun WearApp(
     DisposableEffect(restController) {
         onDispose(restController::close)
     }
-    // A rollover invalidates a fired hold as well as an armed one. The retained
-    // latest-tick closure must never apply yesterday's exercise to today's snapshot.
-    DisposableEffect(dayId, restController) {
+    // A plan switch or rollover invalidates a fired hold as well as an armed one.
+    // The retained tick closure must only apply to the workout it came from.
+    DisposableEffect(snapshot?.planId, dayId, restController) {
         onDispose(restController::disarm)
     }
     LaunchedEffect(snapshot?.epoch, snapshot?.revision) {
@@ -313,25 +318,24 @@ private fun WorkoutDial(
     onDismiss: () -> Unit,
 ) {
     val view = LocalView.current
-    // Keyed on the day: a rollover to tomorrow's workout starts a fresh session
-    // rather than inheriting yesterday's stamps and a rest nobody is taking.
     val dayId = snap.day.dayId
-    var face by rememberSaveable(dayId) { mutableStateOf(impliedFace(snap)) }
-    var lifting by rememberSaveable(dayId) { mutableStateOf(false) }
-    var startedAtWallMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
-    var startedAtElapsedMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
-    var restDeadlineMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
-    var restTotalSeconds by rememberSaveable(dayId) { mutableIntStateOf(0) }
-    var restBetweenExercises by rememberSaveable(dayId) { mutableStateOf(false) }
-    var restedSeconds by rememberSaveable(dayId) { mutableIntStateOf(NO_REST) }
-    var sessionStartedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
-    var sessionEndedAtMillis by rememberSaveable(dayId) { mutableLongStateOf(0L) }
-    var selectedExercise by rememberSaveable(dayId) { mutableIntStateOf(NO_SELECTION) }
-    var tickMemory by rememberSaveable(dayId, stateSaver = TickMemorySaver) {
-        mutableStateOf(TickMemory.EMPTY)
+    val saved = rememberSaveable(snap.planId, dayId, saver = workoutDialStateSaver(snap.planId, dayId)) {
+        WorkoutDialState(snap.planId, dayId, impliedFace(snap))
     }
-    var peek by remember(dayId) { mutableStateOf<PeekState?>(null) }
-    var browseDay by remember(dayId) { mutableStateOf<Int?>(null) }
+    var face by saved::face
+    var lifting by saved::lifting
+    var startedAtWallMillis by saved::startedAtWallMillis
+    var startedAtElapsedMillis by saved::startedAtElapsedMillis
+    var restDeadlineMillis by saved::restDeadlineMillis
+    var restTotalSeconds by saved::restTotalSeconds
+    var restBetweenExercises by saved::restBetweenExercises
+    var restedSeconds by saved::restedSeconds
+    var sessionStartedAtMillis by saved::sessionStartedAtMillis
+    var sessionEndedAtMillis by saved::sessionEndedAtMillis
+    var selectedExercise by saved::selectedExercise
+    var tickMemory by saved::tickMemory
+    var peek by remember(snap.planId, dayId) { mutableStateOf<PeekState?>(null) }
+    var browseDay by remember(snap.planId, dayId) { mutableStateOf<Int?>(null) }
     var nowElapsedMillis by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
 
     val exerciseIndex = ExerciseSelection.resolve(snap, selectedExercise.takeIf { it >= 0 })
@@ -342,7 +346,7 @@ private fun WorkoutDial(
     // A swap being considered is a glance like the peek — never restored through a
     // process death, and keyed on the lift as well as the day so that leaving the
     // lift forgets the half-made decision rather than carrying it onto the next one.
-    var swapPreview by remember(dayId, exerciseIndex) { mutableStateOf<SwapPreview?>(null) }
+    var swapPreview by remember(snap.planId, dayId, exerciseIndex) { mutableStateOf<SwapPreview?>(null) }
 
     fun startRest(seconds: Int, betweenExercises: Boolean) {
         restTotalSeconds = seconds
@@ -395,6 +399,7 @@ private fun WorkoutDial(
                 setIndex = roundIndex,
                 startedAtMillis = startedAtWallMillis,
                 completedAtMillis = completedAtMillis,
+                snapshot = snap,
             ),
         )
         DialHaptics.perform(view, DialHaptics.Cue.CONFIRM_TICK)
@@ -465,6 +470,7 @@ private fun WorkoutDial(
                 programExerciseId = ex.programExerciseId,
                 setIndex = target.roundIndex,
                 editedAtMillis = System.currentTimeMillis(),
+                snapshot = snap,
             ),
         )
         tickMemory = tickMemory.forget(ex.programExerciseId, target.roundIndex)
@@ -487,11 +493,10 @@ private fun WorkoutDial(
         val ex = exercise ?: return
         swapPreview = null
         sendSwap(
-            ExerciseSwapDelta(
-                dayId = dayId,
+            buildSwapDelta(
+                snapshot = snap,
                 programExerciseId = ex.programExerciseId,
-                exerciseId = alternate.exerciseId,
-                exerciseName = alternate.name,
+                alternate = alternate,
                 editedAtMillis = System.currentTimeMillis(),
             ),
         )
@@ -714,10 +719,62 @@ private fun WorkoutDial(
     }
 }
 
-/** [TickMemory] rides a saved-instance bundle as its own one-line encoding. */
-private val TickMemorySaver = Saver<TickMemory, String>(
-    save = { it.encode() },
-    restore = { TickMemory.decode(it) },
+/** Local dial state and its owner travel together through process death. */
+internal class WorkoutDialState(val planId: Long?, val dayId: String, face: DialFace) {
+    var face by mutableStateOf(face)
+    var lifting by mutableStateOf(false)
+    var startedAtWallMillis by mutableLongStateOf(0L)
+    var startedAtElapsedMillis by mutableLongStateOf(0L)
+    var restDeadlineMillis by mutableLongStateOf(0L)
+    var restTotalSeconds by mutableIntStateOf(0)
+    var restBetweenExercises by mutableStateOf(false)
+    var restedSeconds by mutableIntStateOf(NO_REST)
+    var sessionStartedAtMillis by mutableLongStateOf(0L)
+    var sessionEndedAtMillis by mutableLongStateOf(0L)
+    var selectedExercise by mutableIntStateOf(NO_SELECTION)
+    var tickMemory by mutableStateOf(TickMemory.EMPTY)
+}
+
+// rememberSaveable inputs reset a live plan/day switch, but do not validate a
+// restored bundle. The first available snapshot must own the saved state too.
+internal fun workoutDialStateSaver(planId: Long?, dayId: String) = mapSaver(
+    save = { state: WorkoutDialState ->
+        mapOf(
+            "planId" to state.planId,
+            "dayId" to state.dayId,
+            "face" to state.face.name,
+            "lifting" to state.lifting,
+            "startedAtWallMillis" to state.startedAtWallMillis,
+            "startedAtElapsedMillis" to state.startedAtElapsedMillis,
+            "restDeadlineMillis" to state.restDeadlineMillis,
+            "restTotalSeconds" to state.restTotalSeconds,
+            "restBetweenExercises" to state.restBetweenExercises,
+            "restedSeconds" to state.restedSeconds,
+            "sessionStartedAtMillis" to state.sessionStartedAtMillis,
+            "sessionEndedAtMillis" to state.sessionEndedAtMillis,
+            "selectedExercise" to state.selectedExercise,
+            "tickMemory" to state.tickMemory.encode(),
+        )
+    },
+    restore = { saved ->
+        if (saved["planId"] != planId || saved["dayId"] != dayId) {
+            null
+        } else {
+            WorkoutDialState(planId, dayId, DialFace.valueOf(saved["face"] as String)).apply {
+                lifting = saved["lifting"] as Boolean
+                startedAtWallMillis = saved["startedAtWallMillis"] as Long
+                startedAtElapsedMillis = saved["startedAtElapsedMillis"] as Long
+                restDeadlineMillis = saved["restDeadlineMillis"] as Long
+                restTotalSeconds = saved["restTotalSeconds"] as Int
+                restBetweenExercises = saved["restBetweenExercises"] as Boolean
+                restedSeconds = saved["restedSeconds"] as Int
+                sessionStartedAtMillis = saved["sessionStartedAtMillis"] as Long
+                sessionEndedAtMillis = saved["sessionEndedAtMillis"] as Long
+                selectedExercise = saved["selectedExercise"] as Int
+                tickMemory = TickMemory.decode(saved["tickMemory"] as String)
+            }
+        }
+    },
 )
 
 /**

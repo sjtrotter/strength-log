@@ -7,6 +7,8 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import java.io.File
@@ -96,6 +98,28 @@ class CardioDeltaApplierTest {
             applier.apply(delta(stamp = 12L).copy(mode = "FUTURE_MODE")),
         )
         assertEquals(0, repo.cardioSessionsFlow.first().size)
+        assertEquals(12L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+    }
+
+    @Test fun `explicit-plan cardio stays with its plan and old-watch cardio uses selection`() = runTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", emptyList(), cardio = null))))
+        val planP = repo.selectedPlanIdFlow.first()!!
+        repo.renamePlan(planP, "Strength")
+        val planQ = repo.duplicatePlan(planP, "Running")
+        repo.selectPlan(planQ)
+        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta().copy(planId = planP)))
+        val planned = repo.cardioSessionsFlow.first().single()
+        assertEquals(planP, planned.planId)
+        assertEquals("Strength", planned.planName)
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta(stamp = 11L, startedAt = 100_000L)))
+        val legacy = repo.cardioSessionsFlow.first().first { it.startedAt == 100_000L }
+        assertEquals(planQ, legacy.planId)
+        assertEquals("Running", legacy.planName)
+        // Plan identity does not change content identity, even across selection.
+        assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(delta(stamp = 12L).copy(planId = planQ)))
+        assertEquals(2, repo.cardioSessionsFlow.first().size)
         assertEquals(12L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
     }
 }

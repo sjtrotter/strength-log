@@ -10,6 +10,8 @@ data class CardioAnchors(
     val startedAtWallMillis: Long,
     val startedAtElapsedMillis: Long,
     val bootCount: Int = 0,
+    /** The installed snapshot's plan when this block started. */
+    val planId: Long? = null,
 )
 
 data class CardioProgress(
@@ -75,5 +77,6 @@ fun buildCardioDelta(
         seconds = progress.elapsedSeconds,
         stepsCompleted = progress.stepsCompleted,
         stamp = completedAtWallMillis,
+        planId = anchors.planId,
     )
 }

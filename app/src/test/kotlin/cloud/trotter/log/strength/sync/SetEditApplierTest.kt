@@ -8,7 +8,10 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -870,6 +873,121 @@ class SetEditApplierTest {
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 101L))
 
         assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(100L, markers.lastApplied("A|$id|swap"))
         assertEquals(newLog, track(id, Slot.MAIN))
+    }
+
+    @Test
+    fun `a delayed tick follows its explicit plan while another Day A is selected`() = runTest {
+        assertDelayedTickFollowsPlan(explicitPlan = true)
+    }
+
+    @Test
+    fun `an old-watch tick resolves the unselected plan from its global slot id`() = runTest {
+        assertDelayedTickFollowsPlan(explicitPlan = false)
+    }
+
+    @Test
+    fun `an unselected plan's partner tick leaves session start for the selected plan's tick`() = runTest {
+        assertDelayedTickFollowsPlan(explicitPlan = true, slot = Slot.SS)
+    }
+
+    private suspend fun assertDelayedTickFollowsPlan(explicitPlan: Boolean, slot: String = Slot.MAIN) {
+        seedProgram()
+        val planP = repo.selectedPlanIdFlow.first()!!
+        val id = curlId()
+        val planQ = repo.duplicatePlan(planP, "Running")
+        repo.selectPlan(planQ)
+        db.sessionDao().insertSession(WorkoutSessionEntity(
+            id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
+            completedAt = 200L, bodyweightLb = 180, planId = planQ,
+        ))
+        val qLogs = db.programDao().logsForPlan(planQ)
+        val delta = SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = slot, setIndex = 0,
+            done = true, editedAtMillis = 10L,
+            planId = planP.takeIf { explicitPlan },
+        )
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(delta))
+
+        val pLogs = repo.logsFor(planP, "A", kotlinx.coroutines.flow.flowOf(repo.currentDate())).first()
+        assertEquals(slot == Slot.MAIN, pLogs.first { it.programExerciseId == id && it.slot == Slot.MAIN }.sets[0].done)
+        assertTrue(pLogs.first { it.programExerciseId == id && it.slot == Slot.SS }.sets[0].done)
+        assertEquals(qLogs, db.programDao().logsForPlan(planQ))
+        assertEquals(planQ, repo.selectedPlanIdFlow.first())
+        assertEquals(null, repo.sessionStartedAtFlow.first())
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = curlId(), slot = slot, setIndex = 0,
+            done = true, editedAtMillis = 11L, planId = planQ,
+        )))
+        assertTrue(track(curlId(), slot)!![0].done)
+        assertTrue(repo.sessionStartedAtFlow.first() != null)
+    }
+
+    @Test
+    fun `a delayed swap validates and reseeds only its own plan while another plan is selected`() = runTest {
+        assertDelayedSwapFollowsPlan(explicitPlan = true)
+    }
+
+    @Test
+    fun `an old-watch swap resolves its unselected plan from the slot`() = runTest {
+        assertDelayedSwapFollowsPlan(explicitPlan = false)
+    }
+
+    private suspend fun assertDelayedSwapFollowsPlan(explicitPlan: Boolean) {
+        seedProgram()
+        val planP = repo.selectedPlanIdFlow.first()!!
+        val id = squatId()
+        repo.updateSets("A", id, Slot.MAIN, track(id, Slot.MAIN)!!.map { it.copy(done = true) })
+        db.sessionDao().insertSession(WorkoutSessionEntity(
+            id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
+            completedAt = 200L, bodyweightLb = 180, planId = planP,
+        ))
+        val planQ = repo.duplicatePlan(planP, "Running")
+        db.planDao().updateRecipe(planQ, PlanRecipeJson.encode(WizardAnswers(equipment = emptySet())))
+        repo.selectPlan(planQ)
+        val qSlots = db.programDao().exercisesForPlan(planQ)
+        val qLogs = db.programDao().logsForPlan(planQ)
+        val otherPLogs = db.programDao().logsForPlan(planP).filter { it.programExerciseId != id }
+        val alternate = WatchSnapshotBuilder.alternatesFor(
+            "bb_back_squat", repo.catalogFlow.first(), repo.wizardAnswersFor(planP).first().equipment,
+        ).first()
+
+        val outcome = applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = id, exerciseId = alternate.exerciseId,
+            exerciseName = alternate.name, editedAtMillis = 10L,
+            planId = planP.takeIf { explicitPlan },
+        ))
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(alternate.exerciseId, repo.slotsFor(planP, "A").first().first { it.programExerciseId == id }.exercise.exerciseId)
+        val reseeded = repo.logsFor(planP, "A", kotlinx.coroutines.flow.flowOf(repo.currentDate())).first()
+            .first { it.programExerciseId == id && it.slot == Slot.MAIN }.sets
+        assertTrue(reseeded.isNotEmpty())
+        assertTrue(reseeded.none { it.done })
+        assertEquals(otherPLogs, db.programDao().logsForPlan(planP).filter { it.programExerciseId != id })
+        assertEquals(qSlots, db.programDao().exercisesForPlan(planQ))
+        assertEquals(qLogs, db.programDao().logsForPlan(planQ))
+    }
+
+    @Test
+    fun `an explicit plan that does not own the slot is invalid`() = runTest {
+        seedProgram()
+        val planP = repo.selectedPlanIdFlow.first()!!
+        val id = squatId()
+        val planQ = repo.duplicatePlan(planP, "Running")
+        val before = db.programDao().allLogs()
+        assertEquals(SetEditApplier.Outcome.INVALID, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 10L, planId = planQ,
+        )))
+        assertEquals(SetEditApplier.Outcome.INVALID, applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = id, exerciseId = "bb_back_squat",
+            exerciseName = "Squat", editedAtMillis = 11L, planId = planQ,
+        )))
+        assertEquals(before, db.programDao().allLogs())
+        assertTrue(markers.map.isEmpty())
     }
 }

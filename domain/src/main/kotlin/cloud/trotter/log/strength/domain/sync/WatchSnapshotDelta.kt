@@ -3,10 +3,11 @@ package cloud.trotter.log.strength.domain.sync
 /**
  * Applies one watch delta to a snapshot for display only. The phone-owned stamp and
  * every untouched field are preserved; a missing exercise, track, or row is a no-op
- * so prescription drift cannot corrupt another row.
+ * so prescription drift cannot corrupt another row. Only the displayed plan and
+ * day may echo an edit; absent identity keeps older peers' behavior.
  */
 fun applyDelta(snapshot: WatchSnapshot, delta: SetEditDelta): WatchSnapshot =
-    snapshot.copy(
+    if (!snapshot.matches(delta.planId, delta.dayId)) snapshot else snapshot.copy(
         day = snapshot.day.copy(
             exercises = snapshot.day.exercises.map { exercise ->
                 if (exercise.programExerciseId != delta.programExerciseId) exercise
@@ -17,7 +18,7 @@ fun applyDelta(snapshot: WatchSnapshot, delta: SetEditDelta): WatchSnapshot =
 
 /** A swap echo changes only the displayed name; seeding and identity stay phone-owned. */
 fun applyDelta(snapshot: WatchSnapshot, delta: ExerciseSwapDelta): WatchSnapshot =
-    snapshot.copy(
+    if (!snapshot.matches(delta.planId, delta.dayId)) snapshot else snapshot.copy(
         day = snapshot.day.copy(
             exercises = snapshot.day.exercises.map { exercise ->
                 if (exercise.programExerciseId != delta.programExerciseId) exercise
@@ -25,6 +26,10 @@ fun applyDelta(snapshot: WatchSnapshot, delta: ExerciseSwapDelta): WatchSnapshot
             },
         ),
     )
+
+private fun WatchSnapshot.matches(planId: Long?, dayId: String): Boolean =
+    day.dayId == dayId &&
+        (this.planId == null || planId == null || this.planId == planId)
 
 private fun WatchExercise.applying(delta: SetEditDelta): WatchExercise {
     val editingMain = delta.slot == SLOT_MAIN

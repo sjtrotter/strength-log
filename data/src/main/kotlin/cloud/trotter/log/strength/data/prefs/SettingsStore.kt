@@ -408,8 +408,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * frozen at whatever they were the day the backup was written.
      *
      * Clears the plan-settings fixup flag along with all other restorable keys.
-     * [legacyPlanSettings] is only for replaying a pre-#268 restore journal: its
-     * plan-owned keys land in this same edit for the migration gate to consume.
      */
     suspend fun restore(
         global: GlobalLifter,
@@ -422,7 +420,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         supersetHelperSeen: Boolean = false,
         sessionNotes: Map<Long, String> = emptyMap(),
         themePreference: ThemePreference = ThemePreference.SYSTEM,
-        legacyPlanSettings: Preferences? = null,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
         // not user data contained in the imported document. Keep them across a
@@ -436,9 +433,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val autoPermissionLost = prefs[Keys.AUTO_BACKUP_PERMISSION_LOST]
         prefs.clear()
         prefs.writeGlobalLifter(global)
-        if (legacyPlanSettings != null) {
-            legacyPlanKeys.forEach { key -> prefs.copyPreference(legacyPlanSettings, key) }
-        }
         prefs[Keys.WEIGHT_UNIT] = unit.name
         prefs[Keys.WIZARD_COMPLETE] = wizardComplete
         if (selectedPlanId != null) prefs[Keys.SELECTED_PLAN_ID] = selectedPlanId
@@ -467,13 +461,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             ?: emptyMap()
 
     // --- read/write helpers --------------------------------------------------
-
-    private fun <T> androidx.datastore.preferences.core.MutablePreferences.copyPreference(
-        source: Preferences,
-        key: Preferences.Key<T>,
-    ) {
-        source[key]?.let { this[key] = it }
-    }
 
     private fun Preferences.readGlobalLifter(): GlobalLifter = GlobalLifter(
         bodyweightLb = this[Keys.BODYWEIGHT] ?: DEFAULT_CONFIG.bodyweightLb,

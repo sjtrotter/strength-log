@@ -15,12 +15,18 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.CardioPlacement
+import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
@@ -212,7 +218,7 @@ class RestoreJournalTest {
     }
 
     @Test
-    fun previousBuildJournal_migratesPlanSettingsInTheSameStartupPass() = runTest {
+    fun previousBuildJournal_appliesPlanSettingsInTheSameStartupPass() = runTest {
         val restored = snapshot().copy(
             answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH)),
             suggestedDay = "B",
@@ -233,6 +239,96 @@ class RestoreJournalTest {
         assertNull(settingsStore.data.first()[stringPreferencesKey("emphasis")])
         assertNull(settingsStore.data.first()[stringPreferencesKey("suggested_day")])
         assertNull(db.restoreMarkerDao().nonce())
+    }
+
+    @Test
+    fun setterBeforeReconcile_isOverwrittenByPreviousBuildJournal() = runTest {
+        val restored = snapshot().copy(
+            answers = WizardAnswers(
+                daysPerWeek = 3,
+                split = SplitTemplate.PPL,
+                config = LifterConfig(emphasis = GoalEmphasis.STRENGTH),
+                cardio = CardioPrefs(CardioMode.TREADMILL, CardioPlacement.SEPARATE_DAYS, false),
+                equipment = setOf(Equipment.DUMBBELL, Equipment.BODYWEIGHT),
+            ),
+            suggestedDay = "B",
+        )
+        val nonce = "previous-build-restore-before-setter"
+        stagePreviousBuild(restored, nonce)
+        commitPreviousBuildRoomHalf(restored, nonce)
+        assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
+
+        repo.setCardioPrefs(CardioPrefs(CardioMode.NONE, CardioPlacement.NONE, false))
+
+        assertNotNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
+        assertFalse(settings.planSettingsFixupDoneFlow.first())
+        assertEquals(nonce, db.restoreMarkerDao().nonce())
+
+        assertTrue(repo.reconcilePendingRestore(journal))
+
+        val plan = db.planDao().plan(PlanEntity.LEGACY_ID)!!
+        assertEquals(restored.answers, PlanRecipeJson.decode(plan.recipeJson!!, settings.globalLifterFlow.first()))
+        assertEquals("B", plan.suggestedDayId)
+        assertEquals(restored.answers, repo.wizardAnswersFlow.first())
+        assertTrue(settings.planSettingsFixupDoneFlow.first())
+        assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
+        assertNull(db.restoreMarkerDao().nonce())
+    }
+
+    @Test
+    fun previousBuildJournalWithNoPlan_createsAndSelectsLegacyPlan() = runTest {
+        val restored = snapshot().copy(
+            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH)),
+            suggestedDay = "B",
+            selectedPlanId = null,
+            days = emptyList(),
+            exercises = emptyList(),
+        )
+        val nonce = "previous-build-restore-without-program"
+        stagePreviousBuild(restored, nonce)
+        commitPreviousBuildRoomHalf(restored, nonce)
+        assertTrue(db.planDao().allPlans().isEmpty())
+
+        assertTrue(repo.reconcilePendingRestore(journal))
+
+        val plan = db.planDao().allPlans().single()
+        assertEquals(PlanEntity.LEGACY_ID, plan.id)
+        assertEquals(PlanEntity.LEGACY_NAME, plan.name)
+        assertEquals(PlanOrigin.GENERATED.name, plan.origin)
+        assertEquals(restored.answers, PlanRecipeJson.decode(plan.recipeJson!!, settings.globalLifterFlow.first()))
+        assertEquals("B", plan.suggestedDayId)
+        assertTrue(db.programDao().daysForPlan(plan.id).isEmpty())
+        assertEquals(plan.id, settings.selectedPlanIdFlow.first())
+        assertEquals(plan.id, repo.selectedPlanIdFlow.first())
+        assertEquals(restored.answers, repo.wizardAnswersFlow.first())
+        assertTrue(settings.planSettingsFixupDoneFlow.first())
+        assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
+        assertNull(db.restoreMarkerDao().nonce())
+    }
+
+    @Test
+    fun previousBuildJournal_overwritesEveryGeneratedRecipeAndSelectedRotation() = runTest {
+        val restored = snapshot().copy(
+            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH)),
+            suggestedDay = "B",
+        )
+        val nonce = "previous-build-restore-with-interim-edits"
+        stagePreviousBuild(restored, nonce)
+        commitPreviousBuildRoomHalf(restored, nonce)
+        val interimRecipe = PlanRecipeJson.encode(WizardAnswers(config = LifterConfig(emphasis = GoalEmphasis.PHYSIQUE)))
+        db.planDao().updateRecipe(PlanEntity.LEGACY_ID, interimRecipe)
+        db.planDao().updateSuggestedDay(PlanEntity.LEGACY_ID, "A")
+        val archived = PlanEntity(2, "Archived", PlanOrigin.GENERATED.name, 1, 1_000, true, interimRecipe, "C")
+        val authored = PlanEntity(3, "Authored", PlanOrigin.AUTHORED.name, 2, 1_000, suggestedDayId = "D")
+        db.planDao().insertPlans(listOf(archived, authored))
+
+        assertTrue(repo.reconcilePendingRestore(journal))
+
+        val recipe = db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson!!
+        assertEquals(restored.answers, PlanRecipeJson.decode(recipe, settings.globalLifterFlow.first()))
+        assertEquals("B", db.planDao().plan(PlanEntity.LEGACY_ID)!!.suggestedDayId)
+        assertEquals(archived.copy(recipeJson = recipe), db.planDao().plan(archived.id))
+        assertEquals(authored, db.planDao().plan(authored.id))
     }
 
     @Test
@@ -270,19 +366,38 @@ class RestoreJournalTest {
     }
 
     @Test
-    fun currentBuildJournal_stagesGlobalFactsWithoutPlanSettings() = runTest {
+    fun currentBuildJournal_stagesGlobalFactsAndLeavesRoomPlanSettingsUntouched() = runTest {
         val restored = snapshot().copy(
             answers = WizardAnswers(config = LifterConfig(bodyweightLb = 205, emphasis = GoalEmphasis.STRENGTH)),
             suggestedDay = "B",
         )
+        val plans = listOf(
+            PlanEntity(
+                PlanEntity.LEGACY_ID, PlanEntity.LEGACY_NAME, PlanOrigin.GENERATED.name, 0, 1_000,
+                recipeJson = PlanRecipeJson.encode(WizardAnswers(config = LifterConfig(emphasis = GoalEmphasis.PHYSIQUE))),
+                suggestedDayId = "A",
+            ),
+            PlanEntity(2, "No recipe", PlanOrigin.GENERATED.name, 1, 1_000),
+        )
+        db.withTransaction {
+            db.planDao().insertPlans(plans)
+            db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = "current-build"))
+        }
+        settingsStore.edit { prefs ->
+            prefs[stringPreferencesKey("emphasis")] = GoalEmphasis.PHYSIQUE.name
+            prefs[stringPreferencesKey("suggested_day")] = "C"
+        }
 
         journal.stage(restored, "current-build")
 
         val keys = journalStore.data.first().asMap().keys.map { it.name }.toSet()
         assertTrue(keys.intersect(LEGACY_PLAN_KEYS).isEmpty())
-        assertTrue(journal.reconcile("current-build"))
+        assertTrue(repo.reconcilePendingRestore(journal))
         assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(plans, db.planDao().allPlans())
         assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
+        assertTrue(settings.planSettingsFixupDoneFlow.first())
+        assertNull(db.restoreMarkerDao().nonce())
     }
 
     // --- interrupted before the transaction committed --------------------------
@@ -449,9 +564,13 @@ class RestoreJournalTest {
 
     private suspend fun commitPreviousBuildRoomHalf(snapshot: FullSnapshot, nonce: String) {
         db.withTransaction {
-            db.planDao().insertPlan(
-                PlanEntity(PlanEntity.LEGACY_ID, PlanEntity.LEGACY_NAME, "GENERATED", 0, 1_000),
-            )
+            if (snapshot.plans.isNotEmpty()) {
+                db.planDao().insertPlans(snapshot.plans)
+            } else if (snapshot.days.isNotEmpty()) {
+                db.planDao().insertPlan(
+                    PlanEntity(PlanEntity.LEGACY_ID, PlanEntity.LEGACY_NAME, "GENERATED", 0, 1_000),
+                )
+            }
             db.programDao().upsertDays(snapshot.days)
             db.programDao().insertExercises(snapshot.exercises)
             db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = nonce))

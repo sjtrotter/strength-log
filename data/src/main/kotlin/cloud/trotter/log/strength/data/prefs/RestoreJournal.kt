@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import kotlinx.coroutines.flow.first
 
 /**
@@ -91,28 +92,38 @@ class RestoreJournal(
      *
      * Run at startup; the caller must keep it from overlapping a live restore,
      * which is writing the very payload this reads.
+     *
+     * [applyLegacyPlanSettings] writes an older build's staged answers and
+     * rotation to Room before the global settings land, returning the selected
+     * plan id. New-format payloads carry no plan settings and skip this callback.
      */
-    suspend fun reconcile(committedNonce: String?): Boolean {
+    suspend fun reconcile(
+        committedNonce: String?,
+        applyLegacyPlanSettings: suspend (WizardAnswers, String?, Long?) -> Long?,
+    ): Boolean {
         val prefs = dataStore.data.first()
         val stagedNonce = prefs[Keys.NONCE]
         if (stagedNonce == null || stagedNonce != committedNonce) {
             if (prefs.asMap().isNotEmpty()) clear()
             return false
         }
+        val storedId = staged.selectedPlanIdFlow.first()
+        val legacy = staged.legacyAnswersFlow.first()
+        val selectedPlanId = if (legacy != null) {
+            applyLegacyPlanSettings(legacy, staged.legacySuggestedDayFlow.first(), storedId)
+        } else {
+            storedId
+        }
         settings.restore(
             global = staged.globalLifterFlow.first(),
             unit = staged.unitFlow.first(),
             wizardComplete = staged.wizardCompleteFlow.first(),
-            selectedPlanId = staged.selectedPlanIdFlow.first(),
+            selectedPlanId = selectedPlanId,
             restSettings = staged.restSettingsFlow.first(),
             keepScreenOn = staged.keepScreenOnFlow.first(),
             topSetHelperSeen = staged.topSetHelperSeenFlow.first(),
             supersetHelperSeen = staged.supersetHelperSeenFlow.first(),
             themePreference = staged.themePreferenceFlow.first(),
-            // Older builds staged the full answers and rotation in these keys.
-            // Replay them atomically with the global facts; the repository gate
-            // moves them to Room before any plan-settings read or write.
-            legacyPlanSettings = prefs,
         )
         clear()
         return true

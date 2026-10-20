@@ -1060,17 +1060,42 @@ open class TrackerRepository(
     }
 
     /**
-     * Finishes a restore that was cut between its Room and settings halves, and
-     * returns whether it replayed one. Run once at startup; the caller must keep
-     * it from overlapping a live restore (`:transfer` owns that lock).
-     *
-     * The marker is cleared whenever one was found, replay or not: a marker with
-     * no matching payload is the tail of a restore that already finished, and a
-     * row left lying there would outlive the journal it belonged to.
+     * Finishes an interrupted restore at startup, returning whether it replayed
+     * one. Old-format journals overwrite every generated plan's recipe and the
+     * selected plan's rotation when staged: the restore replaced Room, so any
+     * existing settings came from interim edits. The caller must prevent overlap
+     * with a live restore (`:transfer` owns that lock).
      */
     suspend fun reconcilePendingRestore(journal: RestoreJournal): Boolean {
         val committed = restoreMarkerDao.nonce()
-        val replayed = journal.reconcile(committed)
+        val replayed = journal.reconcile(committed) { answers, suggestedDay, storedId ->
+            db.withTransaction {
+                val recipe = PlanRecipeJson.encode(answers)
+                val plans = planDao.allPlans()
+                if (plans.isEmpty()) {
+                    planDao.insertPlan(
+                        PlanEntity(
+                            id = PlanEntity.LEGACY_ID,
+                            name = PlanEntity.LEGACY_NAME,
+                            origin = PlanOrigin.GENERATED.name,
+                            position = 0,
+                            createdAt = clock.millis(),
+                            recipeJson = recipe,
+                            suggestedDayId = suggestedDay,
+                        ),
+                    )
+                    return@withTransaction PlanEntity.LEGACY_ID
+                }
+                plans.filter { it.origin == PlanOrigin.GENERATED.name }
+                    .forEach { planDao.updateRecipe(it.id, recipe) }
+                val selected = plans.firstOrNull { it.id == storedId && !it.archived }
+                    ?: plans.firstOrNull { !it.archived }
+                if (selected != null && suggestedDay != null) {
+                    planDao.updateSuggestedDay(selected.id, suggestedDay)
+                }
+                selected?.id
+            }
+        }
         if (committed != null) restoreMarkerDao.clear()
         ensurePlanSettingsMigrated()
         return replayed

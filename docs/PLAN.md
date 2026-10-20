@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A12)
+## Amendments (A1–A13)
 
 ### A1. Session history is now required (biggest change)
 
@@ -203,6 +203,32 @@ details:
   multi-field: done + both stamps).
 - **One tap locks a set in; undo is a deliberate 700ms hold.** No untick-by-tap.
 - §6 Swap is deferred until alternates ride the snapshot (#90).
+
+### A13. Saved plans, authored prescriptions, cardio as sets (2026-10-19)
+
+Normative design: `docs/briefs/plans-review-2026-10-19-r2.md` (round 2 of a
+two-model review, owner decisions recorded at its head). Supersedes the
+spec's single-program model (§7) and the parts of
+`docs/briefs/cardio-promotion.md` it names.
+
+- **Plans.** The app holds any number of named plans; one is selected for
+  Today and the watch. A plan owns its days, prescriptions, live working
+  values, rotation position, emphasis, equipment and cardio prefs.
+  Bodyweight, age, level and units stay global. The wizard always creates a
+  new plan; nothing deletes another plan's working values. Sessions record
+  the plan they ran under; history from before plans has an unknown plan.
+- **Authored prescriptions.** A plan's exercises are generated (spec §4 math,
+  seeding and cascade, unchanged) or authored: load × reps, reps, hold,
+  reps-in-time (count recorded after the clock), each side, a band described
+  in text, a note. Authored slots have no GOAL and never cascade. Authored
+  days may hold one exercise and may repeat in place instead of rotating.
+- **Before production:** plans, authored prescriptions (including timed rep
+  events) and plan identity on the watch. After: cross-plan "Last" with a
+  28-day evidence review (no automatic deload), cardio as typed sets
+  (warm-up, work, recovery, cool-down; time or distance ends a set, the other
+  may be an aim), manual distance, Health Connect run linking, and every
+  record type Health Connect can hold. GPS only if needed, watch first.
+- §11 numbers and the shipped cardio vectors do not move.
 
 ## Architecture
 

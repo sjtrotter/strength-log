@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -177,8 +178,8 @@ class PersistenceProcessDeathTest {
         )
         repository.replaceProgram(Program(listOf(dayA, dayB)))
 
-        val squatRowId = db.programDao().exerciseAt("A", 0)!!.id
-        val rowRowId = db.programDao().exerciseAt("A", 1)!!.id
+        val squatRowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
+        val rowRowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id
 
         // --- a completed workout: log, then DONE — advance ---------------------
         repository.updateSets("A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))

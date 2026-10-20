@@ -21,13 +21,16 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
+import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -109,8 +112,9 @@ class DayViewModelWiringTest {
         handle: SavedStateHandle = SavedStateHandle(),
         publisher: SessionPublisher = SessionPublisher.NoOp,
         restRuntime: cloud.trotter.log.strength.rest.RestRuntime = cloud.trotter.log.strength.rest.NoOpRestRuntime,
+        today: Flow<LocalDate> = kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()),
     ): DayViewModel =
-        DayViewModel(repo, publisher, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
+        DayViewModel(repo, publisher, shareCardService, handle, today, FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
 
     @Test
     fun selectedPageSurvivesViewModelRecreation() = runVmTest {
@@ -302,6 +306,71 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertEquals("B", vm.uiState.value.viewDayId)
         assertNull(vm.uiState.value.openSheet)
+        collect.cancel()
+    }
+
+    @Test
+    fun completingASingleDayRotationPinsItsPageAgain() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Day A", "", listOf(ProgramExercise("ez_curl")), cardio = null,
+        ))))
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        vm.toggleDone(id, 0, true, isSuperset = false)
+        advanceUntilIdle()
+
+        vm.completeDay()
+        advanceUntilIdle()
+
+        assertEquals("A", vm.uiState.value.viewDayId)
+        assertEquals("exercise:$id", handle.get<String>("selectedPageKey"))
+        assertEquals("exercise:$id", vm.uiState.value.selectedPageKey)
+        collect.cancel()
+    }
+
+    @Test
+    fun completingDayDoesNotWaitForANextDayRemovedByTheWizard() = runVmTest {
+        insertSelectionProgram()
+        val advanceReady = CompletableDeferred<Unit>()
+        val advanceGate = CompletableDeferred<Unit>()
+        var holdAdvance = false
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle, today = flow {
+            if (holdAdvance) {
+                advanceReady.complete(Unit)
+                advanceGate.await()
+            }
+            emit(repo.currentDate())
+        })
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        vm.toggleDone(id, 0, true, isSuperset = false)
+        vm.openSetEditor(id, 0)
+        advanceUntilIdle()
+        assertEquals(OpenSheet("A", OpenSheet.Kind.EDITOR, id, 0), vm.uiState.value.openSheet)
+
+        // Pause after DONE predicts B, before advanceDay reads the replacement.
+        holdAdvance = true
+        vm.completeDay()
+        advanceReady.await()
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Day A", "", listOf(ProgramExercise("ez_curl")), cardio = null,
+        ))))
+        advanceGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertTrue(repo.sessionSummariesFlow.first().isNotEmpty())
+        assertEquals("A", vm.uiState.value.viewDayId)
+        assertEquals("DAY B · DAY B", vm.sessionReceipt.value?.nextDayLine)
+        assertNull(handle.get<OpenSheet>("day_open_sheet"))
+        assertNull(vm.uiState.value.openSheet)
+        val pageKey = "exercise:${slotId("ez_curl")}"
+        assertEquals(pageKey, handle.get<String>("selectedPageKey"))
+        assertEquals(pageKey, vm.uiState.value.selectedPageKey)
         collect.cancel()
     }
 

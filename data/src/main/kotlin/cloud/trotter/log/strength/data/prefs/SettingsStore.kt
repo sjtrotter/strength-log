@@ -60,6 +60,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val EQUIPMENT = stringSetPreferencesKey("equipment")
 
         val SUGGESTED_DAY = stringPreferencesKey("suggested_day")
+        val SELECTED_PLAN_ID = longPreferencesKey("selected_plan_id")
         val WIZARD_COMPLETE = booleanPreferencesKey("wizard_complete")
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val SESSION_STARTED_AT = longPreferencesKey("session_started_at")
@@ -147,6 +148,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     }
 
     val suggestedDayFlow: Flow<String?> = dataStore.data.map { it[Keys.SUGGESTED_DAY] }
+
+    val selectedPlanIdFlow: Flow<Long?> = dataStore.data.map { it[Keys.SELECTED_PLAN_ID] }
 
     val wizardCompleteFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.WIZARD_COMPLETE] ?: false }
@@ -334,6 +337,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setSuggestedDay(dayId: String) =
         dataStore.edit { it[Keys.SUGGESTED_DAY] = dayId }
 
+    suspend fun setSelectedPlanId(id: Long) =
+        dataStore.edit { it[Keys.SELECTED_PLAN_ID] = id }
+
     suspend fun setWizardComplete(complete: Boolean) =
         dataStore.edit { it[Keys.WIZARD_COMPLETE] = complete }
 
@@ -408,6 +414,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         unit: WeightUnit,
         wizardComplete: Boolean,
         suggestedDay: String?,
+        selectedPlanId: Long? = null,
         restSettings: RestSettings,
         keepScreenOn: Boolean,
         topSetHelperSeen: Boolean = false,
@@ -436,6 +443,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         prefs[Keys.WEIGHT_UNIT] = unit.name
         prefs[Keys.WIZARD_COMPLETE] = wizardComplete
         if (suggestedDay != null) prefs[Keys.SUGGESTED_DAY] = suggestedDay
+        if (selectedPlanId != null) prefs[Keys.SELECTED_PLAN_ID] = selectedPlanId
         prefs[Keys.REST_TIMER_ENABLED] = restSettings.enabled
         restSettings.overrides.forEach { (category, seconds) ->
             prefs[restOverrideKeys.getValue(category)] = seconds.coerceIn(0, RestPolicy.MAX_REST_SECONDS)

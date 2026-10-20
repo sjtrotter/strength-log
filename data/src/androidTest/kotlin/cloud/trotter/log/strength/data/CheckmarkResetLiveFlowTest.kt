@@ -10,6 +10,7 @@ import app.cash.turbine.test
 import cloud.trotter.log.strength.data.checkmark.CheckmarkReset
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
@@ -110,7 +111,7 @@ class CheckmarkResetLiveFlowTest {
             cardio = null,
         )
         repository.replaceProgram(Program(listOf(day)))
-        val squatId = db.programDao().exerciseAt(dayId, 0)!!.id
+        val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, dayId, 0)!!.id
         assertEquals("2026-07-06", CheckmarkReset.today(clock))
         repository.updateSets(dayId, squatId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
 
@@ -134,7 +135,7 @@ class CheckmarkResetLiveFlowTest {
     fun a_zone_change_reprojects_against_the_new_zones_date() = runTest {
         val day = ProgramDay(dayId, "Day A", "", listOf(ProgramExercise("bb_back_squat")), cardio = null)
         repository.replaceProgram(Program(listOf(day)))
-        val slotId = db.programDao().exerciseAt(dayId, 0)!!.id
+        val slotId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, dayId, 0)!!.id
         repository.updateSets(dayId, slotId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
 
         val instant = Instant.parse("2026-07-07T03:00:00Z")

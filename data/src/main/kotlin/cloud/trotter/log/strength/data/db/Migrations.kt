@@ -125,3 +125,95 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         db.execSQL("ALTER TABLE program_day ADD COLUMN kind TEXT NOT NULL DEFAULT 'STRENGTH'")
     }
 }
+
+/** v7 → v8 (saved plans, #266): the existing program becomes plan 1. */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `plan` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, " +
+                "`origin` TEXT NOT NULL, `position` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, " +
+                "`archived` INTEGER NOT NULL)",
+        )
+        db.execSQL(
+            "INSERT INTO `plan` (id, name, origin, position, createdAt, archived) " +
+                "SELECT 1, 'My plan', 'GENERATED', 0, ?, 0 " +
+                "WHERE EXISTS (SELECT 1 FROM `program_day` LIMIT 1)",
+            arrayOf(System.currentTimeMillis()),
+        )
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `program_day_new` (" +
+                "`planId` INTEGER NOT NULL, `dayId` TEXT NOT NULL, `position` INTEGER NOT NULL, " +
+                "`title` TEXT NOT NULL, `emphasisLine` TEXT NOT NULL, `cardioJson` TEXT, " +
+                "`kind` TEXT NOT NULL, PRIMARY KEY(`planId`, `dayId`))",
+        )
+        db.execSQL(
+            "INSERT INTO `program_day_new` (planId, dayId, position, title, emphasisLine, cardioJson, kind) " +
+                "SELECT 1, dayId, position, title, emphasisLine, cardioJson, kind FROM `program_day`",
+        )
+        db.execSQL("DROP TABLE `program_day`")
+        db.execSQL("ALTER TABLE `program_day_new` RENAME TO `program_day`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_program_day_planId` ON `program_day` (`planId`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `program_exercise_new` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `planId` INTEGER NOT NULL, " +
+                "`dayId` TEXT NOT NULL, `position` INTEGER NOT NULL, `exerciseId` TEXT NOT NULL, " +
+                "`isMain` INTEGER NOT NULL, `targetSets` INTEGER NOT NULL, " +
+                "`repSchemeLabel` TEXT NOT NULL, `hasWarmupHint` INTEGER NOT NULL, " +
+                "`supersetExerciseId` TEXT, `note` TEXT NOT NULL)",
+        )
+        db.execSQL(
+            "INSERT INTO `program_exercise_new` (id, planId, dayId, position, exerciseId, isMain, " +
+                "targetSets, repSchemeLabel, hasWarmupHint, supersetExerciseId, note) " +
+                "SELECT id, 1, dayId, position, exerciseId, isMain, targetSets, repSchemeLabel, " +
+                "hasWarmupHint, supersetExerciseId, note FROM `program_exercise`",
+        )
+        // Keep AUTOINCREMENT's old high-water mark even when its highest issued
+        // exercise row had already been deleted before this migration.
+        db.execSQL(
+            "INSERT INTO sqlite_sequence(name, seq) " +
+                "SELECT 'program_exercise_new', old.seq FROM sqlite_sequence AS old " +
+                "WHERE old.name = 'program_exercise' " +
+                "AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'program_exercise_new')",
+        )
+        db.execSQL(
+            "UPDATE sqlite_sequence SET seq = " +
+                "(SELECT old.seq FROM sqlite_sequence AS old WHERE old.name = 'program_exercise') " +
+                "WHERE name = 'program_exercise_new' " +
+                "AND seq < (SELECT old.seq FROM sqlite_sequence AS old WHERE old.name = 'program_exercise')",
+        )
+        db.execSQL("DROP INDEX IF EXISTS `index_program_exercise_dayId`")
+        db.execSQL("DROP TABLE `program_exercise`")
+        db.execSQL("ALTER TABLE `program_exercise_new` RENAME TO `program_exercise`")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_program_exercise_planId_dayId` " +
+                "ON `program_exercise` (`planId`, `dayId`)",
+        )
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `exercise_log_new` (" +
+                "`planId` INTEGER NOT NULL, `dayId` TEXT NOT NULL, `programExerciseId` INTEGER NOT NULL, " +
+                "`slot` TEXT NOT NULL, `setsJson` TEXT NOT NULL, `checkDate` TEXT NOT NULL, " +
+                "`updatedAt` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`planId`, `dayId`, `programExerciseId`, `slot`))",
+        )
+        db.execSQL(
+            "INSERT INTO `exercise_log_new` (planId, dayId, programExerciseId, slot, setsJson, checkDate, updatedAt) " +
+                "SELECT 1, dayId, programExerciseId, slot, setsJson, checkDate, updatedAt FROM `exercise_log`",
+        )
+        db.execSQL("DROP INDEX IF EXISTS `index_exercise_log_dayId`")
+        db.execSQL("DROP TABLE `exercise_log`")
+        db.execSQL("ALTER TABLE `exercise_log_new` RENAME TO `exercise_log`")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_exercise_log_planId_dayId` " +
+                "ON `exercise_log` (`planId`, `dayId`)",
+        )
+
+        db.execSQL("ALTER TABLE `workout_session` ADD COLUMN `planId` INTEGER")
+        db.execSQL("ALTER TABLE `workout_session` ADD COLUMN `planName` TEXT")
+        db.execSQL("ALTER TABLE `cardio_session` ADD COLUMN `planId` INTEGER")
+        db.execSQL("ALTER TABLE `cardio_session` ADD COLUMN `planName` TEXT")
+    }
+}

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
@@ -138,6 +139,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         completedAtMillis = set.completedAtMillis,
                     )
                 },
+                planId = s.planId,
+                planName = s.planName,
             )
         },
         cardioSessions = cardioSessions.map {
@@ -145,6 +148,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 id = it.id, dayId = it.dayId, mode = it.mode, hard = it.hard,
                 label = it.label, startedAt = it.startedAt, completedAt = it.completedAt,
                 seconds = it.seconds, stepsCompleted = it.stepsCompleted,
+                planId = it.planId, planName = it.planName,
             )
         },
     )
@@ -176,6 +180,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
 
     val dayEntities = program.mapIndexed { index, day ->
         ProgramDayEntity(
+            planId = PlanEntity.LEGACY_ID,
             dayId = day.dayId,
             position = index,
             title = day.title,
@@ -188,6 +193,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         day.exercises.mapIndexed { pos, ex ->
             ProgramExerciseEntity(
                 id = ex.id,
+                planId = PlanEntity.LEGACY_ID,
                 dayId = day.dayId,
                 position = pos,
                 exerciseId = ex.exerciseId,
@@ -202,6 +208,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
     }
     val logEntities = liveLogs.map {
         ExerciseLogEntity(
+            planId = PlanEntity.LEGACY_ID,
             dayId = it.dayId,
             programExerciseId = it.programExerciseId,
             slot = it.slot,
@@ -218,6 +225,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             startedAt = it.startedAt,
             completedAt = it.completedAt,
             bodyweightLb = it.bodyweightLb,
+            planId = it.planId,
+            planName = it.planName,
         )
     }
     val sessionSetEntities = sessions.flatMap { s ->
@@ -277,6 +286,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 id = it.id, dayId = it.dayId, mode = it.mode, hard = it.hard,
                 label = it.label, startedAt = it.startedAt, completedAt = it.completedAt,
                 seconds = it.seconds, stepsCompleted = it.stepsCompleted,
+                planId = it.planId, planName = it.planName,
             )
         },
     )

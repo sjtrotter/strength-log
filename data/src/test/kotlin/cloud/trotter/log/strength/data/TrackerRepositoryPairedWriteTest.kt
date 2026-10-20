@@ -8,7 +8,11 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SupersetPartner
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,8 +67,16 @@ class TrackerRepositoryPairedWriteTest {
         storeScope.cancel()
     }
 
+    /** Day A with one superset slot; writes are addressed by the slot's own row. */
+    private suspend fun supersetSlot(): Long {
+        val slot = ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown"))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(slot), cardio = null))))
+        return repo.daySlotsFlow("A").first().single().programExerciseId
+    }
+
     @Test
     fun pairedWritePersistsBothTracksWithOneCheckDate() = runTest {
+        val slotId = supersetSlot()
         val main = listOf(
             LoggedSet(60.0, 12, SetKind.WORK, done = true),
             LoggedSet(60.0, 11, SetKind.WORK),
@@ -74,7 +86,7 @@ class TrackerRepositoryPairedWriteTest {
             LoggedSet(50.0, 14, SetKind.WORK),
         )
 
-        repo.updateSetsPaired("A", programExerciseId = 7, mainSets = main, ssSets = partner)
+        repo.updateSetsPaired("A", programExerciseId = slotId, mainSets = main, ssSets = partner)
 
         val slots = repo.logFlow("A").first().associateBy { it.slot }
         assertEquals(setOf(Slot.MAIN, Slot.SS), slots.keys)
@@ -88,15 +100,16 @@ class TrackerRepositoryPairedWriteTest {
 
     @Test
     fun pairedWriteOverwritesBothTracksInPlace() = runTest {
+        val slotId = supersetSlot()
         repo.updateSetsPaired(
-            "A", 7,
+            "A", slotId,
             mainSets = listOf(LoggedSet(60.0, 12, SetKind.WORK)),
             ssSets = listOf(LoggedSet(50.0, 15, SetKind.WORK)),
         )
         val grownMain = listOf(LoggedSet(60.0, 12, SetKind.WORK), LoggedSet(60.0, 12, SetKind.EXTRA))
         val grownSs = listOf(LoggedSet(50.0, 15, SetKind.WORK), LoggedSet(50.0, 15, SetKind.EXTRA))
 
-        repo.updateSetsPaired("A", 7, grownMain, grownSs)
+        repo.updateSetsPaired("A", slotId, grownMain, grownSs)
 
         val slots = repo.logFlow("A").first().associateBy { it.slot }
         assertEquals(2, slots.size)

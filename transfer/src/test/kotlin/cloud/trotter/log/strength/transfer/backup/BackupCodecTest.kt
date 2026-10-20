@@ -2,8 +2,10 @@ package cloud.trotter.log.strength.transfer.backup
 
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
@@ -130,6 +132,50 @@ class BackupCodecTest {
         )
         val doc = document(cardioSessions = listOf(cardio))
         assertEquals(listOf(cardio), codec.decode(codec.encode(doc)).cardioSessions)
+    }
+
+    @Test
+    fun `session plan identity survives a full export-import cycle`() {
+        val session = WorkoutSessionEntity(
+            id = 7, dayId = "A", dayTitle = "Day A", startedAt = null, completedAt = 5_000L,
+            bodyweightLb = 235, planId = 2, planName = "Test prep",
+        )
+        val cardioSession = CardioSessionEntity(
+            id = 3, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Easy Zone 2", startedAt = 1_000, completedAt = 91_000,
+            seconds = 90, stepsCompleted = 1, planId = 2, planName = "Test prep",
+        )
+        val snapshot = restSnapshot(RestSettings()).copy(
+            sessions = listOf(session),
+            cardioSessions = listOf(cardioSession),
+        )
+
+        val decoded = codec.decode(codec.encode(snapshot.toDocument()))
+        val restored = decoded.toSnapshot()
+
+        assertEquals(7, decoded.schemaVersion)
+        assertEquals(2L, decoded.sessions.single().planId)
+        assertEquals("Test prep", decoded.sessions.single().planName)
+        assertEquals(2L, decoded.cardioSessions.single().planId)
+        assertEquals("Test prep", decoded.cardioSessions.single().planName)
+        assertEquals(listOf(session), restored.sessions)
+        assertEquals(listOf(cardioSession), restored.cardioSessions)
+    }
+
+    @Test
+    fun `v5 through v7 sessions without plan fields decode as null`() {
+        (5..7).forEach { version ->
+            val legacy = codec.encode(document(cardioSessions = listOf(cardio())).copy(schemaVersion = version))
+                .replace(",\"planId\":null", "")
+                .replace(",\"planName\":null", "")
+
+            val decoded = codec.decode(legacy)
+
+            assertNull(decoded.sessions.single().planId, "v$version")
+            assertNull(decoded.sessions.single().planName, "v$version")
+            assertNull(decoded.cardioSessions.single().planId, "v$version")
+            assertNull(decoded.cardioSessions.single().planName, "v$version")
+        }
     }
 
     @Test
@@ -508,16 +554,16 @@ class BackupCodecTest {
                 CustomExerciseEntity(custom.id, custom.name, custom.pattern, custom.equipmentCsv, custom.perHand, custom.goalStartLb),
             ),
             days = listOf(
-                ProgramDayEntity("A", 0, "Day A", "Squat-focused", null),
-                ProgramDayEntity("B", 1, "Day B", "Bench-focused", """{"label":"Zone 2","detail":"20-30 min","hard":false}"""),
+                ProgramDayEntity(PlanEntity.LEGACY_ID, "A", 0, "Day A", "Squat-focused", null),
+                ProgramDayEntity(PlanEntity.LEGACY_ID, "B", 1, "Day B", "Bench-focused", """{"label":"Zone 2","detail":"20-30 min","hard":false}"""),
             ),
             exercises = listOf(
-                ProgramExerciseEntity(1, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "belt"),
-                ProgramExerciseEntity(2, "A", 1, custom.id, false, 3, "8-12", false, "bb_bench", ""),
-                ProgramExerciseEntity(3, "B", 0, "bb_bench", true, 4, "6-10", false, null, ""),
+                ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "belt"),
+                ProgramExerciseEntity(2, PlanEntity.LEGACY_ID, "A", 1, custom.id, false, 3, "8-12", false, "bb_bench", ""),
+                ProgramExerciseEntity(3, PlanEntity.LEGACY_ID, "B", 0, "bb_bench", true, 4, "6-10", false, null, ""),
             ),
             logs = listOf(
-                ExerciseLogEntity("A", 1, "main", """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]""", "2026-07-06", 1_000L),
+                ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", 1, "main", """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]""", "2026-07-06", 1_000L),
             ),
             sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210)),
             sessionSets = listOf(SessionSetEntity(11, 7, "bb_back_squat", "Barbell Back Squat", "main", 0, "TOP", 235.0, 5, true)),
@@ -540,8 +586,8 @@ class BackupCodecTest {
             suggestedDay = "A",
             restSettings = RestSettings(),
             customExercises = emptyList(),
-            days = listOf(ProgramDayEntity("A", 0, "Day A", "Squat-focused", null)),
-            exercises = listOf(ProgramExerciseEntity(1, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
+            days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "A", 0, "Day A", "Squat-focused", null)),
+            exercises = listOf(ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
             logs = emptyList(),
             sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210)),
             sessionSets = listOf(stamped),
@@ -561,8 +607,8 @@ class BackupCodecTest {
         suggestedDay = "A",
         restSettings = restSettings,
         customExercises = emptyList(),
-        days = listOf(ProgramDayEntity("A", 0, "Day A", "Squat-focused", null)),
-        exercises = listOf(ProgramExerciseEntity(1, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
+        days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "A", 0, "Day A", "Squat-focused", null)),
+        exercises = listOf(ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
         logs = emptyList(),
         sessions = emptyList(),
         sessionSets = emptyList(),

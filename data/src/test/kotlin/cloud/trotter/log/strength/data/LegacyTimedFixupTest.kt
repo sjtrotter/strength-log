@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -69,14 +70,19 @@ class LegacyTimedFixupTest {
 
     private suspend fun slot(exerciseId: String, position: Int): Long =
         db.programDao().insertExercise(
-            ProgramExerciseEntity(0, "A", position, exerciseId, false, 3, "", false, null, ""),
+            ProgramExerciseEntity(0, PlanEntity.LEGACY_ID, "A", position, exerciseId, false, 3, "", false, null, ""),
         )
 
     private suspend fun writeLog(slotId: Long, sets: List<LoggedSet>) =
-        db.programDao().upsertLog(ExerciseLogEntity("A", slotId, "main", SetJson.encodeSets(sets), "2026-07-11", 1L))
+        db.programDao().upsertLog(
+            ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", slotId, "main", SetJson.encodeSets(sets), "2026-07-11", 1L),
+        )
 
     private suspend fun setsFor(slotId: Long): List<LoggedSet> =
-        SetJson.decodeSets(db.programDao().logsForDay("A").first { it.programExerciseId == slotId }.setsJson)
+        SetJson.decodeSets(
+            db.programDao().logsForDay(PlanEntity.LEGACY_ID, "A")
+                .first { it.programExerciseId == slotId }.setsJson,
+        )
 
     @Test
     fun `plank reps become seconds, squat untouched, and it never runs twice`() = runTest {

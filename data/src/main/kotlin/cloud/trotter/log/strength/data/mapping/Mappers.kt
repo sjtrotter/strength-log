@@ -28,9 +28,10 @@ fun ProgramExerciseEntity.toDomain(): ProgramExercise =
         note = note,
     )
 
-fun ProgramExercise.toEntity(dayId: String, position: Int): ProgramExerciseEntity =
+fun ProgramExercise.toEntity(planId: Long, dayId: String, position: Int): ProgramExerciseEntity =
     ProgramExerciseEntity(
         id = 0,
+        planId = planId,
         dayId = dayId,
         position = position,
         exerciseId = exerciseId,
@@ -53,8 +54,9 @@ fun ProgramDayEntity.toDomain(exercises: List<ProgramExerciseEntity>): ProgramDa
         kind = ProgramDayKind.entries.firstOrNull { it.name == kind } ?: ProgramDayKind.STRENGTH,
     )
 
-fun ProgramDay.toEntity(): ProgramDayEntity =
+fun ProgramDay.toEntity(planId: Long): ProgramDayEntity =
     ProgramDayEntity(
+        planId = planId,
         dayId = id,
         position = 0, // caller overwrites with the day's index
         title = title,

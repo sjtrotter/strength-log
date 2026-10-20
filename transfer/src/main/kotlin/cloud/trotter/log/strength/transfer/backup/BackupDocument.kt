@@ -56,6 +56,10 @@ data class CardioSessionBackup(
     val completedAt: Long,
     val seconds: Int,
     val stepsCompleted: Int,
+    /** The plan this session ran under, or null for pre-plans history and CSV imports. */
+    val planId: Long? = null,
+    /** Plan name copied at completion, so history survives a rename or archive. */
+    val planName: String? = null,
 )
 
 /**
@@ -185,6 +189,10 @@ data class SessionBackup(
      *  with a 0, which [BackupCodec.decode] maps to null on the way in. */
     val bodyweightLb: Int? = null,
     val sets: List<SessionSetBackup> = emptyList(),
+    /** The plan this session ran under, or null for pre-plans history and CSV imports. */
+    val planId: Long? = null,
+    /** Plan name copied at completion, so history survives a rename or archive. */
+    val planName: String? = null,
 )
 
 @Serializable

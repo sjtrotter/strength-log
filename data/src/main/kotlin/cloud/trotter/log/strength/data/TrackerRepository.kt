@@ -54,6 +54,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -251,11 +252,13 @@ open class TrackerRepository(
 
     val plansFlow: Flow<List<PlanEntity>> = planDao.observePlans()
 
+    /** Distinct, because DataStore emits on every key's write and each emission
+     *  here restarts every plan-scoped Room query downstream. */
     val selectedPlanIdFlow: Flow<Long?> =
         combine(settings.selectedPlanIdFlow, plansFlow) { storedId, plans ->
             plans.firstOrNull { it.id == storedId && !it.archived }?.id
                 ?: plans.firstOrNull { !it.archived }?.id
-        }
+        }.distinctUntilChanged()
 
     private suspend fun selectedPlanId(): Long? = selectedPlanIdFlow.first()
 

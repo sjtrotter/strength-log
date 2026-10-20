@@ -710,6 +710,11 @@ class DayViewModel @Inject constructor(
             val nextDayId = if (dayIndex >= 0) Rotation.next(program, day) else null
             val sessionId = repo.advanceDay(day, today.first())
             savedState[KEY_VIEW_DAY] = null
+            // advanceDay's own writes re-emit the finished day (its checks just
+            // cleared). Until the new day reaches effectiveDayId, that emission
+            // still matches currentDay() and the page pin in init would put the
+            // finished day's page back. A one-day rotation stays on its day.
+            if (nextDayId != day) effectiveDayId.first { it != day }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
             val unit = repo.unitFlow.first()

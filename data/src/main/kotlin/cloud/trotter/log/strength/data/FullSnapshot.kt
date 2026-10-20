@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
@@ -32,6 +33,7 @@ data class FullSnapshot(
     val unit: WeightUnit,
     val wizardComplete: Boolean,
     val suggestedDay: String?,
+    val selectedPlanId: Long? = null,
     val restSettings: RestSettings,
     /** The keep-screen-on preference (#125). Defaulted off so the many fixtures
      *  that predate it still read as the setting's absent-means-off meaning. */
@@ -40,6 +42,8 @@ data class FullSnapshot(
     val supersetHelperSeen: Boolean = false,
     val sessionNotes: Map<Long, String> = emptyMap(),
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
+    /** Empty means a pre-plans backup, restored as one plan. */
+    val plans: List<PlanEntity> = emptyList(),
     val customExercises: List<CustomExerciseEntity>,
     val days: List<ProgramDayEntity>,
     val exercises: List<ProgramExerciseEntity>,

@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
@@ -114,12 +115,13 @@ class RestoreJournalTest {
         unit = WeightUnit.KG,
         wizardComplete = true,
         suggestedDay = "R",
+        selectedPlanId = PlanEntity.LEGACY_ID,
         restSettings = RestSettings(enabled = false, overrides = mapOf(RestCategory.TOP to 240)),
         keepScreenOn = true,
         customExercises = emptyList(),
-        days = listOf(ProgramDayEntity("R", 0, "Restored", "from a backup", null)),
+        days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "R", 0, "Restored", "from a backup", null)),
         exercises = listOf(
-            ProgramExerciseEntity(1, "R", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, ""),
+            ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "R", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, ""),
         ),
         logs = emptyList(),
         sessions = emptyList(),
@@ -132,6 +134,7 @@ class RestoreJournalTest {
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertTrue("the wizard flag is what keeps setup from reopening", settings.wizardCompleteFlow.first())
         assertEquals("R", settings.suggestedDayFlow.first())
+        assertEquals(PlanEntity.LEGACY_ID, settings.selectedPlanIdFlow.first())
         assertEquals(
             RestSettings(enabled = false, overrides = mapOf(RestCategory.TOP to 240)),
             settings.restSettingsFlow.first(),
@@ -143,6 +146,7 @@ class RestoreJournalTest {
         assertEquals(LifterConfig().bodyweightLb, settings.configFlow.first().bodyweightLb)
         assertFalse(settings.wizardCompleteFlow.first())
         assertNull(settings.suggestedDayFlow.first())
+        assertNull(settings.selectedPlanIdFlow.first())
     }
 
     private suspend fun restoredProgramIsInRoom() =
@@ -310,9 +314,9 @@ class RestoreJournalTest {
         repo.importSnapshot(snapshot(), journal)
         val second = snapshot().copy(
             answers = WizardAnswers(config = LifterConfig(bodyweightLb = 205, age = 31)),
-            days = listOf(ProgramDayEntity("S", 0, "Second", "from a later backup", null)),
+            days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "S", 0, "Second", "from a later backup", null)),
             exercises = listOf(
-                ProgramExerciseEntity(2, "S", 0, "bb_back_squat", true, 3, "5/5/5", false, null, ""),
+                ProgramExerciseEntity(2, PlanEntity.LEGACY_ID, "S", 0, "bb_back_squat", true, 3, "5/5/5", false, null, ""),
             ),
             suggestedDay = "S",
         )

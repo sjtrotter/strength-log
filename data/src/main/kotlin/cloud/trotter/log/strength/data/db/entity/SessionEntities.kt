@@ -22,6 +22,13 @@ data class WorkoutSessionEntity(
      *  as a real value to the backup, which is what made imported history
      *  unrestorable. Added in DB v4. */
     val bodyweightLb: Int?,
+    /** The plan this session ran under, or null for history recorded before plans
+     *  existed (earlier wizard runs deleted programs whose days shared these
+     *  letters, so their plan is unknowable) and for CSV imports. */
+    val planId: Long? = null,
+    /** [PlanEntity.name] copied at completion, so history survives a rename or
+     *  archive — the same rule as `exerciseName` on set rows. */
+    val planName: String? = null,
 )
 
 /**

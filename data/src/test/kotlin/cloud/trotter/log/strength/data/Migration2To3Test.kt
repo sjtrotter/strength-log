@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_3_4
 import cloud.trotter.log.strength.data.db.MIGRATION_4_5
 import cloud.trotter.log.strength.data.db.MIGRATION_5_6
 import cloud.trotter.log.strength.data.db.MIGRATION_6_7
+import cloud.trotter.log.strength.data.db.MIGRATION_7_8
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -51,7 +52,10 @@ class Migration2To3Test {
         createV2DatabaseWithRows()
 
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(
+                MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+                MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+            )
             .allowMainThreadQueries()
             .build()
         try {
@@ -68,7 +72,7 @@ class Migration2To3Test {
 
             // The live log is JSON and untouched by the migration: it still decodes,
             // with the stamps defaulting to "not observed".
-            val log = db.programDao().logsForDay("A").single()
+            val log = db.programDao().logsForDay(1, "A").single()
             val liveSets = SetJson.decodeSets(log.setsJson)
             assertEquals(1, liveSets.size)
             assertEquals(235.0, liveSets[0].weightLb, 0.0)

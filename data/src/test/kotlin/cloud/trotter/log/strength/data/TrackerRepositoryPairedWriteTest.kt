@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -65,6 +66,7 @@ class TrackerRepositoryPairedWriteTest {
 
     @Test
     fun pairedWritePersistsBothTracksWithOneCheckDate() = runTest {
+        repo.replaceProgram(Program(emptyList()))
         val main = listOf(
             LoggedSet(60.0, 12, SetKind.WORK, done = true),
             LoggedSet(60.0, 11, SetKind.WORK),
@@ -88,6 +90,7 @@ class TrackerRepositoryPairedWriteTest {
 
     @Test
     fun pairedWriteOverwritesBothTracksInPlace() = runTest {
+        repo.replaceProgram(Program(emptyList()))
         repo.updateSetsPaired(
             "A", 7,
             mainSets = listOf(LoggedSet(60.0, 12, SetKind.WORK)),

@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.transfer.backup
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
@@ -87,8 +88,8 @@ class BackupRoundTripTest : BackupTestHarness() {
         )
         repository.replaceProgram(Program(listOf(dayA, dayB)))
 
-        val squatId = db.programDao().exerciseAt("A", 0)!!.id
-        val rowId = db.programDao().exerciseAt("A", 1)!!.id
+        val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
+        val rowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id
         repository.updateSets("A", squatId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
         repository.updateSets("A", rowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
         repository.advanceDay("A") // history + rotation A -> B + clears A's checks

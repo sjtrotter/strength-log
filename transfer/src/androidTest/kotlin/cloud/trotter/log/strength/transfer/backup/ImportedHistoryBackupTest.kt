@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.transfer.backup
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -45,7 +46,7 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
             cardio = null,
         )
         repository.replaceProgram(Program(listOf(day)))
-        val squatId = db.programDao().exerciseAt("A", 0)!!.id
+        val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
         repository.updateSets("A", squatId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
         repository.advanceDay("A")
     }

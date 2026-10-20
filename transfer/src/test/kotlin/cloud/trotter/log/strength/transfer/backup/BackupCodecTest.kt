@@ -154,7 +154,7 @@ class BackupCodecTest {
         val decoded = codec.decode(codec.encode(snapshot.toDocument()))
         val restored = decoded.toSnapshot()
 
-        assertEquals(9, decoded.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, decoded.schemaVersion)
         assertEquals(2L, decoded.sessions.single().planId)
         assertEquals("Test prep", decoded.sessions.single().planName)
         assertEquals(2L, decoded.cardioSessions.single().planId)

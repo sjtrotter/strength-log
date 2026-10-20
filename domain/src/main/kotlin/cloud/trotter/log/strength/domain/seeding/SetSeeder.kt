@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.domain.seeding
 
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
@@ -10,6 +12,17 @@ import cloud.trotter.log.strength.domain.standards.StrengthStandards
 
 /** Seeds the initial ACTUAL log rows from a GOAL (spec §4). */
 object SetSeeder {
+
+    /** Each authored run starts with WORK rows at the prescribed values.
+     *  For reps in time, the window lives in the prescription; the log holds the count. */
+    fun seedPrescribed(sets: Int, p: Prescription): List<LoggedSet> = List(sets) {
+        when (val target = p.target) {
+            is PrescribedTarget.LoadReps -> LoggedSet(target.lb, target.reps, SetKind.WORK)
+            is PrescribedTarget.Reps -> LoggedSet(0.0, target.reps, SetKind.WORK)
+            is PrescribedTarget.Hold -> LoggedSet(target.addedLb, 0, SetKind.WORK, seconds = target.seconds)
+            is PrescribedTarget.RepsInTime -> LoggedSet(0.0, 0, SetKind.WORK)
+        }
+    }
 
     private const val ACCESSORY_REPS = 10
 

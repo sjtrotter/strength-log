@@ -29,7 +29,7 @@ data class LoggedSet(
     val reps: Int,
     val kind: SetKind,
     val done: Boolean = false, // per-set checkmark, reset daily
-    val seconds: Int = 0, // TIMED tracks only; 0 (ignored) for WEIGHTED/REPS
+    val seconds: Int = 0, // timed hold duration; otherwise 0
     // When the set was started and ticked, in wall-clock millis, as observed by
     // whichever surface logged it (today: the watch dial). Null = not observed —
     // every set logged before per-set timing existed, and every phone-side tick.
@@ -49,6 +49,8 @@ data class ProgramExercise(
     val hasWarmupHint: Boolean = false, // "+1 warm-up set" badge
     val superset: SupersetPartner? = null,
     val note: String = "",
+    /** Authored slots have no superset partner; editors must not offer one. */
+    val prescription: Prescription? = null,
 )
 
 enum class ProgramDayKind { STRENGTH, CARDIO }

@@ -12,6 +12,9 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -115,6 +118,51 @@ class DayViewModelWiringTest {
         today: Flow<LocalDate> = kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()),
     ): DayViewModel =
         DayViewModel(repo, publisher, shareCardService, handle, today, FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
+
+    @Test
+    fun prescribedHoldsUseTheirAddedLoadForTheWeightControlAndDisableSupersets() = runVmTest {
+        val exercises = listOf(
+            ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Hold(45, 25.0))),
+            ProgramExercise("weighted_plank", prescription = Prescription(PrescribedTarget.Hold(45))),
+        )
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Holds", "", exercises, null))))
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+
+        val cards = vm.uiState.value.exercises
+        assertEquals(listOf(TrackingType.TIMED, TrackingType.TIMED), cards.map { it.tracking })
+        assertEquals(listOf(true, false), cards.map { it.timedShowsWeight })
+        assertEquals(listOf(25.0, 0.0), cards.map { it.rows.first().weightDisplay })
+        assertTrue(vm.dayEditState.value.slots.all { !it.canSetSuperset })
+
+        collectUi.cancel()
+        collectEdit.cancel()
+    }
+
+    @Test
+    fun weightedPlankOnlyUsesTheCatalogWeightControlWithoutAPrescription() = runVmTest {
+        val exercises = listOf(
+            ProgramExercise("weighted_plank", prescription = Prescription(PrescribedTarget.Reps(12))),
+            ProgramExercise("weighted_plank", prescription = Prescription(PrescribedTarget.RepsInTime(30, 12))),
+            ProgramExercise("weighted_plank", prescription = Prescription(PrescribedTarget.LoadReps(25.0, 12))),
+            ProgramExercise("weighted_plank"),
+        )
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Planks", "", exercises, null))))
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        val cards = vm.uiState.value.exercises
+        assertEquals(
+            listOf(TrackingType.REPS, TrackingType.REPS, TrackingType.WEIGHTED, TrackingType.TIMED),
+            cards.map { it.tracking },
+        )
+        assertEquals(listOf(false, false, true, true), cards.map { it.timedShowsWeight })
+
+        collectUi.cancel()
+    }
 
     @Test
     fun selectedPageSurvivesViewModelRecreation() = runVmTest {

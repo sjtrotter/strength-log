@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -17,6 +18,7 @@ import java.io.InputStream
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -87,12 +89,12 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // added keep-screen-on, v5 made a session's bodyweight nullable, v6
             // added cardio sessions, v7 added program-day kinds, and v8 added
             // plans and their live-log/selection pointers; v9 added each plan's
-            // recipe and rotation. Older documents decode
+            // recipe and rotation; v10 added authored prescriptions. Older documents decode
             // with newer fields at their defaults; the version determines which
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -131,8 +133,10 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 }
             })
         }
+        // Before v10 this was an unknown field, even if its value had the wrong type.
+        val versioned = if (version < 10) withoutPrescriptions(shaped) else shaped
         val document = try {
-            json.decodeFromJsonElement(BackupDocument.serializer(), shaped)
+            json.decodeFromJsonElement(BackupDocument.serializer(), versioned)
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
@@ -140,6 +144,30 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             throw BackupError.Malformed("program must be empty in schema v$version")
         }
         return document
+    }
+
+    private fun withoutPrescriptions(root: JsonObject): JsonObject {
+        fun stripDays(value: JsonElement?): JsonElement? =
+            (value as? JsonArray)?.let { dayRows ->
+                JsonArray(dayRows.map { day ->
+                    if (day !is JsonObject) day else {
+                        val exercises = day["exercises"] as? JsonArray
+                        if (exercises == null) day else JsonObject(day + ("exercises" to JsonArray(exercises.map {
+                            if (it is JsonObject) JsonObject(it - "prescriptionJson") else it
+                        })))
+                    }
+                })
+            } ?: value
+        return JsonObject(root.toMutableMap().apply {
+            stripDays(get("program"))?.let { put("program", it) }
+            val plans = get("plans") as? JsonArray
+            if (plans != null) put("plans", JsonArray(plans.map { plan ->
+                if (plan !is JsonObject) plan else {
+                    val planDays = stripDays(plan["days"])
+                    if (planDays == null) plan else JsonObject(plan + ("days" to planDays))
+                }
+            }))
+        })
     }
 
     /** Pre-v9 recipe fields were required; null defaults must not hide truncation. */
@@ -210,6 +238,16 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                     throw BackupError.Inconsistent("unknown plan origin '${plan.origin}'")
                 }
                 slotsByPlan[plan.id] = validateProgram(plan.days, customIds, slotIds)
+                if (doc.schemaVersion >= 10) {
+                    plan.days.flatMap { it.exercises }.forEach { ex ->
+                        ex.prescriptionJson?.let { prescription ->
+                            decodePayload("prescriptionJson of slot ${ex.id}") { PrescriptionJson.validate(prescription) }
+                            if (ex.targetSets !in 1..99) {
+                                throw BackupError.Inconsistent("authored targetSets must be 1..99 on slot ${ex.id}")
+                            }
+                        }
+                    }
+                }
                 if (doc.schemaVersion >= 9) {
                     plan.recipeJson?.let { recipe ->
                         decodePayload("recipeJson of plan ${plan.id}") { PlanRecipeJson.validate(recipe) }

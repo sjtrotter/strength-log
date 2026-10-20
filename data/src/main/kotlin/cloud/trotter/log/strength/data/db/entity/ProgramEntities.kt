@@ -61,6 +61,7 @@ data class ProgramExerciseEntity(
     val hasWarmupHint: Boolean,
     val supersetExerciseId: String?,
     val note: String,
+    val prescriptionJson: String? = null,
 )
 
 /**

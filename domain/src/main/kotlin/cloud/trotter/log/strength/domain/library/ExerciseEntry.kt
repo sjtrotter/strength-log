@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.domain.library
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.StandardLift
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 
 /** Where an exercise's read-only GOAL comes from (spec §5). The variant also
  *  decides how the exercise is tracked — see [ExerciseEntry.tracking]. */
@@ -27,8 +29,8 @@ sealed interface GoalSource {
     data class Time(val targetSeconds: Int, val addedWeightLb: Double = 0.0) : GoalSource
 }
 
-/** How a set is logged and displayed — derived from [GoalSource], never stored
- *  separately (SSOT: one declaration decides both progression and display). */
+/** How a set is logged and displayed — derived from a slot's [Prescription]
+ *  or its catalog [GoalSource], never stored separately. */
 enum class TrackingType { WEIGHTED, REPS, TIMED }
 
 /** The tracking type implied by this entry's [goal] (§2.1). */
@@ -37,6 +39,14 @@ val ExerciseEntry.tracking: TrackingType
         is GoalSource.Std, is GoalSource.FracOfStd, is GoalSource.Flat -> TrackingType.WEIGHTED
         is GoalSource.Reps -> TrackingType.REPS
         is GoalSource.Time -> TrackingType.TIMED
+    }
+
+/** The authored target takes precedence over the catalog entry's tracking. */
+val Prescription.tracking: TrackingType
+    get() = when (target) {
+        is PrescribedTarget.LoadReps -> TrackingType.WEIGHTED
+        is PrescribedTarget.Reps, is PrescribedTarget.RepsInTime -> TrackingType.REPS
+        is PrescribedTarget.Hold -> TrackingType.TIMED
     }
 
 data class ExerciseEntry(

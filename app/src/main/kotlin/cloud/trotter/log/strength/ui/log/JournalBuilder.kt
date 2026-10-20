@@ -55,14 +55,14 @@ object JournalBuilder {
      * position in [Program.days] — the same key `dayAccent` takes, so a lift's
      * line matches the tab it lives under.
      *
-     * Only weight-target mains qualify: a REPS/TIMED slot has no top-set weight
-     * to plot, and the generator already refuses to make one a main.
+     * Only generated weight-target mains qualify: prescribed slots have no
+     * ramped top set, and REPS/TIMED slots have no top-set weight to plot.
      */
     fun mainLifts(program: Program, catalog: ExerciseCatalog, cfg: LifterConfig): List<MainLift> {
         val lifts = LinkedHashMap<String, MainLift>()
         program.days.forEachIndexed { dayIndex, day ->
             for (pe in day.exercises) {
-                if (!pe.isMain || pe.exerciseId in lifts) continue
+                if (!pe.isMain || pe.prescription != null || pe.exerciseId in lifts) continue
                 val entry = catalog.find(pe.exerciseId) ?: continue
                 val goal = GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight ?: continue
                 lifts[pe.exerciseId] = MainLift(pe.exerciseId, entry.name, dayIndex, goal.lb)

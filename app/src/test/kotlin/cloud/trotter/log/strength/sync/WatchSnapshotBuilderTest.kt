@@ -12,6 +12,8 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
@@ -44,6 +46,33 @@ class WatchSnapshotBuilderTest {
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
         LoggedSlot(id, slot, sets, checkDate = "2026-07-09")
+
+    @Test
+    fun `snapshot tracking and unopened rows follow the prescription over the catalog`() {
+        val exercise = ProgramExercise("bb_back_squat", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 50)))
+        val authored = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise), null)))
+        val projected = WatchSnapshotBuilder.build(
+            authored, "A", listOf(ProgramSlot(10L, 0, exercise)), emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+        assertEquals("reps", projected.tracking)
+        assertEquals(listOf(0, 0), projected.sets.map { it.reps })
+        assertEquals(listOf(0, 0), projected.sets.map { it.seconds })
+        assertEquals(listOf("WORK", "WORK"), projected.sets.map { it.kind })
+    }
+
+    @Test
+    fun `a prescribed loaded hold sends its added load over the catalog goal`() {
+        val exercise = ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Hold(45, 25.0)))
+        val authored = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise), null)))
+        val projected = WatchSnapshotBuilder.build(
+            authored, "A", listOf(ProgramSlot(10L, 0, exercise)), emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
+        )!!.day.exercises.single()
+
+        assertEquals("timed", projected.tracking)
+        assertEquals(25.0, projected.goal)
+        assertEquals(List(3) { 25.0 }, projected.sets.map { it.weightLb })
+        assertEquals(List(3) { 45 }, projected.sets.map { it.seconds })
+    }
 
     @Test
     fun `an unseeded day previews the domain-seeded template with every set undone`() {

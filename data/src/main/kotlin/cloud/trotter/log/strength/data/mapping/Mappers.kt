@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.serialization.CardioDto
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -26,6 +27,7 @@ fun ProgramExerciseEntity.toDomain(): ProgramExercise =
         hasWarmupHint = hasWarmupHint,
         superset = supersetExerciseId?.let(::SupersetPartner),
         note = note,
+        prescription = PrescriptionJson.decode(prescriptionJson),
     )
 
 fun ProgramExercise.toEntity(planId: Long, dayId: String, position: Int): ProgramExerciseEntity =
@@ -41,6 +43,7 @@ fun ProgramExercise.toEntity(planId: Long, dayId: String, position: Int): Progra
         hasWarmupHint = hasWarmupHint,
         supersetExerciseId = superset?.exerciseId,
         note = note,
+        prescriptionJson = prescription?.let(PrescriptionJson::encode),
     )
 
 /** Assembles a domain [ProgramDay] from its day row and its ordered exercise rows. */

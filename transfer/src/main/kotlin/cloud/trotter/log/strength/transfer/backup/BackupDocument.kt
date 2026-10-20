@@ -11,9 +11,10 @@ import kotlinx.serialization.Serializable
  * add a `when` branch when the on-disk shape changes; an older document is read
  * by the same decoder and reinterpreted only where a field's *meaning* changed
  * (v5's session bodyweight), never by a parallel set of old model classes;
- * v8 nests the program under plans; v9 carries each plan's recipe and rotation.
+ * v8 nests the program under plans; v9 carries each plan's recipe and rotation;
+ * v10 carries authored prescriptions.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 9
+const val CURRENT_SCHEMA_VERSION: Int = 10
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -178,6 +179,7 @@ data class ProgramExerciseBackup(
     val hasWarmupHint: Boolean,
     val supersetExerciseId: String? = null,
     val note: String,
+    val prescriptionJson: String? = null,
 )
 
 /**

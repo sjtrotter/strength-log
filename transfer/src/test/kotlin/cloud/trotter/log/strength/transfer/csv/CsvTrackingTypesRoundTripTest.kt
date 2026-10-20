@@ -5,6 +5,9 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.ZoneId
 import kotlin.test.Test
@@ -36,6 +39,24 @@ class CsvTrackingTypesRoundTripTest {
             done = true,
             seconds = seconds,
         )
+
+    @Test
+    fun `a completed two minute rep window round trips as 42 reps`() {
+        val completed = SetSeeder.seedPrescribed(1, Prescription(PrescribedTarget.RepsInTime(120, 50)))
+            .single().copy(reps = 42, done = true)
+        val session = WorkoutSessionEntity(1, "A", "Rep window", null, 1_720_000_000_000L, 235)
+        val row = set(1, "bb_back_squat", "Barbell Back Squat", completed.weightLb, completed.reps, completed.seconds)
+
+        val csv = HistoryCsvWriter.export(listOf(session), listOf(row), WeightUnit.LB, zone)
+
+        val cells = Csv.parse(csv)[1]
+        assertEquals("", cells[HISTORY_CSV_HEADER.indexOf("Weight")])
+        assertEquals("42", cells[HISTORY_CSV_HEADER.indexOf("Reps")])
+        assertEquals("", cells[HISTORY_CSV_HEADER.indexOf("Seconds")])
+        val preview = HistoryCsvReader.preview(csv, catalog, zone)
+        val imported = CsvHistoryImporter.commit(preview, emptyMap()).sessions.single().sets.single()
+        assertEquals(Triple(0.0, 42, 0), Triple(imported.weightLb, imported.reps, imported.seconds))
+    }
 
     @Test
     fun `timed and reps sets survive an export then import`() {

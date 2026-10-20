@@ -97,6 +97,7 @@ object DayScreenBuilder {
 
     /** Complete unopened-main preview policy shared by Today and snapshots. */
     fun previewMainSets(slot: ProgramSlot, cfg: LifterConfig, catalog: ExerciseCatalog): List<LoggedSet> {
+        slot.exercise.prescription?.let { return SetSeeder.seedPrescribed(slot.exercise.targetSets, it) }
         val entry = catalog.find(slot.exercise.exerciseId)
             // Preserve the authored count without inventing a load or prescription.
             ?: return List(slot.exercise.targetSets) { LoggedSet(0.0, 0, SetKind.WORK, done = false) }
@@ -123,8 +124,10 @@ object DayScreenBuilder {
         val writes = mutableListOf<SeedWrite>()
         for (slot in slots) {
             val pe = slot.exercise
-            val entry = catalog.find(pe.exerciseId) ?: continue
-            val mainSeed = SetSeeder.seed(pe, GoalCalculator.targetFor(entry, cfg), cfg)
+            val mainSeed = pe.prescription?.let { SetSeeder.seedPrescribed(pe.targetSets, it) } ?: run {
+                val entry = catalog.find(pe.exerciseId) ?: return@run null
+                SetSeeder.seed(pe, GoalCalculator.targetFor(entry, cfg), cfg)
+            } ?: continue
             if (slot.programExerciseId to Slot.MAIN !in existing) {
                 writes += SeedWrite(slot.programExerciseId, Slot.MAIN, mainSeed)
             }

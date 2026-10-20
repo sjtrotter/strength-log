@@ -14,7 +14,7 @@ import kotlin.math.abs
  *
  * MessageClient is fire-and-forget, so [cloud.trotter.log.strength.wear.data.DataLayerWatchClient]
  * queues every edit and re-sends it until the phone's next snapshot *reflects* it —
- * the round-trip snapshot is the only ack (spec §9, last-write-wins). Because the
+ * the round-trip snapshot carries the ack (spec §9, last-write-wins). Because the
  * phone dedupes replays by `editedAtMillis`, re-sending an already-applied delta is
  * harmless, so the queue can safely resend everything still pending on any signal.
  *
@@ -30,6 +30,14 @@ import kotlin.math.abs
  * when the snapshot is for a *different* suggested day — the phone has moved on (the
  * day was completed/advanced), so an old-day edit can neither be confirmed nor is
  * worth resending; last-write-wins lets it go.
+ *
+ * Those rules apply within the snapshot's plan and run, and for older peers missing
+ * identity. An edit for a different known plan, or the same plan/day with a different
+ * known run token, stays queued until its row's processed [WatchSnapshot.editAcks]
+ * stamp reaches its own. It never settles against another plan/run's rows or drops
+ * on that snapshot's day change. Swaps use the same plan-mismatch branch with
+ * [WatchSnapshot.swapAcks]; they edit the program, so run changes do not affect them.
+ * Only edits matching the displayed plan, day and run are overlaid optimistically.
  *
  * [SetEditDelta.startedAtMillis]/[SetEditDelta.completedAtMillis] impose no condition
  * of their own: the snapshot has no place to echo them (the watch never displays
@@ -56,8 +64,20 @@ object PendingEdits {
     /** The deltas still worth re-sending after reconciling against [snapshot]. */
     fun reconcile(pending: List<SetEditDelta>, snapshot: WatchSnapshot): List<SetEditDelta> =
         pending.filter { delta ->
-            delta.dayId == snapshot.day.dayId && !delta.isSettled(pending, snapshot)
+            if (delta.needsAck(snapshot)) {
+                snapshot.editAcks.none {
+                    it.programExerciseId == delta.programExerciseId && it.slot == delta.slot &&
+                        it.setIndex == delta.setIndex && it.editedAtMillis >= delta.editedAtMillis
+                }
+            } else {
+                delta.dayId == snapshot.day.dayId && !delta.isSettled(pending, snapshot)
+            }
         }
+
+    private fun SetEditDelta.needsAck(snapshot: WatchSnapshot): Boolean =
+        planId != null && snapshot.planId != null &&
+            (planId != snapshot.planId ||
+                (dayId == snapshot.day.dayId && runToken != null && runToken != snapshot.runToken))
 
     /**
      * The swaps still worth re-sending after reconciling against [snapshot] (#90).
@@ -77,7 +97,13 @@ object PendingEdits {
      */
     fun reconcileSwaps(pending: List<ExerciseSwapDelta>, snapshot: WatchSnapshot): List<ExerciseSwapDelta> =
         pending.filter { swap ->
-            swap.dayId == snapshot.day.dayId && !swap.isSettled(pending, snapshot)
+            if (swap.planId != null && snapshot.planId != null && swap.planId != snapshot.planId) {
+                snapshot.swapAcks.none {
+                    it.programExerciseId == swap.programExerciseId && it.editedAtMillis >= swap.editedAtMillis
+                }
+            } else {
+                swap.dayId == snapshot.day.dayId && !swap.isSettled(pending, snapshot)
+            }
         }
 
     private fun ExerciseSwapDelta.isSettled(
@@ -147,7 +173,9 @@ object PendingEdits {
      */
     private fun SetEditDelta.isSettled(pending: List<SetEditDelta>, snapshot: WatchSnapshot): Boolean {
         val row = rowIn(snapshot)
-        val newer = pending.filter { it.isNewerEditToSameRowAs(this) }
+        // A delta waiting on a different plan/run's ack cannot overwrite this
+        // run's fields. Legacy snapshots still use the original supersession rule.
+        val newer = pending.filter { it.isNewerEditToSameRowAs(this) && !it.needsAck(snapshot) }
         fun overwritten(carries: (SetEditDelta) -> Boolean): Boolean = newer.any(carries)
 
         val wanted = weightLb // local: a cross-module val doesn't smart-cast

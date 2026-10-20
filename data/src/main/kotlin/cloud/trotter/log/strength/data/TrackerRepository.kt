@@ -42,6 +42,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestCategory
@@ -141,18 +142,33 @@ open class TrackerRepository(
         }
     }
 
-    private val selectedPlanFlow: Flow<PlanEntity?> =
+    private val selectedPlanStateFlow: Flow<PlanEntity?> =
         combine(selectedPlanIdFlow, plansFlow) { id, plans ->
             plans.firstOrNull { it.id == id }
         }.distinctUntilChanged()
 
+    /** Selected plan identity and rotation, observed together after legacy fixups. */
+    val selectedPlanFlow: Flow<PlanEntity?> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(selectedPlanStateFlow)
+    }
+
     private val planAnswersFlow: Flow<WizardAnswers> = combine(
         settings.globalLifterFlow,
-        selectedPlanFlow,
-    ) { global, plan ->
+        selectedPlanStateFlow,
+    ) { global, plan -> answersForPlan(plan, global) }.distinctUntilChanged()
+
+    /** A plan's configuration and equipment, including global lifter preferences. */
+    fun wizardAnswersFor(planId: Long): Flow<WizardAnswers> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(combine(settings.globalLifterFlow, plansFlow) { global, plans ->
+            answersForPlan(plans.firstOrNull { it.id == planId }, global)
+        }.distinctUntilChanged())
+    }
+
+    private fun answersForPlan(plan: PlanEntity?, global: GlobalLifter): WizardAnswers =
         plan?.takeIf { it.origin == PlanOrigin.GENERATED.name }?.recipeJson?.let { PlanRecipeJson.decode(it, global) }
             ?: WizardAnswers(config = global.toConfig())
-    }.distinctUntilChanged()
 
     val wizardAnswersFlow: Flow<WizardAnswers> = flow {
         ensurePlanSettingsMigrated()
@@ -366,13 +382,16 @@ open class TrackerRepository(
             if (planId == null) {
                 flowOf(Program(emptyList()))
             } else {
-                combine(
-                    programDao.observeDays(planId),
-                    programDao.observeExercises(planId),
-                    ::assemble,
-                )
+                programFor(planId)
             }
         }
+
+    /** A plan's program, independent of selection. */
+    fun programFor(planId: Long): Flow<Program> = combine(
+        programDao.observeDays(planId),
+        programDao.observeExercises(planId),
+        ::assemble,
+    )
 
     /** Selects an existing active plan without changing any plan's contents. */
     suspend fun selectPlan(id: Long) {
@@ -702,10 +721,17 @@ open class TrackerRepository(
     fun daySlotsFlow(dayId: String): Flow<List<ProgramSlot>> =
         selectedPlanIdFlow.flatMapLatest { planId ->
             if (planId == null) flowOf(emptyList())
-            else programDao.observeExercisesForDay(planId, dayId).map { rows ->
-                rows.map { ProgramSlot(it.id, it.position, it.toDomain()) }
-            }
+            else slotsFor(planId, dayId)
         }
+
+    /** A plan's day slots, independent of selection; ids are global across plans. */
+    fun slotsFor(planId: Long, dayId: String): Flow<List<ProgramSlot>> =
+        programDao.observeExercisesForDay(planId, dayId).map { rows ->
+            rows.map { ProgramSlot(it.id, it.position, it.toDomain()) }
+        }
+
+    /** Resolves legacy watch messages whose slot is their only plan identity. */
+    suspend fun planIdOfSlot(programExerciseId: Long): Long? = programDao.exercise(programExerciseId)?.planId
 
     /** The day's live logs with the daily checkmark reset applied (spec §7). */
     fun logFlow(dayId: String): Flow<List<LoggedSlot>> =
@@ -721,10 +747,32 @@ open class TrackerRepository(
     fun logFlow(dayId: String, today: Flow<LocalDate>): Flow<List<LoggedSlot>> =
         selectedPlanIdFlow.flatMapLatest { planId ->
             if (planId == null) flowOf(emptyList())
-            else combine(programDao.observeLogs(planId, dayId), today) { rows, date ->
-                rows.map { it.toLoggedSlot(date.toString()) }
-            }
+            else logsFor(planId, dayId, today)
         }
+
+    /** A plan's live logs with the same civil-day reset as [logFlow]. */
+    fun logsFor(planId: Long, dayId: String, today: Flow<LocalDate>): Flow<List<LoggedSlot>> =
+        combine(programDao.observeLogs(planId, dayId), today) { rows, date ->
+            rows.map { it.toLoggedSlot(date.toString()) }
+        }
+
+    /** The run boundary for a plan day. A strength day's cardio finisher does not
+     *  finish its strength run. A CARDIO day also counts cardio completions, as
+     *  well as the workout session DONE records for its core sets. */
+    fun lastCompletionFlow(planId: Long, dayId: String): Flow<Long> =
+        programDao.observeDays(planId).flatMapLatest { days ->
+            if (days.firstOrNull { it.dayId == dayId }?.kind == ProgramDayKind.CARDIO.name) {
+                combine(
+                    sessionDao.lastCompletion(planId, dayId),
+                    cardioSessionDao.lastCompletion(planId, dayId),
+                ) { workout, cardio -> maxOf(workout, cardio) }
+            } else {
+                sessionDao.lastCompletion(planId, dayId)
+            }
+        }.distinctUntilChanged()
+
+    /** One-shot counterpart of [lastCompletionFlow] for incoming set edits. */
+    suspend fun lastCompletionOf(planId: Long, dayId: String): Long = lastCompletionFlow(planId, dayId).first()
 
     /** Persists a slot's set track immediately (spec §7). The write stamps today's
      *  date, so the `done` flags it carries are "today's" checks.
@@ -838,7 +886,7 @@ open class TrackerRepository(
 
     val suggestedDayFlow: Flow<String?> = flow {
         ensurePlanSettingsMigrated()
-        emitAll(selectedPlanFlow.map { it?.suggestedDayId }.distinctUntilChanged())
+        emitAll(selectedPlanStateFlow.map { it?.suggestedDayId }.distinctUntilChanged())
     }
 
     val sessionsFlow: Flow<List<WorkoutSessionEntity>> = sessionDao.observeSessions()
@@ -875,7 +923,9 @@ open class TrackerRepository(
      * deliberately explicit even though C1 writes one row: this is the single
      * write boundary future paired effects must join, never a UI-held staging
      * value. Labels are non-blank and capped at 80 characters; modes are stored
-     * by enum name and decoded with [decodedCardioMode] on read.
+     * by enum name and decoded with [decodedCardioMode] on read. An explicit
+     * plan id is preserved and its current name copied when the plan exists;
+     * only a session without a plan uses the selected plan.
      */
     suspend fun logCardioSession(session: CardioSessionEntity): Long {
         require(session.label.isNotBlank()) { "cardio label must not be blank" }
@@ -885,12 +935,13 @@ open class TrackerRepository(
         require(CardioMode.entries.any { it.name == session.mode }) {
             "cardio mode must be stored as CardioMode.name"
         }
-        val plan = selectedPlanId()?.let { planDao.plan(it) }
-        return db.withTransaction {
-            cardioSessionDao.insert(
-                session.copy(id = 0, planId = plan?.id, planName = plan?.name),
-            )
+        val plan = (session.planId ?: selectedPlanId())?.let { planDao.plan(it) }
+        val stamped = if (session.planId == null || plan != null) {
+            session.copy(planId = plan?.id, planName = plan?.name)
+        } else {
+            session
         }
+        return db.withTransaction { cardioSessionDao.insert(stamped.copy(id = 0)) }
     }
 
     suspend fun cardioSession(id: Long): CardioSessionEntity? = cardioSessionDao.byId(id)

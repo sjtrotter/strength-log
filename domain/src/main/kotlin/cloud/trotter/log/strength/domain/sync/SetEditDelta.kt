@@ -46,4 +46,10 @@ data class SetEditDelta(
      *  null-means-old-behavior default as [startedAtMillis]. Rides with the `done`
      *  tick that produced it (see PendingEdits' settling rule). */
     val completedAtMillis: Long? = null,
+    /** The snapshot's plan; null means sent by a watch that predates plans.
+     *  Additive with a default so older readers and senders keep working. */
+    val planId: Long? = null,
+    /** The snapshot's run; null means sent by a watch that predates plans.
+     *  Additive with a default, like [planId]. */
+    val runToken: Long? = null,
 )

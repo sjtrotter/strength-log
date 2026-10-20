@@ -1,12 +1,15 @@
 package cloud.trotter.log.strength.sync
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import cloud.trotter.log.strength.domain.sync.EditAck
+import cloud.trotter.log.strength.domain.sync.SwapAck
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -61,6 +64,57 @@ class WearSyncStoreTest {
         val scope = CoroutineScope(Dispatchers.IO + Job()).also { openScopes += it }
         val dataStore = PreferenceDataStoreFactory.create(scope = scope) { file }
         return WearSyncStore(dataStore, nowMillis, entropy = { 0L }) to scope
+    }
+
+    @Test
+    fun `processed acks persist their per-row maximum without advancing applied markers`() = runTest {
+        val (store, scope) = newStore()
+        assertTrue(store.editAcksFlow.first().isEmpty())
+        assertTrue(store.swapAcksFlow.first().isEmpty())
+        store.markApplied("A|1|main|0", 5L)
+        store.acknowledgeEdit("A|1|main|0", 20L)
+        store.acknowledgeEdit("A|1|main|0", 10L)
+        store.acknowledgeEdit("A|1|ss|0", 11L)
+        store.acknowledgeEdit("A|1|main|1", 12L)
+        store.acknowledgeSwap(1L, 30L)
+        store.acknowledgeSwap(1L, 15L)
+        scope.release()
+
+        val resumed = newStore().first
+        assertEquals(listOf(EditAck(1L, "main", 0, 20L), EditAck(1L, "main", 1, 12L), EditAck(1L, "ss", 0, 11L)),
+            resumed.editAcksFlow.first())
+        assertEquals(listOf(SwapAck(1L, 30L)), resumed.swapAcksFlow.first())
+        assertEquals(5L, resumed.lastApplied("A|1|main|0"))
+        assertEquals(0L, resumed.lastApplied("A|1|ss|0"))
+        assertEquals(0L, resumed.lastApplied("A|1|swap"))
+    }
+
+    @Test
+    fun `edit and swap acks each retain only the 64 newest row stamps`() = runTest {
+        val store = newStore().first
+        store.acknowledgeEdit("A|1|main|0", 1_000L)
+        store.acknowledgeSwap(1L, 1_000L)
+        for (id in 2L..66L) {
+            store.markApplied("A|$id|main|0", id)
+            store.acknowledgeEdit("A|$id|main|0", id)
+            store.acknowledgeSwap(id, id)
+        }
+        // A late replay must not lower an ack or displace a newer row's ack.
+        store.acknowledgeEdit("A|1|main|0", 1L)
+        store.acknowledgeSwap(1L, 1L)
+        store.acknowledgeEdit("A|2|main|0", 2L)
+        store.acknowledgeSwap(2L, 2L)
+
+        val edits = store.editAcksFlow.first()
+        val swaps = store.swapAcksFlow.first()
+        assertEquals(64, edits.size)
+        assertEquals(64, swaps.size)
+        val expectedIds = (4L..66L).toSet() + 1L
+        assertEquals(expectedIds, edits.map { it.programExerciseId }.toSet())
+        assertEquals(expectedIds, swaps.map { it.programExerciseId }.toSet())
+        assertEquals(EditAck(1L, "main", 0, 1_000L), edits.first())
+        assertEquals(SwapAck(1L, 1_000L), swaps.first())
+        assertEquals(2L, store.lastApplied("A|2|main|0"))
     }
 
     @Test

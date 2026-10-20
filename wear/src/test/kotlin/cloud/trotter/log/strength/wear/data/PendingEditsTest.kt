@@ -2,6 +2,9 @@ package cloud.trotter.log.strength.wear.data
 
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.CardioDelta
+import cloud.trotter.log.strength.domain.sync.EditAck
+import cloud.trotter.log.strength.domain.sync.SwapAck
+import cloud.trotter.log.strength.domain.sync.applyDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchDay
@@ -18,6 +21,119 @@ import kotlin.test.assertTrue
  * or once the phone has moved to a different suggested day.
  */
 class PendingEditsTest {
+
+    @Test
+    fun `another plan cannot confirm an edit even when its row shows the value`() {
+        val edit = delta(done = true, editedAtMillis = 10L).copy(planId = 1L, runToken = 0L)
+        val otherPlan = snapshot(sets = listOf(WatchSet(235.0, 5, "TOP", done = true)))
+            .copy(planId = 2L)
+
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), otherPlan))
+        assertEquals(otherPlan, applyDelta(otherPlan, edit.copy(done = false)))
+        for (stamp in listOf(10L, 11L)) {
+            val acknowledged = otherPlan.copy(editAcks = listOf(EditAck(1L, "main", 0, stamp)))
+            assertTrue(PendingEdits.reconcile(listOf(edit), acknowledged).isEmpty())
+        }
+    }
+
+    @Test
+    fun `another plan's different day cannot discard an undelivered edit`() {
+        val edit = delta(done = true).copy(planId = 1L, runToken = 0L)
+        val otherPlan = snapshot(dayId = "B").copy(planId = 2L)
+
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), otherPlan))
+        assertTrue(PendingEdits.reconcile(listOf(edit), otherPlan.copy(
+            editAcks = listOf(EditAck(1L, "main", 0, edit.editedAtMillis)),
+        )).isEmpty())
+    }
+
+    @Test
+    fun `an older ack or another row ack cannot settle an edit for another plan`() {
+        val edit = delta(done = true, editedAtMillis = 10L).copy(planId = 1L, runToken = 0L)
+        val otherPlan = snapshot().copy(planId = 2L, editAcks = listOf(
+            EditAck(1L, "main", 0, 9L), EditAck(2L, "main", 0, 20L),
+            EditAck(1L, "ss", 0, 20L), EditAck(1L, "main", 1, 20L),
+        ))
+
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), otherPlan))
+    }
+
+    @Test
+    fun `a finished run stays queued and invisible until its row is acknowledged`() {
+        val edit = delta(done = true, editedAtMillis = 10L).copy(planId = 1L, runToken = 0L)
+        val nextRun = snapshot().copy(planId = 1L, runToken = 100L)
+        val reflected = nextRun.copy(day = nextRun.day.copy(exercises = listOf(
+            nextRun.day.exercises.single().copy(sets = listOf(WatchSet(235.0, 5, "TOP", done = true))),
+        )))
+
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), nextRun))
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), reflected))
+        assertEquals(nextRun, applyDelta(nextRun, edit))
+        assertTrue(PendingEdits.reconcile(listOf(edit), nextRun.copy(
+            editAcks = listOf(EditAck(1L, "main", 0, 10L)),
+        )).isEmpty())
+    }
+
+    @Test
+    fun `current run edits keep per-field settlement even when acknowledged`() {
+        val edit = delta(done = true, weightLb = 245.0).copy(planId = 1L, runToken = 100L)
+        val current = snapshot().copy(planId = 1L, runToken = 100L,
+            editAcks = listOf(EditAck(1L, "main", 0, 100L)))
+
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+        assertEquals(245.0, applyDelta(current, edit).day.exercises.first().sets.first().weightLb)
+        assertTrue(PendingEdits.reconcile(listOf(edit), applyDelta(current, edit)).isEmpty())
+        assertTrue(PendingEdits.reconcile(listOf(edit), current.copy(day = current.day.copy(dayId = "B"))).isEmpty())
+    }
+
+    @Test
+    fun `an edit from another run cannot supersede current run fields`() {
+        val currentEdit = delta(done = true).copy(planId = 1L, runToken = 100L)
+        val oldRunEdit = currentEdit.copy(runToken = 0L, editedAtMillis = 2L)
+        val current = snapshot().copy(planId = 1L, runToken = 100L)
+
+        assertEquals(listOf(currentEdit, oldRunEdit), PendingEdits.reconcile(listOf(currentEdit, oldRunEdit), current))
+        assertEquals(listOf(oldRunEdit), PendingEdits.reconcile(listOf(currentEdit, oldRunEdit), snapshot()))
+    }
+
+    @Test
+    fun `missing identity retains legacy reflection and different-day settlement`() {
+        val edit = delta(weightLb = 235.0).copy(planId = 1L, runToken = 100L)
+
+        assertTrue(PendingEdits.reconcile(listOf(edit), snapshot()).isEmpty())
+        assertTrue(PendingEdits.reconcile(listOf(edit), snapshot(dayId = "B")).isEmpty())
+        assertTrue(PendingEdits.reconcile(listOf(edit.copy(planId = null)), snapshot().copy(planId = 2L)).isEmpty())
+        assertTrue(PendingEdits.reconcile(listOf(edit.copy(runToken = null)), snapshot().copy(planId = 1L)).isEmpty())
+    }
+
+    @Test
+    fun `a swap edits the program so its own plan can confirm it across runs`() {
+        val edit = swap().copy(planId = 1L, runToken = 0L)
+        val currentRun = snapshot(exerciseId = "front_squat").copy(planId = 1L, runToken = 100L)
+
+        assertTrue(PendingEdits.reconcileSwaps(listOf(edit), currentRun).isEmpty())
+    }
+
+    @Test
+    fun `another plan cannot confirm or refuse a swap or drop it on day change`() {
+        val edit = swap(stamp = 10L).copy(planId = 1L)
+        for (otherPlan in listOf(
+            snapshot(name = "Front Squat", exerciseId = "front_squat"),
+            snapshot(alternates = emptyList()), snapshot(dayId = "B"),
+        ).map { it.copy(planId = 2L) }) {
+            assertEquals(listOf(edit), PendingEdits.reconcileSwaps(listOf(edit), otherPlan))
+            assertEquals(otherPlan, applyDelta(otherPlan, edit))
+            assertEquals(listOf(edit), PendingEdits.reconcileSwaps(listOf(edit), otherPlan.copy(
+                swapAcks = listOf(SwapAck(1L, 9L), SwapAck(2L, 20L)),
+            )))
+            for (stamp in listOf(10L, 11L)) {
+                assertTrue(PendingEdits.reconcileSwaps(listOf(edit), otherPlan.copy(
+                    swapAcks = listOf(SwapAck(1L, stamp)),
+                )).isEmpty())
+            }
+        }
+        assertTrue(PendingEdits.reconcileSwaps(listOf(edit), snapshot(exerciseId = "front_squat").copy(planId = 1L)).isEmpty())
+    }
 
     private fun swap(
         dayId: String = "A",

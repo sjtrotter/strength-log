@@ -15,4 +15,10 @@ data class CardioDelta(
     val seconds: Int,
     val stepsCompleted: Int,
     val stamp: Long,
+    /** The snapshot's plan; null means sent by a watch that predates plans.
+     *  Additive with a default so older readers and senders keep working. */
+    val planId: Long? = null,
+    /** The snapshot's run; null means sent by a watch that predates plans.
+     *  Additive with a default, like [planId]. */
+    val runToken: Long? = null,
 )

@@ -8,7 +8,10 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -16,7 +19,9 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
+import cloud.trotter.log.strength.domain.sync.EditAck
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
+import cloud.trotter.log.strength.domain.sync.SwapAck
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,8 +60,18 @@ class SetEditApplierTest {
 
     private class RecordingMarkers : AppliedEditMarkers {
         val map = mutableMapOf<String, Long>()
+        val editAcks = mutableMapOf<String, Long>()
+        val swapAcks = mutableMapOf<Long, Long>()
         override suspend fun lastApplied(rowKey: String): Long = map[rowKey] ?: 0L
         override suspend fun markApplied(rowKey: String, editedAtMillis: Long) { map[rowKey] = editedAtMillis }
+        override suspend fun acknowledgeEdit(rowKey: String, editedAtMillis: Long) {
+            editAcks[rowKey] = maxOf(editAcks[rowKey] ?: 0L, editedAtMillis)
+        }
+        override suspend fun acknowledgeSwap(programExerciseId: Long, editedAtMillis: Long) {
+            swapAcks[programExerciseId] = maxOf(swapAcks[programExerciseId] ?: 0L, editedAtMillis)
+        }
+        override val editAcksFlow = kotlinx.coroutines.flow.flowOf(emptyList<EditAck>())
+        override val swapAcksFlow = kotlinx.coroutines.flow.flowOf(emptyList<SwapAck>())
 
         override fun lastAppliedFlow(rowKey: String) = kotlinx.coroutines.flow.flow { emit(lastApplied(rowKey)) }
     }
@@ -753,6 +768,29 @@ class SetEditApplierTest {
         assertEquals(1_042L, archived.completedAtMillis)
     }
 
+    @Test
+    fun `set writes and marker stale outcomes acknowledge only their own row`() = runTest {
+        seedProgram()
+        val id = squatId()
+        val edit = SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 10L,
+        )
+        val rowKey = "A|$id|main|0"
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit))
+        assertEquals(mapOf(rowKey to 10L), markers.editAcks)
+        // A marker from an earlier write still acknowledges a stale delivery even
+        // when there is no corresponding ack yet (e.g. upgrading the phone).
+        markers.editAcks.clear()
+        assertEquals(SetEditApplier.Outcome.STALE, applier.apply(edit.copy(editedAtMillis = 9L)))
+        assertEquals(mapOf(rowKey to 9L), markers.editAcks)
+        assertEquals(10L, markers.lastApplied(rowKey))
+        assertEquals(SetEditApplier.Outcome.STALE, applier.apply(edit.copy(editedAtMillis = 8L)))
+        assertEquals(mapOf(rowKey to 9L), markers.editAcks)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit.copy(setIndex = 1, editedAtMillis = 2L)))
+        assertEquals(2L, markers.editAcks["A|$id|main|1"])
+    }
+
     /** The pinned §8.3 contract: the slot keeps its id, the exercise changes, and the
      *  old log does not survive into it. Reseeding is part of the same application
      *  here (a watch swap can land with no phone screen open to do it lazily), so the
@@ -768,6 +806,7 @@ class SetEditApplierTest {
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 1L))
 
         assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(1L, markers.swapAcks[id])
         val slot = repo.daySlotsFlow("A").first().first { it.programExerciseId == id }
         assertEquals(target.id, slot.exercise.exerciseId)
         assertEquals(id, slot.programExerciseId)
@@ -786,6 +825,8 @@ class SetEditApplierTest {
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, "custom_nonexistent", "Invented", 1L))
 
         assertEquals(SetEditApplier.Outcome.INVALID, outcome)
+        assertEquals(1L, markers.swapAcks[id])
+        assertTrue(markers.map.isEmpty())
         val slot = repo.daySlotsFlow("A").first().first { it.programExerciseId == id }
         assertEquals("bb_back_squat", slot.exercise.exerciseId)
         assertEquals(before, track(id, Slot.MAIN))
@@ -798,6 +839,7 @@ class SetEditApplierTest {
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", 9999L, "hack_squat", "Hack Squat", 1L))
 
         assertEquals(SetEditApplier.Outcome.INVALID, outcome)
+        assertEquals(1L, markers.swapAcks[9999L])
     }
 
     /**
@@ -851,6 +893,10 @@ class SetEditApplierTest {
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, late.id, late.name, 50L))
 
         assertEquals(SetEditApplier.Outcome.STALE, outcome)
+        assertEquals(100L, markers.swapAcks[id])
+        markers.swapAcks.clear()
+        assertEquals(SetEditApplier.Outcome.STALE, applier.apply(ExerciseSwapDelta(1, "A", id, late.id, late.name, 50L)))
+        assertEquals(50L, markers.swapAcks[id])
         val slot = repo.daySlotsFlow("A").first().first { it.programExerciseId == id }
         assertEquals(applied.id, slot.exercise.exerciseId)
     }
@@ -870,6 +916,138 @@ class SetEditApplierTest {
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 101L))
 
         assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(101L, markers.swapAcks[id])
+        assertEquals(100L, markers.lastApplied("A|$id|swap"))
         assertEquals(newLog, track(id, Slot.MAIN))
+    }
+
+    @Test
+    fun `a delayed tick follows its explicit plan while another Day A is selected`() = runTest {
+        assertDelayedTickFollowsPlan(explicitPlan = true)
+    }
+
+    @Test
+    fun `an old-watch tick resolves the unselected plan from its global slot id`() = runTest {
+        assertDelayedTickFollowsPlan(explicitPlan = false)
+    }
+
+    private suspend fun assertDelayedTickFollowsPlan(explicitPlan: Boolean) {
+        seedProgram()
+        val planP = repo.selectedPlanIdFlow.first()!!
+        val id = curlId()
+        val planQ = repo.duplicatePlan(planP, "Running")
+        repo.selectPlan(planQ)
+        db.sessionDao().insertSession(WorkoutSessionEntity(
+            id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
+            completedAt = 200L, bodyweightLb = 180, planId = planQ,
+        ))
+        val qLogs = db.programDao().logsForPlan(planQ)
+        val delta = SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 10L,
+            planId = planP.takeIf { explicitPlan },
+            runToken = 0L.takeIf { explicitPlan },
+        )
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(delta))
+
+        val pLogs = repo.logsFor(planP, "A", kotlinx.coroutines.flow.flowOf(repo.currentDate())).first()
+        assertTrue(pLogs.first { it.programExerciseId == id && it.slot == Slot.MAIN }.sets[0].done)
+        assertTrue(pLogs.first { it.programExerciseId == id && it.slot == Slot.SS }.sets[0].done)
+        assertEquals(qLogs, db.programDao().logsForPlan(planQ))
+        assertEquals(planQ, repo.selectedPlanIdFlow.first())
+    }
+
+    @Test
+    fun `a delayed swap validates and reseeds only its own plan despite an old run token`() = runTest {
+        assertDelayedSwapFollowsPlan(explicitPlan = true)
+    }
+
+    @Test
+    fun `an old-watch swap resolves its unselected plan from the slot`() = runTest {
+        assertDelayedSwapFollowsPlan(explicitPlan = false)
+    }
+
+    private suspend fun assertDelayedSwapFollowsPlan(explicitPlan: Boolean) {
+        seedProgram()
+        val planP = repo.selectedPlanIdFlow.first()!!
+        val id = squatId()
+        repo.updateSets("A", id, Slot.MAIN, track(id, Slot.MAIN)!!.map { it.copy(done = true) })
+        db.sessionDao().insertSession(WorkoutSessionEntity(
+            id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
+            completedAt = 200L, bodyweightLb = 180, planId = planP,
+        ))
+        val planQ = repo.duplicatePlan(planP, "Running")
+        db.planDao().updateRecipe(planQ, PlanRecipeJson.encode(WizardAnswers(equipment = emptySet())))
+        repo.selectPlan(planQ)
+        val qSlots = db.programDao().exercisesForPlan(planQ)
+        val qLogs = db.programDao().logsForPlan(planQ)
+        val otherPLogs = db.programDao().logsForPlan(planP).filter { it.programExerciseId != id }
+        val alternate = WatchSnapshotBuilder.alternatesFor(
+            "bb_back_squat", repo.catalogFlow.first(), repo.wizardAnswersFor(planP).first().equipment,
+        ).first()
+
+        val outcome = applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = id, exerciseId = alternate.exerciseId,
+            exerciseName = alternate.name, editedAtMillis = 10L,
+            planId = planP.takeIf { explicitPlan }, runToken = 0L.takeIf { explicitPlan },
+        ))
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        assertEquals(alternate.exerciseId, repo.slotsFor(planP, "A").first().first { it.programExerciseId == id }.exercise.exerciseId)
+        val reseeded = repo.logsFor(planP, "A", kotlinx.coroutines.flow.flowOf(repo.currentDate())).first()
+            .first { it.programExerciseId == id && it.slot == Slot.MAIN }.sets
+        assertTrue(reseeded.isNotEmpty())
+        assertTrue(reseeded.none { it.done })
+        assertEquals(otherPLogs, db.programDao().logsForPlan(planP).filter { it.programExerciseId != id })
+        assertEquals(qSlots, db.programDao().exercisesForPlan(planQ))
+        assertEquals(qLogs, db.programDao().logsForPlan(planQ))
+    }
+
+    @Test
+    fun `finished-run edits are stale without writes or markers and current and legacy edits apply`() = runTest {
+        seedProgram()
+        val planP = repo.selectedPlanIdFlow.first()!!
+        val id = squatId()
+        repo.advanceDay("A")
+        val completion = repo.lastCompletionOf(planP, "A")
+        val planQ = repo.duplicatePlan(planP, "Running")
+        repo.selectPlan(planQ)
+        val qLogs = db.programDao().logsForPlan(planQ)
+        val pLogs = db.programDao().logsForPlan(planP)
+        val tick = SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 100L, planId = planP, runToken = 0L,
+        )
+        for (oldToken in listOf(0L, completion - 1L)) {
+            assertEquals(SetEditApplier.Outcome.STALE, applier.apply(tick.copy(runToken = oldToken)))
+            assertEquals(pLogs, db.programDao().logsForPlan(planP))
+            assertTrue(markers.map.isEmpty())
+            assertEquals(mapOf("A|$id|main|0" to 100L), markers.editAcks)
+        }
+        // The rejected edit's high stamp cannot starve a legitimate current-run edit.
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(tick.copy(runToken = completion, editedAtMillis = 10L)))
+        assertEquals(100L, markers.editAcks["A|$id|main|0"])
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(tick.copy(runToken = null, planId = null, setIndex = 1, editedAtMillis = 11L)))
+        val sets = repo.logsFor(planP, "A", kotlinx.coroutines.flow.flowOf(repo.currentDate())).first()
+            .first { it.programExerciseId == id && it.slot == Slot.MAIN }.sets
+        assertTrue(sets[0].done)
+        assertTrue(sets[1].done)
+        assertEquals(qLogs, db.programDao().logsForPlan(planQ))
+    }
+
+    @Test
+    fun `an explicit plan that does not own the slot is invalid`() = runTest {
+        seedProgram()
+        val planP = repo.selectedPlanIdFlow.first()!!
+        val id = squatId()
+        val planQ = repo.duplicatePlan(planP, "Running")
+        val before = db.programDao().allLogs()
+        assertEquals(SetEditApplier.Outcome.INVALID, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 10L, planId = planQ,
+        )))
+        assertEquals(before, db.programDao().allLogs())
+        assertTrue(markers.map.isEmpty())
     }
 }

@@ -71,7 +71,33 @@ data class WatchSnapshot(
      *  Additive with default, like [cardio]; an old phone publishes 0 and the
      *  watch simply keeps re-sending into its dedupe. */
     val cardioAckStamp: Long = 0L,
+    /** The published day's plan. Additive with a null default for older publishers. */
+    val planId: Long? = null,
+    /** That plan's current name. Additive with a null default, like [planId]. */
+    val planName: String? = null,
+    /**
+     * The current run of [day] within its plan: the completion time of that plan's
+     * last session of that day, or 0 when never completed. Deltas echo it so a late
+     * edit from a finished run cannot land on the next run.
+     * Additive, appended last, defaulting to 0 so older publishers decode fine;
+     * a null [planId] tells the watch to keep sending legacy null run tokens.
+     */
+    val runToken: Long = 0L,
+    /** Per-slot acknowledgement of processed watch swaps across plan switches.
+     *  Additive with an empty default for older publishers. */
+    val swapAcks: List<SwapAck> = emptyList(),
+    /** Per-row acknowledgement of processed watch edits, for edits the snapshot's
+     *  own rows cannot confirm. Additive, appended last, with an empty default. */
+    val editAcks: List<EditAck> = emptyList(),
 )
+
+/** The newest processed watch stamp for one row; the global slot id also names its plan/day. */
+@Serializable
+data class EditAck(val programExerciseId: Long, val slot: String, val setIndex: Int, val editedAtMillis: Long)
+
+/** The newest processed swap stamp for one global slot, including refused swaps. */
+@Serializable
+data class SwapAck(val programExerciseId: Long, val editedAtMillis: Long)
 
 /** One day of the program as the cycle ring and its day-browse preview read it. */
 @Serializable

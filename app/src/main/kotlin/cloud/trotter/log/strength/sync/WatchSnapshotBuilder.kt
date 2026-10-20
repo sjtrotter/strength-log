@@ -18,6 +18,8 @@ import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
+import cloud.trotter.log.strength.domain.sync.EditAck
+import cloud.trotter.log.strength.domain.sync.SwapAck
 import cloud.trotter.log.strength.domain.sync.WatchAlternate
 import cloud.trotter.log.strength.domain.sync.WatchCycleDay
 import cloud.trotter.log.strength.domain.sync.WatchCycleExercise
@@ -69,6 +71,11 @@ object WatchSnapshotBuilder {
         cardioAckStamp: Long = 0L,
         cardioMode: String? = null,
         cardioFiveK: Boolean? = null,
+        planId: Long? = null,
+        planName: String? = null,
+        runToken: Long = 0L,
+        swapAcks: List<SwapAck> = emptyList(),
+        editAcks: List<EditAck> = emptyList(),
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val strengthDays = program.strengthDays
@@ -100,6 +107,11 @@ object WatchSnapshotBuilder {
             unit = unit.name.lowercase(),
             cycle = strengthDays.map { it.toCycleDay(catalog) },
             cardioAckStamp = cardioAckStamp,
+            planId = planId,
+            planName = planName,
+            runToken = runToken,
+            swapAcks = swapAcks,
+            editAcks = editAcks,
             cardio = day.cardio?.copy(
                 mode = cardioMode,
                 fiveK = cardioFiveK,

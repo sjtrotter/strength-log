@@ -39,4 +39,10 @@ data class ExerciseSwapDelta(
     /** Last-write-wins tiebreaker and dedupe key on the phone side, same rule and
      *  same monotonic issuer as [SetEditDelta.editedAtMillis]. */
     val editedAtMillis: Long,
+    /** The snapshot's plan; null means sent by a watch that predates plans.
+     *  Additive with a default so older readers and senders keep working. */
+    val planId: Long? = null,
+    /** The snapshot's run; null means sent by a watch that predates plans.
+     *  Additive with a default, like [planId]. */
+    val runToken: Long? = null,
 )

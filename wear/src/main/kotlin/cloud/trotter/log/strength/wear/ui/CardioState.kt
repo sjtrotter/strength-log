@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.wear.ui
 
 import cloud.trotter.log.strength.domain.generator.CardioPlan
 import cloud.trotter.log.strength.domain.sync.CardioDelta
+import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
 /** Minimal, saveable device-local session state. Everything visible derives
  *  from these anchors; the boot count arbitrates reboot exactly, the phone's
@@ -66,6 +67,7 @@ fun buildCardioDelta(
     anchors: CardioAnchors,
     progress: CardioProgress,
     completedAtWallMillis: Long,
+    snapshot: WatchSnapshot? = null,
 ): CardioDelta? {
     if (progress.elapsedSeconds < 60) return null
     return CardioDelta(
@@ -75,5 +77,7 @@ fun buildCardioDelta(
         seconds = progress.elapsedSeconds,
         stepsCompleted = progress.stepsCompleted,
         stamp = completedAtWallMillis,
+        planId = snapshot?.planId,
+        runToken = snapshot.deltaRunToken,
     )
 }

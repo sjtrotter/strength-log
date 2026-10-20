@@ -40,7 +40,15 @@ import kotlinx.coroutines.sync.withLock
  * `done = false` delta (the watch's long-press undo, #88) clears them again: an
  * untick retracts the tick's facts along with the tick.
  *
- * Three guards before any write:
+ * A plan-aware delta also echoes the day's run token. A token that differs from
+ * that plan day's last completion is [Outcome.STALE] without advancing the row
+ * marker: work from a finished run cannot tick the next one. A null token keeps
+ * the legacy behavior. Validation and reads follow the slot's plan, even when
+ * another plan is selected on the phone.
+ * Processed APPLIED/STALE outcomes also advance a separate per-row acknowledgement;
+ * only a real write advances the applied marker.
+ *
+ * The existing row guards before any write:
  *  - **Validation** — the day, slot (programExerciseId + main/ss track) and set
  *    index must all exist; a superset "ss" delta needs a real partner. Anything
  *    else is [Outcome.INVALID] and touches no data (malformed input from an
@@ -73,6 +81,12 @@ class SetEditApplier(
     private val mutationLock = Mutex()
 
     suspend fun apply(delta: SetEditDelta): Outcome = mutationLock.withLock {
+        val outcome = applyEdit(delta)
+        if (outcome != Outcome.INVALID) markers.acknowledgeEdit(rowKey(delta), delta.editedAtMillis)
+        outcome
+    }
+
+    private suspend fun applyEdit(delta: SetEditDelta): Outcome {
         if (delta.slot != Slot.MAIN && delta.slot != Slot.SS) return Outcome.INVALID
         // Value hardening: this arrives through an exported service, so assume
         // hostile input. Negative or non-finite numbers must never reach the log
@@ -83,16 +97,21 @@ class SetEditApplier(
         delta.startedAtMillis?.let { if (it < 0) return Outcome.INVALID }
         delta.completedAtMillis?.let { if (it < 0) return Outcome.INVALID }
 
-        // The slot must be a real exercise slot on a real day of the current program.
-        val slots = repo.daySlotsFlow(delta.dayId).first()
+        // A delayed edit still belongs to the slot's plan after a phone plan switch.
+        val planId = delta.planId ?: repo.planIdOfSlot(delta.programExerciseId) ?: return Outcome.INVALID
+        val slots = repo.slotsFor(planId, delta.dayId).first()
         val slot = slots.firstOrNull { it.programExerciseId == delta.programExerciseId } ?: return Outcome.INVALID
         if (delta.slot == Slot.SS && slot.exercise.superset == null) return Outcome.INVALID
 
-        val logs = repo.logFlow(delta.dayId, today).first()
+        val logs = repo.logsFor(planId, delta.dayId, today).first()
         val track = logs.firstOrNull {
             it.programExerciseId == delta.programExerciseId && it.slot == delta.slot
         }?.sets.orEmpty()
         if (delta.setIndex !in track.indices) return Outcome.INVALID
+
+        if (delta.runToken != null && delta.runToken != repo.lastCompletionOf(planId, delta.dayId)) {
+            return Outcome.STALE
+        }
 
         val rowKey = rowKey(delta)
         if (delta.editedAtMillis <= markers.lastApplied(rowKey)) return Outcome.STALE
@@ -124,6 +143,11 @@ class SetEditApplier(
      * its live log is cleared, the new exercise reseeds from its own GOAL on the next
      * observation). The watch contributes a choice, never a consequence.
      *
+     * Swaps edit the program rather than a run, so the run token never rejects one.
+     * Validation and reseeding follow the slot's plan, independent of selection.
+     * Every processed outcome is acknowledged, including INVALID and already-there
+     * replies; those acknowledgements never participate in the dedupe guard.
+     *
      * Four guards, in this order:
      *  - **Validation** — the day must hold a slot with this `programExerciseId`.
      *  - **Already there** — a slot already holding the requested exercise is
@@ -145,7 +169,14 @@ class SetEditApplier(
      *    snapshot the phone has since moved past.
      */
     suspend fun apply(swap: ExerciseSwapDelta): Outcome = mutationLock.withLock {
-        val slots = repo.daySlotsFlow(swap.dayId).first()
+        val outcome = applySwap(swap)
+        markers.acknowledgeSwap(swap.programExerciseId, swap.editedAtMillis)
+        outcome
+    }
+
+    private suspend fun applySwap(swap: ExerciseSwapDelta): Outcome {
+        val planId = swap.planId ?: repo.planIdOfSlot(swap.programExerciseId) ?: return Outcome.INVALID
+        val slots = repo.slotsFor(planId, swap.dayId).first()
         val slot = slots.firstOrNull { it.programExerciseId == swap.programExerciseId }
             ?: return Outcome.INVALID
 
@@ -155,12 +186,12 @@ class SetEditApplier(
         if (swap.editedAtMillis <= markers.lastApplied(rowKey)) return Outcome.STALE
 
         val catalog = repo.catalogFlow.first()
-        val equipment = repo.wizardAnswersFlow.first().equipment
+        val equipment = repo.wizardAnswersFor(planId).first().equipment
         val prescribed = WatchSnapshotBuilder.alternatesFor(slot.exercise.exerciseId, catalog, equipment)
         if (prescribed.none { it.exerciseId == swap.exerciseId }) return Outcome.INVALID
 
         repo.swapExerciseById(swap.dayId, swap.programExerciseId, swap.exerciseId)
-        seedSwappedSlot(swap.dayId, swap.programExerciseId, catalog)
+        seedSwappedSlot(planId, swap.dayId, swap.programExerciseId, catalog)
         markers.markApplied(rowKey, swap.editedAtMillis)
         return Outcome.APPLIED
     }
@@ -185,11 +216,11 @@ class SetEditApplier(
      * decided from a read the other one has already acted on becomes a no-op rather
      * than an overwrite of work logged in between.
      */
-    private suspend fun seedSwappedSlot(dayId: String, programExerciseId: Long, catalog: ExerciseCatalog) {
-        val slots = repo.daySlotsFlow(dayId).first()
-        val existing = repo.logFlow(dayId, today).first()
+    private suspend fun seedSwappedSlot(planId: Long, dayId: String, programExerciseId: Long, catalog: ExerciseCatalog) {
+        val slots = repo.slotsFor(planId, dayId).first()
+        val existing = repo.logsFor(planId, dayId, today).first()
             .associate { (it.programExerciseId to it.slot) to it.sets.size }
-        val cfg = repo.configFlow.first()
+        val cfg = repo.wizardAnswersFor(planId).first().config
         DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
             .filter { it.programExerciseId == programExerciseId }
             .forEach { write -> repo.seedIfEmpty(dayId, write.programExerciseId, write.slot, write.sets) }

@@ -130,8 +130,10 @@ fun WearApp(
             // A null mode can only mean a phone downgrade mid-run: discard rather
             // than log a guessed mode or leave the hold dead.
             suggestion.mode?.let { mode ->
-                buildCardioDelta(dayId, mode, suggestion.hard, suggestion.label, anchors, progress, System.currentTimeMillis())
-                    ?.let(client::sendCardio)
+                buildCardioDelta(
+                    dayId, mode, suggestion.hard, suggestion.label, anchors, progress,
+                    System.currentTimeMillis(), snapshot = snapshot,
+                )?.let(client::sendCardio)
             }
         }
         cardioStartedAtWall = 0L
@@ -395,6 +397,7 @@ private fun WorkoutDial(
                 setIndex = roundIndex,
                 startedAtMillis = startedAtWallMillis,
                 completedAtMillis = completedAtMillis,
+                snapshot = snap,
             ),
         )
         DialHaptics.perform(view, DialHaptics.Cue.CONFIRM_TICK)
@@ -465,6 +468,7 @@ private fun WorkoutDial(
                 programExerciseId = ex.programExerciseId,
                 setIndex = target.roundIndex,
                 editedAtMillis = System.currentTimeMillis(),
+                snapshot = snap,
             ),
         )
         tickMemory = tickMemory.forget(ex.programExerciseId, target.roundIndex)
@@ -487,11 +491,10 @@ private fun WorkoutDial(
         val ex = exercise ?: return
         swapPreview = null
         sendSwap(
-            ExerciseSwapDelta(
-                dayId = dayId,
+            buildSwapDelta(
+                snapshot = snap,
                 programExerciseId = ex.programExerciseId,
-                exerciseId = alternate.exerciseId,
-                exerciseName = alternate.name,
+                alternate = alternate,
                 editedAtMillis = System.currentTimeMillis(),
             ),
         )

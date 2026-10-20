@@ -27,7 +27,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -136,9 +140,22 @@ class TrackerRepositoryPlanScopeTest {
 
         repo.updateSets("A", slotOne, Slot.MAIN, planOneSets)
 
-        assertEquals(225.0, repo.logFlow("A").first().single().sets.single().weightLb, 0.0)
+        val emissions = mutableListOf<List<LoggedSlot>>()
+        val emitted = Channel<Unit>(Channel.UNLIMITED)
+        val collector = backgroundScope.launch {
+            repo.logFlow("A").collect {
+                emissions.add(it)
+                emitted.send(Unit)
+            }
+        }
+        emitted.receive()
+        assertEquals(planOneSets, emissions.single().single().sets)
         settings.setSelectedPlanId(2)
-        assertEquals(135.0, repo.logFlow("A").first().single().sets.single().weightLb, 0.0)
+        emitted.receive()
+        assertEquals(2, emissions.size)
+        assertEquals(slotTwo, emissions[1].single().programExerciseId)
+        assertEquals(planTwoSets, emissions[1].single().sets)
+        collector.cancelAndJoin()
         assertEquals(
             planOneSets,
             SetJson.decodeSets(db.programDao().logsForDay(planOneId, "A").single().setsJson),
@@ -176,6 +193,103 @@ class TrackerRepositoryPlanScopeTest {
     }
 
     @Test
+    fun `swap by id changes the slot and clears both tracks in its own plan`() = runTest {
+        insertTwoProgramsAndSelectPlanTwo()
+        val preservedLogs = listOf(
+            log(2, 22, sets(135.0)),
+            log(2, 22, sets(65.0)).copy(slot = Slot.SS),
+            log(2, 11, sets(95.0)),
+            log(2, 11, sets(45.0)).copy(slot = Slot.SS),
+        )
+        db.programDao().insertLogs(
+            preservedLogs + listOf(
+                log(1, 11, sets(225.0)),
+                log(1, 11, sets(115.0)).copy(slot = Slot.SS),
+            ),
+        )
+        val planTwoExercises = db.programDao().exercisesForPlan(2)
+
+        repo.swapExerciseById("A", 11, "db_goblet_squat")
+
+        assertEquals("db_goblet_squat", db.programDao().exerciseAt(1, "A", 0)!!.exerciseId)
+        assertEquals(preservedLogs.toSet(), db.programDao().allLogs().toSet())
+        assertEquals(planTwoExercises, db.programDao().exercisesForPlan(2))
+    }
+
+    @Test
+    fun `update sets writes under the slot plan despite another selection`() = runTest {
+        insertTwoProgramsAndSelectPlanTwo()
+        val mainSets = sets(225.0)
+
+        repo.updateSets("A", 11, Slot.MAIN, mainSets)
+
+        assertSlotLogsInPlanOne(mapOf(Slot.MAIN to mainSets))
+    }
+
+    @Test
+    fun `paired update writes both tracks under the slot plan despite another selection`() = runTest {
+        insertTwoProgramsAndSelectPlanTwo()
+        val mainSets = sets(225.0)
+        val ssSets = sets(115.0)
+
+        repo.updateSetsPaired("A", 11, mainSets, ssSets)
+
+        assertSlotLogsInPlanOne(mapOf(Slot.MAIN to mainSets, Slot.SS to ssSets))
+    }
+
+    @Test
+    fun `seed writes under the slot plan despite another selection and never overwrites`() = runTest {
+        insertTwoProgramsAndSelectPlanTwo()
+        val mainSets = sets(225.0)
+
+        assertTrue(repo.seedIfEmpty("A", 11, Slot.MAIN, mainSets))
+        assertFalse(repo.seedIfEmpty("A", 11, Slot.MAIN, sets(235.0)))
+
+        assertSlotLogsInPlanOne(mapOf(Slot.MAIN to mainSets))
+    }
+
+    @Test
+    fun `seed never replaces an empty stored track in the slot plan`() = runTest {
+        insertTwoProgramsAndSelectPlanTwo()
+        val emptyLog = log(1, 11, emptyList())
+        db.programDao().upsertLog(emptyLog)
+
+        assertFalse(repo.seedIfEmpty("A", 11, Slot.MAIN, sets(225.0)))
+
+        assertEquals(listOf(emptyLog), db.programDao().allLogs())
+    }
+
+    @Test
+    fun `slot mutations ignore a mismatched day`() = runTest {
+        insertTwoProgramsAndSelectPlanTwo()
+        val storedLog = log(1, 11, sets(225.0))
+        db.programDao().upsertLog(storedLog)
+        val exercises = db.programDao().allExercises()
+
+        repo.updateSets("B", 11, Slot.MAIN, sets(235.0))
+        repo.updateSetsPaired("B", 11, sets(245.0), sets(115.0))
+        assertFalse(repo.seedIfEmpty("B", 11, Slot.SS, sets(125.0)))
+        repo.swapExerciseById("B", 11, "db_goblet_squat")
+
+        assertEquals(listOf(storedLog), db.programDao().allLogs())
+        assertEquals(exercises, db.programDao().allExercises())
+    }
+
+    @Test
+    fun `slot mutations ignore a missing slot`() = runTest {
+        insertTwoProgramsAndSelectPlanTwo()
+        val exercises = db.programDao().allExercises()
+
+        repo.updateSets("A", 99, Slot.MAIN, sets(235.0))
+        repo.updateSetsPaired("A", 99, sets(245.0), sets(115.0))
+        assertFalse(repo.seedIfEmpty("A", 99, Slot.MAIN, sets(125.0)))
+        repo.swapExerciseById("A", 99, "db_goblet_squat")
+
+        assertTrue(db.programDao().allLogs().isEmpty())
+        assertEquals(exercises, db.programDao().allExercises())
+    }
+
+    @Test
     fun `advance stamps the selected plan and clears only its checks`() = runTest {
         repo.replaceProgram(program("Plan one", "bb_back_squat"))
         val planOneId = repo.plansFlow.first().single().id
@@ -198,13 +312,15 @@ class TrackerRepositoryPlanScopeTest {
     @Test
     fun `seed once is isolated by plan`() = runTest {
         db.planDao().insertPlans(listOf(plan(1, "One", 0), plan(2, "Two", 1)))
+        insertProgram(1, "Plan one", "bb_back_squat", id = 11)
+        insertProgram(2, "Plan two", "bb_bench", id = 22)
         settings.setSelectedPlanId(1)
 
-        assertTrue(repo.seedIfEmpty("A", 99, Slot.MAIN, sets(100.0)))
-        assertFalse(repo.seedIfEmpty("A", 99, Slot.MAIN, sets(110.0)))
+        assertTrue(repo.seedIfEmpty("A", 11, Slot.MAIN, sets(100.0)))
+        assertFalse(repo.seedIfEmpty("A", 11, Slot.MAIN, sets(110.0)))
         settings.setSelectedPlanId(2)
-        assertTrue(repo.seedIfEmpty("A", 99, Slot.MAIN, sets(200.0)))
-        assertFalse(repo.seedIfEmpty("A", 99, Slot.MAIN, sets(210.0)))
+        assertTrue(repo.seedIfEmpty("A", 22, Slot.MAIN, sets(200.0)))
+        assertFalse(repo.seedIfEmpty("A", 22, Slot.MAIN, sets(210.0)))
 
         assertEquals(100.0, SetJson.decodeSets(db.programDao().logsForDay(1, "A").single().setsJson).single().weightLb, 0.0)
         assertEquals(200.0, SetJson.decodeSets(db.programDao().logsForDay(2, "A").single().setsJson).single().weightLb, 0.0)
@@ -249,9 +365,9 @@ class TrackerRepositoryPlanScopeTest {
         val legacy = snapshot.copy(
             plans = emptyList(),
             selectedPlanId = null,
-            days = snapshot.days.filter { it.planId == 1 },
-            exercises = snapshot.exercises.filter { it.planId == 1 },
-            logs = snapshot.logs.filter { it.planId == 1 },
+            days = snapshot.days.filter { it.planId == 1L },
+            exercises = snapshot.exercises.filter { it.planId == 1L },
+            logs = snapshot.logs.filter { it.planId == 1L },
         )
         repo.importSnapshot(legacy, journal)
 
@@ -260,6 +376,25 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(PlanEntity.LEGACY_NAME, restored.name)
         assertEquals(listOf("Plan one"), db.programDao().daysForPlan(PlanEntity.LEGACY_ID).map { it.title })
         assertEquals(PlanEntity.LEGACY_ID, settings.selectedPlanIdFlow.first())
+    }
+
+    private suspend fun insertTwoProgramsAndSelectPlanTwo() {
+        db.planDao().insertPlans(listOf(plan(1, "One", 0), plan(2, "Two", 1)))
+        insertProgram(1, "Plan one", "bb_back_squat", id = 11)
+        insertProgram(2, "Plan two", "bb_bench", id = 22)
+        settings.setSelectedPlanId(2)
+    }
+
+    private suspend fun assertSlotLogsInPlanOne(expected: Map<String, List<LoggedSet>>) {
+        val logs = db.programDao().allLogs()
+        assertEquals(expected.size, logs.size)
+        assertEquals(expected.keys, logs.map { it.slot }.toSet())
+        logs.forEach { log ->
+            assertEquals(1L, log.planId)
+            assertEquals("A", log.dayId)
+            assertEquals(11L, log.programExerciseId)
+            assertEquals(expected.getValue(log.slot), SetJson.decodeSets(log.setsJson))
+        }
     }
 
     private suspend fun assertSwapClearsOnlySelectedPlanSlot(swap: suspend (Long) -> Unit) {

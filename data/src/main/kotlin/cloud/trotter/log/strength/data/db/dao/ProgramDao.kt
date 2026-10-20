@@ -47,6 +47,9 @@ interface ProgramDao {
     @Query("SELECT * FROM program_exercise WHERE planId = :planId AND dayId = :dayId ORDER BY position")
     suspend fun exercisesForDay(planId: Long, dayId: String): List<ProgramExerciseEntity>
 
+    @Query("SELECT * FROM program_exercise WHERE id = :id")
+    suspend fun exercise(id: Long): ProgramExerciseEntity?
+
     @Query("SELECT * FROM program_exercise WHERE planId = :planId AND dayId = :dayId ORDER BY position LIMIT 1 OFFSET :ordinal")
     suspend fun exerciseAt(planId: Long, dayId: String, ordinal: Int): ProgramExerciseEntity?
 

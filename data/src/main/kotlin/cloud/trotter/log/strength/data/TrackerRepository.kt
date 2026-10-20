@@ -65,7 +65,8 @@ import kotlinx.coroutines.withContext
  * A1/A4/A6). Every read is a [Flow] off Room/DataStore; every mutation is a
  * suspend call that commits immediately, so no working truth ever lives only in
  * memory. Cross-table mutations run in one Room transaction.
- * Program and live-log reads and writes act on the selected plan.
+ * Program and live-log reads and day/position writes act on the selected plan;
+ * writes addressed by slot id act on the slot's own plan.
  *
  * "Today" for the daily checkmark reset is the device-local date via [clock]
  * (injectable for tests).
@@ -305,22 +306,25 @@ open class TrackerRepository(
 
     /** Swaps the exercise in a slot (spec §8.3). Keeps the slot's stable id but
      *  clears its live log so the new exercise reseeds from its own GOAL; prior
-     *  performance survives in `workout_session` history. */
+     *  performance survives in `workout_session` history.
+     *  The selected plan locates the slot, and the slot names its plan. */
     suspend fun swapExercise(dayId: String, position: Int, newExerciseId: String) {
         val planId = selectedPlanId() ?: return
         db.withTransaction {
             val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
-            swapInPlan(planId, dayId, row.id, newExerciseId)
+            swapInPlan(row.planId, row.dayId, row.id, newExerciseId)
         }
     }
 
     /** The same §8.3 swap, naming the slot by its stable row id instead of its
      *  position — which is how the watch knows it (`programExerciseId` is the only
-     *  slot identity on the wire). One mutation body, two ways to address it. */
+     *  slot identity on the wire). One mutation body, two ways to address it.
+     *  The slot names its plan, and a missing slot or mismatched day is a no-op. */
     suspend fun swapExerciseById(dayId: String, programExerciseId: Long, newExerciseId: String) {
-        val planId = selectedPlanId() ?: return
         db.withTransaction {
-            swapInPlan(planId, dayId, programExerciseId, newExerciseId)
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            if (row.dayId != dayId) return@withTransaction
+            swapInPlan(row.planId, row.dayId, row.id, newExerciseId)
         }
     }
 
@@ -488,15 +492,20 @@ open class TrackerRepository(
         }
 
     /** Persists a slot's set track immediately (spec §7). The write stamps today's
-     *  date, so the `done` flags it carries are "today's" checks. */
+     *  date, so the `done` flags it carries are "today's" checks.
+     *  The slot names its plan, and a missing slot or mismatched day is a no-op. */
     suspend fun updateSets(dayId: String, programExerciseId: Long, slot: String, sets: List<LoggedSet>) {
-        val planId = selectedPlanId() ?: return
-        programDao.upsertLog(logEntity(planId, dayId, programExerciseId, slot, sets))
+        db.withTransaction {
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            if (row.dayId != dayId) return@withTransaction
+            programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, slot, sets))
+        }
     }
 
     /**
      * Seeds a track **only if it is still unseeded when the write happens**, and
      * reports whether it did. The one way a seed reaches the database.
+     * The slot names its plan, and a missing slot or mismatched day returns false.
      *
      * Seeding is decided from a read ("this slot has no track") and acted on later,
      * and there are now two seeders — the day ViewModel's lazy pass and the watch
@@ -516,10 +525,11 @@ open class TrackerRepository(
         slot: String,
         sets: List<LoggedSet>,
     ): Boolean {
-        val planId = selectedPlanId() ?: return false
         return db.withTransaction {
-            if (programDao.logForSlot(planId, dayId, programExerciseId, slot) != null) return@withTransaction false
-            programDao.upsertLog(logEntity(planId, dayId, programExerciseId, slot, sets))
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
+            if (row.dayId != dayId) return@withTransaction false
+            if (programDao.logForSlot(row.planId, row.dayId, row.id, slot) != null) return@withTransaction false
+            programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, slot, sets))
             true
         }
     }
@@ -529,6 +539,7 @@ open class TrackerRepository(
      * rounds stay aligned row-for-row). Paired mutations must never be two
      * separate writes — process death between them would misalign the tracks
      * permanently, and the misalignment would flow into A1 session history.
+     * The slot names its plan, and a missing slot or mismatched day is a no-op.
      */
     suspend fun updateSetsPaired(
         dayId: String,
@@ -536,10 +547,11 @@ open class TrackerRepository(
         mainSets: List<LoggedSet>,
         ssSets: List<LoggedSet>,
     ) {
-        val planId = selectedPlanId() ?: return
         db.withTransaction {
-            programDao.upsertLog(logEntity(planId, dayId, programExerciseId, Slot.MAIN, mainSets))
-            programDao.upsertLog(logEntity(planId, dayId, programExerciseId, Slot.SS, ssSets))
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            if (row.dayId != dayId) return@withTransaction
+            programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, Slot.MAIN, mainSets))
+            programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, Slot.SS, ssSets))
         }
     }
 

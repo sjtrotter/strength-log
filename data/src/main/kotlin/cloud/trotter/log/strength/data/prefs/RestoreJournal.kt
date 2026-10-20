@@ -109,6 +109,10 @@ class RestoreJournal(
             topSetHelperSeen = staged.topSetHelperSeenFlow.first(),
             supersetHelperSeen = staged.supersetHelperSeenFlow.first(),
             themePreference = staged.themePreferenceFlow.first(),
+            // Older builds staged the full answers and rotation in these keys.
+            // Replay them atomically with the global facts; the repository gate
+            // moves them to Room before any plan-settings read or write.
+            legacyPlanSettings = prefs,
         )
         clear()
         return true

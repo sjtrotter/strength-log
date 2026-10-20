@@ -39,28 +39,28 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val BODYWEIGHT = intPreferencesKey("bodyweight")
         val AGE = intPreferencesKey("age")
         val LEVEL = stringPreferencesKey("level")
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val EMPHASIS = stringPreferencesKey("emphasis")
 
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val CARDIO_MODE = stringPreferencesKey("cardio_mode")
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val CARDIO_PLACEMENT = stringPreferencesKey("cardio_placement")
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val FIVE_K = booleanPreferencesKey("five_k")
 
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val DAYS_PER_WEEK = intPreferencesKey("days_per_week")
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val SPLIT = stringPreferencesKey("split")
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val ANCHOR_SCHEME = stringPreferencesKey("anchor_scheme")
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val DEADLIFT_VARIANT = stringPreferencesKey("deadlift_variant")
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val EQUIPMENT = stringSetPreferencesKey("equipment")
 
-        /** pre-#268 storage; read only by the plan-settings fixup and as the fallback for a plan with no recipe. */
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val SUGGESTED_DAY = stringPreferencesKey("suggested_day")
         val PLAN_SETTINGS_FIXUP_DONE = booleanPreferencesKey("plan_settings_fixup_done")
         val SELECTED_PLAN_ID = longPreferencesKey("selected_plan_id")
@@ -406,6 +406,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * (schema v3): a bucket the user never pinned stays absent here too, so a
      * restored device keeps following [RestPolicy]'s defaults rather than being
      * frozen at whatever they were the day the backup was written.
+     *
+     * Clears the plan-settings fixup flag along with all other restorable keys.
+     * [legacyPlanSettings] is only for replaying a pre-#268 restore journal: its
+     * plan-owned keys land in this same edit for the migration gate to consume.
      */
     suspend fun restore(
         global: GlobalLifter,
@@ -418,6 +422,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         supersetHelperSeen: Boolean = false,
         sessionNotes: Map<Long, String> = emptyMap(),
         themePreference: ThemePreference = ThemePreference.SYSTEM,
+        legacyPlanSettings: Preferences? = null,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
         // not user data contained in the imported document. Keep them across a
@@ -431,6 +436,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val autoPermissionLost = prefs[Keys.AUTO_BACKUP_PERMISSION_LOST]
         prefs.clear()
         prefs.writeGlobalLifter(global)
+        if (legacyPlanSettings != null) {
+            legacyPlanKeys.forEach { key -> prefs.copyPreference(legacyPlanSettings, key) }
+        }
         prefs[Keys.WEIGHT_UNIT] = unit.name
         prefs[Keys.WIZARD_COMPLETE] = wizardComplete
         if (selectedPlanId != null) prefs[Keys.SELECTED_PLAN_ID] = selectedPlanId
@@ -459,6 +467,13 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             ?: emptyMap()
 
     // --- read/write helpers --------------------------------------------------
+
+    private fun <T> androidx.datastore.preferences.core.MutablePreferences.copyPreference(
+        source: Preferences,
+        key: Preferences.Key<T>,
+    ) {
+        source[key]?.let { this[key] = it }
+    }
 
     private fun Preferences.readGlobalLifter(): GlobalLifter = GlobalLifter(
         bodyweightLb = this[Keys.BODYWEIGHT] ?: DEFAULT_CONFIG.bodyweightLb,

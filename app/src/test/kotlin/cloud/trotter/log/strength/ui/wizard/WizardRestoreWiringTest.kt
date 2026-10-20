@@ -212,6 +212,28 @@ class WizardRestoreWiringTest {
     }
 
     @Test
+    fun restoringAMidFirstRunBackupWithoutAProgram_keepsTheRestoredAnswers() = runBlocking {
+        val document = backup(wizardComplete = false).copy(program = emptyList())
+        val uri = pickable(BackupCodec().encode(document))
+        val vm = newViewModel()
+        vm.awaitOffered()
+
+        vm.restoreFromBackup(uri)
+
+        val state = withTimeout(TIMEOUT_MS) {
+            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == 3 }
+        }
+        assertFalse(state.isComplete)
+        assertEquals(null, state.restore.error)
+        assertEquals(190, state.answers.config.bodyweightLb)
+        assertEquals("STRENGTH", state.answers.config.emphasis.name)
+        assertEquals(state.answers, repo.wizardAnswersFlow.first())
+        assertEquals(1, db.planDao().allPlans().size)
+        assertTrue(repo.programFlow.first().days.isEmpty())
+        assertFalse(repo.wizardCompleteFlow.first())
+    }
+
+    @Test
     fun aFileThatIsNotABackup_showsAnErrorAndLeavesTheDeviceUntouched() = runBlocking {
         val uri = pickable("{ not a backup at all")
         val vm = newViewModel()
@@ -243,7 +265,9 @@ class WizardRestoreWiringTest {
 
         // Park the reconcile inside its settings write, holding the restore lock.
         val open = CompletableDeferred<Unit>()
-        settingsStore.gateOnUpdate = 2
+        // Update 1 failed in import; update 2 retired the empty legacy keys
+        // when the wizard's initial answers read passed through the gate.
+        settingsStore.gateOnUpdate = 3
         settingsStore.gate = open
         val reconcile = storeScope.async { service.reconcilePendingRestore() }
         withTimeout(TIMEOUT_MS) { settingsStore.gateReached.await() }

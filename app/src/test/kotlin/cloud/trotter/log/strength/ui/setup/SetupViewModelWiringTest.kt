@@ -8,11 +8,11 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -33,6 +33,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -89,7 +90,8 @@ class SetupViewModelWiringTest {
     }
 
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) {
-        repo.setWizardAnswers(WizardAnswers())
+        repo.replaceProgram(Program(emptyList()))
+        assertNull(db.planDao().allPlans().single().recipeJson)
         block()
     }
 

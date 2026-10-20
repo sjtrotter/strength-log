@@ -299,14 +299,14 @@ class SyncCodecTest {
     }
 
     @Test
-    fun `plan and run context round-trips on every wire type`() {
-        val planned = snapshot.copy(planId = 17L, planName = "Strength", runToken = 123L)
+    fun `plan context round-trips on every wire type`() {
+        val planned = snapshot.copy(planId = 17L, planName = "Strength")
         assertEquals(planned, SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(planned)))
-        val edit = delta.copy(planId = 17L, runToken = 123L)
+        val edit = delta.copy(planId = 17L)
         assertEquals(edit, SyncCodec.decodeDelta(SyncCodec.encodeDelta(edit)))
-        val swap = ExerciseSwapDelta(1, "A", 12L, "hack_squat", "Hack Squat", 99L, planId = 17L, runToken = 123L)
+        val swap = ExerciseSwapDelta(1, "A", 12L, "hack_squat", "Hack Squat", 99L, planId = 17L)
         assertEquals(swap, SyncCodec.decodeSwap(SyncCodec.encodeSwap(swap)))
-        val cardio = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy", 100L, 70_100L, 70, 0, 91L, planId = 17L, runToken = 123L)
+        val cardio = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy", 100L, 70_100L, 70, 0, 91L, planId = 17L)
         assertEquals(cardio, SyncCodec.decodeCardio(SyncCodec.encodeCardio(cardio)))
 
         // The durable queues preserve the context through a process restart too.
@@ -316,16 +316,7 @@ class SyncCodecTest {
     }
 
     @Test
-    fun `per-row edit and swap acks round-trip in snapshots`() {
-        val acknowledged = snapshot.copy(
-            editAcks = listOf(EditAck(12L, "main", 0, 20L), EditAck(12L, "ss", 1, 10L)),
-            swapAcks = listOf(SwapAck(13L, 15L)),
-        )
-        assertEquals(acknowledged, SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(acknowledged)))
-    }
-
-    @Test
-    fun `old payloads without plan and run keys retain legacy defaults`() {
+    fun `old payloads without plan keys retain legacy defaults`() {
         val oldSnapshot = """
             {"revision":1,"suggestedDayId":"A","unit":"lb",
              "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[]}}
@@ -333,22 +324,16 @@ class SyncCodecTest {
         val decodedSnapshot = SyncCodec.decodeSnapshot(oldSnapshot.encodeToByteArray())
         assertNull(decodedSnapshot.planId)
         assertNull(decodedSnapshot.planName)
-        assertEquals(0L, decodedSnapshot.runToken)
-        assertEquals(emptyList(), decodedSnapshot.editAcks)
-        assertEquals(emptyList(), decodedSnapshot.swapAcks)
         assertEquals(1, decodedSnapshot.schemaVersion)
 
         val oldEdit = """{"dayId":"A","programExerciseId":12,"slot":"main","setIndex":0,"done":true,"editedAtMillis":99}"""
         val edit = SyncCodec.decodeDelta(oldEdit.encodeToByteArray())
         assertNull(edit.planId)
-        assertNull(edit.runToken)
         val oldSwap = """{"dayId":"A","programExerciseId":12,"exerciseId":"hack_squat","exerciseName":"Hack Squat","editedAtMillis":99}"""
         val swap = SyncCodec.decodeSwap(oldSwap.encodeToByteArray())
         assertNull(swap.planId)
-        assertNull(swap.runToken)
         val oldCardio = """{"dayId":"A","mode":"OUTDOOR_RUN","hard":false,"label":"Easy","startedAt":100,"completedAt":70100,"seconds":70,"stepsCompleted":0,"stamp":91}"""
         val cardio = SyncCodec.decodeCardio(oldCardio.encodeToByteArray())
         assertNull(cardio.planId)
-        assertNull(cardio.runToken)
     }
 }

@@ -10,8 +10,6 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.sync.CardioDelta
-import cloud.trotter.log.strength.domain.sync.EditAck
-import cloud.trotter.log.strength.domain.sync.SwapAck
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -37,10 +35,6 @@ class CardioDeltaApplierTest {
     private val markers = mutableMapOf<String, Long>()
 
     private val markerStore = object : AppliedEditMarkers {
-        override suspend fun acknowledgeEdit(rowKey: String, editedAtMillis: Long) = Unit
-        override suspend fun acknowledgeSwap(programExerciseId: Long, editedAtMillis: Long) = Unit
-        override val editAcksFlow = kotlinx.coroutines.flow.flowOf(emptyList<EditAck>())
-        override val swapAcksFlow = kotlinx.coroutines.flow.flowOf(emptyList<SwapAck>())
         override suspend fun lastApplied(rowKey: String) = markers[rowKey] ?: 0L
         override suspend fun markApplied(rowKey: String, editedAtMillis: Long) { markers[rowKey] = editedAtMillis }
         override fun lastAppliedFlow(rowKey: String) = kotlinx.coroutines.flow.flow { emit(markers[rowKey] ?: 0L) }
@@ -106,6 +100,7 @@ class CardioDeltaApplierTest {
         assertEquals(0, repo.cardioSessionsFlow.first().size)
         assertEquals(12L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
     }
+
     @Test fun `explicit-plan cardio stays with its plan and old-watch cardio uses selection`() = runTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", emptyList(), cardio = null))))
         val planP = repo.selectedPlanIdFlow.first()!!
@@ -114,8 +109,7 @@ class CardioDeltaApplierTest {
         repo.selectPlan(planQ)
         val applier = CardioDeltaApplier(repo, markerStore, publisher)
 
-        // A cardio completion is real history even when its run token is old.
-        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta().copy(planId = planP, runToken = 999L)))
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta().copy(planId = planP)))
         val planned = repo.cardioSessionsFlow.first().single()
         assertEquals(planP, planned.planId)
         assertEquals("Strength", planned.planName)
@@ -123,10 +117,9 @@ class CardioDeltaApplierTest {
         val legacy = repo.cardioSessionsFlow.first().first { it.startedAt == 100_000L }
         assertEquals(planQ, legacy.planId)
         assertEquals("Running", legacy.planName)
-        // Plan and run fields do not change content identity, even across selection.
-        assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(delta(stamp = 12L).copy(planId = planQ, runToken = 0L)))
+        // Plan identity does not change content identity, even across selection.
+        assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(delta(stamp = 12L).copy(planId = planQ)))
         assertEquals(2, repo.cardioSessionsFlow.first().size)
         assertEquals(12L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
     }
-
 }

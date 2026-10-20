@@ -42,7 +42,6 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestCategory
@@ -755,24 +754,6 @@ open class TrackerRepository(
         combine(programDao.observeLogs(planId, dayId), today) { rows, date ->
             rows.map { it.toLoggedSlot(date.toString()) }
         }
-
-    /** The run boundary for a plan day. A strength day's cardio finisher does not
-     *  finish its strength run. A CARDIO day also counts cardio completions, as
-     *  well as the workout session DONE records for its core sets. */
-    fun lastCompletionFlow(planId: Long, dayId: String): Flow<Long> =
-        programDao.observeDays(planId).flatMapLatest { days ->
-            if (days.firstOrNull { it.dayId == dayId }?.kind == ProgramDayKind.CARDIO.name) {
-                combine(
-                    sessionDao.lastCompletion(planId, dayId),
-                    cardioSessionDao.lastCompletion(planId, dayId),
-                ) { workout, cardio -> maxOf(workout, cardio) }
-            } else {
-                sessionDao.lastCompletion(planId, dayId)
-            }
-        }.distinctUntilChanged()
-
-    /** One-shot counterpart of [lastCompletionFlow] for incoming set edits. */
-    suspend fun lastCompletionOf(planId: Long, dayId: String): Long = lastCompletionFlow(planId, dayId).first()
 
     /** Persists a slot's set track immediately (spec §7). The write stamps today's
      *  date, so the `done` flags it carries are "today's" checks.

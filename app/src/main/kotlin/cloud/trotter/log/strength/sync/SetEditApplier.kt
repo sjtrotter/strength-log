@@ -40,15 +40,12 @@ import kotlinx.coroutines.sync.withLock
  * `done = false` delta (the watch's long-press undo, #88) clears them again: an
  * untick retracts the tick's facts along with the tick.
  *
- * A plan-aware delta also echoes the day's run token. A token that differs from
- * that plan day's last completion is [Outcome.STALE] without advancing the row
- * marker: work from a finished run cannot tick the next one. A null token keeps
- * the legacy behavior. Validation and reads follow the slot's plan, even when
- * another plan is selected on the phone.
- * Processed APPLIED/STALE outcomes also advance a separate per-row acknowledgement;
- * only a real write advances the applied marker.
+ * Validation and reads follow the slot's plan, even when another plan is selected
+ * on the phone.
+ * A tick arriving after phone DONE can re-tick the next run of the same day on a
+ * one-day plan.
  *
- * The existing row guards before any write:
+ * Three guards before any write:
  *  - **Validation** — the day, slot (programExerciseId + main/ss track) and set
  *    index must all exist; a superset "ss" delta needs a real partner. Anything
  *    else is [Outcome.INVALID] and touches no data (malformed input from an
@@ -81,12 +78,6 @@ class SetEditApplier(
     private val mutationLock = Mutex()
 
     suspend fun apply(delta: SetEditDelta): Outcome = mutationLock.withLock {
-        val outcome = applyEdit(delta)
-        if (outcome != Outcome.INVALID) markers.acknowledgeEdit(rowKey(delta), delta.editedAtMillis)
-        outcome
-    }
-
-    private suspend fun applyEdit(delta: SetEditDelta): Outcome {
         if (delta.slot != Slot.MAIN && delta.slot != Slot.SS) return Outcome.INVALID
         // Value hardening: this arrives through an exported service, so assume
         // hostile input. Negative or non-finite numbers must never reach the log
@@ -108,10 +99,6 @@ class SetEditApplier(
             it.programExerciseId == delta.programExerciseId && it.slot == delta.slot
         }?.sets.orEmpty()
         if (delta.setIndex !in track.indices) return Outcome.INVALID
-
-        if (delta.runToken != null && delta.runToken != repo.lastCompletionOf(planId, delta.dayId)) {
-            return Outcome.STALE
-        }
 
         val rowKey = rowKey(delta)
         if (delta.editedAtMillis <= markers.lastApplied(rowKey)) return Outcome.STALE
@@ -143,10 +130,7 @@ class SetEditApplier(
      * its live log is cleared, the new exercise reseeds from its own GOAL on the next
      * observation). The watch contributes a choice, never a consequence.
      *
-     * Swaps edit the program rather than a run, so the run token never rejects one.
      * Validation and reseeding follow the slot's plan, independent of selection.
-     * Every processed outcome is acknowledged, including INVALID and already-there
-     * replies; those acknowledgements never participate in the dedupe guard.
      *
      * Four guards, in this order:
      *  - **Validation** — the day must hold a slot with this `programExerciseId`.
@@ -169,12 +153,6 @@ class SetEditApplier(
      *    snapshot the phone has since moved past.
      */
     suspend fun apply(swap: ExerciseSwapDelta): Outcome = mutationLock.withLock {
-        val outcome = applySwap(swap)
-        markers.acknowledgeSwap(swap.programExerciseId, swap.editedAtMillis)
-        outcome
-    }
-
-    private suspend fun applySwap(swap: ExerciseSwapDelta): Outcome {
         val planId = swap.planId ?: repo.planIdOfSlot(swap.programExerciseId) ?: return Outcome.INVALID
         val slots = repo.slotsFor(planId, swap.dayId).first()
         val slot = slots.firstOrNull { it.programExerciseId == swap.programExerciseId }

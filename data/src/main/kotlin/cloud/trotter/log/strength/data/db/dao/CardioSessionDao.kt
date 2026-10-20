@@ -8,10 +8,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CardioSessionDao {
-    /** Latest completion of this plan day, or 0 before its first run. */
-    @Query("SELECT COALESCE(MAX(completedAt), 0) FROM cardio_session WHERE planId = :planId AND dayId = :dayId")
-    fun lastCompletion(planId: Long, dayId: String): Flow<Long>
-
     @Insert
     suspend fun insert(session: CardioSessionEntity): Long
 

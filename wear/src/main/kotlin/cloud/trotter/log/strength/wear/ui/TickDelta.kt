@@ -30,7 +30,6 @@ fun buildTickDelta(
     done = true,
     editedAtMillis = editedAtMillis,
     planId = snapshot?.planId,
-    runToken = snapshot.deltaRunToken,
     startedAtMillis = startedAtMillis?.takeIf { it > 0L },
     completedAtMillis = completedAtMillis,
 )
@@ -56,7 +55,6 @@ fun buildUndoDelta(
     done = false,
     editedAtMillis = editedAtMillis,
     planId = snapshot?.planId,
-    runToken = snapshot.deltaRunToken,
 )
 
 /** The watch only ever ticks the main track; a superset partner follows its round. */

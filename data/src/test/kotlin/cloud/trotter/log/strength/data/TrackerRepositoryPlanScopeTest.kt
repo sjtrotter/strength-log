@@ -678,40 +678,6 @@ class TrackerRepositoryPlanScopeTest {
     }
 
     @Test
-    fun `run tokens use only the day and plan and ignore strength day finishers`() = runTest {
-        insertTwoProgramsAndSelectPlanTwo()
-        db.programDao().upsertDay(ProgramDayEntity(1, "C", 1, "Cardio", "", null, kind = ProgramDayKind.CARDIO.name))
-        assertEquals(0L, repo.lastCompletionOf(1, "A"))
-        assertEquals(0L, repo.lastCompletionOf(1, "C"))
-        val session = WorkoutSessionEntity(
-            id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
-            completedAt = 100L, bodyweightLb = 180, planId = 1,
-        )
-        db.sessionDao().insertSessions(listOf(
-            session,
-            session.copy(completedAt = 50L),
-            session.copy(planId = 2, completedAt = 900L),
-            session.copy(dayId = "B", completedAt = 800L),
-            session.copy(planId = null, completedAt = 700L),
-        ))
-        val cardio = CardioSessionEntity(
-            dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Zone 2",
-            startedAt = 200L, completedAt = 60_200L, seconds = 60, stepsCompleted = 1, planId = 1,
-        )
-        db.cardioSessionDao().insertAll(listOf(
-            cardio,
-            cardio.copy(dayId = "C", completedAt = 60_300L),
-            cardio.copy(dayId = "C", completedAt = 60_250L),
-            cardio.copy(dayId = "C", planId = 2, completedAt = 60_900L),
-        ))
-        assertEquals(100L, repo.lastCompletionOf(1, "A"))
-        assertEquals(60_300L, repo.lastCompletionOf(1, "C"))
-        // DONE also records a CARDIO day's core sets in workout_session.
-        db.sessionDao().insertSession(session.copy(dayId = "C", completedAt = 60_400L))
-        assertEquals(60_400L, repo.lastCompletionOf(1, "C"))
-    }
-
-    @Test
     fun `cardio preserves an explicit missing plan and refreshes an existing plan name`() = runTest {
         insertTwoProgramsAndSelectPlanTwo()
         val cardio = CardioSessionEntity(

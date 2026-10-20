@@ -26,9 +26,8 @@ class CardioDeltaApplier(
      * snapshot exposes for queue settlement — and it advances for every
      * outcome, INVALID included: a delta this phone can never apply must be
      * acked and dropped, or the watch re-sends it forever.
-     * A cardio session is its own completion: a late delta remains real history,
-     * so a run-token mismatch never drops it. Its explicit plan survives a phone
-     * plan switch; a null plan keeps the old selected-plan behavior.
+     * Its explicit plan survives a phone plan switch; a null plan keeps the old
+     * selected-plan behavior.
      */
     suspend fun apply(delta: CardioDelta): Outcome = lock.withLock {
         if (delta.dayId.isBlank() || delta.label.isBlank() || delta.stamp <= 0L ||

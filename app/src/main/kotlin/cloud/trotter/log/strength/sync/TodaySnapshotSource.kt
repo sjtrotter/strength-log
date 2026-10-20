@@ -1,16 +1,11 @@
 package cloud.trotter.log.strength.sync
 
-import cloud.trotter.log.strength.data.LoggedSlot
-import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
-import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.standards.RestSettings
-import cloud.trotter.log.strength.domain.sync.EditAck
-import cloud.trotter.log.strength.domain.sync.SwapAck
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
@@ -53,8 +48,7 @@ class TodaySnapshotSource(
                     repo.programFor(plan.id),
                     repo.slotsFor(plan.id, dayId),
                     repo.logsFor(plan.id, dayId, today),
-                    repo.lastCompletionFlow(plan.id, dayId),
-                ) { program, slots, logs, runToken -> ProgramState(program, slots, logs, runToken) }
+                ) { program, slots, logs -> Triple(program, slots, logs) }
                 // restSettingsFlow rides the context combine so a Setup edit (master
                 // toggle or a duration) republishes immediately — the watch never
                 // counts a stale rest for longer than one sync hop.
@@ -66,26 +60,19 @@ class TodaySnapshotSource(
                 ) { answers, catalog, unit, rest ->
                     Context(answers.config, catalog, unit, rest, answers.equipment, answers.cardio.mode.name, answers.cardio.fiveKGoal)
                 }
-                // A processed edit may leave the selected day's rows untouched.
-                // Observe acks too so those outcomes still publish an answer.
-                val acknowledgements = combine(
-                    markers.lastAppliedFlow(CardioDeltaApplier.MARKER_KEY),
-                    markers.editAcksFlow,
-                    markers.swapAcksFlow,
-                ) { cardio, edits, swaps -> Acknowledgements(cardio, edits, swaps) }
                 combine(
                     program, context, repo.cardioSessionsFlow, today,
-                    acknowledgements,
-                ) { state, ctx, cardioHistory, civilDate, acks ->
+                    markers.lastAppliedFlow(CardioDeltaApplier.MARKER_KEY),
+                ) { (prog, slots, logs), ctx, cardioHistory, civilDate, cardioAck ->
                     val loggedCardio = cardioHistory.firstOrNull { session ->
                         session.planId == plan.id && session.dayId == dayId &&
                             Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
                     }
                     WatchSnapshotBuilder.build(
-                        program = state.program,
+                        program = prog,
                         suggestedDayId = dayId,
-                        slots = state.slots,
-                        logs = state.logs,
+                        slots = slots,
+                        logs = logs,
                         cfg = ctx.cfg,
                         catalog = ctx.catalog,
                         unit = ctx.unit,
@@ -93,28 +80,15 @@ class TodaySnapshotSource(
                         restSettings = ctx.restSettings,
                         equipment = ctx.equipment,
                         loggedCardio = loggedCardio,
-                        cardioAckStamp = acks.cardio,
+                        cardioAckStamp = cardioAck,
                         cardioMode = ctx.cardioMode,
                         cardioFiveK = ctx.cardioFiveK,
                         planId = plan.id,
                         planName = plan.name,
-                        runToken = state.runToken,
-                        swapAcks = acks.swaps,
-                        editAcks = acks.edits,
                     )
                 }
             }
         }
-
-    private data class Acknowledgements(val cardio: Long, val edits: List<EditAck>, val swaps: List<SwapAck>)
-
-    /** All day reads share the plan captured by the outer observation. */
-    private data class ProgramState(
-        val program: Program,
-        val slots: List<ProgramSlot>,
-        val logs: List<LoggedSlot>,
-        val runToken: Long,
-    )
 
     /** The non-program half of a snapshot's inputs, combined separately so the
      *  program flows and the preference flows conflate independently. */

@@ -8,7 +8,6 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -18,10 +17,6 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
-import cloud.trotter.log.strength.domain.sync.EditAck
-import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
-import cloud.trotter.log.strength.domain.sync.SetEditDelta
-import cloud.trotter.log.strength.domain.sync.SwapAck
 import cloud.trotter.log.strength.widget.TodayWidgetContent
 import cloud.trotter.log.strength.widget.todayWidgetContent
 import java.io.File
@@ -90,80 +85,6 @@ class TodaySnapshotSourceRestTest {
     }
 
     @Test
-    fun `processed edits and swaps republish acks while another plan is selected`() = runTest(dispatcher) {
-        repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
-        ))))
-        val planP = repo.selectedPlanIdFlow.first()!!
-        val slotId = repo.slotsFor(planP, "A").first().single().programExerciseId
-        repo.updateSets("A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
-        val planQ = repo.duplicatePlan(planP, "Running")
-        repo.selectPlan(planQ)
-        val syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
-            File.createTempFile("pub-edit-acks", ".preferences_pb")
-        })
-        val today = kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate())
-        val applier = SetEditApplier(repo, syncStore, today)
-        val source = TodaySnapshotSource(repo, today, syncStore)
-        val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
-        backgroundScope.launch { source.snapshots.collect { if (it != null) snapshots.send(it) } }
-        suspend fun awaitAcks(edits: List<EditAck>, swaps: List<SwapAck>): WatchSnapshot {
-            while (true) {
-                val snapshot = snapshots.receive()
-                if (snapshot.editAcks == edits && snapshot.swapAcks == swaps) return snapshot
-            }
-        }
-        val initial = awaitAcks(emptyList(), emptyList())
-        assertEquals(planQ, initial.planId)
-        val tick = SetEditDelta(
-            dayId = "A", programExerciseId = slotId, slot = Slot.MAIN, setIndex = 0,
-            done = true, editedAtMillis = 10L, planId = planP, runToken = 0L,
-        )
-
-        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(tick))
-        val applied = awaitAcks(listOf(EditAck(slotId, Slot.MAIN, 0, 10L)), emptyList())
-        assertEquals(initial.copy(editAcks = applied.editAcks), applied)
-
-        assertEquals(SetEditApplier.Outcome.STALE, applier.apply(tick.copy(runToken = 999L, editedAtMillis = 20L)))
-        val runStale = awaitAcks(listOf(EditAck(slotId, Slot.MAIN, 0, 20L)), emptyList())
-        assertEquals(initial.copy(editAcks = runStale.editAcks), runStale)
-
-        syncStore.markApplied("A|$slotId|main|0", 40L)
-        assertEquals(SetEditApplier.Outcome.STALE, applier.apply(tick.copy(editedAtMillis = 30L)))
-        val markerStale = awaitAcks(listOf(EditAck(slotId, Slot.MAIN, 0, 30L)), emptyList())
-        assertEquals(initial.copy(editAcks = markerStale.editAcks), markerStale)
-
-        assertEquals(SetEditApplier.Outcome.INVALID, applier.apply(ExerciseSwapDelta(
-            dayId = "A", programExerciseId = slotId, exerciseId = "custom_nonexistent",
-            exerciseName = "Invented", editedAtMillis = 50L, planId = planP,
-        )))
-        val refused = awaitAcks(markerStale.editAcks, listOf(SwapAck(slotId, 50L)))
-        assertEquals(markerStale.copy(swapAcks = refused.swapAcks), refused)
-
-        val alternate = WatchSnapshotBuilder.alternatesFor(
-            "bb_back_squat", repo.catalogFlow.first(), repo.wizardAnswersFor(planP).first().equipment,
-        ).first()
-        val swap = ExerciseSwapDelta(
-            dayId = "A", programExerciseId = slotId, exerciseId = alternate.exerciseId,
-            exerciseName = alternate.name, editedAtMillis = 60L, planId = planP,
-        )
-        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(swap))
-        val swapped = awaitAcks(markerStale.editAcks, listOf(SwapAck(slotId, 60L)))
-        assertEquals(markerStale.copy(swapAcks = swapped.swapAcks), swapped)
-
-        // Already there is APPLIED without another write or marker advance.
-        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(swap.copy(editedAtMillis = 70L)))
-        val replayed = awaitAcks(markerStale.editAcks, listOf(SwapAck(slotId, 70L)))
-        assertEquals(markerStale.copy(swapAcks = replayed.swapAcks), replayed)
-        assertEquals(60L, syncStore.lastApplied("A|$slotId|swap"))
-
-        syncStore.markApplied("A|$slotId|swap", 90L)
-        assertEquals(SetEditApplier.Outcome.STALE, applier.apply(swap.copy(exerciseId = "bb_back_squat", editedAtMillis = 80L)))
-        val staleSwap = awaitAcks(markerStale.editAcks, listOf(SwapAck(slotId, 80L)))
-        assertEquals(markerStale.copy(swapAcks = staleSwap.swapAcks), staleSwap)
-    }
-
-    @Test
     fun `switching plans changes the live widget and watch day`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
@@ -220,47 +141,34 @@ class TodaySnapshotSourceRestTest {
     }
 
     @Test
-    fun `live snapshots carry the selected plan and its day run across same-day plan switches`() = runTest(dispatcher) {
+    fun `live snapshots carry the selected plan and name across same-day plan switches`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
         ))))
         val planP = repo.selectedPlanIdFlow.first()!!
         repo.renamePlan(planP, "Strength")
         val planQ = repo.duplicatePlan(planP, "Running")
-        val session = WorkoutSessionEntity(
-            id = 0, dayId = "A", dayTitle = "Squat", startedAt = null,
-            completedAt = 100L, bodyweightLb = 180, planId = planP,
-        )
-        db.sessionDao().insertSessions(listOf(session, session.copy(planId = planQ, completedAt = 200L)))
-        // A later finisher on a strength day must not change its strength run.
-        db.cardioSessionDao().insert(CardioSessionEntity(
-            dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Zone 2",
-            startedAt = 300L, completedAt = 60_300L, seconds = 60, stepsCompleted = 1, planId = planP,
-        ))
         val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
         val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
         backgroundScope.launch { source.snapshots.collect { if (it != null) snapshots.send(it) } }
-        suspend fun awaitPlan(planId: Long, runToken: Long): WatchSnapshot {
+        suspend fun awaitPlan(planId: Long): WatchSnapshot {
             while (true) {
                 val snapshot = snapshots.receive()
-                if (snapshot.planId == planId && snapshot.runToken == runToken) return snapshot
+                if (snapshot.planId == planId) return snapshot
             }
         }
 
-        val first = awaitPlan(planP, 100L)
+        val first = awaitPlan(planP)
         assertEquals("Strength", first.planName)
         assertEquals("A", first.day.dayId)
         assertEquals(repo.slotsFor(planP, "A").first().single().programExerciseId, first.day.exercises.single().programExerciseId)
         repo.selectPlan(planQ)
-        val second = awaitPlan(planQ, 200L)
+        val second = awaitPlan(planQ)
         assertEquals("Running", second.planName)
         assertEquals("A", second.day.dayId)
         assertEquals(repo.slotsFor(planQ, "A").first().single().programExerciseId, second.day.exercises.single().programExerciseId)
-        // A completion republishes even when the next run has the same day id.
-        db.sessionDao().insertSession(session.copy(planId = planQ, completedAt = 400L))
-        assertEquals("Running", awaitPlan(planQ, 400L).planName)
         repo.selectPlan(planP)
-        assertEquals("Strength", awaitPlan(planP, 100L).planName)
+        assertEquals("Strength", awaitPlan(planP).planName)
     }
 
     @Test
@@ -291,10 +199,6 @@ class TodaySnapshotSourceRestTest {
 }
 
 private object InertMarkers : AppliedEditMarkers {
-    override suspend fun acknowledgeEdit(rowKey: String, editedAtMillis: Long) = Unit
-    override suspend fun acknowledgeSwap(programExerciseId: Long, editedAtMillis: Long) = Unit
-    override val editAcksFlow = kotlinx.coroutines.flow.flowOf(emptyList<EditAck>())
-    override val swapAcksFlow = kotlinx.coroutines.flow.flowOf(emptyList<SwapAck>())
     override suspend fun lastApplied(rowKey: String) = 0L
     override suspend fun markApplied(rowKey: String, editedAtMillis: Long) = Unit
     override fun lastAppliedFlow(rowKey: String) = kotlinx.coroutines.flow.flowOf(0L)

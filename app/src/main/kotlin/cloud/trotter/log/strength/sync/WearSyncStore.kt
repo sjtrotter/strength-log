@@ -6,8 +6,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import cloud.trotter.log.strength.domain.sync.EditAck
-import cloud.trotter.log.strength.domain.sync.SwapAck
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -31,7 +29,7 @@ import kotlinx.coroutines.flow.map
  *    can tell "1 because we started over" from "1, which is older than the 500 I
  *    hold";
  *  - the per-row applied-edit markers ([AppliedEditMarkers]) that dedupe replayed
- *    watch deltas, and bounded processed-edit/swap acknowledgements beside them.
+ *    watch deltas.
  */
 class WearSyncStore(
     private val dataStore: DataStore<Preferences>,
@@ -74,37 +72,6 @@ class WearSyncStore(
 
     override fun lastAppliedFlow(rowKey: String): Flow<Long> =
         dataStore.data.map { it[appliedKey(rowKey)] ?: 0L }.distinctUntilChanged()
-
-    override suspend fun acknowledgeEdit(rowKey: String, editedAtMillis: Long) =
-        acknowledge(EDIT_ACK_PREFIX, rowKey, editedAtMillis)
-
-    override suspend fun acknowledgeSwap(programExerciseId: Long, editedAtMillis: Long) =
-        acknowledge(SWAP_ACK_PREFIX, programExerciseId.toString(), editedAtMillis)
-
-    private suspend fun acknowledge(prefix: String, rowKey: String, editedAtMillis: Long) {
-        dataStore.edit { prefs ->
-            val key = longPreferencesKey("$prefix$rowKey")
-            prefs[key] = maxOf(prefs[key] ?: 0L, editedAtMillis)
-            prefs.asMap().entries.filter { it.key.name.startsWith(prefix) }
-                .sortedByDescending { it.value as Long }
-                .drop(MAX_ACKS)
-                .forEach { prefs.remove(longPreferencesKey(it.key.name)) }
-        }
-    }
-
-    override val editAcksFlow: Flow<List<EditAck>> = dataStore.data.map { prefs ->
-        prefs.asMap().entries.filter { it.key.name.startsWith(EDIT_ACK_PREFIX) }
-            .map { (key, value) ->
-                val row = key.name.removePrefix(EDIT_ACK_PREFIX).split('|').takeLast(3)
-                EditAck(row[0].toLong(), row[1], row[2].toInt(), value as Long)
-            }.sortedByDescending { it.editedAtMillis }
-    }.distinctUntilChanged()
-
-    override val swapAcksFlow: Flow<List<SwapAck>> = dataStore.data.map { prefs ->
-        prefs.asMap().entries.filter { it.key.name.startsWith(SWAP_ACK_PREFIX) }
-            .map { (key, value) -> SwapAck(key.name.removePrefix(SWAP_ACK_PREFIX).toLong(), value as Long) }
-            .sortedByDescending { it.editedAtMillis }
-    }.distinctUntilChanged()
 
     override val continuityFlow: Flow<WatchContinuity> = dataStore.data.map { prefs ->
         WatchContinuity(
@@ -149,9 +116,6 @@ class WearSyncStore(
         val REVISION = longPreferencesKey("snapshot_revision")
         val EPOCH = longPreferencesKey("snapshot_epoch")
         const val APPLIED_PREFIX = "applied:"
-        const val EDIT_ACK_PREFIX = "edit_ack:"
-        const val SWAP_ACK_PREFIX = "swap_ack:"
-        const val MAX_ACKS = 64
         val LAST_CONTACT = longPreferencesKey("last_watch_contact")
         val SYNCING_CHANGES = intPreferencesKey("syncing_changes")
         val REMOTE_TICK_DAY = stringPreferencesKey("remote_tick_day")

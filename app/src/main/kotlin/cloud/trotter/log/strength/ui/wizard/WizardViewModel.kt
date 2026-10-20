@@ -334,24 +334,28 @@ class WizardViewModel @Inject constructor(
      * flag flipped underneath us; a Setup re-run (which legitimately regenerates
      * over a complete setup) never takes this branch.
      *
-     * That check and the writes it authorizes run under
-     * [BackupService.withRestoreLock], because the thing that flips the flag —
-     * the startup reconciliation — is asynchronous. Reading it outside the lock
-     * is a check/use race: reads false, reconcile lands, [replaceProgram] then
-     * deletes a restored program that by then exists.
+     * [BackupService.withRestoreLock] finishes any pending recovery before that
+     * check and keeps it and the writes it authorizes in one critical section.
+     * If recovery fails, the wizard stays open with an error so the lifter can retry.
      */
     private fun finish() {
         viewModelScope.launch {
-            backupService.withRestoreLock {
-                if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
-                val answers = currentAnswers()
-                repo.setWizardAnswers(answers)
-                repo.setUnit(enumOf(unit.value, WeightUnit.LB))
-                repo.replaceProgram(previewProgram.value ?: generatePreview(answers))
-                repo.setWizardComplete(true)
+            try {
+                backupService.withRestoreLock {
+                    if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
+                    val answers = currentAnswers()
+                    repo.setWizardAnswers(answers)
+                    repo.setUnit(enumOf(unit.value, WeightUnit.LB))
+                    repo.replaceProgram(previewProgram.value ?: generatePreview(answers))
+                    repo.setWizardComplete(true)
+                }
+                // Either branch leaves the device set up, so the wizard leaves.
+                isComplete.value = true
+            } catch (e: RestoreInterruption) {
+                restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
+            } catch (e: IOException) {
+                restoreProgress.value = RestoreProgress(error = cloud.trotter.log.strength.ui.text.UiText.FileAccessFailure(e.message))
             }
-            // Either branch leaves the device set up, so the wizard leaves.
-            isComplete.value = true
         }
     }
 

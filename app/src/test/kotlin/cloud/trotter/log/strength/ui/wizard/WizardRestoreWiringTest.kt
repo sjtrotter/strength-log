@@ -2,7 +2,14 @@ package cloud.trotter.log.strength.ui.wizard
 
 import android.content.Context
 import android.net.Uri
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
@@ -10,14 +17,24 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.FlakyDataStore
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
+import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.transfer.backup.BackupCodec
 import cloud.trotter.log.strength.transfer.backup.BackupDocument
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.transfer.backup.ProgramDayBackup
 import cloud.trotter.log.strength.transfer.backup.ProgramExerciseBackup
 import cloud.trotter.log.strength.transfer.backup.SettingsBackup
+import cloud.trotter.log.strength.transfer.backup.toSnapshot
+import cloud.trotter.log.strength.ui.text.UiText
 import java.io.ByteArrayInputStream
 import java.io.File
 import kotlinx.coroutines.CompletableDeferred
@@ -39,6 +56,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -67,6 +85,7 @@ class WizardRestoreWiringTest {
     private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var journal: RestoreJournal
+    private lateinit var journalStore: DataStore<Preferences>
 
     /** One instance, shared by every ViewModel here, because its restore lock is
      *  the coordination point under test — a per-ViewModel service would hand
@@ -101,12 +120,10 @@ class WizardRestoreWiringTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        journal = RestoreJournal(
-            PreferenceDataStoreFactory.create(scope = storeScope) {
-                File.createTempFile("wizard-restore-journal", ".preferences_pb")
-            },
-            settings,
-        )
+        journalStore = PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("wizard-restore-journal", ".preferences_pb")
+        }
+        journal = RestoreJournal(journalStore, settings)
         service = BackupService(repo, journal)
     }
 
@@ -170,6 +187,34 @@ class WizardRestoreWiringTest {
 
     private suspend fun WizardViewModel.awaitOffered() =
         withTimeout(TIMEOUT_MS) { uiState.first { it.restore.offered } }
+
+    /** Literal keys preserve the older build's journal format, which carried
+     *  plan settings and left no plan in Room when the backup had no program. */
+    private suspend fun stagePreviousBuildWithoutProgram(wizardComplete: Boolean): WizardAnswers {
+        val snapshot = backup(wizardComplete).copy(program = emptyList()).toSnapshot()
+        val answers = snapshot.answers
+        val nonce = "previous-build-restore"
+        journalStore.edit { prefs ->
+            prefs.clear()
+            prefs[intPreferencesKey("bodyweight")] = answers.config.bodyweightLb
+            prefs[intPreferencesKey("age")] = answers.config.age
+            prefs[stringPreferencesKey("level")] = answers.config.level.name
+            prefs[stringPreferencesKey("emphasis")] = answers.config.emphasis.name
+            prefs[stringPreferencesKey("cardio_mode")] = answers.cardio.mode.name
+            prefs[stringPreferencesKey("cardio_placement")] = answers.cardio.placement.name
+            prefs[booleanPreferencesKey("five_k")] = answers.cardio.fiveKGoal
+            prefs[intPreferencesKey("days_per_week")] = answers.daysPerWeek
+            prefs[stringPreferencesKey("split")] = answers.split.name
+            prefs[stringPreferencesKey("anchor_scheme")] = answers.anchorScheme.name
+            prefs[stringPreferencesKey("deadlift_variant")] = answers.deadliftVariant.name
+            prefs[stringSetPreferencesKey("equipment")] = answers.equipment.map { it.name }.toSet()
+            prefs[stringPreferencesKey("weight_unit")] = snapshot.unit.name
+            prefs[booleanPreferencesKey("wizard_complete")] = snapshot.wizardComplete
+            prefs[stringPreferencesKey("restore_nonce")] = nonce
+        }
+        db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = nonce))
+        return answers
+    }
 
     @Test
     fun restoringACompletedBackup_leavesTheWizardTheSameWayFinishDoes() = runBlocking {
@@ -247,6 +292,83 @@ class WizardRestoreWiringTest {
         assertFalse(state.isComplete)
         assertFalse(repo.wizardCompleteFlow.first())
         assertTrue(repo.programFlow.first().days.isEmpty())
+    }
+
+    @Test
+    fun finishingBeforeStartupRecovery_stepsAsideForTheStagedCompletedWizard() = runBlocking {
+        val stagedAnswers = stagePreviousBuildWithoutProgram(wizardComplete = true)
+        assertTrue(db.planDao().allPlans().isEmpty())
+        val vm = newViewModel()
+        vm.awaitOffered()
+        vm.setDaysPerWeek(6)
+
+        // No startup reconcile has run: finish must settle the journal first.
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+
+        val restoredPlan = db.planDao().allPlans().single()
+        assertEquals(PlanEntity.LEGACY_ID, restoredPlan.id)
+        assertEquals(PlanRecipeJson.encode(stagedAnswers), restoredPlan.recipeJson)
+        assertEquals(stagedAnswers, repo.wizardAnswersFlow.first())
+        assertTrue("wizardComplete must retain the staged value", repo.wizardCompleteFlow.first())
+        assertTrue(repo.programFlow.first().days.isEmpty())
+        assertNull(db.restoreMarkerDao().nonce())
+        assertFalse(service.reconcilePendingRestore())
+    }
+
+    @Test
+    fun finishingBeforeStartupRecovery_generatesAProgramMatchingItsRecipe() = runBlocking {
+        stagePreviousBuildWithoutProgram(wizardComplete = false)
+        assertTrue(db.planDao().allPlans().isEmpty())
+        val vm = newViewModel()
+        vm.awaitOffered()
+        vm.setDaysPerWeek(6)
+        vm.setCardioMode(CardioMode.NONE)
+        vm.setCardioPlacement(CardioPlacement.NONE)
+
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+
+        // A later startup reconcile must not overwrite the six-day recipe with
+        // the staged three-day answers after the wizard has generated its plan.
+        assertFalse(service.reconcilePendingRestore())
+        val answers = repo.wizardAnswersFlow.first()
+        val program = repo.programFlow.first()
+        assertEquals(6, answers.daysPerWeek)
+        assertEquals(6, program.days.size)
+        assertEquals(ProgramGenerator.generate(answers).program, program)
+        assertEquals(PlanRecipeJson.encode(answers), db.planDao().allPlans().single().recipeJson)
+        assertTrue(repo.wizardCompleteFlow.first())
+        assertNull(db.restoreMarkerDao().nonce())
+    }
+
+    @Test
+    fun aRecoveryFailureInFinish_showsAnErrorWithoutWritingAndCanBeRetried() = runBlocking {
+        settingsStore.failOnUpdate = 1
+        val failure = runCatching { service.import(BackupCodec().encode(backup(wizardComplete = true))) }.exceptionOrNull()
+        assertTrue(failure is RestoreInterruption.SettingsPending)
+        val vm = newViewModel()
+        vm.awaitOffered()
+        vm.setDaysPerWeek(6)
+        val before = repo.exportSnapshot()
+        settingsStore.failOnUpdate = 2 // the recovery's settings write
+
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        val state = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.restore.error != null } }
+
+        assertTrue(state.restore.error is UiText.FileAccessFailure)
+        assertFalse(state.restore.inFlight)
+        assertFalse(state.isComplete)
+        assertFalse(repo.wizardCompleteFlow.first())
+        assertEquals(before, repo.exportSnapshot())
+        assertNotNull(db.restoreMarkerDao().nonce())
+
+        vm.onNext()
+        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        assertTrue(repo.wizardCompleteFlow.first())
+        assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
+        assertEquals(190, repo.configFlow.first().bodyweightLb)
+        assertNull(db.restoreMarkerDao().nonce())
     }
 
     @Test

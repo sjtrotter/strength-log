@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.transfer.FlakyDataStore
@@ -24,6 +25,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -111,6 +113,26 @@ class RestoreCoordinationTest {
             ),
         ),
     )
+
+    @Test
+    fun withRestoreLockFinishesPendingRecoveryBeforeRunningTheBlock() = runBlocking {
+        settingsStore.failOnUpdate = 1
+        val failure = runCatching { service.import(backupJson("A", 190)) }.exceptionOrNull()
+        assertTrue(failure is RestoreInterruption.SettingsPending)
+        assertNotNull(db.restoreMarkerDao().nonce())
+        assertFalse(settings.wizardCompleteFlow.first())
+
+        val result = service.withRestoreLock {
+            assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
+            assertTrue(settings.wizardCompleteFlow.first())
+            assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
+            assertNull(db.restoreMarkerDao().nonce())
+            "settled"
+        }
+
+        assertEquals("settled", result)
+        assertFalse(service.reconcilePendingRestore())
+    }
 
     @Test
     fun reconciliationWaitsForAnInFlightRestoreInsteadOfReadingItsJournal() = runBlocking {

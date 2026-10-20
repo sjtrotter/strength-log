@@ -21,7 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -318,23 +318,22 @@ private fun WorkoutDial(
     onDismiss: () -> Unit,
 ) {
     val view = LocalView.current
-    // Keyed on plan and day so a plan switch cannot carry a started set or
-    // selection into another plan's workout, even when both days have the same id.
     val dayId = snap.day.dayId
-    var face by rememberSaveable(snap.planId, dayId) { mutableStateOf(impliedFace(snap)) }
-    var lifting by rememberSaveable(snap.planId, dayId) { mutableStateOf(false) }
-    var startedAtWallMillis by rememberSaveable(snap.planId, dayId) { mutableLongStateOf(0L) }
-    var startedAtElapsedMillis by rememberSaveable(snap.planId, dayId) { mutableLongStateOf(0L) }
-    var restDeadlineMillis by rememberSaveable(snap.planId, dayId) { mutableLongStateOf(0L) }
-    var restTotalSeconds by rememberSaveable(snap.planId, dayId) { mutableIntStateOf(0) }
-    var restBetweenExercises by rememberSaveable(snap.planId, dayId) { mutableStateOf(false) }
-    var restedSeconds by rememberSaveable(snap.planId, dayId) { mutableIntStateOf(NO_REST) }
-    var sessionStartedAtMillis by rememberSaveable(snap.planId, dayId) { mutableLongStateOf(0L) }
-    var sessionEndedAtMillis by rememberSaveable(snap.planId, dayId) { mutableLongStateOf(0L) }
-    var selectedExercise by rememberSaveable(snap.planId, dayId) { mutableIntStateOf(NO_SELECTION) }
-    var tickMemory by rememberSaveable(snap.planId, dayId, stateSaver = TickMemorySaver) {
-        mutableStateOf(TickMemory.EMPTY)
+    val saved = rememberSaveable(snap.planId, dayId, saver = workoutDialStateSaver(snap.planId, dayId)) {
+        WorkoutDialState(snap.planId, dayId, impliedFace(snap))
     }
+    var face by saved::face
+    var lifting by saved::lifting
+    var startedAtWallMillis by saved::startedAtWallMillis
+    var startedAtElapsedMillis by saved::startedAtElapsedMillis
+    var restDeadlineMillis by saved::restDeadlineMillis
+    var restTotalSeconds by saved::restTotalSeconds
+    var restBetweenExercises by saved::restBetweenExercises
+    var restedSeconds by saved::restedSeconds
+    var sessionStartedAtMillis by saved::sessionStartedAtMillis
+    var sessionEndedAtMillis by saved::sessionEndedAtMillis
+    var selectedExercise by saved::selectedExercise
+    var tickMemory by saved::tickMemory
     var peek by remember(snap.planId, dayId) { mutableStateOf<PeekState?>(null) }
     var browseDay by remember(snap.planId, dayId) { mutableStateOf<Int?>(null) }
     var nowElapsedMillis by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
@@ -720,10 +719,62 @@ private fun WorkoutDial(
     }
 }
 
-/** [TickMemory] rides a saved-instance bundle as its own one-line encoding. */
-private val TickMemorySaver = Saver<TickMemory, String>(
-    save = { it.encode() },
-    restore = { TickMemory.decode(it) },
+/** Local dial state and its owner travel together through process death. */
+internal class WorkoutDialState(val planId: Long?, val dayId: String, face: DialFace) {
+    var face by mutableStateOf(face)
+    var lifting by mutableStateOf(false)
+    var startedAtWallMillis by mutableLongStateOf(0L)
+    var startedAtElapsedMillis by mutableLongStateOf(0L)
+    var restDeadlineMillis by mutableLongStateOf(0L)
+    var restTotalSeconds by mutableIntStateOf(0)
+    var restBetweenExercises by mutableStateOf(false)
+    var restedSeconds by mutableIntStateOf(NO_REST)
+    var sessionStartedAtMillis by mutableLongStateOf(0L)
+    var sessionEndedAtMillis by mutableLongStateOf(0L)
+    var selectedExercise by mutableIntStateOf(NO_SELECTION)
+    var tickMemory by mutableStateOf(TickMemory.EMPTY)
+}
+
+// rememberSaveable inputs reset a live plan/day switch, but do not validate a
+// restored bundle. The first available snapshot must own the saved state too.
+internal fun workoutDialStateSaver(planId: Long?, dayId: String) = mapSaver(
+    save = { state: WorkoutDialState ->
+        mapOf(
+            "planId" to state.planId,
+            "dayId" to state.dayId,
+            "face" to state.face.name,
+            "lifting" to state.lifting,
+            "startedAtWallMillis" to state.startedAtWallMillis,
+            "startedAtElapsedMillis" to state.startedAtElapsedMillis,
+            "restDeadlineMillis" to state.restDeadlineMillis,
+            "restTotalSeconds" to state.restTotalSeconds,
+            "restBetweenExercises" to state.restBetweenExercises,
+            "restedSeconds" to state.restedSeconds,
+            "sessionStartedAtMillis" to state.sessionStartedAtMillis,
+            "sessionEndedAtMillis" to state.sessionEndedAtMillis,
+            "selectedExercise" to state.selectedExercise,
+            "tickMemory" to state.tickMemory.encode(),
+        )
+    },
+    restore = { saved ->
+        if (saved["planId"] != planId || saved["dayId"] != dayId) {
+            null
+        } else {
+            WorkoutDialState(planId, dayId, DialFace.valueOf(saved["face"] as String)).apply {
+                lifting = saved["lifting"] as Boolean
+                startedAtWallMillis = saved["startedAtWallMillis"] as Long
+                startedAtElapsedMillis = saved["startedAtElapsedMillis"] as Long
+                restDeadlineMillis = saved["restDeadlineMillis"] as Long
+                restTotalSeconds = saved["restTotalSeconds"] as Int
+                restBetweenExercises = saved["restBetweenExercises"] as Boolean
+                restedSeconds = saved["restedSeconds"] as Int
+                sessionStartedAtMillis = saved["sessionStartedAtMillis"] as Long
+                sessionEndedAtMillis = saved["sessionEndedAtMillis"] as Long
+                selectedExercise = saved["selectedExercise"] as Int
+                tickMemory = TickMemory.decode(saved["tickMemory"] as String)
+            }
+        }
+    },
 )
 
 /**

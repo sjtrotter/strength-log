@@ -887,7 +887,12 @@ class SetEditApplierTest {
         assertDelayedTickFollowsPlan(explicitPlan = false)
     }
 
-    private suspend fun assertDelayedTickFollowsPlan(explicitPlan: Boolean) {
+    @Test
+    fun `an unselected plan's partner tick leaves session start for the selected plan's tick`() = runTest {
+        assertDelayedTickFollowsPlan(explicitPlan = true, slot = Slot.SS)
+    }
+
+    private suspend fun assertDelayedTickFollowsPlan(explicitPlan: Boolean, slot: String = Slot.MAIN) {
         seedProgram()
         val planP = repo.selectedPlanIdFlow.first()!!
         val id = curlId()
@@ -899,7 +904,7 @@ class SetEditApplierTest {
         ))
         val qLogs = db.programDao().logsForPlan(planQ)
         val delta = SetEditDelta(
-            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            dayId = "A", programExerciseId = id, slot = slot, setIndex = 0,
             done = true, editedAtMillis = 10L,
             planId = planP.takeIf { explicitPlan },
         )
@@ -907,10 +912,18 @@ class SetEditApplierTest {
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(delta))
 
         val pLogs = repo.logsFor(planP, "A", kotlinx.coroutines.flow.flowOf(repo.currentDate())).first()
-        assertTrue(pLogs.first { it.programExerciseId == id && it.slot == Slot.MAIN }.sets[0].done)
+        assertEquals(slot == Slot.MAIN, pLogs.first { it.programExerciseId == id && it.slot == Slot.MAIN }.sets[0].done)
         assertTrue(pLogs.first { it.programExerciseId == id && it.slot == Slot.SS }.sets[0].done)
         assertEquals(qLogs, db.programDao().logsForPlan(planQ))
         assertEquals(planQ, repo.selectedPlanIdFlow.first())
+        assertEquals(null, repo.sessionStartedAtFlow.first())
+
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = curlId(), slot = slot, setIndex = 0,
+            done = true, editedAtMillis = 11L, planId = planQ,
+        )))
+        assertTrue(track(curlId(), slot)!![0].done)
+        assertTrue(repo.sessionStartedAtFlow.first() != null)
     }
 
     @Test

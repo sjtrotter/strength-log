@@ -8,7 +8,6 @@ import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
-import cloud.trotter.log.strength.domain.sync.applyDelta
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -21,37 +20,25 @@ import kotlin.test.assertTrue
 class PendingEditsTest {
 
     @Test
-    fun `a different known plan drops edits and swaps like a different day`() {
+    fun `queued work survives another plan's Day A and settles when its own plan reflects it`() {
         val edit = delta(done = true).copy(planId = 1L)
         val replacement = swap().copy(planId = 1L)
-        for (dayId in listOf("A", "B")) {
-            val otherPlan = snapshot(dayId = dayId).copy(planId = 2L)
-            assertTrue(PendingEdits.reconcile(listOf(edit), otherPlan).isEmpty())
-            assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), otherPlan).isEmpty())
-            assertEquals(otherPlan, applyDelta(otherPlan, edit))
-            assertEquals(otherPlan, applyDelta(otherPlan, replacement))
-        }
-    }
+        val reflected = snapshot(
+            sets = listOf(WatchSet(235.0, 5, "TOP", done = true)),
+            exerciseId = "front_squat",
+        ).copy(planId = 1L)
+        // Q has its own globally unique slot, even when its values match P's work.
+        val otherPlan = reflected.copy(
+            planId = 2L,
+            day = reflected.day.copy(exercises = reflected.day.exercises.map { it.copy(programExerciseId = 2L) }),
+        )
 
-    @Test
-    fun `matching or absent plan identity keeps reflection and day-change settlement`() {
-        for ((deltaPlan, snapshotPlan) in listOf(1L to 1L, 1L to null, null to 2L, null to null)) {
-            val edit = delta(done = true).copy(planId = deltaPlan)
-            val replacement = swap().copy(planId = deltaPlan)
-            val current = snapshot().copy(planId = snapshotPlan)
-            // Unreflected work still waits, including with either legacy peer.
-            assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
-            assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current))
-            val reflected = snapshot(
-                sets = listOf(WatchSet(235.0, 5, "TOP", done = true)),
-                exerciseId = "front_squat",
-            ).copy(planId = snapshotPlan)
-            assertTrue(PendingEdits.reconcile(listOf(edit), reflected).isEmpty())
-            assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), reflected).isEmpty())
-            val nextDay = snapshot(dayId = "B").copy(planId = snapshotPlan)
-            assertTrue(PendingEdits.reconcile(listOf(edit), nextDay).isEmpty())
-            assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), nextDay).isEmpty())
-        }
+        val edits = PendingEdits.reconcile(listOf(edit), otherPlan)
+        val swaps = PendingEdits.reconcileSwaps(listOf(replacement), otherPlan)
+        assertEquals(listOf(edit), edits)
+        assertEquals(listOf(replacement), swaps)
+        assertTrue(PendingEdits.reconcile(edits, reflected).isEmpty())
+        assertTrue(PendingEdits.reconcileSwaps(swaps, reflected).isEmpty())
     }
 
     private fun swap(

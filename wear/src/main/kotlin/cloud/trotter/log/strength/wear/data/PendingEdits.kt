@@ -30,8 +30,6 @@ import kotlin.math.abs
  * when the snapshot is for a *different* suggested day — the phone has moved on (the
  * day was completed/advanced), so an old-day edit can neither be confirmed nor is
  * worth resending; last-write-wins lets it go.
- * A different plan id, when both ids are non-null, drops set edits and swaps by
- * the same rule.
  *
  * [SetEditDelta.startedAtMillis]/[SetEditDelta.completedAtMillis] impose no condition
  * of their own: the snapshot has no place to echo them (the watch never displays
@@ -58,8 +56,7 @@ object PendingEdits {
     /** The deltas still worth re-sending after reconciling against [snapshot]. */
     fun reconcile(pending: List<SetEditDelta>, snapshot: WatchSnapshot): List<SetEditDelta> =
         pending.filter { delta ->
-            (delta.planId == null || snapshot.planId == null || delta.planId == snapshot.planId) &&
-                delta.dayId == snapshot.day.dayId && !delta.isSettled(pending, snapshot)
+            delta.dayId == snapshot.day.dayId && !delta.isSettled(pending, snapshot)
         }
 
     /**
@@ -80,8 +77,7 @@ object PendingEdits {
      */
     fun reconcileSwaps(pending: List<ExerciseSwapDelta>, snapshot: WatchSnapshot): List<ExerciseSwapDelta> =
         pending.filter { swap ->
-            (swap.planId == null || snapshot.planId == null || swap.planId == snapshot.planId) &&
-                swap.dayId == snapshot.day.dayId && !swap.isSettled(pending, snapshot)
+            swap.dayId == snapshot.day.dayId && !swap.isSettled(pending, snapshot)
         }
 
     private fun ExerciseSwapDelta.isSettled(

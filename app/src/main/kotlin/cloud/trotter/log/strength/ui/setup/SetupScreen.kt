@@ -78,15 +78,14 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
 
 /**
  * The setup screen (spec §8.4): steppers/selectors for the GOAL inputs, a live
- * preview of the four main-lift GOALs those inputs drive, cardio prefs, the
- * lb/kg display toggle, and the destructive "re-run wizard" escape hatch.
+ * preview of the four main-lift GOALs those inputs drive, cardio prefs,
+ * and the lb/kg display toggle.
  * Stateless: renders [state] and forwards every intent to [SetupActions] —
  * every field commits immediately (no draft, unlike the wizard), so leaving
  * this screen never loses an edit.
  */
 @Composable
 fun SetupScreen(state: SetupUiState, actions: SetupActions, openRestTimer: Boolean = false) {
-    var showRerunConfirm by rememberSaveable { mutableStateOf(false) }
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
     val accent = accentEmphasis(0)
     val listState = rememberLazyListState()
@@ -136,18 +135,8 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions, openRestTimer: Boole
                 item { SectionHeader(stringResource(R.string.setup_about_section)) }
                 item { LicensesButton(actions.onOpenLicenses) }
                 item { Spacer(Modifier.size(20.dp)) }
-                item { RerunWizardButton(onClick = { showRerunConfirm = true }) }
                 item { Spacer(Modifier.size(8.dp)) }
             }
-        }
-        if (showRerunConfirm) {
-            RerunConfirmDialog(
-                onConfirm = {
-                    showRerunConfirm = false
-                    actions.onRerunWizard()
-                },
-                onDismiss = { showRerunConfirm = false },
-            )
         }
         if (showRestResetConfirm) {
             RestDefaultsConfirmDialog(
@@ -205,7 +194,7 @@ private fun SetupHeader(onBack: () -> Unit) {
  * touch target to a screen that is otherwise all controls.
  */
 @Composable
-private fun SectionHeader(label: String) {
+internal fun SectionHeader(label: String) {
     Column(Modifier.fillMaxWidth()) {
         Spacer(Modifier.size(8.dp))
         Text(label, color = TextFaint, style = MaterialTheme.typography.labelSmall)
@@ -523,13 +512,6 @@ private fun LicensesButton(onClick: () -> Unit) {
     SetupOutlineAction(stringResource(R.string.setup_licenses_button), TextSecondary, 52, 6, onClick)
 }
 
-// --- re-run wizard (destructive escape hatch, spec §8.4) ---------------------
-
-@Composable
-private fun RerunWizardButton(onClick: () -> Unit) {
-    SetupOutlineAction(stringResource(R.string.setup_rerun_wizard_button), Error, 52, 8, onClick)
-}
-
 @Composable
 private fun SetupOutlineAction(
     label: String,
@@ -549,20 +531,6 @@ private fun SetupOutlineAction(
     ) {
         Text(label, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
     }
-}
-
-@Composable
-private fun RerunConfirmDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AppAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.setup_rerun_confirm_title)) },
-        text = { Text(stringResource(R.string.setup_rerun_confirm_message)) },
-        confirmButton = { DialogAction(stringResource(R.string.setup_rerun_confirm_button), Error, onConfirm) },
-        dismissButton = { DialogAction(stringResource(R.string.setup_cancel_button), TextSecondary, onDismiss) },
-    )
 }
 
 /** Confirms the destructive reset of all per-category rest overrides. */
@@ -607,7 +575,7 @@ private fun SetupScreenPreviewContent(theme: ThemePreference) {
                 onCardioModeChange = {}, onCardioPlacementChange = {}, onFiveKChange = {},
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
                 onThemePreferenceChange = {},
-                onRestOverridesReset = {}, onRerunWizard = {}, onCreateCustomExercise = {}, onOpenBackup = {},
+                onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {},
                 onOpenLicenses = {}, onBack = {},
             ),
         )

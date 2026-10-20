@@ -57,7 +57,25 @@
 
 <!-- Plan -->
 <string name="plan_title">Plan</string>
-<string name="plan_setup_again">Set up again</string>
+<string name="plans_title">Plans</string>
+<string name="plan_name_full_body">%1$d-day full body</string>
+<string name="plan_name_upper_lower">%1$d-day upper/lower</string>
+<string name="plan_name_ppl">%1$d-day push/pull/legs</string>
+<string name="plan_name_pplul">%1$d-day PPL + upper/lower</string>
+<string name="plan_copy_name">%1$s copy</string>
+<string name="plans_new">New plan</string>
+<string name="plans_archived">Archived</string>
+<string name="plans_rename">Rename</string>
+<string name="plans_duplicate">Duplicate</string>
+<string name="plans_archive">Archive</string>
+<string name="plans_restore">Restore</string>
+<string name="plans_save">Save</string>
+<string name="plans_name">Name</string>
+<string name="plans_menu">Plan options</string>
+<string name="plans_next_day">Next: %1$s</string>
+<string name="plans_no_next_day">Next: —</string>
+<string name="plans_last_session">Last %1$s</string>
+<string name="plans_supporting">%1$s · %2$s</string>
 <string name="plan_next">Next</string>
 <plurals name="plan_lifts">
     <item quantity="one">%d lift</item>
@@ -134,10 +152,6 @@
 <string name="setup_create_custom_exercise_button">+ CREATE CUSTOM EXERCISE</string>
 <string name="setup_data_backup_button">DATA / BACKUP</string>
 <string name="setup_licenses_button">OSS LICENSES</string>
-<string name="setup_rerun_wizard_button">RE-RUN SETUP WIZARD</string>
-<string name="setup_rerun_confirm_title">Re-run setup wizard?</string>
-<string name="setup_rerun_confirm_message">This replaces your current program from scratch. Your workout history isn\'t touched.</string>
-<string name="setup_rerun_confirm_button">Re-run</string>
 <string name="setup_cancel_button">Cancel</string>
 <string name="setup_rest_reset_confirm_title">Reset rest timers?</string>
 <string name="setup_rest_reset_confirm_message">Every per-category rest length goes back to the built-in default. The rest timer stays on.</string>

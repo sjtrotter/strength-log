@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 
 @Immutable
 data class PlanUiState(
+    val name: String? = null,
     val loading: Boolean = false,
     val hasProgram: Boolean = false,
     val days: List<PlanDay> = emptyList(),
@@ -20,5 +21,6 @@ data class PlanDay(
 
 data class PlanActions(
     val onOpenDay: (String) -> Unit,
-    val onSetUpAgain: () -> Unit,
+    val onOpenPlans: () -> Unit,
+    val onSetUpProgram: () -> Unit,
 )

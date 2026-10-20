@@ -585,7 +585,7 @@ private fun WizardFooter(
                 fill = accent,
                 textColor = onAccent,
                 modifier = Modifier.weight(if (state.isFirstStep) 1f else 2f),
-                enabled = !state.restore.inFlight,
+                enabled = !state.restore.inFlight && !state.finishInFlight,
                 onClick = actions.onNext,
             )
         }

@@ -68,9 +68,22 @@ data class SessionTonnageRow(
     val tonnageLb: Double,
 )
 
+data class PlanLastSessionRow(val planId: Long, val completedAt: Long)
+
 /** Workout history (PLAN.md A1), editable in the single-user on-device store. */
 @Dao
 interface SessionDao {
+
+    @Query(
+        """
+        SELECT planId, MAX(completedAt) AS completedAt FROM (
+            SELECT planId, completedAt FROM workout_session WHERE planId IS NOT NULL
+            UNION ALL
+            SELECT planId, completedAt FROM cardio_session WHERE planId IS NOT NULL
+        ) GROUP BY planId
+        """,
+    )
+    fun lastSessionByPlan(): Flow<List<PlanLastSessionRow>>
 
     @Query("SELECT * FROM workout_session ORDER BY completedAt DESC, id DESC")
     fun observeSessions(): Flow<List<WorkoutSessionEntity>>

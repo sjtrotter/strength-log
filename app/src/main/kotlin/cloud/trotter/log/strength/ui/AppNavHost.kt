@@ -56,6 +56,9 @@ import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
 import cloud.trotter.log.strength.ui.navigation.navigateToTopLevel
 import cloud.trotter.log.strength.ui.plan.PlanActions
 import cloud.trotter.log.strength.ui.plan.PlanScreen
+import cloud.trotter.log.strength.ui.plan.PlansActions
+import cloud.trotter.log.strength.ui.plan.PlansScreen
+import cloud.trotter.log.strength.ui.plan.PlansViewModel
 import cloud.trotter.log.strength.ui.plan.PlanViewModel
 import cloud.trotter.log.strength.ui.setup.SetupActions
 import cloud.trotter.log.strength.ui.setup.SetupScreen
@@ -77,7 +80,7 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.withContext
 
 /**
- * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / re-run),
+ * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / new plan),
  * `today` (home, #121), `day` (the workout screen, pushed from Today), `setup`
  * (the gear, #12), `customExercise` (creation, #13), `log` (history, #14, D2),
  * and `plan`. Today, Log, and Plan share the navigation bar; the workout and
@@ -94,6 +97,7 @@ object Routes {
     const val SETUP_REST = "setup?rest=true"
     const val LOG = "log"
     const val PLAN = "plan"
+    const val PLANS = "plans"
     const val BACKUP = "backup"
     const val LICENSES = "licenses"
 
@@ -224,18 +228,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         composable(Routes.WIZARD) {
             WizardRoute(
                 onFinished = {
-                    // graph.startDestinationId only clears back to WIZARD on a
-                    // first-run finish (stack [wizard] -> [today]). It latches
-                    // for the process lifetime (see StartDestinationViewModel),
-                    // so a Setup re-run reaches here with stack
-                    // [today, setup, wizard] and startDestinationId is still
-                    // WIZARD, not TODAY — popping to it would leave
-                    // [today, setup, today]. Popping the whole back stack (id 0)
-                    // is correct for both paths: first-run [wizard] -> [today],
-                    // re-run [today, setup, wizard] -> [today]. A re-run also
-                    // regenerates the program, so landing on Today rather than
-                    // straight in the editor is the honest result: the wizard
-                    // changed what "next" means, and Today is what says so.
+                    // Clear both first-run and new-plan wizard stacks. The new
+                    // plan is selected, and Today shows its next day.
                     navController.navigate(Routes.TODAY) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -261,7 +255,6 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
             SetupRoute(
                 openRestTimer = entry.arguments?.getBoolean("rest") == true,
                 onBack = { navController.popBackStack() },
-                onRerunWizard = { navController.navigate(Routes.WIZARD) },
                 onCreateCustomExercise = { navController.navigate(Routes.customExercise(null)) },
                 onOpenBackup = { navController.navigate(Routes.BACKUP) },
                 onOpenLicenses = { navController.navigate(Routes.LICENSES) },
@@ -281,7 +274,14 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         composable(Routes.PLAN) {
             PlanRoute(
                 onOpenDay = { navController.navigate(Routes.day(it)) },
-                onSetUpAgain = { navController.navigate(Routes.WIZARD) },
+                onOpenPlans = { navController.navigate(Routes.PLANS) },
+                onSetUpProgram = { navController.navigate(Routes.WIZARD) },
+            )
+        }
+        composable(Routes.PLANS) {
+            PlansRoute(
+                onBack = { navController.popBackStack() },
+                onNewPlan = { navController.navigate(Routes.WIZARD) },
             )
         }
         composable(Routes.BACKUP) { BackupRoute(onBack = { navController.popBackStack() }) }
@@ -318,9 +318,36 @@ private fun TodayRoute(
 }
 
 @Composable
+private fun PlansRoute(
+    onBack: () -> Unit,
+    onNewPlan: () -> Unit,
+    viewModel: PlansViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel) { viewModel.selected.collect { onBack() } }
+    PlansScreen(
+        state,
+        PlansActions(
+            onBack = onBack,
+            onNewPlan = onNewPlan,
+            onSelect = viewModel::select,
+            onMenu = viewModel::openMenu,
+            onRename = viewModel::rename,
+            onRenameDraft = viewModel::setRenameDraft,
+            onSaveRename = viewModel::saveRename,
+            onDismissRename = viewModel::dismissRename,
+            onDuplicate = viewModel::duplicate,
+            onArchive = viewModel::archive,
+            onRestore = viewModel::restore,
+        ),
+    )
+}
+
+@Composable
 private fun PlanRoute(
     onOpenDay: (String) -> Unit,
-    onSetUpAgain: () -> Unit,
+    onOpenPlans: () -> Unit,
+    onSetUpProgram: () -> Unit,
     viewModel: PlanViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -328,7 +355,8 @@ private fun PlanRoute(
         state = state,
         actions = PlanActions(
             onOpenDay = onOpenDay,
-            onSetUpAgain = onSetUpAgain,
+            onOpenPlans = onOpenPlans,
+            onSetUpProgram = onSetUpProgram,
         ),
     )
 }
@@ -424,7 +452,6 @@ private fun DayRoute(
 private fun SetupRoute(
     openRestTimer: Boolean = false,
     onBack: () -> Unit,
-    onRerunWizard: () -> Unit,
     onCreateCustomExercise: () -> Unit,
     onOpenBackup: () -> Unit,
     onOpenLicenses: () -> Unit,
@@ -448,7 +475,6 @@ private fun SetupRoute(
             onPhoneRestTimerEnabledChange = viewModel::setPhoneRestTimerEnabled,
             onRestOverrideChange = viewModel::setRestOverride,
             onRestOverridesReset = viewModel::clearRestOverrides,
-            onRerunWizard = onRerunWizard,
             onCreateCustomExercise = onCreateCustomExercise,
             onOpenBackup = onOpenBackup,
             onOpenLicenses = onOpenLicenses,

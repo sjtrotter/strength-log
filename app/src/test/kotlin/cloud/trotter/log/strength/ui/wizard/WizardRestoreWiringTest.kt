@@ -34,9 +34,12 @@ import cloud.trotter.log.strength.transfer.backup.ProgramDayBackup
 import cloud.trotter.log.strength.transfer.backup.ProgramExerciseBackup
 import cloud.trotter.log.strength.transfer.backup.SettingsBackup
 import cloud.trotter.log.strength.transfer.backup.toSnapshot
+import cloud.trotter.log.strength.ui.text.BackupErrorKind
 import cloud.trotter.log.strength.ui.text.UiText
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.IOException
+import java.io.InputStream
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -141,8 +144,8 @@ class WizardRestoreWiringTest {
         Dispatchers.resetMain()
     }
 
-    private fun newViewModel(): WizardViewModel =
-        WizardViewModel(repo, SavedStateHandle(), context, service, appScope, DeviceWeightUnitProvider { cloud.trotter.log.strength.domain.units.WeightUnit.LB }).also { vms += it }
+    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): WizardViewModel =
+        WizardViewModel(repo, handle, context, service, appScope, DeviceWeightUnitProvider { cloud.trotter.log.strength.domain.units.WeightUnit.LB }).also { vms += it }
 
     /** A minimal but valid backup: one day, one real catalog exercise, and the
      *  wizard flag the test is about. */
@@ -187,6 +190,43 @@ class WizardRestoreWiringTest {
 
     private suspend fun WizardViewModel.awaitOffered() =
         withTimeout(TIMEOUT_MS) { uiState.first { it.restore.offered } }
+
+    private suspend fun assertRejectedRestorePreservesFinishRetry(uri: Uri): UiText? {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        vm.awaitOffered()
+        // Initialization retires legacy settings; Finish's fourth write is completion.
+        settingsStore.failOnUpdate = 5
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null && !it.finishInFlight } }
+        val created = handle.get<Long>("wizard_created_plan_id")
+        assertNotNull(created)
+        assertEquals(created, db.planDao().allPlans().single().id)
+        assertTrue(repo.programFlow.first().days.isNotEmpty())
+        assertFalse(repo.wizardCompleteFlow.first())
+
+        repeat(WizardStep.ROTATION.ordinal) { vm.onBack() }
+        vm.restoreFromBackup(uri)
+        val rejected = withTimeout(TIMEOUT_MS) {
+            vm.uiState.first { !it.restore.inFlight && it.restore.error != null }
+        }
+        assertFalse(rejected.isComplete)
+        assertEquals(created, handle.get<Long>("wizard_created_plan_id"))
+        assertEquals(created, db.planDao().allPlans().single().id)
+        assertFalse(repo.wizardCompleteFlow.first())
+
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+
+        val plan = db.planDao().allPlans().single()
+        assertEquals(created, plan.id)
+        assertEquals(created, handle.get<Long>("wizard_created_plan_id"))
+        assertTrue(db.programDao().daysForPlan(plan.id).isNotEmpty())
+        assertEquals(plan.id, settings.selectedPlanIdFlow.first())
+        assertTrue(repo.wizardCompleteFlow.first())
+        assertNull(completed.finishError)
+        return rejected.restore.error
+    }
 
     /** Literal keys preserve the older build's journal format, which carried
      *  plan settings and left no plan in Room when the backup had no program. */
@@ -276,6 +316,67 @@ class WizardRestoreWiringTest {
         assertEquals(1, db.planDao().allPlans().size)
         assertTrue(repo.programFlow.first().days.isEmpty())
         assertFalse(repo.wizardCompleteFlow.first())
+    }
+
+    @Test
+    fun restoringAnEmptyMidSetupBackupAfterFailedCompletion_createsAProgramOnFinish() = runBlocking {
+        val document = backup(wizardComplete = false).copy(program = emptyList())
+        val uri = pickable(BackupCodec().encode(document))
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        vm.awaitOffered()
+        // Update 1 retires legacy settings during initialization; Finish writes
+        // global lifter, selection, unit, then completion in updates 2 through 5.
+        settingsStore.failOnUpdate = 5
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null && !it.finishInFlight } }
+        val created = handle.get<Long>("wizard_created_plan_id")
+        assertNotNull(created)
+        assertTrue(repo.programFlow.first().days.isNotEmpty())
+        assertFalse(repo.wizardCompleteFlow.first())
+
+        repeat(WizardStep.ROTATION.ordinal) { vm.onBack() }
+        vm.restoreFromBackup(uri)
+        val restored = withTimeout(TIMEOUT_MS) {
+            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == 3 }
+        }
+        assertFalse(restored.isComplete)
+        assertNull(restored.restore.error)
+        assertNull(handle.get<Long>("wizard_created_plan_id"))
+        assertTrue(repo.programFlow.first().days.isEmpty())
+        assertFalse(repo.wizardCompleteFlow.first())
+
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+
+        val plan = db.planDao().allPlans().single()
+        assertEquals(plan.id, handle.get<Long>("wizard_created_plan_id"))
+        assertTrue(db.programDao().daysForPlan(plan.id).isNotEmpty())
+        assertEquals(plan.id, settings.selectedPlanIdFlow.first())
+        assertEquals(3, repo.programFlow.first().strengthDays.size)
+        assertTrue(repo.wizardCompleteFlow.first())
+        assertNull(completed.finishError)
+    }
+
+    @Test
+    fun restoringAnInvalidBackupAfterFailedCompletion_reusesTheCreatedPlanOnFinish() = runBlocking {
+        val error = assertRejectedRestorePreservesFinishRetry(pickable("{ not a backup at all"))
+
+        assertTrue(error is UiText.BackupError && error.kind == BackupErrorKind.BACKUP_MALFORMED)
+    }
+
+    @Test
+    fun restoringAnUnreadableBackupAfterFailedCompletion_reusesTheCreatedPlanOnFinish() = runBlocking {
+        val uri = Uri.parse("content://test.backups/unreadable")
+        shadowOf(context.contentResolver).registerInputStreamSupplier(uri) {
+            object : InputStream() {
+                override fun read(): Int = throw IOException("backup is unreadable")
+            }
+        }
+
+        val error = assertRejectedRestorePreservesFinishRetry(uri)
+
+        assertEquals(UiText.FileAccessFailure("backup is unreadable"), error)
     }
 
     @Test

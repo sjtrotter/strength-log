@@ -24,7 +24,13 @@ interface ProgramDao {
     @Query("SELECT * FROM exercise_log WHERE planId = :planId AND dayId = :dayId")
     fun observeLogs(planId: Long, dayId: String): Flow<List<ExerciseLogEntity>>
 
+    @Query("SELECT * FROM program_day ORDER BY planId, position")
+    fun observeAllDays(): Flow<List<ProgramDayEntity>>
+
     // --- one-shot reads ------------------------------------------------------
+
+    @Query("SELECT * FROM exercise_log WHERE planId = :planId ORDER BY dayId, programExerciseId, slot")
+    suspend fun logsForPlan(planId: Long): List<ExerciseLogEntity>
 
     @Query("SELECT * FROM program_day ORDER BY planId, position")
     suspend fun allDays(): List<ProgramDayEntity>

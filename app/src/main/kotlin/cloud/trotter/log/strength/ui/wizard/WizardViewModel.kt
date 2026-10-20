@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.di.ApplicationScope
@@ -51,16 +52,10 @@ import kotlinx.coroutines.launch
  * persists it in, so rotation/process death mid-wizard loses nothing (data
  * principle: no unsaved truth in a bare ViewModel field).
  *
- * [Finish][finish] is the only program creator left in the app (D3): the
- * rotation reveal generates via [ProgramGenerator], then finish persists the
- * wizard answers and `wizardComplete` and replaces the previewed program through
- * [TrackerRepository.replaceProgram] — the `:data` surface the day-edit
- * sheet's "reset day to template" already relies on.
- *
- * Re-run entry (from Setup, #12) reuses this same route/ViewModel: [init]
- * seeds the draft from whatever is already stored, which is the spec default
- * on first run (an empty DataStore reads back [WizardAnswers] defaults) and
- * the lifter's last answers on a re-run.
+ * [Finish][finish] creates and selects a new plan from the preview through
+ * [TrackerRepository.createGeneratedPlan] and [TrackerRepository.publishCreatedPlan];
+ * it never replaces an existing program.
+ * New-plan entry seeds the draft from the selected plan's stored answers.
  *
  * [Restore from backup][restoreFromBackup] is the other way out of the wizard,
  * offered on the first step of a genuine first run only — see [Keys.FIRST_RUN].
@@ -80,7 +75,7 @@ class WizardViewModel @Inject constructor(
 
         /** Whether this wizard was entered with nothing on the device yet
          *  (latched from `wizardComplete` in [init], never re-read). It gates
-         *  the restore-from-backup entry: on a Setup re-run the device already
+         *  the restore-from-backup entry: when creating another plan the device already
          *  holds a program and a history, and Data/Backup owns import there
          *  behind a confirm-overwrite dialog — a second, unguarded destructive
          *  path off a setup screen is exactly the accident worth designing out. */
@@ -99,6 +94,8 @@ class WizardViewModel @Inject constructor(
         const val EMPHASIS = "wizard_emphasis"
         const val EQUIPMENT = "wizard_equipment"
         const val UNIT = "wizard_unit"
+        /** Retained for this wizard's lifetime so completion retries reuse its plan. */
+        const val CREATED_PLAN_ID = "wizard_created_plan_id"
     }
 
     private val defaults = WizardAnswers()
@@ -124,7 +121,9 @@ class WizardViewModel @Inject constructor(
     private val previewProgram = MutableStateFlow<Program?>(null)
 
     private val isComplete = MutableStateFlow(false)
-    private val finishError = MutableStateFlow<UiText?>(null)
+    private val finishProgress = MutableStateFlow(FinishProgress())
+
+    private data class FinishProgress(val inFlight: Boolean = false, val error: UiText? = null)
 
     private val firstRun: StateFlow<Boolean> = savedState.getStateFlow(Keys.FIRST_RUN, false)
 
@@ -188,11 +187,11 @@ class WizardViewModel @Inject constructor(
         val firstRun: Boolean,
         val restore: RestoreProgress,
         val preview: Program?,
-        val finishError: UiText?,
+        val finish: FinishProgress,
     )
 
-    private val completionGroup = combine(isComplete, firstRun, restoreProgress, previewProgram, finishError) { complete, first, restore, preview, error ->
-        CompletionGroup(complete, first, restore, preview, error)
+    private val completionGroup = combine(isComplete, firstRun, restoreProgress, previewProgram, finishProgress) { complete, first, restore, preview, finish ->
+        CompletionGroup(complete, first, restore, preview, finish)
     }
 
     val uiState: StateFlow<WizardUiState> =
@@ -204,7 +203,8 @@ class WizardViewModel @Inject constructor(
                 restore = WizardRestoreState(offered = completion.firstRun, inFlight = completion.restore.inFlight, error = completion.restore.error),
                 unit = enumOf(unitName, WeightUnit.LB),
                 previewProgram = completion.preview,
-                finishError = completion.finishError,
+                finishError = completion.finish.error,
+                finishInFlight = completion.finish.inFlight,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), WizardUiState())
 
@@ -316,13 +316,13 @@ class WizardViewModel @Inject constructor(
     // --- finish --------------------------------------------------------------
 
     /**
-     * Persists the answers and selected unit, replaces the previewed program,
+     * Creates a new plan from the answers and preview and persists the selected unit,
      * and only then marks the wizard complete (spec §6, D3: the only program
      * creator).
      *
      * Write order is crash-safety, not cosmetics. `wizardComplete=true` is what
      * routes the app to the day screen (D1); if it were set before
-     * [TrackerRepository.replaceProgram], a process death in the gap would
+     * [TrackerRepository.createGeneratedPlan], a process death in the gap would
      * strand the app on an empty program — the day screen would show
      * "Preparing your program…" forever, and with the #10 bootstrap deleted
      * (D3) and Setup (#12) not yet built there is no in-app recovery. Setting
@@ -334,32 +334,54 @@ class WizardViewModel @Inject constructor(
      * instead of generating (#172). The app opens on the wizard whenever that
      * flag reads false, so an interrupted restore whose settings half is still
      * pending lands us here over a *restored* program — and generating would
-     * delete it. [firstRun] is latched at entry, so this can only fire when the
-     * flag flipped underneath us; a Setup re-run (which legitimately regenerates
-     * over a complete setup) never takes this branch.
+     * select a different plan. [firstRun] is latched at entry, so this can only
+     * fire when the flag flipped underneath us; a new-plan wizard on a complete
+     * setup never takes this branch.
      *
      * [BackupService.withRestoreLock] finishes any pending recovery before that
      * check and keeps it and the writes it authorizes in one critical section.
      * If recovery fails, the wizard stays open with an error so the lifter can retry.
+     * Retries reuse a remembered plan only while it has days, then idempotently
+     * publish it, the unit and completion.
      */
     private fun finish() {
-        finishError.value = null
+        if (finishProgress.value.inFlight || isComplete.value) return
+        finishProgress.value = FinishProgress(inFlight = true)
         viewModelScope.launch {
             try {
                 backupService.withRestoreLock {
                     if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
                     val answers = currentAnswers()
-                    repo.setWizardAnswers(answers)
+                    val rememberedId = savedState.get<Long>(Keys.CREATED_PLAN_ID)
+                    val planId = if (rememberedId != null && repo.planHasDays(rememberedId)) {
+                        rememberedId
+                    } else {
+                        val nameResource = when (answers.split) {
+                            SplitTemplate.FULL_BODY -> R.string.plan_name_full_body
+                            SplitTemplate.UPPER_LOWER -> R.string.plan_name_upper_lower
+                            SplitTemplate.PPL -> R.string.plan_name_ppl
+                            SplitTemplate.PPLUL -> R.string.plan_name_pplul
+                        }
+                        val createdId = repo.createGeneratedPlan(
+                            context.getString(nameResource, answers.daysPerWeek),
+                            answers,
+                            previewProgram.value ?: generatePreview(answers),
+                        )
+                        savedState[Keys.CREATED_PLAN_ID] = createdId
+                        createdId
+                    }
+                    repo.publishCreatedPlan(planId, answers)
                     repo.setUnit(enumOf(unit.value, WeightUnit.LB))
-                    repo.replaceProgram(previewProgram.value ?: generatePreview(answers))
                     repo.setWizardComplete(true)
                 }
                 // Either branch leaves the device set up, so the wizard leaves.
                 isComplete.value = true
             } catch (e: RestoreInterruption) {
-                finishError.value = TransferErrorMessages.of(e)
+                finishProgress.value = finishProgress.value.copy(error = TransferErrorMessages.of(e))
             } catch (e: IOException) {
-                finishError.value = UiText.FileAccessFailure(e.message)
+                finishProgress.value = finishProgress.value.copy(error = UiText.FileAccessFailure(e.message))
+            } finally {
+                finishProgress.value = finishProgress.value.copy(inFlight = false)
             }
         }
     }
@@ -414,6 +436,8 @@ class WizardViewModel @Inject constructor(
                 } catch (e: RestoreInterruption.CleanupPending) {
                     note = TransferErrorMessages.of(e)
                 }
+                // Discard the retry id only once Room has been replaced.
+                savedState.remove<Long>(Keys.CREATED_PLAN_ID)
                 applyAnswers(repo.wizardAnswersFlow.first())
                 if (repo.wizardCompleteFlow.first()) {
                     // Leaving for the day screen; a leftover cleanup note goes
@@ -426,6 +450,11 @@ class WizardViewModel @Inject constructor(
             } catch (e: BackupError) {
                 restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
             } catch (e: RestoreInterruption) {
+                when (e) {
+                    is RestoreInterruption.SettingsPending,
+                    is RestoreInterruption.CleanupPending -> savedState.remove<Long>(Keys.CREATED_PLAN_ID)
+                    is RestoreInterruption.NotStarted -> Unit
+                }
                 restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
             } catch (e: IOException) {
                 restoreProgress.value = RestoreProgress(error = cloud.trotter.log.strength.ui.text.UiText.FileAccessFailure(e.message))

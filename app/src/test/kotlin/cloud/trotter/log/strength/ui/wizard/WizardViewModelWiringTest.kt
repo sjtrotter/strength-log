@@ -1,11 +1,14 @@
 package cloud.trotter.log.strength.ui.wizard
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.FlakyDataStore
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -29,7 +32,10 @@ import cloud.trotter.log.strength.ui.day.DayViewModel
 import cloud.trotter.log.strength.ui.day.FixedCardioClock
 import cloud.trotter.log.strength.ui.day.InertCardioAlarm
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
+import cloud.trotter.log.strength.ui.text.UiText
 import java.io.File
+import java.io.IOException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,6 +48,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -59,7 +66,7 @@ import org.robolectric.annotation.Config
  * reach — the [androidx.lifecycle.SavedStateHandle] round-trip for every field
  * type (including the equipment [List]), the days/split auto-correction on
  * [WizardViewModel.setDaysPerWeek], re-run pre-fill from stored answers, and
- * [finish][WizardViewModel] actually replacing the program (D3).
+ * [finish][WizardViewModel] actually creating a plan (D3).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -70,6 +77,7 @@ class WizardViewModelWiringTest {
     private lateinit var context: Context
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
+    private lateinit var dataStore: DataStore<Preferences>
     private lateinit var journal: RestoreJournal
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
@@ -90,7 +98,7 @@ class WizardViewModelWiringTest {
             .build()
         storeScope = CoroutineScope(dispatcher + Job())
         appScope = CoroutineScope(dispatcher + SupervisorJob())
-        val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
+        dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("wizard-vm-settings", ".preferences_pb")
         }
         settings = SettingsStore(dataStore)
@@ -122,6 +130,19 @@ class WizardViewModelWiringTest {
         settings: SettingsStore,
     ) : TrackerRepository(db, programDao, sessionDao, customExerciseDao, settings) {
         val calls = mutableListOf<String>()
+        var createGate: CompletableDeferred<Unit>? = null
+        var failWizardComplete = false
+
+        override suspend fun createGeneratedPlan(name: String, answers: WizardAnswers, program: Program): Long {
+            calls += "createGeneratedPlan"
+            createGate?.await()
+            return super.createGeneratedPlan(name, answers, program)
+        }
+
+        override suspend fun publishCreatedPlan(id: Long, answers: WizardAnswers) {
+            calls += "publishCreatedPlan"
+            super.publishCreatedPlan(id, answers)
+        }
 
         override suspend fun setWizardAnswers(answers: WizardAnswers) {
             calls += "setWizardAnswers"
@@ -135,6 +156,10 @@ class WizardViewModelWiringTest {
 
         override suspend fun setWizardComplete(complete: Boolean) {
             calls += "setWizardComplete"
+            if (failWizardComplete) {
+                failWizardComplete = false
+                throw IOException("completion write failed")
+            }
             super.setWizardComplete(complete)
         }
     }
@@ -323,7 +348,7 @@ class WizardViewModelWiringTest {
     // --- finish: the only program creator (D3) ----------------------------------
 
     @Test
-    fun finish_persists_answers_and_replaces_the_program() = runVmTest {
+    fun finish_persists_answers_and_creates_a_plan() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
         vm.setEmphasis(GoalEmphasis.PHYSIQUE)
@@ -341,6 +366,218 @@ class WizardViewModelWiringTest {
     }
 
     @Test
+    fun finish_onExistingInstall_createsAndSelectsSecondPlanWithoutChangingOriginal() = runVmTest {
+        repo.replaceProgram(restoredProgram())
+        repo.setWizardComplete(true)
+        val slot = db.programDao().exercisesForPlan(1).single().id
+        repo.updateSets("R", slot, Slot.MAIN, listOf(
+            cloud.trotter.log.strength.domain.model.LoggedSet(225.0, 5, SetKind.WORK, done = true),
+        ))
+        val original = db.planDao().plan(1)
+        val days = db.programDao().daysForPlan(1)
+        val exercises = db.programDao().exercisesForPlan(1)
+        val logs = db.programDao().logsForPlan(1)
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        advanceUntilIdle()
+
+        val plans = db.planDao().allPlans()
+        assertEquals(2, plans.size)
+        assertEquals("4-day full body", plans.last().name)
+        assertEquals(plans.last().id, settings.selectedPlanIdFlow.first())
+        assertTrue(vm.uiState.value.isComplete)
+        assertEquals(original, db.planDao().plan(1))
+        assertEquals(days, db.programDao().daysForPlan(1))
+        assertEquals(exercises, db.programDao().exercisesForPlan(1))
+        assertEquals(logs, db.programDao().logsForPlan(1))
+    }
+
+    @Test
+    fun finish_twiceQuicklyOnExistingInstall_createsExactlyOnePlan() = runVmTest {
+        repo.replaceProgram(restoredProgram())
+        repo.setWizardComplete(true)
+        val recording = newRecordingRepo()
+        val gate = CompletableDeferred<Unit>()
+        recording.createGate = gate
+        val vm = newViewModel(repository = recording)
+        advanceUntilIdle()
+        repeat(WizardStep.ROTATION.ordinal) { vm.onNext() }
+
+        vm.onNext()
+        vm.onNext()
+        runCurrent()
+        assertTrue(vm.uiState.value.finishInFlight)
+        assertFalse(vm.uiState.value.isComplete)
+        assertEquals(listOf("createGeneratedPlan"), recording.calls)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(2, db.planDao().allPlans().size)
+        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "setWizardComplete"), recording.calls)
+        assertTrue(vm.uiState.value.isComplete)
+        assertFalse(vm.uiState.value.finishInFlight)
+    }
+
+    @Test
+    fun finish_retriesGlobalLifterPublicationWithoutCreatingAnotherPlan() = runVmTest {
+        retryFailedPublication(failedUpdate = 1)
+    }
+
+    @Test
+    fun finish_retriesSelectionPublicationWithoutCreatingAnotherPlan() = runVmTest {
+        retryFailedPublication(failedUpdate = 2)
+    }
+
+    private suspend fun TestScope.retryFailedPublication(failedUpdate: Int) {
+        repo.replaceProgram(restoredProgram())
+        repo.setWizardComplete(true)
+        val originalPlans = db.planDao().allPlans()
+        // Wrap the already initialized store so updates 1 and 2 are precisely
+        // publication's global-lifter and selection writes, respectively.
+        val failingStore = FlakyDataStore(dataStore)
+        val recording = RecordingRepository(
+            db, db.programDao(), db.sessionDao(), db.customExerciseDao(), SettingsStore(failingStore),
+        )
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle, recording)
+        advanceUntilIdle()
+        vm.setBodyweight(210)
+        vm.setUnit(WeightUnit.KG)
+        failingStore.failOnUpdate = failedUpdate
+
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        advanceUntilIdle()
+
+        val plans = db.planDao().allPlans()
+        assertEquals(originalPlans.size + 1, plans.size)
+        assertEquals(originalPlans, plans.dropLast(1))
+        assertEquals(plans.last().id, handle.get<Long>("wizard_created_plan_id"))
+        assertFalse(vm.uiState.value.isComplete)
+        assertFalse(vm.uiState.value.finishInFlight)
+        assertEquals(UiText.FileAccessFailure("store is down (update $failedUpdate)"), vm.uiState.value.finishError)
+        assertEquals(originalPlans.single().id, settings.selectedPlanIdFlow.first())
+        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan"), recording.calls)
+
+        vm.onNext()
+        advanceUntilIdle()
+
+        assertEquals(plans, db.planDao().allPlans())
+        assertEquals(
+            listOf("createGeneratedPlan", "publishCreatedPlan", "publishCreatedPlan", "setWizardComplete"),
+            recording.calls,
+        )
+        assertEquals(plans.last().id, settings.selectedPlanIdFlow.first())
+        assertEquals(210, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(WeightUnit.KG, repo.unitFlow.first())
+        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(vm.uiState.value.isComplete)
+        assertFalse(vm.uiState.value.finishInFlight)
+        assertEquals(null, vm.uiState.value.finishError)
+    }
+
+    @Test
+    fun finish_recreatesADeletedRememberedPlan() = runVmTest {
+        retryWithInvalidRememberedPlan(deletePlan = true)
+    }
+
+    @Test
+    fun finish_refillsARememberedPlanWithoutDays() = runVmTest {
+        retryWithInvalidRememberedPlan(deletePlan = false)
+    }
+
+    private suspend fun TestScope.retryWithInvalidRememberedPlan(deletePlan: Boolean) {
+        val recording = newRecordingRepo()
+        recording.failWizardComplete = true
+        val vm = newViewModel(repository = recording)
+        advanceUntilIdle()
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        advanceUntilIdle()
+
+        val remembered = db.planDao().allPlans().single().id
+        assertFalse(vm.uiState.value.isComplete)
+        assertTrue(db.programDao().daysForPlan(remembered).isNotEmpty())
+        // Clear dependent rows just as a database replacement would.
+        db.programDao().deleteLogsForPlan(remembered)
+        db.programDao().deleteExercisesForPlan(remembered)
+        db.programDao().deleteDaysForPlan(remembered)
+        if (deletePlan) db.planDao().deleteAllPlans()
+        assertFalse(recording.planHasDays(remembered))
+
+        vm.onNext()
+        advanceUntilIdle()
+
+        val created = db.planDao().allPlans().single().id
+        assertEquals(2, recording.calls.count { it == "createGeneratedPlan" })
+        assertTrue(db.programDao().daysForPlan(created).isNotEmpty())
+        assertEquals(created, settings.selectedPlanIdFlow.first())
+        assertTrue(repo.programFlow.first().days.isNotEmpty())
+        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(vm.uiState.value.isComplete)
+        assertEquals(null, vm.uiState.value.finishError)
+    }
+
+    @Test
+    fun finish_retriesCompletionWithoutCreatingAnotherPlan() = runVmTest {
+        repo.replaceProgram(restoredProgram())
+        repo.setWizardComplete(true)
+        val recording = newRecordingRepo()
+        recording.failWizardComplete = true
+        val vm = newViewModel(repository = recording)
+        advanceUntilIdle()
+        vm.setUnit(WeightUnit.KG)
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        advanceUntilIdle()
+
+        val plans = db.planDao().allPlans()
+        assertEquals(2, plans.size)
+        assertFalse(vm.uiState.value.isComplete)
+        assertFalse(vm.uiState.value.finishInFlight)
+        assertEquals(UiText.FileAccessFailure("completion write failed"), vm.uiState.value.finishError)
+
+        vm.onNext()
+        advanceUntilIdle()
+
+        assertEquals(plans, db.planDao().allPlans())
+        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "setWizardComplete", "publishCreatedPlan", "setWizardComplete"), recording.calls)
+        assertEquals(plans.last().id, settings.selectedPlanIdFlow.first())
+        assertEquals(WeightUnit.KG, repo.unitFlow.first())
+        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(vm.uiState.value.isComplete)
+        assertFalse(vm.uiState.value.finishInFlight)
+        assertEquals(null, vm.uiState.value.finishError)
+    }
+
+    @Test
+    fun finish_savedPlanSurvivesViewModelRecreationBeforeRetry() = runVmTest {
+        repo.replaceProgram(restoredProgram())
+        repo.setWizardComplete(true)
+        val recording = newRecordingRepo()
+        recording.failWizardComplete = true
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle, recording)
+        advanceUntilIdle()
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        advanceUntilIdle()
+
+        val plans = db.planDao().allPlans()
+        assertEquals(2, plans.size)
+        assertFalse(vm.uiState.value.isComplete)
+        vm.viewModelScope.cancel()
+        val revived = newViewModel(handle, recording)
+        advanceUntilIdle()
+
+        revived.onNext()
+        advanceUntilIdle()
+
+        assertEquals(plans, db.planDao().allPlans())
+        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "setWizardComplete", "publishCreatedPlan", "setWizardComplete"), recording.calls)
+        assertTrue(revived.uiState.value.isComplete)
+    }
+
+    @Test
     fun finish_writesTheProgramBeforeMarkingTheWizardComplete() = runVmTest {
         // Crash-safety (D1/D3): wizardComplete is the routing flag, so it must be
         // set only after the program exists. A completion flag ahead of the
@@ -354,10 +591,10 @@ class WizardViewModelWiringTest {
         vm.onNext() // last step -> finish()
         advanceUntilIdle()
 
-        assertEquals(listOf("setWizardAnswers", "replaceProgram", "setWizardComplete"), recording.calls)
+        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "setWizardComplete"), recording.calls)
         assertTrue(
-            "replaceProgram must run before setWizardComplete",
-            recording.calls.indexOf("replaceProgram") < recording.calls.indexOf("setWizardComplete"),
+            "createGeneratedPlan must run before setWizardComplete",
+            recording.calls.indexOf("createGeneratedPlan") < recording.calls.indexOf("setWizardComplete"),
         )
     }
 

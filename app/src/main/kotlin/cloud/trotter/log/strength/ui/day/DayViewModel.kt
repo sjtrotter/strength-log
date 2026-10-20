@@ -119,8 +119,7 @@ class DayViewModel @Inject constructor(
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
     private val selectedPage = savedState.getStateFlow<String?>(KEY_SELECTED_PAGE, null)
-    /** The day whose page must not be re-pinned between DONE and the advance
-     *  reaching [effectiveDayId]. */
+    /** The finished day whose page must not be re-pinned while the real advance reaches [effectiveDayId]. */
     private var pinHeldFor: String? = null
     private val openSheet = savedState.getStateFlow<OpenSheet?>(KEY_OPEN_SHEET, null)
     private val cardioPlanIdentity = savedState.getStateFlow<String?>(KEY_CARDIO_PLAN, null)
@@ -721,7 +720,8 @@ class DayViewModel @Inject constructor(
             val nextDayId = if (dayIndex >= 0) Rotation.next(program, day) else null
             val sessionId = repo.advanceDay(day, today.first())
             savedState[KEY_VIEW_DAY] = null
-            if (nextDayId != day) pinHeldFor = day
+            val advancedTo = repo.suggestedDayFlow.first()
+            pinHeldFor = day.takeIf { advancedTo != day && effectiveDayId.value == day }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
             val unit = repo.unitFlow.first()

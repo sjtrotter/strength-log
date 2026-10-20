@@ -368,6 +368,9 @@ class DayViewModelWiringTest {
         assertEquals("DAY B · DAY B", vm.sessionReceipt.value?.nextDayLine)
         assertNull(handle.get<OpenSheet>("day_open_sheet"))
         assertNull(vm.uiState.value.openSheet)
+        val pageKey = "exercise:${slotId("ez_curl")}"
+        assertEquals(pageKey, handle.get<String>("selectedPageKey"))
+        assertEquals(pageKey, vm.uiState.value.selectedPageKey)
         collect.cancel()
     }
 

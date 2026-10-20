@@ -27,6 +27,7 @@ import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.ExerciseCardState
+import cloud.trotter.log.strength.ui.day.HeaderTarget
 import cloud.trotter.log.strength.ui.day.RemovedSet
 import cloud.trotter.log.strength.ui.day.SetRowState
 import cloud.trotter.log.strength.ui.setup.SetupActions
@@ -275,7 +276,7 @@ class DestructiveActionsTest {
                 isMain = false,
                 isSuperset = false,
                 hasWarmupHint = false,
-                goalDisplay = "235",
+                headerTarget = HeaderTarget.Goal("235"),
                 perHand = false,
                 tracking = TrackingType.REPS,
                 allDone = false,

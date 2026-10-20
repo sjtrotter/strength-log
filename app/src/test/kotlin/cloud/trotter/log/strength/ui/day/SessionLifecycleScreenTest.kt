@@ -209,7 +209,7 @@ class SessionLifecycleScreenTest {
                 isMain = false,
                 isSuperset = false,
                 hasWarmupHint = false,
-                goalDisplay = "235",
+                headerTarget = HeaderTarget.Goal("235"),
                 perHand = false,
                 allDone = done >= 3,
 

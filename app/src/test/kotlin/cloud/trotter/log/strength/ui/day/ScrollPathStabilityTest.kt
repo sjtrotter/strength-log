@@ -150,7 +150,7 @@ class ScrollPathStabilityTest {
         isMain = false,
         isSuperset = false,
         hasWarmupHint = false,
-        goalDisplay = "100",
+        headerTarget = HeaderTarget.Goal("100"),
         perHand = false,
         allDone = false,
 

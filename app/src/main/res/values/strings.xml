@@ -542,6 +542,9 @@
     <string name="day_sets_done">%1$d of %2$d sets</string>
     <string name="day_next_set">%1$s next</string>
     <string name="day_goal">Goal %1$s</string>
+    <string name="day_target">Target %1$s</string>
+    <string name="day_target_aim">%1$s · aim %2$d</string>
+    <string name="day_target_each_side">Each side</string>
     <string name="day_last">Last %1$s</string>
     <string name="day_log_set">Log %1$s</string>
     <string name="day_all_sets">All sets</string>

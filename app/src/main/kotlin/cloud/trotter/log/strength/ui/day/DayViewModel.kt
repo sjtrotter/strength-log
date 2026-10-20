@@ -29,7 +29,6 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
-import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.PhoneRestTimer
 import cloud.trotter.log.strength.domain.standards.RestPolicy
@@ -1050,7 +1049,6 @@ class DayViewModel @Inject constructor(
                 },
             )
         }
-        val goalDisplay = GoalFormatter.label(goalTarget, unit)
         val lastPerformed = history.lastPerformed[pe.exerciseId]
         return ExerciseCardState(
             programExerciseId = id,
@@ -1062,7 +1060,7 @@ class DayViewModel @Inject constructor(
             isMain = pe.isMain,
             isSuperset = pe.superset != null,
             hasWarmupHint = pe.hasWarmupHint,
-            goalDisplay = goalDisplay,
+            headerTarget = DayScreenBuilder.headerTarget(pe, goalTarget, unit),
             perHand = entry?.perHand == true,
             tracking = tracking,
             timedShowsWeight = timedShowsWeight,

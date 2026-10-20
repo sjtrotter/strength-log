@@ -119,6 +119,9 @@ class DayViewModel @Inject constructor(
 
     private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
     private val selectedPage = savedState.getStateFlow<String?>(KEY_SELECTED_PAGE, null)
+    /** The day whose page must not be re-pinned between DONE and the advance
+     *  reaching [effectiveDayId]. */
+    private var pinHeldFor: String? = null
     private val openSheet = savedState.getStateFlow<OpenSheet?>(KEY_OPEN_SHEET, null)
     private val cardioPlanIdentity = savedState.getStateFlow<String?>(KEY_CARDIO_PLAN, null)
     private val cardioStartedWall = savedState.getStateFlow<Long?>(KEY_CARDIO_WALL, null)
@@ -346,6 +349,7 @@ class DayViewModel @Inject constructor(
         viewModelScope.launch {
             dayState.collect { state ->
                 if (!state.loading && state.viewDayId == currentDay() &&
+                    state.viewDayId != pinHeldFor &&
                     selectedPage.value == null &&
                     state.exercises.any { it.rows.isNotEmpty() }
                 ) {
@@ -353,11 +357,17 @@ class DayViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            effectiveDayId.collect { day ->
+                if (day != pinHeldFor) pinHeldFor = null
+            }
+        }
     }
 
     // --- user intents --------------------------------------------------------
 
     fun selectDay(dayId: String) {
+        pinHeldFor = null
         val previousDay = currentDay()
         savedState[KEY_VIEW_DAY] = dayId
         if (dayId == previousDay) return
@@ -626,6 +636,7 @@ class DayViewModel @Inject constructor(
     fun selectPage(key: String) {
         val state = dayState.value
         if (state.viewDayId != currentDay() || state.pages.none { it.key == key }) return
+        pinHeldFor = null
         savedState[KEY_SELECTED_PAGE] = key
     }
 
@@ -710,11 +721,7 @@ class DayViewModel @Inject constructor(
             val nextDayId = if (dayIndex >= 0) Rotation.next(program, day) else null
             val sessionId = repo.advanceDay(day, today.first())
             savedState[KEY_VIEW_DAY] = null
-            // advanceDay's own writes re-emit the finished day (its checks just
-            // cleared). Until the new day reaches effectiveDayId, that emission
-            // still matches currentDay() and the page pin in init would put the
-            // finished day's page back. A one-day rotation stays on its day.
-            if (nextDayId != day) effectiveDayId.first { it != day }
+            if (nextDayId != day) pinHeldFor = day
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
             val unit = repo.unitFlow.first()

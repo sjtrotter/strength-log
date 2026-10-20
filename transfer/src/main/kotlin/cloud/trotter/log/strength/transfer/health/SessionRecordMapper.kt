@@ -98,7 +98,7 @@ object SessionRecordMapper {
             endTime = Instant.ofEpochMilli(end),
             endZoneOffset = zone.rules.getOffset(Instant.ofEpochMilli(end)),
             exerciseType = ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING,
-            title = session.dayTitle,
+            title = session.planName?.let { "$it · ${session.dayTitle}" } ?: session.dayTitle,
             segments = segments,
             metadata = Metadata.manualEntry(clientRecordId(session.id)),
         )

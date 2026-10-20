@@ -9,6 +9,9 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -24,6 +27,7 @@ import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
 import java.io.File
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -106,8 +110,8 @@ class TodayViewModelWiringTest {
     /** [TodayViewModel.uiState] is `WhileSubscribed`, same as [DayViewModel.uiState]
      *  in the reference fixture — an active collector is required for `.value`
      *  to track updates at all. */
-    private fun newTodayViewModel(): TodayViewModel =
-        TodayViewModel(repo, FixedCivilTimeSource(repo.currentDate())).also { vm ->
+    private fun newTodayViewModel(date: LocalDate = repo.currentDate()): TodayViewModel =
+        TodayViewModel(repo, FixedCivilTimeSource(date)).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -239,6 +243,108 @@ class TodayViewModelWiringTest {
     }
 
     // --- coach line ---------------------------------------------------------
+
+    @Test
+    fun lastTrainedDateFollowsPlanSelection() = runVmTest {
+        insertProgram()
+        val firstPlan = repo.selectedPlanIdFlow.first()!!
+        val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
+        db.sessionDao().insertSessions(listOf(
+            historySession(firstPlan, "2026-10-15"),
+            historySession(secondPlan, "2026-10-18"),
+        ))
+        val today = newTodayViewModel(LocalDate.of(2026, 10, 20))
+        advanceUntilIdle()
+        assertEquals(UiText.TodayCoach(TodayCoachKind.DAYS, "15 Oct", 5), today.uiState.value.coachLine)
+
+        repo.selectPlan(secondPlan)
+        advanceUntilIdle()
+        assertEquals(UiText.TodayCoach(TodayCoachKind.DAYS, "18 Oct", 2), today.uiState.value.coachLine)
+
+        repo.selectPlan(firstPlan)
+        advanceUntilIdle()
+        assertEquals(UiText.TodayCoach(TodayCoachKind.DAYS, "15 Oct", 5), today.uiState.value.coachLine)
+    }
+
+    @Test
+    fun weekLineCountsOnlyTheSelectedPlansSessions() = runVmTest {
+        insertProgram()
+        val firstPlan = checkNotNull(repo.selectedPlanIdFlow.first())
+        val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
+        db.sessionDao().insertSessions(listOf(
+            historySession(firstPlan, "2026-10-19"),
+            historySession(firstPlan, "2026-10-20"),
+        ))
+        val today = newTodayViewModel(LocalDate.of(2026, 10, 20))
+        advanceUntilIdle()
+        assertEquals(UiText.TodayWeekLife(2, 3, 0), today.uiState.value.lifeLine)
+
+        repo.selectPlan(secondPlan)
+        advanceUntilIdle()
+        assertEquals(0, repo.selectedPlanSessionSummariesFlow.first().size)
+        assertNull(today.uiState.value.lifeLine)
+
+        repo.selectPlan(firstPlan)
+        advanceUntilIdle()
+        assertEquals(UiText.TodayWeekLife(2, 3, 0), today.uiState.value.lifeLine)
+    }
+
+    @Test
+    fun onlyTheLegacyPlanCountsNullPlanWorkoutHistory() = runVmTest {
+        insertProgram()
+        assertEquals(PlanEntity.LEGACY_ID, repo.selectedPlanIdFlow.first())
+        val secondPlan = repo.duplicatePlan(PlanEntity.LEGACY_ID, "Test prep")
+        db.sessionDao().insertSessions(listOf(
+            historySession(PlanEntity.LEGACY_ID, "2026-10-15"),
+            historySession(null, "2026-10-19"),
+        ))
+        val today = newTodayViewModel(LocalDate.of(2026, 10, 20))
+        advanceUntilIdle()
+        assertEquals(UiText.TodayCoach(TodayCoachKind.YESTERDAY), today.uiState.value.coachLine)
+        assertEquals(UiText.TodayWeekLife(1, 3, 1), today.uiState.value.lifeLine)
+
+        repo.selectPlan(secondPlan)
+        advanceUntilIdle()
+        assertNull(today.uiState.value.coachLine)
+        assertNull(today.uiState.value.lifeLine)
+    }
+
+    @Test
+    fun cardioCountsForItsPlanAndNullPlanCardioCountsForLegacy() = runVmTest {
+        insertProgram()
+        val firstPlan = repo.selectedPlanIdFlow.first()!!
+        val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
+        db.sessionDao().insertSession(historySession(firstPlan, "2026-10-15"))
+        db.cardioSessionDao().insertAll(listOf(
+            cardioSession(firstPlan, "2026-10-18"),
+            cardioSession(secondPlan, "2026-10-19"),
+        ))
+        val today = newTodayViewModel(LocalDate.of(2026, 10, 20))
+        advanceUntilIdle()
+        assertEquals(UiText.TodayCoach(TodayCoachKind.DAYS, "18 Oct", 2), today.uiState.value.coachLine)
+
+        db.cardioSessionDao().insert(cardioSession(null, "2026-10-20"))
+        advanceUntilIdle()
+        assertEquals(UiText.TodayCoach(TodayCoachKind.TODAY), today.uiState.value.coachLine)
+
+        repo.selectPlan(secondPlan)
+        advanceUntilIdle()
+        assertEquals(UiText.TodayCoach(TodayCoachKind.YESTERDAY), today.uiState.value.coachLine)
+    }
+
+    private fun historySession(planId: Long?, date: String) = WorkoutSessionEntity(
+        id = 0, dayId = "A", dayTitle = "Day A", startedAt = null,
+        completedAt = completionAt(date), bodyweightLb = 180, planId = planId,
+    )
+
+    private fun cardioSession(planId: Long?, date: String) = CardioSessionEntity(
+        dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Zone 2",
+        startedAt = completionAt(date) - 60_000, completedAt = completionAt(date),
+        seconds = 60, stepsCompleted = 1, planId = planId,
+    )
+
+    private fun completionAt(date: String): Long =
+        LocalDate.parse(date).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     @Test
     fun coachLine_showsHistoryOnAFreshDayAndProgressOnceASetIsLogged() = runVmTest {

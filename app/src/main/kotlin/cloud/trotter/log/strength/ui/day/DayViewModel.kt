@@ -232,7 +232,7 @@ class DayViewModel @Inject constructor(
     }
 
     private val baseUiState: Flow<DayUiState> =
-        combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
+        combine(dayState, repo.keepScreenOnFlow, repo.selectedPlanCardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
                 state, preferences, history, anchors, rest ->
             val cardio = buildCardioState(state, history, anchors)
             maybeArmCardioBoundary(cardio, anchors)
@@ -712,12 +712,14 @@ class DayViewModel @Inject constructor(
             val program = repo.programFlow.first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
             val dayIndex = program.days.indexOfFirst { it.id == day }
-            // Rotation.next always wraps, so this is null only when the day the
-            // lifter finished is no longer in the program — a wizard re-run that
-            // landed between the tap and this read. Same guard as dayIndex's
-            // coerce below; the receipt then names no next day rather than
-            // throwing on a workout that was already committed.
-            val nextDayId = if (dayIndex >= 0) Rotation.next(program, day) else null
+            // Cardio lives outside the strength rotation (§6.4), so its receipt
+            // points back to the plan's current suggestion. A removed day has
+            // no next day to name (a wizard re-run may race this read).
+            val nextDayId = when {
+                program.strengthDays.any { it.id == day } -> Rotation.next(program, day)
+                dayIndex >= 0 -> repo.suggestedDayFlow.first()
+                else -> null
+            }
             val sessionId = repo.advanceDay(day, today.first())
             savedState[KEY_VIEW_DAY] = null
             val advancedTo = repo.suggestedDayFlow.first()

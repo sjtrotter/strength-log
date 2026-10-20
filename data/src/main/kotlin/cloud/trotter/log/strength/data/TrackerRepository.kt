@@ -852,6 +852,24 @@ open class TrackerRepository(
      */
     val cardioSessionsFlow: Flow<List<CardioSessionEntity>> = cardioSessionDao.observeSessions()
 
+    val selectedPlanCardioSessionsFlow: Flow<List<CardioSessionEntity>> =
+        combine(selectedPlanIdFlow, cardioSessionsFlow) { planId, sessions ->
+            sessions.filter { planId != null && it.planId == planId }
+        }
+
+    /** Latest workout or cardio completion; [PlanEntity.LEGACY_ID] also counts null-plan history. */
+    val selectedPlanLastSessionAtFlow: Flow<Long?> =
+        combine(selectedPlanIdFlow, sessionsFlow, cardioSessionsFlow) { planId, sessions, cardio ->
+            listOfNotNull(
+                sessions.filter { belongsToPlan(it.planId, planId) }.maxOfOrNull { it.completedAt },
+                cardio.filter { belongsToPlan(it.planId, planId) }.maxOfOrNull { it.completedAt },
+            ).maxOrNull()
+        }.distinctUntilChanged()
+
+    private fun belongsToPlan(sessionPlanId: Long?, planId: Long?): Boolean =
+        planId != null &&
+            (sessionPlanId == planId || (planId == PlanEntity.LEGACY_ID && sessionPlanId == null))
+
     /**
      * Commits one completed cardio mutation immediately. The transaction is
      * deliberately explicit even though C1 writes one row: this is the single
@@ -880,6 +898,12 @@ open class TrackerRepository(
     /** The Log screen's list (#14): every session newest-first, with its total
      *  set count pre-aggregated (no per-row query as history grows). */
     val sessionSummariesFlow: Flow<List<SessionSummaryRow>> = sessionDao.observeSessionSummaries()
+
+    /** Selected plan's workout history, including pre-plans history for the migrated plan. */
+    val selectedPlanSessionSummariesFlow: Flow<List<SessionSummaryRow>> =
+        combine(selectedPlanIdFlow, sessionSummariesFlow) { planId, sessions ->
+            sessions.filter { belongsToPlan(it.session.planId, planId) }
+        }
 
     /** Every session's heaviest completed TOP set per lift, oldest first — the
      *  journal's trajectory series and the cascade ceremony's before-picture. */
@@ -957,7 +981,7 @@ open class TrackerRepository(
      * "DONE — advance" (spec §7, PLAN.md A1): appends a session record
      * for the completed day (denormalizing exercise names so history survives
      * later edits/deletions), clears that day's checkmarks, and advances the
-     * rotation pointer to the following day.
+     * rotation pointer to the following day only for strength days (§6.4).
      *
      * Takes the completed day id because the user may have completed a manually
      * overridden day, not the suggested one; the spec's bare `advanceDay()` can't
@@ -1045,7 +1069,7 @@ open class TrackerRepository(
             programDao.clearChecksForDay(plan.id, completedDayId)
 
             val program = assemble(days, exercises)
-            if (program.days.any { it.id == completedDayId }) {
+            if (program.strengthDays.any { it.id == completedDayId }) {
                 planDao.updateSuggestedDay(plan.id, Rotation.next(program, completedDayId))
             }
         }

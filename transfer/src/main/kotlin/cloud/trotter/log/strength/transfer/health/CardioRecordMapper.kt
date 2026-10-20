@@ -32,7 +32,7 @@ object CardioRecordMapper {
             endTime = end,
             endZoneOffset = zone.rules.getOffset(end),
             exerciseType = type,
-            title = session.label,
+            title = session.planName?.let { "$it · ${session.label}" } ?: session.label,
             metadata = Metadata.manualEntry(clientRecordId(session.id)),
         )
     }

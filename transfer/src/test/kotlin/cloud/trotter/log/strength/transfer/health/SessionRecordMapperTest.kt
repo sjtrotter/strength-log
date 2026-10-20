@@ -37,6 +37,22 @@ class SessionRecordMapperTest {
     )
 
     @Test
+    fun planNamePrefixesTitleWithoutChangingIdentityOrType() {
+        val original = session(startedAt = null, completedAt = 1_000_000L)
+        val sets = listOf(set("bb_back_squat", 5))
+        val withoutPlan = SessionRecordMapper.toExerciseSession(original, sets, zone)
+        val withPlan = SessionRecordMapper.toExerciseSession(original.copy(planId = 2, planName = "Test prep"), sets, zone)
+
+        assertEquals("Lower — squat focus", withoutPlan.title)
+        assertEquals("Test prep · Lower — squat focus", withPlan.title)
+        assertEquals("strengthlog-session-1", withPlan.metadata.clientRecordId)
+        assertEquals(withoutPlan.metadata.clientRecordId, withPlan.metadata.clientRecordId)
+        assertEquals(0L, withPlan.metadata.clientRecordVersion)
+        assertEquals(withoutPlan.exerciseType, withPlan.exerciseType)
+        assertEquals(withoutPlan.segments, withPlan.segments)
+    }
+
+    @Test
     fun mapsStrengthTypeAndTitle() {
         val record = SessionRecordMapper.toExerciseSession(
             session(startedAt = null, completedAt = 1_000_000L),

@@ -453,6 +453,8 @@ class LogViewModel @Inject constructor(
             editing = session.id == editingId,
             note = note,
             unit = unit,
+            planName = session.planName,
+            planId = session.planId,
         )
     }
 

@@ -90,6 +90,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun LogScreen(state: LogUiState, actions: LogActions) {
+    val showPlanNames = state.sessions.mapNotNull { it.planId }.distinct().size > 1
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var deleteConfirmation by remember { mutableStateOf<Long?>(null) }
@@ -154,9 +155,10 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                     }
                 } else {
                     items(state.sessions, key = { if (it.cardioId != null) "cardio-${it.cardioId}" else "strength-${it.sessionId}" }) { session ->
-                        if (session.undoPending) UndoDeletedSessionRow(session.dayIndex, actions.onUndoDeleteSession) else if (session.cardioId != null) CardioSessionCard(session) else
+                        if (session.undoPending) UndoDeletedSessionRow(session.dayIndex, actions.onUndoDeleteSession) else if (session.cardioId != null) CardioSessionCard(session, showPlanNames) else
                             SessionCard(
                                 session,
+                                showPlanNames = showPlanNames,
                                 onToggle = { actions.onToggleExpanded(session.sessionId) },
                                 onShare = { actions.onShare(session.sessionId) },
                                 onToggleEdit = { actions.onToggleEdit(session.sessionId) },
@@ -205,7 +207,10 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
 }
 
 @Composable
-private fun CardioSessionCard(item: SessionListItem) {
+private fun CardioSessionCard(item: SessionListItem, showPlanNames: Boolean) {
+    val supportingLine = item.planName?.takeIf { showPlanNames }?.let {
+        stringResource(R.string.log_session_plan_date, it, item.dateDisplay)
+    } ?: item.dateDisplay
     val spoken = stringResource(R.string.log_cardio_semantics, item.cardioSemantics.orEmpty(), item.cardioDuration.orEmpty())
     val summary = stringResource(R.string.log_cardio_summary, item.cardioSummary.orEmpty(), item.cardioDuration.orEmpty())
     AppCard(
@@ -218,7 +223,7 @@ private fun CardioSessionCard(item: SessionListItem) {
             Spacer(Modifier.size(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(item.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                Text(item.dateDisplay, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                Text(supportingLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
             Text(summary, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         }
@@ -260,6 +265,7 @@ private fun LogHeader() {
 @Composable
 private fun SessionCard(
     item: SessionListItem,
+    showPlanNames: Boolean,
     onToggle: () -> Unit,
     onShare: () -> Unit,
     onToggleEdit: () -> Unit,
@@ -270,6 +276,9 @@ private fun SessionCard(
     onDelete: () -> Unit,
     onEditNote: () -> Unit,
 ) {
+    val supportingLine = item.planName?.takeIf { showPlanNames }?.let {
+        stringResource(R.string.log_session_plan_date, it, item.dateDisplay)
+    } ?: item.dateDisplay
     val chevronRotation by animateFloatAsState(if (item.expanded) 180f else 0f, tween(200), label = "logChevron")
     val disclosureLabel = stringResource(if (item.expanded) R.string.log_collapse_label else R.string.log_expand_label)
     val disclosureState = stringResource(if (item.expanded) R.string.log_expanded_state else R.string.log_collapsed_state)
@@ -294,7 +303,7 @@ private fun SessionCard(
             Spacer(Modifier.size(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(item.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                Text(item.dateDisplay, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                Text(supportingLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(

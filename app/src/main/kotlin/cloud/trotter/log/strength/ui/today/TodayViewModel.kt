@@ -70,10 +70,11 @@ class TodayViewModel @Inject constructor(
                 combine(
                     repo.daySlotsFlow(dayId),
                     repo.logFlow(dayId, flowOf(now.date)),
-                    repo.sessionSummariesFlow,
+                    repo.selectedPlanSessionSummariesFlow,
                     repo.topSetHistoryFlow,
-                ) { slots, logs, sessions, topSets ->
-                    build(ctx, dayId, slots, logs, sessions, topSets, now)
+                    repo.selectedPlanLastSessionAtFlow,
+                ) { slots, logs, sessions, topSets, lastSessionAt ->
+                    build(ctx, dayId, slots, logs, sessions, topSets, lastSessionAt, now)
                 }
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TodayUiState(loading = true))
@@ -85,6 +86,7 @@ class TodayViewModel @Inject constructor(
         logs: List<LoggedSlot>,
         sessions: List<SessionSummaryRow>,
         topSets: List<TopSetRow>,
+        lastSessionAt: Long?,
         now: CivilTime,
     ): TodayUiState {
         val day = ctx.program.days.first { it.id == dayId }
@@ -109,7 +111,7 @@ class TodayViewModel @Inject constructor(
             dayTitle = day.title,
             coachLine = if (doneSets == 0) {
                 TodayScreenBuilder.coachLine(
-                    sessions.firstOrNull()?.session?.completedAt?.let(java.time.Instant::ofEpochMilli),
+                    lastSessionAt?.let(java.time.Instant::ofEpochMilli),
                     now.instant,
                     now.zone,
                 )

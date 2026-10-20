@@ -368,6 +368,7 @@ class TrackerRepositoryPlanScopeTest {
             days = snapshot.days.filter { it.planId == 1L },
             exercises = snapshot.exercises.filter { it.planId == 1L },
             logs = snapshot.logs.filter { it.planId == 1L },
+            answersCarryRecipe = true,
         )
         repo.importSnapshot(legacy, journal)
 

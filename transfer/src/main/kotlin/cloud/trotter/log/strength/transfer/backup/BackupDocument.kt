@@ -11,9 +11,9 @@ import kotlinx.serialization.Serializable
  * add a `when` branch when the on-disk shape changes; an older document is read
  * by the same decoder and reinterpreted only where a field's *meaning* changed
  * (v5's session bodyweight), never by a parallel set of old model classes;
- * v8 nests the program under plans.
+ * v8 nests the program under plans; v9 carries each plan's recipe and rotation.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 8
+const val CURRENT_SCHEMA_VERSION: Int = 9
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -41,7 +41,7 @@ data class BackupDocument(
     val settings: SettingsBackup,
     val customExercises: List<CustomExerciseBackup> = emptyList(),
     val plans: List<PlanBackup> = emptyList(),
-    /** A v1–v7 document's one program, restored as one plan; empty in v8. */
+    /** A v1–v7 document's one program, restored as one plan; empty in v8 and later. */
     val program: List<ProgramDayBackup> = emptyList(),
     val liveLogs: List<LiveLogBackup> = emptyList(),
     val sessions: List<SessionBackup> = emptyList(),
@@ -71,6 +71,9 @@ data class CardioSessionBackup(
  * old backup — the same forward-compat rule `:data` already applies to its
  * stored enums.
  *
+ * v1–v8 carry the one program's recipe here; v9 leaves those fields null and
+ * carries each plan's recipe and rotation in [PlanBackup].
+ *
  * Two stored keys are deliberately absent, and both are settings the user never
  * chose: the session-start stamp (transient — a restore can't be mid-workout)
  * and the one-shot legacy-TIMED fixup flag (the fixup only moves an unfixed set,
@@ -81,15 +84,15 @@ data class SettingsBackup(
     val bodyweightLb: Int,
     val age: Int,
     val level: String,
-    val emphasis: String,
-    val cardioMode: String,
-    val cardioPlacement: String,
-    val fiveKGoal: Boolean,
-    val daysPerWeek: Int,
-    val split: String,
-    val anchorScheme: String,
-    val deadliftVariant: String,
-    val equipment: List<String>,
+    val emphasis: String? = null,
+    val cardioMode: String? = null,
+    val cardioPlacement: String? = null,
+    val fiveKGoal: Boolean? = null,
+    val daysPerWeek: Int? = null,
+    val split: String? = null,
+    val anchorScheme: String? = null,
+    val deadliftVariant: String? = null,
+    val equipment: List<String>? = null,
     val weightUnit: String,
     val wizardComplete: Boolean,
     val suggestedDay: String? = null,
@@ -148,6 +151,10 @@ data class PlanBackup(
     val createdAt: Long,
     val archived: Boolean = false,
     val days: List<ProgramDayBackup> = emptyList(),
+    /** The generator recipe for a generated plan, serialized PlanRecipeDto; null for an authored plan. */
+    val recipeJson: String? = null,
+    /** The plan's rotation position. */
+    val suggestedDay: String? = null,
 )
 
 /** One program day with its ordered exercise slots. */

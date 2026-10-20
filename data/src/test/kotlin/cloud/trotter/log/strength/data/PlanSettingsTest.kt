@@ -372,6 +372,7 @@ class PlanSettingsTest {
             answers = one,
             plans = snapshot.plans.map { it.copy(recipeJson = null, suggestedDayId = null) } + authored,
             suggestedDay = "B",
+            answersCarryRecipe = true,
         )
         repo.importSnapshot(legacy, journal)
 

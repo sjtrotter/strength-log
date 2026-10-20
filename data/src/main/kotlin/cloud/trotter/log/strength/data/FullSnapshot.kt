@@ -26,7 +26,7 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
  * of the serialization business.
  *
  * [answers] and [suggestedDay] project the selected plan's settings for the
- * portable backup's settings block; [plans] retain each plan's stored recipe
+ * legacy portable backup's settings block; [plans] retain each plan's stored recipe
  * and rotation position for an in-memory round trip.
  */
 data class FullSnapshot(
@@ -43,7 +43,7 @@ data class FullSnapshot(
     val supersetHelperSeen: Boolean = false,
     val sessionNotes: Map<Long, String> = emptyMap(),
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
-    /** Empty means a pre-plans backup, restored as one plan. */
+    /** Empty legacy snapshots become one plan when [answersCarryRecipe] is true. */
     val plans: List<PlanEntity> = emptyList(),
     val customExercises: List<CustomExerciseEntity>,
     val days: List<ProgramDayEntity>,
@@ -52,4 +52,6 @@ data class FullSnapshot(
     val sessions: List<WorkoutSessionEntity>,
     val sessionSets: List<SessionSetEntity>,
     val cardioSessions: List<CardioSessionEntity> = emptyList(),
+    /** Whether [answers] also carries a legacy recipe to spread onto generated plans. */
+    val answersCarryRecipe: Boolean = true,
 )

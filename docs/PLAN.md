@@ -233,16 +233,23 @@ strength day; the shipped cardio vectors stay pinned.
   no lock), and when time ends the count entry (a stepper) comes up by
   itself. The lifter records the count.
 - **Before production:** plans, run identity, authored prescriptions and
-  timed rep events, on phone and watch.
+  timed rep events, on phone and watch; a plan switcher on Today; and cardio
+  as typed sets (warm-up, work, recovery, cool-down; time ends a set by
+  itself, distance ends it with a tap, the other measure may be an aim),
+  activity types and manual distance. Cardio-only plans (a "Running" plan
+  alternated with a "Strength" plan) are built on those typed sets, not on
+  the older cardio suggestion block. (Owner, 2026-10-20; Sol's memo:
+  `docs/briefs/plans-separate-cardio-2026-10-20-sol.md`.)
 - **After production:** cross-plan "Last" with a 28-day evidence review that
   shows what was done and leaves values editable, with no automatic deload
-  and no pre-filled lighter number; cardio as typed sets (warm-up, work,
-  recovery, cool-down; time ends a set by itself, distance ends it with a
-  tap, the other measure may be an aim); manual distance; Health Connect run
-  linking; and every record type Health Connect can hold. Each new Health
-  Connect permission ships with its rationale line, privacy policy text, Data
-  safety answer and Play declaration. GPS only if manual and linked distance
-  fall short, and then on the watch first.
+  and no pre-filled lighter number; Health Connect run linking; and every
+  record type Health Connect can hold. Each new Health Connect permission
+  ships with its rationale line, privacy policy text, Data safety answer and
+  Play declaration. GPS only if manual and linked distance fall short, and
+  then on the watch first.
+- **Plans stay generic and rotation-based.** No stored plan kind (derive one
+  if a screen ever needs it); alternating plans by weekday is the lifter
+  switching, not a calendar.
 - §11 numbers and the shipped cardio vectors do not move.
 
 ## Architecture

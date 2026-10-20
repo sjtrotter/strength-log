@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -189,6 +190,72 @@ class RestoreCoordinationTest {
         assertTrue(settings.wizardCompleteFlow.first())
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(service.reconcilePendingRestore())
+    }
+
+    @Test
+    fun v9WithNoPlansRestoresOnlyTheGlobalLifterWithoutCreatingALegacyPlan() = runBlocking {
+        service.import(backupJson("A", 190))
+        assertEquals(1, db.planDao().allPlans().size)
+        val document = BackupDocument(
+            settings = SettingsBackup(
+                bodyweightLb = 210, age = 33, level = "ADVANCED", weightUnit = "KG", wizardComplete = true,
+            ),
+        )
+
+        service.import(BackupCodec().encode(document))
+
+        assertTrue(db.planDao().allPlans().isEmpty())
+        assertTrue(repo.programFlow.first().days.isEmpty())
+        assertNull(settings.selectedPlanIdFlow.first())
+        assertNull(repo.suggestedDayFlow.first())
+        val global = settings.globalLifterFlow.first()
+        assertEquals(210, global.bodyweightLb)
+        assertEquals(33, global.age)
+        assertEquals("ADVANCED", global.level.name)
+        assertTrue(settings.wizardCompleteFlow.first())
+        assertFalse(repo.exportSnapshot().answersCarryRecipe)
+    }
+
+    @Test
+    fun v9GlobalAnswersDoNotSupplyARecipeToAGeneratedPlan() = runBlocking {
+        val document = BackupDocument(
+            settings = SettingsBackup(
+                bodyweightLb = 210, age = 33, level = "ADVANCED", weightUnit = "KG", wizardComplete = true,
+                selectedPlanId = 7,
+            ),
+            plans = listOf(PlanBackup(7, "Recipe-less", "GENERATED", 1_000)),
+        )
+
+        service.import(BackupCodec().encode(document))
+
+        assertEquals(listOf(PlanEntity(7, "Recipe-less", "GENERATED", 0, 1_000)), db.planDao().allPlans())
+        assertFalse(repo.exportSnapshot().answersCarryRecipe)
+    }
+
+    @Test
+    fun v8StillSpreadsItsSettingsRecipeAcrossGeneratedPlansAndRotatesTheSelectedPlan() = runBlocking {
+        val codec = BackupCodec()
+        val legacy = codec.decode(backupJson("A", 190))
+        val document = legacy.copy(
+            schemaVersion = 8,
+            settings = legacy.settings.copy(selectedPlanId = 7),
+            program = emptyList(),
+            plans = listOf(
+                PlanBackup(7, "Selected", "GENERATED", 1_000, days = legacy.program),
+                PlanBackup(8, "Other", "GENERATED", 2_000),
+                PlanBackup(9, "Authored", "AUTHORED", 3_000),
+            ),
+        )
+
+        service.import(codec.encode(document))
+
+        val plans = db.planDao().allPlans()
+        assertNotNull(plans[0].recipeJson)
+        assertEquals(plans[0].recipeJson, plans[1].recipeJson)
+        assertNull(plans[2].recipeJson)
+        assertEquals(listOf("A", null, null), plans.map { it.suggestedDayId })
+        assertEquals(legacy.toSnapshot().answers, repo.wizardAnswersFlow.first())
+        assertEquals(7L, settings.selectedPlanIdFlow.first())
     }
 
     private companion object {

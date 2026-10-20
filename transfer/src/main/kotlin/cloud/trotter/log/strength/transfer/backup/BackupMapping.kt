@@ -48,18 +48,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
             bodyweightLb = answers.config.bodyweightLb,
             age = answers.config.age,
             level = answers.config.level.name,
-            emphasis = answers.config.emphasis.name,
-            cardioMode = answers.cardio.mode.name,
-            cardioPlacement = answers.cardio.placement.name,
-            fiveKGoal = answers.cardio.fiveKGoal,
-            daysPerWeek = answers.daysPerWeek,
-            split = answers.split.name,
-            anchorScheme = answers.anchorScheme.name,
-            deadliftVariant = answers.deadliftVariant.name,
-            equipment = answers.equipment.map { it.name }.sorted(),
             weightUnit = unit.name,
             wizardComplete = wizardComplete,
-            suggestedDay = suggestedDay,
             selectedPlanId = selectedPlanId,
             restTimerEnabled = restSettings.enabled,
             restRampSeconds = restSettings.overrides[RestCategory.RAMP],
@@ -93,6 +83,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 origin = plan.origin,
                 createdAt = plan.createdAt,
                 archived = plan.archived,
+                recipeJson = plan.recipeJson,
+                suggestedDay = plan.suggestedDayId,
                 days = daysByPlan[plan.id].orEmpty().sortedBy { it.position }.map { day ->
                     ProgramDayBackup(
                         dayId = day.dayId,
@@ -172,26 +164,33 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         bodyweightLb = settings.bodyweightLb,
         age = settings.age,
         level = enumOrDefault(settings.level, ExperienceLevel.INTERMEDIATE),
-        emphasis = enumOrDefault(settings.emphasis, GoalEmphasis.BALANCED),
+        emphasis = if (schemaVersion >= 9) {
+            WizardAnswers().config.emphasis
+        } else {
+            enumOrDefault(settings.emphasis, GoalEmphasis.BALANCED)
+        },
     )
-    val cardio = CardioPrefs(
-        mode = enumOrDefault(settings.cardioMode, CardioMode.OUTDOOR_RUN),
-        placement = enumOrDefault(settings.cardioPlacement, CardioPlacement.FINISHERS),
-        fiveKGoal = settings.fiveKGoal,
-    )
-    val answers = WizardAnswers(
-        daysPerWeek = settings.daysPerWeek,
-        split = enumOrDefault(settings.split, SplitTemplate.FULL_BODY),
-        anchorScheme = enumOrDefault(settings.anchorScheme, AnchorScheme.PROTOTYPE),
-        deadliftVariant = enumOrDefault(settings.deadliftVariant, DeadliftVariant.TRAP_BAR),
-        cardio = cardio,
-        config = config,
-        equipment = settings.equipment.mapNotNull { name ->
-            Equipment.entries.firstOrNull { it.name == name }
-        }.toSet(),
-    )
+    val answers = if (schemaVersion >= 9) {
+        WizardAnswers(config = config)
+    } else {
+        WizardAnswers(
+            daysPerWeek = checkNotNull(settings.daysPerWeek),
+            split = enumOrDefault(settings.split, SplitTemplate.FULL_BODY),
+            anchorScheme = enumOrDefault(settings.anchorScheme, AnchorScheme.PROTOTYPE),
+            deadliftVariant = enumOrDefault(settings.deadliftVariant, DeadliftVariant.TRAP_BAR),
+            cardio = CardioPrefs(
+                mode = enumOrDefault(settings.cardioMode, CardioMode.OUTDOOR_RUN),
+                placement = enumOrDefault(settings.cardioPlacement, CardioPlacement.FINISHERS),
+                fiveKGoal = checkNotNull(settings.fiveKGoal),
+            ),
+            config = config,
+            equipment = checkNotNull(settings.equipment).mapNotNull { name ->
+                Equipment.entries.firstOrNull { it.name == name }
+            }.toSet(),
+        )
+    }
 
-    val programs = if (schemaVersion == 8) {
+    val programs = if (schemaVersion >= 8) {
         plans.map { it.id to it.days }
     } else {
         listOf(PlanEntity.LEGACY_ID to program)
@@ -230,7 +229,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
     }
     val logEntities = liveLogs.map {
         ExerciseLogEntity(
-            planId = if (schemaVersion == 8) checkNotNull(it.planId) else PlanEntity.LEGACY_ID,
+            planId = if (schemaVersion >= 8) checkNotNull(it.planId) else PlanEntity.LEGACY_ID,
             dayId = it.dayId,
             programExerciseId = it.programExerciseId,
             slot = it.slot,
@@ -275,8 +274,9 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         answers = answers,
         unit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
         wizardComplete = settings.wizardComplete,
-        suggestedDay = settings.suggestedDay,
-        selectedPlanId = if (schemaVersion == 8) settings.selectedPlanId else null,
+        suggestedDay = if (schemaVersion >= 9) null else settings.suggestedDay,
+        answersCarryRecipe = schemaVersion < 9,
+        selectedPlanId = if (schemaVersion >= 8) settings.selectedPlanId else null,
         restSettings = RestSettings(
             enabled = settings.restTimerEnabled,
             overrides = settings.restOverrides(),
@@ -299,7 +299,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 targetSeconds = it.targetSeconds,
             )
         },
-        plans = if (schemaVersion == 8) plans.mapIndexed { index, plan ->
+        plans = if (schemaVersion >= 8) plans.mapIndexed { index, plan ->
             PlanEntity(
                 id = plan.id,
                 name = plan.name,
@@ -307,6 +307,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 position = index,
                 createdAt = plan.createdAt,
                 archived = plan.archived,
+                recipeJson = if (schemaVersion >= 9) plan.recipeJson else null,
+                suggestedDayId = if (schemaVersion >= 9) plan.suggestedDay else null,
             )
         } else emptyList(),
         days = dayEntities,
@@ -339,5 +341,5 @@ fun SettingsBackup.restOverrides(): Map<RestCategory, Int> = buildMap {
     restLightSeconds?.let { put(RestCategory.LIGHT, it) }
 }
 
-private inline fun <reified E : Enum<E>> enumOrDefault(name: String, default: E): E =
+private inline fun <reified E : Enum<E>> enumOrDefault(name: String?, default: E): E =
     enumValues<E>().firstOrNull { it.name == name } ?: default

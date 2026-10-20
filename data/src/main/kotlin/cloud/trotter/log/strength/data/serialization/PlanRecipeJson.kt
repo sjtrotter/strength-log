@@ -36,6 +36,12 @@ object PlanRecipeJson {
         ),
     )
 
+    /** Checks a portable recipe with the stored-payload decoder and the supported day range. */
+    fun validate(json: String) {
+        val recipe = SetJson.decode(PlanRecipeDto.serializer(), json)
+        require(recipe.daysPerWeek in 2..6) { "daysPerWeek must be 2..6, was ${recipe.daysPerWeek}" }
+    }
+
     fun decode(json: String, global: GlobalLifter): WizardAnswers {
         val recipe = SetJson.decode(PlanRecipeDto.serializer(), json)
         val defaults = WizardAnswers()

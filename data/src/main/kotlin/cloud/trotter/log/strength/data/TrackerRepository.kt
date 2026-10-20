@@ -926,6 +926,7 @@ open class TrackerRepository(
      */
     suspend fun exportSnapshot(): FullSnapshot = FullSnapshot(
         answers = wizardAnswersFlow.first(),
+        answersCarryRecipe = false,
         unit = settings.unitFlow.first(),
         wizardComplete = settings.wizardCompleteFlow.first(),
         suggestedDay = suggestedDayFlow.first(),
@@ -986,7 +987,7 @@ open class TrackerRepository(
      */
     suspend fun importSnapshot(snapshot: FullSnapshot, journal: RestoreJournal) {
         val nonce = UUID.randomUUID().toString()
-        val legacyPlanCreated = snapshot.plans.isEmpty()
+        val legacyPlanCreated = snapshot.plans.isEmpty() && snapshot.answersCarryRecipe
         val restoredSelectedPlanId = snapshot.selectedPlanId
             ?: if (legacyPlanCreated) PlanEntity.LEGACY_ID else null
         val stagedSnapshot = snapshot.copy(selectedPlanId = restoredSelectedPlanId)
@@ -1018,7 +1019,7 @@ open class TrackerRepository(
                     ),
                 )
             }
-            if (snapshot.plans.none { it.recipeJson != null }) {
+            if (snapshot.answersCarryRecipe && snapshot.plans.none { it.recipeJson != null }) {
                 val recipe = PlanRecipeJson.encode(snapshot.answers)
                 val plans = planDao.allPlans()
                 plans.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }

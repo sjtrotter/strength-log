@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.CardioDto
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -16,6 +17,7 @@ import java.io.InputStream
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
@@ -84,12 +86,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // v3 added the rest-timer prefs, v4
             // added keep-screen-on, v5 made a session's bodyweight nullable, v6
             // added cardio sessions, v7 added program-day kinds, and v8 added
-            // plans and their live-log/selection pointers. Older documents decode
+            // plans and their live-log/selection pointers; v9 added each plan's
+            // recipe and rotation. Older documents decode
             // with newer fields at their defaults; the version determines which
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -99,9 +102,10 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
     /**
      * Decodes and checks the version's program shape with the shared decoder.
      * v1–v7 ignore stray `plans` and live-log `planId` as unknown fields, while
-     * v8 rejects a non-empty legacy `program`.
+     * v8 and later reject a non-empty legacy `program`.
      */
     private fun decodeCurrent(obj: JsonObject, version: Int): BackupDocument {
+        if (version < 9) requireLegacyRecipe(obj)
         val shaped = if (version < 8) {
             JsonObject(obj.toMutableMap().apply {
                 remove("plans")
@@ -110,16 +114,43 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                     put("liveLogs", JsonArray(logs.map { if (it is JsonObject) JsonObject(it - "planId") else it }))
                 }
             })
-        } else obj
+        } else {
+            JsonObject(obj.toMutableMap().apply {
+                if (version == 8) {
+                    val plans = get("plans") as? JsonArray
+                    if (plans != null) {
+                        put("plans", JsonArray(plans.map {
+                            if (it is JsonObject) JsonObject(it - "recipeJson" - "suggestedDay") else it
+                        }))
+                    }
+                } else {
+                    val settings = get("settings") as? JsonObject
+                    if (settings != null) {
+                        put("settings", JsonObject(settings - LEGACY_RECIPE_FIELDS.toSet() - "suggestedDay"))
+                    }
+                }
+            })
+        }
         val document = try {
             json.decodeFromJsonElement(BackupDocument.serializer(), shaped)
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
-        if (version == 8 && document.program.isNotEmpty()) {
-            throw BackupError.Malformed("program must be empty in schema v8")
+        if (version >= 8 && document.program.isNotEmpty()) {
+            throw BackupError.Malformed("program must be empty in schema v$version")
         }
         return document
+    }
+
+    /** Pre-v9 recipe fields were required; null defaults must not hide truncation. */
+    private fun requireLegacyRecipe(obj: JsonObject) {
+        val settings = obj["settings"] as? JsonObject ?: return
+        LEGACY_RECIPE_FIELDS.forEach { field ->
+            val value = settings[field]
+            if (value == null || value == JsonNull) {
+                throw BackupError.Malformed("settings $field is required before schema v9")
+            }
+        }
     }
 
     /**
@@ -157,7 +188,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
      * custom exercise the catalog couldn't ingest, a program slot pointing at a
      * non-existent exercise, a duplicate primary key that would abort the restore
      * transaction with a raw SQLite error, a self-contradictory pointer/log, or —
-     * critically — an embedded `setsJson`/`cardioJson` payload the app's own
+     * critically — an embedded `setsJson`/`cardioJson`/`recipeJson` payload the app's own
      * codecs can't read (those strings go into Room verbatim and are decoded on
      * every program/log read, so a poisoned one would crash every collect).
      *
@@ -170,7 +201,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         validateSettings(doc.settings)
         val customIds = validateCustomExercises(doc.customExercises)
         val slotIds = HashSet<Long>()
-        if (doc.schemaVersion == 8) {
+        if (doc.schemaVersion >= 8) {
             val slotsByPlan = LinkedHashMap<Long, Map<String, Set<Long>>>()
             for (plan in doc.plans) {
                 if (plan.id <= 0) throw BackupError.Inconsistent("plan id must be positive: ${plan.id}")
@@ -179,6 +210,15 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                     throw BackupError.Inconsistent("unknown plan origin '${plan.origin}'")
                 }
                 slotsByPlan[plan.id] = validateProgram(plan.days, customIds, slotIds)
+                if (doc.schemaVersion >= 9) {
+                    plan.recipeJson?.let { recipe ->
+                        decodePayload("recipeJson of plan ${plan.id}") { PlanRecipeJson.validate(recipe) }
+                        if (plan.origin == PlanOrigin.AUTHORED.name) {
+                            throw BackupError.Inconsistent("AUTHORED plan ${plan.id} must have a null recipeJson")
+                        }
+                    }
+                    validateSuggestedDay(plan.suggestedDay, plan.days)
+                }
             }
             val selectedPlan = doc.settings.selectedPlanId?.let { id ->
                 val plan = doc.plans.firstOrNull { it.id == id }
@@ -186,9 +226,11 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 if (plan.archived) throw BackupError.Inconsistent("selectedPlanId references archived plan $id")
                 plan
             } ?: doc.plans.firstOrNull { !it.archived }
-            validateSuggestedDay(doc.settings.suggestedDay, selectedPlan?.days.orEmpty())
+            if (doc.schemaVersion == 8) {
+                validateSuggestedDay(doc.settings.suggestedDay, selectedPlan?.days.orEmpty())
+            }
             for ((planId, logs) in doc.liveLogs.groupBy { it.planId }) {
-                if (planId == null) throw BackupError.Inconsistent("live log planId is required in schema v8")
+                if (planId == null) throw BackupError.Inconsistent("live log planId is required in schema v${doc.schemaVersion}")
                 val slotsByDay = slotsByPlan[planId]
                     ?: throw BackupError.Inconsistent("live log references unknown plan $planId")
                 validateLiveLogs(logs, slotsByDay)
@@ -211,7 +253,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
     }
 
     private fun validateSettings(settings: SettingsBackup) {
-        if (settings.daysPerWeek !in 2..6) {
+        if (settings.daysPerWeek != null && settings.daysPerWeek !in 2..6) {
             throw BackupError.Inconsistent("daysPerWeek out of range: ${settings.daysPerWeek}")
         }
         if (settings.bodyweightLb <= 0) {
@@ -374,6 +416,11 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
 
     companion object {
+        private val LEGACY_RECIPE_FIELDS = listOf(
+            "emphasis", "cardioMode", "cardioPlacement", "fiveKGoal", "daysPerWeek",
+            "split", "anchorScheme", "deadliftVariant", "equipment",
+        )
+
         /**
          * 32 MiB. A full backup is normally kilobytes-to-low-megabytes; this cap
          * only exists to bound the transient memory a restore allocates (the file

@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -46,7 +47,7 @@ import org.junit.runner.RunWith
 class BackupRoundTripTest : BackupTestHarness() {
 
     private val wizardAnswers = WizardAnswers(
-        daysPerWeek = 5,
+        daysPerWeek = 3,
         split = SplitTemplate.UPPER_LOWER,
         anchorScheme = AnchorScheme.BIG_4,
         deadliftVariant = DeadliftVariant.CONVENTIONAL,
@@ -102,10 +103,18 @@ class BackupRoundTripTest : BackupTestHarness() {
         // A fresh post-advance edit, so the exported live logs carry current work.
         repository.updateSets("A", squatId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
 
-        db.planDao().insertPlan(PlanEntity(2, "Test prep", PlanOrigin.AUTHORED.name, 1, 2_000))
+        val secondAnswers = wizardAnswers.copy(
+            daysPerWeek = 5,
+            config = wizardAnswers.config.copy(emphasis = GoalEmphasis.PHYSIQUE),
+        )
+        db.planDao().insertPlan(PlanEntity(
+            2, "Test prep", PlanOrigin.GENERATED.name, 1, 2_000,
+            recipeJson = PlanRecipeJson.encode(secondAnswers), suggestedDayId = "C",
+        ))
         db.programDao().upsertDays(listOf(
             ProgramDayEntity(2, "A", 0, "Test A", "Bench-focused", null),
             ProgramDayEntity(2, "B", 1, "Test B", "Squat-focused", null),
+            ProgramDayEntity(2, "C", 2, "Test C", "Row-focused", null),
         ))
         val benchId = db.programDao().insertExercise(
             ProgramExerciseEntity(21, 2, "A", 0, "bb_bench", true, 3, "8", false, null, "pause"),
@@ -117,18 +126,6 @@ class BackupRoundTripTest : BackupTestHarness() {
             ),
         ))
         settings.setSelectedPlanId(2)
-        // Schema v8 carries only the selected recipe and rotation position.
-        // Keep this fixture representable until per-plan settings reach v9.
-        val recipe = db.planDao().plan(1)!!.recipeJson
-        val plans = db.planDao().allPlans().map { plan ->
-            if (plan.id == 2L) {
-                plan.copy(origin = PlanOrigin.GENERATED.name, recipeJson = recipe, suggestedDayId = "B")
-            } else {
-                plan.copy(origin = PlanOrigin.AUTHORED.name, recipeJson = null, suggestedDayId = null)
-            }
-        }
-        db.planDao().deleteAllPlans()
-        db.planDao().insertPlans(plans)
 
         // --- snapshot the "before" state -------------------------------------
         val before = captureState()
@@ -153,9 +150,12 @@ class BackupRoundTripTest : BackupTestHarness() {
         val restored = repository.exportSnapshot()
         assertEquals(2, restored.plans.size)
         assertEquals(2L, restored.selectedPlanId)
+        assertEquals(PlanRecipeJson.encode(wizardAnswers), restored.plans.first().recipeJson)
+        assertEquals(PlanRecipeJson.encode(secondAnswers), restored.plans.last().recipeJson)
+        assertEquals(listOf("B", "C"), restored.plans.map { it.suggestedDayId })
 
         // Spot-check a couple of load-bearing details beyond structural equality.
-        assertEquals("B", repository.suggestedDayFlow.first())
+        assertEquals("C", repository.suggestedDayFlow.first())
         assertEquals(WeightUnit.KG, repository.unitFlow.first())
         assertEquals(true, repository.keepScreenOnFlow.first())
         val squatLog = db.programDao().allLogs().first { it.planId == PlanEntity.LEGACY_ID && it.programExerciseId == squatId }

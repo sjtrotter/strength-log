@@ -17,6 +17,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 /** Saved plans share day names, but never slots or live logs, in a v8 backup. */
 class BackupV8Test {
@@ -62,7 +68,26 @@ class BackupV8Test {
         ),
     )
 
-    private fun document() = snapshot().toDocument()
+    // Keep #267's fixture at v8 even though production exports now write v9.
+    private fun FullSnapshot.toV8Document(): BackupDocument = toDocument().let { document ->
+        document.copy(
+            schemaVersion = 8,
+            settings = document.settings.copy(
+                emphasis = answers.config.emphasis.name,
+                cardioMode = answers.cardio.mode.name,
+                cardioPlacement = answers.cardio.placement.name,
+                fiveKGoal = answers.cardio.fiveKGoal,
+                daysPerWeek = answers.daysPerWeek,
+                split = answers.split.name,
+                anchorScheme = answers.anchorScheme.name,
+                deadliftVariant = answers.deadliftVariant.name,
+                equipment = answers.equipment.map { it.name }.sorted(),
+                suggestedDay = suggestedDay,
+            ),
+        )
+    }
+
+    private fun document() = snapshot().toV8Document()
 
     private fun decode(document: BackupDocument) = codec.decode(codec.encode(document))
 
@@ -73,7 +98,7 @@ class BackupV8Test {
     @Test
     fun `two plans and their days slots logs selection and history survive a full cycle`() {
         val before = snapshot()
-        val restored = decode(before.toDocument()).toSnapshot()
+        val restored = decode(before.toV8Document()).toSnapshot()
 
         assertEquals(before, restored)
         assertEquals(listOf("Maintenance", "Test prep"), restored.plans.map { it.name })
@@ -89,12 +114,12 @@ class BackupV8Test {
     @Test
     fun `encoding writes v8 with an empty legacy program and is byte-identical`() {
         val before = snapshot()
-        val first = codec.encode(before.toDocument())
+        val first = codec.encode(before.toV8Document())
 
         assertTrue("\"schemaVersion\":8" in first)
         assertTrue("\"program\":[]" in first)
-        assertEquals(first, codec.encode(before.toDocument()))
-        assertEquals(first, codec.encode(codec.decode(first).toSnapshot().toDocument()))
+        assertEquals(first, codec.encode(before.toV8Document()))
+        assertEquals(first, codec.encode(codec.decode(first).toSnapshot().toV8Document()))
     }
 
     @Test
@@ -109,7 +134,7 @@ class BackupV8Test {
                 firstExercise.copy(id = 12, position = 7), firstExercise.copy(position = 3), before.exercises.last(),
             ),
         )
-        val doc = unordered.toDocument()
+        val doc = unordered.toV8Document()
         assertEquals(listOf(1L, 2L), doc.plans.map { it.id })
         assertEquals(listOf("A", "B"), doc.plans.first().days.map { it.dayId })
         assertEquals(listOf(11L, 12L), doc.plans.first().days.first().exercises.map { it.id })
@@ -328,7 +353,7 @@ class BackupV8Test {
     @Test
     fun `archived and empty plans survive the mapping`() {
         val before = snapshot().copy(plans = snapshot().plans + PlanEntity(3, "Retired", "AUTHORED", 2, 500, archived = true))
-        assertEquals(before, decode(before.toDocument()).toSnapshot())
+        assertEquals(before, decode(before.toV8Document()).toSnapshot())
     }
 
     @Test
@@ -341,11 +366,11 @@ class BackupV8Test {
     }
 
     @Test
-    fun `schema 9 is rejected as unsupported`() {
-        val error = assertFailsWith<BackupError.UnsupportedSchemaVersion> { decode(document().copy(schemaVersion = 9)) }
-        assertEquals(9, error.found)
-        assertEquals(8, error.supported)
-        assertTrue("Unsupported backup schema version 9" in error.message.orEmpty())
+    fun `schema 10 is rejected as unsupported`() {
+        val error = assertFailsWith<BackupError.UnsupportedSchemaVersion> { decode(document().copy(schemaVersion = 10)) }
+        assertEquals(10, error.found)
+        assertEquals(9, error.supported)
+        assertTrue("Unsupported backup schema version 10" in error.message.orEmpty())
     }
 
     @Test
@@ -374,5 +399,46 @@ class BackupV8Test {
         assertTrue(restored.days.isEmpty())
         assertTrue(restored.exercises.isEmpty())
         assertNull(restored.selectedPlanId)
+    }
+
+    @Test
+    fun `legacy recipe fields remain required and non-null in every version through v8`() {
+        val fields = listOf(
+            "emphasis", "cardioMode", "cardioPlacement", "fiveKGoal", "daysPerWeek",
+            "split", "anchorScheme", "deadliftVariant", "equipment",
+        )
+        for (version in 1..8) {
+            val document = document().copy(
+                schemaVersion = version,
+                settings = document().settings.copy(suggestedDay = null),
+                liveLogs = emptyList(),
+            )
+            decode(document)
+            val root = Json.parseToJsonElement(codec.encode(document)).jsonObject
+            val settings = root.getValue("settings").jsonObject
+            fields.forEach { field ->
+                for (broken in listOf(JsonObject(settings - field), JsonObject(settings + (field to JsonNull)))) {
+                    val error = assertFailsWith<BackupError.Malformed> {
+                        codec.decode(JsonObject(root + ("settings" to broken)).toString())
+                    }
+                    assertTrue("settings $field is required before schema v9" in error.message.orEmpty())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `v8 ignores stray per-plan recipe and rotation fields`() {
+        val document = document()
+        val root = Json.parseToJsonElement(codec.encode(document)).jsonObject
+        val plans = JsonArray(root.getValue("plans").jsonArray.map { plan ->
+            JsonObject(plan.jsonObject + mapOf(
+                "recipeJson" to JsonObject(emptyMap()),
+                "suggestedDay" to JsonObject(emptyMap()),
+            ))
+        })
+        val text = JsonObject(root + ("plans" to plans)).toString()
+
+        assertEquals(snapshot(), codec.decode(text).toSnapshot())
     }
 }

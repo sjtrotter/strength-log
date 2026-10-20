@@ -6,13 +6,14 @@ import kotlinx.serialization.Serializable
 /**
  * The schema version of the JSON produced by [BackupCodec.encode]. A reader
  * dispatches on the document's `schemaVersion` field (see [BackupCodec.decode]):
- * anything other than this value is rejected loudly with
+ * newer versions are rejected loudly with
  * [BackupError.UnsupportedSchemaVersion] rather than being misread. Bump this and
  * add a `when` branch when the on-disk shape changes; an older document is read
  * by the same decoder and reinterpreted only where a field's *meaning* changed
- * (v5's session bodyweight), never by a parallel set of old model classes.
+ * (v5's session bodyweight), never by a parallel set of old model classes;
+ * v8 nests the program under plans.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 7
+const val CURRENT_SCHEMA_VERSION: Int = 8
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -21,7 +22,7 @@ private val REST_DEFAULTS = RestSettings()
 /**
  * The portable, versioned full backup (PLAN.md A2): one self-contained document
  * carrying everything a user owns — preferences + wizard answers + display unit,
- * every custom exercise, the program with its per-slot live logs, and the whole
+ * every custom exercise, every plan with its per-slot live logs, and the whole
  * session history.
  *
  * Field order here is the on-disk field order (kotlinx.serialization emits in
@@ -39,6 +40,8 @@ data class BackupDocument(
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
     val settings: SettingsBackup,
     val customExercises: List<CustomExerciseBackup> = emptyList(),
+    val plans: List<PlanBackup> = emptyList(),
+    /** A v1–v7 document's one program, restored as one plan; empty in v8. */
     val program: List<ProgramDayBackup> = emptyList(),
     val liveLogs: List<LiveLogBackup> = emptyList(),
     val sessions: List<SessionBackup> = emptyList(),
@@ -90,6 +93,7 @@ data class SettingsBackup(
     val weightUnit: String,
     val wizardComplete: Boolean,
     val suggestedDay: String? = null,
+    val selectedPlanId: Long? = null,
     /** The master rest-timer gate (v3). Defaulted to the domain's own default so
      *  a v1/v2 document — which has no rest keys at all — restores with the
      *  timer behaving exactly as it does on a fresh install. */
@@ -135,6 +139,17 @@ data class CustomExerciseBackup(
     val targetSeconds: Int? = null,
 )
 
+/** One saved plan with its ordered days (v8). Position is the list order. */
+@Serializable
+data class PlanBackup(
+    val id: Long,
+    val name: String,
+    val origin: String,
+    val createdAt: Long,
+    val archived: Boolean = false,
+    val days: List<ProgramDayBackup> = emptyList(),
+)
+
 /** One program day with its ordered exercise slots. */
 @Serializable
 data class ProgramDayBackup(
@@ -168,6 +183,8 @@ data class ProgramExerciseBackup(
  */
 @Serializable
 data class LiveLogBackup(
+    /** Null in v1–v7, where every log belongs to the one program. */
+    val planId: Long? = null,
     val dayId: String,
     val programExerciseId: Long,
     val slot: String,

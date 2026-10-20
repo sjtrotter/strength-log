@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  * track them, but the headers stay present for round-trip compatibility with
  * tools that read a fixed Strong-shaped column set. The `Seconds` column is
  * written for TIMED holds/carries and read back on import (tracking types).
+ * Plan is appended last so positional Strong readers are unaffected; the importer ignores it.
  */
 val HISTORY_CSV_HEADER: List<String> = listOf(
     "Date",
@@ -27,6 +28,7 @@ val HISTORY_CSV_HEADER: List<String> = listOf(
     "Notes",
     "Workout Notes",
     "RPE",
+    "Plan",
 )
 
 /**

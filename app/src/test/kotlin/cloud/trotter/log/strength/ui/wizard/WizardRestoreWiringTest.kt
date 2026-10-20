@@ -130,6 +130,8 @@ class WizardRestoreWiringTest {
     /** A minimal but valid backup: one day, one real catalog exercise, and the
      *  wizard flag the test is about. */
     private fun backup(wizardComplete: Boolean) = BackupDocument(
+        // A legacy-shaped document: one top-level program.
+        schemaVersion = 7,
         settings = SettingsBackup(
             bodyweightLb = 190,
             age = 33,

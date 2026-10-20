@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.transfer.backup
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -78,28 +79,48 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
         val document = when (version) {
-            // Every version shares one decoder, because every bump so far only
-            // *added* defaulted fields: v2 added session-set `seconds` and the
-            // custom-exercise tracking/targets, v3 added the rest-timer prefs, v4
-            // added keep-screen-on, v5 made a session's bodyweight nullable. An
-            // older document therefore decodes into the current shape with the
-            // newer fields at their defaults, which is their old meaning — an old
-            // backup must always restore. A newer version is still rejected
-            // loudly rather than silently misread.
-            1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj)))
-            5, 6, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
+            // Every version shares one decoder, with defaulted additions: v2
+            // added session-set `seconds` and custom-exercise tracking/targets,
+            // v3 added the rest-timer prefs, v4
+            // added keep-screen-on, v5 made a session's bodyweight nullable, v6
+            // added cardio sessions, v7 added program-day kinds, and v8 added
+            // plans and their live-log/selection pointers. Older documents decode
+            // with newer fields at their defaults; the version determines which
+            // program shape is valid and how it restores. A newer version is
+            // still rejected loudly rather than silently misread.
+            1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
+            5, 6, 7, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
         return document
     }
 
-    private fun decodeCurrent(obj: JsonObject): BackupDocument =
-        try {
-            json.decodeFromJsonElement(BackupDocument.serializer(), obj)
+    /**
+     * Decodes and checks the version's program shape with the shared decoder.
+     * v1–v7 ignore stray `plans` and live-log `planId` as unknown fields, while
+     * v8 rejects a non-empty legacy `program`.
+     */
+    private fun decodeCurrent(obj: JsonObject, version: Int): BackupDocument {
+        val shaped = if (version < 8) {
+            JsonObject(obj.toMutableMap().apply {
+                remove("plans")
+                val logs = get("liveLogs") as? JsonArray
+                if (logs != null) {
+                    put("liveLogs", JsonArray(logs.map { if (it is JsonObject) JsonObject(it - "planId") else it }))
+                }
+            })
+        } else obj
+        val document = try {
+            json.decodeFromJsonElement(BackupDocument.serializer(), shaped)
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
+        if (version == 8 && document.program.isNotEmpty()) {
+            throw BackupError.Malformed("program must be empty in schema v8")
+        }
+        return document
+    }
 
     /**
      * Pre-v5, a session's bodyweight was a REQUIRED number. The current
@@ -148,15 +169,45 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
     private fun validate(doc: BackupDocument) {
         validateSettings(doc.settings)
         val customIds = validateCustomExercises(doc.customExercises)
-        val slotsByDay = validateProgram(doc.program, customIds)
-        doc.settings.suggestedDay?.let { suggested ->
-            if (doc.program.none { it.dayId == suggested }) {
+        val slotIds = HashSet<Long>()
+        if (doc.schemaVersion == 8) {
+            val slotsByPlan = LinkedHashMap<Long, Map<String, Set<Long>>>()
+            for (plan in doc.plans) {
+                if (plan.id <= 0) throw BackupError.Inconsistent("plan id must be positive: ${plan.id}")
+                if (plan.id in slotsByPlan) throw BackupError.Inconsistent("duplicate plan id ${plan.id}")
+                if (PlanOrigin.entries.none { it.name == plan.origin }) {
+                    throw BackupError.Inconsistent("unknown plan origin '${plan.origin}'")
+                }
+                slotsByPlan[plan.id] = validateProgram(plan.days, customIds, slotIds)
+            }
+            val selectedPlan = doc.settings.selectedPlanId?.let { id ->
+                val plan = doc.plans.firstOrNull { it.id == id }
+                    ?: throw BackupError.Inconsistent("selectedPlanId references unknown plan $id")
+                if (plan.archived) throw BackupError.Inconsistent("selectedPlanId references archived plan $id")
+                plan
+            } ?: doc.plans.firstOrNull { !it.archived }
+            validateSuggestedDay(doc.settings.suggestedDay, selectedPlan?.days.orEmpty())
+            for ((planId, logs) in doc.liveLogs.groupBy { it.planId }) {
+                if (planId == null) throw BackupError.Inconsistent("live log planId is required in schema v8")
+                val slotsByDay = slotsByPlan[planId]
+                    ?: throw BackupError.Inconsistent("live log references unknown plan $planId")
+                validateLiveLogs(logs, slotsByDay)
+            }
+        } else {
+            val slotsByDay = validateProgram(doc.program, customIds, slotIds)
+            validateSuggestedDay(doc.settings.suggestedDay, doc.program)
+            validateLiveLogs(doc.liveLogs, slotsByDay)
+        }
+        validateSessions(doc.sessions)
+        validateCardioSessions(doc.cardioSessions)
+    }
+
+    private fun validateSuggestedDay(suggestedDay: String?, days: List<ProgramDayBackup>) {
+        suggestedDay?.let { suggested ->
+            if (days.none { it.dayId == suggested }) {
                 throw BackupError.Inconsistent("suggestedDay '$suggested' is not a day in this backup")
             }
         }
-        validateLiveLogs(doc.liveLogs, slotsByDay)
-        validateSessions(doc.sessions)
-        validateCardioSessions(doc.cardioSessions)
     }
 
     private fun validateSettings(settings: SettingsBackup) {
@@ -210,10 +261,10 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
     private fun validateProgram(
         program: List<ProgramDayBackup>,
         customIds: Set<String>,
+        slotIds: MutableSet<Long>,
     ): Map<String, Set<Long>> {
         val resolvable = ExerciseLibrary.entries.mapTo(HashSet()) { it.id } + customIds
         val dayIds = HashSet<String>()
-        val slotIds = HashSet<Long>()
         for (day in program) {
             if (!dayIds.add(day.dayId)) throw BackupError.Inconsistent("duplicate day id '${day.dayId}'")
             if (day.kind != "STRENGTH" && day.kind != "CARDIO") {

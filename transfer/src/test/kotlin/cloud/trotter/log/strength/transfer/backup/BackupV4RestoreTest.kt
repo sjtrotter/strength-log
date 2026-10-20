@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -49,8 +50,11 @@ class BackupV4RestoreTest {
 
     @Test
     fun `re-exporting the restored document writes it at the current version`() {
-        val reEncoded = codec.encode(codec.decode(v4Json()).copy(schemaVersion = CURRENT_SCHEMA_VERSION))
-        // The unknown bodyweight survives a v5 write/read; before #171 this file
+        val snapshot = codec.decode(v4Json()).toSnapshot().copy(
+            plans = listOf(PlanEntity(PlanEntity.LEGACY_ID, PlanEntity.LEGACY_NAME, "GENERATED", 0, 0)),
+        )
+        val reEncoded = codec.encode(snapshot.toDocument())
+        // The unknown bodyweight survives a current write/read; before #171 this file
         // could not be restored at all.
         assertNull(codec.decode(reEncoded).sessions.first { it.id == 2L }.bodyweightLb)
     }

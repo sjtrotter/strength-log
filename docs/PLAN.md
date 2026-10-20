@@ -65,6 +65,8 @@ session_set(sessionId, exerciseId, exerciseName, slot, setIndex, kind,
 - Enable **Android Auto Backup** (`dataExtractionRules`) so Room/DataStore ride
   along with device-to-device transfer and Google One backups for free.
 
+The backup carries every saved plan from schema v8 (A13); older backups restore as one plan.
+
 ### A3. Health Connect integration (v1)
 
 Health Connect is Android's standard fitness interchange (built into Android

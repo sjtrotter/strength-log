@@ -93,6 +93,7 @@ class RestoreCoordinationTest {
     /** A minimal but valid backup naming one day and one catalog exercise. */
     private fun backupJson(dayId: String, bodyweightLb: Int): String = BackupCodec().encode(
         BackupDocument(
+            schemaVersion = 7,
             settings = SettingsBackup(
                 bodyweightLb = bodyweightLb, age = 33, level = "NOVICE", emphasis = "STRENGTH",
                 cardioMode = "NONE", cardioPlacement = "NONE", fiveKGoal = false,

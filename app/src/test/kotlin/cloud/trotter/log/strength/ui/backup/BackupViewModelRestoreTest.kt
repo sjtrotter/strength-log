@@ -121,6 +121,8 @@ class BackupViewModelRestoreTest {
     /** A minimal but valid backup: one day, one real catalog exercise. */
     private fun backupJson(): String = BackupCodec().encode(
         BackupDocument(
+            // A legacy-shaped document: one top-level program.
+            schemaVersion = 7,
             settings = SettingsBackup(
                 bodyweightLb = 190, age = 33, level = "NOVICE", emphasis = "STRENGTH",
                 cardioMode = "NONE", cardioPlacement = "NONE", fiveKGoal = false,

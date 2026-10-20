@@ -2,15 +2,19 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -22,6 +26,11 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -33,6 +42,8 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -52,6 +63,59 @@ class WorkoutPagerTest {
         show(pagerFixture().copy(exercises = listOf(card)))
         rule.onNodeWithText("Goal 235").assertIsDisplayed()
         rule.onNodeWithText("Last 185 × 8").assertIsDisplayed()
+
+        // The title and the unmodified target Column remain direct children of the original Row.
+        val title = rule.onNodeWithText(card.title, useUnmergedTree = true).fetchSemanticsNode().layoutInfo
+        val goal = rule.onNodeWithText("Goal 235", useUnmergedTree = true).fetchSemanticsNode().layoutInfo
+        val last = rule.onNodeWithText("Last 185 × 8", useUnmergedTree = true).fetchSemanticsNode().layoutInfo
+        val targetColumn = requireNotNull(goal.parentInfo)
+        val headerRow = requireNotNull(title.parentInfo)
+        assertSame(targetColumn, last.parentInfo)
+        assertSame(headerRow, targetColumn.parentInfo)
+        assertTrue("Generated target Column must keep Modifier", targetColumn.getModifierInfo().isEmpty())
+        assertTrue("Generated header Row must keep Modifier", headerRow.getModifierInfo().isEmpty())
+        val layout = textLayout("Last 185 × 8")
+        assertEquals(Int.MAX_VALUE, layout.layoutInput.maxLines)
+        assertEquals(TextOverflow.Clip, layout.layoutInput.overflow)
+    }
+
+    @Test
+    @Config(qualifiers = "w320dp-h891dp")
+    fun longPrescribedBandKeepsTitleAndMenuAtEnlargedFontScale() {
+        val band = "A".repeat(40)
+        val supporting = "Last 3 × 12 · Each side · $band"
+        val card = pagerFixture().exercises[1].copy(
+            title = "Split squat",
+            headerTarget = HeaderTarget.Prescribed("3 × 12", eachSide = true, resistance = band),
+            lastTimeDisplay = "3 × 12",
+        )
+        rule.setContent {
+            val base = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(base.density, 1.3f)) {
+                AppTheme {
+                    DayScreen(pagerFixture().copy(exercises = listOf(card)), pagerActions(),
+                        DayEditUiState(), pagerEditActions())
+                }
+            }
+        }
+
+        val title = rule.onNodeWithText("Split squat").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val menu = rule.onNodeWithContentDescription("Split squat menu")
+            .assertIsDisplayed().assertWidthIsEqualTo(48.dp)
+        assertTrue("Title must fit before the menu", title.right <= menu.fetchSemanticsNode().boundsInRoot.left)
+        assertTrue("Title must remain fully readable", !textLayout("Split squat").hasVisualOverflow)
+        rule.onNodeWithContentDescription("Target 3 × 12").assertIsDisplayed()
+        // Text semantics retain the entire string even though only one ellipsized line is drawn.
+        rule.onNodeWithText(supporting).assertIsDisplayed()
+        val layout = textLayout(supporting)
+        assertEquals(supporting, layout.layoutInput.text.text)
+        assertEquals(1, layout.layoutInput.maxLines)
+        assertEquals(TextOverflow.Ellipsis, layout.layoutInput.overflow)
+        assertEquals(1, layout.lineCount)
+        // No isLineEllipsized check: Robolectric's text measurement does not
+        // produce real glyph widths, so it cannot observe the ellipsis itself.
+        menu.performClick()
+        rule.onNodeWithText("Note").assertIsDisplayed()
     }
 
     @Test fun prescribedHeadersShowEveryTargetInBothUnitsAndReadTheVisibleLabel() {
@@ -276,6 +340,12 @@ class WorkoutPagerTest {
         rule.onNodeWithText("Lift 1 of 3").assertIsDisplayed()
         assertEquals(0, state.currentPage)
         assertEquals(listOf("exercise:1"), selected)
+    }
+
+    private fun textLayout(text: String): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(text).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        return results.single()
     }
 
     private fun show(state: DayUiState = pagerFixture(), actions: DayActions = pagerActions()) {

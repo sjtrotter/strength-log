@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -94,8 +95,12 @@ internal fun ExercisePage(
                 if (card.allDone) {
                     Checkbox(checked = true, onCheckedChange = null)
                 } else {
-                    Column(horizontalAlignment = Alignment.End) {
-                        val target = card.headerTarget
+                    val target = card.headerTarget
+                    Column(
+                        // Share the space left after the menu with the title; generated headers keep their layout.
+                        modifier = if (target is HeaderTarget.Prescribed) Modifier.weight(1f) else Modifier,
+                        horizontalAlignment = Alignment.End,
+                    ) {
                         val display = if (target is HeaderTarget.Prescribed && target.repAim != null) {
                             stringResource(R.string.day_target_aim, target.display, target.repAim)
                         } else target.display
@@ -128,6 +133,8 @@ internal fun ExercisePage(
                                 text = supporting,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = variant,
+                                maxLines = if (target is HeaderTarget.Prescribed) 1 else Int.MAX_VALUE,
+                                overflow = if (target is HeaderTarget.Prescribed) TextOverflow.Ellipsis else TextOverflow.Clip,
                             )
                         }
                     }

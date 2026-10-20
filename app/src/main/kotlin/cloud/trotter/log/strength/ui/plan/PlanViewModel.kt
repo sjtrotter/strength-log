@@ -17,9 +17,10 @@ class PlanViewModel @Inject constructor(repo: TrackerRepository) : ViewModel() {
         repo.suggestedDayFlow,
         repo.configFlow,
         repo.catalogFlow,
-    ) { program, nextDayId, config, catalog ->
+        repo.planSummariesFlow,
+    ) { program, nextDayId, config, catalog, plans ->
         val days = PlanScreenBuilder.days(program, nextDayId, config, catalog)
-        PlanUiState(hasProgram = days.isNotEmpty(), days = days)
+        PlanUiState(name = plans.firstOrNull { it.selected }?.name, hasProgram = days.isNotEmpty(), days = days)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),

@@ -59,7 +59,7 @@ import org.robolectric.annotation.Config
  * reach — the [androidx.lifecycle.SavedStateHandle] round-trip for every field
  * type (including the equipment [List]), the days/split auto-correction on
  * [WizardViewModel.setDaysPerWeek], re-run pre-fill from stored answers, and
- * [finish][WizardViewModel] actually replacing the program (D3).
+ * [finish][WizardViewModel] actually creating a plan (D3).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -122,6 +122,11 @@ class WizardViewModelWiringTest {
         settings: SettingsStore,
     ) : TrackerRepository(db, programDao, sessionDao, customExerciseDao, settings) {
         val calls = mutableListOf<String>()
+
+        override suspend fun createGeneratedPlan(name: String, answers: WizardAnswers, program: Program): Long {
+            calls += "createGeneratedPlan"
+            return super.createGeneratedPlan(name, answers, program)
+        }
 
         override suspend fun setWizardAnswers(answers: WizardAnswers) {
             calls += "setWizardAnswers"
@@ -323,7 +328,7 @@ class WizardViewModelWiringTest {
     // --- finish: the only program creator (D3) ----------------------------------
 
     @Test
-    fun finish_persists_answers_and_replaces_the_program() = runVmTest {
+    fun finish_persists_answers_and_creates_a_plan() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
         vm.setEmphasis(GoalEmphasis.PHYSIQUE)
@@ -341,6 +346,35 @@ class WizardViewModelWiringTest {
     }
 
     @Test
+    fun finish_onExistingInstall_createsAndSelectsSecondPlanWithoutChangingOriginal() = runVmTest {
+        repo.replaceProgram(restoredProgram())
+        repo.setWizardComplete(true)
+        val slot = db.programDao().exercisesForPlan(1).single().id
+        repo.updateSets("R", slot, Slot.MAIN, listOf(
+            cloud.trotter.log.strength.domain.model.LoggedSet(225.0, 5, SetKind.WORK, done = true),
+        ))
+        val original = db.planDao().plan(1)
+        val days = db.programDao().daysForPlan(1)
+        val exercises = db.programDao().exercisesForPlan(1)
+        val logs = db.programDao().logsForPlan(1)
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        advanceUntilIdle()
+
+        val plans = db.planDao().allPlans()
+        assertEquals(2, plans.size)
+        assertEquals("4-day full body", plans.last().name)
+        assertEquals(plans.last().id, settings.selectedPlanIdFlow.first())
+        assertTrue(vm.uiState.value.isComplete)
+        assertEquals(original, db.planDao().plan(1))
+        assertEquals(days, db.programDao().daysForPlan(1))
+        assertEquals(exercises, db.programDao().exercisesForPlan(1))
+        assertEquals(logs, db.programDao().logsForPlan(1))
+    }
+
+    @Test
     fun finish_writesTheProgramBeforeMarkingTheWizardComplete() = runVmTest {
         // Crash-safety (D1/D3): wizardComplete is the routing flag, so it must be
         // set only after the program exists. A completion flag ahead of the
@@ -354,10 +388,10 @@ class WizardViewModelWiringTest {
         vm.onNext() // last step -> finish()
         advanceUntilIdle()
 
-        assertEquals(listOf("setWizardAnswers", "replaceProgram", "setWizardComplete"), recording.calls)
+        assertEquals(listOf("createGeneratedPlan", "setWizardComplete"), recording.calls)
         assertTrue(
-            "replaceProgram must run before setWizardComplete",
-            recording.calls.indexOf("replaceProgram") < recording.calls.indexOf("setWizardComplete"),
+            "createGeneratedPlan must run before setWizardComplete",
+            recording.calls.indexOf("createGeneratedPlan") < recording.calls.indexOf("setWizardComplete"),
         )
     }
 

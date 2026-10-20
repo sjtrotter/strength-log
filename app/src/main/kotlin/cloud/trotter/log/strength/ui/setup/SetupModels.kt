@@ -56,7 +56,6 @@ data class SetupActions(
     val onPhoneRestTimerEnabledChange: (Boolean) -> Unit = {},
     val onRestOverrideChange: (RestCategory, Int) -> Unit,
     val onRestOverridesReset: () -> Unit,
-    val onRerunWizard: () -> Unit,
     val onCreateCustomExercise: () -> Unit,
     val onOpenBackup: () -> Unit,
     val onOpenLicenses: () -> Unit,

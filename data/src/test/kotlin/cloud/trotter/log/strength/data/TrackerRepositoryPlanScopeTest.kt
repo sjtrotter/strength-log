@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
@@ -13,7 +15,9 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -377,6 +381,157 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(PlanEntity.LEGACY_NAME, restored.name)
         assertEquals(listOf("Plan one"), db.programDao().daysForPlan(PlanEntity.LEGACY_ID).map { it.title })
         assertEquals(PlanEntity.LEGACY_ID, settings.selectedPlanIdFlow.first())
+    }
+
+    @Test
+    fun `generated plan appends selects and preserves the previous plan`() = runTest {
+        repo.replaceProgram(program("Original", "bb_back_squat"))
+        val oldAnswers = WizardAnswers(daysPerWeek = 3)
+        repo.setWizardAnswers(oldAnswers)
+        db.programDao().upsertDay(ProgramDayEntity(1, "B", 1, "Original next", "", null))
+        db.planDao().updateSuggestedDay(1, "B")
+        val slot = db.programDao().exercisesForPlan(1).single().id
+        repo.updateSets("A", slot, Slot.MAIN, sets(225.0))
+        val before = db.planDao().plan(1)
+        val days = db.programDao().daysForPlan(1)
+        val exercises = db.programDao().exercisesForPlan(1)
+        val logs = db.programDao().logsForPlan(1)
+        val answers = WizardAnswers(config = oldAnswers.config.copy(bodyweightLb = 210))
+
+        val created = repo.createGeneratedPlan("4-day full body", answers, program("New", "bb_bench"))
+
+        assertEquals(listOf(1L, created), db.planDao().allPlans().map { it.id })
+        assertEquals(1, db.planDao().plan(created)!!.position)
+        assertEquals(created, settings.selectedPlanIdFlow.first())
+        assertEquals(PlanRecipeJson.encode(answers), db.planDao().plan(created)!!.recipeJson)
+        assertEquals("A", db.planDao().plan(created)!!.suggestedDayId)
+        assertEquals(210, repo.configFlow.first().bodyweightLb)
+        assertEquals(program("New", "bb_bench"), repo.programFlow.first())
+        assertEquals(before, db.planDao().plan(1))
+        assertEquals(days, db.programDao().daysForPlan(1))
+        assertEquals(exercises, db.programDao().exercisesForPlan(1))
+        assertEquals(logs, db.programDao().logsForPlan(1))
+        val createdPlan = db.planDao().plan(created)
+        repo.selectPlan(1)
+        assertEquals(before, db.planDao().plan(1))
+        assertEquals(createdPlan, db.planDao().plan(created))
+        assertEquals(oldAnswers.daysPerWeek, repo.wizardAnswersFlow.first().daysPerWeek)
+    }
+
+    @Test
+    fun `generated plan fills a selected settings-only plan`() = runTest {
+        repo.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
+        val id = repo.selectedPlanIdFlow.first()!!
+
+        assertEquals(id, repo.createGeneratedPlan("Full body", WizardAnswers(), program("First", "bb_bench")))
+
+        assertEquals(1, db.planDao().allPlans().size)
+        assertEquals("Full body", db.planDao().plan(id)!!.name)
+        assertEquals(PlanRecipeJson.encode(WizardAnswers()), db.planDao().plan(id)!!.recipeJson)
+        assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
+        assertEquals(listOf("First"), db.programDao().daysForPlan(id).map { it.title })
+    }
+
+    @Test
+    fun `duplicate rekeys both log tracks inserts after source and leaves selection and history alone`() = runTest {
+        repo.replaceProgram(program("Original", "bb_back_squat"))
+        repo.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
+        val source = db.planDao().plan(1)!!
+        val slot = db.programDao().exercisesForPlan(1).single()
+        db.programDao().setSupersetExerciseId(slot.id, "bb_bench")
+        db.programDao().insertLogs(listOf(
+            log(1, slot.id, sets(225.0)),
+            log(1, slot.id, sets(135.0)).copy(slot = Slot.SS),
+        ))
+        insertPlanTwo()
+        db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Original", null, 100, 180, 1, source.name))
+        val history = db.sessionDao().allSessions()
+
+        val copy = repo.duplicatePlan(1, "Original copy")
+
+        val plans = db.planDao().allPlans()
+        assertEquals(listOf(1L, copy, 2L), plans.map { it.id })
+        assertEquals(listOf(0, 1, 2), plans.map { it.position })
+        assertEquals(1L, settings.selectedPlanIdFlow.first())
+        val copiedPlan = db.planDao().plan(copy)!!
+        assertEquals(source.recipeJson, copiedPlan.recipeJson)
+        assertEquals(source.suggestedDayId, copiedPlan.suggestedDayId)
+        assertEquals(source.origin, copiedPlan.origin)
+        assertEquals(db.programDao().daysForPlan(1).map { it.copy(planId = copy) }, db.programDao().daysForPlan(copy))
+        val copiedSlot = db.programDao().exercisesForPlan(copy).single()
+        assertTrue(slot.id != copiedSlot.id)
+        assertEquals(db.programDao().exercisesForPlan(1).single().copy(id = copiedSlot.id, planId = copy), copiedSlot)
+        val sourceLogs = db.programDao().logsForPlan(1)
+        assertEquals(sourceLogs.map { it.copy(planId = copy, programExerciseId = copiedSlot.id) }, db.programDao().logsForPlan(copy))
+        repo.updateSets("A", copiedSlot.id, Slot.MAIN, sets(245.0))
+        assertEquals(sourceLogs, db.programDao().logsForPlan(1))
+        assertEquals(history, db.sessionDao().allSessions())
+    }
+
+    @Test
+    fun `archive refuses selected and last active and restore preserves data`() = runTest {
+        repo.replaceProgram(program("Original", "bb_back_squat"))
+        assertFalse(repo.archivePlan(1))
+        val copy = repo.duplicatePlan(1, "Copy")
+        repo.selectPlan(copy)
+        val days = db.programDao().allDays()
+        assertFalse(repo.archivePlan(copy))
+        assertTrue(repo.archivePlan(1))
+        assertFalse(repo.archivePlan(copy))
+        settings.setSelectedPlanId(1)
+        assertEquals(copy, repo.selectedPlanIdFlow.first())
+        repo.restorePlan(1)
+        assertFalse(db.planDao().plan(1)!!.archived)
+        assertEquals(1L, repo.selectedPlanIdFlow.first())
+        assertEquals(days, db.programDao().allDays())
+    }
+
+    @Test
+    fun `select refuses archived and missing plans and rename validates trimmed names`() = runTest {
+        repo.replaceProgram(program("Original", "bb_back_squat"))
+        val copy = repo.duplicatePlan(1, "Copy")
+        assertTrue(repo.archivePlan(copy))
+        repo.selectPlan(copy)
+        repo.selectPlan(999)
+        assertEquals(1L, settings.selectedPlanIdFlow.first())
+        repo.renamePlan(1, "   ")
+        repo.renamePlan(1, "a".repeat(41))
+        assertEquals(PlanEntity.LEGACY_NAME, db.planDao().plan(1)!!.name)
+        repo.renamePlan(1, "  Renamed  ")
+        assertEquals("Renamed", db.planDao().plan(1)!!.name)
+    }
+
+    @Test
+    fun `summaries resolve each next title and latest workout or cardio ignoring unknown plans`() = runTest {
+        repo.replaceProgram(program("Original", "bb_back_squat"))
+        val copy = repo.duplicatePlan(1, "Copy")
+        val empty = db.planDao().insertPlan(plan(0, "Empty", 2))
+        db.programDao().upsertDay(ProgramDayEntity(copy, "B", 1, "Copy next", "", null))
+        db.planDao().updateSuggestedDay(copy, "B")
+        db.sessionDao().insertSessions(listOf(
+            WorkoutSessionEntity(0, "A", "Original", null, 100, 180, 1),
+            WorkoutSessionEntity(0, "A", "Original", null, 200, 180, 1),
+            WorkoutSessionEntity(0, "A", "Copy", null, 400, 180, copy),
+            WorkoutSessionEntity(0, "A", "Unknown", null, 999, 180),
+        ))
+        db.cardioSessionDao().insertAll(listOf(
+            CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run",
+                startedAt = 0, completedAt = 300, seconds = 300, stepsCompleted = 1, planId = 1),
+            CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Run",
+                startedAt = 0, completedAt = 350, seconds = 350, stepsCompleted = 1, planId = copy),
+            CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Unknown",
+                startedAt = 0, completedAt = 1000, seconds = 1000, stepsCompleted = 1),
+        ))
+        assertTrue(repo.archivePlan(copy))
+
+        val summaries = repo.planSummariesFlow.first()
+
+        assertEquals(listOf(1L, copy, empty), summaries.map { it.id })
+        assertEquals(listOf("A", "B", null), summaries.map { it.nextDayId })
+        assertEquals(listOf("Original", "Copy next", null), summaries.map { it.nextDayTitle })
+        assertEquals(listOf(300L, 400L, null), summaries.map { it.lastSessionAt })
+        assertEquals(listOf(true, false, false), summaries.map { it.selected })
+        assertEquals(listOf(false, true, false), summaries.map { it.archived })
     }
 
     private suspend fun insertTwoProgramsAndSelectPlanTwo() {

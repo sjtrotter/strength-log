@@ -75,7 +75,6 @@ class SetupSectionsTest {
         onRestTimerEnabledChange = {},
         onRestOverrideChange = { _, _ -> },
         onRestOverridesReset = {},
-        onRerunWizard = {},
         onCreateCustomExercise = {},
         onOpenBackup = {},
         onOpenLicenses = {},

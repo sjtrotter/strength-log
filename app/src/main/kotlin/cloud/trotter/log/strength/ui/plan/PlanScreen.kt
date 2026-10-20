@@ -33,10 +33,10 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
         contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.plan_title)) },
+                title = { Text(state.name ?: stringResource(R.string.plan_title)) },
                 actions = {
-                    TextButton(onClick = actions.onSetUpAgain) {
-                        Text(stringResource(R.string.plan_setup_again))
+                    TextButton(onClick = actions.onOpenPlans) {
+                        Text(stringResource(R.string.plans_title))
                     }
                 },
             )
@@ -45,7 +45,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
         when {
             state.loading -> ProgramLoadingState(Modifier.fillMaxSize().padding(innerPadding))
             !state.hasProgram -> NoProgramState(
-                actions.onSetUpAgain,
+                actions.onSetUpProgram,
                 Modifier.fillMaxSize().padding(innerPadding),
             )
             else -> LazyColumn(contentPadding = innerPadding) {

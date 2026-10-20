@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.di.ApplicationScope
@@ -51,16 +52,9 @@ import kotlinx.coroutines.launch
  * persists it in, so rotation/process death mid-wizard loses nothing (data
  * principle: no unsaved truth in a bare ViewModel field).
  *
- * [Finish][finish] is the only program creator left in the app (D3): the
- * rotation reveal generates via [ProgramGenerator], then finish persists the
- * wizard answers and `wizardComplete` and replaces the previewed program through
- * [TrackerRepository.replaceProgram] — the `:data` surface the day-edit
- * sheet's "reset day to template" already relies on.
- *
- * Re-run entry (from Setup, #12) reuses this same route/ViewModel: [init]
- * seeds the draft from whatever is already stored, which is the spec default
- * on first run (an empty DataStore reads back [WizardAnswers] defaults) and
- * the lifter's last answers on a re-run.
+ * [Finish][finish] creates and selects a new plan from the preview through
+ * [TrackerRepository.createGeneratedPlan]; it never replaces an existing program.
+ * New-plan entry seeds the draft from the selected plan's stored answers.
  *
  * [Restore from backup][restoreFromBackup] is the other way out of the wizard,
  * offered on the first step of a genuine first run only — see [Keys.FIRST_RUN].
@@ -80,7 +74,7 @@ class WizardViewModel @Inject constructor(
 
         /** Whether this wizard was entered with nothing on the device yet
          *  (latched from `wizardComplete` in [init], never re-read). It gates
-         *  the restore-from-backup entry: on a Setup re-run the device already
+         *  the restore-from-backup entry: when creating another plan the device already
          *  holds a program and a history, and Data/Backup owns import there
          *  behind a confirm-overwrite dialog — a second, unguarded destructive
          *  path off a setup screen is exactly the accident worth designing out. */
@@ -316,13 +310,13 @@ class WizardViewModel @Inject constructor(
     // --- finish --------------------------------------------------------------
 
     /**
-     * Persists the answers and selected unit, replaces the previewed program,
+     * Persists the selected unit and creates a new plan from the answers and preview,
      * and only then marks the wizard complete (spec §6, D3: the only program
      * creator).
      *
      * Write order is crash-safety, not cosmetics. `wizardComplete=true` is what
      * routes the app to the day screen (D1); if it were set before
-     * [TrackerRepository.replaceProgram], a process death in the gap would
+     * [TrackerRepository.createGeneratedPlan], a process death in the gap would
      * strand the app on an empty program — the day screen would show
      * "Preparing your program…" forever, and with the #10 bootstrap deleted
      * (D3) and Setup (#12) not yet built there is no in-app recovery. Setting
@@ -334,9 +328,9 @@ class WizardViewModel @Inject constructor(
      * instead of generating (#172). The app opens on the wizard whenever that
      * flag reads false, so an interrupted restore whose settings half is still
      * pending lands us here over a *restored* program — and generating would
-     * delete it. [firstRun] is latched at entry, so this can only fire when the
-     * flag flipped underneath us; a Setup re-run (which legitimately regenerates
-     * over a complete setup) never takes this branch.
+     * select a different plan. [firstRun] is latched at entry, so this can only
+     * fire when the flag flipped underneath us; a new-plan wizard on a complete
+     * setup never takes this branch.
      *
      * [BackupService.withRestoreLock] finishes any pending recovery before that
      * check and keeps it and the writes it authorizes in one critical section.
@@ -349,9 +343,18 @@ class WizardViewModel @Inject constructor(
                 backupService.withRestoreLock {
                     if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
                     val answers = currentAnswers()
-                    repo.setWizardAnswers(answers)
                     repo.setUnit(enumOf(unit.value, WeightUnit.LB))
-                    repo.replaceProgram(previewProgram.value ?: generatePreview(answers))
+                    val nameResource = when (answers.split) {
+                        SplitTemplate.FULL_BODY -> R.string.plan_name_full_body
+                        SplitTemplate.UPPER_LOWER -> R.string.plan_name_upper_lower
+                        SplitTemplate.PPL -> R.string.plan_name_ppl
+                        SplitTemplate.PPLUL -> R.string.plan_name_pplul
+                    }
+                    repo.createGeneratedPlan(
+                        context.getString(nameResource, answers.daysPerWeek),
+                        answers,
+                        previewProgram.value ?: generatePreview(answers),
+                    )
                     repo.setWizardComplete(true)
                 }
                 // Either branch leaves the device set up, so the wizard leaves.

@@ -338,7 +338,6 @@ class DestructiveActionsTest {
         onRestTimerEnabledChange = {},
         onRestOverrideChange = { _, _ -> },
         onRestOverridesReset = onRestOverridesReset,
-        onRerunWizard = {},
         onCreateCustomExercise = {},
         onOpenBackup = {},
         onOpenLicenses = {},

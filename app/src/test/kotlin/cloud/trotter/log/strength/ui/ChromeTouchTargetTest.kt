@@ -168,7 +168,6 @@ class ChromeTouchTargetTest {
         onRestTimerEnabledChange = {},
         onRestOverrideChange = { _, _ -> },
         onRestOverridesReset = {},
-        onRerunWizard = {},
         onCreateCustomExercise = {},
         onOpenBackup = {},
         onOpenLicenses = {},

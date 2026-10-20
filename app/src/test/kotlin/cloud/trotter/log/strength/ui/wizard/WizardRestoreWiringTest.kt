@@ -354,9 +354,11 @@ class WizardRestoreWiringTest {
         settingsStore.failOnUpdate = 2 // the recovery's settings write
 
         repeat(WizardStep.entries.size) { vm.onNext() }
-        val state = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.restore.error != null } }
+        val state = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null } }
 
-        assertTrue(state.restore.error is UiText.FileAccessFailure)
+        assertEquals(WizardStep.ROTATION, state.step)
+        assertTrue(state.finishError is UiText.FileAccessFailure)
+        assertNull(state.restore.error)
         assertFalse(state.restore.inFlight)
         assertFalse(state.isComplete)
         assertFalse(repo.wizardCompleteFlow.first())
@@ -364,7 +366,9 @@ class WizardRestoreWiringTest {
         assertNotNull(db.restoreMarkerDao().nonce())
 
         vm.onNext()
-        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        assertNull(completed.finishError)
+        assertNull(completed.restore.error)
         assertTrue(repo.wizardCompleteFlow.first())
         assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
         assertEquals(190, repo.configFlow.first().bodyweightLb)

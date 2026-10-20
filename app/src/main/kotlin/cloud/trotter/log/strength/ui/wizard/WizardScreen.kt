@@ -555,6 +555,14 @@ private fun WizardFooter(
 ) {
     Column(Modifier.fillMaxWidth().background(Background)) {
         HorizontalDivider(thickness = 1.dp, color = Border)
+        state.finishError?.let { message ->
+            Text(
+                message.resolve(),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp),
+                color = Error,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),

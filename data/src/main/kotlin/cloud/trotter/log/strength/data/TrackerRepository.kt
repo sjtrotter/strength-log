@@ -28,6 +28,7 @@ import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.Rotation
@@ -55,10 +56,14 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -96,11 +101,45 @@ open class TrackerRepository(
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
     private val planDao = db.planDao()
+    private val planSettingsMigrationMutex = Mutex()
 
     // --- config & preferences ------------------------------------------------
 
-    val configFlow: Flow<LifterConfig> = settings.configFlow
-    val cardioPrefsFlow: Flow<CardioPrefs> = settings.cardioPrefsFlow
+    val plansFlow: Flow<List<PlanEntity>> = planDao.observePlans()
+
+    /** Distinct, because DataStore emits on every key's write and each emission
+     *  here restarts every plan-scoped Room query downstream. */
+    val selectedPlanIdFlow: Flow<Long?> =
+        combine(settings.selectedPlanIdFlow, plansFlow) { storedId, plans ->
+            plans.firstOrNull { it.id == storedId && !it.archived }?.id
+                ?: plans.firstOrNull { !it.archived }?.id
+        }.distinctUntilChanged()
+
+    private val selectedPlanFlow: Flow<PlanEntity?> =
+        combine(selectedPlanIdFlow, plansFlow) { id, plans ->
+            plans.firstOrNull { it.id == id }
+        }.distinctUntilChanged()
+
+    private val planAnswersFlow: Flow<WizardAnswers> = combine(
+        settings.globalLifterFlow,
+        selectedPlanFlow,
+    ) { global, plan ->
+        plan?.takeIf { it.origin == PlanOrigin.GENERATED.name }?.recipeJson?.let { PlanRecipeJson.decode(it, global) }
+            ?: WizardAnswers(config = global.toConfig())
+    }.distinctUntilChanged()
+
+    val wizardAnswersFlow: Flow<WizardAnswers> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(planAnswersFlow)
+    }
+    val configFlow: Flow<LifterConfig> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(planAnswersFlow.map { it.config }.distinctUntilChanged())
+    }
+    val cardioPrefsFlow: Flow<CardioPrefs> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(planAnswersFlow.map { it.cardio }.distinctUntilChanged())
+    }
     val unitFlow: Flow<WeightUnit> = settings.unitFlow
     val restSettingsFlow: Flow<RestSettings> = settings.restSettingsFlow
     val phoneRestTimerEnabledFlow = settings.phoneRestTimerEnabledFlow
@@ -114,7 +153,6 @@ open class TrackerRepository(
     val supersetHelperSeenFlow: Flow<Boolean> = settings.supersetHelperSeenFlow
     val themePreferenceFlow = settings.themePreferenceFlow
     val wizardCompleteFlow: Flow<Boolean> = settings.wizardCompleteFlow
-    val wizardAnswersFlow: Flow<WizardAnswers> = settings.wizardAnswersFlow
 
     /** Whether the one-shot Health Connect backfill has run (#159) — the Log
      *  screen's offer hides itself once it has. */
@@ -138,12 +176,35 @@ open class TrackerRepository(
     // Block bodies, not expression form: DataStore's Preferences (SettingsStore's
     // setter return type) must not leak into this public surface via inference —
     // it is a :data-internal detail and consumers don't compile against DataStore.
+    /** Updates the global lifter and the selected plan's emphasis. A GENERATED
+     *  plan without a recipe starts from [WizardAnswers] defaults with the global
+     *  lifter on its first settings write. AUTHORED plans ignore recipe writes
+     *  because they have no generator; their settings flows read defaults. */
     suspend fun setConfig(config: LifterConfig) {
-        settings.setConfig(config)
+        ensurePlanSettingsMigrated()
+        val planId = selectedPlanId()
+        settings.setGlobalLifter(GlobalLifter.of(config))
+        if (planId == null) return
+        db.withTransaction {
+            val plan = planDao.plan(planId) ?: return@withTransaction
+            if (plan.origin != PlanOrigin.GENERATED.name) return@withTransaction
+            val answers = plan.recipeJson?.let { PlanRecipeJson.decode(it, GlobalLifter.of(config)) }
+                ?: WizardAnswers(config = GlobalLifter.of(config).toConfig())
+            planDao.updateRecipe(planId, PlanRecipeJson.encode(answers.copy(config = config)))
+        }
     }
 
     suspend fun setCardioPrefs(prefs: CardioPrefs) {
-        settings.setCardioPrefs(prefs)
+        ensurePlanSettingsMigrated()
+        val planId = selectedPlanId() ?: return
+        val global = settings.globalLifterFlow.first()
+        db.withTransaction {
+            val plan = planDao.plan(planId) ?: return@withTransaction
+            if (plan.origin != PlanOrigin.GENERATED.name) return@withTransaction
+            val answers = plan.recipeJson?.let { PlanRecipeJson.decode(it, global) }
+                ?: WizardAnswers(config = global.toConfig())
+            planDao.updateRecipe(planId, PlanRecipeJson.encode(answers.copy(cardio = prefs)))
+        }
     }
 
     suspend fun setUnit(unit: WeightUnit) {
@@ -203,7 +264,14 @@ open class TrackerRepository(
     /** Persists the wizard inputs so a single day can later be regenerated
      *  ([resetDayToTemplate]) and the setup screen can re-run the wizard. */
     open suspend fun setWizardAnswers(answers: WizardAnswers) {
-        settings.setWizardAnswers(answers)
+        ensurePlanSettingsMigrated()
+        settings.setGlobalLifter(GlobalLifter.of(answers.config))
+        val planId = ensureSelectedPlan()
+        db.withTransaction {
+            if (planDao.plan(planId)?.origin == PlanOrigin.GENERATED.name) {
+                planDao.updateRecipe(planId, PlanRecipeJson.encode(answers))
+            }
+        }
     }
 
     // --- exercise catalog (code + custom overlay) ----------------------------
@@ -250,17 +318,22 @@ open class TrackerRepository(
 
     // --- program -------------------------------------------------------------
 
-    val plansFlow: Flow<List<PlanEntity>> = planDao.observePlans()
-
-    /** Distinct, because DataStore emits on every key's write and each emission
-     *  here restarts every plan-scoped Room query downstream. */
-    val selectedPlanIdFlow: Flow<Long?> =
-        combine(settings.selectedPlanIdFlow, plansFlow) { storedId, plans ->
-            plans.firstOrNull { it.id == storedId && !it.archived }?.id
-                ?: plans.firstOrNull { !it.archived }?.id
-        }.distinctUntilChanged()
-
     private suspend fun selectedPlanId(): Long? = selectedPlanIdFlow.first()
+
+    private suspend fun ensureSelectedPlan(): Long = selectedPlanId() ?: run {
+        val position = (planDao.allPlans().maxOfOrNull { it.position } ?: -1) + 1
+        val id = planDao.insertPlan(
+            PlanEntity(
+                id = 0,
+                name = PlanEntity.LEGACY_NAME,
+                origin = PlanOrigin.GENERATED.name,
+                position = position,
+                createdAt = clock.millis(),
+            ),
+        )
+        settings.setSelectedPlanId(id)
+        id
+    }
 
     val programFlow: Flow<Program> =
         selectedPlanIdFlow.flatMapLatest { planId ->
@@ -279,20 +352,8 @@ open class TrackerRepository(
      *  rotation at the first day. Destructive for the selected plan only: its old
      *  program and live logs are cleared (history in `workout_session` is untouched). */
     open suspend fun replaceProgram(program: Program) {
-        val planId = selectedPlanId() ?: run {
-            val position = (planDao.allPlans().maxOfOrNull { it.position } ?: -1) + 1
-            val id = planDao.insertPlan(
-                PlanEntity(
-                    id = 0,
-                    name = PlanEntity.LEGACY_NAME,
-                    origin = PlanOrigin.GENERATED.name,
-                    position = position,
-                    createdAt = clock.millis(),
-                ),
-            )
-            settings.setSelectedPlanId(id)
-            id
-        }
+        ensurePlanSettingsMigrated()
+        val planId = ensureSelectedPlan()
         db.withTransaction {
             programDao.deleteLogsForPlan(planId)
             programDao.deleteExercisesForPlan(planId)
@@ -303,8 +364,8 @@ open class TrackerRepository(
                     programDao.insertExercise(pe.toEntity(planId, day.id, pos))
                 }
             }
+            program.strengthDays.firstOrNull()?.let { planDao.updateSuggestedDay(planId, it.id) }
         }
-        program.strengthDays.firstOrNull()?.let { settings.setSuggestedDay(it.id) }
     }
 
     /** Swaps the exercise in a slot (spec §8.3). Keeps the slot's stable id but
@@ -409,8 +470,9 @@ open class TrackerRepository(
     /** Regenerates one day from the stored wizard answers (spec §8.3), leaving the
      *  other days untouched. No-op if answers regenerate no such day. */
     suspend fun resetDayToTemplate(dayId: String) {
+        ensurePlanSettingsMigrated()
         val planId = selectedPlanId() ?: return
-        val answers = settings.wizardAnswersFlow.first()
+        val answers = wizardAnswersFlow.first()
         val regenerated = ProgramGenerator.generate(answers).program
         val newDay = regenerated.days.firstOrNull { it.id == dayId } ?: return
         val position = programDao.day(planId, dayId)?.position
@@ -458,6 +520,37 @@ open class TrackerRepository(
             }
         }
         settings.setLegacyTimedFixupDone()
+    }
+
+    /** Moves pre-#268 plan preferences to Room before atomically retiring their keys.
+     *  Recipe-less generated plans make a retry after the Room commit harmless. */
+    suspend fun runPlanSettingsFixupIfNeeded() {
+        ensurePlanSettingsMigrated()
+    }
+
+    /** A half-done restore's settings are not this device's to copy; reconcile owns them. */
+    private suspend fun ensurePlanSettingsMigrated() {
+        planSettingsMigrationMutex.withLock {
+            if (restoreMarkerDao.nonce() != null) return@withLock
+            if (settings.planSettingsFixupDoneFlow.first()) return@withLock
+            val legacy = settings.legacyAnswersFlow.first()
+            val suggestedDay = settings.legacySuggestedDayFlow.first()
+            if (legacy != null) {
+                val storedId = settings.selectedPlanIdFlow.first()
+                db.withTransaction {
+                    val recipe = PlanRecipeJson.encode(legacy)
+                    val plans = planDao.allPlans()
+                    plans.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }
+                        .forEach { planDao.updateRecipe(it.id, recipe) }
+                    val selected = plans.firstOrNull { it.id == storedId && !it.archived }
+                        ?: plans.firstOrNull { !it.archived }
+                    if (selected != null && selected.suggestedDayId == null) {
+                        planDao.updateSuggestedDay(selected.id, suggestedDay)
+                    }
+                }
+            }
+            settings.removeLegacyPlanKeys()
+        }
     }
 
     // --- live logs -----------------------------------------------------------
@@ -604,7 +697,10 @@ open class TrackerRepository(
 
     // --- rotation & session history ------------------------------------------
 
-    val suggestedDayFlow: Flow<String?> = settings.suggestedDayFlow
+    val suggestedDayFlow: Flow<String?> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(selectedPlanFlow.map { it?.suggestedDayId }.distinctUntilChanged())
+    }
 
     val sessionsFlow: Flow<List<WorkoutSessionEntity>> = sessionDao.observeSessions()
 
@@ -746,9 +842,10 @@ open class TrackerRepository(
      * whose `startedAt` is simply absent, never a garbage duration.
      */
     suspend fun advanceDay(completedDayId: String, today: LocalDate? = null): Long {
+        ensurePlanSettingsMigrated()
         val planId = selectedPlanId() ?: return 0
         val plan = planDao.plan(planId) ?: return 0
-        val bodyweight = settings.configFlow.first().bodyweightLb
+        val bodyweight = configFlow.first().bodyweightLb
         // Date-scoped read (see [sessionStartedAtFlow]): a stamp from a day the
         // user ticked but never advanced reads as null here, so the completed
         // session records no start rather than inheriting the abandoned one.
@@ -760,7 +857,6 @@ open class TrackerRepository(
                 ?.startedAtMillis
         }
         val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
-        var next: String? = null
         var newSessionId = 0L
         db.withTransaction {
             val days = programDao.daysForPlan(plan.id)
@@ -811,13 +907,12 @@ open class TrackerRepository(
 
             val program = assemble(days, exercises)
             if (program.days.any { it.id == completedDayId }) {
-                next = Rotation.next(program, completedDayId)
+                planDao.updateSuggestedDay(plan.id, Rotation.next(program, completedDayId))
             }
         }
         // Consumed: cleared only once the session row above is durably committed
         // (see the crash-ordering note on this method).
         settings.clearSessionStartedAt()
-        next?.let { settings.setSuggestedDay(it) }
         return newSessionId
     }
 
@@ -830,10 +925,10 @@ open class TrackerRepository(
      * diffs and round-trip tests honest.
      */
     suspend fun exportSnapshot(): FullSnapshot = FullSnapshot(
-        answers = settings.wizardAnswersFlow.first(),
+        answers = wizardAnswersFlow.first(),
         unit = settings.unitFlow.first(),
         wizardComplete = settings.wizardCompleteFlow.first(),
-        suggestedDay = settings.suggestedDayFlow.first(),
+        suggestedDay = suggestedDayFlow.first(),
         selectedPlanId = settings.selectedPlanIdFlow.first(),
         restSettings = settings.restSettingsFlow.first(),
         keepScreenOn = settings.keepScreenOnFlow.first(),
@@ -878,9 +973,9 @@ open class TrackerRepository(
      * is wrong until the replay happens.
      *
      * Room goes before the settings write for the reason it always did: the
-     * cross-store references are `suggestedDay` pointing at a `dayId` and
-     * `selectedPlanId` pointing at a plan, and the reverse order could publish a
-     * pointer into a program that does not exist yet. The tail is [NonCancellable]
+     * only cross-store pointer left is `selectedPlanId` pointing at a plan,
+     * and the reverse order could publish a pointer into a program that does
+     * not exist yet. The tail is [NonCancellable]
      * so a cancelled caller still *finishes* here instead of deferring to the next
      * launch — belt to the marker's braces, not the correctness argument. The
      * transaction itself stays cancellable: rolling it back leaves the device
@@ -891,7 +986,7 @@ open class TrackerRepository(
      */
     suspend fun importSnapshot(snapshot: FullSnapshot, journal: RestoreJournal) {
         val nonce = UUID.randomUUID().toString()
-        val legacyPlanCreated = snapshot.plans.isEmpty() && snapshot.days.isNotEmpty()
+        val legacyPlanCreated = snapshot.plans.isEmpty()
         val restoredSelectedPlanId = snapshot.selectedPlanId
             ?: if (legacyPlanCreated) PlanEntity.LEGACY_ID else null
         val stagedSnapshot = snapshot.copy(selectedPlanId = restoredSelectedPlanId)
@@ -923,6 +1018,17 @@ open class TrackerRepository(
                     ),
                 )
             }
+            if (snapshot.plans.none { it.recipeJson != null }) {
+                val recipe = PlanRecipeJson.encode(snapshot.answers)
+                val plans = planDao.allPlans()
+                plans.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }
+                    .forEach { planDao.updateRecipe(it.id, recipe) }
+                val selectedId = plans.firstOrNull { it.id == restoredSelectedPlanId && !it.archived }?.id
+                    ?: plans.firstOrNull { !it.archived }?.id
+                if (selectedId != null && planDao.plan(selectedId)?.suggestedDayId == null) {
+                    planDao.updateSuggestedDay(selectedId, snapshot.suggestedDay)
+                }
+            }
             customExerciseDao.upsertAll(snapshot.customExercises)
             programDao.upsertDays(snapshot.days)
             programDao.insertExercises(snapshot.exercises)
@@ -935,10 +1041,9 @@ open class TrackerRepository(
         withContext(NonCancellable) {
             try {
                 settings.restore(
-                    answers = snapshot.answers,
+                    global = GlobalLifter.of(snapshot.answers.config),
                     unit = snapshot.unit,
                     wizardComplete = snapshot.wizardComplete,
-                    suggestedDay = snapshot.suggestedDay,
                     selectedPlanId = restoredSelectedPlanId,
                     restSettings = snapshot.restSettings,
                     keepScreenOn = snapshot.keepScreenOn,
@@ -955,18 +1060,44 @@ open class TrackerRepository(
     }
 
     /**
-     * Finishes a restore that was cut between its Room and settings halves, and
-     * returns whether it replayed one. Run once at startup; the caller must keep
-     * it from overlapping a live restore (`:transfer` owns that lock).
-     *
-     * The marker is cleared whenever one was found, replay or not: a marker with
-     * no matching payload is the tail of a restore that already finished, and a
-     * row left lying there would outlive the journal it belonged to.
+     * Finishes an interrupted restore at startup, returning whether it replayed
+     * one. Old-format journals overwrite every generated plan's recipe and the
+     * selected plan's rotation when staged: the restore replaced Room, so any
+     * existing settings came from interim edits. The caller must prevent overlap
+     * with a live restore (`:transfer` owns that lock).
      */
     suspend fun reconcilePendingRestore(journal: RestoreJournal): Boolean {
         val committed = restoreMarkerDao.nonce()
-        val replayed = journal.reconcile(committed)
+        val replayed = journal.reconcile(committed) { answers, suggestedDay, storedId ->
+            db.withTransaction {
+                val recipe = PlanRecipeJson.encode(answers)
+                val plans = planDao.allPlans()
+                if (plans.isEmpty()) {
+                    planDao.insertPlan(
+                        PlanEntity(
+                            id = PlanEntity.LEGACY_ID,
+                            name = PlanEntity.LEGACY_NAME,
+                            origin = PlanOrigin.GENERATED.name,
+                            position = 0,
+                            createdAt = clock.millis(),
+                            recipeJson = recipe,
+                            suggestedDayId = suggestedDay,
+                        ),
+                    )
+                    return@withTransaction PlanEntity.LEGACY_ID
+                }
+                plans.filter { it.origin == PlanOrigin.GENERATED.name }
+                    .forEach { planDao.updateRecipe(it.id, recipe) }
+                val selected = plans.firstOrNull { it.id == storedId && !it.archived }
+                    ?: plans.firstOrNull { !it.archived }
+                if (selected != null && suggestedDay != null) {
+                    planDao.updateSuggestedDay(selected.id, suggestedDay)
+                }
+                selected?.id
+            }
+        }
         if (committed != null) restoreMarkerDao.clear()
+        ensurePlanSettingsMigrated()
         return replayed
     }
 

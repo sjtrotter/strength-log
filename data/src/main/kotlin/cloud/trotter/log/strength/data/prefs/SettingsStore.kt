@@ -8,16 +8,10 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
+import cloud.trotter.log.strength.data.GlobalLifter
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
@@ -32,11 +26,9 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 /**
- * All app preferences (spec §7 DataStore list, plus the kg/lb unit from A5 and the
- * wizard answers needed to regenerate a single day). Every fact is stored as an
- * individual typed key so the reconstructed [LifterConfig] / [CardioPrefs] /
- * [WizardAnswers] share one source of truth — e.g. changing bodyweight through
- * [setConfig] is immediately visible to [wizardAnswersFlow].
+ * Global app preferences, plus legacy plan settings retained until the one-shot
+ * plan-settings fixup moves them to Room. Bodyweight, age and level share one
+ * source of truth through [globalLifterFlow].
  *
  * Unknown or missing values fall back to the domain defaults, so a partially
  * written store (or a value from a newer build) never crashes a read.
@@ -47,19 +39,30 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val BODYWEIGHT = intPreferencesKey("bodyweight")
         val AGE = intPreferencesKey("age")
         val LEVEL = stringPreferencesKey("level")
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val EMPHASIS = stringPreferencesKey("emphasis")
 
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val CARDIO_MODE = stringPreferencesKey("cardio_mode")
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val CARDIO_PLACEMENT = stringPreferencesKey("cardio_placement")
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val FIVE_K = booleanPreferencesKey("five_k")
 
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val DAYS_PER_WEEK = intPreferencesKey("days_per_week")
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val SPLIT = stringPreferencesKey("split")
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val ANCHOR_SCHEME = stringPreferencesKey("anchor_scheme")
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val DEADLIFT_VARIANT = stringPreferencesKey("deadlift_variant")
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val EQUIPMENT = stringSetPreferencesKey("equipment")
 
+        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val SUGGESTED_DAY = stringPreferencesKey("suggested_day")
+        val PLAN_SETTINGS_FIXUP_DONE = booleanPreferencesKey("plan_settings_fixup_done")
         val SELECTED_PLAN_ID = longPreferencesKey("selected_plan_id")
         val WIZARD_COMPLETE = booleanPreferencesKey("wizard_complete")
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
@@ -131,13 +134,12 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     // --- reads ---------------------------------------------------------------
 
-    val configFlow: Flow<LifterConfig> = dataStore.data.map { it.readConfig() }
+    val globalLifterFlow: Flow<GlobalLifter> = dataStore.data.map { it.readGlobalLifter() }
 
-    val cardioPrefsFlow: Flow<CardioPrefs> = dataStore.data.map { it.readCardio() }
-
-    val wizardAnswersFlow: Flow<WizardAnswers> = dataStore.data.map { prefs ->
+    val legacyAnswersFlow: Flow<WizardAnswers?> = dataStore.data.map { prefs ->
+        if (legacyPlanKeys.none { it in prefs }) return@map null
         WizardAnswers(
-            daysPerWeek = prefs[Keys.DAYS_PER_WEEK] ?: DEFAULT_ANSWERS.daysPerWeek,
+            daysPerWeek = prefs[Keys.DAYS_PER_WEEK]?.takeIf { it in 2..6 } ?: DEFAULT_ANSWERS.daysPerWeek,
             split = prefs.enum(Keys.SPLIT, DEFAULT_ANSWERS.split),
             anchorScheme = prefs.enum(Keys.ANCHOR_SCHEME, DEFAULT_ANSWERS.anchorScheme),
             deadliftVariant = prefs.enum(Keys.DEADLIFT_VARIANT, DEFAULT_ANSWERS.deadliftVariant),
@@ -147,7 +149,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         )
     }
 
-    val suggestedDayFlow: Flow<String?> = dataStore.data.map { it[Keys.SUGGESTED_DAY] }
+    val legacySuggestedDayFlow: Flow<String?> = dataStore.data.map { it[Keys.SUGGESTED_DAY] }
+
+    val planSettingsFixupDoneFlow: Flow<Boolean> =
+        dataStore.data.map { it[Keys.PLAN_SETTINGS_FIXUP_DONE] ?: false }
 
     val selectedPlanIdFlow: Flow<Long?> = dataStore.data.map { it[Keys.SELECTED_PLAN_ID] }
 
@@ -237,7 +242,15 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     // --- writes --------------------------------------------------------------
 
-    suspend fun setConfig(config: LifterConfig) = dataStore.edit { it.writeConfig(config) }
+    suspend fun setGlobalLifter(global: GlobalLifter) = dataStore.edit { it.writeGlobalLifter(global) }
+
+    suspend fun setPlanSettingsFixupDone() =
+        dataStore.edit { it[Keys.PLAN_SETTINGS_FIXUP_DONE] = true }
+
+    suspend fun removeLegacyPlanKeys() = dataStore.edit { prefs ->
+        legacyPlanKeys.forEach { prefs.remove(it) }
+        prefs[Keys.PLAN_SETTINGS_FIXUP_DONE] = true
+    }
 
     /** Marks the one-shot legacy-TIMED fixup as done so it never runs again. */
     suspend fun setLegacyTimedFixupDone() =
@@ -322,21 +335,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun clearRestOverrides() =
         dataStore.edit { prefs -> restOverrideKeys.values.forEach { prefs.remove(it) } }
 
-    suspend fun setCardioPrefs(prefs: CardioPrefs) = dataStore.edit { it.writeCardio(prefs) }
-
-    suspend fun setWizardAnswers(answers: WizardAnswers) = dataStore.edit { prefs ->
-        prefs.writeConfig(answers.config)
-        prefs.writeCardio(answers.cardio)
-        prefs[Keys.DAYS_PER_WEEK] = answers.daysPerWeek
-        prefs[Keys.SPLIT] = answers.split.name
-        prefs[Keys.ANCHOR_SCHEME] = answers.anchorScheme.name
-        prefs[Keys.DEADLIFT_VARIANT] = answers.deadliftVariant.name
-        prefs[Keys.EQUIPMENT] = answers.equipment.map { it.name }.toSet()
-    }
-
-    suspend fun setSuggestedDay(dayId: String) =
-        dataStore.edit { it[Keys.SUGGESTED_DAY] = dayId }
-
     suspend fun setSelectedPlanId(id: Long) =
         dataStore.edit { it[Keys.SELECTED_PLAN_ID] = id }
 
@@ -408,12 +406,13 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * (schema v3): a bucket the user never pinned stays absent here too, so a
      * restored device keeps following [RestPolicy]'s defaults rather than being
      * frozen at whatever they were the day the backup was written.
+     *
+     * Clears the plan-settings fixup flag along with all other restorable keys.
      */
     suspend fun restore(
-        answers: WizardAnswers,
+        global: GlobalLifter,
         unit: WeightUnit,
         wizardComplete: Boolean,
-        suggestedDay: String?,
         selectedPlanId: Long? = null,
         restSettings: RestSettings,
         keepScreenOn: Boolean,
@@ -433,16 +432,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val autoFailed = prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED]
         val autoPermissionLost = prefs[Keys.AUTO_BACKUP_PERMISSION_LOST]
         prefs.clear()
-        prefs.writeConfig(answers.config)
-        prefs.writeCardio(answers.cardio)
-        prefs[Keys.DAYS_PER_WEEK] = answers.daysPerWeek
-        prefs[Keys.SPLIT] = answers.split.name
-        prefs[Keys.ANCHOR_SCHEME] = answers.anchorScheme.name
-        prefs[Keys.DEADLIFT_VARIANT] = answers.deadliftVariant.name
-        prefs[Keys.EQUIPMENT] = answers.equipment.map { it.name }.toSet()
+        prefs.writeGlobalLifter(global)
         prefs[Keys.WEIGHT_UNIT] = unit.name
         prefs[Keys.WIZARD_COMPLETE] = wizardComplete
-        if (suggestedDay != null) prefs[Keys.SUGGESTED_DAY] = suggestedDay
         if (selectedPlanId != null) prefs[Keys.SELECTED_PLAN_ID] = selectedPlanId
         prefs[Keys.REST_TIMER_ENABLED] = restSettings.enabled
         restSettings.overrides.forEach { (category, seconds) ->
@@ -470,18 +462,19 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     // --- read/write helpers --------------------------------------------------
 
-    private fun Preferences.readConfig(): LifterConfig = LifterConfig(
+    private fun Preferences.readGlobalLifter(): GlobalLifter = GlobalLifter(
         bodyweightLb = this[Keys.BODYWEIGHT] ?: DEFAULT_CONFIG.bodyweightLb,
         age = this[Keys.AGE] ?: DEFAULT_CONFIG.age,
         level = enum(Keys.LEVEL, DEFAULT_CONFIG.level),
-        emphasis = enum(Keys.EMPHASIS, DEFAULT_CONFIG.emphasis),
     )
 
-    private fun androidx.datastore.preferences.core.MutablePreferences.writeConfig(config: LifterConfig) {
-        this[Keys.BODYWEIGHT] = config.bodyweightLb
-        this[Keys.AGE] = config.age
-        this[Keys.LEVEL] = config.level.name
-        this[Keys.EMPHASIS] = config.emphasis.name
+    private fun Preferences.readConfig(): LifterConfig =
+        readGlobalLifter().toConfig().copy(emphasis = enum(Keys.EMPHASIS, DEFAULT_CONFIG.emphasis))
+
+    private fun androidx.datastore.preferences.core.MutablePreferences.writeGlobalLifter(global: GlobalLifter) {
+        this[Keys.BODYWEIGHT] = global.bodyweightLb
+        this[Keys.AGE] = global.age
+        this[Keys.LEVEL] = global.level.name
     }
 
     private fun Preferences.readCardio(): CardioPrefs = CardioPrefs(
@@ -489,12 +482,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         placement = enum(Keys.CARDIO_PLACEMENT, DEFAULT_CARDIO.placement),
         fiveKGoal = this[Keys.FIVE_K] ?: DEFAULT_CARDIO.fiveKGoal,
     )
-
-    private fun androidx.datastore.preferences.core.MutablePreferences.writeCardio(prefs: CardioPrefs) {
-        this[Keys.CARDIO_MODE] = prefs.mode.name
-        this[Keys.CARDIO_PLACEMENT] = prefs.placement.name
-        this[Keys.FIVE_K] = prefs.fiveKGoal
-    }
 
     private fun Preferences.readEquipment(): Set<Equipment> =
         this[Keys.EQUIPMENT]
@@ -511,6 +498,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     }
 
     private companion object {
+        val legacyPlanKeys: List<Preferences.Key<*>> = listOf(
+            Keys.EMPHASIS, Keys.CARDIO_MODE, Keys.CARDIO_PLACEMENT, Keys.FIVE_K,
+            Keys.DAYS_PER_WEEK, Keys.SPLIT, Keys.ANCHOR_SCHEME, Keys.DEADLIFT_VARIANT,
+            Keys.EQUIPMENT, Keys.SUGGESTED_DAY,
+        )
         val DEFAULT_CONFIG = LifterConfig()
         val DEFAULT_CARDIO = CardioPrefs()
         val DEFAULT_ANSWERS = WizardAnswers()

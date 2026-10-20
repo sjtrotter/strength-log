@@ -113,6 +113,8 @@ class StrengthLogApp : Application() {
             // (SettingsStore.md) means a future, fixed build can still pick it up.
             runCatching { repository.runLegacyTimedFixupIfNeeded() }
                 .onFailure { Log.e(TAG, "Legacy TIMED fixup failed; will retry next launch", it) }
+            runCatching { repository.runPlanSettingsFixupIfNeeded() }
+                .onFailure { Log.e(TAG, "Plan settings fixup failed; will retry next launch", it) }
         }
     }
 

@@ -2,17 +2,7 @@ package cloud.trotter.log.strength.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.generator.AnchorScheme
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.model.CardioPrefs
-import cloud.trotter.log.strength.domain.generator.DeadliftVariant
-import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
-import cloud.trotter.log.strength.domain.model.LifterConfig
-import cloud.trotter.log.strength.domain.generator.SplitTemplate
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
@@ -66,27 +56,9 @@ class SettingsRestoreClearsBackfillFlagTest {
         assertTrue(settings.healthBackfillDoneFlow.first())
 
         settings.restore(
-            answers = WizardAnswers(
-                daysPerWeek = 5,
-                split = SplitTemplate.UPPER_LOWER,
-                anchorScheme = AnchorScheme.BIG_4,
-                deadliftVariant = DeadliftVariant.CONVENTIONAL,
-                cardio = CardioPrefs(
-                    mode = CardioMode.TREADMILL,
-                    placement = CardioPlacement.SEPARATE_DAYS,
-                    fiveKGoal = false,
-                ),
-                config = LifterConfig(
-                    bodyweightLb = 210,
-                    age = 33,
-                    level = ExperienceLevel.ADVANCED,
-                    emphasis = GoalEmphasis.STRENGTH,
-                ),
-                equipment = setOf(Equipment.BARBELL),
-            ),
+            global = GlobalLifter(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED),
             unit = WeightUnit.LB,
             wizardComplete = true,
-            suggestedDay = null,
             restSettings = RestSettings(),
             keepScreenOn = false,
         )
@@ -101,10 +73,9 @@ class SettingsRestoreClearsBackfillFlagTest {
         assertTrue(settings.themePreferenceFlow.first() == ThemePreference.DARK)
 
         settings.restore(
-            answers = WizardAnswers(),
+            global = GlobalLifter(),
             unit = WeightUnit.LB,
             wizardComplete = true,
-            suggestedDay = null,
             restSettings = RestSettings(),
             keepScreenOn = false,
             themePreference = ThemePreference.LIGHT,

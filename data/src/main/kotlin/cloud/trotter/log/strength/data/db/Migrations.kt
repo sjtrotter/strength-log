@@ -217,3 +217,11 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         db.execSQL("ALTER TABLE `cardio_session` ADD COLUMN `planName` TEXT")
     }
 }
+
+/** v8 → v9 (#268): plan-owned generator inputs and rotation position. */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE plan ADD COLUMN recipeJson TEXT")
+        db.execSQL("ALTER TABLE plan ADD COLUMN suggestedDayId TEXT")
+    }
+}

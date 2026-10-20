@@ -117,6 +117,18 @@ class BackupRoundTripTest : BackupTestHarness() {
             ),
         ))
         settings.setSelectedPlanId(2)
+        // Schema v8 carries only the selected recipe and rotation position.
+        // Keep this fixture representable until per-plan settings reach v9.
+        val recipe = db.planDao().plan(1)!!.recipeJson
+        val plans = db.planDao().allPlans().map { plan ->
+            if (plan.id == 2L) {
+                plan.copy(origin = PlanOrigin.GENERATED.name, recipeJson = recipe, suggestedDayId = "B")
+            } else {
+                plan.copy(origin = PlanOrigin.AUTHORED.name, recipeJson = null, suggestedDayId = null)
+            }
+        }
+        db.planDao().deleteAllPlans()
+        db.planDao().insertPlans(plans)
 
         // --- snapshot the "before" state -------------------------------------
         val before = captureState()

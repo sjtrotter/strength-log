@@ -81,7 +81,7 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(
             Program(listOf(ProgramDay("A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null))),
         )
-        settings.setSuggestedDay("A")
+        db.planDao().updateSuggestedDay(repo.selectedPlanIdFlow.first()!!, "A")
         val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
         repo.updateSets("A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
 

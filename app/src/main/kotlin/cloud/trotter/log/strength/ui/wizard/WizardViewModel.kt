@@ -29,6 +29,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.ui.backup.TransferErrorMessages
+import cloud.trotter.log.strength.ui.text.UiText
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -123,6 +124,7 @@ class WizardViewModel @Inject constructor(
     private val previewProgram = MutableStateFlow<Program?>(null)
 
     private val isComplete = MutableStateFlow(false)
+    private val finishError = MutableStateFlow<UiText?>(null)
 
     private val firstRun: StateFlow<Boolean> = savedState.getStateFlow(Keys.FIRST_RUN, false)
 
@@ -186,10 +188,11 @@ class WizardViewModel @Inject constructor(
         val firstRun: Boolean,
         val restore: RestoreProgress,
         val preview: Program?,
+        val finishError: UiText?,
     )
 
-    private val completionGroup = combine(isComplete, firstRun, restoreProgress, previewProgram) { complete, first, restore, preview ->
-        CompletionGroup(complete, first, restore, preview)
+    private val completionGroup = combine(isComplete, firstRun, restoreProgress, previewProgram, finishError) { complete, first, restore, preview, error ->
+        CompletionGroup(complete, first, restore, preview, error)
     }
 
     val uiState: StateFlow<WizardUiState> =
@@ -201,6 +204,7 @@ class WizardViewModel @Inject constructor(
                 restore = WizardRestoreState(offered = completion.firstRun, inFlight = completion.restore.inFlight, error = completion.restore.error),
                 unit = enumOf(unitName, WeightUnit.LB),
                 previewProgram = completion.preview,
+                finishError = completion.finishError,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), WizardUiState())
 
@@ -334,24 +338,29 @@ class WizardViewModel @Inject constructor(
      * flag flipped underneath us; a Setup re-run (which legitimately regenerates
      * over a complete setup) never takes this branch.
      *
-     * That check and the writes it authorizes run under
-     * [BackupService.withRestoreLock], because the thing that flips the flag —
-     * the startup reconciliation — is asynchronous. Reading it outside the lock
-     * is a check/use race: reads false, reconcile lands, [replaceProgram] then
-     * deletes a restored program that by then exists.
+     * [BackupService.withRestoreLock] finishes any pending recovery before that
+     * check and keeps it and the writes it authorizes in one critical section.
+     * If recovery fails, the wizard stays open with an error so the lifter can retry.
      */
     private fun finish() {
+        finishError.value = null
         viewModelScope.launch {
-            backupService.withRestoreLock {
-                if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
-                val answers = currentAnswers()
-                repo.setWizardAnswers(answers)
-                repo.setUnit(enumOf(unit.value, WeightUnit.LB))
-                repo.replaceProgram(previewProgram.value ?: generatePreview(answers))
-                repo.setWizardComplete(true)
+            try {
+                backupService.withRestoreLock {
+                    if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
+                    val answers = currentAnswers()
+                    repo.setWizardAnswers(answers)
+                    repo.setUnit(enumOf(unit.value, WeightUnit.LB))
+                    repo.replaceProgram(previewProgram.value ?: generatePreview(answers))
+                    repo.setWizardComplete(true)
+                }
+                // Either branch leaves the device set up, so the wizard leaves.
+                isComplete.value = true
+            } catch (e: RestoreInterruption) {
+                finishError.value = TransferErrorMessages.of(e)
+            } catch (e: IOException) {
+                finishError.value = UiText.FileAccessFailure(e.message)
             }
-            // Either branch leaves the device set up, so the wizard leaves.
-            isComplete.value = true
         }
     }
 

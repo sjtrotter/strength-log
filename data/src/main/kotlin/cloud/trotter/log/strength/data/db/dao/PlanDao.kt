@@ -23,6 +23,12 @@ interface PlanDao {
     @Insert
     suspend fun insertPlans(plans: List<PlanEntity>)
 
+    @Query("UPDATE plan SET recipeJson = :recipeJson WHERE id = :id")
+    suspend fun updateRecipe(id: Long, recipeJson: String)
+
+    @Query("UPDATE plan SET suggestedDayId = :dayId WHERE id = :id")
+    suspend fun updateSuggestedDay(id: Long, dayId: String?)
+
     @Query("DELETE FROM plan")
     suspend fun deleteAllPlans()
 }

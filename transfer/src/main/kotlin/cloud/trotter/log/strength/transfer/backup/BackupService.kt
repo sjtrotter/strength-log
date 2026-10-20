@@ -63,8 +63,9 @@ class BackupService(
         restoreLock.withLock { repository.reconcilePendingRestore(journal) }
 
     /**
-     * Runs [block] with no restore or reconciliation in flight, and none able to
-     * start until it returns.
+     * Finishes any half-done restore before running [block], so callers see a
+     * settled device. No restore or reconciliation can start until it returns;
+     * if recovery fails, the exception propagates without running [block].
      *
      * For callers whose *decision* depends on what a restore has already
      * written, not just their own writes. The first-run wizard's finish is the
@@ -76,5 +77,8 @@ class BackupService(
      *
      * Keep [block] short; it holds up restore.
      */
-    suspend fun <T> withRestoreLock(block: suspend () -> T): T = restoreLock.withLock { block() }
+    suspend fun <T> withRestoreLock(block: suspend () -> T): T = restoreLock.withLock {
+        repository.reconcilePendingRestore(journal)
+        block()
+    }
 }

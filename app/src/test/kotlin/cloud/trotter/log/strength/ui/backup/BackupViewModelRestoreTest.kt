@@ -205,7 +205,7 @@ class BackupViewModelRestoreTest {
             TransferErrorMessages.of(RestoreInterruption.CleanupPending(RuntimeException())),
             message.text,
         )
-        assertEquals(190, settings.configFlow.first().bodyweightLb)
+        assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
     }
 
     // --- what the exits are gated on -------------------------------------------

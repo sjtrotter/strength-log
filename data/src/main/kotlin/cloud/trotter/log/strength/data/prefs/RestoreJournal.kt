@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import cloud.trotter.log.strength.data.FullSnapshot
+import cloud.trotter.log.strength.data.GlobalLifter
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import kotlinx.coroutines.flow.first
 
 /**
@@ -58,10 +60,9 @@ class RestoreJournal(
      *  journal held. Must complete before the destructive Room transaction. */
     suspend fun stage(snapshot: FullSnapshot, nonce: String) {
         staged.restore(
-            answers = snapshot.answers,
+            global = GlobalLifter.of(snapshot.answers.config),
             unit = snapshot.unit,
             wizardComplete = snapshot.wizardComplete,
-            suggestedDay = snapshot.suggestedDay,
             selectedPlanId = snapshot.selectedPlanId,
             restSettings = snapshot.restSettings,
             keepScreenOn = snapshot.keepScreenOn,
@@ -91,20 +92,33 @@ class RestoreJournal(
      *
      * Run at startup; the caller must keep it from overlapping a live restore,
      * which is writing the very payload this reads.
+     *
+     * [applyLegacyPlanSettings] writes an older build's staged answers and
+     * rotation to Room before the global settings land, returning the selected
+     * plan id. New-format payloads carry no plan settings and skip this callback.
      */
-    suspend fun reconcile(committedNonce: String?): Boolean {
+    suspend fun reconcile(
+        committedNonce: String?,
+        applyLegacyPlanSettings: suspend (WizardAnswers, String?, Long?) -> Long?,
+    ): Boolean {
         val prefs = dataStore.data.first()
         val stagedNonce = prefs[Keys.NONCE]
         if (stagedNonce == null || stagedNonce != committedNonce) {
             if (prefs.asMap().isNotEmpty()) clear()
             return false
         }
+        val storedId = staged.selectedPlanIdFlow.first()
+        val legacy = staged.legacyAnswersFlow.first()
+        val selectedPlanId = if (legacy != null) {
+            applyLegacyPlanSettings(legacy, staged.legacySuggestedDayFlow.first(), storedId)
+        } else {
+            storedId
+        }
         settings.restore(
-            answers = staged.wizardAnswersFlow.first(),
+            global = staged.globalLifterFlow.first(),
             unit = staged.unitFlow.first(),
             wizardComplete = staged.wizardCompleteFlow.first(),
-            suggestedDay = staged.suggestedDayFlow.first(),
-            selectedPlanId = staged.selectedPlanIdFlow.first(),
+            selectedPlanId = selectedPlanId,
             restSettings = staged.restSettingsFlow.first(),
             keepScreenOn = staged.keepScreenOnFlow.first(),
             topSetHelperSeen = staged.topSetHelperSeenFlow.first(),

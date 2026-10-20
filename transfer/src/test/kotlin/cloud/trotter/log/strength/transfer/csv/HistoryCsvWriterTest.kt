@@ -34,6 +34,43 @@ class HistoryCsvWriterTest {
         val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, zone)
         val header = Csv.parse(csv).first()
         assertEquals(HISTORY_CSV_HEADER, header)
+        assertEquals("Plan", header.last())
+    }
+
+    @Test
+    fun `strength rows append the copied plan name in the last cell`() {
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235, planId = 2, planName = "Test prep")
+        val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
+        val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
+
+        assertEquals(HISTORY_CSV_HEADER.size, row.size)
+        assertEquals("Test prep", row.last())
+    }
+
+    @Test
+    fun `strength plan names are formula-neutralized`() {
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235, planName = "=SUM(A1)")
+        val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
+        val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
+
+        assertEquals("'=SUM(A1)", row.last())
+    }
+
+    @Test
+    fun `cardio rows append and neutralize their copied plan name`() {
+        val session = CardioSessionEntity(
+            id = 1, dayId = "A", mode = "TREADMILL", hard = false, label = "Easy",
+            startedAt = 1_000, completedAt = 61_000, seconds = 60, stepsCompleted = 1,
+            planId = 2, planName = "Test prep",
+        )
+        for ((name, expected) in listOf("Test prep" to "Test prep", "=SUM(A1)" to "'=SUM(A1)", null to "")) {
+            val row = Csv.parse(HistoryCsvWriter.export(
+                emptyList(), emptyList(), WeightUnit.LB, zone, listOf(session.copy(planName = name)),
+            ))[1]
+
+            assertEquals(HISTORY_CSV_HEADER.size, row.size)
+            assertEquals(expected, row.last())
+        }
     }
 
     @Test

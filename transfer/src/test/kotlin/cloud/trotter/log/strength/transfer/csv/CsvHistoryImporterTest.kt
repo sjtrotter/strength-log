@@ -1,8 +1,13 @@
 package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -21,6 +26,32 @@ class CsvHistoryImporterTest {
         "Date,Workout Name,Exercise Name,Set Order,Weight,Weight Unit,Reps\n" +
             "2026-07-01 08:00:00,Day A,Barbell Back Squat,1,225,lb,5\n" +
             "2026-07-01 08:00:00,Day A,Mystery Move,1,100,lb,10\n"
+
+    @Test
+    fun `imports with and without Plan leave strength and cardio plan fields null`() {
+        val zone = ZoneId.of("UTC")
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235, planId = 2, planName = "Test prep")
+        val set = SessionSetEntity(1, 1, "bb_back_squat", "Barbell Back Squat", Slot.MAIN, 0, "WORK", 225.0, 5, true)
+        val cardio = CardioSessionEntity(
+            id = 2, dayId = "A", mode = "TREADMILL", hard = false, label = "Easy",
+            startedAt = 1_720_000_000_000L, completedAt = 1_720_000_060_000L, seconds = 60,
+            stepsCompleted = 1, planId = 2, planName = "Test prep",
+        )
+        val csv = HistoryCsvWriter.export(listOf(session), listOf(set), WeightUnit.LB, zone, listOf(cardio))
+        val withoutPlan = Csv.parse(csv).joinToString("\r\n", postfix = "\r\n") { Csv.writeRow(it.dropLast(1)) }
+
+        for (text in listOf(csv, withoutPlan)) {
+            val preview = HistoryCsvReader.preview(text, catalog, zone)
+            val imported = CsvHistoryImporter.commit(preview, emptyMap())
+
+            assertEquals(1, imported.sessions.size)
+            assertEquals(1, imported.cardioSessions.size)
+            assertNull(imported.sessions.single().session.planId)
+            assertNull(imported.sessions.single().session.planName)
+            assertNull(imported.cardioSessions.single().planId)
+            assertNull(imported.cardioSessions.single().planName)
+        }
+    }
 
     @Test
     fun `commit without approving every unmatched name is rejected and nothing is built`() {

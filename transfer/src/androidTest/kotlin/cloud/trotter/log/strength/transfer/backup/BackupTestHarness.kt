@@ -36,6 +36,7 @@ abstract class BackupTestHarness {
     protected lateinit var repository: TrackerRepository
     protected lateinit var journal: RestoreJournal
     protected lateinit var service: BackupService
+    protected lateinit var settings: SettingsStore
 
     @Before
     fun setUp() {
@@ -48,7 +49,7 @@ abstract class BackupTestHarness {
             scope = dataStoreScope,
             produceFile = { context().preferencesDataStoreFile(prefsName) },
         )
-        val settings = SettingsStore(dataStore)
+        settings = SettingsStore(dataStore)
         repository = TrackerRepository(
             db = db,
             programDao = db.programDao(),

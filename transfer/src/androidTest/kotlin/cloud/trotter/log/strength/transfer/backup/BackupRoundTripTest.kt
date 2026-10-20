@@ -1,8 +1,14 @@
 package cloud.trotter.log.strength.transfer.backup
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.FullSnapshot
+import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
+import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
+import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
@@ -96,6 +102,22 @@ class BackupRoundTripTest : BackupTestHarness() {
         // A fresh post-advance edit, so the exported live logs carry current work.
         repository.updateSets("A", squatId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
 
+        db.planDao().insertPlan(PlanEntity(2, "Test prep", PlanOrigin.AUTHORED.name, 1, 2_000))
+        db.programDao().upsertDays(listOf(
+            ProgramDayEntity(2, "A", 0, "Test A", "Bench-focused", null),
+            ProgramDayEntity(2, "B", 1, "Test B", "Squat-focused", null),
+        ))
+        val benchId = db.programDao().insertExercise(
+            ProgramExerciseEntity(21, 2, "A", 0, "bb_bench", true, 3, "8", false, null, "pause"),
+        )
+        db.programDao().insertLogs(listOf(
+            ExerciseLogEntity(
+                2, "A", benchId, Slot.MAIN, SetJson.encodeSets(listOf(LoggedSet(135.0, 8, SetKind.WORK))),
+                "2026-10-20", 3_000,
+            ),
+        ))
+        settings.setSelectedPlanId(2)
+
         // --- snapshot the "before" state -------------------------------------
         val before = captureState()
         val backup = service.export()
@@ -116,16 +138,21 @@ class BackupRoundTripTest : BackupTestHarness() {
         // --- import the real backup and compare deep-equal --------------------
         service.import(backup)
         assertEquals(before, captureState())
+        val restored = repository.exportSnapshot()
+        assertEquals(2, restored.plans.size)
+        assertEquals(2L, restored.selectedPlanId)
 
         // Spot-check a couple of load-bearing details beyond structural equality.
         assertEquals("B", repository.suggestedDayFlow.first())
         assertEquals(WeightUnit.KG, repository.unitFlow.first())
         assertEquals(true, repository.keepScreenOnFlow.first())
-        assertEquals(listOf(LoggedSet(250.0, 5, SetKind.TOP)), repository.logFlow("A").first().first { it.programExerciseId == squatId }.sets)
+        val squatLog = db.programDao().allLogs().first { it.planId == PlanEntity.LEGACY_ID && it.programExerciseId == squatId }
+        assertEquals(listOf(LoggedSet(250.0, 5, SetKind.TOP)), SetJson.decodeSets(squatLog.setsJson))
     }
 
     /** Everything the app can observe, as one comparable value. */
     private data class State(
+        val snapshot: FullSnapshot,
         val program: Program,
         val logsA: List<Any>,
         val logsB: List<Any>,
@@ -143,6 +170,7 @@ class BackupRoundTripTest : BackupTestHarness() {
     private suspend fun captureState(): State {
         val sessions = repository.sessionsFlow.first()
         return State(
+            snapshot = repository.exportSnapshot(),
             program = repository.programFlow.first(),
             logsA = repository.logFlow("A").first().sortedBy { it.programExerciseId },
             logsB = repository.logFlow("B").first().sortedBy { it.programExerciseId },

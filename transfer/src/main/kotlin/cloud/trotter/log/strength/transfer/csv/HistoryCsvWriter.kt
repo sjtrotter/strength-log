@@ -109,6 +109,7 @@ object HistoryCsvWriter {
                         "", // Notes — not tracked
                         "", // Workout Notes — not tracked
                         "", // RPE — not tracked
+                        Csv.neutralizeFormula(session.planName.orEmpty()),
                     ),
                 )
             }
@@ -133,6 +134,7 @@ object HistoryCsvWriter {
                     session.mode,
                     "", // Workout Notes — notes, never a routing discriminator
                     session.stepsCompleted.toString(),
+                    Csv.neutralizeFormula(session.planName.orEmpty()),
                 ),
             )
     }

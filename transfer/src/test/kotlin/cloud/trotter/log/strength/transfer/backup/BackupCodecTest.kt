@@ -78,7 +78,7 @@ class BackupCodecTest {
             ),
         ),
         liveLogs: List<LiveLogBackup> = listOf(
-            LiveLogBackup("A", 1, "main", """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]""", "2026-07-06", 1_000L),
+            LiveLogBackup(null, "A", 1, "main", """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]""", "2026-07-06", 1_000L),
         ),
         sessions: List<SessionBackup> = listOf(
             SessionBackup(
@@ -88,6 +88,7 @@ class BackupCodecTest {
         ),
         cardioSessions: List<CardioSessionBackup> = emptyList(),
     ) = BackupDocument(
+        schemaVersion = 7,
         settings = settings,
         customExercises = customExercises,
         program = program,
@@ -153,7 +154,7 @@ class BackupCodecTest {
         val decoded = codec.decode(codec.encode(snapshot.toDocument()))
         val restored = decoded.toSnapshot()
 
-        assertEquals(7, decoded.schemaVersion)
+        assertEquals(8, decoded.schemaVersion)
         assertEquals(2L, decoded.sessions.single().planId)
         assertEquals("Test prep", decoded.sessions.single().planName)
         assertEquals(2L, decoded.cardioSessions.single().planId)
@@ -270,7 +271,7 @@ class BackupCodecTest {
     @Test
     fun `an unknown schema version is rejected loudly`() {
         val text = codec.encode(document())
-            .replaceFirst("\"schemaVersion\":$CURRENT_SCHEMA_VERSION", "\"schemaVersion\":999")
+            .replaceFirst("\"schemaVersion\":7", "\"schemaVersion\":999")
         val e = assertFailsWith<BackupError.UnsupportedSchemaVersion> { codec.decode(text) }
         assertEquals(999, e.found)
         assertEquals(CURRENT_SCHEMA_VERSION, e.supported)
@@ -366,7 +367,7 @@ class BackupCodecTest {
 
     @Test
     fun `a live log pointing at a non-existent slot is rejected`() {
-        val doc = document(liveLogs = listOf(LiveLogBackup("A", 999, "main", "[]", "2026-07-06", 0L)))
+        val doc = document(liveLogs = listOf(LiveLogBackup(null, "A", 999, "main", "[]", "2026-07-06", 0L)))
         assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(doc)) }
     }
 
@@ -389,7 +390,7 @@ class BackupCodecTest {
 
     @Test
     fun `a live log with unparseable setsJson is rejected`() {
-        val doc = document(liveLogs = listOf(LiveLogBackup("A", 1, "main", "garbage", "2026-07-06", 0L)))
+        val doc = document(liveLogs = listOf(LiveLogBackup(null, "A", 1, "main", "garbage", "2026-07-06", 0L)))
         assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(doc)) }
     }
 
@@ -397,7 +398,7 @@ class BackupCodecTest {
     fun `a live log with an unknown SetKind is rejected`() {
         val doc = document(
             liveLogs = listOf(
-                LiveLogBackup("A", 1, "main", """[{"weightLb":100.0,"reps":5,"kind":"BOGUS","done":false}]""", "2026-07-06", 0L),
+                LiveLogBackup(null, "A", 1, "main", """[{"weightLb":100.0,"reps":5,"kind":"BOGUS","done":false}]""", "2026-07-06", 0L),
             ),
         )
         assertFailsWith<BackupError.InvalidPayload> { codec.decode(codec.encode(doc)) }
@@ -460,7 +461,7 @@ class BackupCodecTest {
 
     @Test
     fun `duplicate live log keys are rejected`() {
-        val log = LiveLogBackup("A", 1, "main", "[]", "2026-07-06", 0L)
+        val log = LiveLogBackup(null, "A", 1, "main", "[]", "2026-07-06", 0L)
         val doc = document(liveLogs = listOf(log, log.copy(updatedAt = 1L)))
         assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(doc)) }
     }
@@ -497,7 +498,7 @@ class BackupCodecTest {
 
     @Test
     fun `an unknown slot kind is rejected`() {
-        val badLog = document(liveLogs = listOf(LiveLogBackup("A", 1, "sideways", "[]", "2026-07-06", 0L)))
+        val badLog = document(liveLogs = listOf(LiveLogBackup(null, "A", 1, "sideways", "[]", "2026-07-06", 0L)))
         assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(badLog)) }
 
         val badSet = document(
@@ -549,6 +550,7 @@ class BackupCodecTest {
             unit = WeightUnit.KG,
             wizardComplete = true,
             suggestedDay = "A",
+            plans = listOf(PlanEntity(1, "My plan", "GENERATED", 0, 1_000)),
             restSettings = RestSettings(enabled = false, overrides = mapOf(RestCategory.TOP to 210)),
             customExercises = listOf(
                 CustomExerciseEntity(custom.id, custom.name, custom.pattern, custom.equipmentCsv, custom.perHand, custom.goalStartLb),
@@ -584,6 +586,7 @@ class BackupCodecTest {
             unit = WeightUnit.LB,
             wizardComplete = true,
             suggestedDay = "A",
+            plans = listOf(PlanEntity(1, "My plan", "GENERATED", 0, 1_000)),
             restSettings = RestSettings(),
             customExercises = emptyList(),
             days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "A", 0, "Day A", "Squat-focused", null)),
@@ -605,6 +608,7 @@ class BackupCodecTest {
         unit = WeightUnit.LB,
         wizardComplete = true,
         suggestedDay = "A",
+        plans = listOf(PlanEntity(1, "My plan", "GENERATED", 0, 1_000)),
         restSettings = restSettings,
         customExercises = emptyList(),
         days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "A", 0, "Day A", "Squat-focused", null)),

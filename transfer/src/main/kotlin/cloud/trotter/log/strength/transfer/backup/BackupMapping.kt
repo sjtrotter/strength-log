@@ -27,9 +27,9 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
 
 /**
  * Maps between `:data`'s [FullSnapshot] (raw entities + settings) and the portable
- * [BackupDocument]. The document nests exercises under days and sets under
- * sessions, and drops row positions (they are the list order), so this boundary is
- * where that structure is folded and unfolded.
+ * [BackupDocument]. The document nests days under plans, exercises under days,
+ * and sets under sessions, and drops row positions (they are the list order), so
+ * this boundary is where that structure is folded and unfolded.
  *
  * Enum-valued *settings* are parsed leniently (an unknown name falls back to the
  * domain default), matching `SettingsStore`'s contract that a value from a newer
@@ -39,7 +39,8 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
  */
 
 fun FullSnapshot.toDocument(): BackupDocument {
-    val exercisesByDay = exercises.groupBy { it.dayId }
+    val exercisesByDay = exercises.groupBy { it.planId to it.dayId }
+    val daysByPlan = days.groupBy { it.planId }
     val setsBySession = sessionSets.groupBy { it.sessionId }
     return BackupDocument(
         schemaVersion = CURRENT_SCHEMA_VERSION,
@@ -59,6 +60,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
             weightUnit = unit.name,
             wizardComplete = wizardComplete,
             suggestedDay = suggestedDay,
+            selectedPlanId = selectedPlanId,
             restTimerEnabled = restSettings.enabled,
             restRampSeconds = restSettings.overrides[RestCategory.RAMP],
             restTopSeconds = restSettings.overrides[RestCategory.TOP],
@@ -84,29 +86,40 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 targetSeconds = it.targetSeconds,
             )
         },
-        program = days.map { day ->
-            ProgramDayBackup(
-                dayId = day.dayId,
-                title = day.title,
-                emphasisLine = day.emphasisLine,
-                cardioJson = day.cardioJson,
-                kind = day.kind,
-                exercises = exercisesByDay[day.dayId].orEmpty().map { ex ->
-                    ProgramExerciseBackup(
-                        id = ex.id,
-                        exerciseId = ex.exerciseId,
-                        isMain = ex.isMain,
-                        targetSets = ex.targetSets,
-                        repSchemeLabel = ex.repSchemeLabel,
-                        hasWarmupHint = ex.hasWarmupHint,
-                        supersetExerciseId = ex.supersetExerciseId,
-                        note = ex.note,
+        plans = plans.sortedWith(compareBy({ it.position }, { it.id })).map { plan ->
+            PlanBackup(
+                id = plan.id,
+                name = plan.name,
+                origin = plan.origin,
+                createdAt = plan.createdAt,
+                archived = plan.archived,
+                days = daysByPlan[plan.id].orEmpty().sortedBy { it.position }.map { day ->
+                    ProgramDayBackup(
+                        dayId = day.dayId,
+                        title = day.title,
+                        emphasisLine = day.emphasisLine,
+                        cardioJson = day.cardioJson,
+                        kind = day.kind,
+                        exercises = exercisesByDay[plan.id to day.dayId].orEmpty().sortedBy { it.position }.map { ex ->
+                            ProgramExerciseBackup(
+                                id = ex.id,
+                                exerciseId = ex.exerciseId,
+                                isMain = ex.isMain,
+                                targetSets = ex.targetSets,
+                                repSchemeLabel = ex.repSchemeLabel,
+                                hasWarmupHint = ex.hasWarmupHint,
+                                supersetExerciseId = ex.supersetExerciseId,
+                                note = ex.note,
+                            )
+                        },
                     )
                 },
             )
         },
+        program = emptyList(),
         liveLogs = logs.map {
             LiveLogBackup(
+                planId = it.planId,
                 dayId = it.dayId,
                 programExerciseId = it.programExerciseId,
                 slot = it.slot,
@@ -178,37 +191,46 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         }.toSet(),
     )
 
-    val dayEntities = program.mapIndexed { index, day ->
-        ProgramDayEntity(
-            planId = PlanEntity.LEGACY_ID,
-            dayId = day.dayId,
-            position = index,
-            title = day.title,
-            emphasisLine = day.emphasisLine,
-            cardioJson = day.cardioJson,
-            kind = day.kind,
-        )
+    val programs = if (schemaVersion == 8) {
+        plans.map { it.id to it.days }
+    } else {
+        listOf(PlanEntity.LEGACY_ID to program)
     }
-    val exerciseEntities = program.flatMap { day ->
-        day.exercises.mapIndexed { pos, ex ->
-            ProgramExerciseEntity(
-                id = ex.id,
-                planId = PlanEntity.LEGACY_ID,
+    val dayEntities = programs.flatMap { (planId, days) ->
+        days.mapIndexed { index, day ->
+            ProgramDayEntity(
+                planId = planId,
                 dayId = day.dayId,
-                position = pos,
-                exerciseId = ex.exerciseId,
-                isMain = ex.isMain,
-                targetSets = ex.targetSets,
-                repSchemeLabel = ex.repSchemeLabel,
-                hasWarmupHint = ex.hasWarmupHint,
-                supersetExerciseId = ex.supersetExerciseId,
-                note = ex.note,
+                position = index,
+                title = day.title,
+                emphasisLine = day.emphasisLine,
+                cardioJson = day.cardioJson,
+                kind = day.kind,
             )
+        }
+    }
+    val exerciseEntities = programs.flatMap { (planId, days) ->
+        days.flatMap { day ->
+            day.exercises.mapIndexed { pos, ex ->
+                ProgramExerciseEntity(
+                    id = ex.id,
+                    planId = planId,
+                    dayId = day.dayId,
+                    position = pos,
+                    exerciseId = ex.exerciseId,
+                    isMain = ex.isMain,
+                    targetSets = ex.targetSets,
+                    repSchemeLabel = ex.repSchemeLabel,
+                    hasWarmupHint = ex.hasWarmupHint,
+                    supersetExerciseId = ex.supersetExerciseId,
+                    note = ex.note,
+                )
+            }
         }
     }
     val logEntities = liveLogs.map {
         ExerciseLogEntity(
-            planId = PlanEntity.LEGACY_ID,
+            planId = if (schemaVersion == 8) checkNotNull(it.planId) else PlanEntity.LEGACY_ID,
             dayId = it.dayId,
             programExerciseId = it.programExerciseId,
             slot = it.slot,
@@ -254,6 +276,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         unit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
         wizardComplete = settings.wizardComplete,
         suggestedDay = settings.suggestedDay,
+        selectedPlanId = if (schemaVersion == 8) settings.selectedPlanId else null,
         restSettings = RestSettings(
             enabled = settings.restTimerEnabled,
             overrides = settings.restOverrides(),
@@ -276,6 +299,16 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 targetSeconds = it.targetSeconds,
             )
         },
+        plans = if (schemaVersion == 8) plans.mapIndexed { index, plan ->
+            PlanEntity(
+                id = plan.id,
+                name = plan.name,
+                origin = plan.origin,
+                position = index,
+                createdAt = plan.createdAt,
+                archived = plan.archived,
+            )
+        } else emptyList(),
         days = dayEntities,
         exercises = exerciseEntities,
         logs = logEntities,

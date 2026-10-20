@@ -90,7 +90,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun LogScreen(state: LogUiState, actions: LogActions) {
-    val showPlanNames = state.sessions.mapNotNull { it.planName }.distinct().size > 1
+    val showPlanNames = state.sessions.mapNotNull { it.planId }.distinct().size > 1
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var deleteConfirmation by remember { mutableStateOf<Long?>(null) }

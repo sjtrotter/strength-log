@@ -92,6 +92,7 @@ data class SessionListItem(
     val undoPending: Boolean = false,
     val unit: WeightUnit = WeightUnit.LB,
     val planName: String? = null,
+    val planId: Long? = null,
 )
 
 /** One exercise's sets within an expanded session, in first-appearance order. */

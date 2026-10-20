@@ -232,7 +232,7 @@ class DayViewModel @Inject constructor(
     }
 
     private val baseUiState: Flow<DayUiState> =
-        combine(dayState, repo.keepScreenOnFlow, repo.cardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
+        combine(dayState, repo.keepScreenOnFlow, repo.selectedPlanCardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
                 state, preferences, history, anchors, rest ->
             val cardio = buildCardioState(state, history, anchors)
             maybeArmCardioBoundary(cardio, anchors)

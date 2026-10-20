@@ -225,6 +225,29 @@ class DayViewModelCardioExecutionTest {
         assertEquals(72, restored.uiState.value.cardio?.loggedSeconds)
     }
 
+    @Test
+    fun loggedCardioForOnePlanDoesNotAppearOnAnotherPlansDayA() = test {
+        val vm = runningVm(fiveK = false)
+        val firstPlan = checkNotNull(repo.selectedPlanIdFlow.first())
+        val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
+        clock.advance(72_000)
+        vm.stopCardio()
+        advanceUntilIdle()
+        assertEquals(firstPlan, repo.cardioSessionsFlow.first().single().planId)
+        assertEquals("A", vm.uiState.value.viewDayId)
+        assertEquals(72, vm.uiState.value.cardio?.loggedSeconds)
+
+        repo.selectPlan(secondPlan)
+        advanceUntilIdle()
+        assertEquals("A", vm.uiState.value.viewDayId)
+        assertEquals(CardioPhase.SUGGESTION, vm.uiState.value.cardio?.phase)
+        assertNull(vm.uiState.value.cardio?.loggedSeconds)
+
+        repo.selectPlan(firstPlan)
+        advanceUntilIdle()
+        assertEquals(72, vm.uiState.value.cardio?.loggedSeconds)
+    }
+
     private class FakeCardioClock(
         var wall: Long = 1_800_000_000_000L,
         var elapsed: Long = 9_000_000L,

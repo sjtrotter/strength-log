@@ -223,7 +223,7 @@ class LogViewModelTest {
     }
 
     @Test
-    fun rowsCarryCopiedPlanNamesForStrengthCardioAndUnnamedHistory() = runVmTest {
+    fun rowsCarryPlanIdsAndCopiedNamesForStrengthCardioAndUnnamedHistory() = runVmTest {
         db.sessionDao().insertSessions(listOf(
             session("A", "Lower", 1_000).copy(planId = 1, planName = "Test prep"),
             session("B", "Upper", 2_000),
@@ -238,6 +238,7 @@ class LogViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("Run plan", null, "Test prep"), vm.uiState.value.sessions.map { it.planName })
+        assertEquals(listOf(2L, null, 1L), vm.uiState.value.sessions.map { it.planId })
     }
 
     /** #127: the empty journal's action depends on this, and offering to start a

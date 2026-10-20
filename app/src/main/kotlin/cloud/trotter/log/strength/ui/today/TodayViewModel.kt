@@ -70,7 +70,7 @@ class TodayViewModel @Inject constructor(
                 combine(
                     repo.daySlotsFlow(dayId),
                     repo.logFlow(dayId, flowOf(now.date)),
-                    repo.sessionSummariesFlow,
+                    repo.selectedPlanSessionSummariesFlow,
                     repo.topSetHistoryFlow,
                     repo.selectedPlanLastSessionAtFlow,
                 ) { slots, logs, sessions, topSets, lastSessionAt ->

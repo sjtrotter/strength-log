@@ -860,15 +860,15 @@ open class TrackerRepository(
     /** Latest workout or cardio completion; [PlanEntity.LEGACY_ID] also counts null-plan history. */
     val selectedPlanLastSessionAtFlow: Flow<Long?> =
         combine(selectedPlanIdFlow, sessionsFlow, cardioSessionsFlow) { planId, sessions, cardio ->
-            if (planId == null) null else {
-                fun belongsToPlan(sessionPlanId: Long?): Boolean =
-                    sessionPlanId == planId || (planId == PlanEntity.LEGACY_ID && sessionPlanId == null)
-                listOfNotNull(
-                    sessions.filter { belongsToPlan(it.planId) }.maxOfOrNull { it.completedAt },
-                    cardio.filter { belongsToPlan(it.planId) }.maxOfOrNull { it.completedAt },
-                ).maxOrNull()
-            }
+            listOfNotNull(
+                sessions.filter { belongsToPlan(it.planId, planId) }.maxOfOrNull { it.completedAt },
+                cardio.filter { belongsToPlan(it.planId, planId) }.maxOfOrNull { it.completedAt },
+            ).maxOrNull()
         }.distinctUntilChanged()
+
+    private fun belongsToPlan(sessionPlanId: Long?, planId: Long?): Boolean =
+        planId != null &&
+            (sessionPlanId == planId || (planId == PlanEntity.LEGACY_ID && sessionPlanId == null))
 
     /**
      * Commits one completed cardio mutation immediately. The transaction is
@@ -898,6 +898,12 @@ open class TrackerRepository(
     /** The Log screen's list (#14): every session newest-first, with its total
      *  set count pre-aggregated (no per-row query as history grows). */
     val sessionSummariesFlow: Flow<List<SessionSummaryRow>> = sessionDao.observeSessionSummaries()
+
+    /** Selected plan's workout history, including pre-plans history for the migrated plan. */
+    val selectedPlanSessionSummariesFlow: Flow<List<SessionSummaryRow>> =
+        combine(selectedPlanIdFlow, sessionSummariesFlow) { planId, sessions ->
+            sessions.filter { belongsToPlan(it.session.planId, planId) }
+        }
 
     /** Every session's heaviest completed TOP set per lift, oldest first — the
      *  journal's trajectory series and the cascade ceremony's before-picture. */

@@ -267,6 +267,29 @@ class TodayViewModelWiringTest {
     }
 
     @Test
+    fun weekLineCountsOnlyTheSelectedPlansSessions() = runVmTest {
+        insertProgram()
+        val firstPlan = checkNotNull(repo.selectedPlanIdFlow.first())
+        val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
+        db.sessionDao().insertSessions(listOf(
+            historySession(firstPlan, "2026-10-19"),
+            historySession(firstPlan, "2026-10-20"),
+        ))
+        val today = newTodayViewModel(LocalDate.of(2026, 10, 20))
+        advanceUntilIdle()
+        assertEquals(UiText.TodayWeekLife(2, 3, 0), today.uiState.value.lifeLine)
+
+        repo.selectPlan(secondPlan)
+        advanceUntilIdle()
+        assertEquals(0, repo.selectedPlanSessionSummariesFlow.first().size)
+        assertNull(today.uiState.value.lifeLine)
+
+        repo.selectPlan(firstPlan)
+        advanceUntilIdle()
+        assertEquals(UiText.TodayWeekLife(2, 3, 0), today.uiState.value.lifeLine)
+    }
+
+    @Test
     fun onlyTheLegacyPlanCountsNullPlanWorkoutHistory() = runVmTest {
         insertProgram()
         assertEquals(PlanEntity.LEGACY_ID, repo.selectedPlanIdFlow.first())
@@ -278,10 +301,12 @@ class TodayViewModelWiringTest {
         val today = newTodayViewModel(LocalDate.of(2026, 10, 20))
         advanceUntilIdle()
         assertEquals(UiText.TodayCoach(TodayCoachKind.YESTERDAY), today.uiState.value.coachLine)
+        assertEquals(UiText.TodayWeekLife(1, 3, 1), today.uiState.value.lifeLine)
 
         repo.selectPlan(secondPlan)
         advanceUntilIdle()
         assertNull(today.uiState.value.coachLine)
+        assertNull(today.uiState.value.lifeLine)
     }
 
     @Test

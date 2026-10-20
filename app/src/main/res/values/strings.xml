@@ -328,6 +328,7 @@
     <item quantity="other">%1$d sets</item>
 </plurals>
 <string name="log_session_bodyweight">BW %1$s</string>
+<string name="log_session_plan_date">%1$s · %2$s</string>
 <string name="log_session_loading">Loading…</string>
 <string name="log_set_summary">%1$s: %2$s</string>
 <string name="log_share_label">Share session</string>

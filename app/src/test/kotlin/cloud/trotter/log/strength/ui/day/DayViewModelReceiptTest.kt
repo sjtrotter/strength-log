@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -97,6 +98,38 @@ class DayViewModelReceiptTest {
     }
 
     // --- it appears, once, and only on a DONE --------------------------------
+
+    @Test
+    fun completingStandaloneCardioProducesAReceiptWithoutAdvancingStrength() = runVmTest {
+        insertProgram()
+        val cardio = ProgramDay(
+            id = "C", title = "Cardio + Core", emphasisLine = "",
+            exercises = listOf(ProgramExercise("plank", targetSets = 2)),
+            cardio = null, kind = ProgramDayKind.CARDIO,
+        )
+        repo.replaceProgram(Program(repo.programFlow.first().days + cardio))
+        db.planDao().updateSuggestedDay(repo.selectedPlanIdFlow.first()!!, "B")
+        val vm = newCollectingViewModel()
+        vm.selectDay("C")
+        advanceUntilIdle()
+        val slot = repo.daySlotsFlow("C").first().single()
+        val rows = repo.logFlow("C").first().single().sets
+        rows.indices.forEach { vm.toggleDone(slot.programExerciseId, it, checked = true, isSuperset = false) }
+        advanceUntilIdle()
+        val completedSetCount = vm.uiState.value.doneSets
+
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = vm.sessionReceipt.value!!
+        assertEquals("Cardio + Core", receipt.dayTitle)
+        assertEquals(2, completedSetCount)
+        assertEquals(completedSetCount, receipt.setCount)
+        assertEquals("DAY B · UPPER", receipt.nextDayLine)
+        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("C", repo.session(receipt.sessionId)?.dayId)
+        assertEquals(false, repo.logFlow("C").first().single().sets.any { it.done })
+    }
 
     @Test
     fun thereIsNoReceiptUntilDoneCommitsSomething() = runVmTest {

@@ -6,20 +6,27 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.widget.TodayWidgetContent
+import cloud.trotter.log.strength.widget.todayWidgetContent
 import java.io.File
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -74,6 +81,62 @@ class TodaySnapshotSourceRestTest {
     fun tearDown() {
         db.close()
         storeScope.cancel()
+    }
+
+    @Test
+    fun `switching plans changes the live widget and watch day`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+        ))))
+        val firstPlan = repo.selectedPlanIdFlow.first()!!
+        val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
+        repo.selectPlan(secondPlan)
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "B", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)), cardio = null,
+        ))))
+        repo.selectPlan(firstPlan)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val widgets = Channel<TodayWidgetContent>(Channel.UNLIMITED)
+        backgroundScope.launch { source.snapshots.collect { widgets.send(todayWidgetContent(it)) } }
+        suspend fun awaitDay(line: String): TodayWidgetContent {
+            while (true) {
+                val content = widgets.receive()
+                if (content.dayLine == line) return content
+            }
+        }
+
+        assertEquals("DAY A · SQUAT", awaitDay("DAY A · SQUAT").dayLine)
+        repo.selectPlan(secondPlan)
+        assertEquals("DAY B · BENCH", awaitDay("DAY B · BENCH").dayLine)
+        repo.selectPlan(firstPlan)
+        assertEquals("DAY A · SQUAT", awaitDay("DAY A · SQUAT").dayLine)
+    }
+
+    @Test
+    fun `same day ids do not share cardio completion across plans`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            cardio = CardioSuggestion("Zone 2", "20 minutes", hard = false),
+        ))))
+        val firstPlan = repo.selectedPlanIdFlow.first()!!
+        val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
+        val noon = repo.currentDate().atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val firstSession = CardioSessionEntity(
+            dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Zone 2",
+            startedAt = noon - 60_000, completedAt = noon, seconds = 60, stepsCompleted = 1, planId = firstPlan,
+        )
+        db.cardioSessionDao().insertAll(listOf(
+            firstSession,
+            firstSession.copy(planId = secondPlan, completedAt = noon + 60_000, seconds = 120),
+            firstSession.copy(planId = null, completedAt = noon + 120_000, seconds = 180),
+        ))
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+
+        assertEquals(60, source.snapshots.first { it != null }?.cardio?.loggedSeconds)
+        repo.selectPlan(secondPlan)
+        assertEquals(120, source.snapshots.first { it != null }?.cardio?.loggedSeconds)
+        repo.selectPlan(firstPlan)
+        assertEquals(60, source.snapshots.first { it != null }?.cardio?.loggedSeconds)
     }
 
     @Test

@@ -297,6 +297,44 @@ class TrackerRepositoryPlanScopeTest {
     }
 
     @Test
+    fun `cardio advance records today and clears only its checks without rotating`() = runTest {
+        val strength = program("Lower", "bb_back_squat").days.single()
+        val cardio = ProgramDay(
+            id = "C", title = "Cardio + Core", emphasisLine = "",
+            exercises = listOf(ProgramExercise("plank")),
+            cardio = CardioSuggestion("Zone 2", "20 minutes", hard = false),
+            kind = ProgramDayKind.CARDIO,
+        )
+        repo.replaceProgram(Program(listOf(strength, strength.copy(id = "B", title = "Upper"), cardio)))
+        val plan = repo.plansFlow.first().single()
+        db.planDao().updateSuggestedDay(plan.id, "B")
+        val cardioSlot = repo.daySlotsFlow("C").first().single().programExerciseId
+        val coreSets = listOf(LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 30))
+        repo.updateSets("C", cardioSlot, Slot.MAIN, coreSets)
+        val strengthSlot = repo.daySlotsFlow("A").first().single().programExerciseId
+        repo.updateSets("A", strengthSlot, Slot.MAIN, sets(225.0))
+        val otherDayLogs = db.programDao().logsForDay(plan.id, "A")
+        val suggestedBefore = repo.suggestedDayFlow.first()
+
+        val sessionId = repo.advanceDay("C", repo.currentDate())
+
+        val session = db.sessionDao().sessionById(sessionId)!!
+        assertEquals("C", session.dayId)
+        assertEquals("Cardio + Core", session.dayTitle)
+        assertEquals(Instant.parse("2026-10-19T12:00:00Z").toEpochMilli(), session.completedAt)
+        assertEquals(plan.id, session.planId)
+        assertEquals(plan.name, session.planName)
+        val recordedSet = repo.sessionSets(sessionId).single()
+        assertTrue(recordedSet.done)
+        assertEquals(30, recordedSet.seconds)
+        assertEquals(coreSets.map { it.copy(done = false) }, repo.logFlow("C").first().single().sets)
+        assertEquals("", db.programDao().logsForDay(plan.id, "C").single().checkDate)
+        assertEquals(otherDayLogs, db.programDao().logsForDay(plan.id, "A"))
+        assertEquals("B", suggestedBefore)
+        assertEquals(suggestedBefore, repo.suggestedDayFlow.first())
+    }
+
+    @Test
     fun `advance stamps the selected plan and clears only its checks`() = runTest {
         repo.replaceProgram(program("Plan one", "bb_back_squat"))
         val planOneId = repo.plansFlow.first().single().id

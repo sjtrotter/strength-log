@@ -7,6 +7,19 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class CardioRecordMapperTest {
+    @Test fun `plan title preserves fallback client identity and exercise type`() {
+        val original = cardio()
+        val withoutPlan = CardioRecordMapper.toExerciseSession(original)!!
+        val withPlan = CardioRecordMapper.toExerciseSession(original.copy(planId = 2, planName = "Test prep"))!!
+
+        assertEquals("Easy Zone 2", withoutPlan.title)
+        assertEquals("Test prep · Easy Zone 2", withPlan.title)
+        assertEquals("strengthlog-cardio-42", withPlan.metadata.clientRecordId)
+        assertEquals(withoutPlan.metadata.clientRecordId, withPlan.metadata.clientRecordId)
+        assertEquals(0L, withPlan.metadata.clientRecordVersion)
+        assertEquals(withoutPlan.exerciseType, withPlan.exerciseType)
+    }
+
     @Test fun `modes map to pinned exercise types`() {
         assertEquals(ExerciseSessionRecord.EXERCISE_TYPE_RUNNING, mapped("OUTDOOR_RUN")?.exerciseType)
         assertEquals(ExerciseSessionRecord.EXERCISE_TYPE_RUNNING_TREADMILL, mapped("TREADMILL")?.exerciseType)

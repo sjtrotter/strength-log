@@ -86,6 +86,7 @@ object LogScreenBuilder {
             cardioSummary = cardioModeDisplay(session),
             cardioSemantics = session.label,
             cardioDuration = duration,
+            planName = session.planName,
         )
     }
 

@@ -61,7 +61,7 @@ class TodaySnapshotSource(
                     Context(cfg, catalog, unit, rest, answers.equipment, answers.cardio.mode.name, answers.cardio.fiveKGoal)
                 }
                 combine(
-                    program, context, repo.cardioSessionsFlow, today,
+                    program, context, repo.selectedPlanCardioSessionsFlow, today,
                     markers.lastAppliedFlow(CardioDeltaApplier.MARKER_KEY),
                 ) { (prog, slots, logs), ctx, cardioHistory, civilDate, cardioAck ->
                     val loggedCardio = cardioHistory.firstOrNull { session ->

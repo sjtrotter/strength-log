@@ -852,6 +852,24 @@ open class TrackerRepository(
      */
     val cardioSessionsFlow: Flow<List<CardioSessionEntity>> = cardioSessionDao.observeSessions()
 
+    val selectedPlanCardioSessionsFlow: Flow<List<CardioSessionEntity>> =
+        combine(selectedPlanIdFlow, cardioSessionsFlow) { planId, sessions ->
+            sessions.filter { planId != null && it.planId == planId }
+        }
+
+    /** Latest workout or cardio completion; [PlanEntity.LEGACY_ID] also counts null-plan history. */
+    val selectedPlanLastSessionAtFlow: Flow<Long?> =
+        combine(selectedPlanIdFlow, sessionsFlow, cardioSessionsFlow) { planId, sessions, cardio ->
+            if (planId == null) null else {
+                fun belongsToPlan(sessionPlanId: Long?): Boolean =
+                    sessionPlanId == planId || (planId == PlanEntity.LEGACY_ID && sessionPlanId == null)
+                listOfNotNull(
+                    sessions.filter { belongsToPlan(it.planId) }.maxOfOrNull { it.completedAt },
+                    cardio.filter { belongsToPlan(it.planId) }.maxOfOrNull { it.completedAt },
+                ).maxOrNull()
+            }
+        }.distinctUntilChanged()
+
     /**
      * Commits one completed cardio mutation immediately. The transaction is
      * deliberately explicit even though C1 writes one row: this is the single
@@ -957,7 +975,7 @@ open class TrackerRepository(
      * "DONE — advance" (spec §7, PLAN.md A1): appends a session record
      * for the completed day (denormalizing exercise names so history survives
      * later edits/deletions), clears that day's checkmarks, and advances the
-     * rotation pointer to the following day.
+     * rotation pointer to the following day only for strength days (§6.4).
      *
      * Takes the completed day id because the user may have completed a manually
      * overridden day, not the suggested one; the spec's bare `advanceDay()` can't
@@ -1045,7 +1063,7 @@ open class TrackerRepository(
             programDao.clearChecksForDay(plan.id, completedDayId)
 
             val program = assemble(days, exercises)
-            if (program.days.any { it.id == completedDayId }) {
+            if (program.strengthDays.any { it.id == completedDayId }) {
                 planDao.updateSuggestedDay(plan.id, Rotation.next(program, completedDayId))
             }
         }

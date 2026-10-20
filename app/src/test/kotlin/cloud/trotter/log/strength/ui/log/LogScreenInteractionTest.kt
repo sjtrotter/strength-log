@@ -53,11 +53,12 @@ class LogScreenInteractionTest {
         onShare: (Long) -> Unit = {},
         onConnectHealth: () -> Unit = {},
         onPublishPast: () -> Unit = {},
+        sessions: List<SessionListItem> = listOf(item(expanded)),
     ) {
         composeTestRule.setContent {
             AppTheme {
                 LogScreen(
-                    LogUiState(sessions = listOf(item(expanded)), health = health),
+                    LogUiState(sessions = sessions, health = health),
                     LogActions(
                         onToggleExpanded = onToggle,
                         onPageCalendar = {},
@@ -72,6 +73,53 @@ class LogScreenInteractionTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun unnamedHistoryKeepsTheExistingDateLine() {
+        setContent(expanded = false)
+
+        composeTestRule.onNodeWithText("Jul 6, 2026").assertIsDisplayed()
+    }
+
+    @Test
+    fun oneDistinctPlanNameKeepsAllExistingDateLines() {
+        setContent(
+            expanded = false,
+            sessions = listOf(
+                item(false).copy(planName = "Test prep"),
+                item(false).copy(sessionId = 8, dateDisplay = "Jul 3, 2026", planName = "Test prep"),
+                item(false).copy(sessionId = 9, dateDisplay = "Jun 30, 2026"),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Jul 6, 2026").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Jul 3, 2026").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Jun 30, 2026").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Test prep · Jul 6, 2026").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Test prep · Jul 3, 2026").assertDoesNotExist()
+    }
+
+    @Test
+    fun distinctStrengthAndCardioPlanNamesAppearOnTheirSupportingLines() {
+        setContent(
+            expanded = false,
+            sessions = listOf(
+                item(false).copy(planName = "Test prep"),
+                item(false).copy(
+                    sessionId = 8, dateDisplay = "Jul 3, 2026", dayTitle = "Easy Zone 2",
+                    cardioId = 8, cardioSummary = "OUTDOOR RUN", cardioDuration = "20:00",
+                    cardioSemantics = "Easy Zone 2", planName = "Run plan",
+                ),
+                item(false).copy(sessionId = 9, dateDisplay = "Jun 30, 2026"),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("Test prep · Jul 6, 2026").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Run plan · Jul 3, 2026").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Jun 30, 2026").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Jul 6, 2026").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Jul 3, 2026").assertDoesNotExist()
     }
 
     @Test

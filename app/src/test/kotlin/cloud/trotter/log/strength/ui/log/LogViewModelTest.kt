@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.ImportedSession
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
@@ -219,6 +220,24 @@ class LogViewModelTest {
             ),
             newCustomExercises = emptyList(),
         )
+    }
+
+    @Test
+    fun rowsCarryCopiedPlanNamesForStrengthCardioAndUnnamedHistory() = runVmTest {
+        db.sessionDao().insertSessions(listOf(
+            session("A", "Lower", 1_000).copy(planId = 1, planName = "Test prep"),
+            session("B", "Upper", 2_000),
+        ))
+        db.cardioSessionDao().insert(CardioSessionEntity(
+            dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Zone 2",
+            startedAt = 3_000, completedAt = 63_000, seconds = 60, stepsCompleted = 1,
+            planId = 2, planName = "Run plan",
+        ))
+        val vm = newViewModel()
+        vm.viewModelScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(listOf("Run plan", null, "Test prep"), vm.uiState.value.sessions.map { it.planName })
     }
 
     /** #127: the empty journal's action depends on this, and offering to start a

@@ -403,6 +403,11 @@ class TrackerRepositoryPlanScopeTest {
 
         val created = repo.createGeneratedPlan("4-day full body", answers, program("New", "bb_bench"))
 
+        assertEquals(1L, settings.selectedPlanIdFlow.first())
+        assertEquals(GlobalLifter.of(oldAnswers.config), settings.globalLifterFlow.first())
+        repo.publishCreatedPlan(created, answers)
+        repo.publishCreatedPlan(created, answers)
+
         assertEquals(listOf(1L, created), db.planDao().allPlans().map { it.id })
         assertEquals(1, db.planDao().plan(created)!!.position)
         assertEquals(created, settings.selectedPlanIdFlow.first())
@@ -422,17 +427,70 @@ class TrackerRepositoryPlanScopeTest {
     }
 
     @Test
+    fun `creation does not write DataStore even before the settings migration`() = runTest {
+        val store = FlakyDataStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("create-plan-settings", ".preferences_pb")
+        }).apply { failOnUpdate = 1 }
+        val unpublishedSettings = SettingsStore(store)
+        val creator = TrackerRepository(
+            db, db.programDao(), db.sessionDao(), db.customExerciseDao(), unpublishedSettings,
+        )
+        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
+
+        val created = creator.createGeneratedPlan("Full body", answers, program("First", "bb_bench"))
+
+        assertTrue(creator.planHasDays(created))
+        assertEquals(null, unpublishedSettings.selectedPlanIdFlow.first())
+        assertEquals(GlobalLifter(), unpublishedSettings.globalLifterFlow.first())
+        assertFalse(unpublishedSettings.planSettingsFixupDoneFlow.first())
+    }
+
+    @Test
+    fun `publication does not select a missing plan`() = runTest {
+        repo.replaceProgram(program("Original", "bb_back_squat"))
+        val plans = db.planDao().allPlans()
+        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
+
+        repeat(2) { repo.publishCreatedPlan(Long.MAX_VALUE, answers) }
+
+        assertEquals(1L, settings.selectedPlanIdFlow.first())
+        assertEquals(GlobalLifter.of(answers.config), settings.globalLifterFlow.first())
+        assertEquals(plans, db.planDao().allPlans())
+    }
+
+    @Test
+    fun `publication does not select an archived plan`() = runTest {
+        repo.replaceProgram(program("Original", "bb_back_squat"))
+        insertPlanTwo()
+        assertTrue(repo.archivePlan(2))
+        val plans = db.planDao().allPlans()
+        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
+
+        repeat(2) { repo.publishCreatedPlan(2, answers) }
+
+        assertEquals(1L, settings.selectedPlanIdFlow.first())
+        assertEquals(GlobalLifter.of(answers.config), settings.globalLifterFlow.first())
+        assertEquals(plans, db.planDao().allPlans())
+    }
+
+    @Test
     fun `generated plan fills a selected settings-only plan`() = runTest {
         repo.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
         val id = repo.selectedPlanIdFlow.first()!!
+        val global = settings.globalLifterFlow.first()
+        val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
 
-        assertEquals(id, repo.createGeneratedPlan("Full body", WizardAnswers(), program("First", "bb_bench")))
+        assertEquals(id, repo.createGeneratedPlan("Full body", answers, program("First", "bb_bench")))
 
         assertEquals(1, db.planDao().allPlans().size)
         assertEquals("Full body", db.planDao().plan(id)!!.name)
-        assertEquals(PlanRecipeJson.encode(WizardAnswers()), db.planDao().plan(id)!!.recipeJson)
+        assertEquals(PlanRecipeJson.encode(answers), db.planDao().plan(id)!!.recipeJson)
         assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
         assertEquals(listOf("First"), db.programDao().daysForPlan(id).map { it.title })
+        assertEquals(global, settings.globalLifterFlow.first())
+        repo.publishCreatedPlan(id, answers)
+        assertEquals(GlobalLifter.of(answers.config), settings.globalLifterFlow.first())
+        assertEquals(id, settings.selectedPlanIdFlow.first())
     }
 
     @Test

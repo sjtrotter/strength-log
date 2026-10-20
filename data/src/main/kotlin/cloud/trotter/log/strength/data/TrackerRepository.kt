@@ -381,13 +381,12 @@ open class TrackerRepository(
         }
     }
 
-    /** Creates and selects a generated plan, or fills the selected settings-only plan.
-     * Global lifter and selection are published after the program commits. */
+    /** Commits a generated plan or fills the selected settings-only plan,
+     * returning its id without writing DataStore. */
     open suspend fun createGeneratedPlan(name: String, answers: WizardAnswers, program: Program): Long {
-        ensurePlanSettingsMigrated()
         return planSelectionLock.withLock {
             val storedId = settings.selectedPlanIdFlow.first()
-            val id = db.withTransaction {
+            db.withTransaction {
                 val plans = planDao.allPlans()
                 val selected = plans.firstOrNull { it.id == storedId && !it.archived }
                     ?: plans.firstOrNull { !it.archived }
@@ -420,10 +419,21 @@ open class TrackerRepository(
                 }
                 planId
             }
-            settings.setGlobalLifter(GlobalLifter.of(answers.config))
-            settings.setSelectedPlanId(id)
-            id
         }
+    }
+
+    /** Idempotently writes the global lifter and selects an existing active plan
+     * under the selection lock. */
+    open suspend fun publishCreatedPlan(id: Long, answers: WizardAnswers) {
+        planSelectionLock.withLock {
+            settings.setGlobalLifter(GlobalLifter.of(answers.config))
+            if (planDao.plan(id)?.archived == false) settings.setSelectedPlanId(id)
+        }
+    }
+
+    /** Whether the remembered plan still exists with a non-empty program. */
+    suspend fun planHasDays(id: Long): Boolean = db.withTransaction {
+        planDao.plan(id) != null && programDao.daysForPlan(id).isNotEmpty()
     }
 
     /** Renames a plan when the trimmed name is between 1 and 40 characters. */

@@ -53,7 +53,8 @@ import kotlinx.coroutines.launch
  * principle: no unsaved truth in a bare ViewModel field).
  *
  * [Finish][finish] creates and selects a new plan from the preview through
- * [TrackerRepository.createGeneratedPlan]; it never replaces an existing program.
+ * [TrackerRepository.createGeneratedPlan] and [TrackerRepository.publishCreatedPlan];
+ * it never replaces an existing program.
  * New-plan entry seeds the draft from the selected plan's stored answers.
  *
  * [Restore from backup][restoreFromBackup] is the other way out of the wizard,
@@ -340,6 +341,8 @@ class WizardViewModel @Inject constructor(
      * [BackupService.withRestoreLock] finishes any pending recovery before that
      * check and keeps it and the writes it authorizes in one critical section.
      * If recovery fails, the wizard stays open with an error so the lifter can retry.
+     * Retries reuse a remembered plan only while it has days, then idempotently
+     * publish it, the unit and completion.
      */
     private fun finish() {
         if (finishProgress.value.inFlight || isComplete.value) return
@@ -348,20 +351,26 @@ class WizardViewModel @Inject constructor(
             try {
                 backupService.withRestoreLock {
                     if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
-                    if (savedState.get<Long>(Keys.CREATED_PLAN_ID) == null) {
-                        val answers = currentAnswers()
+                    val answers = currentAnswers()
+                    val rememberedId = savedState.get<Long>(Keys.CREATED_PLAN_ID)
+                    val planId = if (rememberedId != null && repo.planHasDays(rememberedId)) {
+                        rememberedId
+                    } else {
                         val nameResource = when (answers.split) {
                             SplitTemplate.FULL_BODY -> R.string.plan_name_full_body
                             SplitTemplate.UPPER_LOWER -> R.string.plan_name_upper_lower
                             SplitTemplate.PPL -> R.string.plan_name_ppl
                             SplitTemplate.PPLUL -> R.string.plan_name_pplul
                         }
-                        savedState[Keys.CREATED_PLAN_ID] = repo.createGeneratedPlan(
+                        val createdId = repo.createGeneratedPlan(
                             context.getString(nameResource, answers.daysPerWeek),
                             answers,
                             previewProgram.value ?: generatePreview(answers),
                         )
+                        savedState[Keys.CREATED_PLAN_ID] = createdId
+                        createdId
                     }
+                    repo.publishCreatedPlan(planId, answers)
                     repo.setUnit(enumOf(unit.value, WeightUnit.LB))
                     repo.setWizardComplete(true)
                 }
@@ -406,9 +415,12 @@ class WizardViewModel @Inject constructor(
      * program…", the same trap [finish]'s write order avoids. So on that one
      * document we stay in the wizard, re-seeded with whatever answers the backup
      * did carry, and the lifter finishes setup from there.
+     * Clears the remembered created-plan id before importing because restore
+     * replaces its database.
      */
     fun restoreFromBackup(uri: Uri) {
         if (!firstRun.value || restoreProgress.value.inFlight) return
+        savedState.remove<Long>(Keys.CREATED_PLAN_ID)
         restoreProgress.value = RestoreProgress(inFlight = true)
         viewModelScope.launch {
             try {

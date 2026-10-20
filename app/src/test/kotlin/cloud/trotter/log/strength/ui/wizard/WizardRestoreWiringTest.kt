@@ -141,8 +141,8 @@ class WizardRestoreWiringTest {
         Dispatchers.resetMain()
     }
 
-    private fun newViewModel(): WizardViewModel =
-        WizardViewModel(repo, SavedStateHandle(), context, service, appScope, DeviceWeightUnitProvider { cloud.trotter.log.strength.domain.units.WeightUnit.LB }).also { vms += it }
+    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): WizardViewModel =
+        WizardViewModel(repo, handle, context, service, appScope, DeviceWeightUnitProvider { cloud.trotter.log.strength.domain.units.WeightUnit.LB }).also { vms += it }
 
     /** A minimal but valid backup: one day, one real catalog exercise, and the
      *  wizard flag the test is about. */
@@ -276,6 +276,46 @@ class WizardRestoreWiringTest {
         assertEquals(1, db.planDao().allPlans().size)
         assertTrue(repo.programFlow.first().days.isEmpty())
         assertFalse(repo.wizardCompleteFlow.first())
+    }
+
+    @Test
+    fun restoringAnEmptyMidSetupBackupAfterFailedCompletion_createsAProgramOnFinish() = runBlocking {
+        val document = backup(wizardComplete = false).copy(program = emptyList())
+        val uri = pickable(BackupCodec().encode(document))
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        vm.awaitOffered()
+        // Update 1 retires legacy settings during initialization; Finish writes
+        // global lifter, selection, unit, then completion in updates 2 through 5.
+        settingsStore.failOnUpdate = 5
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        withTimeout(TIMEOUT_MS) { vm.uiState.first { it.finishError != null && !it.finishInFlight } }
+        val created = handle.get<Long>("wizard_created_plan_id")
+        assertNotNull(created)
+        assertTrue(repo.programFlow.first().days.isNotEmpty())
+        assertFalse(repo.wizardCompleteFlow.first())
+
+        repeat(WizardStep.ROTATION.ordinal) { vm.onBack() }
+        vm.restoreFromBackup(uri)
+        val restored = withTimeout(TIMEOUT_MS) {
+            vm.uiState.first { !it.restore.inFlight && it.answers.daysPerWeek == 3 }
+        }
+        assertFalse(restored.isComplete)
+        assertNull(restored.restore.error)
+        assertNull(handle.get<Long>("wizard_created_plan_id"))
+        assertTrue(repo.programFlow.first().days.isEmpty())
+        assertFalse(repo.wizardCompleteFlow.first())
+
+        repeat(WizardStep.entries.size) { vm.onNext() }
+        val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+
+        val plan = db.planDao().allPlans().single()
+        assertEquals(plan.id, handle.get<Long>("wizard_created_plan_id"))
+        assertTrue(db.programDao().daysForPlan(plan.id).isNotEmpty())
+        assertEquals(plan.id, settings.selectedPlanIdFlow.first())
+        assertEquals(3, repo.programFlow.first().strengthDays.size)
+        assertTrue(repo.wizardCompleteFlow.first())
+        assertNull(completed.finishError)
     }
 
     @Test

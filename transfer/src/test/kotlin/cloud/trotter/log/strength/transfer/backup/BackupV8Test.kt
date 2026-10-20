@@ -138,38 +138,54 @@ class BackupV8Test {
         val error = assertFailsWith<BackupError.Malformed> {
             decode(doc.copy(program = doc.plans.first().days))
         }
-        assertTrue("program" in error.message.orEmpty())
+        assertTrue("program must be empty in schema v8" in error.message.orEmpty())
     }
 
     @Test
-    fun `v7 with plans is malformed`() {
+    fun `v7 ignores stray plans and live-log planId and restores the legacy program`() {
         val legacy = codec.decode(legacyJson())
-        val error = assertFailsWith<BackupError.Malformed> { decode(legacy.copy(plans = document().plans)) }
-        assertTrue("plans" in error.message.orEmpty())
-    }
+        val decoded = decode(legacy.copy(
+            plans = document().plans,
+            liveLogs = legacy.liveLogs.map { it.copy(planId = 99) },
+        ))
+        val restored = decoded.toSnapshot()
 
-    @Test
-    fun `v7 with a live-log planId is malformed`() {
-        val legacy = codec.decode(legacyJson())
-        val error = assertFailsWith<BackupError.Malformed> {
-            decode(legacy.copy(liveLogs = legacy.liveLogs.map { it.copy(planId = 1) }))
-        }
-        assertTrue("planId" in error.message.orEmpty())
+        assertEquals(legacy.program, decoded.program)
+        assertTrue(decoded.plans.isEmpty())
+        assertTrue(decoded.liveLogs.all { it.planId == null })
+        assertEquals(legacy.toSnapshot(), restored)
+        assertTrue(restored.plans.isEmpty())
+        assertNull(restored.selectedPlanId)
+        assertEquals(listOf(PlanEntity.LEGACY_ID), restored.days.map { it.planId })
+        assertEquals(listOf(PlanEntity.LEGACY_ID), restored.exercises.map { it.planId })
+        assertEquals(listOf(PlanEntity.LEGACY_ID), restored.logs.map { it.planId })
     }
 
     @Test
     fun `duplicate plan ids are rejected`() {
         val doc = document()
-        assertFailsWith<BackupError.Inconsistent> { decode(doc.copy(plans = doc.plans + doc.plans.first())) }
+        val duplicate = doc.plans.first().copy(days = emptyList())
+        val error = assertFailsWith<BackupError.Inconsistent> {
+            decode(doc.copy(
+                plans = doc.plans + duplicate,
+                liveLogs = doc.liveLogs.filter { it.planId != duplicate.id },
+            ))
+        }
+        assertTrue("duplicate plan id 1" in error.message.orEmpty())
     }
 
     @Test
     fun `non-positive plan ids are rejected`() {
         val doc = document()
+        val plan = doc.plans.first()
         for (id in listOf(0L, -1L)) {
-            assertFailsWith<BackupError.Inconsistent> {
-                decode(doc.copy(plans = listOf(doc.plans.first().copy(id = id))))
+            val error = assertFailsWith<BackupError.Inconsistent> {
+                decode(doc.copy(
+                    plans = listOf(plan.copy(id = id), doc.plans.last()),
+                    liveLogs = doc.liveLogs.map { if (it.planId == plan.id) it.copy(planId = id) else it },
+                ))
             }
+            assertTrue("plan id must be positive: $id" in error.message.orEmpty())
         }
     }
 
@@ -177,9 +193,14 @@ class BackupV8Test {
     fun `duplicate day ids within a plan are rejected`() {
         val doc = document()
         val plan = doc.plans.first()
-        assertFailsWith<BackupError.Inconsistent> {
-            decode(doc.copy(plans = listOf(plan.copy(days = plan.days + plan.days))))
+        val duplicate = plan.days.single().copy(exercises = emptyList())
+        val error = assertFailsWith<BackupError.Inconsistent> {
+            decode(doc.copy(
+                plans = listOf(plan.copy(days = plan.days + duplicate), doc.plans.last()),
+                liveLogs = doc.liveLogs.filter { it.planId != plan.id },
+            ))
         }
+        assertTrue("duplicate day id 'A'" in error.message.orEmpty())
     }
 
     @Test
@@ -194,9 +215,14 @@ class BackupV8Test {
         val day = plan.days.single()
         val duplicate = day.exercises.single().copy(id = 11)
         val duplicatePlan = plan.copy(days = listOf(day.copy(exercises = listOf(duplicate))))
-        assertFailsWith<BackupError.Inconsistent> {
-            decode(doc.copy(plans = listOf(doc.plans.first(), duplicatePlan)))
+        // The second plan's log follows its slot, leaving only global slot-id uniqueness to reject this.
+        val error = assertFailsWith<BackupError.Inconsistent> {
+            decode(doc.copy(
+                plans = listOf(doc.plans.first(), duplicatePlan),
+                liveLogs = doc.liveLogs.map { if (it.planId == plan.id) it.copy(programExerciseId = duplicate.id) else it },
+            ))
         }
+        assertTrue("duplicate program exercise id 11" in error.message.orEmpty())
     }
 
     @Test
@@ -204,21 +230,23 @@ class BackupV8Test {
         val doc = document()
         val plan = doc.plans.last()
         val otherDay = plan.days.single().copy(dayId = "B")
-        assertFailsWith<BackupError.Inconsistent> {
+        val error = assertFailsWith<BackupError.Inconsistent> {
             decode(doc.copy(
                 settings = doc.settings.copy(suggestedDay = null),
                 plans = listOf(doc.plans.first(), plan.copy(days = listOf(otherDay))),
-                liveLogs = listOf(doc.liveLogs.last().copy(planId = 1, dayId = "B")),
+                liveLogs = listOf(doc.liveLogs.first().copy(dayId = "B")),
             ))
         }
+        assertTrue("live log references unknown day 'B'" in error.message.orEmpty())
     }
 
     @Test
     fun `a live log cannot name another plan's slot on a shared day id`() {
         val doc = document()
-        assertFailsWith<BackupError.Inconsistent> {
+        val error = assertFailsWith<BackupError.Inconsistent> {
             decode(doc.copy(liveLogs = listOf(doc.liveLogs.last().copy(planId = 1))))
         }
+        assertTrue("live log references unknown slot 21 in day 'A'" in error.message.orEmpty())
     }
 
     @Test
@@ -226,49 +254,59 @@ class BackupV8Test {
         val doc = document()
         val text = codec.encode(doc.copy(liveLogs = listOf(doc.liveLogs.first())))
             .replace("\"planId\":1,", "")
-        assertFailsWith<BackupError.Inconsistent> {
+        val error = assertFailsWith<BackupError.Inconsistent> {
             codec.decode(text)
         }
+        assertTrue("live log planId is required in schema v8" in error.message.orEmpty())
     }
 
     @Test
     fun `live logs naming a missing plan are rejected`() {
         val doc = document()
-        assertFailsWith<BackupError.Inconsistent> {
+        val error = assertFailsWith<BackupError.Inconsistent> {
             decode(doc.copy(liveLogs = listOf(doc.liveLogs.first().copy(planId = 99))))
         }
+        assertTrue("live log references unknown plan 99" in error.message.orEmpty())
     }
 
     @Test
     fun `duplicate live logs within a plan are rejected`() {
         val doc = document()
-        assertFailsWith<BackupError.Inconsistent> { decode(doc.copy(liveLogs = doc.liveLogs + doc.liveLogs.first())) }
+        val error = assertFailsWith<BackupError.Inconsistent> {
+            decode(doc.copy(liveLogs = doc.liveLogs + doc.liveLogs.first()))
+        }
+        assertTrue("duplicate live log for (A, 11, main)" in error.message.orEmpty())
     }
 
     @Test
     fun `selectedPlanId naming a missing plan is rejected`() {
         val doc = document()
-        assertFailsWith<BackupError.Inconsistent> { decode(doc.copy(settings = doc.settings.copy(selectedPlanId = 99))) }
+        val error = assertFailsWith<BackupError.Inconsistent> {
+            decode(doc.copy(settings = doc.settings.copy(selectedPlanId = 99)))
+        }
+        assertTrue("selectedPlanId references unknown plan 99" in error.message.orEmpty())
     }
 
     @Test
     fun `selectedPlanId naming an archived plan is rejected`() {
         val doc = document()
-        assertFailsWith<BackupError.Inconsistent> {
+        val error = assertFailsWith<BackupError.Inconsistent> {
             decode(doc.copy(plans = listOf(doc.plans.first(), doc.plans.last().copy(archived = true))))
         }
+        assertTrue("selectedPlanId references archived plan 2" in error.message.orEmpty())
     }
 
     @Test
     fun `suggestedDay must belong to the selected plan`() {
         val doc = document()
         val selected = doc.plans.last()
-        assertFailsWith<BackupError.Inconsistent> {
+        val error = assertFailsWith<BackupError.Inconsistent> {
             decode(doc.copy(
                 plans = listOf(doc.plans.first(), selected.copy(days = listOf(selected.days.single().copy(dayId = "B")))),
                 liveLogs = emptyList(),
             ))
         }
+        assertTrue("suggestedDay 'A' is not a day in this backup" in error.message.orEmpty())
     }
 
     @Test
@@ -281,7 +319,10 @@ class BackupV8Test {
             liveLogs = emptyList(),
         )
         assertEquals("A", decode(fallback).settings.suggestedDay)
-        assertFailsWith<BackupError.Inconsistent> { decode(fallback.copy(plans = listOf(first, doc.plans.last()))) }
+        val error = assertFailsWith<BackupError.Inconsistent> {
+            decode(fallback.copy(plans = listOf(first, doc.plans.last())))
+        }
+        assertTrue("suggestedDay 'A' is not a day in this backup" in error.message.orEmpty())
     }
 
     @Test
@@ -293,9 +334,10 @@ class BackupV8Test {
     @Test
     fun `unknown plan origins are rejected`() {
         val doc = document()
-        assertFailsWith<BackupError.Inconsistent> {
+        val error = assertFailsWith<BackupError.Inconsistent> {
             decode(doc.copy(plans = listOf(doc.plans.first().copy(origin = "UNKNOWN"), doc.plans.last())))
         }
+        assertTrue("unknown plan origin 'UNKNOWN'" in error.message.orEmpty())
     }
 
     @Test
@@ -303,6 +345,7 @@ class BackupV8Test {
         val error = assertFailsWith<BackupError.UnsupportedSchemaVersion> { decode(document().copy(schemaVersion = 9)) }
         assertEquals(9, error.found)
         assertEquals(8, error.supported)
+        assertTrue("Unsupported backup schema version 9" in error.message.orEmpty())
     }
 
     @Test

@@ -88,32 +88,39 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // with newer fields at their defaults; the version determines which
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
-            1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj)))
-            5, 6, 7, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj)
+            1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
+            5, 6, 7, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
-        }
-        if (version == 8) {
-            if (document.program.isNotEmpty()) {
-                throw BackupError.Malformed("program must be empty in schema v8")
-            }
-        } else {
-            if (document.plans.isNotEmpty()) {
-                throw BackupError.Malformed("plans must be empty before schema v8")
-            }
-            if (document.liveLogs.any { it.planId != null }) {
-                throw BackupError.Malformed("liveLogs planId must be null before schema v8")
-            }
         }
         validate(document)
         return document
     }
 
-    private fun decodeCurrent(obj: JsonObject): BackupDocument =
-        try {
-            json.decodeFromJsonElement(BackupDocument.serializer(), obj)
+    /**
+     * Decodes and checks the version's program shape with the shared decoder.
+     * v1–v7 ignore stray `plans` and live-log `planId` as unknown fields, while
+     * v8 rejects a non-empty legacy `program`.
+     */
+    private fun decodeCurrent(obj: JsonObject, version: Int): BackupDocument {
+        val shaped = if (version < 8) {
+            JsonObject(obj.toMutableMap().apply {
+                remove("plans")
+                val logs = get("liveLogs") as? JsonArray
+                if (logs != null) {
+                    put("liveLogs", JsonArray(logs.map { if (it is JsonObject) JsonObject(it - "planId") else it }))
+                }
+            })
+        } else obj
+        val document = try {
+            json.decodeFromJsonElement(BackupDocument.serializer(), shaped)
         } catch (e: SerializationException) {
             throw BackupError.Malformed("does not match schema v$CURRENT_SCHEMA_VERSION", e)
         }
+        if (version == 8 && document.program.isNotEmpty()) {
+            throw BackupError.Malformed("program must be empty in schema v8")
+        }
+        return document
+    }
 
     /**
      * Pre-v5, a session's bodyweight was a REQUIRED number. The current

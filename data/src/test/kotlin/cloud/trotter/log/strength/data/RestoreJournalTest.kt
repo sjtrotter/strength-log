@@ -129,11 +129,11 @@ class RestoreJournalTest {
     )
 
     private suspend fun assertSettingsRestored() {
-        assertEquals(190, settings.configFlow.first().bodyweightLb)
-        assertEquals(28, settings.configFlow.first().age)
+        assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals(28, settings.globalLifterFlow.first().age)
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertTrue("the wizard flag is what keeps setup from reopening", settings.wizardCompleteFlow.first())
-        assertEquals("R", settings.suggestedDayFlow.first())
+        assertEquals("R", repo.suggestedDayFlow.first())
         assertEquals(PlanEntity.LEGACY_ID, settings.selectedPlanIdFlow.first())
         assertEquals(
             RestSettings(enabled = false, overrides = mapOf(RestCategory.TOP to 240)),
@@ -143,9 +143,9 @@ class RestoreJournalTest {
     }
 
     private suspend fun assertSettingsUntouched() {
-        assertEquals(LifterConfig().bodyweightLb, settings.configFlow.first().bodyweightLb)
+        assertEquals(LifterConfig().bodyweightLb, settings.globalLifterFlow.first().bodyweightLb)
         assertFalse(settings.wizardCompleteFlow.first())
-        assertNull(settings.suggestedDayFlow.first())
+        assertNull(settings.legacySuggestedDayFlow.first())
         assertNull(settings.selectedPlanIdFlow.first())
     }
 
@@ -194,6 +194,9 @@ class RestoreJournalTest {
         // inside that transaction, so it is there — which is the whole point.
         val nonce = "nonce-from-the-committed-transaction"
         journal.stage(snapshot(), nonce)
+        db.planDao().insertPlan(
+            PlanEntity(PlanEntity.LEGACY_ID, PlanEntity.LEGACY_NAME, "GENERATED", 0, 1_000, suggestedDayId = "R"),
+        )
         db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = nonce))
 
         assertTrue(repo.reconcilePendingRestore(journal))
@@ -324,7 +327,7 @@ class RestoreJournalTest {
         repo.importSnapshot(second, journal)
 
         assertEquals(listOf("S"), repo.programFlow.first().days.map { it.id })
-        assertEquals(205, settings.configFlow.first().bodyweightLb)
+        assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(repo.reconcilePendingRestore(journal))
     }

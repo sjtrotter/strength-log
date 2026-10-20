@@ -133,7 +133,7 @@ class RestoreCoordinationTest {
 
         assertFalse("by its turn the restore had finished, so there was nothing left", replayed)
         assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
-        assertEquals(190, settings.configFlow.first().bodyweightLb)
+        assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
         assertNull(db.restoreMarkerDao().nonce())
     }
 
@@ -143,8 +143,8 @@ class RestoreCoordinationTest {
         service.import(backupJson("B", 205))
 
         assertEquals(listOf("B"), repo.programFlow.first().days.map { it.id })
-        assertEquals(205, settings.configFlow.first().bodyweightLb)
-        assertEquals("B", settings.suggestedDayFlow.first())
+        assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
+        assertEquals("B", repo.suggestedDayFlow.first())
         assertNull("the second restore cleared its own marker", db.restoreMarkerDao().nonce())
         assertFalse(service.reconcilePendingRestore())
     }
@@ -163,7 +163,7 @@ class RestoreCoordinationTest {
         }
 
         assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
-        assertEquals(190, settings.configFlow.first().bodyweightLb)
+        assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
         assertTrue(settings.wizardCompleteFlow.first())
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(service.reconcilePendingRestore())

@@ -12,6 +12,10 @@ data class PlanEntity(
     val position: Int,
     val createdAt: Long,
     val archived: Boolean = false,
+    /** The generator recipe for a generated plan, serialized PlanRecipeDto; null for an authored plan. */
+    val recipeJson: String? = null,
+    /** The plan's rotation position. */
+    val suggestedDayId: String? = null,
 ) {
     companion object {
         /** The plan a pre-plans program (Room v7, or a backup older than plans)

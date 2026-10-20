@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_5_6
 import cloud.trotter.log.strength.data.db.MIGRATION_6_7
 import cloud.trotter.log.strength.data.db.MIGRATION_7_8
+import cloud.trotter.log.strength.data.db.MIGRATION_8_9
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -29,7 +30,7 @@ class Migration5To6Test {
     @Test fun `additive migration preserves v5 history and creates cardio history`() = runTest {
         createV5()
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).allowMainThreadQueries().build()
         try {
             assertEquals("Day A", db.sessionDao().allSessions().single().dayTitle)
             assertEquals(emptyList<Any>(), db.cardioSessionDao().all())

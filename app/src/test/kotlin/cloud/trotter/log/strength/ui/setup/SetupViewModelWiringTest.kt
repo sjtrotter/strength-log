@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
@@ -87,7 +88,10 @@ class SetupViewModelWiringTest {
         Dispatchers.resetMain()
     }
 
-    private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
+    private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) {
+        repo.setWizardAnswers(WizardAnswers())
+        block()
+    }
 
     private fun newViewModel(): SetupViewModel =
         SetupViewModel(repo).also { vm ->

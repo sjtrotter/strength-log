@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import cloud.trotter.log.strength.data.FullSnapshot
+import cloud.trotter.log.strength.data.GlobalLifter
 import kotlinx.coroutines.flow.first
 
 /**
@@ -58,10 +59,9 @@ class RestoreJournal(
      *  journal held. Must complete before the destructive Room transaction. */
     suspend fun stage(snapshot: FullSnapshot, nonce: String) {
         staged.restore(
-            answers = snapshot.answers,
+            global = GlobalLifter.of(snapshot.answers.config),
             unit = snapshot.unit,
             wizardComplete = snapshot.wizardComplete,
-            suggestedDay = snapshot.suggestedDay,
             selectedPlanId = snapshot.selectedPlanId,
             restSettings = snapshot.restSettings,
             keepScreenOn = snapshot.keepScreenOn,
@@ -100,10 +100,9 @@ class RestoreJournal(
             return false
         }
         settings.restore(
-            answers = staged.wizardAnswersFlow.first(),
+            global = staged.globalLifterFlow.first(),
             unit = staged.unitFlow.first(),
             wizardComplete = staged.wizardCompleteFlow.first(),
-            suggestedDay = staged.suggestedDayFlow.first(),
             selectedPlanId = staged.selectedPlanIdFlow.first(),
             restSettings = staged.restSettingsFlow.first(),
             keepScreenOn = staged.keepScreenOnFlow.first(),

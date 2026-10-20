@@ -25,8 +25,9 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
  * on-disk JSON shape and maps to/from this type at the boundary; `:data` stays out
  * of the serialization business.
  *
- * [answers] carries the lifter config and cardio prefs (it embeds both), so the
- * config is not stored twice — SSOT.
+ * [answers] and [suggestedDay] project the selected plan's settings for the
+ * portable backup's settings block; [plans] retain each plan's stored recipe
+ * and rotation position for an in-memory round trip.
  */
 data class FullSnapshot(
     val answers: WizardAnswers,

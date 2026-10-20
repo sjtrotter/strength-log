@@ -45,7 +45,7 @@ class CardSwapTest {
                 isMain = true,
                 isSuperset = false,
                 hasWarmupHint = false,
-                goalDisplay = "235",
+                headerTarget = HeaderTarget.Goal("235"),
                 perHand = false,
                 allDone = false,
 

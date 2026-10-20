@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -94,23 +95,46 @@ internal fun ExercisePage(
                 if (card.allDone) {
                     Checkbox(checked = true, onCheckedChange = null)
                 } else {
-                    Column(horizontalAlignment = Alignment.End) {
-                        val goal = stringResource(R.string.day_goal, card.goalDisplay)
+                    val target = card.headerTarget
+                    Column(
+                        // Share the space left after the menu with the title; generated headers keep their layout.
+                        modifier = if (target is HeaderTarget.Prescribed) Modifier.weight(1f) else Modifier,
+                        horizontalAlignment = Alignment.End,
+                    ) {
+                        val display = if (target is HeaderTarget.Prescribed && target.repAim != null) {
+                            stringResource(R.string.day_target_aim, target.display, target.repAim)
+                        } else target.display
+                        val label = stringResource(
+                            if (target is HeaderTarget.Goal) R.string.day_goal else R.string.day_target,
+                            display,
+                        )
                         Text(
                             text = buildAnnotatedString {
-                                val start = goal.lastIndexOf(card.goalDisplay).coerceAtLeast(0)
-                                withStyle(SpanStyle(color = variant)) { append(goal.substring(0, start)) }
+                                val start = label.lastIndexOf(display).coerceAtLeast(0)
+                                withStyle(SpanStyle(color = variant)) { append(label.substring(0, start)) }
                                 withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurface)) {
-                                    append(goal.substring(start))
+                                    append(label.substring(start))
                                 }
                             },
                             style = MaterialTheme.typography.titleMedium,
+                            modifier = if (target is HeaderTarget.Prescribed) {
+                                Modifier.semantics { contentDescription = label }
+                            } else Modifier,
                         )
-                        card.lastTimeDisplay?.let {
+                        val supporting = listOfNotNull(
+                            card.lastTimeDisplay?.let { stringResource(R.string.day_last, it) },
+                            if (target is HeaderTarget.Prescribed && target.eachSide) {
+                                stringResource(R.string.day_target_each_side)
+                            } else null,
+                            (target as? HeaderTarget.Prescribed)?.resistance?.takeIf { it.isNotBlank() },
+                        ).joinToString(" · ")
+                        if (supporting.isNotEmpty()) {
                             Text(
-                                text = stringResource(R.string.day_last, it),
+                                text = supporting,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = variant,
+                                maxLines = if (target is HeaderTarget.Prescribed) 1 else Int.MAX_VALUE,
+                                overflow = if (target is HeaderTarget.Prescribed) TextOverflow.Ellipsis else TextOverflow.Clip,
                             )
                         }
                     }

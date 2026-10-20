@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.sync.RemoteTick
 import kotlin.test.Test
@@ -28,6 +29,48 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DayScreenBuilderTest {
+
+    @Test
+    fun `generated header retains the exact goal value in either unit`() {
+        val exercise = ProgramExercise("bb_back_squat", isMain = true)
+        val goal = GoalTarget.Weight(235.0, perHand = false)
+        assertEquals(HeaderTarget.Goal("235"), DayScreenBuilder.headerTarget(exercise, goal, WeightUnit.LB))
+        assertEquals(HeaderTarget.Goal("106.59"), DayScreenBuilder.headerTarget(exercise, goal, WeightUnit.KG))
+    }
+
+    @Test
+    fun `prescribed headers use authored sets and targets in either unit`() {
+        val cases = listOf(
+            Triple(PrescribedTarget.LoadReps(95.0, 10), "3 × 10 · 95 lb", "3 × 10 · 43.09 kg"),
+            Triple(PrescribedTarget.Reps(12), "3 × 12", "3 × 12"),
+            Triple(PrescribedTarget.Hold(45), "3 × 0:45", "3 × 0:45"),
+            Triple(PrescribedTarget.Hold(45, 25.0), "3 × 0:45 · 25 lb", "3 × 0:45 · 11.34 kg"),
+            Triple(PrescribedTarget.RepsInTime(120), "2:00", "2:00"),
+            Triple(PrescribedTarget.RepsInTime(120, 40), "2:00", "2:00"),
+        )
+        for ((target, lb, kg) in cases) {
+            val exercise = ProgramExercise(
+                "bb_back_squat", isMain = true, targetSets = 3,
+                prescription = Prescription(target, eachSide = true, resistance = "Red band"),
+            )
+            for ((unit, display) in listOf(WeightUnit.LB to lb, WeightUnit.KG to kg)) {
+                assertEquals(
+                    HeaderTarget.Prescribed(display, (target as? PrescribedTarget.RepsInTime)?.repAim, true, "Red band"),
+                    DayScreenBuilder.headerTarget(exercise, GoalTarget.Weight(235.0, perHand = false), unit),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `prescribed header follows the slot set count and keeps sub-minute clocks`() {
+        val exercise = ProgramExercise("unknown", targetSets = 5, prescription = Prescription(PrescribedTarget.Hold(5)))
+        val goal = GoalTarget.Weight(235.0, perHand = false)
+        assertEquals(HeaderTarget.Prescribed("5 × 0:05"), DayScreenBuilder.headerTarget(exercise, goal, WeightUnit.LB))
+        assertEquals(HeaderTarget.Prescribed("0:30"), DayScreenBuilder.headerTarget(
+            exercise.copy(prescription = Prescription(PrescribedTarget.RepsInTime(30))), goal, WeightUnit.KG,
+        ))
+    }
 
     @Test
     fun `authored seeds and previews use the prescription even for main or unknown catalog entries`() {
@@ -128,7 +171,7 @@ class DayScreenBuilderTest {
     fun remoteTickMarksOnlyItsAffectedRow() {
         val card = ExerciseCardState(
             programExerciseId = 7, position = 0, title = "Squat", isMain = true,
-            isSuperset = false, hasWarmupHint = false, goalDisplay = "235", perHand = false,
+            isSuperset = false, hasWarmupHint = false, headerTarget = HeaderTarget.Goal("235"), perHand = false,
             allDone = false, rows = listOf(
                 SetRowState(0, "R1", false, 135.0, 5, false),
                 SetRowState(1, "TOP", true, 235.0, 5, true),

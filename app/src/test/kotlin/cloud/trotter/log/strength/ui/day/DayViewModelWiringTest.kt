@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -20,6 +21,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
@@ -118,6 +120,46 @@ class DayViewModelWiringTest {
         today: Flow<LocalDate> = kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()),
     ): DayViewModel =
         DayViewModel(repo, publisher, shareCardService, handle, today, FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
+
+    @Test
+    fun headersUsePrescriptionsAndReactToTheUnitSetting() = runVmTest {
+        val targets = listOf(
+            PrescribedTarget.LoadReps(95.0, 10),
+            PrescribedTarget.Reps(12),
+            PrescribedTarget.Hold(45),
+            PrescribedTarget.Hold(45, 25.0),
+            PrescribedTarget.RepsInTime(120),
+            PrescribedTarget.RepsInTime(120, 40),
+        )
+        val exercises = listOf(ProgramExercise("bb_back_squat", isMain = true)) + targets.map {
+            ProgramExercise(
+                "weighted_plank", targetSets = 3,
+                prescription = Prescription(it, eachSide = true, resistance = "Red band"),
+            )
+        }
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Targets", "", exercises, null))))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val expected = listOf(
+            WeightUnit.LB to listOf("3 × 10 · 95 lb", "3 × 12", "3 × 0:45", "3 × 0:45 · 25 lb", "2:00", "2:00"),
+            WeightUnit.KG to listOf("3 × 10 · 43.09 kg", "3 × 12", "3 × 0:45", "3 × 0:45 · 11.34 kg", "2:00", "2:00"),
+        )
+        for ((unit, displays) in expected) {
+            repo.setUnit(unit)
+            advanceUntilIdle()
+            val cards = vm.uiState.value.exercises
+            val goal = cards.first().headerTarget as HeaderTarget.Goal
+            assertEquals(
+                if (unit == WeightUnit.LB) "Goal 235" else "Goal 106.59",
+                context.getString(R.string.day_goal, goal.display),
+            )
+            assertEquals(displays.mapIndexed { index, display ->
+                HeaderTarget.Prescribed(display, if (index == 5) 40 else null, true, "Red band")
+            }, cards.drop(1).map { it.headerTarget })
+        }
+        collect.cancel()
+    }
 
     @Test
     fun prescribedHoldsUseTheirAddedLoadForTheWeightControlAndDisableSupersets() = runVmTest {

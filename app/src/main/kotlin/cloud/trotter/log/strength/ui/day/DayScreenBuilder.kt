@@ -10,13 +10,18 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.GoalFormatter
+import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.PlateMath
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import java.util.Locale
 
 /**
  * The pure §8.2 decision logic behind the day screen: set-row labels, the
@@ -29,6 +34,26 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  * (SSOT via [WeightUnit]/[WeightStepper]); nothing downstream does lb/kg math.
  */
 object DayScreenBuilder {
+    fun headerTarget(exercise: ProgramExercise, generatedGoal: GoalTarget, unit: WeightUnit): HeaderTarget {
+        val prescription = exercise.prescription
+            ?: return HeaderTarget.Goal(GoalFormatter.label(generatedGoal, unit))
+        fun load(lb: Double): String = "${WeightStepper.format(unit.fromLb(lb))} ${unit.name.lowercase(Locale.ROOT)}"
+        fun clock(seconds: Int): String = "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
+        val display = when (val target = prescription.target) {
+            is PrescribedTarget.LoadReps -> "${exercise.targetSets} × ${target.reps} · ${load(target.lb)}"
+            is PrescribedTarget.Reps -> "${exercise.targetSets} × ${target.reps}"
+            is PrescribedTarget.Hold -> "${exercise.targetSets} × ${clock(target.seconds)}" +
+                if (target.addedLb > 0.0) " · ${load(target.addedLb)}" else ""
+            is PrescribedTarget.RepsInTime -> clock(target.seconds)
+        }
+        return HeaderTarget.Prescribed(
+            display = display,
+            repAim = (prescription.target as? PrescribedTarget.RepsInTime)?.repAim,
+            eachSide = prescription.eachSide,
+            resistance = prescription.resistance,
+        )
+    }
+
     fun watchStatusLine(
         lastContactMillis: Long,
         syncingChanges: Int,

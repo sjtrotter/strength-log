@@ -98,6 +98,20 @@ data class CardioCardState(
 
 enum class CardioPhase { SUGGESTION, EXECUTING, OVERRUN }
 
+@Immutable
+sealed interface HeaderTarget {
+    val display: String
+
+    data class Goal(override val display: String) : HeaderTarget
+
+    data class Prescribed(
+        override val display: String,
+        val repAim: Int? = null,
+        val eachSide: Boolean = false,
+        val resistance: String = "",
+    ) : HeaderTarget
+}
+
 /** One exercise card (spec §8.2). [Immutable] for the reason [DayUiState]
  *  carries it: this is the type the pager compares per page. */
 @Immutable
@@ -113,8 +127,8 @@ data class ExerciseCardState(
     val isMain: Boolean,
     val isSuperset: Boolean,
     val hasWarmupHint: Boolean,
-    /** GOAL number already formatted in the user's unit (read-only). */
-    val goalDisplay: String,
+    /** Generated GOAL or authored target, already formatted in the user's unit. */
+    val headerTarget: HeaderTarget,
     val perHand: Boolean,
     /** How the main track is logged and rendered (§2.1) — routes [SetRowState]
      *  through the matching stepper set. */

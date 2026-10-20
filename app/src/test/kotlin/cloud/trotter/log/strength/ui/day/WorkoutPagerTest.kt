@@ -2,15 +2,19 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -22,12 +26,24 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.PhoneRest
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,6 +55,117 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class WorkoutPagerTest {
     @get:Rule val rule = createComposeRule()
+
+    @Test fun generatedHeaderKeepsItsExactGoalAndLastText() {
+        val card = pagerFixture().exercises[1].copy(
+            headerTarget = HeaderTarget.Goal("235"), lastTimeDisplay = "185 × 8",
+        )
+        show(pagerFixture().copy(exercises = listOf(card)))
+        rule.onNodeWithText("Goal 235").assertIsDisplayed()
+        rule.onNodeWithText("Last 185 × 8").assertIsDisplayed()
+
+        // The title and the unmodified target Column remain direct children of the original Row.
+        val title = rule.onNodeWithText(card.title, useUnmergedTree = true).fetchSemanticsNode().layoutInfo
+        val goal = rule.onNodeWithText("Goal 235", useUnmergedTree = true).fetchSemanticsNode().layoutInfo
+        val last = rule.onNodeWithText("Last 185 × 8", useUnmergedTree = true).fetchSemanticsNode().layoutInfo
+        val targetColumn = requireNotNull(goal.parentInfo)
+        val headerRow = requireNotNull(title.parentInfo)
+        assertSame(targetColumn, last.parentInfo)
+        assertSame(headerRow, targetColumn.parentInfo)
+        assertTrue("Generated target Column must keep Modifier", targetColumn.getModifierInfo().isEmpty())
+        assertTrue("Generated header Row must keep Modifier", headerRow.getModifierInfo().isEmpty())
+        val layout = textLayout("Last 185 × 8")
+        assertEquals(Int.MAX_VALUE, layout.layoutInput.maxLines)
+        assertEquals(TextOverflow.Clip, layout.layoutInput.overflow)
+    }
+
+    @Test
+    @Config(qualifiers = "w320dp-h891dp")
+    fun longPrescribedBandKeepsTitleAndMenuAtEnlargedFontScale() {
+        val band = "A".repeat(40)
+        val supporting = "Last 3 × 12 · Each side · $band"
+        val card = pagerFixture().exercises[1].copy(
+            title = "Split squat",
+            headerTarget = HeaderTarget.Prescribed("3 × 12", eachSide = true, resistance = band),
+            lastTimeDisplay = "3 × 12",
+        )
+        rule.setContent {
+            val base = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(base.density, 1.3f)) {
+                AppTheme {
+                    DayScreen(pagerFixture().copy(exercises = listOf(card)), pagerActions(),
+                        DayEditUiState(), pagerEditActions())
+                }
+            }
+        }
+
+        val title = rule.onNodeWithText("Split squat").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val menu = rule.onNodeWithContentDescription("Split squat menu")
+            .assertIsDisplayed().assertWidthIsEqualTo(48.dp)
+        assertTrue("Title must fit before the menu", title.right <= menu.fetchSemanticsNode().boundsInRoot.left)
+        assertTrue("Title must remain fully readable", !textLayout("Split squat").hasVisualOverflow)
+        rule.onNodeWithContentDescription("Target 3 × 12").assertIsDisplayed()
+        // Text semantics retain the entire string even though only one ellipsized line is drawn.
+        rule.onNodeWithText(supporting).assertIsDisplayed()
+        val layout = textLayout(supporting)
+        assertEquals(supporting, layout.layoutInput.text.text)
+        assertEquals(1, layout.layoutInput.maxLines)
+        assertEquals(TextOverflow.Ellipsis, layout.layoutInput.overflow)
+        assertEquals(1, layout.lineCount)
+        // No isLineEllipsized check: Robolectric's text measurement does not
+        // produce real glyph widths, so it cannot observe the ellipsis itself.
+        menu.performClick()
+        rule.onNodeWithText("Note").assertIsDisplayed()
+    }
+
+    @Test fun prescribedHeadersShowEveryTargetInBothUnitsAndReadTheVisibleLabel() {
+        val cases = listOf(
+            Triple(PrescribedTarget.LoadReps(95.0, 10), "Target 3 × 10 · 95 lb", "Target 3 × 10 · 43.09 kg"),
+            Triple(PrescribedTarget.Reps(12), "Target 3 × 12", "Target 3 × 12"),
+            Triple(PrescribedTarget.Hold(45), "Target 3 × 0:45", "Target 3 × 0:45"),
+            Triple(PrescribedTarget.Hold(45, 25.0), "Target 3 × 0:45 · 25 lb", "Target 3 × 0:45 · 11.34 kg"),
+            Triple(PrescribedTarget.RepsInTime(120), "Target 2:00", "Target 2:00"),
+            Triple(PrescribedTarget.RepsInTime(120, 40), "Target 2:00 · aim 40", "Target 2:00 · aim 40"),
+        )
+        val base = pagerFixture().exercises[1].copy(lastTimeDisplay = "3 × 12")
+        var card by mutableStateOf(base)
+        rule.setContent { AppTheme {
+            DayScreen(pagerFixture().copy(exercises = listOf(card)), pagerActions(), DayEditUiState(), pagerEditActions())
+        } }
+        for ((target, lb, kg) in cases) {
+            for ((unit, label) in listOf(WeightUnit.LB to lb, WeightUnit.KG to kg)) {
+                rule.runOnIdle {
+                    card = base.copy(headerTarget = DayScreenBuilder.headerTarget(
+                        ProgramExercise("weighted_plank", targetSets = 3,
+                            prescription = Prescription(target, eachSide = true, resistance = "Red band")),
+                        GoalTarget.Weight(235.0, perHand = false), unit,
+                    ))
+                }
+                rule.onNodeWithText(label).assertIsDisplayed()
+                rule.onNodeWithContentDescription(label).assertIsDisplayed()
+                rule.onNodeWithText("Last 3 × 12 · Each side · Red band").assertIsDisplayed()
+            }
+        }
+    }
+
+    @Test fun prescribedDetailsAppearWithoutHistory() {
+        val card = pagerFixture().exercises[1].copy(
+            headerTarget = HeaderTarget.Prescribed("3 × 12", eachSide = true, resistance = "Red band"),
+        )
+        show(pagerFixture().copy(exercises = listOf(card)))
+        rule.onNodeWithText("Each side · Red band").assertIsDisplayed()
+    }
+
+    @Test fun blankResistanceAddsNoSupportingLine() {
+        val card = pagerFixture().exercises[1].copy(
+            headerTarget = HeaderTarget.Prescribed("3 × 12", resistance = "  "),
+        )
+        show(pagerFixture().copy(exercises = listOf(card)))
+        rule.onNodeWithText("Target 3 × 12").assertIsDisplayed()
+        rule.onNodeWithText("Each side", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("Last", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("  ").assertDoesNotExist()
+    }
 
     @Test fun opensOnFirstUnfinishedLiftAndLogsItsFocusedRound() {
         val logged = mutableListOf<Pair<Long, Int>>()
@@ -215,6 +342,12 @@ class WorkoutPagerTest {
         assertEquals(listOf("exercise:1"), selected)
     }
 
+    private fun textLayout(text: String): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(text).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        return results.single()
+    }
+
     private fun show(state: DayUiState = pagerFixture(), actions: DayActions = pagerActions()) {
         var current by mutableStateOf(state)
         val wiredActions = actions.copy(
@@ -234,7 +367,7 @@ internal fun pagerFixture(): DayUiState = DayUiState(
             done = page == 0 || page == 1 && index == 0, kind = SetKind.RAMP, rampIndex = index + 1) }
         val focus = DayScreenBuilder.focusIndex(rows)
         ExerciseCardState(programExerciseId = page + 1L, position = page, title = "Lift ${page + 1}",
-            isMain = true, isSuperset = false, hasWarmupHint = false, goalDisplay = "120", perHand = false,
+            isMain = true, isSuperset = false, hasWarmupHint = false, headerTarget = HeaderTarget.Goal("120"), perHand = false,
             allDone = page == 0, rows = rows, focusIndex = focus,
             focusLabel = UiText.SetLabel(SetKind.RAMP, focus + 1), summaryLine = "85×5, 95×5, 105×5")
     },

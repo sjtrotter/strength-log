@@ -1,11 +1,12 @@
 package cloud.trotter.log.strength.ui.plan
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
@@ -29,6 +30,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.PlanSummary
@@ -61,7 +63,7 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
             }
         },
     ) { padding ->
-        LazyColumn(contentPadding = padding) {
+        LazyColumn(modifier = Modifier.selectableGroup(), contentPadding = padding) {
             items(active, key = { it.id }) { plan ->
                 PlanRow(plan, state.menuPlanId == plan.id, active.size > 1, actions)
                 HorizontalDivider()
@@ -108,9 +110,13 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
 @Composable
 private fun PlanRow(plan: PlanSummary, menuOpen: Boolean, canArchive: Boolean, actions: PlansActions) {
     ListItem(
-        modifier = if (plan.archived) Modifier else Modifier.clickable { actions.onSelect(plan.id) },
+        modifier = if (plan.archived) Modifier else Modifier.selectable(
+            selected = plan.selected,
+            role = Role.RadioButton,
+            onClick = { actions.onSelect(plan.id) },
+        ),
         leadingContent = if (plan.archived) null else {
-            { RadioButton(selected = plan.selected, onClick = { actions.onSelect(plan.id) }) }
+            { RadioButton(selected = plan.selected, onClick = null) }
         },
         headlineContent = { Text(plan.name) },
         supportingContent = {

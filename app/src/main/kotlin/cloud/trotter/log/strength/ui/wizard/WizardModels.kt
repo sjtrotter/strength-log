@@ -47,6 +47,7 @@ data class WizardUiState(
     val isComplete: Boolean = false,
     val restore: WizardRestoreState = WizardRestoreState(),
     val finishError: UiText? = null,
+    val finishInFlight: Boolean = false,
 ) {
     val totalSteps: Int get() = WizardStep.entries.size
     val isFirstStep: Boolean get() = stepIndex == 0

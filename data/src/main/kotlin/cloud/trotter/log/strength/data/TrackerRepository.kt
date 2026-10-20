@@ -103,6 +103,9 @@ open class TrackerRepository(
     private val planDao = db.planDao()
     private val planSettingsMigrationMutex = Mutex()
 
+    /** Serializes plan selection and archive changes across Room and DataStore. */
+    private val planSelectionLock = Mutex()
+
     // --- config & preferences ------------------------------------------------
 
     val plansFlow: Flow<List<PlanEntity>> = planDao.observePlans()
@@ -373,50 +376,54 @@ open class TrackerRepository(
 
     /** Selects an existing active plan without changing any plan's contents. */
     suspend fun selectPlan(id: Long) {
-        if (planDao.plan(id)?.archived == false) settings.setSelectedPlanId(id)
+        planSelectionLock.withLock {
+            if (planDao.plan(id)?.archived == false) settings.setSelectedPlanId(id)
+        }
     }
 
     /** Creates and selects a generated plan, or fills the selected settings-only plan.
      * Global lifter and selection are published after the program commits. */
     open suspend fun createGeneratedPlan(name: String, answers: WizardAnswers, program: Program): Long {
         ensurePlanSettingsMigrated()
-        val storedId = settings.selectedPlanIdFlow.first()
-        val id = db.withTransaction {
-            val plans = planDao.allPlans()
-            val selected = plans.firstOrNull { it.id == storedId && !it.archived }
-                ?: plans.firstOrNull { !it.archived }
-            val recipe = PlanRecipeJson.encode(answers)
-            val nextDay = program.strengthDays.firstOrNull()?.id
-            val planId = if (selected != null && programDao.daysForPlan(selected.id).isEmpty()) {
-                planDao.updatePlan(selected.copy(
-                    name = name,
-                    origin = PlanOrigin.GENERATED.name,
-                    recipeJson = recipe,
-                    suggestedDayId = nextDay,
-                ))
-                selected.id
-            } else {
-                planDao.insertPlan(PlanEntity(
-                    id = 0,
-                    name = name,
-                    origin = PlanOrigin.GENERATED.name,
-                    position = (planDao.maxPosition() ?: -1) + 1,
-                    createdAt = clock.millis(),
-                    recipeJson = recipe,
-                    suggestedDayId = nextDay,
-                ))
-            }
-            program.days.forEachIndexed { index, day ->
-                programDao.upsertDay(day.toEntity(planId).copy(position = index))
-                day.exercises.forEachIndexed { position, exercise ->
-                    programDao.insertExercise(exercise.toEntity(planId, day.id, position))
+        return planSelectionLock.withLock {
+            val storedId = settings.selectedPlanIdFlow.first()
+            val id = db.withTransaction {
+                val plans = planDao.allPlans()
+                val selected = plans.firstOrNull { it.id == storedId && !it.archived }
+                    ?: plans.firstOrNull { !it.archived }
+                val recipe = PlanRecipeJson.encode(answers)
+                val nextDay = program.strengthDays.firstOrNull()?.id
+                val planId = if (selected != null && programDao.daysForPlan(selected.id).isEmpty()) {
+                    planDao.updatePlan(selected.copy(
+                        name = name,
+                        origin = PlanOrigin.GENERATED.name,
+                        recipeJson = recipe,
+                        suggestedDayId = nextDay,
+                    ))
+                    selected.id
+                } else {
+                    planDao.insertPlan(PlanEntity(
+                        id = 0,
+                        name = name,
+                        origin = PlanOrigin.GENERATED.name,
+                        position = (planDao.maxPosition() ?: -1) + 1,
+                        createdAt = clock.millis(),
+                        recipeJson = recipe,
+                        suggestedDayId = nextDay,
+                    ))
                 }
+                program.days.forEachIndexed { index, day ->
+                    programDao.upsertDay(day.toEntity(planId).copy(position = index))
+                    day.exercises.forEachIndexed { position, exercise ->
+                        programDao.insertExercise(exercise.toEntity(planId, day.id, position))
+                    }
+                }
+                planId
             }
-            planId
+            settings.setGlobalLifter(GlobalLifter.of(answers.config))
+            settings.setSelectedPlanId(id)
+            id
         }
-        settings.setGlobalLifter(GlobalLifter.of(answers.config))
-        settings.setSelectedPlanId(id)
-        return id
     }
 
     /** Renames a plan when the trimmed name is between 1 and 40 characters. */
@@ -448,10 +455,10 @@ open class TrackerRepository(
     }
 
     /** Archives an unselected plan only while another active plan remains. */
-    suspend fun archivePlan(id: Long): Boolean {
+    suspend fun archivePlan(id: Long): Boolean = planSelectionLock.withLock {
         // Read before the transaction: a DataStore wait must never hold one open.
         val storedId = settings.selectedPlanIdFlow.first()
-        return db.withTransaction { archiveUnlessSelected(id, storedId) }
+        db.withTransaction { archiveUnlessSelected(id, storedId) }
     }
 
     private suspend fun archiveUnlessSelected(id: Long, storedId: Long?): Boolean {
@@ -465,7 +472,9 @@ open class TrackerRepository(
 
     /** Restores an archived plan without selecting it or changing its contents. */
     suspend fun restorePlan(id: Long) {
-        db.withTransaction { planDao.updateArchived(id, false) }
+        planSelectionLock.withLock {
+            db.withTransaction { planDao.updateArchived(id, false) }
+        }
     }
 
     /** Full replace with the wizard's generated program (spec §7). Also points the

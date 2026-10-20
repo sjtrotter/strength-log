@@ -13,14 +13,17 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
@@ -439,13 +442,28 @@ class TrackerRepositoryPlanScopeTest {
         val source = db.planDao().plan(1)!!
         val slot = db.programDao().exercisesForPlan(1).single()
         db.programDao().setSupersetExerciseId(slot.id, "bb_bench")
+        db.programDao().setExerciseNote(slot.id, "Keep the brace through both lifts")
+        val cardioDay = ProgramDay(
+            id = "C",
+            title = "Easy run",
+            emphasisLine = "Conversational pace",
+            exercises = emptyList(),
+            cardio = CardioSuggestion("Easy run", "20 minutes", hard = false, mode = "OUTDOOR_RUN"),
+            kind = ProgramDayKind.CARDIO,
+        ).toEntity(1).copy(position = 1)
+        db.programDao().upsertDay(cardioDay)
         db.programDao().insertLogs(listOf(
             log(1, slot.id, sets(225.0)),
             log(1, slot.id, sets(135.0)).copy(slot = Slot.SS),
         ))
         insertPlanTwo()
         db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Original", null, 100, 180, 1, source.name))
+        db.cardioSessionDao().insert(CardioSessionEntity(
+            dayId = "C", mode = "OUTDOOR_RUN", hard = false, label = "Easy run",
+            startedAt = 200, completedAt = 1_400, seconds = 1_200, stepsCompleted = 1, planId = 1,
+        ))
         val history = db.sessionDao().allSessions()
+        val cardioHistory = db.cardioSessionDao().all()
 
         val copy = repo.duplicatePlan(1, "Original copy")
 
@@ -458,14 +476,23 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(source.suggestedDayId, copiedPlan.suggestedDayId)
         assertEquals(source.origin, copiedPlan.origin)
         assertEquals(db.programDao().daysForPlan(1).map { it.copy(planId = copy) }, db.programDao().daysForPlan(copy))
+        val copiedCardioDay = db.programDao().daysForPlan(copy).single { it.dayId == "C" }
+        assertEquals(ProgramDayKind.CARDIO.name, copiedCardioDay.kind)
+        assertTrue(copiedCardioDay.cardioJson != null)
+        assertEquals(cardioDay.cardioJson, copiedCardioDay.cardioJson)
         val copiedSlot = db.programDao().exercisesForPlan(copy).single()
         assertTrue(slot.id != copiedSlot.id)
         assertEquals(db.programDao().exercisesForPlan(1).single().copy(id = copiedSlot.id, planId = copy), copiedSlot)
+        assertEquals("Keep the brace through both lifts", copiedSlot.note)
+        assertEquals("bb_bench", copiedSlot.supersetExerciseId)
         val sourceLogs = db.programDao().logsForPlan(1)
         assertEquals(sourceLogs.map { it.copy(planId = copy, programExerciseId = copiedSlot.id) }, db.programDao().logsForPlan(copy))
         repo.updateSets("A", copiedSlot.id, Slot.MAIN, sets(245.0))
         assertEquals(sourceLogs, db.programDao().logsForPlan(1))
         assertEquals(history, db.sessionDao().allSessions())
+        assertEquals(cardioHistory, db.cardioSessionDao().all())
+        assertEquals(1, db.sessionDao().allSessions().size)
+        assertEquals(1, db.cardioSessionDao().all().size)
     }
 
     @Test

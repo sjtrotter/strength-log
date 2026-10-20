@@ -93,6 +93,8 @@ class WizardViewModel @Inject constructor(
         const val EMPHASIS = "wizard_emphasis"
         const val EQUIPMENT = "wizard_equipment"
         const val UNIT = "wizard_unit"
+        /** Retained for this wizard's lifetime so completion retries reuse its plan. */
+        const val CREATED_PLAN_ID = "wizard_created_plan_id"
     }
 
     private val defaults = WizardAnswers()
@@ -118,7 +120,9 @@ class WizardViewModel @Inject constructor(
     private val previewProgram = MutableStateFlow<Program?>(null)
 
     private val isComplete = MutableStateFlow(false)
-    private val finishError = MutableStateFlow<UiText?>(null)
+    private val finishProgress = MutableStateFlow(FinishProgress())
+
+    private data class FinishProgress(val inFlight: Boolean = false, val error: UiText? = null)
 
     private val firstRun: StateFlow<Boolean> = savedState.getStateFlow(Keys.FIRST_RUN, false)
 
@@ -182,11 +186,11 @@ class WizardViewModel @Inject constructor(
         val firstRun: Boolean,
         val restore: RestoreProgress,
         val preview: Program?,
-        val finishError: UiText?,
+        val finish: FinishProgress,
     )
 
-    private val completionGroup = combine(isComplete, firstRun, restoreProgress, previewProgram, finishError) { complete, first, restore, preview, error ->
-        CompletionGroup(complete, first, restore, preview, error)
+    private val completionGroup = combine(isComplete, firstRun, restoreProgress, previewProgram, finishProgress) { complete, first, restore, preview, finish ->
+        CompletionGroup(complete, first, restore, preview, finish)
     }
 
     val uiState: StateFlow<WizardUiState> =
@@ -198,7 +202,8 @@ class WizardViewModel @Inject constructor(
                 restore = WizardRestoreState(offered = completion.firstRun, inFlight = completion.restore.inFlight, error = completion.restore.error),
                 unit = enumOf(unitName, WeightUnit.LB),
                 previewProgram = completion.preview,
-                finishError = completion.finishError,
+                finishError = completion.finish.error,
+                finishInFlight = completion.finish.inFlight,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), WizardUiState())
 
@@ -310,7 +315,7 @@ class WizardViewModel @Inject constructor(
     // --- finish --------------------------------------------------------------
 
     /**
-     * Persists the selected unit and creates a new plan from the answers and preview,
+     * Creates a new plan from the answers and preview and persists the selected unit,
      * and only then marks the wizard complete (spec §6, D3: the only program
      * creator).
      *
@@ -337,32 +342,37 @@ class WizardViewModel @Inject constructor(
      * If recovery fails, the wizard stays open with an error so the lifter can retry.
      */
     private fun finish() {
-        finishError.value = null
+        if (finishProgress.value.inFlight || isComplete.value) return
+        finishProgress.value = FinishProgress(inFlight = true)
         viewModelScope.launch {
             try {
                 backupService.withRestoreLock {
                     if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
-                    val answers = currentAnswers()
-                    repo.setUnit(enumOf(unit.value, WeightUnit.LB))
-                    val nameResource = when (answers.split) {
-                        SplitTemplate.FULL_BODY -> R.string.plan_name_full_body
-                        SplitTemplate.UPPER_LOWER -> R.string.plan_name_upper_lower
-                        SplitTemplate.PPL -> R.string.plan_name_ppl
-                        SplitTemplate.PPLUL -> R.string.plan_name_pplul
+                    if (savedState.get<Long>(Keys.CREATED_PLAN_ID) == null) {
+                        val answers = currentAnswers()
+                        val nameResource = when (answers.split) {
+                            SplitTemplate.FULL_BODY -> R.string.plan_name_full_body
+                            SplitTemplate.UPPER_LOWER -> R.string.plan_name_upper_lower
+                            SplitTemplate.PPL -> R.string.plan_name_ppl
+                            SplitTemplate.PPLUL -> R.string.plan_name_pplul
+                        }
+                        savedState[Keys.CREATED_PLAN_ID] = repo.createGeneratedPlan(
+                            context.getString(nameResource, answers.daysPerWeek),
+                            answers,
+                            previewProgram.value ?: generatePreview(answers),
+                        )
                     }
-                    repo.createGeneratedPlan(
-                        context.getString(nameResource, answers.daysPerWeek),
-                        answers,
-                        previewProgram.value ?: generatePreview(answers),
-                    )
+                    repo.setUnit(enumOf(unit.value, WeightUnit.LB))
                     repo.setWizardComplete(true)
                 }
                 // Either branch leaves the device set up, so the wizard leaves.
                 isComplete.value = true
             } catch (e: RestoreInterruption) {
-                finishError.value = TransferErrorMessages.of(e)
+                finishProgress.value = finishProgress.value.copy(error = TransferErrorMessages.of(e))
             } catch (e: IOException) {
-                finishError.value = UiText.FileAccessFailure(e.message)
+                finishProgress.value = finishProgress.value.copy(error = UiText.FileAccessFailure(e.message))
+            } finally {
+                finishProgress.value = finishProgress.value.copy(inFlight = false)
             }
         }
     }

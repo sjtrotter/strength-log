@@ -415,12 +415,9 @@ class WizardViewModel @Inject constructor(
      * program…", the same trap [finish]'s write order avoids. So on that one
      * document we stay in the wizard, re-seeded with whatever answers the backup
      * did carry, and the lifter finishes setup from there.
-     * Clears the remembered created-plan id before importing because restore
-     * replaces its database.
      */
     fun restoreFromBackup(uri: Uri) {
         if (!firstRun.value || restoreProgress.value.inFlight) return
-        savedState.remove<Long>(Keys.CREATED_PLAN_ID)
         restoreProgress.value = RestoreProgress(inFlight = true)
         viewModelScope.launch {
             try {
@@ -439,6 +436,8 @@ class WizardViewModel @Inject constructor(
                 } catch (e: RestoreInterruption.CleanupPending) {
                     note = TransferErrorMessages.of(e)
                 }
+                // Discard the retry id only once Room has been replaced.
+                savedState.remove<Long>(Keys.CREATED_PLAN_ID)
                 applyAnswers(repo.wizardAnswersFlow.first())
                 if (repo.wizardCompleteFlow.first()) {
                     // Leaving for the day screen; a leftover cleanup note goes
@@ -451,6 +450,11 @@ class WizardViewModel @Inject constructor(
             } catch (e: BackupError) {
                 restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
             } catch (e: RestoreInterruption) {
+                when (e) {
+                    is RestoreInterruption.SettingsPending,
+                    is RestoreInterruption.CleanupPending -> savedState.remove<Long>(Keys.CREATED_PLAN_ID)
+                    is RestoreInterruption.NotStarted -> Unit
+                }
                 restoreProgress.value = RestoreProgress(error = TransferErrorMessages.of(e))
             } catch (e: IOException) {
                 restoreProgress.value = RestoreProgress(error = cloud.trotter.log.strength.ui.text.UiText.FileAccessFailure(e.message))

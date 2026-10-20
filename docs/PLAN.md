@@ -208,8 +208,10 @@ details:
 
 Normative design: `docs/briefs/plans-review-2026-10-19-r2.md` (round 2 of a
 two-model review, owner decisions recorded at its head). Supersedes the
-spec's single-program model (§7) and the parts of
-`docs/briefs/cardio-promotion.md` it names.
+spec's single-program model (§7), and in `docs/briefs/cardio-promotion.md`
+the rule that no day completes through cardio (§8): a cardio-only day now
+finishes like any other day. Finishers stay optional and never gate a
+strength day; the shipped cardio vectors stay pinned.
 
 - **Plans.** The app holds any number of named plans; one is selected for
   Today and the watch. A plan owns its days, prescriptions, live working
@@ -217,17 +219,28 @@ spec's single-program model (§7) and the parts of
   Bodyweight, age, level and units stay global. The wizard always creates a
   new plan; nothing deletes another plan's working values. Sessions record
   the plan they ran under; history from before plans has an unknown plan.
+- **Identity on the wire.** Watch snapshots and deltas carry the plan and the
+  run they belong to, so a late tick lands in the run it came from, even
+  after a switch or a second run of the same repeatable day.
 - **Authored prescriptions.** A plan's exercises are generated (spec §4 math,
   seeding and cascade, unchanged) or authored: load × reps, reps, hold,
-  reps-in-time (count recorded after the clock), each side, a band described
-  in text, a note. Authored slots have no GOAL and never cascade. Authored
-  days may hold one exercise and may repeat in place instead of rotating.
-- **Before production:** plans, authored prescriptions (including timed rep
-  events) and plan identity on the watch. After: cross-plan "Last" with a
-  28-day evidence review (no automatic deload), cardio as typed sets
-  (warm-up, work, recovery, cool-down; time or distance ends a set, the other
-  may be an aim), manual distance, Health Connect run linking, and every
-  record type Health Connect can hold. GPS only if needed, watch first.
+  reps-in-time, each side, a band described in text, a note. Authored slots
+  have no GOAL and never cascade. Authored days may hold one exercise and may
+  repeat in place instead of rotating.
+- **Timed rep events.** The clock runs with the screen kept on (no dimming,
+  no lock), and when time ends the count entry (a stepper) comes up by
+  itself. The lifter records the count.
+- **Before production:** plans, run identity, authored prescriptions and
+  timed rep events, on phone and watch.
+- **After production:** cross-plan "Last" with a 28-day evidence review that
+  shows what was done and leaves values editable, with no automatic deload
+  and no pre-filled lighter number; cardio as typed sets (warm-up, work,
+  recovery, cool-down; time ends a set by itself, distance ends it with a
+  tap, the other measure may be an aim); manual distance; Health Connect run
+  linking; and every record type Health Connect can hold. Each new Health
+  Connect permission ships with its rationale line, privacy policy text, Data
+  safety answer and Play declaration. GPS only if manual and linked distance
+  fall short, and then on the watch first.
 - §11 numbers and the shipped cardio vectors do not move.
 
 ## Architecture

@@ -38,7 +38,7 @@ The watch keeps its one cardio dial and draws each set as a ring segment.
 
 Underneath, cardio sets do not reuse the lift's set row. `LoggedSet`
 already overloads its fields (seconds means "ignored" on weighted sets,
-`Types.kt:25`), the history row needs weight, reps and a lift slot
+`Types.kt:32`), the history row needs weight, reps and a lift slot
 (`SessionEntities.kt:37-58`), and there are no cardio exercises in the
 library to hang them on (`ExerciseLibraryTest.kt:76-82` exempts the
 pattern). So the target is typed:
@@ -252,8 +252,8 @@ After:
    sets.
 9. Cardio history, CSV, backup, Health Connect segments; watch phases.
 10. Activity types, manual distance, end-and-aim targets.
-11. GPS: field spike, then phone (or watch, per decision 3).
-12. Health Connect run linking.
+11. Health Connect run linking.
+12. GPS, only if 10 and 11 fall short: field spike, then the watch first.
 
 New pins: authored days minimum one exercise; time ends a set, distance needs
 a tap; unknown distance is null; legacy cardio is never expanded into sets;

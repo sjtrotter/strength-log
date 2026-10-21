@@ -21,6 +21,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
@@ -31,10 +35,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -48,6 +54,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.theme.ThemePreference
+import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
 import cloud.trotter.log.strength.ui.components.LiftListItem
@@ -73,6 +80,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
         if (state.loading) ProgramLoadingState() else NoProgramState(actions.onSetUpProgram)
         return
     }
+    val selectedPlan = state.activePlans.takeIf { it.size > 1 }?.firstOrNull { it.selected }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -117,6 +125,17 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                             size = DayIndexSize.Large,
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            selectedPlan?.let { plan ->
+                                TextButton(
+                                    onClick = actions.onShowPlanPicker,
+                                    contentPadding = PaddingValues(0.dp),
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                ) {
+                                    Text(plan.name, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
                             Text(
                                 text = stringResource(R.string.today_day_label, state.dayId),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -191,6 +210,38 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                     onClick = actions.onStart,
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
+            }
+        }
+    }
+    if (selectedPlan != null && state.planPickerOpen) {
+        AppModalBottomSheet(
+            onDismissRequest = actions.onDismissPlanPicker,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            Text(
+                text = stringResource(R.string.today_switch_plan),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
+            LazyColumn(Modifier.fillMaxWidth().selectableGroup()) {
+                items(state.activePlans, key = { it.id }) { plan ->
+                    ListItem(
+                        modifier = Modifier.selectable(
+                            selected = plan.selected,
+                            role = Role.RadioButton,
+                            onClick = { actions.onSelectPlan(plan.id) },
+                        ),
+                        leadingContent = { RadioButton(selected = plan.selected, onClick = null) },
+                        headlineContent = { Text(plan.name) },
+                        supportingContent = {
+                            Text(
+                                plan.nextDayTitle?.let { stringResource(R.string.plans_next_day, it) }
+                                    ?: stringResource(R.string.plans_no_next_day),
+                            )
+                        },
+                    )
+                    HorizontalDivider()
+                }
             }
         }
     }

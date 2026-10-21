@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.today
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.LoggedSlot
@@ -24,13 +25,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * Today screen ViewModel (#121, MVVM/UDF). Holds no working truth of its own:
  * every render value derives from repository flows, and every formatting
- * decision is delegated to the pure [TodayScreenBuilder]. Today has no state
- * to save, because it has no intents to save it from. Read-only by design: it
- * never seeds a log and never writes one.
+ * decision is delegated to the pure [TodayScreenBuilder]. Only the plan
+ * picker's visibility is saved; selection goes through the repository.
+ * Today never seeds a log and never writes one.
  *
  * Seeding stays [cloud.trotter.log.strength.ui.day.DayViewModel]'s job, but the
  * *rules* are `:domain`'s, so Today can run them without writing anything: a day
@@ -44,7 +46,9 @@ import kotlinx.coroutines.flow.stateIn
 class TodayViewModel @Inject constructor(
     private val repo: TrackerRepository,
     private val civilTimeSource: CivilTimeSource,
+    private val savedState: SavedStateHandle,
 ) : ViewModel() {
+    private val planPickerOpen = savedState.getStateFlow(PLAN_PICKER_OPEN, false)
 
     private val contextFlow =
         combine(
@@ -58,7 +62,7 @@ class TodayViewModel @Inject constructor(
             TodayContext(program, dayId, catalog, cfg)
         }
 
-    val uiState: StateFlow<TodayUiState> = contextFlow.flatMapLatest { ctx ->
+    private val dayState = contextFlow.flatMapLatest { ctx ->
         val dayId = ctx.dayId
         if (dayId == null) {
             // [contextFlow] picks the day from the same program emission, so a
@@ -77,7 +81,31 @@ class TodayViewModel @Inject constructor(
                     build(ctx, dayId, slots, logs, sessions, topSets, lastSessionAt, now)
                 }
             }
+    }
+
+    val uiState: StateFlow<TodayUiState> = combine(
+        dayState,
+        repo.planSummariesFlow,
+        planPickerOpen,
+    ) { state, plans, pickerOpen ->
+        val active = plans.filterNot { it.archived }
+        state.copy(activePlans = active, planPickerOpen = pickerOpen && active.size > 1)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TodayUiState(loading = true))
+
+    fun showPlanPicker() {
+        if (uiState.value.activePlans.size > 1) savedState[PLAN_PICKER_OPEN] = true
+    }
+
+    fun dismissPlanPicker() {
+        savedState[PLAN_PICKER_OPEN] = false
+    }
+
+    fun selectPlan(id: Long) {
+        viewModelScope.launch {
+            repo.selectPlan(id)
+            dismissPlanPicker()
+        }
+    }
 
     private fun build(
         ctx: TodayContext,
@@ -162,5 +190,6 @@ class TodayViewModel @Inject constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+        const val PLAN_PICKER_OPEN = "today_plan_picker_open"
     }
 }

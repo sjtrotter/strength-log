@@ -44,6 +44,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -110,8 +111,11 @@ class TodayViewModelWiringTest {
     /** [TodayViewModel.uiState] is `WhileSubscribed`, same as [DayViewModel.uiState]
      *  in the reference fixture — an active collector is required for `.value`
      *  to track updates at all. */
-    private fun newTodayViewModel(date: LocalDate = repo.currentDate()): TodayViewModel =
-        TodayViewModel(repo, FixedCivilTimeSource(date)).also { vm ->
+    private fun newTodayViewModel(
+        date: LocalDate = repo.currentDate(),
+        handle: SavedStateHandle = SavedStateHandle(),
+    ): TodayViewModel =
+        TodayViewModel(repo, FixedCivilTimeSource(date), handle).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -128,6 +132,120 @@ class TodayViewModelWiringTest {
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
+
+    @Test
+    fun oneActivePlanDoesNotOpenThePickerEvenWithAnArchivedPlan() = runVmTest {
+        insertProgram()
+        val selected = checkNotNull(repo.selectedPlanIdFlow.first())
+        val archived = repo.duplicatePlan(selected, "Archived")
+        assertTrue(repo.archivePlan(archived))
+        val today = newTodayViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf(selected), today.uiState.value.activePlans.map { it.id })
+        today.showPlanPicker()
+        advanceUntilIdle()
+        assertFalse(today.uiState.value.planPickerOpen)
+    }
+
+    @Test
+    fun selectingFromTodayClosesThePickerAndKeepsEachPlansRotation() = runVmTest {
+        insertProgram()
+        val strength = checkNotNull(repo.selectedPlanIdFlow.first())
+        repo.renamePlan(strength, "Strength")
+        repo.advanceDay("A")
+        val running = repo.createAuthoredPlan("Running", "Easy run")
+        repo.addDay(running, "Intervals")
+        val archived = repo.duplicatePlan(strength, "Archived")
+        assertTrue(repo.archivePlan(archived))
+        val today = newTodayViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf(strength, running), today.uiState.value.activePlans.map { it.id })
+        assertEquals(listOf("Day B", "Easy run"), today.uiState.value.activePlans.map { it.nextDayTitle })
+        assertEquals("Strength", today.uiState.value.activePlans.single { it.selected }.name)
+        assertEquals("Day B", today.uiState.value.dayTitle)
+        today.showPlanPicker()
+        advanceUntilIdle()
+        assertTrue(today.uiState.value.planPickerOpen)
+
+        today.selectPlan(running)
+        advanceUntilIdle()
+        assertEquals(running, repo.selectedPlanIdFlow.first())
+        assertEquals("Running", today.uiState.value.activePlans.single { it.selected }.name)
+        assertEquals("Easy run", today.uiState.value.dayTitle)
+        assertFalse(today.uiState.value.planPickerOpen)
+
+        repo.advanceDay("A")
+        advanceUntilIdle()
+        assertEquals("Intervals", today.uiState.value.dayTitle)
+        today.showPlanPicker()
+        today.selectPlan(strength)
+        advanceUntilIdle()
+        assertEquals("Day B", today.uiState.value.dayTitle)
+        assertFalse(today.uiState.value.planPickerOpen)
+
+        today.selectPlan(running)
+        advanceUntilIdle()
+        assertEquals("Intervals", today.uiState.value.dayTitle)
+    }
+
+    @Test
+    fun planPickerSurvivesSavedStateRecreationAndCanBeDismissed() = runVmTest {
+        insertProgram()
+        val selected = checkNotNull(repo.selectedPlanIdFlow.first())
+        repo.duplicatePlan(selected, "Running")
+        val handle = SavedStateHandle()
+        val first = newTodayViewModel(handle = handle)
+        advanceUntilIdle()
+        first.showPlanPicker()
+        advanceUntilIdle()
+        assertTrue(first.uiState.value.planPickerOpen)
+
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        first.viewModelScope.cancel()
+        val restored = newTodayViewModel(handle = restoredHandle)
+        advanceUntilIdle()
+        assertTrue(restored.uiState.value.planPickerOpen)
+        assertEquals(listOf("My plan", "Running"), restored.uiState.value.activePlans.map { it.name })
+
+        restored.dismissPlanPicker()
+        advanceUntilIdle()
+        assertFalse(restored.uiState.value.planPickerOpen)
+        val dismissedHandle = SavedStateHandle(restoredHandle.keys().associateWith { restoredHandle.get<Any?>(it) })
+        restored.viewModelScope.cancel()
+        val dismissed = newTodayViewModel(handle = dismissedHandle)
+        advanceUntilIdle()
+        assertFalse(dismissed.uiState.value.planPickerOpen)
+    }
+
+    @Test
+    fun selectingAnArchivedOrMissingPlanStillRefusesTheSwitchAndClosesThePicker() = runVmTest {
+        insertProgram()
+        val selected = checkNotNull(repo.selectedPlanIdFlow.first())
+        val other = repo.duplicatePlan(selected, "Running")
+        repo.duplicatePlan(selected, "Physio")
+        val today = newTodayViewModel()
+        advanceUntilIdle()
+        today.showPlanPicker()
+        advanceUntilIdle()
+        assertTrue(today.uiState.value.planPickerOpen)
+
+        assertTrue(repo.archivePlan(other))
+        today.selectPlan(other)
+        advanceUntilIdle()
+        assertEquals(selected, repo.selectedPlanIdFlow.first())
+        assertEquals("Day A", today.uiState.value.dayTitle)
+        assertFalse(today.uiState.value.planPickerOpen)
+
+        today.showPlanPicker()
+        advanceUntilIdle()
+        assertTrue(today.uiState.value.planPickerOpen)
+        today.selectPlan(Long.MAX_VALUE)
+        advanceUntilIdle()
+        assertEquals(selected, repo.selectedPlanIdFlow.first())
+        assertFalse(today.uiState.value.planPickerOpen)
+    }
 
     @Test
     fun emptyAuthoredDaysRemainVisibleAndRemovingTheSuggestedDayMovesToday() = runVmTest {

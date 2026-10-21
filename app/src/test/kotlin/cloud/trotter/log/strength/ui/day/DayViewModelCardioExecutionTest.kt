@@ -975,12 +975,12 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
-    fun removedSourceBlockLeavesFrozenRunAccessibleUntilItLogs() = test {
+    fun removedSourceBlockLeavesFrozenRunAccessibleUntilDistanceIsSaved() = test {
         val plan = repo.createAuthoredPlan("Running", "Run")
         repo.publishCreatedAuthoredPlan(plan)
         repo.addExercise("A", ProgramExercise("plank"))
         assertTrue(repo.setCardioBlock(plan, "A", CardioBlock(CardioActivity.TRACK_RUN,
-            listOf(time(CardioRole.WORK)))))
+            listOf(time(CardioRole.WORK, aim = 400)))))
         val vm = readyVm()
         vm.startCardio()
         runCurrent()
@@ -989,8 +989,27 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertEquals(frozen, vm.uiState.value.cardio?.run)
         tick(10_000)
-        assertEquals(frozen.block.sets, repo.cardioSetsFor(repo.cardioSessionsFlow.first().single().id).map { it.spec })
+        val session = repo.cardioSessionsFlow.first().single()
+        assertEquals(frozen.block.sets, repo.cardioSetsFor(session.id).map { it.spec })
         assertFalse(vm.uiState.value.executionBusy)
+        assertNull(vm.uiState.value.cardio?.run)
+        assertEquals(frozen.block, vm.uiState.value.cardio?.block)
+        val pending = requireNotNull(vm.uiState.value.cardio).distanceRuns.single()
+        assertEquals(frozen.runId, pending.runId)
+        assertFalse(pending.drafts.single().saved) // The card offers "Enter distance".
+        vm.openCardioDistance()
+        runCurrent()
+        vm.closeSheet()
+        runCurrent()
+        vm.requestCardioDistance(pending.action(0))
+        vm.openCardioDistance()
+        runCurrent()
+        assertEquals(pending.action(0), vm.distanceAction())
+        vm.changeCardioDistance("390")
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+        assertEquals(390, repo.cardioSetsFor(session.id).single().metres)
+        assertEquals(1, repo.cardioSessionsFlow.first().size)
         assertNull(vm.uiState.value.cardio)
     }
 

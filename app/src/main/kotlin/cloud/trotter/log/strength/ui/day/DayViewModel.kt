@@ -1493,8 +1493,10 @@ class DayViewModel @Inject constructor(
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
         val frozen = savedRun?.takeIf {
             it == cardioRun.value && it.planId == state.planId && it.dayId == state.viewDayId
+        } ?: pendingCardioDistances.value.firstOrNull {
+            it.planId == state.planId && it.dayId == state.viewDayId && it.drafts.isNotEmpty()
         }
-        // Removing the day's source block must also leave the frozen run accessible.
+        // Removing the source block must leave the frozen run and pending distances accessible.
         val sourceCard = state.cardio ?: frozen?.let {
             CardioCardState(activityLabel(it.block.activity), "", it.block.sets.any { spec -> spec.hard },
                 block = it.block, finishesDay = it.finishesDay)

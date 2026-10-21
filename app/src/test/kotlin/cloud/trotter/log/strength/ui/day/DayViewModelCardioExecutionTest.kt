@@ -387,6 +387,84 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
+    fun editingIntervalsKeepsTheFrozenRunAndDistanceDraftAndNextRunUsesTheEdit() = test {
+        val intervals = CardioBlockDraft.new(1, "A").startFrom(CardioTemplate.INTERVALS)
+        val sets = intervals.sets.mapIndexed { index, set ->
+            if (index == 1) set.copy(hasAim = true) else set
+        }.map(CardioSetDraft::spec)
+        prepareAuthoredCardioDay(*sets.toTypedArray())
+        val vm = readyVm()
+        backgroundScope.launch { vm.dayEditState.collect {} }
+        runCurrent()
+        vm.startCardio()
+        runCurrent()
+        tick(300_000)
+        vm.startCardio()
+        runCurrent()
+        tick(120_000)
+        vm.openCardioDistance()
+        vm.changeCardioDistance("123")
+        vm.closeSheet()
+        runCurrent()
+        tick(1_000)
+        val frozen = requireNotNull(vm.uiState.value.cardio?.run)
+        assertEquals(2, frozen.position)
+        assertTrue(frozen.running)
+        assertEquals("123", frozen.drafts.single().text)
+        val deadline = alarm.deadline
+
+        vm.setDayEditorOpen(true)
+        vm.openCardioBlock()
+        runCurrent()
+        val draft = requireNotNull(vm.dayEditState.value.cardioDraft)
+        val edited = draft.copy(sets = draft.sets.mapIndexed { index, set ->
+            if (index == 3) set.copy(seconds = 60) else set
+        }, editingSet = 3)
+        vm.changeCardioDraft(edited)
+        vm.saveCardioBlock() // Set-page Save commits while keeping the block page open.
+        runCurrent()
+        assertEquals(edited.block(), repo.programFlow.first().days.first().cardioBlock)
+        assertEquals(frozen, vm.uiState.value.cardio?.run)
+        assertEquals(deadline, alarm.deadline)
+        vm.saveCardioBlock() // Block-page Save must preserve the same execution too.
+        runCurrent()
+        vm.setDayEditorOpen(false)
+        assertEquals(frozen, vm.uiState.value.cardio?.run)
+        assertEquals(sets, vm.uiState.value.cardio?.block?.sets)
+
+        tick(119_000)
+        repeat(4) {
+            vm.startCardio()
+            runCurrent()
+            tick(120_000)
+            tick(120_000)
+        }
+        val session = repo.cardioSessionsFlow.first().single()
+        val logged = repo.cardioSetsFor(session.id)
+        assertEquals(sets, logged.map { it.spec })
+        assertTrue(logged.all { it.status == CardioSetStatus.FINISHED })
+        assertEquals(1_500, session.seconds)
+        assertNull(vm.uiState.value.cardio?.run)
+        val pending = vm.uiState.value.cardio!!.distanceRuns.single()
+        assertEquals("123", pending.drafts.single().text)
+        vm.requestCardioDistance(pending.action(1))
+        vm.openCardioDistance()
+        runCurrent()
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+        assertEquals(123, repo.cardioSetsFor(session.id)[1].metres)
+        assertTrue(vm.dismissSessionReceipt())
+
+        vm.selectDay("A")
+        runCurrent()
+        vm.startCardio()
+        runCurrent()
+        val next = requireNotNull(vm.uiState.value.cardio?.run)
+        assertFalse(frozen.runId == next.runId)
+        assertEquals(edited.block(), next.block)
+    }
+
+    @Test
     fun legacyHardFiveKWaitsForWorkAndLogsElevenSetsIncludingFinalRecovery() = test {
         prepare()
         val vm = readyVm()
@@ -861,7 +939,7 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
-    fun identityMismatchDiscardsInsteadOfRetargeting() = test {
+    fun missingRunDayDiscardsInsteadOfRetargeting() = test {
         prepareBlock(distance())
         val handle = SavedStateHandle()
         val first = readyVm(handle)
@@ -869,11 +947,51 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         first.setCardioScreenLive(false)
         first.viewModelScope.cancel()
-        prepareBlock(time(CardioRole.WORK))
+        val day = repo.programFlow.first().days.single()
+        repo.replaceProgram(Program(listOf(day.copy(id = "B"))))
         val restored = readyVm(recreateHandle(handle))
         assertNull(restored.uiState.value.cardio?.run)
         assertNull(alarm.deadline)
         assertTrue(repo.cardioSessionsFlow.first().isEmpty())
+    }
+
+    @Test
+    fun differentPlanDiscardsRunEvenWhenDayAndBlockMatch() = test {
+        prepareAuthoredCardioDay(distance())
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startCardio()
+        runCurrent()
+        assertTrue(vm.uiState.value.cardio!!.run!!.running)
+        val program = repo.programFlow.first()
+        val other = repo.createAuthoredPlan("Other plan", "Running")
+        repo.publishCreatedAuthoredPlan(other)
+        repo.replaceProgram(program)
+        runCurrent()
+        assertNull(handle.get<CardioRun>("day_cardio_run"))
+        assertNull(vm.uiState.value.cardio?.run)
+        assertNull(alarm.deadline)
+        assertTrue(repo.cardioSessionsFlow.first().isEmpty())
+    }
+
+    @Test
+    fun removedSourceBlockLeavesFrozenRunAccessibleUntilItLogs() = test {
+        val plan = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("plank"))
+        assertTrue(repo.setCardioBlock(plan, "A", CardioBlock(CardioActivity.TRACK_RUN,
+            listOf(time(CardioRole.WORK)))))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        val frozen = requireNotNull(vm.uiState.value.cardio?.run)
+        assertTrue(repo.setCardioBlock(plan, "A", null))
+        runCurrent()
+        assertEquals(frozen, vm.uiState.value.cardio?.run)
+        tick(10_000)
+        assertEquals(frozen.block.sets, repo.cardioSetsFor(repo.cardioSessionsFlow.first().single().id).map { it.spec })
+        assertFalse(vm.uiState.value.executionBusy)
+        assertNull(vm.uiState.value.cardio)
     }
 
     @Test

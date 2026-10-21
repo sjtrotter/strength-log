@@ -173,9 +173,10 @@ class DayViewModelWiringTest {
         restored.saveCardioBlock()
         advanceUntilIdle()
         assertNull(restored.dayEditState.value.cardioDraft)
+        // The day holds no exercises, so removing its only cardio block is refused.
         restored.removeCardioBlock()
         advanceUntilIdle()
-        assertNull(repo.programFor(plan).first().days.single().cardioBlock)
+        assertEquals(draft.block(), repo.programFor(plan).first().days.single().cardioBlock)
         collectEdit.cancel()
     }
 

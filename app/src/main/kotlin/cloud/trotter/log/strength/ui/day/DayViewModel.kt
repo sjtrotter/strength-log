@@ -1225,7 +1225,7 @@ class DayViewModel @Inject constructor(
 
     fun removeCardioBlock() {
         val state = dayEditState.value
-        if (!state.authored) return
+        if (!state.authored || state.slots.isEmpty()) return
         val plan = state.planId ?: return
         val day = state.dayId ?: return
         mutate { repo.setCardioBlock(plan, day, null) }
@@ -1473,8 +1473,8 @@ class DayViewModel @Inject constructor(
     private fun validateCardioRun(ctx: DayContext) {
         val run = cardioRun.value ?: return
         val plan = ctx.plan ?: return clearCardioExecution()
-        val source = ctx.program.days.firstOrNull { it.id == run.dayId }?.effectiveCardio(ctx.cardioPrefs)
-        if (plan.id != run.planId || source == null || CardioBlockJson.encode(source) != run.sourceBlockJson) {
+        // A run owns its frozen prescription. Edits to its day apply to the next run.
+        if (plan.id != run.planId || ctx.program.days.none { it.id == run.dayId }) {
             clearCardioExecution()
         }
     }
@@ -1491,7 +1491,15 @@ class DayViewModel @Inject constructor(
                 Instant.ofEpochMilli(it.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
         }
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
-        val base = state.cardio?.let { source ->
+        val frozen = savedRun?.takeIf {
+            it == cardioRun.value && it.planId == state.planId && it.dayId == state.viewDayId
+        }
+        // Removing the day's source block must also leave the frozen run accessible.
+        val sourceCard = state.cardio ?: frozen?.let {
+            CardioCardState(activityLabel(it.block.activity), "", it.block.sets.any { spec -> spec.hard },
+                block = it.block, finishesDay = it.finishesDay)
+        }
+        val base = sourceCard?.let { source ->
             source.copy(loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
                 distanceRuns = distanceRuns().filter { it.dayId == state.viewDayId && it.planId == state.planId },
                 canAddSet = (cardioRun.value == null || cardioRun.value?.dayId == state.viewDayId) &&

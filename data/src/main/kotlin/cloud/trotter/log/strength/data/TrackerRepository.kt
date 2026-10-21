@@ -524,16 +524,17 @@ open class TrackerRepository(
         true
     }
 
-    /** Authored cardio is stored on its owning day; null removes it. */
-    suspend fun setCardioBlock(planId: Long, dayId: String, block: CardioBlock?) {
+    /** Authored cardio is stored on its owning day; null removes it if an exercise remains. */
+    suspend fun setCardioBlock(planId: Long, dayId: String, block: CardioBlock?): Boolean =
         db.withTransaction {
-            if (planDao.plan(planId)?.origin != PlanOrigin.AUTHORED.name) return@withTransaction
-            val day = programDao.day(planId, dayId) ?: return@withTransaction
+            if (planDao.plan(planId)?.origin != PlanOrigin.AUTHORED.name) return@withTransaction false
+            val day = programDao.day(planId, dayId) ?: return@withTransaction false
+            if (block == null && programDao.exercisesForDay(planId, dayId).isEmpty()) return@withTransaction false
             // encode reconstructs the domain objects, enforcing all their requires.
             val json = block?.let(CardioBlockJson::encode)
             programDao.upsertDay(day.copy(cardioBlockJson = json))
+            true
         }
-    }
 
     /** Sets belong to the slot, never the prescription JSON. Null keeps its current count. */
     suspend fun setPrescription(programExerciseId: Long, prescription: Prescription, sets: Int? = null) {

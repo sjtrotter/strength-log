@@ -323,7 +323,9 @@ private fun DaySlotList(
                 Text(stringResource(if (state.cardioBlock == null) R.string.day_edit_add_cardio else R.string.day_edit_edit_cardio))
             }
             if (state.cardioBlock != null) {
-                TextButton(onClick = onRemoveCardio) { Text(stringResource(R.string.day_edit_remove_cardio)) }
+                TextButton(onClick = onRemoveCardio, enabled = state.slots.isNotEmpty()) {
+                    Text(stringResource(R.string.day_edit_remove_cardio))
+                }
             }
         }
         if (!state.authored) {

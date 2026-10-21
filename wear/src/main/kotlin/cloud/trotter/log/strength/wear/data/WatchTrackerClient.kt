@@ -74,4 +74,10 @@ interface WatchTrackerClient {
         sendCardio(delta)
         onQueued(delta.stamp)
     }
+
+    /** Failure means the completion is still local and the caller can retry. */
+    fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit, onFailure: () -> Unit) {
+        // Older implementations cannot confirm a durable enqueue. Fail closed.
+        onFailure()
+    }
 }

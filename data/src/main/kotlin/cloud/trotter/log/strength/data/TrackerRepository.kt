@@ -1045,13 +1045,15 @@ open class TrackerRepository(
         require(session.activity == null || CardioActivity.entries.any { it.name == session.activity }) {
             "cardio activity must be stored as CardioActivity.name"
         }
-        val plan = (session.planId ?: selectedPlanId())?.let { planDao.plan(it) }
-        val stamped = if (session.planId == null || plan != null) {
-            session.copy(planId = plan?.id, planName = plan?.name)
-        } else {
-            session
-        }
+        val ownerId = session.planId ?: selectedPlanId()
         return db.withTransaction {
+            // Read the cursor in the same transaction as the log and guarded advance.
+            val plan = ownerId?.let { planDao.plan(it) }
+            val stamped = if (session.planId == null || plan != null) {
+                session.copy(planId = plan?.id, planName = plan?.name)
+            } else {
+                session
+            }
             // The phone can retry after process death between commit and saved-state acknowledgement.
             if (sets.isNotEmpty()) {
                 cardioSessionDao.forRun(stamped.dayId, stamped.startedAt)?.let { return@withTransaction it.id }
@@ -1060,7 +1062,8 @@ open class TrackerRepository(
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
                 set.toEntity(id, position)
             })
-            if (finishDay && plan != null && stamped.dayId != null) {
+            // A late or second-device completion still logs, but cannot move a newer cursor.
+            if (finishDay && plan != null && stamped.dayId != null && plan.suggestedDayId == stamped.dayId) {
                 advanceRotation(plan, stamped.dayId)
             }
             id

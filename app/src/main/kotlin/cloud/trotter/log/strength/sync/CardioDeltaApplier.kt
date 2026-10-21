@@ -4,7 +4,6 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.effectiveCardio
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import kotlinx.coroutines.flow.first
@@ -47,10 +46,6 @@ class CardioDeltaApplier(
             it.dayId == delta.dayId && it.startedAt == delta.startedAt
         }
         if (!duplicate) {
-            val planId = delta.planId ?: repo.selectedPlanIdFlow.first()
-            val day = planId?.let { owner -> repo.programFor(owner).first().days.firstOrNull { it.id == delta.dayId } }
-            val finishesDay = sets.isNotEmpty() && planId != null && day != null && day.exercises.isEmpty() &&
-                day.effectiveCardio(repo.wizardAnswersFor(planId).first().cardio) != null
             val id = repo.logCardioSession(
                 CardioSessionEntity(
                     dayId = delta.dayId, mode = delta.mode, hard = delta.hard,
@@ -58,7 +53,7 @@ class CardioDeltaApplier(
                     completedAt = delta.completedAt, seconds = delta.seconds,
                     stepsCompleted = delta.stepsCompleted,
                     planId = delta.planId, activity = delta.activity,
-                ), sets, finishDay = finishesDay,
+                ), sets, finishDay = delta.finishesDay,
             )
             sessionPublisher.publishCardio(id)
         }

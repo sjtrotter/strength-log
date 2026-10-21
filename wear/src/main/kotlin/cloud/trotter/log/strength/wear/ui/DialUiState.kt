@@ -106,6 +106,9 @@ data class DialHold(
     val cardioSetAttempt: CardioSetState? = null,
 )
 
+/** Editable cardio controls exposed alongside the disc's touch actions. */
+enum class CardioSetInput { NONE, OPTIONS, DISTANCE }
+
 data class DialUiState(
     val screen: DialScreen,
     val accentIndex: Int,
@@ -133,6 +136,7 @@ data class DialUiState(
     val swipe: DialSwipe = DialSwipe.NONE,
     val hold: DialHold? = null,
     val roundDescriptions: List<String> = emptyList(),
+    val cardioSetInput: CardioSetInput = CardioSetInput.NONE,
 )
 
 /** The state machine offers undo by supplying the target the gesture will undo. */

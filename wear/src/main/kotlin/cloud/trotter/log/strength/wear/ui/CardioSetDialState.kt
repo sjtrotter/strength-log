@@ -53,9 +53,11 @@ internal fun cardioSetsDial(inputs: DialInputs, run: CardioSetState): DialUiStat
                 "${run.results.count { it.status == "SHORTENED" }} shortened · " +
                 "${run.results.count { it.status == "SKIPPED" }} skipped"
             tap = if (run.startedAt == null || (run.queuedStamp != null && snapshot.cardioAckStamp >= run.queuedStamp))
-                DialTap.DISMISS else DialTap.NONE
+                DialTap.DISMISS else if (run.saveFailed) DialTap.CARDIO_SET else DialTap.NONE
             crown = DialCrown.NONE
-            listOf(line(if (run.startedAt == null) "Back to Today" else run.receipt(snapshot.cardioAckStamp)))
+            if (run.saveFailed && run.queuedStamp == null) {
+                listOf(line(run.receipt(snapshot.cardioAckStamp)), line("Tap to retry"))
+            } else listOf(line(if (run.startedAt == null) "Back to Today" else run.receipt(snapshot.cardioAckStamp)))
         }
         run.peekIndex != null -> {
             val index = run.peekIndex
@@ -93,6 +95,11 @@ internal fun cardioSetsDial(inputs: DialInputs, run: CardioSetState): DialUiStat
         topBand = BandContent(top, DialTone.ACCENT_BRIGHT),
         bottomBand = bottom?.let { BandContent(it, DialTone.SECONDARY) },
         disc = DiscContent(DiscStyle.FLAT, lines), bloom = false, tap = tap, crown = crown, hold = hold,
+        cardioSetInput = when {
+            entering -> CardioSetInput.DISTANCE
+            run.options || run.confirmingEnd -> CardioSetInput.OPTIONS
+            else -> CardioSetInput.NONE
+        },
         roundDescriptions = run.block.sets.mapIndexed { index, set ->
             val status = run.results.getOrNull(index)?.status?.let(::cardioStatusLabel)
                 ?: if (index == run.position && running) "Running" else "Ready"

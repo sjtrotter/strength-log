@@ -1,12 +1,16 @@
 package cloud.trotter.log.strength.wear.data
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.WatchCardioSetResult
 import cloud.trotter.log.strength.domain.sync.WatchCardioSetSpec
 import java.io.File
+import java.io.IOException
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -99,6 +103,58 @@ class DataLayerWatchClientTest {
         link.snapshotEvents.emit(next.copy(revision = 3, cardioAckStamp = stamp))
         eventually("cardio acknowledged") { queue.allCardio().isEmpty() }
         assertTrue(warnings.isEmpty(), "unexpected warnings: $warnings")
+    }
+
+    @Test
+    fun `failed cardio enqueue reports failure without a receipt then retry queues the same results`() = runBlocking {
+        val backing = PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("cardio-retry", ".preferences_pb").also { it.delete() }
+        }
+        val writes = AtomicInteger()
+        val queue = PendingEditStore(object : DataStore<Preferences> by backing {
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+                // Stamp issuance succeeds; fail the separate durable queue write.
+                if (writes.incrementAndGet() == 2) throw IOException("queue full")
+                return backing.updateData(transform)
+            }
+        })
+        val client = watchClient(FakePhoneLink(), queue)
+        val spec = WatchCardioSetSpec("WORK", "TIME", 60)
+        val event = CardioDelta(dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Track run", startedAt = 1_000, completedAt = 61_000,
+            seconds = 60, stepsCompleted = 1, stamp = 61_000,
+            sets = listOf(WatchCardioSetResult(spec, "FINISHED", 60)), finishesDay = true)
+        val failed = CompletableDeferred<Unit>()
+        val queued = CompletableDeferred<Long>()
+        client.sendCardio(event, onQueued = { queued.complete(it) }, onFailure = { failed.complete(Unit) })
+        withTimeout(5_000) { failed.await() }
+        assertTrue(!queued.isCompleted)
+        assertTrue(queue.allCardio().isEmpty())
+        client.sendCardio(event, onQueued = { queued.complete(it) }, onFailure = { fail("retry should save") })
+        val stamp = withTimeout(5_000) { queued.await() }
+        assertEquals(event.copy(stamp = stamp), queue.allCardio().single())
+        assertTrue(stamp > event.stamp)
+    }
+
+    @Test
+    fun `phone link failure after cardio enqueue keeps the durable receipt`() = runBlocking {
+        val queue = store()
+        val link = FakePhoneLink()
+        val offline = object : PhoneLink by link {
+            override suspend fun send(path: String, bytes: ByteArray) { throw IOException("offline") }
+        }
+        val client = DataLayerWatchClient(offline, queue, appScope,
+            onWarning = { message, cause -> warnings += "$message: $cause" })
+        val event = CardioDelta(dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Easy", startedAt = 1_000, completedAt = 61_000,
+            seconds = 60, stepsCompleted = 1, stamp = 61_000)
+        val queued = CompletableDeferred<Long>()
+        val failed = AtomicBoolean()
+        client.sendCardio(event, onQueued = { queued.complete(it) }, onFailure = { failed.set(true) })
+        val stamp = withTimeout(5_000) { queued.await() }
+        eventually("link failure") { warnings.any { it.contains("offline") } }
+        assertTrue(!failed.get())
+        assertEquals(event.copy(stamp = stamp), queue.allCardio().single())
     }
 
     @Test

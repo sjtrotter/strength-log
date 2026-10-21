@@ -174,7 +174,8 @@ fun WearApp(
 
     fun tapCardioSet() {
         val run = localCardioSets() ?: return
-        val next = run.tap(System.currentTimeMillis(), SystemClock.elapsedRealtime(), bootCountNow())
+        val next = run.tap(System.currentTimeMillis(), SystemClock.elapsedRealtime(), bootCountNow(),
+            finishesDay = snapshot?.day?.exercises?.isEmpty() == true)
         if (cardioSets == null || next.active != run.active) restController.disarm()
         savedCardioSets = next
     }
@@ -232,14 +233,20 @@ fun WearApp(
     }
 
     val cardioDelta = cardioSets?.takeIf { it.queuedStamp == null }?.delta()
-    LaunchedEffect(cardioDelta) {
+    LaunchedEffect(cardioDelta, cardioSets?.saveFailed) {
         val delta = cardioDelta ?: return@LaunchedEffect
-        client.sendCardio(delta) { stamp ->
+        if (cardioSets.saveFailed) return@LaunchedEffect
+        client.sendCardio(delta, onQueued = { stamp ->
             val current = savedCardioSets
-            if (current != null && current.dayId == delta.dayId && current.startedAt == delta.startedAt) {
-                savedCardioSets = current.copy(queuedStamp = stamp)
+            if (current != null && current.planId == delta.planId && current.dayId == delta.dayId && current.startedAt == delta.startedAt) {
+                savedCardioSets = current.copy(queuedStamp = stamp, saveFailed = false)
             }
-        }
+        }, onFailure = {
+            val current = savedCardioSets
+            if (current != null && current.planId == delta.planId && current.dayId == delta.dayId && current.startedAt == delta.startedAt) {
+                savedCardioSets = current.copy(saveFailed = true)
+            }
+        })
     }
 
     // Boundary buzzes are armed at the ROOT so ambient keeps them, and the
@@ -881,6 +888,7 @@ private fun WorkoutDial(
         Dial(
             state = state,
             onRepCountChange = { changeRepCount(it) },
+            onCardioSetTurn = { onCardioSetTurn(it) },
             modifier = Modifier.fillMaxSize().background(Background).then(swipeLeft),
             onTap = {
                 when (state.tap) {

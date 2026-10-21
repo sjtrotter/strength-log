@@ -22,7 +22,7 @@ class WatchCardioWireTest {
     private val delta = CardioDelta(dayId = "A", mode = "OUTDOOR_RUN", hard = true,
         label = "Track run", startedAt = 1_000, completedAt = 256_000,
         seconds = 255, stepsCompleted = 2, stamp = 256_000, planId = 42,
-        activity = "TRACK_RUN", sets = listOf(
+        activity = "TRACK_RUN", finishesDay = true, sets = listOf(
             WatchCardioSetResult(block.sets[0].toWatch(), "FINISHED", 60, 110, "MANUAL"),
             WatchCardioSetResult(block.sets[1].toWatch(), "SHORTENED", 195),
             WatchCardioSetResult(block.sets[2].toWatch(), "SKIPPED", 0),
@@ -46,6 +46,7 @@ class WatchCardioWireTest {
         val decoded = SyncCodec.decodeCardio(oldDelta.encodeToByteArray())
         assertNull(decoded.activity)
         assertEquals(emptyList(), decoded.sets)
+        assertEquals(false, decoded.finishesDay)
         assertEquals(1, decoded.schemaVersion)
         assertEquals(1, snapshot.schemaVersion)
     }

@@ -148,6 +148,27 @@ class TrackerRepositoryCardioSetsTest {
         assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
     }
 
+    @Test fun `a second device completion for A logs without advancing its rotation again`() = runTest {
+        val planId = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(planId)
+        val block = CardioBlock(CardioActivity.TRACK_RUN, sets.map { it.spec })
+        repo.replaceProgram(Program(listOf("A", "B", "C").map {
+            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+        }))
+        val first = repo.logCardioSession(session.copy(planId = planId), sets, finishDay = true)
+        assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
+        val second = repo.logCardioSession(session.copy(planId = planId, startedAt = 2_000), sets, finishDay = true)
+        assertTrue(first != second)
+        assertEquals(2, db.cardioSessionDao().all().size)
+        assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
+        // A later phone completion of A must use the same guard after B advances.
+        repo.logCardioSession(session.copy(planId = planId, dayId = "B", startedAt = 500_000,
+            completedAt = 950_000), sets, finishDay = true)
+        assertEquals("C", db.planDao().plan(planId)?.suggestedDayId)
+        repo.logCardioSession(session.copy(planId = planId, startedAt = 3_000), sets, finishDay = true)
+        assertEquals("C", db.planDao().plan(planId)?.suggestedDayId)
+    }
+
     @Test fun `invalid stored set rows are skipped while valid results keep their order`() = runTest {
         val id = repo.logCardioSession(session)
         val valid = sets[1].toEntity(id, 0)

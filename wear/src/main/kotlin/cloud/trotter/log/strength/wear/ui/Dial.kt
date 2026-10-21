@@ -126,6 +126,7 @@ fun Dial(
     onHoldComplete: (DialHold) -> Unit = {},
     timePillText: String? = null,
     onRepCountChange: (Int) -> Unit = {},
+    onCardioSetTurn: (Int) -> Unit = {},
 ) {
     BoxWithConstraints(modifier.fillMaxSize().semantics {
         if (state.roundDescriptions.isNotEmpty()) contentDescription = state.roundDescriptions.joinToString("; ")
@@ -152,6 +153,7 @@ fun Dial(
             onTap = onTap,
             onHoldComplete = onHoldComplete,
             onRepCountChange = onRepCountChange,
+            onCardioSetTurn = onCardioSetTurn,
             modifier = Modifier.align(Alignment.Center),
         )
         Band(state.bottomBand, BandPole.BOTTOM, type, state.accentIndex, diameterPx)
@@ -539,6 +541,7 @@ private fun Disc(
     onTap: () -> Unit,
     onHoldComplete: (DialHold) -> Unit,
     onRepCountChange: (Int) -> Unit,
+    onCardioSetTurn: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -604,7 +607,7 @@ private fun Disc(
                     )
                 }
             }
-            .discGestures(state, holdFill, onTap, onHoldComplete, onRepCountChange)
+            .discGestures(state, holdFill, onTap, onHoldComplete, onRepCountChange, onCardioSetTurn)
             .padding(horizontal = discDp * DISC_TEXT_INSET),
         contentAlignment = Alignment.Center,
     ) {
@@ -632,16 +635,24 @@ private fun Modifier.discGestures(
     onTap: () -> Unit,
     onHoldComplete: (DialHold) -> Unit,
     onRepCountChange: (Int) -> Unit,
+    onCardioSetTurn: (Int) -> Unit,
 ): Modifier {
     val scope = rememberCoroutineScope()
     val latestOnTap by rememberUpdatedState(onTap)
     val latestOnHoldComplete by rememberUpdatedState(onHoldComplete)
     val latestOnRepCountChange by rememberUpdatedState(onRepCountChange)
+    val latestOnCardioSetTurn by rememberUpdatedState(onCardioSetTurn)
     val undoLastSetLabel = stringResource(R.string.dial_undo_last_set_action)
     val stopCardioLabel = stringResource(R.string.dial_cardio_stop_action)
     val stopTimedRepLabel = stringResource(R.string.dial_timed_rep_stop_action)
     val incrementRepsLabel = stringResource(R.string.dial_increment_reps_action)
     val decrementRepsLabel = stringResource(R.string.dial_decrement_reps_action)
+    val nextOptionLabel = stringResource(R.string.dial_next_option_action)
+    val previousOptionLabel = stringResource(R.string.dial_previous_option_action)
+    val selectOptionLabel = stringResource(R.string.dial_select_option_action)
+    val increaseDistanceLabel = stringResource(R.string.dial_increase_distance_action)
+    val decreaseDistanceLabel = stringResource(R.string.dial_decrease_distance_action)
+    val clearDistanceLabel = stringResource(R.string.dial_clear_distance_action)
     val clickLabel = when (state.tap) {
         DialTap.NONE -> null
         DialTap.OPEN_WORKOUT -> stringResource(R.string.dial_open_workout_action)
@@ -673,12 +684,25 @@ private fun Modifier.discGestures(
                 true
             }
         }
-        if (state.crown == DialCrown.REP_COUNT) {
-            customActions = listOf(
+        val actions = when {
+            state.crown == DialCrown.REP_COUNT -> listOf(
                 CustomAccessibilityAction(incrementRepsLabel) { latestOnRepCountChange(1); true },
                 CustomAccessibilityAction(decrementRepsLabel) { latestOnRepCountChange(-1); true },
             )
+            state.cardioSetInput == CardioSetInput.OPTIONS -> listOf(
+                CustomAccessibilityAction(nextOptionLabel) { latestOnCardioSetTurn(1); true },
+                CustomAccessibilityAction(previousOptionLabel) { latestOnCardioSetTurn(-1); true },
+                CustomAccessibilityAction(selectOptionLabel) { latestOnTap(); true },
+            )
+            state.cardioSetInput == CardioSetInput.DISTANCE -> listOf(
+                CustomAccessibilityAction(increaseDistanceLabel) { latestOnCardioSetTurn(1); true },
+                CustomAccessibilityAction(decreaseDistanceLabel) { latestOnCardioSetTurn(-1); true },
+                // The same clamped crown update returns any distance to blank.
+                CustomAccessibilityAction(clearDistanceLabel) { latestOnCardioSetTurn(Int.MIN_VALUE); true },
+            )
+            else -> emptyList()
         }
+        if (actions.isNotEmpty()) customActions = actions
     }
     return this.then(accessibility).pointerInput(state.tap, state.hold) {
         if (state.tap == DialTap.NONE && state.hold == null) return@pointerInput

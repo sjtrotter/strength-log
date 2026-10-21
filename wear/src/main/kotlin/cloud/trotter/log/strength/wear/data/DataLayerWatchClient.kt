@@ -133,15 +133,26 @@ class DataLayerWatchClient(
 
     override fun sendCardio(delta: CardioDelta) = sendCardio(delta) {}
 
-    override fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit) = launchSend("sending cardio") {
-        val stamped = installing.withLock {
-            val event = delta.copy(stamp = queue.issueStamp(delta.stamp))
-            queue.enqueueCardio(event)
-            event
+    override fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit) = sendCardio(delta, onQueued) {}
+
+    override fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit, onFailure: () -> Unit) =
+        launchSend("sending cardio") {
+            val stamped = try {
+                installing.withLock {
+                    val event = delta.copy(stamp = queue.issueStamp(delta.stamp))
+                    queue.enqueueCardio(event)
+                    event
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                onFailure()
+                throw failure
+            }
+            onQueued(stamped.stamp)
+            // A link failure after enqueue is still a successful local save.
+            sendCardioMessage(stamped)
         }
-        onQueued(stamped.stamp)
-        sendCardioMessage(stamped)
-    }
 
     /**
      * The lifter felt the CONFIRM buzz before this call returned, so from here on the

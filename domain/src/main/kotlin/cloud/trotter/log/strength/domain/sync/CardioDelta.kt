@@ -20,4 +20,6 @@ data class CardioDelta(
     val planId: Long? = null,
     val activity: String? = null,
     val sets: List<WatchCardioSetResult> = emptyList(),
+    /** Frozen at start; absent on older watches, which only log a summary. */
+    val finishesDay: Boolean = false,
 )

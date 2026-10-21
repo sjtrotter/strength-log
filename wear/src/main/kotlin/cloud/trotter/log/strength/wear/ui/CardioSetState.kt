@@ -24,6 +24,9 @@ data class CardioSetState(
     val peekIndex: Int? = null,
     /** The actual durable queue stamp, which may exceed the wall-clock stamp. */
     val queuedStamp: Long? = null,
+    /** Eligibility at the first local start; later snapshots cannot change it. */
+    val finishesDay: Boolean = false,
+    val saveFailed: Boolean = false,
 ) {
     val position: Int get() = results.size
     val complete: Boolean get() = position == block.sets.size
@@ -32,7 +35,8 @@ data class CardioSetState(
     fun reconcile(snapshot: WatchSnapshot): CardioSetState? {
         // A completed receipt stays visible through the phone's rotation advance.
         if (complete) return takeIf { planId == snapshot.planId }
-        if (planId != snapshot.planId || dayId != snapshot.day.dayId || block != snapshot.cardioBlock) return null
+        if (planId != snapshot.planId || dayId != snapshot.day.dayId) return null
+        if (startedAt == null && block != snapshot.cardioBlock) return null
         val logged = snapshot.cardio?.loggedStartedAt
         return takeIf { logged == null || logged == startedAt }
     }
@@ -52,9 +56,10 @@ data class CardioSetState(
             else nowElapsed + anchor.startedAtWallMillis + spec.endValue * 1_000L - nowWall
     }
 
-    fun start(nowWall: Long, nowElapsed: Long, boot: Int): CardioSetState {
+    fun start(nowWall: Long, nowElapsed: Long, boot: Int, finishesDay: Boolean = this.finishesDay): CardioSetState {
         if (complete || active != null || entries.isNotEmpty() || options || confirmingEnd) return this
         return copy(startedAt = startedAt ?: nowWall,
+            finishesDay = if (startedAt == null) finishesDay else this.finishesDay,
             active = CardioAnchors(nowWall, nowElapsed, boot, planId), peekIndex = null)
     }
 
@@ -124,7 +129,8 @@ data class CardioSetState(
         else -> this
     }
 
-    fun tap(nowWall: Long, nowElapsed: Long, boot: Int): CardioSetState = when {
+    fun tap(nowWall: Long, nowElapsed: Long, boot: Int, finishesDay: Boolean = this.finishesDay): CardioSetState = when {
+        complete && queuedStamp == null && saveFailed -> copy(saveFailed = false)
         entries.isNotEmpty() -> {
             val index = entries.first()
             copy(results = results.mapIndexed { i, result ->
@@ -139,7 +145,7 @@ data class CardioSetState(
         }
         peekIndex != null -> copy(peekIndex = null)
         active != null -> reached(nowWall, nowElapsed, boot)
-        else -> start(nowWall, nowElapsed, boot)
+        else -> start(nowWall, nowElapsed, boot, finishesDay)
     }
 
     fun end(nowWall: Long, nowElapsed: Long, boot: Int): CardioSetState {
@@ -161,12 +167,15 @@ data class CardioSetState(
         return CardioDelta(dayId = dayId, mode = mode, hard = block.sets.any { it.role == "WORK" && it.hard },
             label = cardioActivityLabel(block.activity), startedAt = start, completedAt = end,
             seconds = results.sumOf { it.elapsedSeconds }, stepsCompleted = results.count { it.status == "FINISHED" },
-            stamp = end, planId = planId, activity = block.activity, sets = results)
+            stamp = end, planId = planId, activity = block.activity, sets = results, finishesDay = finishesDay)
     }
 
-    fun receipt(ackStamp: Long): String = if (queuedStamp != null && ackStamp >= queuedStamp) {
-        "Logged ${cardioSetTime(results.sumOf { it.elapsedSeconds })}"
-    } else "Saved on watch"
+    fun receipt(ackStamp: Long): String = when {
+        queuedStamp != null && ackStamp >= queuedStamp -> "Logged ${cardioSetTime(results.sumOf { it.elapsedSeconds })}"
+        queuedStamp != null -> "Saved on watch"
+        saveFailed -> "Couldn't save"
+        else -> "Saving…"
+    }
 }
 
 /** The starting device creates the execution; a phone snapshot only supplies a prescription. */
@@ -197,7 +206,7 @@ internal val cardioSetStateSaver = mapSaver<CardioSetState?>(
             "elapsed" to run.active?.startedAtElapsedMillis, "boot" to run.active?.bootCount,
             "end" to run.completedAt, "entries" to ArrayList(run.entries), "draft" to run.draftMetres,
             "options" to run.options, "confirm" to run.confirmingEnd, "selection" to run.selection,
-            "queued" to run.queuedStamp,
+            "queued" to run.queuedStamp, "finishesDay" to run.finishesDay, "saveFailed" to run.saveFailed,
         )
     },
     restore = { saved ->
@@ -211,6 +220,8 @@ internal val cardioSetStateSaver = mapSaver<CardioSetState?>(
                 draftMetres = saved["draft"] as Int?, options = saved["options"] as Boolean,
                 confirmingEnd = saved["confirm"] as Boolean, selection = saved["selection"] as Int,
                 queuedStamp = saved["queued"] as Long?,
+                finishesDay = saved["finishesDay"] as? Boolean ?: false,
+                saveFailed = saved["saveFailed"] as? Boolean ?: false,
             ).also { run ->
                 run.block.toDomain()
                 require(run.results.size <= run.block.sets.size)

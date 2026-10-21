@@ -168,7 +168,7 @@ class CardioSetStateTest {
         assertEquals(220_000L, reboot.delta()?.completedAt)
     }
 
-    @Test fun `state and entry drafts restore only for their owner and frozen prescription`() {
+    @Test fun `state and entry drafts keep their frozen prescription but restore only for their owner`() {
         val state = run(time, recovery).start(100_000, 10_000, 4).stop(101_000, 11_000, 4).turn(13)
         val scope = object : SaverScope { override fun canBeSaved(value: Any) = true }
         val saved = with(cardioSetStateSaver) { assertNotNull(scope.save(state)) }
@@ -178,8 +178,67 @@ class CardioSetStateTest {
         assertEquals(restored, restored.reconcile(snapshot))
         assertNull(restored.reconcile(snapshot.copy(planId = 10)))
         assertNull(restored.reconcile(snapshot.copy(day = snapshot.day.copy(dayId = "B"))))
-        assertNull(restored.reconcile(snapshot.copy(cardioBlock = block(distance))))
+        assertEquals(restored, restored.reconcile(snapshot.copy(cardioBlock = block(distance))))
+        assertEquals(restored, restored.reconcile(snapshot.copy(cardioBlock = null)))
         assertNull(restored.reconcile(snapshot.copy(cardio = CardioSuggestion("Phone", "", false, loggedStartedAt = 999))))
+    }
+
+    @Test fun `unstarted offers follow edits but started active and paused runs stay frozen`() {
+        val offer = run(time, time)
+        val edited = snapshot(block(distance))
+        assertNull(offer.reconcile(edited))
+        val active = offer.start(100_000, 10_000, 4)
+        assertEquals(active, active.reconcile(edited))
+        val paused = active.resume(220_000, 130_000, 4)
+        assertEquals(paused, paused.reconcile(edited))
+        assertNull(active.reconcile(edited.copy(planId = 10)))
+        assertNull(active.reconcile(edited.copy(day = edited.day.copy(dayId = "B"))))
+    }
+
+    @Test fun `eligibility is captured on first start and survives edits subsequent starts and restore`() {
+        val exercise = WatchExercise(1, "main", "Squat", 100.0, false, null,
+            listOf(WatchSet(100.0, 5, "WORK", true)), emptyList())
+        val cardioOnly = snapshot(block(time, time))
+        val mixed = cardioOnly.copy(day = cardioOnly.day.copy(exercises = listOf(exercise)))
+        val scope = object : SaverScope { override fun canBeSaved(value: Any) = true }
+        listOf(cardioOnly to mixed, mixed to cardioOnly).forEach { (atStart, edited) ->
+            val eligible = atStart.day.exercises.isEmpty()
+            val started = assertNotNull(newCardioSetState(atStart, null, false))
+                .tap(100_000, 10_000, 4, finishesDay = eligible)
+            val saved = with(cardioSetStateSaver) { assertNotNull(scope.save(started)) }
+            val restored = assertNotNull(cardioSetStateSaver.restore(saved))
+            val afterEdit = assertNotNull(restored.reconcile(edited)).resume(220_000, 130_000, 4)
+            val finished = afterEdit.tap(230_000, 140_000, 4, finishesDay = !eligible)
+                .resume(350_000, 260_000, 4)
+            assertEquals(eligible, assertNotNull(finished.delta()).finishesDay)
+        }
+    }
+
+    @Test fun `older saved runs default to summary eligibility`() {
+        val original = run(time).start(100_000, 10_000, 4, finishesDay = true)
+        val scope = object : SaverScope { override fun canBeSaved(value: Any) = true }
+        val saved = with(cardioSetStateSaver) { assertNotNull(scope.save(original)) } as List<*>
+        val legacy = saved.chunked(2).filter { it[0] != "finishesDay" && it[0] != "saveFailed" }.flatten()
+        val restored = assertNotNull(cardioSetStateSaver.restore(legacy))
+        assertFalse(restored.finishesDay)
+        assertFalse(restored.saveFailed)
+    }
+
+    @Test fun `saving and failed enqueue keep results and retry until a durable receipt exists`() {
+        val finished = run(time).start(100_000, 10_000, 4).resume(220_000, 130_000, 4)
+        assertEquals(listOf("Saving…"), texts(render(finished)))
+        assertEquals(DialTap.NONE, render(finished).tap)
+        val failed = finished.copy(saveFailed = true)
+        assertEquals(listOf("Couldn't save", "Tap to retry"), texts(render(failed)))
+        assertEquals(DialTap.CARDIO_SET, render(failed).tap)
+        val scope = object : SaverScope { override fun canBeSaved(value: Any) = true }
+        val saved = with(cardioSetStateSaver) { assertNotNull(scope.save(failed)) }
+        val restored = assertNotNull(cardioSetStateSaver.restore(saved))
+        assertEquals(failed, restored)
+        val retry = restored.tap(230_000, 140_000, 4)
+        assertEquals(finished, retry)
+        assertEquals(finished.delta(), retry.delta())
+        assertEquals("Saved on watch", retry.copy(queuedStamp = 220_001).receipt(0))
     }
 
     @Test fun `a held Stop crossing zero cannot shorten auto-started recovery`() {

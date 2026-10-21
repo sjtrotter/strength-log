@@ -43,11 +43,17 @@ data class DayUiState(
     val nextDayId: String? = null,
     val exercises: List<ExerciseCardState> = emptyList(),
     val cardio: CardioCardState? = null,
+    val timedRep: TimedRepState? = null,
+    val executionBusy: Boolean = false,
     val keepScreenOn: Boolean = false,
     val rest: RestUiState? = null,
     val watchStatus: WatchStatus? = null,
     val remoteTick: RemoteTick? = null,
 ) {
+    val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
+    val executionKeepsScreenOn: Boolean = timedRepRunning ||
+        cardio?.phase == CardioPhase.EXECUTING || cardio?.phase == CardioPhase.OVERRUN
+
     /** Rounds ticked across MAIN tracks, matching Today and the widget. A
      *  superset partner shares its round. Recomputed once per state, including copy(). */
     val doneSets: Int = exercises.sumOf { card -> card.rows.count { it.done } }
@@ -72,7 +78,32 @@ data class OpenSheet(
     val programExerciseId: Long,
     val setIndex: Int,
 ) : Parcelable {
-    enum class Kind { EDITOR, ALL_SETS }
+    enum class Kind { EDITOR, ALL_SETS, TIMED_REP_COUNT }
+}
+
+/** One atomic saved event: anchors while running, then a count draft and sheet delivery state. */
+@Parcelize
+@Immutable
+data class TimedRepEvent(
+    val dayId: String,
+    val programExerciseId: Long,
+    val exerciseId: String,
+    val setIndex: Int,
+    val durationSeconds: Int,
+    val wallStart: Long,
+    val elapsedStart: Long,
+    val bootCount: Int,
+    val awaitingCount: Boolean = false,
+    val draft: String = "0",
+    val sheetRequested: Boolean = false,
+    val sheetDismissed: Boolean = false,
+) : Parcelable {
+    val count: Int? get() = draft.takeIf { it.isNotBlank() && it.all(Char::isDigit) }?.toIntOrNull()
+}
+
+@Immutable
+data class TimedRepState(val event: TimedRepEvent, val remainingSeconds: Int) {
+    val requestsSheet: Boolean = event.awaitingCount && !event.sheetRequested && !event.sheetDismissed
 }
 
 @Immutable
@@ -168,6 +199,9 @@ data class ExerciseCardState(
     /** The Add weight / Remove weight menu (§4.2); null when this slot's
      *  exercise has no weighted-pair link at all. */
     val weightSwap: WeightSwapAffordance? = null,
+    val exerciseId: String = "",
+    val timedRepDurationSeconds: Int? = null,
+    val timedRepAim: Int? = null,
 )
 
 /**

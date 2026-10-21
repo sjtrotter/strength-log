@@ -34,6 +34,8 @@ class SystemCardioClock @Inject constructor(
 interface CardioAlarm {
     fun arm(deadlineElapsedMillis: Long, identity: String, onBoundary: () -> Unit)
     fun cancel()
+    /** Same end-boundary feedback when the foreground ticker wins the alarm race. */
+    fun buzz() = Unit
 }
 
 /**
@@ -80,6 +82,8 @@ class AndroidCardioAlarm @Inject constructor(
         listener = null
         armedIdentity = null
     }
+
+    override fun buzz() = vibrate()
 
     private fun vibrate() {
         val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {

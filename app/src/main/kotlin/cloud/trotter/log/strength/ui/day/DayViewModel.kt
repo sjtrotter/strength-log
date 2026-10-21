@@ -129,6 +129,10 @@ class DayViewModel @Inject constructor(
     private val cardioStartedBoot = savedState.getStateFlow<Int?>(KEY_CARDIO_BOOT, null)
     private val cardioTick = MutableStateFlow(0L)
     private var cardioScreenLive = false
+    private val timedRepEvent = savedState.getStateFlow<TimedRepEvent?>(KEY_TIMED_REP_EVENT, null)
+    // Only a clock observed running in this foreground session may buzz. Restores
+    // and returns after a missed deadline present entry silently.
+    private var timedRepAlertAnchor: Long? = null
 
     /** Serializes all read-modify-write log mutations (see class doc). */
     private val mutationLock = Mutex()
@@ -203,8 +207,10 @@ class DayViewModel @Inject constructor(
     /** One tick per second while a block runs and someone is watching; nothing
      *  otherwise. Living inside the uiState pipeline means WhileSubscribed owns
      *  its lifecycle — no free-running loop survives the screen. */
-    private val cardioSecondTicker = cardioPlanIdentity.flatMapLatest { identity ->
-        if (identity == null) flowOf(0L)
+    private val cardioSecondTicker = combine(cardioPlanIdentity, timedRepEvent) { cardio, reps ->
+        cardio != null || reps?.awaitingCount == false
+    }.distinctUntilChanged().flatMapLatest { running ->
+        if (!running) flowOf(0L)
         else flow {
             var beat = 0L
             while (true) {
@@ -232,14 +238,22 @@ class DayViewModel @Inject constructor(
         }
     }
 
+    private val executionState = combine(
+        cardioAnchors, cardioTick, cardioSecondTicker, timedRepEvent,
+    ) { anchors, _, _, reps -> anchors to reps }
+
     private val baseUiState: Flow<DayUiState> =
-        combine(dayState, repo.keepScreenOnFlow, repo.selectedPlanCardioSessionsFlow, combine(cardioAnchors, cardioTick, cardioSecondTicker) { a, _, _ -> a }, phoneRestState) {
-                state, preferences, history, anchors, rest ->
+        combine(dayState, repo.keepScreenOnFlow, repo.selectedPlanCardioSessionsFlow, executionState, phoneRestState) {
+                state, preferences, history, execution, rest ->
+            val (anchors, event) = execution
             val cardio = buildCardioState(state, history, anchors)
-            maybeArmCardioBoundary(cardio, anchors)
+            if (event == null || event.awaitingCount) maybeArmCardioBoundary(cardio, anchors)
+            val timedRep = reconcileTimedRep(state, event)
             state.copy(
                 keepScreenOn = preferences,
                 cardio = cardio,
+                timedRep = timedRep,
+                executionBusy = anchors.identity != null || timedRep?.event?.awaitingCount == false,
                 rest = rest,
             )
         }
@@ -247,13 +261,7 @@ class DayViewModel @Inject constructor(
     private val sheetUiState = combine(baseUiState, selectedPage, openSheet) { state, selection, savedSheet ->
         state.copy(
             selectedPageKey = selection,
-            openSheet = savedSheet?.takeIf { sheet ->
-                !state.loading && sheet.dayId == state.viewDayId &&
-                    state.exercises.any { card ->
-                        card.programExerciseId == sheet.programExerciseId &&
-                            (sheet.kind == OpenSheet.Kind.ALL_SETS || card.rows.getOrNull(sheet.setIndex) != null)
-                    }
-            },
+            openSheet = savedSheet?.takeIf { sheetResolves(state, it, state.timedRep?.event) },
         )
     }
 
@@ -391,15 +399,17 @@ class DayViewModel @Inject constructor(
     }
 
     fun startCardio() {
-        if (cardioPlanIdentity.value != null) return
+        if (cardioPlanIdentity.value != null || timedRepEvent.value?.awaitingCount == false) return
         val dayId = currentDay() ?: return
         val suggestion = uiState.value.cardio?.takeIf { it.phase == CardioPhase.SUGGESTION } ?: return
         mutate {
             // Re-checked under the lock: a double tap's second pass lands here
             // after the first has reserved the block, and must be a no-op.
-            if (cardioPlanIdentity.value != null) return@mutate
+            if (cardioPlanIdentity.value != null || timedRepEvent.value?.awaitingCount == false) return@mutate
             val prefs = repo.wizardAnswersFlow.first().cardio
             if (prefs.mode == CardioMode.NONE) return@mutate
+            // Reading preferences may suspend while timed reps reserve the shared alarm.
+            if (timedRepEvent.value?.awaitingCount == false) return@mutate
             val identity = CardioPlanIdentity(dayId, prefs.mode, prefs.fiveKGoal, suggestion.hard, suggestion.label)
             savedState[KEY_CARDIO_WALL] = cardioClock.wallMillis()
             savedState[KEY_CARDIO_ELAPSED] = cardioClock.elapsedRealtimeMillis()
@@ -450,7 +460,60 @@ class DayViewModel @Inject constructor(
     /** Called by the day-screen lifecycle; background screens never retain a boundary alarm. */
     fun setCardioScreenLive(live: Boolean) {
         cardioScreenLive = live
-        if (!live) cardioAlarm.cancel() else cardioTick.value++
+        if (!live) {
+            timedRepAlertAnchor = null
+            cardioAlarm.cancel()
+        } else cardioTick.value++
+    }
+
+    fun startTimedRep(programExerciseId: Long, setIndex: Int) {
+        if (cardioPlanIdentity.value != null || timedRepEvent.value != null) return
+        val state = uiState.value
+        val day = currentDay() ?: return
+        val card = state.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return
+        val duration = card.timedRepDurationSeconds?.takeIf { it > 0 } ?: return
+        if (state.viewDayId != day || card.focusIndex != setIndex || card.rows.getOrNull(setIndex)?.done != false) return
+        // Reserve synchronously, so a cardio Start or a second tap cannot replace the alarm.
+        savedState[KEY_TIMED_REP_EVENT] = TimedRepEvent(
+            day, programExerciseId, card.exerciseId, setIndex, duration,
+            cardioClock.wallMillis(), cardioClock.elapsedRealtimeMillis(), cardioClock.bootCount(),
+        )
+    }
+
+    fun stopTimedRep() {
+        if (timedRepEvent.value?.awaitingCount != false) return
+        clearTimedRep()
+    }
+
+    /** The screen calls this only when its sheet host is free. */
+    fun openTimedRepCount() {
+        val event = timedRepEvent.value?.takeIf {
+            it.awaitingCount && !it.sheetRequested && !it.sheetDismissed
+        } ?: return
+        if (openSheet.value?.let { sheetResolves(dayState.value, it, event) } == true ||
+            !timedRepMatches(dayState.value, event)
+        ) return
+        savedState[KEY_TIMED_REP_EVENT] = event.copy(sheetRequested = true, sheetDismissed = false)
+        savedState[KEY_OPEN_SHEET] = OpenSheet(
+            event.dayId, OpenSheet.Kind.TIMED_REP_COUNT, event.programExerciseId, event.setIndex,
+        )
+    }
+
+    fun requestTimedRepCount() {
+        val event = timedRepEvent.value?.takeIf { it.awaitingCount } ?: return
+        savedState[KEY_TIMED_REP_EVENT] = event.copy(sheetRequested = false, sheetDismissed = false)
+    }
+
+    fun changeTimedRepDraft(draft: String) {
+        val event = timedRepEvent.value?.takeIf { it.awaitingCount } ?: return
+        if (draft.isEmpty() || (draft.all(Char::isDigit) && draft.toIntOrNull() != null)) {
+            savedState[KEY_TIMED_REP_EVENT] = event.copy(draft = draft)
+        }
+    }
+
+    fun logTimedRepCount() {
+        val event = timedRepEvent.value?.takeIf { it.awaitingCount && it.count != null } ?: return
+        tickSet(event.programExerciseId, event.setIndex, true, false, event)
     }
 
     override fun onCleared() {
@@ -494,13 +557,36 @@ class DayViewModel @Inject constructor(
     }
 
     fun toggleDone(programExerciseId: Long, index: Int, checked: Boolean, isSuperset: Boolean) {
+        tickSet(programExerciseId, index, checked, isSuperset)
+    }
+
+    private fun tickSet(
+        programExerciseId: Long,
+        index: Int,
+        checked: Boolean,
+        isSuperset: Boolean,
+        countEvent: TimedRepEvent? = null,
+    ) {
         val day = currentDay() ?: return
         mutate {
+            if (countEvent != null) {
+                if (timedRepEvent.value != countEvent || day != countEvent.dayId ||
+                    !timedRepMatches(dayState.value, countEvent)
+                ) return@mutate
+                val slot = repo.daySlotsFlow(day).first().firstOrNull { it.programExerciseId == programExerciseId }
+                    ?: return@mutate
+                val target = slot.exercise.prescription?.target as? PrescribedTarget.RepsInTime
+                if (slot.exercise.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return@mutate
+            }
             // A tick is performing, not planning (weight/rep edits don't stamp) —
             // only the FIRST done=true tick since the last advance/clear starts
             // the session clock (session-start capture).
             if (checked) repo.stampSessionStartIfUnset()
-            val main = trackFor(day, programExerciseId, Slot.MAIN)
+            val storedMain = trackFor(day, programExerciseId, Slot.MAIN)
+            if (countEvent != null && storedMain.getOrNull(index)?.done != false) return@mutate
+            val main = if (countEvent == null) storedMain else storedMain.mapIndexed { i, set ->
+                if (i == index) set.copy(reps = countEvent.count ?: return@mutate, seconds = 0) else set
+            }
             // A missing partner track (never seeded) must stay missing — writing an
             // empty SS row would mark it as seeded forever. Same rule as addSet.
             val partner = if (isSuperset) {
@@ -514,6 +600,7 @@ class DayViewModel @Inject constructor(
             } else {
                 repo.updateSets(day, programExerciseId, Slot.MAIN, newMain)
             }
+            if (countEvent != null) clearTimedRep()
             if (checked && isSuperset && newMain != main) repo.markSupersetHelperSeen()
             if (checked && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
                 val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
@@ -665,6 +752,9 @@ class DayViewModel @Inject constructor(
     }
 
     fun closeSheet() {
+        if (openSheet.value?.kind == OpenSheet.Kind.TIMED_REP_COUNT) {
+            timedRepEvent.value?.let { savedState[KEY_TIMED_REP_EVENT] = it.copy(sheetDismissed = true) }
+        }
         savedState[KEY_OPEN_SHEET] = null
     }
 
@@ -736,6 +826,7 @@ class DayViewModel @Inject constructor(
                 else -> null
             }
             val sessionId = repo.advanceDay(day, today.first())
+            if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_DAY] = null
             val advancedTo = repo.suggestedDayFlow.first()
             pinHeldFor = day.takeIf { advancedTo != day && effectiveDayId.value == day }
@@ -967,6 +1058,61 @@ class DayViewModel @Inject constructor(
         )
     }
 
+    private fun sheetResolves(state: DayUiState, sheet: OpenSheet, event: TimedRepEvent?): Boolean =
+        !state.loading && sheet.dayId == state.viewDayId && state.exercises.any { card ->
+            card.programExerciseId == sheet.programExerciseId &&
+                (sheet.kind == OpenSheet.Kind.ALL_SETS || card.rows.getOrNull(sheet.setIndex) != null) &&
+                (sheet.kind != OpenSheet.Kind.TIMED_REP_COUNT ||
+                    (event?.awaitingCount == true && event.programExerciseId == sheet.programExerciseId &&
+                        event.setIndex == sheet.setIndex))
+        }
+
+    private fun timedRepMatches(state: DayUiState, event: TimedRepEvent): Boolean {
+        val card = state.exercises.firstOrNull { it.programExerciseId == event.programExerciseId } ?: return false
+        return state.viewDayId == event.dayId && card.exerciseId == event.exerciseId &&
+            card.timedRepDurationSeconds == event.durationSeconds &&
+            card.rows.getOrNull(event.setIndex)?.done == false
+    }
+
+    private fun reconcileTimedRep(state: DayUiState, event: TimedRepEvent?): TimedRepState? {
+        if (event == null || event != timedRepEvent.value || state.loading) return null
+        if (!timedRepMatches(state, event) || (cardioPlanIdentity.value != null && !event.awaitingCount)) {
+            clearTimedRep()
+            return null
+        }
+        if (event.awaitingCount) return TimedRepState(event, 0)
+        val elapsed = derivedElapsedMillis(CardioAnchors(null, event.wallStart, event.elapsedStart, event.bootCount))
+        val remainingMillis = (event.durationSeconds * 1_000L - elapsed).coerceAtLeast(0L)
+        if (remainingMillis == 0L) {
+            finishTimedRep(event, buzz = cardioScreenLive && timedRepAlertAnchor == event.wallStart)
+            return TimedRepState(event.copy(awaitingCount = true), 0)
+        }
+        if (cardioScreenLive) {
+            timedRepAlertAnchor = event.wallStart
+            cardioAlarm.arm(
+                cardioClock.elapsedRealtimeMillis() + remainingMillis,
+                "timed-reps:${event.programExerciseId}:${event.setIndex}:${event.wallStart}",
+            ) { finishTimedRep(event, buzz = false) }
+        }
+        return TimedRepState(event, ((remainingMillis + 999L) / 1_000L).toInt())
+    }
+
+    private fun finishTimedRep(event: TimedRepEvent, buzz: Boolean) {
+        if (timedRepEvent.value != event || event.awaitingCount) return
+        cardioAlarm.cancel()
+        timedRepAlertAnchor = null
+        // Save the transition before feedback; re-collection and restore cannot replay it.
+        savedState[KEY_TIMED_REP_EVENT] = event.copy(awaitingCount = true)
+        if (buzz) cardioAlarm.buzz()
+    }
+
+    private fun clearTimedRep() {
+        if (timedRepEvent.value?.awaitingCount == false) cardioAlarm.cancel()
+        timedRepAlertAnchor = null
+        savedState[KEY_TIMED_REP_EVENT] = null
+        if (openSheet.value?.kind == OpenSheet.Kind.TIMED_REP_COUNT) savedState[KEY_OPEN_SHEET] = null
+    }
+
     private fun buildCardioState(
         state: DayUiState,
         history: List<CardioSessionEntity>,
@@ -1101,6 +1247,9 @@ class DayViewModel @Inject constructor(
         val lastPerformed = history.lastPerformed[pe.exerciseId]
         return ExerciseCardState(
             programExerciseId = id,
+            exerciseId = pe.exerciseId,
+            timedRepDurationSeconds = (pe.prescription?.target as? PrescribedTarget.RepsInTime)?.seconds,
+            timedRepAim = (pe.prescription?.target as? PrescribedTarget.RepsInTime)?.repAim,
             position = slot.position,
             title = name,
             partnerTitle = partnerEntry?.name ?: pe.superset?.exerciseId,
@@ -1123,7 +1272,8 @@ class DayViewModel @Inject constructor(
             focusIndex = DayScreenBuilder.focusIndex(rows),
             focusLabel = DayScreenBuilder.focusLabel(main.map { it.kind }, DayScreenBuilder.focusIndex(rows)),
             summaryLine = DayScreenBuilder.summaryLine(main, partnerSets, tracking, partnerTracking ?: TrackingType.WEIGHTED, unit),
-            nextSetDisplay = DayScreenBuilder.nextSetDisplay(rows, DayScreenBuilder.focusIndex(rows), tracking, unit),
+            nextSetDisplay = if (pe.prescription?.target is PrescribedTarget.RepsInTime) null
+                else DayScreenBuilder.nextSetDisplay(rows, DayScreenBuilder.focusIndex(rows), tracking, unit),
             rows = rows,
             weightSwap = DayScreenBuilder.weightSwapAffordance(entry, catalog),
         )
@@ -1229,6 +1379,7 @@ class DayViewModel @Inject constructor(
         const val KEY_VIEW_DAY = "day_view_override"
         const val KEY_OPEN_SHEET = "day_open_sheet"
         const val KEY_SELECTED_PAGE = "selectedPageKey"
+        const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"
         const val KEY_CARDIO_PLAN = "day_cardio_plan"
         const val KEY_CARDIO_WALL = "day_cardio_started_wall"
         const val KEY_CARDIO_ELAPSED = "day_cardio_started_elapsed"

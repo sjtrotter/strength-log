@@ -142,6 +142,12 @@ fun DayScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var exercisesOpen by rememberSaveable(state.viewDayId) { mutableStateOf(false) }
     val openSheet = state.openSheet
+    val countHostFree = !showEditSheet && !exercisesOpen && openSheet == null &&
+        noteCardId == null && !receiptNoteOpen && swapCardSlotId == null &&
+        !confirmingPartialFinish && !confirmingClearChecks && cascadeCeremony == null && sessionReceipt == null
+    LaunchedEffect(state.timedRep?.requestsSheet, countHostFree) {
+        if (state.timedRep?.requestsSheet == true && countHostFree) actions.onOpenTimedRepCount()
+    }
     val dayBackProgress = rememberBackGestureProgress(
         enabled = onBack != null &&
             !showEditSheet && !exercisesOpen && openSheet == null &&
@@ -168,11 +174,10 @@ fun DayScreen(
             if (result == SnackbarResult.ActionPerformed) onUndoRemoveSet()
         }
     }
-    val cardioRunning = state.cardio?.phase == CardioPhase.EXECUTING || state.cardio?.phase == CardioPhase.OVERRUN
     // The keep-screen-on PREFERENCE is a window flag owned by MainActivity; this
-    // view flag belongs to a running cardio block alone, so dispose always clears it.
-    DisposableEffect(cardioRunning) {
-        view.keepScreenOn = cardioRunning
+    // view flag holds only while an execution clock runs; disposal clears it.
+    DisposableEffect(state.executionKeepsScreenOn) {
+        view.keepScreenOn = state.executionKeepsScreenOn
         onDispose { view.keepScreenOn = false }
     }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -412,10 +417,15 @@ fun DayScreen(
                                     onSwap = { swapCardSlotId = card.programExerciseId },
                                     onSwapWeight = dayEditActions.onSwap,
                                     onNote = { noteCardId = card.programExerciseId },
+                                    timedRep = state.timedRep,
+                                    executionBusy = state.executionBusy,
                                 )
                             } else {
                                 state.cardio?.let {
-                                    CardioPage(it, accent, onAccent, actions.onStartCardio, actions.onStopCardio)
+                                    CardioPage(
+                                        it, accent, onAccent, actions.onStartCardio, actions.onStopCardio,
+                                        startEnabled = !state.executionBusy,
+                                    )
                                 }
                             }
                         }
@@ -444,6 +454,9 @@ fun DayScreen(
                     onEdit = { index -> actions.onOpenSetEditor(card.programExerciseId, index) },
                     onDismiss = actions.onCloseAllSets,
                 )
+                OpenSheet.Kind.TIMED_REP_COUNT -> state.timedRep?.event?.let { event ->
+                    TimedRepCountSheet(card, event, state.dayIndex, actions)
+                }
                 OpenSheet.Kind.EDITOR -> card.rows.getOrNull(sheet.setIndex)?.let { row ->
                     SetEditSheet(
                         card = card,
@@ -637,6 +650,7 @@ private fun CardioPage(
     onAccent: Color,
     onStart: () -> Unit,
     onStop: () -> Unit,
+    startEnabled: Boolean = true,
 ) {
     // Saveable so pager eviction and rotation preserve the disclosure.
     var open by rememberSaveable { mutableStateOf(false) }
@@ -725,6 +739,7 @@ private fun CardioPage(
                         Spacer(Modifier.size(8.dp))
                         Button(
                             onClick = onStart,
+                            enabled = startEnabled,
                             colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
                         ) {
                             Text(stringResource(R.string.day_cardio_start_button))
@@ -776,6 +791,12 @@ data class DayActions(
     val onCloseSetEditor: () -> Unit = {},
     val onOpenAllSets: (Long) -> Unit = {},
     val onCloseAllSets: () -> Unit = {},
+    val onStartTimedRep: (Long, Int) -> Unit = { _, _ -> },
+    val onStopTimedRep: () -> Unit = {},
+    val onRequestTimedRepCount: () -> Unit = {},
+    val onOpenTimedRepCount: () -> Unit = {},
+    val onTimedRepDraftChange: (String) -> Unit = {},
+    val onLogTimedRepCount: () -> Unit = {},
 )
 
 @Composable

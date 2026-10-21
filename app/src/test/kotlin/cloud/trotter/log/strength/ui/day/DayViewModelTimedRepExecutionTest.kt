@@ -555,7 +555,7 @@ class DayViewModelTimedRepExecutionTest {
         assertNull(vm.uiState.value.timedRep)
         assertEquals(CardioPhase.EXECUTING, vm.uiState.value.cardio?.phase)
         assertEquals(cardioDeadline, alarm.deadline)
-        vm.stopCardio()
+        vm.endCardioBlock()
         runCurrent()
         vm.start()
         runCurrent()

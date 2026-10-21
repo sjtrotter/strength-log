@@ -225,7 +225,10 @@ private fun CardioSessionCard(item: SessionListItem, showPlanNames: Boolean) {
                 Text(item.dayTitle, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                 Text(supportingLine, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
-            Text(summary, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            if (item.cardioSets.isEmpty()) Text(summary, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+        }
+        if (item.cardioSets.isNotEmpty()) {
+            cloud.trotter.log.strength.ui.day.CardioSummary(item.cardioSets, item.cardioSeconds)
         }
     }
 }

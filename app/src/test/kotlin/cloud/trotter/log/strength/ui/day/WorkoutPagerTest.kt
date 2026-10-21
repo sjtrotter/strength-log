@@ -264,11 +264,11 @@ class WorkoutPagerTest {
 
     @Test fun standaloneCardioHasOnePageAndNoFinishBar() {
         rule.setContent { AppTheme { DayScreen(
-            pagerFixture().copy(isProgramDay = false, cardio = CardioCardState("Run", "20 minutes", false)),
+            pagerFixture().copy(isProgramDay = false, cardio = cardioFixture()),
             pagerActions(), DayEditUiState(), pagerEditActions(), standaloneCardio = true,
         ) } }
         rule.onNodeWithText("Lift 1 of 1").assertExists()
-        rule.onNodeWithContentDescription("Run, not started").assertExists()
+        rule.onNodeWithContentDescription("Road run, not started").assertExists()
         rule.onNodeWithText("Finish day D").assertDoesNotExist()
     }
 

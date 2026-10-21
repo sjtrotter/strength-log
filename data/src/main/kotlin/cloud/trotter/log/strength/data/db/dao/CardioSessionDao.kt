@@ -20,6 +20,9 @@ interface CardioSessionDao {
     @Query("SELECT * FROM cardio_session WHERE id = :id")
     suspend fun byId(id: Long): CardioSessionEntity?
 
+    @Query("SELECT * FROM cardio_session WHERE dayId IS :dayId AND startedAt = :startedAt ORDER BY id LIMIT 1")
+    suspend fun forRun(dayId: String?, startedAt: Long): CardioSessionEntity?
+
     @Query("SELECT * FROM cardio_session ORDER BY id")
     suspend fun all(): List<CardioSessionEntity>
 

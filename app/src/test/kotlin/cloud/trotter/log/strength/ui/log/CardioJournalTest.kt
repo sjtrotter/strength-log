@@ -29,6 +29,21 @@ class CardioJournalTest {
         assertEquals("1:00", item.cardioDuration)
     }
 
+    @Test fun `structured cardio retains results for its summary while legacy rows have none`() {
+        val spec = cloud.trotter.log.strength.domain.model.CardioSetSpec(
+            cloud.trotter.log.strength.domain.model.CardioRole.WORK,
+            cloud.trotter.log.strength.domain.model.Measure.Distance(400),
+        )
+        val result = cloud.trotter.log.strength.domain.model.CardioSetResult(
+            spec, cloud.trotter.log.strength.domain.model.CardioSetStatus.FINISHED, 60, 400,
+            cloud.trotter.log.strength.domain.model.DistanceSource.MANUAL,
+        )
+        val row = LogScreenBuilder.cardioItem(cardio().copy(activity = "TRACK_RUN"), listOf(result))
+        assertEquals(listOf(result), row.cardioSets)
+        assertEquals(60, row.cardioSeconds)
+        assertEquals(emptyList<cloud.trotter.log.strength.domain.model.CardioSetResult>(), LogScreenBuilder.cardioItem(cardio()).cardioSets)
+    }
+
     @Test fun `a day holding both types earns one dot, not two`() {
         val completed = LocalDate.of(2026, 8, 10).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
         val strengthSession = strengthSummaryAt(completed)

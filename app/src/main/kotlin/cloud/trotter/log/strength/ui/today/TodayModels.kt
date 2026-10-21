@@ -38,8 +38,13 @@ data class TodayUiState(
 data class TodayLift(val name: String, val setCount: Int)
 
 /** The day's cardio finisher, if it has one. */
-data class TodayCardio(val label: String, val detail: String)
-data class StandaloneCardio(val dayId: String, val line: String)
+data class TodayCardio(
+    val label: String,
+    val detail: String,
+    val activity: cloud.trotter.log.strength.domain.model.CardioActivity? = null,
+    val loggedSeconds: Int? = null,
+)
+data class StandaloneCardio(val dayId: String, val line: String, val loggedSeconds: Int? = null)
 
 /** Callbacks the screen forwards — one place, so previews stay trivial. */
 data class TodayActions(

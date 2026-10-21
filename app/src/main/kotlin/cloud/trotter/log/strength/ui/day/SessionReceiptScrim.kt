@@ -125,7 +125,7 @@ internal fun SessionReceiptScrim(
         // fires, right after that screen capped itself.
         Column(Modifier.widthIn(max = ReadableWidth).fillMaxWidth()) {
             Text(
-                text = receipt.headline,
+                text = receipt.cardio?.let { stringResource(R.string.cardio_receipt_headline, it.dayId) } ?: receipt.headline,
                 color = accent,
                 style = DisplayXl,
                 maxLines = 2,
@@ -134,6 +134,7 @@ internal fun SessionReceiptScrim(
                     scaleY = headlineScale.value
                 },
             )
+            receipt.cardio?.let { Text(cardioActivityName(it.block.activity), style = MaterialTheme.typography.titleLarge) }
             if (receipt.dayTitle.isNotBlank()) {
                 Text(
                     text = receipt.dayTitle,
@@ -145,7 +146,9 @@ internal fun SessionReceiptScrim(
             Spacer(Modifier.size(24.dp))
             ReceiptRule()
             LedgerEntrance(rowProgress[0]) {
-                ReceiptRow(label = stringResource(R.string.receipt_sets_label), value = receipt.setCount.toString())
+                val cardio = receipt.cardio
+                if (cardio != null) CardioSummary(cardio.resultSets, cardio.results.sumOf { it.seconds }, Modifier.padding(vertical = 12.dp))
+                else ReceiptRow(label = stringResource(R.string.receipt_sets_label), value = receipt.setCount.toString())
             }
             var rowIndex = 1
             receipt.strongest?.let { lift ->
@@ -166,7 +169,8 @@ internal fun SessionReceiptScrim(
             receipt.nextDayLine?.let { next ->
                 ReceiptRule()
                 LedgerEntrance(rowProgress[rowIndex]) {
-                    ReceiptRow(label = stringResource(R.string.receipt_next_label), value = next, valueColor = TextSecondary, big = false)
+                    if (receipt.cardio != null) Text(stringResource(R.string.cardio_receipt_next, next), Modifier.padding(vertical = 12.dp))
+                    else ReceiptRow(label = stringResource(R.string.receipt_next_label), value = next, valueColor = TextSecondary, big = false)
                 }
             }
             ReceiptRule()
@@ -180,13 +184,13 @@ internal fun SessionReceiptScrim(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 )
             }
-            TextButton(onClick = onEditNote, contentPadding = PaddingValues(horizontal = 0.dp)) {
+            if (receipt.cardio == null) TextButton(onClick = onEditNote, contentPadding = PaddingValues(horizontal = 0.dp)) {
                 Text(stringResource(R.string.note_add_action), style = MaterialTheme.typography.labelLarge)
             }
 
             Spacer(Modifier.size(28.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
+                if (receipt.cardio == null) OutlinedButton(
                     onClick = onShare,
                     modifier = Modifier.weight(1f),
                     shape = MaterialTheme.shapes.large,
@@ -206,7 +210,7 @@ internal fun SessionReceiptScrim(
                     ),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 ) {
-                    ReceiptButtonLabel(stringResource(R.string.receipt_back_to_today_button))
+                    ReceiptButtonLabel(stringResource(if (receipt.cardio != null) R.string.cardio_back_today else R.string.receipt_back_to_today_button))
                 }
             }
         }

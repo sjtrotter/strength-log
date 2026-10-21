@@ -45,14 +45,14 @@ data class DayUiState(
     val cardio: CardioCardState? = null,
     val timedRep: TimedRepState? = null,
     val executionBusy: Boolean = false,
+    val cardioRunning: Boolean = false,
     val keepScreenOn: Boolean = false,
     val rest: RestUiState? = null,
     val watchStatus: WatchStatus? = null,
     val remoteTick: RemoteTick? = null,
 ) {
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
-    val executionKeepsScreenOn: Boolean = timedRepRunning ||
-        cardio?.phase == CardioPhase.EXECUTING || cardio?.phase == CardioPhase.OVERRUN
+    val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning
 
     /** Rounds ticked across MAIN tracks, matching Today and the widget. A
      *  superset partner shares its round. Recomputed once per state, including copy(). */
@@ -78,7 +78,7 @@ data class OpenSheet(
     val programExerciseId: Long,
     val setIndex: Int,
 ) : Parcelable {
-    enum class Kind { EDITOR, ALL_SETS, TIMED_REP_COUNT }
+    enum class Kind { EDITOR, ALL_SETS, TIMED_REP_COUNT, CARDIO_DISTANCE, CARDIO_SETS }
 }
 
 /** One atomic saved event: anchors while running, then a count draft and sheet delivery state. */
@@ -125,9 +125,13 @@ data class CardioCardState(
     val elapsedSeconds: Int = 0,
     /** Most recent logged session for this day, derived from Room history. */
     val loggedSeconds: Int? = null,
+    val loggedSets: List<cloud.trotter.log.strength.domain.model.CardioSetResult> = emptyList(),
+    val block: cloud.trotter.log.strength.domain.model.CardioBlock? = null,
+    val run: CardioRun? = null,
+    val finishesDay: Boolean = false,
 )
 
-enum class CardioPhase { SUGGESTION, EXECUTING, OVERRUN }
+enum class CardioPhase { SUGGESTION, EXECUTING }
 
 @Immutable
 sealed interface HeaderTarget {

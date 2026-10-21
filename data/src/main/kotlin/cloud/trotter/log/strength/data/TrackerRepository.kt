@@ -34,7 +34,6 @@ import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
-import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
@@ -1033,6 +1032,7 @@ open class TrackerRepository(
     suspend fun logCardioSession(
         session: CardioSessionEntity,
         sets: List<CardioSetResult> = emptyList(),
+        finishDay: Boolean = false,
     ): Long {
         require(session.label.isNotBlank()) { "cardio label must not be blank" }
         require(session.label.length <= CARDIO_LABEL_MAX_LENGTH) {
@@ -1051,15 +1051,43 @@ open class TrackerRepository(
             session
         }
         return db.withTransaction {
+            // The phone can retry after process death between commit and saved-state acknowledgement.
+            if (sets.isNotEmpty()) {
+                cardioSessionDao.forRun(stamped.dayId, stamped.startedAt)?.let { return@withTransaction it.id }
+            }
             val id = cardioSessionDao.insert(stamped.copy(id = 0))
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
                 set.toEntity(id, position)
             })
+            if (finishDay && plan != null && stamped.dayId != null) {
+                advanceRotation(plan, stamped.dayId)
+            }
             id
         }
     }
 
+    /** Room only: both the phone commit and strength DONE use the originating plan's rotation. */
+    private suspend fun advanceRotation(plan: PlanEntity, dayId: String) {
+        val program = assemble(programDao.daysForPlan(plan.id), programDao.exercisesForPlan(plan.id))
+        val rotation = if (plan.origin == PlanOrigin.AUTHORED.name) program.days else program.strengthDays
+        val index = rotation.indexOfFirst { it.id == dayId }
+        if (index >= 0) planDao.updateSuggestedDay(plan.id, rotation[(index + 1) % rotation.size].id)
+    }
+
+    suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {
+        require(metres == null || metres > 0)
+        db.withTransaction {
+            require(cardioSetResultDao.forSession(sessionId).any { it.position == position })
+            cardioSetResultDao.amendDistance(sessionId, position, metres, metres?.let { "MANUAL" })
+        }
+    }
+
     suspend fun cardioSession(id: Long): CardioSessionEntity? = cardioSessionDao.byId(id)
+
+    val cardioSetResultsFlow: Flow<Map<Long, List<CardioSetResult>>> =
+        cardioSetResultDao.observeAll().map { rows ->
+            rows.groupBy { it.cardioSessionId }.mapValues { (_, sets) -> sets.mapNotNull { it.toDomainOrNull() } }
+        }.distinctUntilChanged()
 
     suspend fun cardioSetsFor(sessionId: Long): List<CardioSetResult> =
         cardioSetResultDao.forSession(sessionId).mapNotNull { it.toDomainOrNull() }
@@ -1177,7 +1205,7 @@ open class TrackerRepository(
      * "DONE — advance" (spec §7, PLAN.md A1): appends a session record
      * for the completed day (denormalizing exercise names so history survives
      * later edits/deletions), clears that day's checkmarks, and advances the
-     * rotation pointer to the following day only for strength days (§6.4).
+     * rotation pointer through authored days, or strength days for generated plans (§6.4).
      *
      * Authored live logs are deleted after archiving so the next run reseeds from its prescription.
      *
@@ -1269,10 +1297,7 @@ open class TrackerRepository(
                 programDao.deleteLogsForExercise(plan.id, completedDayId, it.id)
             }
 
-            val program = assemble(days, exercises)
-            if (program.strengthDays.any { it.id == completedDayId }) {
-                planDao.updateSuggestedDay(plan.id, Rotation.next(program, completedDayId))
-            }
+            advanceRotation(plan, completedDayId)
         }
         // Consumed: cleared only once the session row above is durably committed
         // (see the crash-ordering note on this method).

@@ -11,6 +11,8 @@ import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.effectiveCardio
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
@@ -57,9 +59,9 @@ class TodayViewModel @Inject constructor(
             repo.catalogFlow,
             repo.wizardAnswersFor(plan.id),
         ) { program, catalog, answers ->
-            val dayId = plan.suggestedDayId?.takeIf { id -> program.strengthDays.any { it.id == id } }
-                ?: program.strengthDays.firstOrNull()?.id
-            TodayContext(plan.id, program, dayId, catalog, answers.config)
+            val dayId = plan.suggestedDayId?.takeIf { id -> program.days.any { it.id == id } }
+                ?: program.strengthDays.firstOrNull()?.id ?: program.days.firstOrNull()?.id
+            TodayContext(plan.id, program, dayId, catalog, answers.config, answers.cardio)
         }
     }
 
@@ -90,9 +92,21 @@ class TodayViewModel @Inject constructor(
         dayState,
         repo.planSummariesFlow,
         planPickerOpen,
-    ) { state, plans, pickerOpen ->
+        repo.cardioSessionsFlow,
+        civilTimeSource.civilTime,
+    ) { state, plans, pickerOpen, sessions, now ->
         val active = plans.filterNot { it.archived }
         state.copy(
+            cardio = state.cardio?.copy(loggedSeconds = sessions.firstOrNull {
+                it.planId == state.planId && it.dayId == state.dayId &&
+                    java.time.Instant.ofEpochMilli(it.completedAt).atZone(now.zone).toLocalDate() == now.date
+            }?.seconds),
+            standaloneCardio = state.standaloneCardio?.let { cardio ->
+                cardio.copy(loggedSeconds = sessions.firstOrNull {
+                    it.planId == state.planId && it.dayId == cardio.dayId &&
+                        java.time.Instant.ofEpochMilli(it.completedAt).atZone(now.zone).toLocalDate() == now.date
+                }?.seconds)
+            },
             planName = plans.firstOrNull { it.id == state.planId }?.name,
             activePlans = active,
             planPickerOpen = pickerOpen && active.size > 1,
@@ -160,7 +174,9 @@ class TodayViewModel @Inject constructor(
                     setCount = countBySlot.getValue(slot.programExerciseId),
                 )
             },
-            cardio = day.cardio?.let { TodayCardio(it.label, it.detail) },
+            cardio = day.effectiveCardio(ctx.cardioPrefs)?.let {
+                TodayCardio(cloud.trotter.log.strength.ui.day.activityLabel(it.activity), day.cardio?.detail.orEmpty(), it.activity)
+            },
             standaloneCardio = standalone?.let {
                 StandaloneCardio(it.id, TodayScreenBuilder.standaloneCardioLine(true)!!)
             },
@@ -195,6 +211,7 @@ class TodayViewModel @Inject constructor(
         val dayId: String?,
         val catalog: ExerciseCatalog,
         val cfg: LifterConfig,
+        val cardioPrefs: CardioPrefs,
     )
 
     private companion object {

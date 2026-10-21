@@ -10,8 +10,6 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import cloud.trotter.log.strength.ui.day.CardioCardState
-import cloud.trotter.log.strength.ui.day.CardioPhase
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.ReceiptLift
@@ -201,15 +199,8 @@ class WindowSizeTest {
     fun runningCardioStopRemainsReachableInAShortWindow() {
         val state = pagerFixture().copy(
             selectedPageKey = "cardio",
-            cardio = CardioCardState(
-                label = "Run",
-                detail = "20 minutes",
-                hard = false,
-                phase = CardioPhase.EXECUTING,
-                currentStepLabel = "Easy",
-                stepSecondsLeft = 60,
-                elapsedSeconds = 120,
-            ),
+            cardioRunning = true,
+            cardio = cloud.trotter.log.strength.ui.day.runningCardioFixture(),
         )
         composeTestRule.setContent {
             AppTheme { DayScreen(state, pagerActions(), DayEditUiState(), pagerEditActions()) }

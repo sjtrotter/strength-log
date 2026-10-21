@@ -28,11 +28,13 @@ import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -41,6 +43,8 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -449,6 +453,94 @@ open class TrackerRepository(
         }
     }
 
+    /** Creates the program before publishing selection; no global lifter write. */
+    suspend fun createAuthoredPlan(name: String, dayTitle: String): Long = db.withTransaction {
+        require(name.trim().length in 1..40)
+        require(dayTitle.trim().length in 1..30)
+        val id = planDao.insertPlan(PlanEntity(
+            id = 0,
+            name = name.trim(),
+            origin = PlanOrigin.AUTHORED.name,
+            position = (planDao.maxPosition() ?: -1) + 1,
+            createdAt = clock.millis(),
+            suggestedDayId = "A",
+        ))
+        programDao.upsertDay(ProgramDayEntity(id, "A", 0, dayTitle.trim(), "", null))
+        id
+    }
+
+    suspend fun publishCreatedAuthoredPlan(id: Long) {
+        planSelectionLock.withLock {
+            val plan = planDao.plan(id)
+            if (plan?.origin == PlanOrigin.AUTHORED.name && !plan.archived) settings.setSelectedPlanId(id)
+        }
+    }
+
+    suspend fun addDay(planId: Long, title: String): String? = db.withTransaction {
+        if (planDao.plan(planId)?.origin != PlanOrigin.AUTHORED.name) return@withTransaction null
+        val trimmed = title.trim()
+        if (trimmed.length !in 1..30) return@withTransaction null
+        val days = programDao.daysForPlan(planId)
+        if (days.size >= 7) return@withTransaction null
+        val letter = ('A'..'G').firstOrNull { candidate -> days.none { it.dayId == candidate.toString() } }
+            ?.toString() ?: return@withTransaction null
+        programDao.upsertDay(ProgramDayEntity(
+            planId, letter, (days.maxOfOrNull { it.position } ?: -1) + 1, trimmed, "", null,
+        ))
+        letter
+    }
+
+    suspend fun renameDay(planId: Long, dayId: String, title: String) {
+        db.withTransaction {
+            if (planDao.plan(planId)?.origin != PlanOrigin.AUTHORED.name) return@withTransaction
+            val trimmed = title.trim()
+            if (trimmed.length !in 1..30) return@withTransaction
+            val day = programDao.day(planId, dayId) ?: return@withTransaction
+            programDao.upsertDay(day.copy(title = trimmed))
+        }
+    }
+
+    suspend fun removeDay(planId: Long, dayId: String): Boolean = db.withTransaction {
+        val plan = planDao.plan(planId) ?: return@withTransaction false
+        if (plan.origin != PlanOrigin.AUTHORED.name) return@withTransaction false
+        val days = programDao.daysForPlan(planId)
+        val removed = days.firstOrNull { it.dayId == dayId } ?: return@withTransaction false
+        if (days.size <= 1) return@withTransaction false
+        programDao.deleteLogsForDay(planId, dayId)
+        programDao.deleteExercisesForDay(planId, dayId)
+        programDao.deleteDay(planId, dayId)
+        if (plan.suggestedDayId == dayId) {
+            val remaining = days.filter { it.dayId != dayId }
+            val next = remaining.firstOrNull { it.position > removed.position } ?: remaining.first()
+            planDao.updateSuggestedDay(planId, next.dayId)
+        }
+        true
+    }
+
+    /** Sets belong to the slot, never the prescription JSON. Null keeps its current count. */
+    suspend fun setPrescription(programExerciseId: Long, prescription: Prescription, sets: Int? = null) {
+        db.withTransaction {
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            if (planDao.plan(row.planId)?.origin != PlanOrigin.AUTHORED.name) return@withTransaction
+            val count = sets ?: row.targetSets
+            require(count in 1..20)
+            programDao.setPrescription(row.id, PrescriptionJson.encode(prescription), count)
+            programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
+        }
+    }
+
+    /** Slot-owned ordering, independent of whichever plan is selected now. */
+    suspend fun moveExercise(programExerciseId: Long, up: Boolean) {
+        db.withTransaction {
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            val slots = programDao.exercisesForDay(row.planId, row.dayId)
+            val index = slots.indexOfFirst { it.id == row.id }
+            val neighbour = slots.getOrNull(index + if (up) -1 else 1) ?: return@withTransaction
+            programDao.setPosition(row.id, neighbour.position)
+            programDao.setPosition(neighbour.id, row.position)
+        }
+    }
+
     /** Whether the remembered plan still exists with a non-empty program. */
     suspend fun planHasDays(id: Long): Boolean = db.withTransaction {
         planDao.plan(id) != null && programDao.daysForPlan(id).isNotEmpty()
@@ -564,7 +656,20 @@ open class TrackerRepository(
         val planId = selectedPlanId() ?: return
         db.withTransaction {
             val position = programDao.maxPosition(planId, dayId) + 1
-            programDao.insertExercise(exercise.toEntity(planId, dayId, position))
+            val authored = planDao.plan(planId)?.origin == PlanOrigin.AUTHORED.name
+            val slot = if (authored) {
+                if (programDao.day(planId, dayId) == null) return@withTransaction
+                val entry = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() }).find(exercise.exerciseId)
+                    ?: return@withTransaction
+                val target = when (val goal = entry.goal) {
+                    is GoalSource.Reps -> PrescribedTarget.Reps(goal.targetReps)
+                    is GoalSource.Time -> PrescribedTarget.Hold(goal.targetSeconds, goal.addedWeightLb)
+                    is GoalSource.Flat -> PrescribedTarget.LoadReps(goal.weightLb, 10)
+                    is GoalSource.Std, is GoalSource.FracOfStd -> PrescribedTarget.LoadReps(0.0, 10)
+                }
+                exercise.copy(targetSets = 3, prescription = Prescription(target))
+            } else exercise
+            programDao.insertExercise(slot.toEntity(planId, dayId, position))
         }
     }
 

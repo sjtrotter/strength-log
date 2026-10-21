@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -126,12 +128,13 @@ class CardSwapTest {
         dayEditActions: DayEditActions = swapRecorder(mutableListOf()),
     ) {
         composeTestRule.setContent {
+            val editState = remember { mutableStateOf(dayEditState) }
             AppTheme {
                 DayScreen(
                     state = dayState,
                     actions = dayActions(),
-                    dayEditState = dayEditState,
-                    dayEditActions = dayEditActions,
+                    dayEditState = editState.value,
+                    dayEditActions = dayEditActions.copy(onEditorOpen = { editState.value = editState.value.copy(editorOpen = it) }),
                 )
             }
         }

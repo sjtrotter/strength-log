@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -41,6 +47,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +56,9 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.BackAction
@@ -68,6 +79,7 @@ import cloud.trotter.log.strength.ui.theme.Surface2
 import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
+import kotlin.math.roundToInt
 
 /**
  * The day-edit sheet (spec §8.3): a [ModalBottomSheet] living inside the day
@@ -77,7 +89,8 @@ import cloud.trotter.log.strength.ui.theme.TextSecondary
  * [rememberSaveable] (a rotation mid-edit shouldn't punt the user back to the
  * slot list). Search/filter drafts are saveable too: Create exercise is a
  * designed round trip out to a navigation destination, and returning should
- * restore the picker the user had already narrowed down.
+ * restore the picker the user had already narrowed down. The prescription
+ * draft and open-editor identity live in DayViewModel's SavedStateHandle.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,9 +120,11 @@ fun DayEditSheet(
         pickingPattern = pickingPattern,
         addingFromPattern = addPatternName != null,
         options = optionsSlotId != null,
+        prescription = state.prescriptionDraft != null,
     )
     val onBack = {
         when (backTarget) {
+            DayEditPage.PRESCRIPTION -> actions.onDiscardPrescription()
             DayEditPage.SWAP -> swapSlotId = null
             DayEditPage.SUPERSET_EXERCISE -> ssPatternName = null
             DayEditPage.SUPERSET_PATTERN -> ssSlotId = null
@@ -132,6 +147,13 @@ fun DayEditSheet(
         val ssSlot = state.slots.firstOrNull { it.programExerciseId == ssSlotId }
         val optionsSlot = state.slots.firstOrNull { it.programExerciseId == optionsSlotId }
         when {
+            state.prescriptionDraft != null -> PrescriptionPage(
+                draft = state.prescriptionDraft,
+                unit = state.unit,
+                onChange = actions.onPrescriptionDraft,
+                onSave = actions.onSavePrescription,
+                onBack = onBack,
+            )
             // Swap and the superset pickers layer above the options page so
             // "swap, then add a superset" reads as one continuous flow — they
             // never clear optionsSlotId, so finishing (or backing out of) one
@@ -206,6 +228,9 @@ fun DayEditSheet(
             }
             optionsSlot != null -> SlotOptionsScreen(
                 slot = optionsSlot,
+                authored = state.authored,
+                onPrescriptionClick = { actions.onOpenPrescription(optionsSlot.programExerciseId) },
+                onMove = { up -> actions.onMove(optionsSlot.programExerciseId, up) },
                 onBack = onBack,
                 onSwapClick = { swapSlotId = optionsSlot.programExerciseId },
                 onSupersetClick = { ssSlotId = optionsSlot.programExerciseId },
@@ -262,8 +287,10 @@ private fun DaySlotList(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SheetButton(stringResource(R.string.day_edit_add_exercise_button), onClick = onAddClick, modifier = Modifier.weight(1f))
         }
-        Spacer(Modifier.size(8.dp))
-        SheetButton(stringResource(R.string.day_edit_reset_button), onClick = onResetClick, outlined = true, textColor = TextSecondary)
+        if (!state.authored) {
+            Spacer(Modifier.size(8.dp))
+            SheetButton(stringResource(R.string.day_edit_reset_button), onClick = onResetClick, outlined = true, textColor = TextSecondary)
+        }
     }
 }
 
@@ -297,6 +324,9 @@ private fun DaySlotRow(
 @Composable
 private fun SlotOptionsScreen(
     slot: DayEditSlotState,
+    authored: Boolean,
+    onPrescriptionClick: () -> Unit,
+    onMove: (Boolean) -> Unit,
     onBack: () -> Unit,
     onSwapClick: () -> Unit,
     onSupersetClick: () -> Unit,
@@ -312,7 +342,15 @@ private fun SlotOptionsScreen(
             enabled = slot.pattern != null,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (slot.canSetSuperset) {
+        if (authored) {
+            Spacer(Modifier.size(8.dp))
+            SheetButton(stringResource(R.string.day_edit_prescription), onClick = onPrescriptionClick, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.size(8.dp))
+            SheetButton(stringResource(R.string.day_edit_move_up), onClick = { onMove(true) }, enabled = slot.canMoveUp, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.size(8.dp))
+            SheetButton(stringResource(R.string.day_edit_move_down), onClick = { onMove(false) }, enabled = slot.canMoveDown, modifier = Modifier.fillMaxWidth())
+        }
+        if (!authored && slot.canSetSuperset) {
             Spacer(Modifier.size(8.dp))
             SheetButton(
                 stringResource(if (slot.partnerExerciseId == null) R.string.day_edit_add_superset_button else R.string.day_edit_swap_superset_button),
@@ -330,6 +368,119 @@ private fun SlotOptionsScreen(
             )
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun PrescriptionPage(
+    draft: PrescriptionDraft,
+    unit: WeightUnit,
+    onChange: (PrescriptionDraft) -> Unit,
+    onSave: () -> Unit,
+    onBack: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+        PickerHeader(stringResource(R.string.day_edit_prescription), onBack)
+        Spacer(Modifier.size(12.dp))
+        val kinds = PrescriptionKind.entries
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            kinds.forEachIndexed { index, kind ->
+                SegmentedButton(
+                    selected = draft.kind == kind,
+                    onClick = { onChange(draft.copy(kind = kind)) },
+                    shape = SegmentedButtonDefaults.itemShape(index, kinds.size),
+                    label = { Text(stringResource(when (kind) {
+                        PrescriptionKind.LOAD_REPS -> R.string.prescription_load_reps
+                        PrescriptionKind.REPS -> R.string.prescription_reps
+                        PrescriptionKind.HOLD -> R.string.prescription_hold
+                        PrescriptionKind.REPS_IN_TIME -> R.string.prescription_reps_in_time
+                    })) },
+                )
+            }
+        }
+        PrescriptionNumber(stringResource(R.string.prescription_sets), draft.sets, 1, 20) { onChange(draft.copy(sets = it)) }
+        if (draft.kind == PrescriptionKind.LOAD_REPS || draft.kind == PrescriptionKind.REPS) {
+            PrescriptionNumber(stringResource(R.string.prescription_reps), draft.reps, 1, 999) { onChange(draft.copy(reps = it)) }
+        }
+        if (draft.kind == PrescriptionKind.HOLD || draft.kind == PrescriptionKind.REPS_IN_TIME) {
+            PrescriptionNumber(stringResource(R.string.prescription_seconds), draft.seconds, 5, 3600, 5) { onChange(draft.copy(seconds = it)) }
+        }
+        if (draft.kind == PrescriptionKind.LOAD_REPS || draft.kind == PrescriptionKind.HOLD) {
+            val label = stringResource(R.string.prescription_load, unit.name.lowercase())
+            ListItem(
+                headlineContent = { Text(label) },
+                trailingContent = {
+                    Stepper(
+                        value = unit.fromLb(draft.loadLb),
+                        onValueChange = { onChange(draft.copy(loadLb = unit.toLb(it).coerceIn(0.0, 2000.0))) },
+                        step = { WeightStepper.increment(it, unit) },
+                        round = { if (it <= 0.0) 0.0 else WeightStepper.round(it, unit) },
+                        format = WeightStepper::format,
+                        minValue = 0.0,
+                        maxValue = unit.fromLb(2000.0),
+                        inputLabel = label,
+                        inputUnit = unit.name.lowercase(),
+                        decimalInput = true,
+                    )
+                },
+            )
+        }
+        if (draft.kind == PrescriptionKind.REPS_IN_TIME) {
+            val repAimLabel = stringResource(R.string.prescription_rep_aim)
+            ListItem(
+                headlineContent = { Text(repAimLabel) },
+                trailingContent = {
+                    Switch(
+                        checked = draft.hasRepAim,
+                        onCheckedChange = { onChange(draft.copy(hasRepAim = it)) },
+                        modifier = Modifier.semantics { contentDescription = repAimLabel },
+                    )
+                },
+            )
+            if (draft.hasRepAim) {
+                PrescriptionNumber(stringResource(R.string.prescription_rep_aim), draft.repAim, 1, 999) { onChange(draft.copy(repAim = it)) }
+            }
+        }
+        val eachSideLabel = stringResource(R.string.day_target_each_side)
+        ListItem(
+            headlineContent = { Text(eachSideLabel) },
+            trailingContent = {
+                Switch(
+                    checked = draft.eachSide,
+                    onCheckedChange = { onChange(draft.copy(eachSide = it)) },
+                    modifier = Modifier.semantics { contentDescription = eachSideLabel },
+                )
+            },
+        )
+        OutlinedTextField(
+            value = draft.resistance,
+            onValueChange = { onChange(draft.copy(resistance = it.take(40))) },
+            label = { Text(stringResource(R.string.prescription_resistance)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.size(12.dp))
+        SheetButton(stringResource(R.string.plans_save), onClick = onSave, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+private fun PrescriptionNumber(label: String, value: Int, min: Int, max: Int, increment: Int = 1, onChange: (Int) -> Unit) {
+    ListItem(
+        headlineContent = { Text(label) },
+        trailingContent = {
+            Stepper(
+                value = value.toDouble(),
+                onValueChange = { onChange(it.toInt()) },
+                step = { increment.toDouble() },
+                round = { (it / increment).roundToInt().toDouble() * increment },
+                format = { it.toInt().toString() },
+                minValue = min.toDouble(),
+                maxValue = max.toDouble(),
+                inputLabel = label,
+            )
+        },
+    )
 }
 
 // --- page 2: pick a pattern (add flow and superset flow) ----------------------
@@ -503,7 +654,6 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly (#17
 
 @Composable
 private fun PickerHeader(title: String, onBack: () -> Unit) {
-    val backDescription = stringResource(R.string.day_edit_back_action)
     Row(verticalAlignment = Alignment.CenterVertically) {
         BackAction(
             onClick = onBack,

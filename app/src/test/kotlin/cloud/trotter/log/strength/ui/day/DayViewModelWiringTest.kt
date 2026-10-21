@@ -122,6 +122,95 @@ class DayViewModelWiringTest {
         DayViewModel(repo, publisher, shareCardService, handle, today, FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
 
     @Test
+    fun authoredPrescriptionDraftAndPageSurviveProcessRecreationThenSaveAndReseed() = runVmTest {
+        val plan = repo.createAuthoredPlan("Physio", "Day A")
+        repo.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("plank"))
+        val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        val collectFirst = launch { first.dayEditState.collect {} }
+        advanceUntilIdle()
+        first.setDayEditorOpen(true)
+        first.openPrescription(slotId)
+        advanceUntilIdle()
+        val draft = first.dayEditState.value.prescriptionDraft!!.copy(
+            kind = PrescriptionKind.REPS_IN_TIME, sets = 5, seconds = 120,
+            hasRepAim = true, repAim = 40, eachSide = true, resistance = "Red band",
+        )
+        first.changePrescriptionDraft(draft)
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        collectFirst.cancel()
+        first.viewModelScope.cancel()
+        val restored = newViewModel(restoredHandle)
+        val collectEdit = launch { restored.dayEditState.collect {} }
+        val collectUi = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+        assertTrue(restored.dayEditState.value.editorOpen)
+        assertEquals(draft, restored.dayEditState.value.prescriptionDraft)
+        assertTrue(repo.daySlotsFlow("A").first().single().exercise.prescription!!.target is PrescribedTarget.Hold)
+
+        restored.savePrescription()
+        advanceUntilIdle()
+
+        val exercise = repo.daySlotsFlow("A").first().single().exercise
+        assertEquals(5, exercise.targetSets)
+        assertEquals(draft.prescription(), exercise.prescription)
+        assertNull(restored.dayEditState.value.prescriptionDraft)
+        assertEquals(5, restored.uiState.value.exercises.single().rows.size)
+        restored.openPrescription(slotId)
+        advanceUntilIdle()
+        restored.changePrescriptionDraft(draft.copy(sets = 8))
+        restored.discardPrescription()
+        advanceUntilIdle()
+        assertNull(restored.dayEditState.value.prescriptionDraft)
+        assertEquals(5, repo.daySlotsFlow("A").first().single().exercise.targetSets)
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun emptyAuthoredDayHasAReachableEditorAndNoPagerPages() = runVmTest {
+        val plan = repo.createAuthoredPlan("Physio", "Day A")
+        repo.publishCreatedAuthoredPlan(plan)
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.hasProgram)
+        assertEquals("Day A", vm.uiState.value.dayTitle)
+        assertTrue(vm.uiState.value.pages.isEmpty())
+        assertTrue(vm.dayEditState.value.authored)
+        vm.setDayEditorOpen(true)
+        vm.addDaySlot("plank")
+        advanceUntilIdle()
+        assertTrue(vm.dayEditState.value.editorOpen)
+        assertEquals(1, vm.uiState.value.pages.size)
+        collectUi.cancel()
+        collectEdit.cancel()
+    }
+
+    @Test
+    fun authoredSwapAfterRemovalAndMoveUsesTheSlotIdDespitePositionGaps() = runVmTest {
+        val plan = repo.createAuthoredPlan("Physio", "Day A")
+        repo.publishCreatedAuthoredPlan(plan)
+        repeat(3) { repo.addExercise("A", ProgramExercise("plank")) }
+        val originals = repo.daySlotsFlow("A").first()
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.removeDaySlot(0)
+        advanceUntilIdle()
+        vm.moveDaySlot(originals[2].programExerciseId, up = true)
+        advanceUntilIdle()
+        vm.swapDaySlot(2, "pushup")
+        advanceUntilIdle()
+        assertEquals("pushup", db.programDao().exercise(originals[1].programExerciseId)!!.exerciseId)
+        assertEquals("plank", db.programDao().exercise(originals[2].programExerciseId)!!.exerciseId)
+        collectUi.cancel()
+    }
+
+    @Test
     fun headersUsePrescriptionsAndReactToTheUnitSetting() = runVmTest {
         val targets = listOf(
             PrescribedTarget.LoadReps(95.0, 10),

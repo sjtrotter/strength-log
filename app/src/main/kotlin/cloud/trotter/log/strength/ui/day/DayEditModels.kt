@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 
@@ -17,6 +19,10 @@ data class DayEditUiState(
      *  wizard's equipment profile"); the user can still widen/narrow it live. */
     val defaultEquipmentFilter: Set<Equipment> = Equipment.entries.toSet(),
     val catalog: ExerciseCatalog = ExerciseCatalog.CODE_ONLY,
+    val authored: Boolean = false,
+    val unit: WeightUnit = WeightUnit.LB,
+    val prescriptionDraft: PrescriptionDraft? = null,
+    val editorOpen: Boolean = false,
 )
 
 /** One row of the day-edit sheet's slot list. */
@@ -36,6 +42,10 @@ data class DayEditSlotState(
     val partnerTitle: String? = null,
     /** Authored slots cannot attach or swap a superset partner. */
     val canSetSuperset: Boolean = true,
+    val prescription: Prescription? = null,
+    val targetSets: Int = 3,
+    val canMoveUp: Boolean = false,
+    val canMoveDown: Boolean = false,
 )
 
 /** Callbacks the day-edit sheet forwards to [DayViewModel]. */
@@ -47,4 +57,10 @@ data class DayEditActions(
     val onSetSuperset: (position: Int, partnerExerciseId: String) -> Unit,
     val onRemoveSuperset: (position: Int) -> Unit,
     val onResetToTemplate: () -> Unit,
+    val onMove: (slotId: Long, up: Boolean) -> Unit = { _, _ -> },
+    val onOpenPrescription: (Long) -> Unit = {},
+    val onPrescriptionDraft: (PrescriptionDraft) -> Unit = {},
+    val onSavePrescription: () -> Unit = {},
+    val onDiscardPrescription: () -> Unit = {},
+    val onEditorOpen: (Boolean) -> Unit = {},
 )

@@ -278,7 +278,7 @@ class DayViewModel @Inject constructor(
     /** Render model for the day-edit sheet (#11, spec §8.3) — a second view over
      *  the same day, kept out of [uiState] so the sheet never touches the
      *  exercise-card render path (see [DayEditUiState] doc). */
-    val dayEditState: StateFlow<DayEditUiState> = effectiveDayId.flatMapLatest { dayId ->
+    private val editProgramState = effectiveDayId.flatMapLatest { dayId ->
         if (dayId == null) {
             flowOf(DayEditUiState())
         } else {
@@ -287,6 +287,18 @@ class DayViewModel @Inject constructor(
                 buildEditState(slots, catalog, answers.equipment, origin)
             }
         }
+    }
+    private val prescriptionDraft = savedState.getStateFlow<PrescriptionDraft?>(KEY_PRESCRIPTION_DRAFT, null)
+    private val dayEditorOpen = savedState.getStateFlow(KEY_DAY_EDITOR_OPEN, false)
+    val dayEditState: StateFlow<DayEditUiState> = combine(
+        editProgramState, repo.unitFlow, prescriptionDraft, dayEditorOpen,
+    ) { state, unit, draft, editorOpen ->
+        state.copy(
+            unit = unit, editorOpen = editorOpen,
+            prescriptionDraft = draft?.takeIf { restored ->
+                state.authored && state.slots.any { it.programExerciseId == restored.slotId }
+            },
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
 
     val notificationPermissionAsked = repo.phoneRestNotificationAskedFlow
@@ -373,6 +385,7 @@ class DayViewModel @Inject constructor(
         savedState[KEY_VIEW_DAY] = dayId
         if (dayId == previousDay) return
         closeUndoWindow()
+        setDayEditorOpen(false)
         savedState[KEY_SELECTED_PAGE] = null
         closeSheet()
     }
@@ -780,6 +793,36 @@ class DayViewModel @Inject constructor(
 
     // --- day-edit sheet intents (#11, spec §8.3) ------------------------------
 
+    fun setDayEditorOpen(open: Boolean) {
+        savedState[KEY_DAY_EDITOR_OPEN] = open
+        if (!open) discardPrescription()
+    }
+
+    fun openPrescription(slotId: Long) {
+        val state = dayEditState.value
+        if (!state.authored) return
+        val slot = state.slots.firstOrNull { it.programExerciseId == slotId } ?: return
+        savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.from(slot)
+    }
+
+    fun changePrescriptionDraft(draft: PrescriptionDraft) {
+        val current = prescriptionDraft.value ?: return
+        if (current.slotId != draft.slotId) return
+        savedState[KEY_PRESCRIPTION_DRAFT] = draft.copy(resistance = draft.resistance.take(40))
+    }
+
+    fun discardPrescription() { savedState[KEY_PRESCRIPTION_DRAFT] = null }
+
+    fun savePrescription() {
+        val draft = prescriptionDraft.value ?: return
+        mutate {
+            repo.setPrescription(draft.slotId, draft.prescription(), draft.sets)
+            discardPrescription()
+        }
+    }
+
+    fun moveDaySlot(slotId: Long, up: Boolean) { mutate { repo.moveExercise(slotId, up) } }
+
     /** Confirming a swap in the substitution picker. The old log stays keyed to
      *  the slot's [position]; the repository clears it so the new exercise
      *  seeds fresh from its own GOAL (D4 — seeding happens on next observation,
@@ -787,7 +830,13 @@ class DayViewModel @Inject constructor(
     fun swapDaySlot(position: Int, newExerciseId: String) {
         val day = currentDay() ?: return
         mutate {
-            repo.swapExercise(day, position, newExerciseId)
+            if (repo.selectedPlanFlow.first()?.origin == PlanOrigin.AUTHORED.name) {
+                // Removal leaves position gaps; the legacy position writer takes an ordinal.
+                val slot = repo.daySlotsFlow(day).first().firstOrNull { it.position == position } ?: return@mutate
+                repo.swapExerciseById(day, slot.programExerciseId, newExerciseId)
+            } else {
+                repo.swapExercise(day, position, newExerciseId)
+            }
         }
     }
 
@@ -1086,7 +1135,7 @@ class DayViewModel @Inject constructor(
         equipment: Set<Equipment>,
         origin: PlanOrigin,
     ): DayEditUiState {
-        val rows = slots.map { slot ->
+        val rows = slots.mapIndexed { index, slot ->
             val pe = slot.exercise
             val entry = catalog.find(pe.exerciseId)
             val partnerId = pe.superset?.exerciseId
@@ -1099,11 +1148,16 @@ class DayViewModel @Inject constructor(
                 isSuperset = pe.superset != null,
                 partnerExerciseId = partnerId,
                 partnerTitle = partnerId?.let { catalog.find(it)?.name ?: it },
-                canSetSuperset = pe.prescription == null,
+                canSetSuperset = origin != PlanOrigin.AUTHORED && pe.prescription == null,
+                prescription = pe.prescription,
+                targetSets = pe.targetSets,
+                canMoveUp = index > 0,
+                canMoveDown = index < slots.lastIndex,
             )
         }
         return DayEditUiState(
             slots = rows,
+            authored = origin == PlanOrigin.AUTHORED,
             canRemove = DayEditRules.canRemove(rows.size, origin),
             defaultEquipmentFilter = equipment,
             catalog = catalog,
@@ -1170,6 +1224,8 @@ class DayViewModel @Inject constructor(
     private companion object {
         const val REST_TICK_MS = 250L
         const val REST_OVER_MS = 2_000L
+        const val KEY_PRESCRIPTION_DRAFT = "day_prescription_draft"
+        const val KEY_DAY_EDITOR_OPEN = "day_editor_open"
         const val KEY_VIEW_DAY = "day_view_override"
         const val KEY_OPEN_SHEET = "day_open_sheet"
         const val KEY_SELECTED_PAGE = "selectedPageKey"

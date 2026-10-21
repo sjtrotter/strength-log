@@ -339,6 +339,11 @@ private fun PlansRoute(
             onDuplicate = viewModel::duplicate,
             onArchive = viewModel::archive,
             onRestore = viewModel::restore,
+            onShowNewPlan = viewModel::showNewPlan,
+            onStartEmpty = viewModel::startEmpty,
+            onNewPlanName = viewModel::setNewPlanName,
+            onCreateEmpty = viewModel::createEmpty,
+            onDismissNewPlan = viewModel::dismissNewPlan,
         ),
     )
 }
@@ -357,6 +362,13 @@ private fun PlanRoute(
             onOpenDay = onOpenDay,
             onOpenPlans = onOpenPlans,
             onSetUpProgram = onSetUpProgram,
+            onAddDay = viewModel::addDay,
+            onDayMenu = viewModel::openDayMenu,
+            onRenameDay = viewModel::renameDay,
+            onRemoveDay = viewModel::removeDay,
+            onDayTitleDraft = viewModel::setDayTitleDraft,
+            onSaveDayDialog = viewModel::saveDayDialog,
+            onDismissDayDialog = viewModel::dismissDayDialog,
         ),
     )
 }
@@ -432,6 +444,12 @@ private fun DayRoute(
             onSetSuperset = viewModel::setDaySlotSuperset,
             onRemoveSuperset = viewModel::removeDaySlotSuperset,
             onResetToTemplate = viewModel::resetDayToTemplate,
+            onMove = viewModel::moveDaySlot,
+            onOpenPrescription = viewModel::openPrescription,
+            onPrescriptionDraft = viewModel::changePrescriptionDraft,
+            onSavePrescription = viewModel::savePrescription,
+            onDiscardPrescription = viewModel::discardPrescription,
+            onEditorOpen = viewModel::setDayEditorOpen,
         ),
         cascadeCeremony = cascadeCeremony,
         onDismissCascade = viewModel::dismissCascadeCeremony,

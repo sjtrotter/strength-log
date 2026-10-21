@@ -50,37 +50,40 @@ class TodayViewModel @Inject constructor(
 ) : ViewModel() {
     private val planPickerOpen = savedState.getStateFlow(PLAN_PICKER_OPEN, false)
 
-    private val contextFlow =
-        combine(
-            repo.programFlow,
-            repo.suggestedDayFlow,
+    // Resolve selection once; every read contributing to the day uses this identity.
+    private val contextFlow = repo.selectedPlanFlow.flatMapLatest { plan ->
+        if (plan == null) flowOf(null) else combine(
+            repo.programFor(plan.id),
             repo.catalogFlow,
-            repo.configFlow,
-        ) { program, suggested, catalog, cfg ->
-            val dayId = suggested?.takeIf { id -> program.strengthDays.any { it.id == id } }
+            repo.wizardAnswersFor(plan.id),
+        ) { program, catalog, answers ->
+            val dayId = plan.suggestedDayId?.takeIf { id -> program.strengthDays.any { it.id == id } }
                 ?: program.strengthDays.firstOrNull()?.id
-            TodayContext(program, dayId, catalog, cfg)
+            TodayContext(plan.id, program, dayId, catalog, answers.config)
         }
+    }
 
     private val dayState = contextFlow.flatMapLatest { ctx ->
-        val dayId = ctx.dayId
-        if (dayId == null) {
+        val dayId = ctx?.dayId
+        if (ctx == null || dayId == null) {
             // [contextFlow] picks the day from the same program emission, so a
             // null day here means the program has no days — the answer, not a
             // pause. Loading is the state before this flow emits at all, which
             // is [uiState]'s initial value below (#127).
-            flowOf(TodayUiState())
-        } else civilTimeSource.civilTime.flatMapLatest { now ->
+            flowOf(TodayUiState(planId = ctx?.planId))
+        } else {
+            civilTimeSource.civilTime.flatMapLatest { now ->
                 combine(
-                    repo.daySlotsFlow(dayId),
-                    repo.logFlow(dayId, flowOf(now.date)),
-                    repo.selectedPlanSessionSummariesFlow,
+                    repo.slotsFor(ctx.planId, dayId),
+                    repo.logsFor(ctx.planId, dayId, flowOf(now.date)),
+                    repo.sessionSummariesFor(ctx.planId),
                     repo.topSetHistoryFlow,
-                    repo.selectedPlanLastSessionAtFlow,
+                    repo.lastSessionAtFor(ctx.planId),
                 ) { slots, logs, sessions, topSets, lastSessionAt ->
                     build(ctx, dayId, slots, logs, sessions, topSets, lastSessionAt, now)
                 }
             }
+        }
     }
 
     val uiState: StateFlow<TodayUiState> = combine(
@@ -89,7 +92,11 @@ class TodayViewModel @Inject constructor(
         planPickerOpen,
     ) { state, plans, pickerOpen ->
         val active = plans.filterNot { it.archived }
-        state.copy(activePlans = active, planPickerOpen = pickerOpen && active.size > 1)
+        state.copy(
+            planName = plans.firstOrNull { it.id == state.planId }?.name,
+            activePlans = active,
+            planPickerOpen = pickerOpen && active.size > 1,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TodayUiState(loading = true))
 
     fun showPlanPicker() {
@@ -133,6 +140,7 @@ class TodayViewModel @Inject constructor(
         val doneSets = slots.sumOf { slot -> rowsBySlot[slot.programExerciseId]?.count { it.done } ?: 0 }
 
         return TodayUiState(
+            planId = ctx.planId,
             hasProgram = true,
             dayId = dayId,
             dayIndex = dayIndex,
@@ -182,6 +190,7 @@ class TodayViewModel @Inject constructor(
         DayScreenBuilder.previewMainSets(slot, ctx.cfg, ctx.catalog).size
 
     private data class TodayContext(
+        val planId: Long,
         val program: Program,
         val dayId: String?,
         val catalog: ExerciseCatalog,

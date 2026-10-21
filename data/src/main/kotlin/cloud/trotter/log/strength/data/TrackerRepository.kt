@@ -999,7 +999,13 @@ open class TrackerRepository(
 
     /** Latest workout or cardio completion; [PlanEntity.LEGACY_ID] also counts null-plan history. */
     val selectedPlanLastSessionAtFlow: Flow<Long?> =
-        combine(selectedPlanIdFlow, sessionsFlow, cardioSessionsFlow) { planId, sessions, cardio ->
+        selectedPlanIdFlow.flatMapLatest { planId ->
+            if (planId == null) flowOf(null) else lastSessionAtFor(planId)
+        }.distinctUntilChanged()
+
+    /** A fixed plan's latest workout or cardio completion, including legacy history. */
+    fun lastSessionAtFor(planId: Long): Flow<Long?> =
+        combine(sessionsFlow, cardioSessionsFlow) { sessions, cardio ->
             listOfNotNull(
                 sessions.filter { belongsToPlan(it.planId, planId) }.maxOfOrNull { it.completedAt },
                 cardio.filter { belongsToPlan(it.planId, planId) }.maxOfOrNull { it.completedAt },
@@ -1044,7 +1050,13 @@ open class TrackerRepository(
 
     /** Selected plan's workout history, including pre-plans history for the migrated plan. */
     val selectedPlanSessionSummariesFlow: Flow<List<SessionSummaryRow>> =
-        combine(selectedPlanIdFlow, sessionSummariesFlow) { planId, sessions ->
+        selectedPlanIdFlow.flatMapLatest { planId ->
+            if (planId == null) flowOf(emptyList()) else sessionSummariesFor(planId)
+        }
+
+    /** A fixed plan's workout history, including pre-plans history for the migrated plan. */
+    fun sessionSummariesFor(planId: Long): Flow<List<SessionSummaryRow>> =
+        sessionSummariesFlow.map { sessions ->
             sessions.filter { belongsToPlan(it.session.planId, planId) }
         }
 

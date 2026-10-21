@@ -80,7 +80,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
         if (state.loading) ProgramLoadingState() else NoProgramState(actions.onSetUpProgram)
         return
     }
-    val selectedPlan = state.activePlans.takeIf { it.size > 1 }?.firstOrNull { it.selected }
+    val planName = state.planName.takeIf { state.activePlans.size > 1 }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -125,7 +125,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                             size = DayIndexSize.Large,
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            selectedPlan?.let { plan ->
+                            planName?.let { name ->
                                 TextButton(
                                     onClick = actions.onShowPlanPicker,
                                     contentPadding = PaddingValues(0.dp),
@@ -133,7 +133,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                     ),
                                 ) {
-                                    Text(plan.name, style = MaterialTheme.typography.bodyMedium)
+                                    Text(name, style = MaterialTheme.typography.bodyMedium)
                                 }
                             }
                             Text(
@@ -213,7 +213,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
             }
         }
     }
-    if (selectedPlan != null && state.planPickerOpen) {
+    if (state.activePlans.size > 1 && state.planPickerOpen) {
         AppModalBottomSheet(
             onDismissRequest = actions.onDismissPlanPicker,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),

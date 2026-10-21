@@ -38,6 +38,8 @@ class TodayPlanPickerTest {
         dayId = "B",
         dayIndex = 1,
         dayTitle = "Squat",
+        planId = 1,
+        planName = "Strength",
         activePlans = activePlans,
     )
 
@@ -100,6 +102,8 @@ class TodayPlanPickerTest {
                 dayId = "A",
                 dayIndex = 0,
                 dayTitle = "Easy run",
+                planId = 2,
+                planName = "Running",
                 activePlans = plans.map { it.copy(selected = it.id == 2L) },
                 planPickerOpen = false,
             )
@@ -111,5 +115,24 @@ class TodayPlanPickerTest {
         rule.onNodeWithText("Squat").assertDoesNotExist()
         rule.onNodeWithText("Switch plan").assertDoesNotExist()
         rule.onAllNodes(radioRow).assertCountEquals(0)
+    }
+
+    @Test
+    fun selectedRadioCanChangeWhileTheHeaderKeepsTheDisplayedContentsPlanName() {
+        val state = state(plans.map { it.copy(selected = it.id == 2L) })
+        val pickerOpen = mutableStateOf(false)
+        rule.setContent {
+            AppTheme {
+                TodayScreen(
+                    state.copy(planPickerOpen = pickerOpen.value),
+                    actions().copy(onShowPlanPicker = { pickerOpen.value = true }),
+                )
+            }
+        }
+
+        rule.onNodeWithText("Strength").assertHasClickAction().performClick()
+        rule.onNodeWithText("Squat").assertExists()
+        rule.onNode(radioRow and hasText("Strength")).assertIsNotSelected()
+        rule.onNode(radioRow and hasText("Running")).assertIsSelected()
     }
 }

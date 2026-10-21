@@ -27,6 +27,9 @@ data class TodayUiState(
     val actionLabel: UiText.TodayAction = UiText.TodayAction(cloud.trotter.log.strength.ui.text.TodayActionKind.START, "", 0, 0),
     /** One quiet derived history fact; null on a fresh install. */
     val lifeLine: UiText? = null,
+    /** Identity of the plan that produced the displayed day and history. */
+    val planId: Long? = null,
+    val planName: String? = null,
     val activePlans: List<PlanSummary> = emptyList(),
     val planPickerOpen: Boolean = false,
 )

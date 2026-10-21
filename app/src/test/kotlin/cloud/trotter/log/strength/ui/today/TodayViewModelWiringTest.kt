@@ -9,10 +9,13 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -29,15 +32,20 @@ import cloud.trotter.log.strength.time.CivilTimeSource
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -58,7 +66,7 @@ import org.robolectric.annotation.Config
  * reach because it only ever feeds hand-picked numbers straight into
  * [TodayScreenBuilder]'s pure functions. What's left uncovered there, and
  * covered here instead: [TodayViewModel]'s own `contextFlow` day-resolution
- * against a real [TrackerRepository.suggestedDayFlow], the live combine over
+ * against a real [TrackerRepository.selectedPlanFlow], the live combine over
  * real seeded/ticked log rows a [DayViewModel] writes on the same day, and the
  * real [TrackerRepository.sessionSummariesFlow]/`topSetHistoryFlow` history
  * once a day is actually advanced. Same Robolectric + in-memory Room + temp
@@ -75,6 +83,9 @@ class TodayViewModelWiringTest {
     private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<ViewModel>()
+    private var delayedPlanId: Long? = null
+    private var programReadGate: CompletableDeferred<Unit>? = null
+    private var delayedProgramReadStarted = false
 
     @Before
     fun setUp() {
@@ -90,7 +101,15 @@ class TodayViewModelWiringTest {
         }
         repo = TrackerRepository(
             db = db,
-            programDao = db.programDao(),
+            programDao = object : ProgramDao by db.programDao() {
+                override fun observeDays(planId: Long): Flow<List<ProgramDayEntity>> = flow {
+                    if (planId == delayedPlanId) {
+                        delayedProgramReadStarted = true
+                        programReadGate?.await()
+                    }
+                    emitAll(db.programDao().observeDays(planId))
+                }
+            },
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
             settings = SettingsStore(dataStore),
@@ -188,6 +207,90 @@ class TodayViewModelWiringTest {
         today.selectPlan(running)
         advanceUntilIdle()
         assertEquals("Intervals", today.uiState.value.dayTitle)
+    }
+
+    @Test
+    fun everyEmissionKeepsThePlanNameWithItsDayCoachAndCardioWhileSwitchDataIsDelayed() = runVmTest {
+        repo.replaceProgram(Program(listOf(
+            ProgramDay(
+                id = "A", title = "Squat day", emphasisLine = "",
+                exercises = listOf(ProgramExercise("bb_back_squat")),
+                cardio = CardioSuggestion("Easy jog", "10 minutes", hard = false),
+            ),
+        )))
+        val firstPlan = checkNotNull(repo.selectedPlanIdFlow.first())
+        repo.renamePlan(firstPlan, "Strength")
+        val secondPlan = repo.duplicatePlan(firstPlan, "Running")
+        repo.selectPlan(secondPlan)
+        repo.replaceProgram(Program(listOf(
+            ProgramDay(
+                // Deliberately reuse the day id: identity must come from the plan.
+                id = "A", title = "Run prep", emphasisLine = "",
+                exercises = listOf(ProgramExercise("plank")),
+                cardio = CardioSuggestion("Intervals", "20 minutes", hard = true),
+            ),
+        )))
+        db.sessionDao().insertSessions(listOf(
+            historySession(firstPlan, "2026-10-15"),
+            historySession(secondPlan, "2026-10-18"),
+        ))
+        repo.selectPlan(firstPlan)
+        val today = newTodayViewModel(LocalDate.of(2026, 10, 20))
+        val emissions = mutableListOf<TodayUiState>()
+        // Eager collection prevents StateFlow conflation from hiding a transient mismatch.
+        val collect = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            today.uiState.collect { emissions += it }
+        }
+        advanceUntilIdle()
+        val firstContent = Triple(
+            "Squat day", UiText.TodayCoach(TodayCoachKind.DAYS, "15 Oct", 5),
+            TodayCardio("Easy jog", "10 minutes"),
+        )
+        val secondContent = Triple(
+            "Run prep", UiText.TodayCoach(TodayCoachKind.DAYS, "18 Oct", 2),
+            TodayCardio("Intervals", "20 minutes"),
+        )
+        assertEquals("Strength", today.uiState.value.planName)
+        assertEquals(firstContent, today.uiState.value.let { Triple(it.dayTitle, it.coachLine, it.cardio) })
+
+        delayedPlanId = secondPlan
+        val gate = CompletableDeferred<Unit>()
+        programReadGate = gate
+        today.selectPlan(secondPlan)
+        advanceUntilIdle()
+
+        assertTrue("the new program read must be waiting", delayedProgramReadStarted)
+        val waiting = today.uiState.value
+        assertEquals(secondPlan, waiting.activePlans.single { it.selected }.id)
+        assertEquals("Strength", waiting.planName)
+        assertEquals(firstContent, Triple(waiting.dayTitle, waiting.coachLine, waiting.cardio))
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals("Running", today.uiState.value.planName)
+        assertEquals(secondContent, today.uiState.value.let { Triple(it.dayTitle, it.coachLine, it.cardio) })
+
+        today.selectPlan(firstPlan)
+        advanceUntilIdle()
+        assertEquals("Strength", today.uiState.value.planName)
+        assertTrue("must collect the new plan's content", emissions.any { it.planName == "Running" })
+        assertTrue("must collect the delayed switch", emissions.any { state ->
+            state.planName == "Strength" && state.activePlans.any { it.id == secondPlan && it.selected }
+        })
+        emissions.filter { it.hasProgram }.forEach { state ->
+            val expected = when (state.planName) {
+                "Strength" -> firstPlan to firstContent
+                "Running" -> secondPlan to secondContent
+                else -> error("Unexpected plan name in emission: $state")
+            }
+            assertEquals("wrong plan identity in $state", expected.first, state.planId)
+            assertEquals(
+                "mixed plan content in $state",
+                expected.second,
+                Triple(state.dayTitle, state.coachLine, state.cardio),
+            )
+        }
+        collect.cancel()
     }
 
     @Test

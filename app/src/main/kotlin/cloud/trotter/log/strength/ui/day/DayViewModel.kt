@@ -640,6 +640,7 @@ class DayViewModel @Inject constructor(
             // An unseeded track has no last row to copy — nothing to add yet.
             if (main.isEmpty()) return@mutate
             val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else emptyList()
+            cancelTimedRepForSetListChange(day, programExerciseId)
             if (partner.isNotEmpty()) {
                 val (newMain, newPartner) = SetEditor.addSetPaired(main, partner)
                 repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
@@ -663,6 +664,7 @@ class DayViewModel @Inject constructor(
             // so nothing is offered back.
             if (main.size <= 1) return@mutate
             val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else emptyList()
+            cancelTimedRepForSetListChange(day, programExerciseId)
             // Offered before the write lands: removing the last unfinished row
             // finishes the card, and the screen has to know the offer is open
             // before it decides whether to fold that card away.
@@ -695,6 +697,7 @@ class DayViewModel @Inject constructor(
             if (day != removed.dayId) return@mutate
             val main = trackFor(day, removed.programExerciseId, Slot.MAIN)
             val partner = trackFor(day, removed.programExerciseId, Slot.SS)
+            cancelTimedRepForSetListChange(day, removed.programExerciseId)
             if (removed.partner != null && partner.isNotEmpty()) {
                 val (newMain, newPartner) =
                     SetEditor.insertSetPaired(main, partner, removed.index, removed.main, removed.partner)
@@ -1111,6 +1114,13 @@ class DayViewModel @Inject constructor(
         timedRepAlertAnchor = null
         savedState[KEY_TIMED_REP_EVENT] = null
         if (openSheet.value?.kind == OpenSheet.Kind.TIMED_REP_COUNT) savedState[KEY_OPEN_SHEET] = null
+    }
+
+    private fun cancelTimedRepForSetListChange(dayId: String, programExerciseId: Long) {
+        val event = timedRepEvent.value ?: return
+        // Rows have positional identities. Cancel on every structural change in
+        // this slot, even after the event's index, rather than risk retargeting it.
+        if (event.dayId == dayId && event.programExerciseId == programExerciseId) clearTimedRep()
     }
 
     private fun buildCardioState(

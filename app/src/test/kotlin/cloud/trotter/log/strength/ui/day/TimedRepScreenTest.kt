@@ -90,6 +90,101 @@ class TimedRepScreenTest {
         rule.onNodeWithText("Set 2 of 2").assertExists()
     }
 
+    @Test fun uncheckingEarlierSetKeepsEventFocusThroughExpiryDismissalAndLogging() {
+        val second = card().copy(
+            rows = card().rows.map { if (it.index == 0) it.copy(done = true, reps = 38) else it },
+            focusIndex = 1, focusLabel = UiText.SetLabel(SetKind.WORK, 2),
+        )
+        var state by mutableStateOf(state().copy(exercises = listOf(second)))
+        val actions = pagerActions().copy(
+            onStartTimedRep = { _, index ->
+                state = state.copy(
+                    timedRep = TimedRepState(event().copy(setIndex = index), 119), executionBusy = true,
+                )
+            },
+            onOpenTimedRepCount = {
+                state = state.copy(
+                    timedRep = state.timedRep?.let { it.copy(event = it.event.copy(sheetRequested = true)) },
+                    openSheet = OpenSheet("D", OpenSheet.Kind.TIMED_REP_COUNT, card().programExerciseId, 1),
+                )
+            },
+            onCloseSetEditor = {
+                state = state.copy(
+                    openSheet = null,
+                    timedRep = state.timedRep?.let { it.copy(event = it.event.copy(sheetDismissed = true)) },
+                )
+            },
+            onRequestTimedRepCount = {
+                state = state.copy(timedRep = state.timedRep?.let {
+                    it.copy(event = it.event.copy(sheetRequested = false, sheetDismissed = false))
+                })
+            },
+            onTimedRepDraftChange = { draft ->
+                state = state.copy(timedRep = state.timedRep?.let { it.copy(event = it.event.copy(draft = draft)) })
+            },
+            onLogTimedRepCount = {
+                val event = requireNotNull(state.timedRep).event
+                val current = state.exercises.single()
+                state = state.copy(
+                    exercises = listOf(current.copy(rows = current.rows.map {
+                        if (it.index == event.setIndex) it.copy(done = true, reps = requireNotNull(event.count)) else it
+                    })),
+                    timedRep = null, openSheet = null,
+                )
+            },
+        )
+        rule.setContent { AppTheme { DayScreen(state, actions, DayEditUiState(), pagerEditActions()) } }
+        rule.onNodeWithText("Start").performClick()
+        rule.runOnIdle { state = state.copy(exercises = listOf(card())) }
+        rule.onNodeWithText("Set 2").assertExists()
+        rule.onNodeWithText("Set 2 of 2").assertExists()
+        rule.onNodeWithText("1:59").assertExists()
+        rule.onNodeWithText("Stop").assertIsEnabled()
+        rule.onNodeWithText("Start").assertDoesNotExist()
+        rule.runOnIdle {
+            state = state.copy(
+                timedRep = TimedRepState(event(awaiting = true).copy(setIndex = 1), 0), executionBusy = false,
+            )
+        }
+        rule.onNodeWithText("Push-ups · Set 2").assertExists()
+        rule.runOnIdle { actions.onCloseSetEditor() }
+        rule.onNodeWithText("Time’s up").assertDoesNotExist()
+        rule.onNodeWithText("Set 2 of 2").assertExists()
+        rule.onNodeWithText("0:00").assertExists()
+        rule.onNodeWithText("Enter reps").assertIsEnabled().performClick()
+        rule.onNodeWithText("Push-ups · Set 2").assertExists()
+        rule.onNodeWithText("Reps").performTextReplacement("38")
+        rule.onNodeWithText("Log 38 reps").performClick()
+        rule.runOnIdle {
+            val rows = state.exercises.single().rows
+            assertFalse(rows[0].done)
+            assertTrue(rows[1].done)
+            assertEquals(38, rows[1].reps)
+        }
+        rule.onNodeWithText("Set 1").assertExists()
+        rule.onNodeWithText("Set 1 of 2").assertExists()
+        rule.onNodeWithText("2:00").assertExists()
+        rule.onNodeWithText("Start").assertIsEnabled().performClick()
+        rule.onNodeWithText("Stop").assertIsEnabled()
+        rule.runOnIdle { assertEquals(0, state.timedRep?.event?.setIndex) }
+    }
+
+    @Test fun stoppingEventAfterEarlierSetIsUncheckedRestoresNormalFocus() {
+        var state by mutableStateOf(state().copy(
+            timedRep = TimedRepState(event().copy(setIndex = 1), 42), executionBusy = true,
+        ))
+        val actions = pagerActions().copy(onStopTimedRep = { state = state.copy(timedRep = null, executionBusy = false) })
+        rule.setContent { AppTheme { DayScreen(state, actions, DayEditUiState(), pagerEditActions()) } }
+        rule.onNodeWithText("Set 2").assertExists()
+        rule.onNodeWithText("Set 2 of 2").assertExists()
+        rule.onNodeWithText("0:42").assertExists()
+        rule.onNodeWithText("Stop").assertIsEnabled().performClick()
+        rule.onNodeWithText("Set 1").assertExists()
+        rule.onNodeWithText("Set 1 of 2").assertExists()
+        rule.onNodeWithText("2:00").assertExists()
+        rule.onNodeWithText("Start").assertIsEnabled()
+    }
+
     @Test fun countControlsStartAtZeroAllowZeroDisableBlankAndShowTheAim() {
         var event by mutableStateOf(event(awaiting = true))
         val logged = mutableListOf<Int>()

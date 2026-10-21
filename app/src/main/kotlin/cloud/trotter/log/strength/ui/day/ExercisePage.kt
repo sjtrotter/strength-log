@@ -84,10 +84,11 @@ internal fun ExercisePage(
     val colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onDayAccent(dayIndex))
     var menuOpen by remember { mutableStateOf(false) }
     var confirmingWeightSwap by rememberSaveable(card.programExerciseId) { mutableStateOf(false) }
-    val focus = card.rows.getOrNull(card.focusIndex)
     val event = timedRep?.takeIf {
-        it.event.programExerciseId == card.programExerciseId && it.event.setIndex == card.focusIndex
+        it.event.programExerciseId == card.programExerciseId
     }
+    val focusIndex = event?.event?.setIndex ?: card.focusIndex
+    val focus = card.rows.getOrNull(focusIndex)
     val showingClock = card.timedRepDurationSeconds != null && !card.allDone
     val shown = if (card.allDone) card.rows.firstOrNull { it.isTop } ?: card.rows.lastOrNull() else focus
     Card(
@@ -191,6 +192,7 @@ internal fun ExercisePage(
                     text = when {
                         card.allDone && card.timedRepDurationSeconds != null -> setLabel(shown).resolve()
                         card.allDone -> stringResource(R.string.set_label_top)
+                        event != null -> setLabel(shown).resolve()
                         else -> card.focusLabel.resolve()
                     },
                     style = MaterialTheme.typography.labelLarge,
@@ -264,7 +266,7 @@ internal fun ExercisePage(
                             Modifier.fillMaxWidth().height(6.dp).background(
                                 color = when {
                                     row.done -> LocalAppPalette.current.done
-                                    row.index == card.focusIndex -> accent
+                                    row.index == focusIndex -> accent
                                     else -> MaterialTheme.colorScheme.outlineVariant
                                 },
                                 shape = RoundedCornerShape(2.dp),
@@ -276,11 +278,11 @@ internal fun ExercisePage(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
                     text = if (card.allDone) stringResource(R.string.day_sets_done, card.rows.size, card.rows.size)
-                    else stringResource(R.string.day_set_of, card.focusIndex + 1, card.rows.size),
+                    else stringResource(R.string.day_set_of, focusIndex + 1, card.rows.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = variant,
                 )
-                card.nextSetDisplay?.takeUnless { card.allDone }?.let {
+                card.nextSetDisplay?.takeUnless { card.allDone || focusIndex != card.focusIndex }?.let {
                     Text(
                         text = stringResource(R.string.day_next_set, it),
                         style = MaterialTheme.typography.bodyMedium,

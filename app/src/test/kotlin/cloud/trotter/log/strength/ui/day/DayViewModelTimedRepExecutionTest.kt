@@ -206,6 +206,181 @@ class DayViewModelTimedRepExecutionTest {
     }
 
     @Test
+    fun removingRunningSetCancelsInsteadOfRetargetingItsSuccessor() = test {
+        prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.start()
+        runCurrent()
+        val staleBoundary = requireNotNull(alarm.callback)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.removeSet(id, 0, false)
+        runCurrent()
+        assertTimedRepCleared(vm)
+        assertNull(handle.get<TimedRepEvent>("day_timed_rep_event"))
+        staleBoundary()
+        tick(120_000)
+        assertTimedRepCleared(vm)
+        assertEquals(0, alarm.buzzes)
+        val remaining = vm.uiState.value.exercises.single().rows.single()
+        assertFalse(remaining.done)
+        assertEquals(0, remaining.reps)
+        vm.start()
+        runCurrent()
+        assertEquals(120, vm.uiState.value.timedRep?.remainingSeconds)
+    }
+
+    @Test
+    fun removingAwaitingSetDiscardsCountInsteadOfLoggingItsSuccessor() = test {
+        val vm = awaitingVm()
+        vm.openTimedRepCount()
+        vm.changeTimedRepDraft("38")
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.removeSet(id, 0, false)
+        // Queue a submission that still holds the old event behind the removal.
+        vm.logTimedRepCount()
+        runCurrent()
+        assertTimedRepCleared(vm)
+        vm.logTimedRepCount()
+        runCurrent()
+        val remaining = repo.logFlow("A").first().single { it.slot == Slot.MAIN }.sets.single()
+        assertFalse(remaining.done)
+        assertEquals(0, remaining.reps)
+    }
+
+    @Test
+    fun removingSetAfterRunningEventAlsoCancels() = test {
+        prepare()
+        val vm = readyVm()
+        vm.start()
+        runCurrent()
+        vm.removeSet(vm.uiState.value.exercises.single().programExerciseId, 1, false)
+        runCurrent()
+        assertTimedRepCleared(vm)
+        assertFalse(vm.uiState.value.exercises.single().rows.single().done)
+    }
+
+    @Test
+    fun removingSetAfterAwaitingEventAlsoDiscardsCount() = test {
+        val vm = awaitingVm()
+        vm.openTimedRepCount()
+        vm.changeTimedRepDraft("38")
+        vm.closeSheet()
+        vm.removeSet(vm.uiState.value.exercises.single().programExerciseId, 1, false)
+        runCurrent()
+        assertTimedRepCleared(vm)
+        vm.logTimedRepCount()
+        runCurrent()
+        assertEquals(0, vm.uiState.value.exercises.single().rows.single().reps)
+    }
+
+    @Test
+    fun addingSetCancelsRunningEvent() = test {
+        prepare()
+        val vm = readyVm()
+        vm.start()
+        runCurrent()
+        vm.addSet(vm.uiState.value.exercises.single().programExerciseId, false)
+        runCurrent()
+        assertEquals(3, vm.uiState.value.exercises.single().rows.size)
+        assertTimedRepCleared(vm)
+    }
+
+    @Test
+    fun addingSetDiscardsAwaitingCount() = test {
+        val vm = awaitingVm()
+        vm.openTimedRepCount()
+        vm.changeTimedRepDraft("38")
+        vm.addSet(vm.uiState.value.exercises.single().programExerciseId, false)
+        runCurrent()
+        assertEquals(3, vm.uiState.value.exercises.single().rows.size)
+        assertTimedRepCleared(vm)
+        vm.logTimedRepCount()
+        runCurrent()
+        assertTrue(vm.uiState.value.exercises.single().rows.all { !it.done && it.reps == 0 })
+    }
+
+    @Test
+    fun undoingRemovalCancelsRunningEvent() = test {
+        prepare()
+        val vm = readyVm()
+        vm.removeSet(vm.uiState.value.exercises.single().programExerciseId, 0, false)
+        runCurrent()
+        vm.start()
+        runCurrent()
+        vm.undoRemoveSet()
+        runCurrent()
+        assertEquals(2, vm.uiState.value.exercises.single().rows.size)
+        assertTimedRepCleared(vm)
+    }
+
+    @Test
+    fun undoingRemovalDiscardsAwaitingCount() = test {
+        prepare()
+        val vm = readyVm()
+        vm.removeSet(vm.uiState.value.exercises.single().programExerciseId, 0, false)
+        runCurrent()
+        vm.start()
+        runCurrent()
+        // Reach the deadline without advancing past the undo window.
+        tick(120_000)
+        vm.openTimedRepCount()
+        vm.changeTimedRepDraft("38")
+        vm.undoRemoveSet()
+        runCurrent()
+        assertEquals(2, vm.uiState.value.exercises.single().rows.size)
+        assertTimedRepCleared(vm)
+        vm.logTimedRepCount()
+        runCurrent()
+        assertTrue(vm.uiState.value.exercises.single().rows.all { !it.done && it.reps == 0 })
+    }
+
+    @Test
+    fun uncheckingEarlierSetPreservesRunningEventAndLogsCountToItsOriginalSet() = test {
+        prepare()
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.toggleDone(id, 0, true, false)
+        runCurrent()
+        vm.start()
+        runCurrent()
+        vm.toggleDone(id, 0, false, false)
+        runCurrent()
+        assertEquals(0, vm.uiState.value.exercises.single().focusIndex)
+        assertEquals(1, vm.uiState.value.timedRep?.event?.setIndex)
+        assertTrue(vm.uiState.value.timedRepRunning)
+        tick(120_000)
+        vm.openTimedRepCount()
+        vm.changeTimedRepDraft("38")
+        vm.closeSheet()
+        runCurrent()
+        assertTrue(vm.uiState.value.timedRep!!.event.sheetDismissed)
+        vm.requestTimedRepCount()
+        vm.openTimedRepCount()
+        vm.logTimedRepCount()
+        runCurrent()
+        val rows = vm.uiState.value.exercises.single().rows
+        assertFalse(rows[0].done)
+        assertEquals(0, rows[0].reps)
+        assertTrue(rows[1].done)
+        assertEquals(38, rows[1].reps)
+        assertTimedRepCleared(vm)
+        vm.start()
+        runCurrent()
+        assertEquals(0, vm.uiState.value.timedRep?.event?.setIndex)
+        assertTrue(vm.uiState.value.timedRepRunning)
+    }
+
+    private fun assertTimedRepCleared(vm: DayViewModel) {
+        assertNull(vm.uiState.value.timedRep)
+        assertNull(vm.uiState.value.openSheet)
+        assertNull(alarm.deadline)
+        assertFalse(vm.uiState.value.executionKeepsScreenOn)
+        assertFalse(vm.uiState.value.executionBusy)
+    }
+
+    @Test
     fun logCountUsesRoundTickAndStartsUsualRestWithNoLoggedSeconds() = test {
         val vm = awaitingVm()
         repo.setPhoneRestTimerEnabled(true)

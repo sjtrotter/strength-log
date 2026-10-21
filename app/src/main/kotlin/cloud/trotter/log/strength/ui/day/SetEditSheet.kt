@@ -125,6 +125,13 @@ internal fun SetEditSheet(
                     actions = actions,
                 )
             }
+            if (card.timedRepAim != null) {
+                Text(
+                    stringResource(R.string.timed_rep_aim, row.reps, card.timedRepAim),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             val plate = DayScreenBuilder.plateLine(
                 main = listOf(
                     LoggedSet(unit.toLb(row.weightDisplay), row.reps, SetKind.WORK, done = false, seconds = row.seconds),
@@ -209,7 +216,7 @@ private fun SetFields(
                 field = stringResource(R.string.set_edit_reps),
                 partnerName = partnerName,
                 modifier = Modifier.fillMaxWidth(),
-                minimum = 1.0,
+                minimum = if (slot == Slot.MAIN && card.timedRepDurationSeconds != null) 0.0 else 1.0,
                 step = { 1.0 },
                 onChange = { actions.onRepsChange(card.programExerciseId, slot, row.index, it.toInt()) },
             )
@@ -218,7 +225,7 @@ private fun SetFields(
 }
 
 @Composable
-private fun NumericSetField(
+internal fun NumericSetField(
     identity: String,
     value: Double,
     label: String,
@@ -230,6 +237,8 @@ private fun NumericSetField(
     step: (Double) -> Double,
     round: (Double) -> Double = { Math.round(it).toDouble() },
     onChange: (Double) -> Unit,
+    textOverride: String? = null,
+    onTextChange: ((String) -> Unit)? = null,
 ) {
     var text by rememberSaveable(identity) { mutableStateOf(WeightStepper.format(value)) }
     val interactionSource = remember(identity) { MutableInteractionSource() }
@@ -251,10 +260,12 @@ private fun NumericSetField(
             Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.set_edit_less, trackField, amount))
         }
         OutlinedTextField(
-            value = text,
+            value = textOverride ?: text,
             onValueChange = {
-                text = it
-                resolveStepperCommit(it, minimum, Double.POSITIVE_INFINITY, round)?.let(onChange)
+                if (onTextChange != null) onTextChange(it) else {
+                    text = it
+                    resolveStepperCommit(it, minimum, Double.POSITIVE_INFINITY, round)?.let(onChange)
+                }
             },
             label = { Text(label) },
             singleLine = true,

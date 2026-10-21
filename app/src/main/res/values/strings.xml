@@ -547,6 +547,11 @@
     <string name="day_target_each_side">Each side</string>
     <string name="day_last">Last %1$s</string>
     <string name="day_log_set">Log %1$s</string>
+    <string name="timed_rep_time_up">Time’s up</string>
+    <string name="timed_rep_enter_reps">Enter reps</string>
+    <string name="timed_rep_set_identity">%1$s · Set %2$d</string>
+    <string name="timed_rep_aim">%1$d / %2$d reps</string>
+    <string name="timed_rep_log_reps">Log %1$d reps</string>
     <string name="day_all_sets">All sets</string>
     <string name="day_finish_button">Finish day %1$s</string>
     <string name="day_menu_edit_day">Edit day</string>

@@ -63,6 +63,13 @@ internal fun AllSetsSheet(
                         verticalArrangement = Arrangement.Center,
                     ) {
                         Text(value, style = DisplayXl.copy(fontSize = 30.sp, fontFeatureSettings = "tnum"))
+                        if (row.done && card.timedRepAim != null) {
+                            Text(
+                                stringResource(R.string.timed_rep_aim, row.reps, card.timedRepAim),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         row.partner?.let { partner ->
                             val partnerValue = setValue(
                                 weight = partner.weightDisplay,

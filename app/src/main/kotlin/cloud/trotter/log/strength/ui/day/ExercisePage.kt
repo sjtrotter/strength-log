@@ -76,13 +76,20 @@ internal fun ExercisePage(
     onSwap: () -> Unit,
     onSwapWeight: (Int, String) -> Unit,
     onNote: () -> Unit,
+    timedRep: TimedRepState? = null,
+    executionBusy: Boolean = false,
 ) {
     val accent = dayAccent(dayIndex)
     val variant = MaterialTheme.colorScheme.onSurfaceVariant
     val colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onDayAccent(dayIndex))
     var menuOpen by remember { mutableStateOf(false) }
     var confirmingWeightSwap by rememberSaveable(card.programExerciseId) { mutableStateOf(false) }
-    val focus = card.rows.getOrNull(card.focusIndex)
+    val event = timedRep?.takeIf {
+        it.event.programExerciseId == card.programExerciseId
+    }
+    val focusIndex = event?.event?.setIndex ?: card.focusIndex
+    val focus = card.rows.getOrNull(focusIndex)
+    val showingClock = card.timedRepDurationSeconds != null && !card.allDone
     val shown = if (card.allDone) card.rows.firstOrNull { it.isTop } ?: card.rows.lastOrNull() else focus
     Card(
         modifier = Modifier.testTag("exercise-page:${card.programExerciseId}"),
@@ -182,7 +189,12 @@ internal fun ExercisePage(
             Spacer(Modifier.height(20.dp))
             if (shown != null) {
                 Text(
-                    text = if (card.allDone) stringResource(R.string.set_label_top) else card.focusLabel.resolve(),
+                    text = when {
+                        card.allDone && card.timedRepDurationSeconds != null -> setLabel(shown).resolve()
+                        card.allDone -> stringResource(R.string.set_label_top)
+                        event != null -> setLabel(shown).resolve()
+                        else -> card.focusLabel.resolve()
+                    },
                     style = MaterialTheme.typography.labelLarge,
                     color = variant,
                 )
@@ -192,7 +204,10 @@ internal fun ExercisePage(
                 val editLabel = stringResource(R.string.set_edit_open)
                 Text(
                     text = buildAnnotatedString {
-                        when (card.tracking) {
+                        if (showingClock) {
+                            val seconds = event?.remainingSeconds ?: card.timedRepDurationSeconds
+                            append("%d:%02d".format(seconds / 60, seconds % 60))
+                        } else when (card.tracking) {
                             TrackingType.WEIGHTED -> {
                                 append(WeightStepper.format(shown.weightDisplay))
                                 withStyle(SpanStyle(fontSize = 44.sp, color = variant)) { append(" × ") }
@@ -215,6 +230,13 @@ internal fun ExercisePage(
                     color = if (card.allDone) variant else accentEmphasis(dayIndex),
                     modifier = Modifier.clickable(role = Role.Button, onClickLabel = editLabel) { onEdit(shown.index) },
                 )
+                if (card.allDone && card.timedRepAim != null) {
+                    Text(
+                        stringResource(R.string.timed_rep_aim, shown.reps, card.timedRepAim),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = variant,
+                    )
+                }
                 shown.partner?.let { partner ->
                     val partnerValue = setValue(
                         weight = partner.weightDisplay,
@@ -244,7 +266,7 @@ internal fun ExercisePage(
                             Modifier.fillMaxWidth().height(6.dp).background(
                                 color = when {
                                     row.done -> LocalAppPalette.current.done
-                                    row.index == card.focusIndex -> accent
+                                    row.index == focusIndex -> accent
                                     else -> MaterialTheme.colorScheme.outlineVariant
                                 },
                                 shape = RoundedCornerShape(2.dp),
@@ -256,11 +278,11 @@ internal fun ExercisePage(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
                     text = if (card.allDone) stringResource(R.string.day_sets_done, card.rows.size, card.rows.size)
-                    else stringResource(R.string.day_set_of, card.focusIndex + 1, card.rows.size),
+                    else stringResource(R.string.day_set_of, focusIndex + 1, card.rows.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = variant,
                 )
-                card.nextSetDisplay?.takeUnless { card.allDone }?.let {
+                card.nextSetDisplay?.takeUnless { card.allDone || focusIndex != card.focusIndex }?.let {
                     Text(
                         text = stringResource(R.string.day_next_set, it),
                         style = MaterialTheme.typography.bodyMedium,
@@ -278,6 +300,28 @@ internal fun ExercisePage(
                         modifier = Modifier.fillMaxWidth().padding(top = 20.dp).height(56.dp),
                     ) {
                         Text(nextTitle)
+                    }
+                }
+            } else if (focus != null && showingClock) {
+                val modifier = Modifier.fillMaxWidth().height(56.dp)
+                if (event?.event?.awaitingCount == false) {
+                    TextButton(onClick = actions.onStopTimedRep, modifier = modifier) {
+                        Text(stringResource(R.string.day_cardio_stop_button))
+                    }
+                } else {
+                    val awaiting = event?.event?.awaitingCount == true
+                    val label = stringResource(
+                        if (awaiting) R.string.timed_rep_enter_reps else R.string.day_cardio_start_button,
+                    )
+                    val onClick = {
+                        if (awaiting) actions.onRequestTimedRepCount()
+                        else actions.onStartTimedRep(card.programExerciseId, focus.index)
+                    }
+                    val enabled = awaiting || (!executionBusy && timedRep == null)
+                    if (resting) {
+                        FilledTonalButton(onClick = onClick, enabled = enabled, modifier = modifier) { Text(label) }
+                    } else {
+                        Button(onClick = onClick, enabled = enabled, colors = colors, modifier = modifier) { Text(label) }
                     }
                 }
             } else if (focus != null) {

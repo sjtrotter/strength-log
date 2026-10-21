@@ -70,6 +70,34 @@ class DataLayerWatchClientTest {
         )
 
     @Test
+    fun `queued plan P day A edits and swaps survive without a new snapshot`() = runBlocking {
+        // Cover both a first-run cache miss and a watch still holding P/A during restore.
+        listOf(null, phoneSnapshot(revision = 9).copy(planId = 1L)).forEach { cached ->
+            val link = FakePhoneLink().apply { this.cached = cached }
+            val queue = store()
+            val edit = tickDelta(stamp = 7L).copy(planId = 1L)
+            val swap = swapRequest(stamp = 8L).copy(planId = 1L)
+            queue.enqueue(edit)
+            queue.enqueueSwap(swap)
+            watchClient(link, queue)
+            eventually("start-up drain without a new snapshot") {
+                link.sentDeltas.size == 1 && link.sentSwaps.size == 1
+            }
+            eventually("reachability listener") { link.reachability.subscriptionCount.value > 0 }
+            link.reachability.emit(true)
+            eventually("reconnect drain without a new snapshot") {
+                link.sentDeltas.size == 2 && link.sentSwaps.size == 2
+            }
+
+            assertEquals(listOf(edit), queue.all())
+            assertEquals(listOf(swap), queue.allSwaps())
+            assertEquals(listOf(edit, edit), link.sentDeltas)
+            assertEquals(listOf(swap, swap), link.sentSwaps)
+        }
+        assertTrue(warnings.isEmpty(), "unexpected warnings: $warnings")
+    }
+
+    @Test
     fun `a phone reported reachable drains both queues, every time it is reported`() = runBlocking {
         val link = FakePhoneLink()
         val queue = store()

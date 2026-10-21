@@ -49,9 +49,8 @@ object WatchSnapshotBuilder {
     const val MAX_ALTERNATES = 3
 
     /**
-     * Returns the snapshot, or null when there is nothing glanceable to publish
-     * (no program, or the suggested day resolves to no real day). A null result
-     * leaves the publisher to send an explicit no-program snapshot.
+     * Returns a snapshot even for an empty day, retaining its identity. Returns
+     * null only when the suggested day is missing; the publisher then sends nothing.
      * [equipment] is the lifter's gear, so the wrist is never offered a machine
      * they don't own — the same filter the phone's swap sheet applies.
      */

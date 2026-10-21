@@ -75,8 +75,6 @@ data class WatchSnapshot(
     val planId: Long? = null,
     /** That plan's current name. Additive with a null default, like [planId]. */
     val planName: String? = null,
-    /** False when the phone has no suggested day; defaults to true for older publishers. */
-    val hasProgram: Boolean = true,
 )
 
 /** One day of the program as the cycle ring and its day-browse preview read it. */

@@ -5,6 +5,8 @@ import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -35,6 +37,13 @@ class WearSyncPublisherSizeTest {
         ),
         unit = "lb",
     )
+
+    @Test
+    fun `null projections publish nothing and a restored day can publish again`() = runTest {
+        val day = snapshot(setCount = 6).copy(planId = 1L, planName = "Strength")
+        val published = flowOf(null, day, day, null, null, day).publishableSnapshots().toList()
+        assertEquals(listOf(day, day), published)
+    }
 
     @Test
     fun `oversize snapshot spends no revision and publishes nothing`() = runTest {

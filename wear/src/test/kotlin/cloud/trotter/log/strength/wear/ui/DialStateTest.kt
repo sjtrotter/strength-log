@@ -97,7 +97,6 @@ class DialStateTest {
         suggestedDayId = "",
         day = WatchDay("", "", 0, emptyList()),
         cycle = emptyList(),
-        hasProgram = false,
     )
 
     private fun inputs(
@@ -606,7 +605,7 @@ class DialStateTest {
     }
 
     @Test
-    fun `no program means nothing to act on`() {
+    fun `a snapshot without a day shows no program with nothing to act on`() {
         val state = dialUiState(inputs(snapshot = noProgramSnapshot()))
         assertEquals(DiscStyle.DASHED, state.disc.style)
         assertEquals(listOf("NO PROGRAM", "SET UP ON YOUR PHONE"), state.discText())

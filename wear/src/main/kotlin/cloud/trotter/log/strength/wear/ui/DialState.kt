@@ -153,7 +153,7 @@ fun roundLabel(round: RoundUiState): String =
 
 fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
     val day = inputs.snapshot.day
-    if (!inputs.snapshot.hasProgram) return noProgram(inputs.snapshot, copy)
+    if (day.dayId.isBlank()) return noProgram(inputs.snapshot, copy)
     if (day.exercises.isEmpty()) return emptyDay(inputs.snapshot, copy)
     val browsing = inputs.browseDayIndex?.takeIf { inputs.face == DialFace.OVERVIEW }
 

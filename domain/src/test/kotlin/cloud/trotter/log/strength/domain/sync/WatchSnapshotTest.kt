@@ -57,31 +57,6 @@ class WatchSnapshotTest {
     }
 
     @Test
-    fun `hasProgram defaults to true when an older publisher omits it`() {
-        val oldWire = """
-            {"revision":1,"suggestedDayId":"A","unit":"lb",
-             "day":{"dayId":"A","title":"Day A","accentIndex":0,"exercises":[]}}
-        """.trimIndent()
-        val decoded = json.decodeFromString(WatchSnapshot.serializer(), oldWire)
-        assertEquals(true, decoded.hasProgram)
-    }
-
-    @Test
-    fun `an explicit no-program snapshot round-trips`() {
-        val noProgram = sample.copy(
-            suggestedDayId = "",
-            day = WatchDay("", "", 0, emptyList()),
-            hasProgram = false,
-        )
-        val decoded = json.decodeFromString(
-            WatchSnapshot.serializer(),
-            json.encodeToString(WatchSnapshot.serializer(), noProgram),
-        )
-        assertEquals(noProgram, decoded)
-        assertEquals(false, decoded.hasProgram)
-    }
-
-    @Test
     fun `emphasisLine defaults to blank for a publisher that doesn't set it`() {
         assertEquals("", sample.day.emphasisLine)
     }

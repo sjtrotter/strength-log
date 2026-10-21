@@ -292,8 +292,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
 
 /**
  * The orientation screen (#121) and the app's home: it says what day is next and
- * what is in it, then hands off. It owns no mutations — [TodayViewModel] reads,
- * [DayViewModel] writes — so the only thing that leaves here is a navigation.
+ * what is in it, then hands off. [TodayViewModel] also switches the selected
+ * plan; workout writes remain [DayViewModel]'s job.
  */
 @Composable
 private fun TodayRoute(
@@ -313,6 +313,9 @@ private fun TodayRoute(
             onOpenSettings = onOpenSettings,
             onOpenLog = onOpenLog,
             onSetUpProgram = onSetUpProgram,
+            onShowPlanPicker = viewModel::showPlanPicker,
+            onDismissPlanPicker = viewModel::dismissPlanPicker,
+            onSelectPlan = viewModel::selectPlan,
         ),
     )
 }

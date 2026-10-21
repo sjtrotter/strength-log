@@ -9,10 +9,13 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -29,21 +32,27 @@ import cloud.trotter.log.strength.time.CivilTimeSource
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -57,7 +66,7 @@ import org.robolectric.annotation.Config
  * reach because it only ever feeds hand-picked numbers straight into
  * [TodayScreenBuilder]'s pure functions. What's left uncovered there, and
  * covered here instead: [TodayViewModel]'s own `contextFlow` day-resolution
- * against a real [TrackerRepository.suggestedDayFlow], the live combine over
+ * against a real [TrackerRepository.selectedPlanFlow], the live combine over
  * real seeded/ticked log rows a [DayViewModel] writes on the same day, and the
  * real [TrackerRepository.sessionSummariesFlow]/`topSetHistoryFlow` history
  * once a day is actually advanced. Same Robolectric + in-memory Room + temp
@@ -74,6 +83,9 @@ class TodayViewModelWiringTest {
     private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<ViewModel>()
+    private var delayedPlanId: Long? = null
+    private var programReadGate: CompletableDeferred<Unit>? = null
+    private var delayedProgramReadStarted = false
 
     @Before
     fun setUp() {
@@ -89,7 +101,15 @@ class TodayViewModelWiringTest {
         }
         repo = TrackerRepository(
             db = db,
-            programDao = db.programDao(),
+            programDao = object : ProgramDao by db.programDao() {
+                override fun observeDays(planId: Long): Flow<List<ProgramDayEntity>> = flow {
+                    if (planId == delayedPlanId) {
+                        delayedProgramReadStarted = true
+                        programReadGate?.await()
+                    }
+                    emitAll(db.programDao().observeDays(planId))
+                }
+            },
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
             settings = SettingsStore(dataStore),
@@ -110,8 +130,11 @@ class TodayViewModelWiringTest {
     /** [TodayViewModel.uiState] is `WhileSubscribed`, same as [DayViewModel.uiState]
      *  in the reference fixture — an active collector is required for `.value`
      *  to track updates at all. */
-    private fun newTodayViewModel(date: LocalDate = repo.currentDate()): TodayViewModel =
-        TodayViewModel(repo, FixedCivilTimeSource(date)).also { vm ->
+    private fun newTodayViewModel(
+        date: LocalDate = repo.currentDate(),
+        handle: SavedStateHandle = SavedStateHandle(),
+    ): TodayViewModel =
+        TodayViewModel(repo, FixedCivilTimeSource(date), handle).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -128,6 +151,204 @@ class TodayViewModelWiringTest {
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
+
+    @Test
+    fun oneActivePlanDoesNotOpenThePickerEvenWithAnArchivedPlan() = runVmTest {
+        insertProgram()
+        val selected = checkNotNull(repo.selectedPlanIdFlow.first())
+        val archived = repo.duplicatePlan(selected, "Archived")
+        assertTrue(repo.archivePlan(archived))
+        val today = newTodayViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf(selected), today.uiState.value.activePlans.map { it.id })
+        today.showPlanPicker()
+        advanceUntilIdle()
+        assertFalse(today.uiState.value.planPickerOpen)
+    }
+
+    @Test
+    fun selectingFromTodayClosesThePickerAndKeepsEachPlansRotation() = runVmTest {
+        insertProgram()
+        val strength = checkNotNull(repo.selectedPlanIdFlow.first())
+        repo.renamePlan(strength, "Strength")
+        repo.advanceDay("A")
+        val running = repo.createAuthoredPlan("Running", "Easy run")
+        repo.addDay(running, "Intervals")
+        val archived = repo.duplicatePlan(strength, "Archived")
+        assertTrue(repo.archivePlan(archived))
+        val today = newTodayViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf(strength, running), today.uiState.value.activePlans.map { it.id })
+        assertEquals(listOf("Day B", "Easy run"), today.uiState.value.activePlans.map { it.nextDayTitle })
+        assertEquals("Strength", today.uiState.value.activePlans.single { it.selected }.name)
+        assertEquals("Day B", today.uiState.value.dayTitle)
+        today.showPlanPicker()
+        advanceUntilIdle()
+        assertTrue(today.uiState.value.planPickerOpen)
+
+        today.selectPlan(running)
+        advanceUntilIdle()
+        assertEquals(running, repo.selectedPlanIdFlow.first())
+        assertEquals("Running", today.uiState.value.activePlans.single { it.selected }.name)
+        assertEquals("Easy run", today.uiState.value.dayTitle)
+        assertFalse(today.uiState.value.planPickerOpen)
+
+        repo.advanceDay("A")
+        advanceUntilIdle()
+        assertEquals("Intervals", today.uiState.value.dayTitle)
+        today.showPlanPicker()
+        today.selectPlan(strength)
+        advanceUntilIdle()
+        assertEquals("Day B", today.uiState.value.dayTitle)
+        assertFalse(today.uiState.value.planPickerOpen)
+
+        today.selectPlan(running)
+        advanceUntilIdle()
+        assertEquals("Intervals", today.uiState.value.dayTitle)
+    }
+
+    @Test
+    fun everyEmissionKeepsThePlanNameWithItsDayCoachAndCardioWhileSwitchDataIsDelayed() = runVmTest {
+        repo.replaceProgram(Program(listOf(
+            ProgramDay(
+                id = "A", title = "Squat day", emphasisLine = "",
+                exercises = listOf(ProgramExercise("bb_back_squat")),
+                cardio = CardioSuggestion("Easy jog", "10 minutes", hard = false),
+            ),
+        )))
+        val firstPlan = checkNotNull(repo.selectedPlanIdFlow.first())
+        repo.renamePlan(firstPlan, "Strength")
+        val secondPlan = repo.duplicatePlan(firstPlan, "Running")
+        repo.selectPlan(secondPlan)
+        repo.replaceProgram(Program(listOf(
+            ProgramDay(
+                // Deliberately reuse the day id: identity must come from the plan.
+                id = "A", title = "Run prep", emphasisLine = "",
+                exercises = listOf(ProgramExercise("plank")),
+                cardio = CardioSuggestion("Intervals", "20 minutes", hard = true),
+            ),
+        )))
+        db.sessionDao().insertSessions(listOf(
+            historySession(firstPlan, "2026-10-15"),
+            historySession(secondPlan, "2026-10-18"),
+        ))
+        repo.selectPlan(firstPlan)
+        val today = newTodayViewModel(LocalDate.of(2026, 10, 20))
+        val emissions = mutableListOf<TodayUiState>()
+        // Eager collection prevents StateFlow conflation from hiding a transient mismatch.
+        val collect = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            today.uiState.collect { emissions += it }
+        }
+        advanceUntilIdle()
+        val firstContent = Triple(
+            "Squat day", UiText.TodayCoach(TodayCoachKind.DAYS, "15 Oct", 5),
+            TodayCardio("Easy jog", "10 minutes"),
+        )
+        val secondContent = Triple(
+            "Run prep", UiText.TodayCoach(TodayCoachKind.DAYS, "18 Oct", 2),
+            TodayCardio("Intervals", "20 minutes"),
+        )
+        assertEquals("Strength", today.uiState.value.planName)
+        assertEquals(firstContent, today.uiState.value.let { Triple(it.dayTitle, it.coachLine, it.cardio) })
+
+        delayedPlanId = secondPlan
+        val gate = CompletableDeferred<Unit>()
+        programReadGate = gate
+        today.selectPlan(secondPlan)
+        advanceUntilIdle()
+
+        assertTrue("the new program read must be waiting", delayedProgramReadStarted)
+        val waiting = today.uiState.value
+        assertEquals(secondPlan, waiting.activePlans.single { it.selected }.id)
+        assertEquals("Strength", waiting.planName)
+        assertEquals(firstContent, Triple(waiting.dayTitle, waiting.coachLine, waiting.cardio))
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals("Running", today.uiState.value.planName)
+        assertEquals(secondContent, today.uiState.value.let { Triple(it.dayTitle, it.coachLine, it.cardio) })
+
+        today.selectPlan(firstPlan)
+        advanceUntilIdle()
+        assertEquals("Strength", today.uiState.value.planName)
+        assertTrue("must collect the new plan's content", emissions.any { it.planName == "Running" })
+        assertTrue("must collect the delayed switch", emissions.any { state ->
+            state.planName == "Strength" && state.activePlans.any { it.id == secondPlan && it.selected }
+        })
+        emissions.filter { it.hasProgram }.forEach { state ->
+            val expected = when (state.planName) {
+                "Strength" -> firstPlan to firstContent
+                "Running" -> secondPlan to secondContent
+                else -> error("Unexpected plan name in emission: $state")
+            }
+            assertEquals("wrong plan identity in $state", expected.first, state.planId)
+            assertEquals(
+                "mixed plan content in $state",
+                expected.second,
+                Triple(state.dayTitle, state.coachLine, state.cardio),
+            )
+        }
+        collect.cancel()
+    }
+
+    @Test
+    fun planPickerSurvivesSavedStateRecreationAndCanBeDismissed() = runVmTest {
+        insertProgram()
+        val selected = checkNotNull(repo.selectedPlanIdFlow.first())
+        repo.duplicatePlan(selected, "Running")
+        val handle = SavedStateHandle()
+        val first = newTodayViewModel(handle = handle)
+        advanceUntilIdle()
+        first.showPlanPicker()
+        advanceUntilIdle()
+        assertTrue(first.uiState.value.planPickerOpen)
+
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        first.viewModelScope.cancel()
+        val restored = newTodayViewModel(handle = restoredHandle)
+        advanceUntilIdle()
+        assertTrue(restored.uiState.value.planPickerOpen)
+        assertEquals(listOf("My plan", "Running"), restored.uiState.value.activePlans.map { it.name })
+
+        restored.dismissPlanPicker()
+        advanceUntilIdle()
+        assertFalse(restored.uiState.value.planPickerOpen)
+        val dismissedHandle = SavedStateHandle(restoredHandle.keys().associateWith { restoredHandle.get<Any?>(it) })
+        restored.viewModelScope.cancel()
+        val dismissed = newTodayViewModel(handle = dismissedHandle)
+        advanceUntilIdle()
+        assertFalse(dismissed.uiState.value.planPickerOpen)
+    }
+
+    @Test
+    fun selectingAnArchivedOrMissingPlanStillRefusesTheSwitchAndClosesThePicker() = runVmTest {
+        insertProgram()
+        val selected = checkNotNull(repo.selectedPlanIdFlow.first())
+        val other = repo.duplicatePlan(selected, "Running")
+        repo.duplicatePlan(selected, "Physio")
+        val today = newTodayViewModel()
+        advanceUntilIdle()
+        today.showPlanPicker()
+        advanceUntilIdle()
+        assertTrue(today.uiState.value.planPickerOpen)
+
+        assertTrue(repo.archivePlan(other))
+        today.selectPlan(other)
+        advanceUntilIdle()
+        assertEquals(selected, repo.selectedPlanIdFlow.first())
+        assertEquals("Day A", today.uiState.value.dayTitle)
+        assertFalse(today.uiState.value.planPickerOpen)
+
+        today.showPlanPicker()
+        advanceUntilIdle()
+        assertTrue(today.uiState.value.planPickerOpen)
+        today.selectPlan(Long.MAX_VALUE)
+        advanceUntilIdle()
+        assertEquals(selected, repo.selectedPlanIdFlow.first())
+        assertFalse(today.uiState.value.planPickerOpen)
+    }
 
     @Test
     fun emptyAuthoredDaysRemainVisibleAndRemovingTheSuggestedDayMovesToday() = runVmTest {

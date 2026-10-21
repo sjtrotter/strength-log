@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.today
 
 import androidx.compose.runtime.Immutable
+import cloud.trotter.log.strength.data.PlanSummary
 import cloud.trotter.log.strength.ui.text.UiText
 
 /** Immutable render model for the Today screen (issue #121) — the ViewModel's
@@ -26,6 +27,11 @@ data class TodayUiState(
     val actionLabel: UiText.TodayAction = UiText.TodayAction(cloud.trotter.log.strength.ui.text.TodayActionKind.START, "", 0, 0),
     /** One quiet derived history fact; null on a fresh install. */
     val lifeLine: UiText? = null,
+    /** Identity of the plan that produced the displayed day and history. */
+    val planId: Long? = null,
+    val planName: String? = null,
+    val activePlans: List<PlanSummary> = emptyList(),
+    val planPickerOpen: Boolean = false,
 )
 
 /** One slot of the previewed day: what it is called and how many rounds it has. */
@@ -43,4 +49,7 @@ data class TodayActions(
     /** The recovery out of the no-program state (#127): back into the wizard. */
     val onSetUpProgram: () -> Unit,
     val onOpenCardio: (String) -> Unit = {},
+    val onShowPlanPicker: () -> Unit = {},
+    val onDismissPlanPicker: () -> Unit = {},
+    val onSelectPlan: (Long) -> Unit = {},
 )

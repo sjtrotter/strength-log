@@ -192,9 +192,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
         }
-        // Pushed from Today, never the start destination (#121), so system back
-        // out of the workout screen is a plain pop to Today — no BackHandler,
-        // no popUpTo, just the stack doing its job.
+        // Pushed from Today, never the start destination (#121), so leaving an
+        // idle workout screen is a plain pop to Today.
         composable(
             route = Routes.DAY,
             enterTransition = { dayFadeThroughEnterTransition },
@@ -475,10 +474,9 @@ private fun DayRoute(
         sessionReceipt = sessionReceipt,
         onShareSession = viewModel::shareSession,
         onFinishSession = {
-            viewModel.dismissSessionReceipt()
-            onFinishSession()
+            if (viewModel.dismissSessionReceipt()) onFinishSession()
         },
-        onBack = onFinishSession,
+        onBack = { if (!viewModel.executionActive) onFinishSession() },
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
         standaloneCardio = initialDayId != null && !state.isProgramDay,

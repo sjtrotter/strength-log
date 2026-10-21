@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import android.content.Context
+import android.os.Parcel
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -148,6 +149,207 @@ class DayViewModelCardioExecutionTest {
 
     private fun recreateHandle(handle: SavedStateHandle) =
         SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+
+    private suspend fun prepareAuthoredCardioDay(vararg sets: CardioSetSpec) {
+        val planId = repo.createAuthoredPlan("Running plan", "Running")
+        repo.publishCreatedAuthoredPlan(planId)
+        val block = CardioBlock(CardioActivity.TRACK_RUN, sets.toList())
+        repo.replaceProgram(Program(listOf("A", "B", "C").map {
+            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+        }))
+    }
+
+    private suspend fun TestScope.stopFirstRunAndDismissDistance(vm: DayViewModel): CardioRun {
+        vm.startCardio()
+        runCurrent()
+        tick(1_000)
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        vm.openCardioDistance()
+        runCurrent()
+        val run = vm.uiState.value.cardio!!.distanceRuns.single()
+        assertTrue(run.finishesDay)
+        vm.closeSheet()
+        runCurrent()
+        return run
+    }
+
+    private fun TestScope.finishOldDistance(vm: DayViewModel, run: CardioRun) {
+        vm.requestCardioDistance(run.action(run.drafts.single().position))
+        vm.openCardioDistance()
+        runCurrent()
+        vm.changeCardioDistance("390")
+        vm.saveCardioDistance(vm.distanceAction())
+        runCurrent()
+    }
+
+    @Test
+    fun oldDistanceReceiptWaitsForNewRunToLogAndKeepsTheFirstReceipt() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        val first = stopFirstRunAndDismissDistance(vm)
+        vm.startCardio()
+        runCurrent()
+        val second = requireNotNull(vm.uiState.value.cardio?.run)
+        val deadline = alarm.deadline
+
+        finishOldDistance(vm, first)
+
+        assertNull(vm.sessionReceipt.value)
+        assertFalse(vm.dismissSessionReceipt())
+        assertEquals(second.runId, vm.uiState.value.cardio?.run?.runId)
+        assertEquals(CardioPhase.EXECUTING, vm.uiState.value.cardio?.phase)
+        assertTrue(vm.uiState.value.executionBusy)
+        assertTrue(vm.executionActive)
+        assertTrue(vm.uiState.value.executionKeepsScreenOn)
+        assertEquals(deadline, alarm.deadline)
+        assertEquals("A", vm.uiState.value.viewDayId)
+        assertEquals(390, repo.cardioSetsFor(requireNotNull(first.sessionId)).single().metres)
+
+        tick(10_000)
+
+        assertNull(vm.uiState.value.cardio?.run)
+        assertFalse(vm.uiState.value.executionBusy)
+        assertFalse(vm.executionActive)
+        assertEquals(2, repo.cardioSessionsFlow.first().size)
+        assertEquals(first.sessionId, vm.sessionReceipt.value?.sessionId)
+        assertEquals(first.runId, vm.sessionReceipt.value?.cardio?.runId)
+        assertTrue(vm.dismissSessionReceipt())
+        runCurrent()
+        assertNull(vm.sessionReceipt.value)
+    }
+
+    @Test
+    fun heldReceiptAndNewRunSurviveSavedStateParcelUntilNewRunIsEnded() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        val first = stopFirstRunAndDismissDistance(vm)
+        vm.startCardio()
+        runCurrent()
+        val secondId = vm.uiState.value.cardio?.run?.runId
+        finishOldDistance(vm, first)
+        vm.setCardioScreenLive(false)
+        vm.viewModelScope.cancel()
+        val parcel = Parcel.obtain()
+        val restoredHandle = try {
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.setDataPosition(0)
+            SavedStateHandle.createHandle(parcel.readBundle(CardioRun::class.java.classLoader), null)
+        } finally {
+            parcel.recycle()
+        }
+
+        val restored = readyVm(restoredHandle)
+
+        assertNull(restored.sessionReceipt.value)
+        assertEquals(secondId, restored.uiState.value.cardio?.run?.runId)
+        assertTrue(restored.uiState.value.cardio!!.run!!.running)
+        assertFalse(restored.dismissSessionReceipt())
+        restored.endCardioBlock()
+        runCurrent()
+        assertEquals(first.sessionId, restored.sessionReceipt.value?.sessionId)
+        assertEquals(2, repo.cardioSessionsFlow.first().size)
+    }
+
+    @Test
+    fun heldReceiptWaitsBetweenSetsAndReleasesWhenNewRunIsStoppedAndLogged() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK), time(CardioRole.WORK))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        vm.startCardio()
+        runCurrent()
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        vm.openCardioDistance()
+        vm.closeSheet()
+        runCurrent()
+        val first = vm.uiState.value.cardio!!.distanceRuns.single()
+        vm.startCardio()
+        runCurrent()
+        finishOldDistance(vm, first)
+        tick(10_000)
+        assertNull(vm.sessionReceipt.value)
+        assertTrue(vm.uiState.value.executionBusy)
+        assertFalse(vm.uiState.value.cardio!!.run!!.running)
+
+        vm.startCardio()
+        runCurrent()
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+
+        assertEquals(first.sessionId, vm.sessionReceipt.value?.sessionId)
+        assertNull(vm.uiState.value.cardio?.run)
+    }
+
+    @Test
+    fun heldReceiptReleasesWhenAnUnstartedBlockIsEndedWithoutLogging() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        val first = stopFirstRunAndDismissDistance(vm)
+        vm.addCardioSet()
+        runCurrent()
+        finishOldDistance(vm, first)
+        assertNull(vm.sessionReceipt.value)
+        assertTrue(vm.uiState.value.executionBusy)
+
+        vm.endCardioBlock()
+        runCurrent()
+
+        assertEquals(1, repo.cardioSessionsFlow.first().size)
+        assertEquals(first.sessionId, vm.sessionReceipt.value?.sessionId)
+    }
+
+    @Test
+    fun heldReceiptWaitsForTimedRepCountToBeLogged() = test {
+        val (vm, first) = receiptDueDuringTimedRep()
+        tick(120_000)
+        assertTrue(vm.uiState.value.timedRep!!.event.awaitingCount)
+        assertNull(vm.sessionReceipt.value)
+        assertFalse(vm.dismissSessionReceipt())
+
+        vm.changeTimedRepDraft("12")
+        vm.logTimedRepCount()
+        runCurrent()
+
+        assertNull(vm.uiState.value.timedRep)
+        assertEquals(first.sessionId, vm.sessionReceipt.value?.sessionId)
+        assertEquals(12, repo.logFlow("A").first().single().sets.first().reps)
+    }
+
+    @Test
+    fun heldReceiptReleasesWhenTimedRepIsStopped() = test {
+        val (vm, first) = receiptDueDuringTimedRep()
+
+        vm.stopTimedRep()
+        runCurrent()
+
+        assertNull(vm.uiState.value.timedRep)
+        assertEquals(first.sessionId, vm.sessionReceipt.value?.sessionId)
+    }
+
+    private suspend fun TestScope.receiptDueDuringTimedRep(): Pair<DayViewModel, CardioRun> {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val vm = readyVm()
+        val first = stopFirstRunAndDismissDistance(vm)
+        // An authored day can gain a timed-rep slot while its logged distance is deferred.
+        repo.replaceProgram(Program(repo.programFlow.first().days.map { day ->
+            if (day.id != "A") day else day.copy(exercises = listOf(ProgramExercise(
+                "pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)),
+            )))
+        }))
+        runCurrent()
+        val card = vm.uiState.value.exercises.single()
+        vm.startTimedRep(card.programExerciseId, card.focusIndex)
+        runCurrent()
+        finishOldDistance(vm, first)
+        assertNull(vm.sessionReceipt.value)
+        assertTrue(vm.uiState.value.timedRepRunning)
+        assertFalse(vm.dismissSessionReceipt())
+        return vm to first
+    }
 
     @Test
     fun legacyHardFiveKWaitsForWorkAndLogsElevenSetsIncludingFinalRecovery() = test {

@@ -131,6 +131,7 @@ class DayViewModel @Inject constructor(
     private val openSheet = savedState.getStateFlow<OpenSheet?>(KEY_OPEN_SHEET, null)
     private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null)
     private val pendingCardioDistances = savedState.getStateFlow<ArrayList<CardioRun>>(KEY_CARDIO_DISTANCES, arrayListOf())
+    private val deferredCardioReceipt = savedState.getStateFlow<CardioRun?>(KEY_DEFERRED_CARDIO_RECEIPT, null)
     private var cardioDraftSaveInFlight = false
     private var cardioAlertAnchor: String? = null
     private var cardioSaveInFlight = false
@@ -342,7 +343,9 @@ class DayViewModel @Inject constructor(
      * already committed to Room by the time it exists, so losing it to process
      * death costs the lifter nothing, while restoring it would drop a finished
      * workout's summary over whatever they came back to. Rotation keeps it,
-     * because a ViewModel outlives a configuration change.
+     * because a ViewModel outlives a configuration change. A cardio receipt held
+     * for an execution that still owns the screen is saved separately until it
+     * can be presented.
      */
     private val _sessionReceipt = MutableStateFlow<SessionReceipt?>(null)
     val sessionReceipt: StateFlow<SessionReceipt?> = _sessionReceipt.asStateFlow()
@@ -393,6 +396,13 @@ class DayViewModel @Inject constructor(
             maybeAmendCardioDistances()
             effectiveDayId.collect { day ->
                 if (day != pinHeldFor) pinHeldFor = null
+            }
+        }
+        viewModelScope.launch {
+            combine(cardioRun, timedRepEvent, deferredCardioReceipt) { run, reps, receipt ->
+                run == null && reps == null && receipt != null
+            }.distinctUntilChanged().collect { ready ->
+                if (ready) mutationLock.withLock { showDeferredCardioReceipt() }
             }
         }
     }
@@ -699,14 +709,27 @@ class DayViewModel @Inject constructor(
 
     private suspend fun finishCardioReceipt(run: CardioRun) {
         if (!run.finishesDay) return
+        // Keep the first due receipt when another run finishes before the screen is free.
+        if (deferredCardioReceipt.value == null) savedState[KEY_DEFERRED_CARDIO_RECEIPT] = run
+        showDeferredCardioReceipt()
+    }
+
+    /** Read current ownership at navigation time, before the UI flow catches up. */
+    val executionActive: Boolean get() = cardioRun.value != null || timedRepEvent.value != null
+
+    private suspend fun showDeferredCardioReceipt() {
+        if (executionActive) return
+        val run = deferredCardioReceipt.value ?: return
+        val advancedTo = repo.suggestedDayFlow.first()
+        if (executionActive) return
+        savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
         _sessionReceipt.value = SessionReceipt(
             sessionId = requireNotNull(run.sessionId), dayIndex = run.dayIndex, headline = "", dayTitle = "",
             completedSetCount = 0, totalSetCount = 0, setCount = 0, strongest = null,
             nextDayLine = run.nextDayTitle, cardio = run,
         )
-        if (currentDay() == run.dayId && cardioRun.value == null) {
+        if (currentDay() == run.dayId) {
             savedState[KEY_VIEW_DAY] = null
-            val advancedTo = repo.suggestedDayFlow.first()
             pinHeldFor = run.dayId.takeIf { advancedTo != it && effectiveDayId.value == it }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
@@ -1125,10 +1148,11 @@ class DayViewModel @Inject constructor(
         _cascadeCeremony.value = null
     }
 
-    /** Closes the receipt. The screen pairs this with the pop back to Today —
-     *  the receipt is the last thing the finished session has to say. */
-    fun dismissSessionReceipt() {
+    /** Returns whether the receipt closed and navigation back to Today is safe. */
+    fun dismissSessionReceipt(): Boolean {
+        if (executionActive || _sessionReceipt.value == null) return false
         _sessionReceipt.value = null
+        return true
     }
 
     /** The receipt's SHARE. Renders off the main thread inside
@@ -1632,6 +1656,7 @@ class DayViewModel @Inject constructor(
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"
         const val KEY_CARDIO_RUN = "day_cardio_run"
         const val KEY_CARDIO_DISTANCES = "day_cardio_distances"
+        const val KEY_DEFERRED_CARDIO_RECEIPT = "day_deferred_cardio_receipt"
         const val STOP_TIMEOUT_MS = 5_000L
         const val CARDIO_TICK_MS = 1_000L
 

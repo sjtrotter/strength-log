@@ -68,4 +68,10 @@ interface WatchTrackerClient {
 
     /** Queues a completed cardio session until its LOGGED snapshot acknowledgement. */
     fun sendCardio(delta: CardioDelta)
+
+    /** Receipt observes the issued queue stamp; settlement rules stay phone-owned. */
+    fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit) {
+        sendCardio(delta)
+        onQueued(delta.stamp)
+    }
 }

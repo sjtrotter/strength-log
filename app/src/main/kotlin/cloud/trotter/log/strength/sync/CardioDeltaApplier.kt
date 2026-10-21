@@ -2,7 +2,9 @@ package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.effectiveCardio
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import kotlinx.coroutines.flow.first
@@ -30,7 +32,9 @@ class CardioDeltaApplier(
      * selected-plan behavior.
      */
     suspend fun apply(delta: CardioDelta): Outcome = lock.withLock {
-        if (delta.dayId.isBlank() || delta.label.isBlank() || delta.stamp <= 0L ||
+        val sets = runCatching { delta.sets.map { it.toDomain() } }.getOrNull()
+        if (sets == null || (delta.activity != null && CardioActivity.entries.none { it.name == delta.activity }) ||
+            delta.dayId.isBlank() || delta.label.isBlank() || delta.label.length > TrackerRepository.CARDIO_LABEL_MAX_LENGTH || delta.stamp <= 0L ||
             delta.startedAt < 0L || delta.completedAt <= delta.startedAt ||
             delta.seconds < 0 || delta.stepsCompleted < 0 ||
             CardioMode.entries.none { it.name == delta.mode && it != CardioMode.NONE }
@@ -43,14 +47,18 @@ class CardioDeltaApplier(
             it.dayId == delta.dayId && it.startedAt == delta.startedAt
         }
         if (!duplicate) {
+            val planId = delta.planId ?: repo.selectedPlanIdFlow.first()
+            val day = planId?.let { owner -> repo.programFor(owner).first().days.firstOrNull { it.id == delta.dayId } }
+            val finishesDay = sets.isNotEmpty() && planId != null && day != null && day.exercises.isEmpty() &&
+                day.effectiveCardio(repo.wizardAnswersFor(planId).first().cardio) != null
             val id = repo.logCardioSession(
                 CardioSessionEntity(
                     dayId = delta.dayId, mode = delta.mode, hard = delta.hard,
                     label = delta.label, startedAt = delta.startedAt,
                     completedAt = delta.completedAt, seconds = delta.seconds,
                     stepsCompleted = delta.stepsCompleted,
-                    planId = delta.planId,
-                ),
+                    planId = delta.planId, activity = delta.activity,
+                ), sets, finishDay = finishesDay,
             )
             sessionPublisher.publishCardio(id)
         }

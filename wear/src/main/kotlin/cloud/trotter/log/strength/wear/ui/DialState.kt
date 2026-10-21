@@ -76,6 +76,8 @@ data class DialInputs(
     val cardioAnchors: CardioAnchors? = null,
     val timedRep: TimedRepState? = null,
     val timedRepDeadlineMillis: Long = 0L,
+    val cardioSets: CardioSetState? = null,
+    val bootCount: Int = 0,
 )
 
 /**
@@ -155,6 +157,15 @@ fun roundLabel(round: RoundUiState): String =
 
 fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
     val day = inputs.snapshot.day
+    val cardioRun = inputs.cardioSets?.reconcile(inputs.snapshot)
+    if (cardioRun != null) return cardioSetsDial(inputs, cardioRun)
+    val cardioReady = day.exercises.isEmpty() || (inputs.face == DialFace.OVERVIEW &&
+        day.exercises.all { ex -> ex.sets.all { it.done } })
+    if (cardioReady) {
+        newCardioSetState(inputs.snapshot, inputs.timedRep, inputs.cardioAnchors != null)?.let {
+            return cardioSetsDial(inputs, it)
+        }
+    }
     if (day.dayId.isBlank()) return noProgram(inputs.snapshot, copy)
     if (day.exercises.isEmpty()) return emptyDay(inputs.snapshot, copy)
     val browsing = inputs.browseDayIndex?.takeIf { inputs.face == DialFace.OVERVIEW }

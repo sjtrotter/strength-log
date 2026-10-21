@@ -264,7 +264,7 @@ class DialSemanticsTest {
             DialTap.TICK -> DialScreen.LIFTING
             DialTap.SKIP_REST -> DialScreen.REST
             DialTap.DISMISS -> DialScreen.DAY_DONE
-            DialTap.START_CARDIO -> DialScreen.CARDIO_OFFER
+            DialTap.START_CARDIO, DialTap.CARDIO_SET -> DialScreen.CARDIO_OFFER
         },
         accentIndex = 0,
         cycle = emptyList(),
@@ -316,6 +316,7 @@ class DialSemanticsTest {
         DialTap.CONFIRM_SWAP to "confirm swap",
         DialTap.DISMISS to "dismiss",
         DialTap.START_CARDIO to "start finisher",
+        DialTap.CARDIO_SET to "ACTION",
     )
 
     private fun hasClickLabel(label: String) = SemanticsMatcher("click label '$label'") { node ->

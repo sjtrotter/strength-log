@@ -131,12 +131,15 @@ class DataLayerWatchClient(
         sendSwapMessage(stamped)
     }
 
-    override fun sendCardio(delta: CardioDelta) = launchSend("sending cardio") {
+    override fun sendCardio(delta: CardioDelta) = sendCardio(delta) {}
+
+    override fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit) = launchSend("sending cardio") {
         val stamped = installing.withLock {
             val event = delta.copy(stamp = queue.issueStamp(delta.stamp))
             queue.enqueueCardio(event)
             event
         }
+        onQueued(stamped.stamp)
         sendCardioMessage(stamped)
     }
 

@@ -27,6 +27,7 @@ object SyncCodec {
 
     private val swapListSerializer = ListSerializer(ExerciseSwapDelta.serializer())
     private val cardioListSerializer = ListSerializer(CardioDelta.serializer())
+    private val cardioSetListSerializer = ListSerializer(WatchCardioSetResult.serializer())
 
     fun encodeSnapshot(snapshot: WatchSnapshot): ByteArray =
         json.encodeToString(WatchSnapshot.serializer(), snapshot).encodeToByteArray()
@@ -45,6 +46,19 @@ object SyncCodec {
 
     fun decodeSwap(bytes: ByteArray): ExerciseSwapDelta =
         json.decodeFromString(ExerciseSwapDelta.serializer(), bytes.decodeToString())
+
+    fun encodeCardioBlock(block: WatchCardioBlock): String =
+        json.encodeToString(WatchCardioBlock.serializer(), block)
+
+    fun decodeCardioBlock(text: String): WatchCardioBlock =
+        json.decodeFromString(WatchCardioBlock.serializer(), text)
+
+    /** Structured execution cache on the watch, independent of the outbound queue. */
+    fun encodeCardioSetResults(sets: List<WatchCardioSetResult>): String =
+        json.encodeToString(cardioSetListSerializer, sets)
+
+    fun decodeCardioSetResults(text: String): List<WatchCardioSetResult> =
+        json.decodeFromString(cardioSetListSerializer, text)
 
     fun encodeCardio(delta: CardioDelta): ByteArray =
         json.encodeToString(CardioDelta.serializer(), delta).encodeToByteArray()

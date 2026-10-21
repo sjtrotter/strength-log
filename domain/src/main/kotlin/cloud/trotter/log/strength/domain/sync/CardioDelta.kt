@@ -18,4 +18,6 @@ data class CardioDelta(
     /** The snapshot's plan; null means sent by a watch that predates plans.
      *  Additive with a default so older readers and senders keep working. */
     val planId: Long? = null,
+    val activity: String? = null,
+    val sets: List<WatchCardioSetResult> = emptyList(),
 )

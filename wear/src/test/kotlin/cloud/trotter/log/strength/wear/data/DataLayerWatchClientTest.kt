@@ -1,9 +1,17 @@
 package cloud.trotter.log.strength.wear.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import cloud.trotter.log.strength.domain.sync.CardioDelta
+import cloud.trotter.log.strength.domain.sync.WatchCardioSetResult
+import cloud.trotter.log.strength.domain.sync.WatchCardioSetSpec
 import java.io.File
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.fail
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,11 +24,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import kotlin.test.AfterTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-import kotlin.test.fail
 
 /**
  * The watch client's sync contract against a [FakePhoneLink]: when the queue drains,
@@ -68,6 +71,35 @@ class DataLayerWatchClientTest {
             afterEnqueueBeforeEcho = afterEnqueueBeforeEcho,
             beforeInstallLock = beforeInstallLock,
         )
+
+    @Test
+    fun `structured cardio receipt receives durable issued stamp and settles only on cardio ack`() = runBlocking {
+        val queue = store()
+        val previousStamp = queue.issueStamp(1_000_000L)
+        val link = FakePhoneLink().apply { cached = phoneSnapshot(revision = 1) }
+        val client = watchClient(link, queue)
+        eventually("initial snapshot") { client.snapshotFlow().first().revision == 1L }
+        eventually("snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        val spec = WatchCardioSetSpec("WORK", "TIME", 60)
+        val event = CardioDelta(dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Track run", startedAt = 1_000L, completedAt = 61_000L,
+            seconds = 60, stepsCompleted = 1, stamp = 61_000L, planId = 9L,
+            activity = "TRACK_RUN", sets = listOf(WatchCardioSetResult(spec, "FINISHED", 60)))
+        val issued = CompletableDeferred<Long>()
+        client.sendCardio(event) { issued.complete(it) }
+        val stamp = withTimeout(5_000) { issued.await() }
+        assertEquals(previousStamp + 1, stamp)
+        assertEquals(event.copy(stamp = stamp), queue.allCardio().single())
+        // A rotated day with an insufficient ack cannot drop this event.
+        val next = phoneSnapshot(revision = 2).copy(planId = 9L, suggestedDayId = "B",
+            day = phoneSnapshot(revision = 2).day.copy(dayId = "B"), cardioAckStamp = stamp - 1)
+        link.snapshotEvents.emit(next)
+        eventually("new day installed") { client.snapshotFlow().first().revision == 2L }
+        assertEquals(1, queue.allCardio().size)
+        link.snapshotEvents.emit(next.copy(revision = 3, cardioAckStamp = stamp))
+        eventually("cardio acknowledged") { queue.allCardio().isEmpty() }
+        assertTrue(warnings.isEmpty(), "unexpected warnings: $warnings")
+    }
 
     @Test
     fun `queued plan P day A edits and swaps survive without a new snapshot`() = runBlocking {

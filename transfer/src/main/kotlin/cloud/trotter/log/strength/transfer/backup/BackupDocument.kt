@@ -12,9 +12,10 @@ import kotlinx.serialization.Serializable
  * by the same decoder and reinterpreted only where a field's *meaning* changed
  * (v5's session bodyweight), never by a parallel set of old model classes;
  * v8 nests the program under plans; v9 carries each plan's recipe and rotation;
- * v10 carries authored prescriptions; v11 carries authored cardio blocks.
+ * v10 carries authored prescriptions; v11 carries authored cardio blocks;
+ * v12 carries cardio activity and per-set results.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 11
+const val CURRENT_SCHEMA_VERSION: Int = 12
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -64,6 +65,19 @@ data class CardioSessionBackup(
     val planId: Long? = null,
     /** Plan name copied at completion, so history survives a rename or archive. */
     val planName: String? = null,
+    val activity: String? = null,
+    val sets: List<CardioSetResultBackup> = emptyList(),
+)
+
+/** Position is list order; ids and the stored spec survive a full restore verbatim. */
+@Serializable
+data class CardioSetResultBackup(
+    val id: Long,
+    val specJson: String,
+    val status: String,
+    val elapsedSeconds: Int,
+    val metres: Int? = null,
+    val distanceSource: String? = null,
 )
 
 /**

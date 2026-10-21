@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
@@ -52,6 +53,7 @@ data class FullSnapshot(
     val sessions: List<WorkoutSessionEntity>,
     val sessionSets: List<SessionSetEntity>,
     val cardioSessions: List<CardioSessionEntity> = emptyList(),
+    val cardioSetResults: List<CardioSetResultEntity> = emptyList(),
     /** Whether [answers] also carries a legacy recipe to spread onto generated plans. */
     val answersCarryRecipe: Boolean = true,
 )

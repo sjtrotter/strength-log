@@ -62,7 +62,7 @@ class BackupV11Test {
     )
 
     private fun withBlock(json: String?): BackupDocument {
-        val document = snapshot().toDocument()
+        val document = snapshot().toDocument().copy(schemaVersion = 11)
         val plan = document.plans.single()
         return document.copy(plans = listOf(plan.copy(days = listOf(plan.days.single().copy(cardioBlockJson = json)))))
     }
@@ -70,14 +70,14 @@ class BackupV11Test {
     @Test
     fun `v11 round trip preserves authored block legacy fields and deterministic export`() {
         val before = snapshot()
-        val encoded = codec.encode(before.toDocument())
+        val encoded = codec.encode(before.toDocument().copy(schemaVersion = 11))
         val decoded = codec.decode(encoded)
         val restored = decoded.toSnapshot()
         assertEquals(11, decoded.schemaVersion)
         assertEquals(before, restored)
         assertEquals(block, CardioBlockJson.decode(restored.days.single().cardioBlockJson))
-        assertEquals(encoded, codec.encode(before.toDocument()))
-        assertEquals(encoded, codec.encode(restored.toDocument()))
+        assertEquals(encoded, codec.encode(before.toDocument().copy(schemaVersion = 11)))
+        assertEquals(encoded, codec.encode(restored.toDocument().copy(schemaVersion = 11)))
     }
 
     @Test

@@ -2,8 +2,10 @@ package cloud.trotter.log.strength.transfer.health
 
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CardioRecordMapperTest {
@@ -25,6 +27,33 @@ class CardioRecordMapperTest {
         assertEquals(ExerciseSessionRecord.EXERCISE_TYPE_RUNNING_TREADMILL, mapped("TREADMILL")?.exerciseType)
         assertEquals(ExerciseSessionRecord.EXERCISE_TYPE_BIKING, mapped("LOW_IMPACT")?.exerciseType)
         assertNull(mapped("FUTURE_MODE"))
+    }
+
+    @Test fun `every activity overrides the legacy mode without changing client identity`() {
+        val types = mapOf(
+            CardioActivity.ROAD_RUN to ExerciseSessionRecord.EXERCISE_TYPE_RUNNING,
+            CardioActivity.TRAIL_RUN to ExerciseSessionRecord.EXERCISE_TYPE_RUNNING,
+            CardioActivity.TRACK_RUN to ExerciseSessionRecord.EXERCISE_TYPE_RUNNING,
+            CardioActivity.TREADMILL_RUN to ExerciseSessionRecord.EXERCISE_TYPE_RUNNING_TREADMILL,
+            CardioActivity.OUTDOOR_WALK to ExerciseSessionRecord.EXERCISE_TYPE_WALKING,
+            CardioActivity.TREADMILL_WALK to ExerciseSessionRecord.EXERCISE_TYPE_WALKING,
+            CardioActivity.OUTDOOR_RIDE to ExerciseSessionRecord.EXERCISE_TYPE_BIKING,
+            CardioActivity.STATIONARY_BIKE to ExerciseSessionRecord.EXERCISE_TYPE_BIKING_STATIONARY,
+            CardioActivity.ELLIPTICAL to ExerciseSessionRecord.EXERCISE_TYPE_ELLIPTICAL,
+            CardioActivity.ROWER to ExerciseSessionRecord.EXERCISE_TYPE_ROWING_MACHINE,
+        )
+        assertEquals(CardioActivity.entries.toSet(), types.keys)
+        val legacy = CardioRecordMapper.toExerciseSession(cardio())!!
+        types.forEach { (activity, type) ->
+            val record = CardioRecordMapper.toExerciseSession(cardio(mode = "NONE").copy(activity = activity.name))!!
+            assertEquals(activity.name, type, record.exerciseType)
+            assertEquals(legacy.metadata.clientRecordId, record.metadata.clientRecordId)
+            assertEquals(legacy.metadata.clientRecordVersion, record.metadata.clientRecordVersion)
+            assertTrue(record.segments.isEmpty())
+            assertTrue(record.laps.isEmpty())
+        }
+        assertNull(CardioRecordMapper.toExerciseSession(cardio().copy(activity = "FUTURE")))
+        assertNull(mapped("NONE"))
     }
 
     @Test fun `invalid windows and durations do not map`() {

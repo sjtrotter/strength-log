@@ -15,6 +15,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 class CardioBlockJsonTest {
     @Test
@@ -42,6 +45,23 @@ class CardioBlockJsonTest {
     }
 
     @Test
+    fun `standalone specs use exactly the block set encoding`() {
+        val sets = listOf(
+            CardioSetSpec(CardioRole.WARMUP, Measure.Time(300)),
+            CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true),
+            CardioSetSpec(CardioRole.RECOVERY, Measure.Time(120), Measure.Distance(100)),
+            CardioSetSpec(CardioRole.COOLDOWN, Measure.Distance(500)),
+        )
+        val block = CardioBlockJson.encode(CardioBlock(CardioActivity.TRACK_RUN, sets))
+        val embedded = Json.parseToJsonElement(block).jsonObject.getValue("sets").jsonArray
+        sets.forEachIndexed { index, spec ->
+            val encoded = CardioBlockJson.encodeSet(spec)
+            assertEquals(embedded[index].toString(), encoded)
+            assertEquals(spec, CardioBlockJson.decodeSet(encoded))
+        }
+    }
+
+    @Test
     fun `malformed unknown incomplete and invalid payloads decode to null and fail validation`() {
         val time = """{"type":"time","seconds":120}"""
         val distance = """{"type":"distance","metres":400}"""
@@ -64,6 +84,9 @@ class CardioBlockJsonTest {
                 """{"role":"WORK","end":{"type":"distance","metres":$metres}}""",
                 """{"role":"WORK","end":$time,"aim":{"type":"distance","metres":$metres}}""",
             )
+        }
+        invalidSets.forEach { json ->
+            assertFailsWith<IllegalArgumentException>(json) { CardioBlockJson.decodeSet(json) }
         }
         val invalid = listOf(
             "not json", "null", "{}", """{"activity":"ROAD_RUN"}""",

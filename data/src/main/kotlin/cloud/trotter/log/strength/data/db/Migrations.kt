@@ -232,3 +232,10 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
         db.execSQL("ALTER TABLE program_exercise ADD COLUMN prescriptionJson TEXT")
     }
 }
+
+/** v10 → v11 (#279): authored cardio blocks; legacy suggestions remain unchanged. */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE program_day ADD COLUMN cardioBlockJson TEXT")
+    }
+}

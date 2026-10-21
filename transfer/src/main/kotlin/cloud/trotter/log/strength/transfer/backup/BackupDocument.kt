@@ -12,9 +12,9 @@ import kotlinx.serialization.Serializable
  * by the same decoder and reinterpreted only where a field's *meaning* changed
  * (v5's session bodyweight), never by a parallel set of old model classes;
  * v8 nests the program under plans; v9 carries each plan's recipe and rotation;
- * v10 carries authored prescriptions.
+ * v10 carries authored prescriptions; v11 carries authored cardio blocks.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 10
+const val CURRENT_SCHEMA_VERSION: Int = 11
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -167,6 +167,7 @@ data class ProgramDayBackup(
     val cardioJson: String? = null,
     val kind: String = "STRENGTH",
     val exercises: List<ProgramExerciseBackup> = emptyList(),
+    val cardioBlockJson: String? = null,
 )
 
 @Serializable

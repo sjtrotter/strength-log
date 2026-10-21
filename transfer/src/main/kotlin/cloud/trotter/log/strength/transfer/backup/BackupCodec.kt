@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.transfer.backup
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
@@ -94,7 +95,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -133,8 +134,8 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 }
             })
         }
-        // Before v10 this was an unknown field, even if its value had the wrong type.
-        val versioned = if (version < 10) withoutPrescriptions(shaped) else shaped
+        // Future fields stay unknown in old versions, even when they have the wrong type.
+        val versioned = if (version < 11) withoutFutureDayFields(shaped, version) else shaped
         val document = try {
             json.decodeFromJsonElement(BackupDocument.serializer(), versioned)
         } catch (e: SerializationException) {
@@ -146,15 +147,18 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         return document
     }
 
-    private fun withoutPrescriptions(root: JsonObject): JsonObject {
+    private fun withoutFutureDayFields(root: JsonObject, version: Int): JsonObject {
         fun stripDays(value: JsonElement?): JsonElement? =
             (value as? JsonArray)?.let { dayRows ->
                 JsonArray(dayRows.map { day ->
                     if (day !is JsonObject) day else {
-                        val exercises = day["exercises"] as? JsonArray
-                        if (exercises == null) day else JsonObject(day + ("exercises" to JsonArray(exercises.map {
-                            if (it is JsonObject) JsonObject(it - "prescriptionJson") else it
-                        })))
+                        val currentDay = JsonObject(day - "cardioBlockJson")
+                        val exercises = currentDay["exercises"] as? JsonArray
+                        if (version >= 10 || exercises == null) currentDay else {
+                            JsonObject(currentDay + ("exercises" to JsonArray(exercises.map {
+                                if (it is JsonObject) JsonObject(it - "prescriptionJson") else it
+                            })))
+                        }
                     }
                 })
             } ?: value
@@ -238,6 +242,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                     throw BackupError.Inconsistent("unknown plan origin '${plan.origin}'")
                 }
                 slotsByPlan[plan.id] = validateProgram(plan.days, customIds, slotIds)
+                if (doc.schemaVersion >= 11) {
+                    plan.days.forEach { day ->
+                        day.cardioBlockJson?.let { block ->
+                            decodePayload("cardioBlockJson of day '${day.dayId}'") { CardioBlockJson.validate(block) }
+                        }
+                    }
+                }
                 if (doc.schemaVersion >= 10) {
                     plan.days.flatMap { it.exercises }.forEach { ex ->
                         ex.prescriptionJson?.let { prescription ->

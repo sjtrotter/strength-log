@@ -13,15 +13,22 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -892,6 +899,29 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(originals.map { it.prescriptionJson }, copies.map { it.prescriptionJson })
         assertTrue(copies.map { it.id }.toSet().intersect(originals.map { it.id }.toSet()).isEmpty())
         assertEquals(day.exercises, repo.slotsFor(copyId, "A").first().map { it.exercise })
+    }
+
+    @Test
+    fun `duplicate preserves authored cardio days and their ordered block sets`() = runTest {
+        val sourceId = repo.createAuthoredPlan("Running", "Track")
+        val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(
+            CardioSetSpec(CardioRole.WARMUP, Measure.Time(300)),
+            CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true),
+            CardioSetSpec(CardioRole.RECOVERY, Measure.Time(120)),
+            CardioSetSpec(CardioRole.COOLDOWN, Measure.Distance(500)),
+        ))
+        val day = ProgramDay("A", "Track", "", emptyList(), null,
+            kind = ProgramDayKind.CARDIO, cardioBlock = block)
+        db.programDao().upsertDay(day.toEntity(sourceId))
+
+        val copyId = repo.duplicatePlan(sourceId, "Running copy")
+
+        val original = db.programDao().daysForPlan(sourceId).single()
+        val copied = db.programDao().daysForPlan(copyId).single()
+        assertEquals(original.copy(planId = copyId), copied)
+        assertEquals(CardioBlockJson.encode(block), copied.cardioBlockJson)
+        assertEquals(day, copied.toDomain(emptyList()))
+        assertTrue(db.programDao().exercisesForPlan(copyId).isEmpty())
     }
 
     private fun program(title: String, exerciseId: String) = Program(

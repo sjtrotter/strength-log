@@ -469,8 +469,11 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
     private fun validateCardioSets(sessions: List<CardioSessionBackup>) {
         val ids = HashSet<Long>()
         for (session in sessions) {
-            if (session.id <= 0) {
-                throw BackupError.Inconsistent("cardio session id must be positive: ${session.id}")
+            // Room assigns a fresh id to 0 on insert while the set rows keep 0, so a
+            // session 0 with sets would restore its sets orphaned. Other ids, negative
+            // ones from older files included, are inserted as given and stay linked.
+            if (session.id == 0L && session.sets.isNotEmpty()) {
+                throw BackupError.Inconsistent("cardio session 0 cannot carry sets")
             }
             if (session.activity != null && CardioActivity.entries.none { it.name == session.activity }) {
                 throw BackupError.Inconsistent("unknown cardio activity '${session.activity}' in session ${session.id}")

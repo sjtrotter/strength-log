@@ -123,14 +123,16 @@ class BackupV12Test {
         }
     }
 
-    @Test fun `v12 rejects nonpositive cardio session ids with or without sets`() {
-        for (id in listOf(0L, -1L)) {
-            for (results in listOf(sets, emptyList())) {
-                assertFailsWith<BackupError.Inconsistent> {
-                    decode(document(session.copy(id = id, sets = results)))
-                }
-            }
-        }
+    @Test fun `v12 rejects session 0 with sets and accepts other ids`() {
+        assertFailsWith<BackupError.Inconsistent> { decode(document(session.copy(id = 0, sets = sets))) }
+        assertEquals(0L, decode(document(session.copy(id = 0, sets = emptyList()))).cardioSessions.single().id)
+        assertEquals(-1L, decode(document(session.copy(id = -1, sets = sets))).cardioSessions.single().id)
+    }
+
+    @Test fun `a legacy negative id round-trips through a v12 export`() {
+        val legacy = document(session.copy(id = -1, sets = sets))
+        val reencoded = codec.encode(decode(legacy).toSnapshot().toDocument())
+        assertEquals(-1L, codec.decode(reencoded).cardioSessions.single().id)
     }
 
     @Test fun `v1 through v11 still accept nonpositive cardio session ids`() {

@@ -611,6 +611,7 @@ private fun Modifier.discGestures(
     val scope = rememberCoroutineScope()
     val undoLastSetLabel = stringResource(R.string.dial_undo_last_set_action)
     val stopCardioLabel = stringResource(R.string.dial_cardio_stop_action)
+    val stopTimedRepLabel = stringResource(R.string.dial_timed_rep_stop_action)
     val clickLabel = when (state.tap) {
         DialTap.NONE -> null
         DialTap.OPEN_WORKOUT -> stringResource(R.string.dial_open_workout_action)
@@ -631,7 +632,11 @@ private fun Modifier.discGestures(
         }
         state.hold?.let { hold ->
             role = Role.Button
-            onLongClick(label = if (hold.action == DialHoldAction.STOP_CARDIO) stopCardioLabel else undoLastSetLabel) {
+            onLongClick(label = when (hold.action) {
+                DialHoldAction.STOP_CARDIO -> stopCardioLabel
+                DialHoldAction.STOP_TIMED_REP -> stopTimedRepLabel
+                DialHoldAction.UNDO -> undoLastSetLabel
+            }) {
                 onHoldComplete(hold)
                 true
             }

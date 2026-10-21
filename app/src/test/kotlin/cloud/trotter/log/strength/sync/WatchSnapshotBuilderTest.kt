@@ -47,6 +47,40 @@ class WatchSnapshotBuilderTest {
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
         LoggedSlot(id, slot, sets, checkDate = "2026-07-09")
 
+    private fun prescribed(target: PrescribedTarget, unit: WeightUnit = WeightUnit.LB) =
+        WatchSnapshotBuilder.build(
+            program, "A", listOf(ProgramSlot(10L, 0, ProgramExercise(
+                "bb_back_squat", targetSets = 3,
+                prescription = Prescription(target, eachSide = true, resistance = "Red band"),
+            ))), emptyList(), cfg, catalog, unit, revision = 1L,
+        )!!.day.exercises.single()
+
+    @Test
+    fun `authored load target and supporting detail override catalog goal in either unit`() {
+        val lb = prescribed(PrescribedTarget.LoadReps(95.0, 10))
+        assertEquals(95.0, lb.goal)
+        assertEquals("3 × 10 · 95 lb", lb.goalLabel)
+        assertEquals("Each side · Red band", lb.targetDetail)
+        assertEquals(true, lb.prescribed)
+        assertEquals(0, lb.repWindowSeconds)
+        assertNull(lb.repAim)
+        val kg = prescribed(PrescribedTarget.LoadReps(95.0, 10), WeightUnit.KG)
+        assertEquals(95.0, kg.goal)
+        assertEquals("3 × 10 · 43.09 kg", kg.goalLabel)
+    }
+
+    @Test
+    fun `timed rep target publishes a plain reps track plus its execution facts`() {
+        val window = prescribed(PrescribedTarget.RepsInTime(120, 40))
+        assertEquals(0.0, window.goal)
+        assertEquals("2:00 · aim 40", window.goalLabel)
+        assertEquals("reps", window.tracking)
+        assertEquals(120, window.repWindowSeconds)
+        assertEquals(40, window.repAim)
+        assertEquals("2:00", prescribed(PrescribedTarget.RepsInTime(120)).goalLabel)
+        assertEquals(0.0, prescribed(PrescribedTarget.Reps(10)).goal)
+    }
+
     @Test
     fun `an empty next day retains plan identity title and its index in the rotation`() {
         val authored = program.copy(days = program.days + ProgramDay("C", "Daily rehab", "", emptyList(), null))
@@ -87,6 +121,7 @@ class WatchSnapshotBuilderTest {
 
         assertEquals("timed", projected.tracking)
         assertEquals(25.0, projected.goal)
+        assertEquals("3 × 0:45 · 25 lb", projected.goalLabel)
         assertEquals(List(3) { 25.0 }, projected.sets.map { it.weightLb })
         assertEquals(List(3) { 45 }, projected.sets.map { it.seconds })
     }
@@ -198,6 +233,11 @@ class WatchSnapshotBuilderTest {
         // Watch UI renders WeightStepper.format(unit.fromLb(goal)) == "235"; goalLabel must match.
         assertEquals(235.0, ex.goal)
         assertEquals("235", ex.goalLabel)
+        assertEquals("weighted", ex.tracking)
+        assertEquals(false, ex.prescribed)
+        assertEquals("", ex.targetDetail)
+        assertEquals(0, ex.repWindowSeconds)
+        assertNull(ex.repAim)
     }
 
     @Test

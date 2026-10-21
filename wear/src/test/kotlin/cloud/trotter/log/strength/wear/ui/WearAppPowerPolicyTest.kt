@@ -18,11 +18,14 @@ class WearAppPowerPolicyTest {
     private val forbidden = listOf("keepScreenOn", "setKeepScreenOn", "FLAG_KEEP_SCREEN_ON")
 
     @Test
-    fun `no wear source keeps the screen on`() {
+    fun `only an active rep window may keep the screen on`() {
         val mainSources = sequenceOf(File("src/main"), File("wear/src/main"))
             .first(File::isDirectory)
         val offenders = mainSources.walkTopDown()
             .filter { it.isFile && it.extension in setOf("kt", "xml") }
+            // #275 explicitly keeps a running rep window awake; its scoped effect
+            // releases the flag at count entry, cancellation and root disposal.
+            .filter { it.name != "TimedRepScreenAwake.kt" }
             .flatMap { file ->
                 val text = file.readText()
                 forbidden.filter { text.contains(it, ignoreCase = true) }

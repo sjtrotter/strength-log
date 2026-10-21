@@ -78,4 +78,8 @@
     <string name="glance_progress_description">Day %1$s, %2$d of %3$d sets done</string>
     <string name="glance_empty_short_text">—</string>
     <string name="glance_ratio">%1$d/%2$d</string>
+    <string name="dial_timed_rep_stop">Stop</string>
+    <string name="dial_timed_rep_stop_action">Stop rep timer</string>
+    <string name="dial_times_up">Time’s up</string>
+    <string name="dial_rep_aim">/ %1$d</string>
 </resources>

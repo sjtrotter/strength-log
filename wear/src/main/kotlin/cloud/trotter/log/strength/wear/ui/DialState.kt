@@ -74,6 +74,8 @@ data class DialInputs(
     val tickMemory: TickMemory = TickMemory.EMPTY,
     /** Non-null only while cardio executes; its step and elapsed are always derived. */
     val cardioAnchors: CardioAnchors? = null,
+    val timedRep: TimedRepState? = null,
+    val timedRepDeadlineMillis: Long = 0L,
 )
 
 /**
@@ -158,7 +160,10 @@ fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
     val browsing = inputs.browseDayIndex?.takeIf { inputs.face == DialFace.OVERVIEW }
 
     val unit = watchUnit(inputs.snapshot.unit)
-    val exerciseIndex = inputs.exerciseIndex.coerceIn(day.exercises.indices)
+    val timedRep = inputs.timedRep?.reconcile(inputs.snapshot)
+    val exerciseIndex = timedRep?.owner?.programExerciseId?.let { id ->
+        day.exercises.indexOfFirst { it.programExerciseId == id }.takeIf { it >= 0 }
+    } ?: inputs.exerciseIndex.coerceIn(day.exercises.indices)
     val exercise = day.exercises[exerciseIndex]
     val stream = exercise.toStreamUiState(unit, day.dayId, day.accentIndex, copy)
     val roundIndex = currentRoundIndex(exercise)
@@ -185,6 +190,7 @@ fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
     val cardioUnlogged = cardioSuggestion?.mode != null && cardioSuggestion.loggedStartedAt == null
     val state = when {
         inputs.cardioAnchors != null && cardioSuggestion != null -> context.cardioExecuting(inputs.cardioAnchors)
+        timedRep != null -> context.timedRepExecuting(timedRep)
         dayDone && cardioUnlogged && inputs.face == DialFace.OVERVIEW -> context.cardioOffer()
         dayDone -> context.dayDone()
         // The overview is a face, not a step: it stays available with a rest
@@ -192,6 +198,7 @@ fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
         inputs.face == DialFace.OVERVIEW -> context.overview(restRunning, browsing)
         restRunning != null -> context.rest(restRunning)
         inputs.restedSeconds != null && inputs.phase == SetPhase.READY -> context.restOver(inputs.restedSeconds)
+        exercise.repWindowSeconds > 0 -> context.ready()
         inputs.phase == SetPhase.LIFTING && holdGoalSeconds(exercise, roundIndex) > 0 -> context.timedHold()
         inputs.phase == SetPhase.LIFTING -> context.lifting()
         else -> context.ready()
@@ -379,7 +386,7 @@ private class ScreenContext(
                 text = copy.exerciseKind(exercise.name, round?.kindLabel.orEmpty()).uppercase(),
                 tone = DialTone.SECONDARY,
             ),
-            bottomBand = BandContent(setOfLine(), DialTone.TERTIARY),
+            bottomBand = exerciseDetail(BandContent(setOfLine(), DialTone.TERTIARY)),
             disc = startDisc(),
             tap = DialTap.START_SET,
             // Swap takes the crown only where the peek has nothing to scrub.
@@ -457,7 +464,7 @@ private class ScreenContext(
             tone = DialTone.PRIMARY,
             dotTone = DialTone.ACCENT_BRIGHT,
         ),
-        bottomBand = liftingBottomBand(),
+        bottomBand = exerciseDetail(liftingBottomBand()),
         disc = DiscContent(
             style = DiscStyle.OUTLINED,
             lines = listOf(
@@ -480,7 +487,7 @@ private class ScreenContext(
                 text = copy.exerciseKind(exercise.name, round?.kindLabel.orEmpty()).uppercase(),
                 tone = DialTone.SECONDARY,
             ),
-            bottomBand = BandContent(setOfLine(), DialTone.TERTIARY),
+            bottomBand = exerciseDetail(BandContent(setOfLine(), DialTone.TERTIARY)),
             disc = DiscContent(
                 style = DiscStyle.OUTLINED,
                 lines = listOf(
@@ -529,13 +536,13 @@ private class ScreenContext(
             text = copy.rested(DialFormat.clock(restedSeconds.toLong())).uppercase(),
             tone = DialTone.SUCCESS,
         ),
-        bottomBand = BandContent(
+        bottomBand = exerciseDetail(BandContent(
             text = listOf(setOfLine(), round?.kindLabel.orEmpty())
                 .filter { it.isNotBlank() }
                 .joinToString(" · ")
                 .uppercase(),
             tone = DialTone.TERTIARY,
-        ),
+        )),
         disc = startDisc(),
         tap = DialTap.START_SET,
         crown = DialCrown.PEEK,
@@ -693,13 +700,53 @@ private class ScreenContext(
     fun peekedRoundStates(peekedIndex: Int): List<RoundState> =
         DialGeometry.roundStates(exercise.sets.map { it.done }, roundIndex, peekedIndex)
 
+    /** The existing bottom curved band owns detail; CurvedBand ellipsizes it. */
+    private fun exerciseDetail(fallback: BandContent): BandContent =
+        exercise.targetDetail.takeIf { it.isNotBlank() }
+            ?.let { BandContent(it.uppercase(), DialTone.SECONDARY) } ?: fallback
+
     private fun startDisc() = DiscContent(
         style = DiscStyle.FILLED,
-        lines = listOf(
+        lines = if (exercise.repWindowSeconds > 0) listOf(
+            DiscLine(DialFormat.clock(exercise.repWindowSeconds.toLong()), DialTextRole.NUMERAL_LARGE, DialTone.ON_DISC),
+            DiscLine(copy.start.uppercase(), DialTextRole.BAND, DialTone.ON_DISC),
+        ) else listOf(
             DiscLine(copy.start.uppercase(), DialTextRole.DISC_LABEL, DialTone.ON_DISC),
-            DiscLine(prescription(), DialTextRole.DISC_LABEL_SMALL, DialTone.ON_DISC),
+            DiscLine(if (exercise.prescribed) exercise.goalLabel else prescription(), DialTextRole.DISC_LABEL_SMALL, DialTone.ON_DISC),
         ),
     )
+
+    fun timedRepExecuting(attempt: TimedRepState): DialUiState {
+        val counting = attempt.phase == TimedRepPhase.COUNT
+        val remaining = RestTimer.remainingSeconds(inputs.timedRepDeadlineMillis, inputs.nowElapsedMillis)
+        val numeral = if (counting) listOfNotNull(
+            DialSpan(attempt.count.toString(), DialTextRole.NUMERAL_LARGE, DialTone.PRIMARY),
+            exercise.repAim?.let { DialSpan(copy.repAim(it), DialTextRole.DISC_LABEL, DialTone.SECONDARY) },
+        ) else listOf(DialSpan(DialFormat.clock(remaining.toLong()), DialTextRole.NUMERAL_LARGE, DialTone.PRIMARY))
+        return base(
+            screen = if (counting) DialScreen.TIMED_REP_COUNT else DialScreen.TIMED_REP_RUNNING,
+            rounds = roundStates,
+            arc = if (counting) null else RestTimer.remainingFraction(
+                inputs.timedRepDeadlineMillis, inputs.nowElapsedMillis, attempt.totalSeconds,
+            ),
+            topBand = BandContent(exercise.name.uppercase(), DialTone.SECONDARY),
+            bottomBand = BandContent(
+                listOf(exercise.targetDetail, if (counting) copy.timesUp else copy.cardioHoldToStop)
+                    .filter { it.isNotBlank() }.joinToString(" · ").uppercase(),
+                DialTone.TERTIARY,
+            ),
+            disc = DiscContent(DiscStyle.FLAT, listOfNotNull(
+                DiscLine(numeral),
+                if (counting) DiscLine(copy.tapToLog.uppercase(), DialTextRole.BAND, DialTone.ACCENT_BRIGHT) else null,
+            )),
+            tap = if (counting) DialTap.TICK else DialTap.NONE,
+            crown = if (counting) DialCrown.REP_COUNT else DialCrown.NONE,
+            hold = if (counting) null else DialHold(
+                DialHoldAction.STOP_TIMED_REP,
+                DiscContent(DiscStyle.FLAT, listOf(DiscLine(copy.timedRepStop.uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY))),
+            ),
+        )
+    }
 
     /** The lifting numeral: weight big, reps as a smaller trailing group (§5.3). */
     private fun numeralGroup(): List<DialSpan> {

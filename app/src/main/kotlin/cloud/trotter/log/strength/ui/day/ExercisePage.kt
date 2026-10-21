@@ -108,9 +108,10 @@ internal fun ExercisePage(
                         modifier = if (target is HeaderTarget.Prescribed) Modifier.weight(1f) else Modifier,
                         horizontalAlignment = Alignment.End,
                     ) {
-                        val display = if (target is HeaderTarget.Prescribed && target.repAim != null) {
-                            stringResource(R.string.day_target_aim, target.display, target.repAim)
-                        } else target.display
+                        val aimTemplate = stringResource(R.string.day_target_aim)
+                        val display = DayScreenBuilder.headerTargetLabel(target) { text, reps ->
+                            aimTemplate.format(text, reps)
+                        }
                         val label = stringResource(
                             if (target is HeaderTarget.Goal) R.string.day_goal else R.string.day_target,
                             display,
@@ -130,10 +131,9 @@ internal fun ExercisePage(
                         )
                         val supporting = listOfNotNull(
                             card.lastTimeDisplay?.let { stringResource(R.string.day_last, it) },
-                            if (target is HeaderTarget.Prescribed && target.eachSide) {
-                                stringResource(R.string.day_target_each_side)
-                            } else null,
-                            (target as? HeaderTarget.Prescribed)?.resistance?.takeIf { it.isNotBlank() },
+                            DayScreenBuilder.headerTargetDetail(
+                                target, stringResource(R.string.day_target_each_side),
+                            ).takeIf { it.isNotBlank() },
                         ).joinToString(" · ")
                         if (supporting.isNotEmpty()) {
                             Text(

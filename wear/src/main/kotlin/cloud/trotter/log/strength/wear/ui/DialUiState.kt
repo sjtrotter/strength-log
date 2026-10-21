@@ -17,7 +17,7 @@ package cloud.trotter.log.strength.wear.ui
 enum class DialFace { OVERVIEW, WORKOUT }
 
 /** The dial's screens (§5): the overview, and the six of the workout face. */
-enum class DialScreen { OVERVIEW, READY, LIFTING, REST, REST_OVER, TIMED_HOLD, CARDIO_OFFER, CARDIO_EXECUTING, CARDIO_OVERRUN, DAY_DONE }
+enum class DialScreen { OVERVIEW, READY, LIFTING, REST, REST_OVER, TIMED_HOLD, CARDIO_OFFER, CARDIO_EXECUTING, CARDIO_OVERRUN, TIMED_REP_RUNNING, TIMED_REP_COUNT, DAY_DONE }
 
 /** Disc grammar (§4) — the fill states the mode, and the mode states what a tap does. */
 enum class DiscStyle { FILLED, OUTLINED, FLAT, DASHED, DIMMED, FILLED_GREEN }
@@ -74,7 +74,7 @@ enum class DialTap {
  * screens where [PEEK] has nothing to show: a lift with no logged rounds. The two
  * can't collide, because a peek scrubs *results* and an untouched lift has none.
  */
-enum class DialCrown { NONE, SELECT_EXERCISE, PEEK, SELECT_ALTERNATE }
+enum class DialCrown { NONE, SELECT_EXERCISE, PEEK, SELECT_ALTERNATE, REP_COUNT }
 
 /**
  * What a leftward swipe does here (v3 §3). It is contextual and it is rare: only
@@ -96,7 +96,7 @@ data class CycleSegment(val dayLabel: String, val accentIndex: Int, val mark: Cy
  * nothing is logged to take back. [disc] is what the disc says while the hold
  * fills; the fill itself is the disc's own ring, drawn by the composable.
  */
-enum class DialHoldAction { UNDO, STOP_CARDIO }
+enum class DialHoldAction { UNDO, STOP_CARDIO, STOP_TIMED_REP }
 data class DialHold(
     val action: DialHoldAction,
     val disc: DiscContent,

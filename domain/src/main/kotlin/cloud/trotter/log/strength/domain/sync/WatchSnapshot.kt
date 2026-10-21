@@ -119,12 +119,13 @@ data class WatchExercise(
     /** The partner's rows, aligned by index with [sets]; empty when no partner. */
     val ssSets: List<WatchSet>,
     /**
-     * The pre-formatted GOAL string ([cloud.trotter.log.strength.domain.standards.GoalFormatter]),
+     * The phone-formatted authored target, or generated GOAL string
+     * ([cloud.trotter.log.strength.domain.standards.GoalFormatter]),
      * so a reclassified REPS/TIMED slot can read "6 reps" / "45s" without the
      * watch ever doing goal math. Additive groundwork appended last: defaults to
      * "" so older publishers and existing fixtures decode fine (mirrors
-     * [WatchDay.emphasisLine]); for WEIGHTED slots it equals the number the watch
-     * already derives from [goal].
+     * [WatchDay.emphasisLine]); for generated WEIGHTED slots it equals the number
+     * the watch already derives from [goal].
      */
     val goalLabel: String = "",
     /**
@@ -176,6 +177,18 @@ data class WatchExercise(
      * on [name] — the only behavior available before this field existed.
      */
     val exerciseId: String = "",
+    /** Phone-formatted authored detail, e.g. "Each side · Red band". */
+    val targetDetail: String = "",
+    /**
+     * Authored rep window; zero preserves ordinary set behavior for an old phone.
+     * An old watch ignores this field and logs RepsInTime as a plain reps set
+     * (tracking = "reps"), a correct degraded logger. No schema version change.
+     */
+    val repWindowSeconds: Int = 0,
+    /** Optional aim; never a default count or a cap on the logged result. */
+    val repAim: Int? = null,
+    /** Show the authored [goalLabel] on Ready; false preserves generated dial copy. */
+    val prescribed: Boolean = false,
 )
 
 /**

@@ -907,6 +907,8 @@ class DialStateTest {
                 DialScreen.CARDIO_OFFER,
                 DialScreen.CARDIO_EXECUTING,
                 DialScreen.CARDIO_OVERRUN,
+                DialScreen.TIMED_REP_RUNNING,
+                DialScreen.TIMED_REP_COUNT,
             ),
             states.map { it.screen }.toSet(),
         )

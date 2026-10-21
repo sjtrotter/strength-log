@@ -109,17 +109,27 @@ class RestTimerController(
 
         val armed = ActiveRest(deadlineMillis, totalSeconds, ambientLabel)
         activeRest = armed
-        alarmScheduler.schedule(deadlineMillis) {
-            // Identity, not equality: a disarm-and-re-arm at the SAME deadline
-            // mints a structurally equal ActiveRest, and a stale queued callback
-            // must not pass the guard on the new arm's behalf.
-            if (activeRest === armed) {
-                activeRest = null
-                buzz()
-                val firedGeneration = ++generation
-                onFired?.invoke(Firing { generation == firedGeneration })
-            }
-        }
+        alarmScheduler.schedule(deadlineMillis) { complete(armed, onFired) }
+        completion = { complete(armed, onFired) }
+    }
+
+    private var completion: (() -> Unit)? = null
+
+    // The interactive ticker and alarm race through the same identity guard. A
+    // restored expired timer was never armed, so it cannot replay a missed buzz.
+    fun completeIfExpired() {
+        val active = activeRest ?: return
+        if (RestTimer.isExpired(active.deadlineMillis, elapsedRealtime())) completion?.invoke()
+    }
+
+    private fun complete(armed: ActiveRest, onFired: ((Firing) -> Unit)?) {
+        if (activeRest !== armed) return
+        activeRest = null
+        completion = null
+        alarmScheduler.cancel()
+        buzz()
+        val firedGeneration = ++generation
+        onFired?.invoke(Firing { generation == firedGeneration })
     }
 
     /** Invalidates settle work after the underlying workout snapshot changes. */
@@ -132,6 +142,7 @@ class RestTimerController(
         generation++
         alarmScheduler.cancel()
         activeRest = null
+        completion = null
     }
 
     override fun close() = disarm()

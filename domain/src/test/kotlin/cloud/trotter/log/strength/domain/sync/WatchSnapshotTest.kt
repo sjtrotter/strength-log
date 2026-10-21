@@ -52,6 +52,22 @@ class WatchSnapshotTest {
     }
 
     @Test
+    fun `authored rep window and detail decode without a schema bump`() {
+        val exercise = sample.day.exercises.first().copy(
+            goal = 0.0, goalLabel = "2:00 · aim 40", tracking = "reps",
+            targetDetail = "Each side · Red band", repWindowSeconds = 120, repAim = 40,
+            prescribed = true,
+        )
+        val snapshot = sample.copy(day = sample.day.copy(exercises = listOf(exercise)))
+        val decoded = json.decodeFromString(WatchSnapshot.serializer(),
+            json.encodeToString(WatchSnapshot.serializer(), snapshot))
+        assertEquals(snapshot, decoded)
+        assertEquals(1, decoded.schemaVersion)
+        assertEquals(120, decoded.day.exercises.single().repWindowSeconds)
+        assertEquals(40, decoded.day.exercises.single().repAim)
+    }
+
+    @Test
     fun `schemaVersion defaults to 1`() {
         assertEquals(1, sample.schemaVersion)
     }
@@ -189,6 +205,10 @@ class WatchSnapshotTest {
         assertEquals("weighted", ex.tracking)
         assertEquals(0, ex.sets.single().seconds)
         assertEquals("", ex.goalLabel)
+        assertEquals("", ex.targetDetail)
+        assertEquals(0, ex.repWindowSeconds)
+        assertEquals(null, ex.repAim)
+        assertEquals(false, ex.prescribed)
     }
 
     @Test

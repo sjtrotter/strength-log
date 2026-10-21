@@ -56,6 +56,14 @@ class AmbientDialStateTest {
     }
 
     @Test
+    fun `rep window shows the remaining time at the ambient tick cadence`() {
+        val state = ambientDialState(day, timeText = "10:42", countdownSeconds = 84)
+        assertEquals("1:24", state.centerText)
+        assertEquals("10:42", state.bottomText)
+        assertEquals("0:00", ambientDialState(day, "10:42", countdownSeconds = 0).centerText)
+    }
+
+    @Test
     fun `burn in shift is deterministic bounded and changes across ticks`() {
         val cycle = (0..8).map(::ambientPixelOffset)
         assertEquals(ambientPixelOffset(3), ambientPixelOffset(3))

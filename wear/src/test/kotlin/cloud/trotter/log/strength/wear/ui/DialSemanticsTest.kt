@@ -97,6 +97,27 @@ class DialSemanticsTest {
     }
 
     @Test
+    fun `timed rep hold exposes cancel without a tap or cardio log action`() {
+        var action: DialHoldAction? = null
+        var taps = 0
+        val hold = DialHold(DialHoldAction.STOP_TIMED_REP, DiscContent(DiscStyle.FLAT, emptyList()))
+        composeTestRule.setContent {
+            WearTrackerTheme {
+                Dial(
+                    state = state(DialTap.NONE, hold).copy(screen = DialScreen.TIMED_REP_RUNNING),
+                    onTap = { taps++ },
+                    onHoldComplete = { action = it.action },
+                )
+            }
+        }
+        composeTestRule.onNode(hasLongClickLabel("Stop rep timer"))
+            .assertHasNoClickAction()
+            .performSemanticsAction(SemanticsActions.OnLongClick)
+        assertEquals(DialHoldAction.STOP_TIMED_REP, action)
+        assertEquals(0, taps)
+    }
+
+    @Test
     fun `none keeps merged copy without exposing a click action`() {
         composeTestRule.setContent {
             WearTrackerTheme { Dial(state(DialTap.NONE), onTap = {}) }

@@ -376,7 +376,7 @@ private fun PlanRoute(
 }
 
 @Composable
-private fun DayRoute(
+internal fun DayRoute(
     onCreateExercise: (MovementPattern) -> Unit,
     onSetUpProgram: () -> Unit,
     onFinishSession: () -> Unit,
@@ -476,7 +476,7 @@ private fun DayRoute(
         onFinishSession = {
             if (viewModel.dismissSessionReceipt()) onFinishSession()
         },
-        onBack = { if (!viewModel.executionActive) onFinishSession() },
+        onBack = onFinishSession,
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
         standaloneCardio = initialDayId != null && !state.isProgramDay,

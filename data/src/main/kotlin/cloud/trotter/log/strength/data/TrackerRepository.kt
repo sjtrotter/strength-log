@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
@@ -22,6 +23,7 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
+import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.mapping.toEntry
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
@@ -37,6 +39,8 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -104,6 +108,7 @@ open class TrackerRepository(
      *  every construction site would claim otherwise. */
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
+    private val cardioSetResultDao = db.cardioSetResultDao()
     private val planDao = db.planDao()
     private val planSettingsMigrationMutex = Mutex()
 
@@ -1025,7 +1030,10 @@ open class TrackerRepository(
      * plan id is preserved and its current name copied when the plan exists;
      * only a session without a plan uses the selected plan.
      */
-    suspend fun logCardioSession(session: CardioSessionEntity): Long {
+    suspend fun logCardioSession(
+        session: CardioSessionEntity,
+        sets: List<CardioSetResult> = emptyList(),
+    ): Long {
         require(session.label.isNotBlank()) { "cardio label must not be blank" }
         require(session.label.length <= CARDIO_LABEL_MAX_LENGTH) {
             "cardio label must be at most $CARDIO_LABEL_MAX_LENGTH characters"
@@ -1033,16 +1041,49 @@ open class TrackerRepository(
         require(CardioMode.entries.any { it.name == session.mode }) {
             "cardio mode must be stored as CardioMode.name"
         }
+        require(session.activity == null || CardioActivity.entries.any { it.name == session.activity }) {
+            "cardio activity must be stored as CardioActivity.name"
+        }
         val plan = (session.planId ?: selectedPlanId())?.let { planDao.plan(it) }
         val stamped = if (session.planId == null || plan != null) {
             session.copy(planId = plan?.id, planName = plan?.name)
         } else {
             session
         }
-        return db.withTransaction { cardioSessionDao.insert(stamped.copy(id = 0)) }
+        return db.withTransaction {
+            val id = cardioSessionDao.insert(stamped.copy(id = 0))
+            if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
+                set.toEntity(id, position)
+            })
+            id
+        }
     }
 
     suspend fun cardioSession(id: Long): CardioSessionEntity? = cardioSessionDao.byId(id)
+
+    suspend fun cardioSetsFor(sessionId: Long): List<CardioSetResult> =
+        cardioSetResultDao.forSession(sessionId).mapNotNull { it.toDomainOrNull() }
+
+    /** Exact rows for undo, including original ids, order and stored specs. */
+    data class DeletedCardioSession(
+        val session: CardioSessionEntity,
+        val sets: List<CardioSetResultEntity>,
+    )
+
+    suspend fun deleteCardioSession(sessionId: Long): DeletedCardioSession? = db.withTransaction {
+        val session = cardioSessionDao.byId(sessionId) ?: return@withTransaction null
+        val sets = cardioSetResultDao.forSession(sessionId)
+        cardioSetResultDao.deleteForSession(sessionId)
+        cardioSessionDao.deleteById(sessionId)
+        DeletedCardioSession(session, sets)
+    }
+
+    suspend fun restoreCardioSession(deleted: DeletedCardioSession) {
+        db.withTransaction {
+            cardioSessionDao.insert(deleted.session)
+            if (deleted.sets.isNotEmpty()) cardioSetResultDao.insertAll(deleted.sets)
+        }
+    }
 
     /** The Log screen's list (#14): every session newest-first, with its total
      *  set count pre-aggregated (no per-row query as history grows). */
@@ -1247,28 +1288,51 @@ open class TrackerRepository(
      * deterministic — two exports of the same state are byte-identical, keeping
      * diffs and round-trip tests honest.
      */
-    suspend fun exportSnapshot(): FullSnapshot = FullSnapshot(
-        answers = wizardAnswersFlow.first(),
-        answersCarryRecipe = false,
-        unit = settings.unitFlow.first(),
-        wizardComplete = settings.wizardCompleteFlow.first(),
-        suggestedDay = suggestedDayFlow.first(),
-        selectedPlanId = settings.selectedPlanIdFlow.first(),
-        restSettings = settings.restSettingsFlow.first(),
-        keepScreenOn = settings.keepScreenOnFlow.first(),
-        topSetHelperSeen = settings.topSetHelperSeenFlow.first(),
-        supersetHelperSeen = settings.supersetHelperSeenFlow.first(),
-        sessionNotes = settings.sessionNotesFlow.first(),
-        themePreference = settings.themePreferenceFlow.first(),
-        plans = planDao.allPlans(),
-        customExercises = customExerciseDao.allOrdered(),
-        days = programDao.allDays(),
-        exercises = programDao.allExercises(),
-        logs = programDao.allLogs(),
-        sessions = sessionDao.allSessions(),
-        sessionSets = sessionDao.allSessionSets(),
-        cardioSessions = cardioSessionDao.all(),
-    )
+    suspend fun exportSnapshot(): FullSnapshot {
+        ensurePlanSettingsMigrated()
+        // DataStore and Room have independent commits. Read preferences first;
+        // never collect a DataStore-backed flow while holding a Room transaction.
+        val global = settings.globalLifterFlow.first()
+        val unit = settings.unitFlow.first()
+        val wizardComplete = settings.wizardCompleteFlow.first()
+        val selectedPlanId = settings.selectedPlanIdFlow.first()
+        val restSettings = settings.restSettingsFlow.first()
+        val keepScreenOn = settings.keepScreenOnFlow.first()
+        val topSetHelperSeen = settings.topSetHelperSeenFlow.first()
+        val supersetHelperSeen = settings.supersetHelperSeenFlow.first()
+        val sessionNotes = settings.sessionNotesFlow.first()
+        val themePreference = settings.themePreferenceFlow.first()
+        return db.withTransaction {
+            // Use this same plan list for the legacy settings projection, too.
+            // Separate reads could otherwise straddle a restore's Room commit.
+            val plans = planDao.allPlans()
+            val selectedPlan = plans.firstOrNull { it.id == selectedPlanId && !it.archived }
+                ?: plans.firstOrNull { !it.archived }
+            FullSnapshot(
+                answers = answersForPlan(selectedPlan, global),
+                answersCarryRecipe = false,
+                unit = unit,
+                wizardComplete = wizardComplete,
+                suggestedDay = selectedPlan?.suggestedDayId,
+                selectedPlanId = selectedPlanId,
+                restSettings = restSettings,
+                keepScreenOn = keepScreenOn,
+                topSetHelperSeen = topSetHelperSeen,
+                supersetHelperSeen = supersetHelperSeen,
+                sessionNotes = sessionNotes,
+                themePreference = themePreference,
+                plans = plans,
+                customExercises = customExerciseDao.allOrdered(),
+                days = programDao.allDays(),
+                exercises = programDao.allExercises(),
+                logs = programDao.allLogs(),
+                sessions = sessionDao.allSessions(),
+                sessionSets = sessionDao.allSessionSets(),
+                cardioSessions = cardioSessionDao.all(),
+                cardioSetResults = cardioSetResultDao.all(),
+            )
+        }
+    }
 
     /**
      * Replaces the device's entire state with [snapshot] (A2 restore). The caller
@@ -1326,6 +1390,7 @@ open class TrackerRepository(
             planDao.deleteAllPlans()
             sessionDao.deleteAllSessionSets()
             sessionDao.deleteAllSessions()
+            cardioSetResultDao.deleteAll()
             cardioSessionDao.deleteAll()
             customExerciseDao.deleteAll()
 
@@ -1360,6 +1425,7 @@ open class TrackerRepository(
             sessionDao.insertSessions(snapshot.sessions)
             sessionDao.insertSets(snapshot.sessionSets)
             cardioSessionDao.insertAll(snapshot.cardioSessions)
+            cardioSetResultDao.insertAll(snapshot.cardioSetResults)
             restoreMarkerDao.put(RestoreMarkerEntity(nonce = nonce))
         }
         withContext(NonCancellable) {

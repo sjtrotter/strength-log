@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.transfer.backup
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
@@ -42,6 +43,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
     val exercisesByDay = exercises.groupBy { it.planId to it.dayId }
     val daysByPlan = days.groupBy { it.planId }
     val setsBySession = sessionSets.groupBy { it.sessionId }
+    val cardioSetsBySession = cardioSetResults.groupBy { it.cardioSessionId }
     return BackupDocument(
         schemaVersion = CURRENT_SCHEMA_VERSION,
         settings = SettingsBackup(
@@ -156,6 +158,13 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 label = it.label, startedAt = it.startedAt, completedAt = it.completedAt,
                 seconds = it.seconds, stepsCompleted = it.stepsCompleted,
                 planId = it.planId, planName = it.planName,
+                activity = it.activity,
+                sets = cardioSetsBySession[it.id].orEmpty().sortedWith(compareBy({ it.position }, { it.id })).map { set ->
+                    CardioSetResultBackup(
+                        id = set.id, specJson = set.specJson, status = set.status,
+                        elapsedSeconds = set.elapsedSeconds, metres = set.metres, distanceSource = set.distanceSource,
+                    )
+                },
             )
         },
     )
@@ -326,8 +335,18 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 label = it.label, startedAt = it.startedAt, completedAt = it.completedAt,
                 seconds = it.seconds, stepsCompleted = it.stepsCompleted,
                 planId = it.planId, planName = it.planName,
+                activity = if (schemaVersion >= 12) it.activity else null,
             )
         },
+        cardioSetResults = if (schemaVersion >= 12) cardioSessions.flatMap { session ->
+            session.sets.mapIndexed { position, set ->
+                CardioSetResultEntity(
+                    id = set.id, cardioSessionId = session.id, position = position,
+                    specJson = set.specJson, status = set.status, elapsedSeconds = set.elapsedSeconds,
+                    metres = set.metres, distanceSource = set.distanceSource,
+                )
+            }
+        } else emptyList(),
     )
 }
 

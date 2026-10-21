@@ -64,6 +64,14 @@ object CardioBlockJson {
         return SetJson.encode(CardioBlockDto.serializer(), dto)
     }
 
+    /** Uses the same set shape as the sets nested inside a block. */
+    fun encodeSet(spec: CardioSetSpec): String =
+        SetJson.encode(CardioSetSpecDto.serializer(), CardioSetSpecDto.of(spec))
+
+    /** Throws for malformed, unknown, incomplete or out-of-range set specs. */
+    fun decodeSet(json: String): CardioSetSpec =
+        SetJson.decode(CardioSetSpecDto.serializer(), json).toDomain()
+
     fun decode(json: String?): CardioBlock? = json?.let { runCatching { read(it) }.getOrNull() }
 
     /** Throws for malformed, unknown, incomplete or out-of-range blocks. */

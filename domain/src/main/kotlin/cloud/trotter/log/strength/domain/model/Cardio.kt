@@ -38,6 +38,24 @@ data class CardioSetSpec(
     }
 }
 
+enum class CardioSetStatus { FINISHED, SHORTENED, SKIPPED }
+
+enum class DistanceSource { MANUAL, GPS, HEALTH_CONNECT }
+
+data class CardioSetResult(
+    val spec: CardioSetSpec,
+    val status: CardioSetStatus,
+    val elapsedSeconds: Int,
+    val metres: Int? = null,
+    val distanceSource: DistanceSource? = null,
+) {
+    init {
+        require(elapsedSeconds >= 0) { "elapsedSeconds must not be negative" }
+        require(metres == null || metres >= 0) { "metres must not be negative" }
+        require((metres != null) == (distanceSource != null)) { "distanceSource is required iff metres is present" }
+    }
+}
+
 data class CardioBlock(val activity: CardioActivity, val sets: List<CardioSetSpec>) {
     init {
         require(sets.isNotEmpty()) { "cardio block must have at least one set" }

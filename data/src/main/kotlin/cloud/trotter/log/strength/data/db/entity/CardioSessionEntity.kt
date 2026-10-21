@@ -21,4 +21,6 @@ data class CardioSessionEntity(
     /** [PlanEntity.name] copied at completion, so history survives a rename or
      *  archive — the same rule as `exerciseName` on set rows. */
     val planName: String? = null,
+    /** CardioActivity.name when recorded by a set-aware caller; unknown for legacy summaries. */
+    val activity: String? = null,
 )

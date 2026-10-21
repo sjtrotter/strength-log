@@ -23,6 +23,9 @@ interface CardioSessionDao {
     @Query("SELECT * FROM cardio_session ORDER BY id")
     suspend fun all(): List<CardioSessionEntity>
 
+    @Query("DELETE FROM cardio_session WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Query("DELETE FROM cardio_session")
     suspend fun deleteAll()
 }

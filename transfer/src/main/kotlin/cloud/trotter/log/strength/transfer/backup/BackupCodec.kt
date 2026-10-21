@@ -10,6 +10,10 @@ import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -95,7 +99,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -135,7 +139,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             })
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
-        val versioned = if (version < 11) withoutFutureDayFields(shaped, version) else shaped
+        val withDayFields = if (version < 11) withoutFutureDayFields(shaped, version) else shaped
+        val versioned = if (version < 12) {
+            val sessions = withDayFields["cardioSessions"] as? JsonArray
+            if (sessions == null) withDayFields else JsonObject(withDayFields + ("cardioSessions" to JsonArray(
+                sessions.map { if (it is JsonObject) JsonObject(it - "activity" - "sets") else it },
+            )))
+        } else withDayFields
         val document = try {
             json.decodeFromJsonElement(BackupDocument.serializer(), versioned)
         } catch (e: SerializationException) {
@@ -291,6 +301,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
         validateSessions(doc.sessions)
         validateCardioSessions(doc.cardioSessions)
+        if (doc.schemaVersion >= 12) validateCardioSets(doc.cardioSessions)
     }
 
     private fun validateSuggestedDay(suggestedDay: String?, days: List<ProgramDayBackup>) {
@@ -451,6 +462,35 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             }
             if (session.stepsCompleted < 0) {
                 throw BackupError.Inconsistent("cardio session[$index] stepsCompleted must not be negative")
+            }
+        }
+    }
+
+    private fun validateCardioSets(sessions: List<CardioSessionBackup>) {
+        val ids = HashSet<Long>()
+        for (session in sessions) {
+            // Room assigns a fresh id to 0 on insert while the set rows keep 0, so a
+            // session 0 with sets would restore its sets orphaned. Other ids, negative
+            // ones from older files included, are inserted as given and stay linked.
+            if (session.id == 0L && session.sets.isNotEmpty()) {
+                throw BackupError.Inconsistent("cardio session 0 cannot carry sets")
+            }
+            if (session.activity != null && CardioActivity.entries.none { it.name == session.activity }) {
+                throw BackupError.Inconsistent("unknown cardio activity '${session.activity}' in session ${session.id}")
+            }
+            for (set in session.sets) {
+                if (set.id <= 0 || !ids.add(set.id)) {
+                    throw BackupError.Inconsistent("invalid or duplicate cardio set id ${set.id}")
+                }
+                decodePayload("cardio set ${set.id} in session ${session.id}") {
+                    CardioSetResult(
+                        spec = CardioBlockJson.decodeSet(set.specJson),
+                        status = CardioSetStatus.valueOf(set.status),
+                        elapsedSeconds = set.elapsedSeconds,
+                        metres = set.metres,
+                        distanceSource = set.distanceSource?.let(DistanceSource::valueOf),
+                    )
+                }
             }
         }
     }

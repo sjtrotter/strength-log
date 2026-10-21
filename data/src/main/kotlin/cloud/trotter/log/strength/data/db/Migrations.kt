@@ -239,3 +239,20 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
         db.execSQL("ALTER TABLE program_day ADD COLUMN cardioBlockJson TEXT")
     }
 }
+
+/** v11 → v12 (#279): per-set cardio history; legacy sessions remain summaries. */
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE cardio_session ADD COLUMN activity TEXT")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `cardio_set_result` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `cardioSessionId` INTEGER NOT NULL, " +
+                "`position` INTEGER NOT NULL, `specJson` TEXT NOT NULL, `status` TEXT NOT NULL, " +
+                "`elapsedSeconds` INTEGER NOT NULL, `metres` INTEGER, `distanceSource` TEXT)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_cardio_set_result_cardioSessionId` " +
+                "ON `cardio_set_result` (`cardioSessionId`)",
+        )
+    }
+}

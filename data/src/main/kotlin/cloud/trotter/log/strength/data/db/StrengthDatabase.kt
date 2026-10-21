@@ -6,12 +6,14 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
 import cloud.trotter.log.strength.data.db.dao.CardioSessionDao
+import cloud.trotter.log.strength.data.db.dao.CardioSetResultDao
 import cloud.trotter.log.strength.data.db.dao.PlanDao
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.dao.RestoreMarkerDao
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
@@ -30,9 +32,10 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
         CustomExerciseEntity::class,
         RestoreMarkerEntity::class,
         CardioSessionEntity::class,
+        CardioSetResultEntity::class,
         PlanEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class StrengthDatabase : RoomDatabase() {
@@ -40,6 +43,7 @@ abstract class StrengthDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun customExerciseDao(): CustomExerciseDao
     abstract fun restoreMarkerDao(): RestoreMarkerDao
+    abstract fun cardioSetResultDao(): CardioSetResultDao
     abstract fun cardioSessionDao(): CardioSessionDao
     abstract fun planDao(): PlanDao
 
@@ -66,6 +70,7 @@ abstract class StrengthDatabase : RoomDatabase() {
                     MIGRATION_8_9,
                     MIGRATION_9_10,
                     MIGRATION_10_11,
+                    MIGRATION_11_12,
                 )
                 .build()
     }

@@ -44,6 +44,7 @@
     <string name="dial_queued">%1$d queued</string>
     <string name="dial_no_program">no program</string>
     <string name="dial_set_up_on_phone">set up on your phone</string>
+    <string name="dial_no_exercises_yet">No exercises yet</string>
     <string name="dial_ramp_label">R%1$d</string>
     <string name="dial_top_label">TOP</string>
     <string name="dial_backoff_label">B/O</string>

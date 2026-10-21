@@ -854,6 +854,7 @@ private fun rememberDialCopy(): DialCopy {
     val queued = stringResource(R.string.dial_queued)
     val noProgram = stringResource(R.string.dial_no_program)
     val setUpOnPhone = stringResource(R.string.dial_set_up_on_phone)
+    val noExercisesYet = stringResource(R.string.dial_no_exercises_yet)
     val rampLabel = stringResource(R.string.dial_ramp_label)
     val topLabel = stringResource(R.string.dial_top_label)
     val backoffLabel = stringResource(R.string.dial_backoff_label)
@@ -891,6 +892,7 @@ private fun rememberDialCopy(): DialCopy {
             queued = { queued.format(it) },
             noProgram = noProgram,
             setUpOnPhone = setUpOnPhone,
+            noExercisesYet = noExercisesYet,
             rampLabel = { rampLabel.format(it) },
             topLabel = topLabel,
             backoffLabel = backoffLabel,

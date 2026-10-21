@@ -29,6 +29,7 @@ data class DialCopy(
     val queued: (Int) -> String,
     val noProgram: String,
     val setUpOnPhone: String,
+    val noExercisesYet: String,
     val rampLabel: (Int) -> String,
     val topLabel: String,
     val backoffLabel: String,

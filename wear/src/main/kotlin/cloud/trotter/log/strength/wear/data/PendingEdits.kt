@@ -31,6 +31,9 @@ import kotlin.math.abs
  * day was completed/advanced), so an old-day edit can neither be confirmed nor is
  * worth resending; last-write-wins lets it go.
  *
+ * A snapshot for the same non-null plan and day also settles edits and swaps whose
+ * slot no longer exists; another known plan leaves them queued.
+ *
  * [SetEditDelta.startedAtMillis]/[SetEditDelta.completedAtMillis] impose no condition
  * of their own: the snapshot has no place to echo them (the watch never displays
  * them, so echoing would be wire weight nobody reads), and the phone writes them in
@@ -56,13 +59,18 @@ object PendingEdits {
     /** The deltas still worth re-sending after reconciling against [snapshot]. */
     fun reconcile(pending: List<SetEditDelta>, snapshot: WatchSnapshot): List<SetEditDelta> =
         pending.filter { delta ->
-            delta.dayId == snapshot.day.dayId && !delta.isSettled(pending, snapshot)
+            when {
+                delta.planId != null && snapshot.planId != null && delta.planId != snapshot.planId -> true
+                delta.dayId != snapshot.day.dayId -> false
+                snapshot.hasRemovedSlot(delta.planId, delta.programExerciseId) -> false
+                else -> !delta.isSettled(pending, snapshot)
+            }
         }
 
     /**
      * The swaps still worth re-sending after reconciling against [snapshot] (#90).
      *
-     * A swap leaves the queue on any of four terminal conditions:
+     * Besides a removed slot (above), a swap leaves the queue on any of four terminal conditions:
      *  - **Landed** — the snapshot's slot now *is* the exercise it asked for. Judged
      *    on [WatchExercise.exerciseId], never on the display name: two catalog entries
      *    can share a name (two custom exercises, or an alternate named like the lift
@@ -77,8 +85,17 @@ object PendingEdits {
      */
     fun reconcileSwaps(pending: List<ExerciseSwapDelta>, snapshot: WatchSnapshot): List<ExerciseSwapDelta> =
         pending.filter { swap ->
-            swap.dayId == snapshot.day.dayId && !swap.isSettled(pending, snapshot)
+            when {
+                swap.planId != null && snapshot.planId != null && swap.planId != snapshot.planId -> true
+                swap.dayId != snapshot.day.dayId -> false
+                snapshot.hasRemovedSlot(swap.planId, swap.programExerciseId) -> false
+                else -> !swap.isSettled(pending, snapshot)
+            }
         }
+
+    private fun WatchSnapshot.hasRemovedSlot(planId: Long?, programExerciseId: Long): Boolean =
+        planId != null && this.planId == planId &&
+            day.exercises.none { it.programExerciseId == programExerciseId }
 
     private fun ExerciseSwapDelta.isSettled(
         pending: List<ExerciseSwapDelta>,

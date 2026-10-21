@@ -20,6 +20,44 @@ import kotlin.test.assertTrue
 class PendingEditsTest {
 
     @Test
+    fun `same plan and day settle edits and swaps for a removed slot`() {
+        val edit = delta(done = true).copy(planId = 1L, programExerciseId = 11L)
+        val replacement = swap(programExerciseId = 11L).copy(planId = 1L)
+        val current = snapshot().copy(planId = 1L)
+        // Both an empty successor and a recreated day with other slots retire 11.
+        listOf(current.copy(day = current.day.copy(exercises = emptyList())), current).forEach { published ->
+            assertTrue(PendingEdits.reconcile(listOf(edit), published).isEmpty())
+            assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), published).isEmpty())
+        }
+    }
+
+    @Test
+    fun `another plan cannot settle missing-slot edits or swaps even on a different day`() {
+        val edit = delta(done = true).copy(planId = 1L, programExerciseId = 11L)
+        val replacement = swap(programExerciseId = 11L).copy(planId = 1L)
+        listOf("A", "B").forEach { dayId ->
+            val otherPlan = snapshot(dayId = dayId).copy(planId = 2L)
+            assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), otherPlan))
+            assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), otherPlan))
+        }
+    }
+
+    @Test
+    fun `a null plan id on either side keeps missing-slot work until the day changes`() {
+        listOf(null to null, null to 1L, 1L to null).forEach { (deltaPlan, snapshotPlan) ->
+            val edit = delta(done = true).copy(planId = deltaPlan, programExerciseId = 11L)
+            val replacement = swap(programExerciseId = 11L).copy(planId = deltaPlan)
+            val current = snapshot().copy(planId = snapshotPlan)
+            assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+            assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current))
+
+            val nextDay = snapshot(dayId = "B").copy(planId = snapshotPlan)
+            assertTrue(PendingEdits.reconcile(listOf(edit), nextDay).isEmpty())
+            assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), nextDay).isEmpty())
+        }
+    }
+
+    @Test
     fun `queued work survives another plan's Day A and settles when its own plan reflects it`() {
         val edit = delta(done = true).copy(planId = 1L)
         val replacement = swap().copy(planId = 1L)
@@ -295,6 +333,8 @@ class PendingEditsTest {
         // the edit must not settle by accident.
         val edit = delta(setIndex = 5, done = true, startedAtMillis = 1_000L, completedAtMillis = 1_045L)
         assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), snapshot()))
+        val samePlan = edit.copy(planId = 1L)
+        assertEquals(listOf(samePlan), PendingEdits.reconcile(listOf(samePlan), snapshot().copy(planId = 1L)))
     }
 
     @Test

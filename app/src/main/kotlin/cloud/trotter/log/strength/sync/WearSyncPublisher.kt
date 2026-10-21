@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.PutDataRequest
 import cloud.trotter.log.strength.domain.sync.SyncCodec
+import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.WearSyncPaths
 import kotlinx.coroutines.CoroutineScope
@@ -46,7 +47,16 @@ class WearSyncPublisher(
         started = true
         source.snapshots
             .distinctUntilChanged()
-            .onEach { content -> content?.let { publish(it) } }
+            .onEach { content ->
+                val snapshot = content ?: WatchSnapshot(
+                    revision = 0L,
+                    suggestedDayId = "",
+                    day = WatchDay("", "", 0, emptyList()),
+                    unit = "lb",
+                    hasProgram = false,
+                )
+                publish(snapshot)
+            }
             .launchIn(scope)
     }
 

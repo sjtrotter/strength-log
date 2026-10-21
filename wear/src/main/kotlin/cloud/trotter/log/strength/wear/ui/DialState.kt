@@ -153,7 +153,8 @@ fun roundLabel(round: RoundUiState): String =
 
 fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
     val day = inputs.snapshot.day
-    if (day.exercises.isEmpty()) return noProgram(inputs.snapshot, copy)
+    if (!inputs.snapshot.hasProgram) return noProgram(inputs.snapshot, copy)
+    if (day.exercises.isEmpty()) return emptyDay(inputs.snapshot, copy)
     val browsing = inputs.browseDayIndex?.takeIf { inputs.face == DialFace.OVERVIEW }
 
     val unit = watchUnit(inputs.snapshot.unit)
@@ -808,7 +809,29 @@ private fun DialUiState.withQueuedStatus(pendingCount: Int, copy: DialCopy): Dia
     )
 }
 
-/** The phone hasn't generated a program yet (§7): a dashed disc and nothing to act on. */
+/** An installed day with no slots keeps its identity and offers nothing to log. */
+private fun emptyDay(snapshot: WatchSnapshot, copy: DialCopy) = DialUiState(
+    screen = DialScreen.OVERVIEW,
+    accentIndex = snapshot.day.accentIndex,
+    cycle = cycleSegments(snapshot),
+    dayProgress = 0f,
+    rounds = emptyList(),
+    arc = null,
+    topBand = snapshot.day.title.takeIf { it.isNotBlank() }
+        ?.let { BandContent(it.uppercase(), DialTone.ACCENT_BRIGHT) },
+    bottomBand = null,
+    disc = DiscContent(
+        style = DiscStyle.DIMMED,
+        lines = listOf(
+            DiscLine(copy.day(snapshot.day.dayId).uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY),
+            DiscLine(copy.noExercisesYet.uppercase(), DialTextRole.BAND_SECONDARY, DialTone.SECONDARY),
+        ),
+    ),
+    bloom = false,
+    tap = DialTap.NONE,
+)
+
+/** The phone has no suggested day (§7): a dashed disc and nothing to act on. */
 private fun noProgram(snapshot: WatchSnapshot, copy: DialCopy) = DialUiState(
     screen = DialScreen.OVERVIEW,
     accentIndex = snapshot.day.accentIndex,

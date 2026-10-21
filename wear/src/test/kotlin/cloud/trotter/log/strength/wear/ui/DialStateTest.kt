@@ -93,6 +93,13 @@ class DialStateTest {
     private val press = exercise(2L, "Press", List(2) { set(weight = 120.0, reps = 8, kind = "WORK") })
     private val day = snapshot(squat, press)
 
+    private fun noProgramSnapshot() = snapshot().copy(
+        suggestedDayId = "",
+        day = WatchDay("", "", 0, emptyList()),
+        cycle = emptyList(),
+        hasProgram = false,
+    )
+
     private fun inputs(
         snapshot: WatchSnapshot = day,
         exerciseIndex: Int = currentExerciseIndex(snapshot),
@@ -517,7 +524,7 @@ class DialStateTest {
             ),
         )
         val dayDone = dialUiState(inputs(snapshot = allDone()))
-        val noProgram = dialUiState(inputs(snapshot = day.copy(day = day.day.copy(exercises = emptyList()))))
+        val noProgram = dialUiState(inputs(snapshot = noProgramSnapshot()))
 
         assertTrue(overview.showsTimePill)
         assertFalse(ready.showsTimePill)
@@ -581,10 +588,32 @@ class DialStateTest {
     }
 
     @Test
+    fun `a named empty day shows its identity and nothing to tick on either face`() {
+        DialFace.entries.forEach { face ->
+            val state = dialUiState(inputs(snapshot = snapshot(), face = face))
+            assertEquals(DialScreen.OVERVIEW, state.screen)
+            assertEquals("LOWER", state.topBand?.text)
+            assertEquals(listOf("DAY A", "NO EXERCISES YET"), state.discText())
+            assertEquals(cycleSegments(snapshot()), state.cycle)
+            assertEquals(0f, state.dayProgress)
+            assertTrue(state.rounds.isEmpty())
+            assertNull(state.arc)
+            assertEquals(DialTap.NONE, state.tap)
+            assertEquals(DialCrown.NONE, state.crown)
+            assertEquals(DialSwipe.NONE, state.swipe)
+            assertNull(state.hold)
+        }
+    }
+
+    @Test
     fun `no program means nothing to act on`() {
-        val state = dialUiState(inputs(snapshot = snapshot()))
+        val state = dialUiState(inputs(snapshot = noProgramSnapshot()))
         assertEquals(DiscStyle.DASHED, state.disc.style)
+        assertEquals(listOf("NO PROGRAM", "SET UP ON YOUR PHONE"), state.discText())
+        assertNull(state.topBand)
         assertEquals(DialTap.NONE, state.tap)
+        assertEquals(DialCrown.NONE, state.crown)
+        assertNull(state.hold)
     }
 
     // --- crown: peek (§6) ---------------------------------------------------------

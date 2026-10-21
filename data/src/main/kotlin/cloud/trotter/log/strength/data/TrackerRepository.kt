@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
+import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.mapping.toEntry
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
@@ -1061,7 +1062,7 @@ open class TrackerRepository(
     suspend fun cardioSession(id: Long): CardioSessionEntity? = cardioSessionDao.byId(id)
 
     suspend fun cardioSetsFor(sessionId: Long): List<CardioSetResult> =
-        cardioSetResultDao.forSession(sessionId).map { it.toDomain() }
+        cardioSetResultDao.forSession(sessionId).mapNotNull { it.toDomainOrNull() }
 
     /** Exact rows for undo, including original ids, order and stored specs. */
     data class DeletedCardioSession(
@@ -1287,29 +1288,51 @@ open class TrackerRepository(
      * deterministic — two exports of the same state are byte-identical, keeping
      * diffs and round-trip tests honest.
      */
-    suspend fun exportSnapshot(): FullSnapshot = FullSnapshot(
-        answers = wizardAnswersFlow.first(),
-        answersCarryRecipe = false,
-        unit = settings.unitFlow.first(),
-        wizardComplete = settings.wizardCompleteFlow.first(),
-        suggestedDay = suggestedDayFlow.first(),
-        selectedPlanId = settings.selectedPlanIdFlow.first(),
-        restSettings = settings.restSettingsFlow.first(),
-        keepScreenOn = settings.keepScreenOnFlow.first(),
-        topSetHelperSeen = settings.topSetHelperSeenFlow.first(),
-        supersetHelperSeen = settings.supersetHelperSeenFlow.first(),
-        sessionNotes = settings.sessionNotesFlow.first(),
-        themePreference = settings.themePreferenceFlow.first(),
-        plans = planDao.allPlans(),
-        customExercises = customExerciseDao.allOrdered(),
-        days = programDao.allDays(),
-        exercises = programDao.allExercises(),
-        logs = programDao.allLogs(),
-        sessions = sessionDao.allSessions(),
-        sessionSets = sessionDao.allSessionSets(),
-        cardioSessions = cardioSessionDao.all(),
-        cardioSetResults = cardioSetResultDao.all(),
-    )
+    suspend fun exportSnapshot(): FullSnapshot {
+        ensurePlanSettingsMigrated()
+        // DataStore and Room have independent commits. Read preferences first;
+        // never collect a DataStore-backed flow while holding a Room transaction.
+        val global = settings.globalLifterFlow.first()
+        val unit = settings.unitFlow.first()
+        val wizardComplete = settings.wizardCompleteFlow.first()
+        val selectedPlanId = settings.selectedPlanIdFlow.first()
+        val restSettings = settings.restSettingsFlow.first()
+        val keepScreenOn = settings.keepScreenOnFlow.first()
+        val topSetHelperSeen = settings.topSetHelperSeenFlow.first()
+        val supersetHelperSeen = settings.supersetHelperSeenFlow.first()
+        val sessionNotes = settings.sessionNotesFlow.first()
+        val themePreference = settings.themePreferenceFlow.first()
+        return db.withTransaction {
+            // Use this same plan list for the legacy settings projection, too.
+            // Separate reads could otherwise straddle a restore's Room commit.
+            val plans = planDao.allPlans()
+            val selectedPlan = plans.firstOrNull { it.id == selectedPlanId && !it.archived }
+                ?: plans.firstOrNull { !it.archived }
+            FullSnapshot(
+                answers = answersForPlan(selectedPlan, global),
+                answersCarryRecipe = false,
+                unit = unit,
+                wizardComplete = wizardComplete,
+                suggestedDay = selectedPlan?.suggestedDayId,
+                selectedPlanId = selectedPlanId,
+                restSettings = restSettings,
+                keepScreenOn = keepScreenOn,
+                topSetHelperSeen = topSetHelperSeen,
+                supersetHelperSeen = supersetHelperSeen,
+                sessionNotes = sessionNotes,
+                themePreference = themePreference,
+                plans = plans,
+                customExercises = customExerciseDao.allOrdered(),
+                days = programDao.allDays(),
+                exercises = programDao.allExercises(),
+                logs = programDao.allLogs(),
+                sessions = sessionDao.allSessions(),
+                sessionSets = sessionDao.allSessionSets(),
+                cardioSessions = cardioSessionDao.all(),
+                cardioSetResults = cardioSetResultDao.all(),
+            )
+        }
+    }
 
     /**
      * Replaces the device's entire state with [snapshot] (A2 restore). The caller

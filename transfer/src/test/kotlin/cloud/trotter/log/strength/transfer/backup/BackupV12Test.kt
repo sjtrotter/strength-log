@@ -123,6 +123,29 @@ class BackupV12Test {
         }
     }
 
+    @Test fun `v12 rejects nonpositive cardio session ids with or without sets`() {
+        for (id in listOf(0L, -1L)) {
+            for (results in listOf(sets, emptyList())) {
+                assertFailsWith<BackupError.Inconsistent> {
+                    decode(document(session.copy(id = id, sets = results)))
+                }
+            }
+        }
+    }
+
+    @Test fun `v1 through v11 still accept nonpositive cardio session ids`() {
+        val legacySettings = codec.decode(checkNotNull(javaClass.getResource("/backup/v7_backup.json")).readText()).settings
+        for (version in 1..11) {
+            for (id in listOf(0L, -1L)) {
+                val baseline = document(session.copy(id = id, activity = null, sets = emptyList())).copy(
+                    schemaVersion = version,
+                    settings = if (version < 9) legacySettings.copy(suggestedDay = null) else document().settings,
+                )
+                assertEquals(id, decode(baseline).cardioSessions.single().id, "schema v$version")
+            }
+        }
+    }
+
     @Test fun `known zero and all distance sources survive backup validation`() {
         DistanceSource.entries.forEach { source ->
             val set = sets.first().copy(metres = 0, distanceSource = source.name)

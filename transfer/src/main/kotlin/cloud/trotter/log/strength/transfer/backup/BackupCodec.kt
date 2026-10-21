@@ -469,6 +469,9 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
     private fun validateCardioSets(sessions: List<CardioSessionBackup>) {
         val ids = HashSet<Long>()
         for (session in sessions) {
+            if (session.id <= 0) {
+                throw BackupError.Inconsistent("cardio session id must be positive: ${session.id}")
+            }
             if (session.activity != null && CardioActivity.entries.none { it.name == session.activity }) {
                 throw BackupError.Inconsistent("unknown cardio activity '${session.activity}' in session ${session.id}")
             }

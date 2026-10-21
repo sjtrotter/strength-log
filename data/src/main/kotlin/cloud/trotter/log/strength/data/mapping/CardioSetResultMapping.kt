@@ -14,6 +14,13 @@ fun CardioSetResultEntity.toDomain(): CardioSetResult = CardioSetResult(
     distanceSource = distanceSource?.let(DistanceSource::valueOf),
 )
 
+/** Invalid stored rows are omitted at the read boundary; backup validation stays strict. */
+fun CardioSetResultEntity.toDomainOrNull(): CardioSetResult? = try {
+    toDomain()
+} catch (_: IllegalArgumentException) {
+    null
+}
+
 fun CardioSetResult.toEntity(sessionId: Long, position: Int): CardioSetResultEntity = CardioSetResultEntity(
     cardioSessionId = sessionId,
     position = position,

@@ -3,9 +3,11 @@ package cloud.trotter.log.strength.data
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
+import androidx.room.RoomDatabase
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -15,6 +17,8 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
 import java.io.File
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,6 +41,18 @@ class TrackerRepositoryCardioSetsTest {
     private lateinit var scope: CoroutineScope
     private lateinit var repo: TrackerRepository
     private lateinit var journal: RestoreJournal
+    private val snapshotReads = Collections.synchronizedList(mutableListOf<Pair<String, Int?>>())
+    private val snapshotQueries = listOf(
+        "SELECT * FROM plan ORDER BY position, id",
+        "SELECT * FROM custom_exercise ORDER BY id",
+        "SELECT * FROM program_day ORDER BY planId, position",
+        "SELECT * FROM program_exercise ORDER BY planId, dayId, position",
+        "SELECT * FROM exercise_log ORDER BY planId, dayId, programExerciseId, slot",
+        "SELECT * FROM workout_session ORDER BY id",
+        "SELECT * FROM session_set ORDER BY id",
+        "SELECT * FROM cardio_session ORDER BY id",
+        "SELECT * FROM cardio_set_result ORDER BY cardioSessionId, position, id",
+    )
     private val session = CardioSessionEntity(
         dayId = "A", mode = "OUTDOOR_RUN", hard = true, label = "Track",
         startedAt = 1_000, completedAt = 451_000, seconds = 450, stepsCompleted = 1,
@@ -53,7 +69,22 @@ class TrackerRepositoryCardioSetsTest {
 
     @Before fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
+        val transactionSequence = AtomicInteger()
+        val currentTransaction = ThreadLocal<Int?>()
+        db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
+            .allowMainThreadQueries()
+            // Unconfined records each query immediately on the issuing thread,
+            // so BEGIN/END identify its actual transaction without scheduling races.
+            .setQueryCallback(Dispatchers.Unconfined, object : RoomDatabase.QueryCallback {
+                override fun onQuery(sqlQuery: String, bindArgs: List<Any?>) {
+                    when {
+                        sqlQuery.startsWith("BEGIN ") -> currentTransaction.set(transactionSequence.incrementAndGet())
+                        sqlQuery == "END TRANSACTION" -> currentTransaction.remove()
+                        sqlQuery in snapshotQueries -> snapshotReads.add(sqlQuery to currentTransaction.get())
+                    }
+                }
+            })
+            .build()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-sets", ".preferences_pb")
@@ -71,6 +102,45 @@ class TrackerRepositoryCardioSetsTest {
         assertEquals(session.copy(id = id), repo.cardioSession(id))
         assertEquals(sets, repo.cardioSetsFor(id))
         assertEquals(listOf(0, 1, 2), db.cardioSetResultDao().forSession(id).map { it.position })
+    }
+
+    @Test fun `invalid stored set rows are skipped while valid results keep their order`() = runTest {
+        val id = repo.logCardioSession(session)
+        val valid = sets[1].toEntity(id, 0)
+        val invalidRows = listOf(
+            valid.copy(specJson = "not json"),
+            valid.copy(specJson = "{}"),
+            valid.copy(specJson = """{"role":"WORK","end":{"type":"time","seconds":0}}"""),
+            valid.copy(status = "FUTURE"),
+            valid.copy(distanceSource = "FUTURE"),
+            valid.copy(elapsedSeconds = -1),
+            valid.copy(metres = -1),
+            valid.copy(metres = null),
+            valid.copy(distanceSource = null),
+        ).mapIndexed { index, row -> row.copy(position = index + 1) }
+        // Insert out of position order so the assertion also exercises DAO ordering.
+        db.cardioSetResultDao().insertAll(
+            listOf(sets[2].toEntity(id, invalidRows.size + 2)) + invalidRows.reversed() +
+                listOf(sets[0].toEntity(id, 0), sets[1].toEntity(id, invalidRows.size + 1)),
+        )
+
+        assertEquals(sets, repo.cardioSetsFor(id))
+        assertEquals(invalidRows.size + sets.size, db.cardioSetResultDao().forSession(id).size)
+    }
+
+    @Test fun `all Room snapshot lists are read in one transaction in the original order`() = runTest {
+        repo.logCardioSession(session, sets)
+        // Finish lazy database initialization and the legacy preferences fixup
+        // before recording only the export's snapshot reads.
+        repo.exportSnapshot()
+        snapshotReads.clear()
+
+        repo.exportSnapshot()
+
+        val reads = snapshotReads.toList()
+        assertEquals(snapshotQueries, reads.map { it.first })
+        val transaction = checkNotNull(reads.first().second)
+        assertTrue(reads.all { it.second == transaction })
     }
 
     @Test fun `summary callers keep exactly one session and no sets`() = runTest {

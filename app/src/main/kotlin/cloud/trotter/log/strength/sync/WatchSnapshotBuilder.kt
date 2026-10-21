@@ -148,11 +148,19 @@ object WatchSnapshotBuilder {
         // goalFor's error() branch. The numeric goal stays canonical lb, including
         // a prescribed hold's added load. goalLabel is the type-safe display groundwork.
         val target = entry?.let { GoalCalculator.targetFor(it, cfg) }
-        val goalLb = (pe.prescription?.target as? PrescribedTarget.Hold)?.addedLb ?: when (target) {
-            is GoalTarget.Weight -> target.lb
-            is GoalTarget.Time -> target.addedLb
-            is GoalTarget.Reps, null -> 0.0
+        val prescribedTarget = pe.prescription?.target
+        val goalLb = when (prescribedTarget) {
+            is PrescribedTarget.LoadReps -> prescribedTarget.lb
+            is PrescribedTarget.Hold -> prescribedTarget.addedLb
+            is PrescribedTarget.Reps, is PrescribedTarget.RepsInTime -> 0.0
+            null -> when (target) {
+                is GoalTarget.Weight -> target.lb
+                is GoalTarget.Time -> target.addedLb
+                is GoalTarget.Reps, null -> 0.0
+            }
         }
+        val header = DayScreenBuilder.headerTarget(pe, target ?: GoalTarget.Weight(0.0, false), unit)
+        val repWindow = prescribedTarget as? PrescribedTarget.RepsInTime
         val partnerEntry = pe.superset?.let { catalog.find(it.exerciseId) }
         val main = logsByKey[id to Slot.MAIN]?.sets
             ?: previewSeeds[id to Slot.MAIN]?.sets
@@ -171,7 +179,12 @@ object WatchSnapshotBuilder {
             slot = Slot.MAIN,
             name = entry?.watchName ?: pe.exerciseId,
             goal = goalLb,
-            goalLabel = target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
+            goalLabel = if (pe.prescription != null) DayScreenBuilder.headerTargetLabel(header)
+                else target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
+            targetDetail = DayScreenBuilder.headerTargetDetail(header),
+            repWindowSeconds = repWindow?.seconds ?: 0,
+            repAim = repWindow?.repAim,
+            prescribed = pe.prescription != null,
             // Enum name lowercased; the watch parses it back to pick a per-type control.
             // Unknown/missing entry falls back to "weighted" — the only pre-P5 behavior.
             tracking = tracking.name.lowercase(),

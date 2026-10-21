@@ -3,16 +3,26 @@ package cloud.trotter.log.strength.wear.ui
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
+import androidx.compose.ui.test.performRotaryScrollInput
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
+import cloud.trotter.log.strength.domain.sync.WatchDay
+import cloud.trotter.log.strength.domain.sync.WatchExercise
+import cloud.trotter.log.strength.domain.sync.WatchSet
+import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.wear.theme.WearTrackerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -97,6 +107,125 @@ class DialSemanticsTest {
     }
 
     @Test
+    fun `timed rep hold exposes cancel without a tap or cardio log action`() {
+        var action: DialHoldAction? = null
+        var taps = 0
+        val hold = DialHold(DialHoldAction.STOP_TIMED_REP, DiscContent(DiscStyle.FLAT, emptyList()))
+        composeTestRule.setContent {
+            WearTrackerTheme {
+                Dial(
+                    state = state(DialTap.NONE, hold).copy(screen = DialScreen.TIMED_REP_RUNNING),
+                    onTap = { taps++ },
+                    onHoldComplete = { action = it.action },
+                )
+            }
+        }
+        composeTestRule.onNode(hasLongClickLabel("Stop rep timer"))
+            .assertHasNoClickAction()
+            .performSemanticsAction(SemanticsActions.OnLongClick)
+        assertEquals(DialHoldAction.STOP_TIMED_REP, action)
+        assertEquals(0, taps)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `cancelled touch then crown change then touch tap logs the latest count`() {
+        val attempt = mutableStateOf(newTimedRepAttempt().timeUp())
+        var loggedReps: Int? = null
+        composeTestRule.setContent {
+            val current = attempt.value
+            val crown = rememberCrownModifier(enabled = true) { detents ->
+                attempt.value = current.turn(detents)
+            }
+            WearTrackerTheme {
+                Dial(
+                    state = timedRepDial(current),
+                    modifier = crown,
+                    onTap = { loggedReps = buildTimedRepDelta(current, timedRepSnapshot, 240_000L)?.reps },
+                )
+            }
+        }
+
+        val disc = composeTestRule.onNode(hasClickLabel("log set"))
+        // Start pointer input before changing the callback's captured count.
+        disc.performTouchInput { down(center); cancel() }
+        composeTestRule.onRoot().performRotaryScrollInput {
+            rotateToScrollVertically(38 * RotaryDetents.DETENT_PIXELS)
+        }
+        composeTestRule.runOnIdle { assertEquals(38, attempt.value.count) }
+        disc.assertTextContains("38").performTouchInput { click() }
+        composeTestRule.runOnIdle { assertEquals(38, loggedReps) }
+    }
+
+    @Test
+    fun `a 550 ms press straddling expiry never finishes stop at 700 ms`() {
+        composeTestRule.mainClock.autoAdvance = false
+        val attempt = mutableStateOf(newTimedRepAttempt())
+        var stops = 0
+        var taps = 0
+        composeTestRule.setContent {
+            WearTrackerTheme {
+                Dial(
+                    state = timedRepDial(attempt.value),
+                    onTap = { taps++ },
+                    onHoldComplete = { stops++ },
+                )
+            }
+        }
+        composeTestRule.mainClock.advanceTimeByFrame()
+        composeTestRule.onNode(hasLongClickLabel("Stop rep timer"))
+            .performTouchInput { down(center) }
+        composeTestRule.mainClock.advanceTimeBy(400L, ignoreFrameDuration = true)
+        composeTestRule.runOnIdle { attempt.value = attempt.value.timeUp().turn(38) }
+        composeTestRule.mainClock.advanceTimeBy(150L, ignoreFrameDuration = true)
+        composeTestRule.onRoot().performTouchInput { advanceEventTime(550L); up() }
+        composeTestRule.mainClock.advanceTimeBy(400L)
+        composeTestRule.runOnIdle {
+            assertEquals(0, stops)
+            assertEquals(0, taps)
+            assertEquals(TimedRepPhase.COUNT, attempt.value.phase)
+            assertEquals(38, attempt.value.count)
+        }
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `count semantics increment and decrement within zero to 999 without logging`() {
+        val attempt = mutableStateOf(newTimedRepAttempt().timeUp())
+        var taps = 0
+        composeTestRule.setContent {
+            val current = attempt.value
+            WearTrackerTheme {
+                Dial(
+                    state = timedRepDial(current),
+                    onTap = { taps++ },
+                    onRepCountChange = { attempt.value = current.turn(it) },
+                )
+            }
+        }
+        val disc = composeTestRule.onNode(hasClickLabel("log set"))
+        disc.performCustomAccessibilityActionWithLabel("Decrease reps")
+        disc.assertTextContains("0")
+        disc.performCustomAccessibilityActionWithLabel("Increase reps")
+        disc.assertTextContains("1")
+        disc.performCustomAccessibilityActionWithLabel("Decrease reps")
+        disc.assertTextContains("0")
+        composeTestRule.runOnIdle { attempt.value = attempt.value.turn(999) }
+        disc.performCustomAccessibilityActionWithLabel("Increase reps")
+        disc.assertTextContains("999")
+        disc.performCustomAccessibilityActionWithLabel("Decrease reps")
+        disc.assertTextContains("998")
+        composeTestRule.runOnIdle {
+            assertEquals(998, attempt.value.count)
+            assertEquals(0, taps)
+        }
+        // The actions belong only to count entry, never a running window.
+        composeTestRule.runOnIdle { attempt.value = newTimedRepAttempt() }
+        composeTestRule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
+            .assertCountEquals(0)
+    }
+
+    @Test
     fun `none keeps merged copy without exposing a click action`() {
         composeTestRule.setContent {
             WearTrackerTheme { Dial(state(DialTap.NONE), onTap = {}) }
@@ -158,6 +287,26 @@ class DialSemanticsTest {
         target = target,
         disc = DiscContent(DiscStyle.FLAT, emptyList()),
     )
+
+    private val timedRepSnapshot = WatchSnapshot(
+        revision = 1L, suggestedDayId = "A", unit = "lb", planId = 9L,
+        day = WatchDay("A", "Test", 0, listOf(WatchExercise(
+            programExerciseId = 7L, slot = "main", name = "Push-ups", goal = 0.0,
+            perHand = false, supersetPartnerName = null,
+            sets = listOf(WatchSet(0.0, 0, "WORK", false)), ssSets = emptyList(),
+            exerciseId = "push-ups", tracking = "reps", repWindowSeconds = 120,
+        ))),
+    )
+
+    private fun newTimedRepAttempt() = requireNotNull(startTimedRep(
+        timedRepSnapshot, 0, false, null, 100_000L, 10_000L, 4,
+    ))
+
+    private fun timedRepDial(attempt: TimedRepState) = dialUiState(DialInputs(
+        snapshot = timedRepSnapshot, exerciseIndex = 0, phase = SetPhase.READY,
+        face = DialFace.WORKOUT, pendingCount = 0, rest = null,
+        nowElapsedMillis = 10_000L, timedRep = attempt, timedRepDeadlineMillis = 130_000L,
+    ))
 
     private val clickLabels = mapOf(
         DialTap.OPEN_WORKOUT to "open workout",

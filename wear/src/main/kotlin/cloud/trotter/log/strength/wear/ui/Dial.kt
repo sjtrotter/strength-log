@@ -54,8 +54,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
@@ -120,6 +122,7 @@ fun Dial(
     modifier: Modifier = Modifier,
     onHoldComplete: (DialHold) -> Unit = {},
     timePillText: String? = null,
+    onRepCountChange: (Int) -> Unit = {},
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -143,6 +146,7 @@ fun Dial(
             accent = accent,
             onTap = onTap,
             onHoldComplete = onHoldComplete,
+            onRepCountChange = onRepCountChange,
             modifier = Modifier.align(Alignment.Center),
         )
         Band(state.bottomBand, BandPole.BOTTOM, type, state.accentIndex, diameterPx)
@@ -515,6 +519,7 @@ private fun Disc(
     accent: Color,
     onTap: () -> Unit,
     onHoldComplete: (DialHold) -> Unit,
+    onRepCountChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -580,7 +585,7 @@ private fun Disc(
                     )
                 }
             }
-            .discGestures(state, holdFill, onTap, onHoldComplete)
+            .discGestures(state, holdFill, onTap, onHoldComplete, onRepCountChange)
             .padding(horizontal = discDp * DISC_TEXT_INSET),
         contentAlignment = Alignment.Center,
     ) {
@@ -607,10 +612,17 @@ private fun Modifier.discGestures(
     holdFill: Animatable<Float, *>,
     onTap: () -> Unit,
     onHoldComplete: (DialHold) -> Unit,
+    onRepCountChange: (Int) -> Unit,
 ): Modifier {
     val scope = rememberCoroutineScope()
+    val latestOnTap by rememberUpdatedState(onTap)
+    val latestOnHoldComplete by rememberUpdatedState(onHoldComplete)
+    val latestOnRepCountChange by rememberUpdatedState(onRepCountChange)
     val undoLastSetLabel = stringResource(R.string.dial_undo_last_set_action)
     val stopCardioLabel = stringResource(R.string.dial_cardio_stop_action)
+    val stopTimedRepLabel = stringResource(R.string.dial_timed_rep_stop_action)
+    val incrementRepsLabel = stringResource(R.string.dial_increment_reps_action)
+    val decrementRepsLabel = stringResource(R.string.dial_decrement_reps_action)
     val clickLabel = when (state.tap) {
         DialTap.NONE -> null
         DialTap.OPEN_WORKOUT -> stringResource(R.string.dial_open_workout_action)
@@ -627,14 +639,24 @@ private fun Modifier.discGestures(
     val accessibility = Modifier.semantics(mergeDescendants = true) {
         clickLabel?.let { label ->
             role = Role.Button
-            onClick(label = label) { onTap(); true }
+            onClick(label = label) { latestOnTap(); true }
         }
         state.hold?.let { hold ->
             role = Role.Button
-            onLongClick(label = if (hold.action == DialHoldAction.STOP_CARDIO) stopCardioLabel else undoLastSetLabel) {
-                onHoldComplete(hold)
+            onLongClick(label = when (hold.action) {
+                DialHoldAction.STOP_CARDIO -> stopCardioLabel
+                DialHoldAction.STOP_TIMED_REP -> stopTimedRepLabel
+                DialHoldAction.UNDO -> undoLastSetLabel
+            }) {
+                latestOnHoldComplete(hold)
                 true
             }
+        }
+        if (state.crown == DialCrown.REP_COUNT) {
+            customActions = listOf(
+                CustomAccessibilityAction(incrementRepsLabel) { latestOnRepCountChange(1); true },
+                CustomAccessibilityAction(decrementRepsLabel) { latestOnRepCountChange(-1); true },
+            )
         }
     }
     return this.then(accessibility).pointerInput(state.tap, state.hold) {
@@ -648,15 +670,18 @@ private fun Modifier.discGestures(
                         holdFill.snapTo(0f)
                         holdFill.animateTo(1f, tween(HOLD_MILLIS, easing = LinearEasing))
                         completed = true
-                        onHoldComplete(it)
+                        latestOnHoldComplete(it)
                     }
                 }
-                val released = tryAwaitRelease()
-                // Releasing early cancels: the fill drops away at once and the
-                // disc it was drawn over is back, untouched.
-                filling?.cancel()
-                if (holdFill.value != 0f) scope.launch { holdFill.snapTo(0f) }
-                if (released && !completed && state.tap != DialTap.NONE) onTap()
+                val released = try {
+                    tryAwaitRelease()
+                } finally {
+                    // A screen/phase change cancels pointer input too. Never let
+                    // its composition-scoped animation finish a discarded hold.
+                    filling?.cancel()
+                    if (holdFill.value != 0f) scope.launch { holdFill.snapTo(0f) }
+                }
+                if (released && !completed && state.tap != DialTap.NONE) latestOnTap()
             },
         )
     }

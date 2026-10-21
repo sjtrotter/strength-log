@@ -56,6 +56,21 @@ class AmbientDialStateTest {
     }
 
     @Test
+    fun `rep window uses its exercise label like cardio without seconds precision`() {
+        for (remaining in listOf(120, 84, 24, 1)) {
+            val state = ambientDialState(day, timeText = "10:42",
+                restRemainingSeconds = remaining, ambientLabel = "Push-ups")
+            assertEquals("PUSH-UPS", state.centerText)
+            assertEquals("10:42", state.bottomText)
+            assertFalse(state.centerText.any(Char::isDigit))
+            assertFalse(state.centerText.contains(':'))
+        }
+        val expired = ambientDialState(day, "10:42", restRemainingSeconds = 0, ambientLabel = "Push-ups")
+        assertEquals("10:42", expired.centerText)
+        assertNull(expired.bottomText)
+    }
+
+    @Test
     fun `burn in shift is deterministic bounded and changes across ticks`() {
         val cycle = (0..8).map(::ambientPixelOffset)
         assertEquals(ambientPixelOffset(3), ambientPixelOffset(3))

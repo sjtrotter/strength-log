@@ -62,7 +62,10 @@ private const val LIFTING_TICK_MILLIS = 1_000L
 private const val GOAL_BUZZ_SETTLE_MILLIS = 250L
 
 /** The screens with a clock on them — the only ones that need a repaint ticker. */
-private val LIVE_SCREENS = setOf(DialScreen.LIFTING, DialScreen.TIMED_HOLD, DialScreen.REST, DialScreen.CARDIO_EXECUTING, DialScreen.CARDIO_OVERRUN)
+private val LIVE_SCREENS = setOf(
+    DialScreen.LIFTING, DialScreen.TIMED_HOLD, DialScreen.REST,
+    DialScreen.CARDIO_EXECUTING, DialScreen.CARDIO_OVERRUN, DialScreen.TIMED_REP_RUNNING,
+)
 
 /**
  * Root composable: swaps in [AmbientDial] while the system reports ambient mode,
@@ -106,12 +109,21 @@ fun WearApp(
     val cardioAnchors = cardioStartedAtElapsed.takeIf { it > 0L }?.let {
         CardioAnchors(cardioStartedAtWall, it, cardioStartedAtBoot, cardioPlanId)
     }
+    var savedTimedRep by rememberSaveable(stateSaver = timedRepStateSaver) {
+        mutableStateOf<TimedRepState?>(null)
+    }
+    // Do not discard a restored attempt while the initial snapshot is loading.
+    val timedRep = snapshot?.let { savedTimedRep?.reconcile(it)?.takeIf { cardioAnchors == null } }
+    LaunchedEffect(snapshot, timedRep) {
+        if (snapshot != null && savedTimedRep != timedRep) savedTimedRep = timedRep
+    }
     val rootView = LocalView.current
     fun bootCountNow(): Int = android.provider.Settings.Global.getInt(
         context.contentResolver, android.provider.Settings.Global.BOOT_COUNT, 0,
     )
 
     fun startCardio() {
+        if (timedRep != null) return
         cardioPlanId = snapshot?.planId
         cardioStartedAtWall = System.currentTimeMillis()
         cardioStartedAtElapsed = SystemClock.elapsedRealtime()
@@ -164,6 +176,45 @@ fun WearApp(
                 delay((deadline - SystemClock.elapsedRealtime()).coerceAtLeast(LIVE_TICK_MILLIS))
             }
             restController.disarm()
+        } finally {
+            restController.disarm()
+        }
+    }
+
+    // Like cardio, the one end alarm belongs above the ambient/interactive swap.
+    // An expired restore advances silently; only a timer armed in this process buzzes.
+    LaunchedEffect(timedRep) {
+        val attempt = timedRep ?: return@LaunchedEffect
+        if (attempt.phase != TimedRepPhase.RUNNING) return@LaunchedEffect
+        val installed = snapshot ?: return@LaunchedEffect
+        val resumed = attempt.resume(
+            snap = installed,
+            nowElapsedMillis = SystemClock.elapsedRealtime(),
+            nowWallMillis = System.currentTimeMillis(),
+            nowBootCount = bootCountNow(),
+        )
+        if (resumed != attempt) {
+            savedTimedRep = resumed
+            return@LaunchedEffect
+        }
+        val deadline = attempt.deadline(SystemClock.elapsedRealtime(), System.currentTimeMillis(), bootCountNow())
+        try {
+            val label = installed.day.exercises.find {
+                it.programExerciseId == attempt.owner.programExerciseId
+            }?.name
+            restController.arm(deadline, attempt.totalSeconds, ambientLabel = label) {
+                if (savedTimedRep == attempt) savedTimedRep = attempt.timeUp()
+            }
+            // The deadline can pass between resume and arm; arm deliberately
+            // ignores an expired boundary, so finish that restore silently too.
+            if (restController.activeRest == null) {
+                if (savedTimedRep == attempt) savedTimedRep = attempt.timeUp()
+                return@LaunchedEffect
+            }
+            while (!RestTimer.isExpired(deadline, SystemClock.elapsedRealtime())) {
+                delay((deadline - SystemClock.elapsedRealtime()).coerceAtLeast(1L))
+            }
+            restController.completeIfExpired()
         } finally {
             restController.disarm()
         }
@@ -243,6 +294,9 @@ fun WearApp(
                 else -> WorkoutDial(
                     snap = snap,
                     cardioAnchors = cardioAnchors,
+                    timedRep = timedRep,
+                    onTimedRepChanged = { savedTimedRep = it },
+                    bootCount = bootCountNow(),
                     onStartCardio = ::startCardio,
                     onStopCardio = ::stopCardio,
                     pendingCount = pendingCount,
@@ -304,6 +358,9 @@ private const val PHONE_PLAY_LISTING =
 private fun WorkoutDial(
     snap: WatchSnapshot,
     cardioAnchors: CardioAnchors?,
+    timedRep: TimedRepState?,
+    onTimedRepChanged: (TimedRepState?) -> Unit,
+    bootCount: Int,
     onStartCardio: () -> Unit,
     onStopCardio: () -> Unit,
     pendingCount: Int,
@@ -338,7 +395,9 @@ private fun WorkoutDial(
     var browseDay by remember(snap.planId, dayId) { mutableStateOf<Int?>(null) }
     var nowElapsedMillis by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
 
-    val exerciseIndex = ExerciseSelection.resolve(snap, selectedExercise.takeIf { it >= 0 })
+    val exerciseIndex = timedRep?.owner?.programExerciseId?.let { id ->
+        snap.day.exercises.indexOfFirst { it.programExerciseId == id }.takeIf { it >= 0 }
+    } ?: ExerciseSelection.resolve(snap, selectedExercise.takeIf { it >= 0 })
     val exercise = snap.day.exercises.getOrNull(exerciseIndex)
     val roundIndex = exercise?.let(::currentRoundIndex) ?: 0
     val holdGoal = exercise?.let { holdGoalSeconds(it, roundIndex) } ?: 0
@@ -361,6 +420,26 @@ private fun WorkoutDial(
     }
 
     fun startSet() {
+        if (exercise?.repWindowSeconds?.let { it > 0 } == true) {
+            val attempt = startTimedRep(
+                snap, exerciseIndex, cardioAnchors != null, timedRep,
+                System.currentTimeMillis(), SystemClock.elapsedRealtime(), bootCount,
+            ) ?: return
+            clearRest()
+            lifting = false
+            startedAtWallMillis = 0L
+            startedAtElapsedMillis = 0L
+            restedSeconds = NO_REST
+            nowElapsedMillis = SystemClock.elapsedRealtime()
+            onTimedRepChanged(attempt)
+            if (sessionStartedAtMillis == 0L) {
+                sessionStartedAtMillis = attempt.startedAtWallMillis
+                onSessionStarted(attempt.startedAtWallMillis)
+            }
+            DialHaptics.perform(view, DialHaptics.Cue.START)
+            return
+        }
+        if (cardioAnchors != null || timedRep != null) return
         lifting = true
         restedSeconds = NO_REST
         val wallNow = System.currentTimeMillis()
@@ -392,8 +471,10 @@ private fun WorkoutDial(
         // A timed hold's goal buzz belongs to the set that is ending; never let it
         // land during the rest that follows.
         restController.disarm()
+        val timedDelta = timedRep?.let { buildTimedRepDelta(it, snap, completedAtMillis) }
+        if (timedRep != null && timedDelta == null) return
         sendEdit(
-            buildTickDelta(
+            timedDelta ?: buildTickDelta(
                 dayId = dayId,
                 programExerciseId = ex.programExerciseId,
                 setIndex = roundIndex,
@@ -407,15 +488,17 @@ private fun WorkoutDial(
         // this is the peek's only source for TOOK (§6) and the undo's only source of
         // chronology. Recorded even when no start was seen: a set the watch didn't
         // time still happened, and the undo has to be able to reach it.
+        val tickStartedAt = timedRep?.startedAtWallMillis ?: startedAtWallMillis
         tickMemory = tickMemory.record(
             programExerciseId = ex.programExerciseId,
             roundIndex = roundIndex,
-            durationSeconds = if (startedAtWallMillis > 0L) {
-                ((completedAtMillis - startedAtWallMillis) / 1000L).toInt()
+            durationSeconds = if (tickStartedAt > 0L) {
+                ((completedAtMillis - tickStartedAt) / 1000L).toInt()
             } else {
                 0
             },
         )
+        onTimedRepChanged(null)
         lifting = false
         startedAtWallMillis = 0L
         startedAtElapsedMillis = 0L
@@ -530,6 +613,8 @@ private fun WorkoutDial(
         pendingSwapExerciseIds = pendingSwaps,
         tickMemory = tickMemory,
         cardioAnchors = cardioAnchors,
+        timedRep = timedRep,
+        timedRepDeadlineMillis = timedRep?.deadline(nowElapsedMillis, System.currentTimeMillis(), bootCount) ?: 0L,
     )
     val copy = rememberDialCopy()
     val state = dialUiState(inputs, copy)
@@ -576,8 +661,8 @@ private fun WorkoutDial(
         if (SwapPicker.expired(current, SystemClock.elapsedRealtime())) swapPreview = null
     }
 
-    LaunchedEffect(restDeadlineMillis) {
-        if (restDeadlineMillis <= 0L) return@LaunchedEffect
+    LaunchedEffect(restDeadlineMillis, timedRep?.owner, cardioAnchors) {
+        if (restDeadlineMillis <= 0L || timedRep != null || cardioAnchors != null) return@LaunchedEffect
         restController.arm(restDeadlineMillis, restTotalSeconds)
         while (!RestTimer.isExpired(restDeadlineMillis, SystemClock.elapsedRealtime())) {
             delay(LIVE_TICK_MILLIS)
@@ -592,8 +677,8 @@ private fun WorkoutDial(
     // A timed hold buzzes once at its goal and ticks itself (§5.6). Same controller,
     // so it is the same single-buzz guarantee, and a manual tick cancels it.
     val latestTick by rememberUpdatedState({ tick() })
-    LaunchedEffect(lifting, startedAtElapsedMillis, holdGoal) {
-        if (!lifting || holdGoal <= 0 || startedAtElapsedMillis <= 0L) return@LaunchedEffect
+    LaunchedEffect(lifting, startedAtElapsedMillis, holdGoal, timedRep?.owner, cardioAnchors) {
+        if (timedRep != null || cardioAnchors != null || !lifting || holdGoal <= 0 || startedAtElapsedMillis <= 0L) return@LaunchedEffect
         val goalDeadline = RestTimer.deadlineFrom(startedAtElapsedMillis, holdGoal)
         restController.arm(goalDeadline, holdGoal) { firing ->
             scheduleTimedHoldTick(firing, latestTick)
@@ -606,6 +691,13 @@ private fun WorkoutDial(
 
     // The crown reads the screen it's on: exercises on the overview, rounds in a
     // session, nothing where there is nothing to look through (§6).
+    fun changeRepCount(detents: Int): Int {
+        val attempt = timedRep ?: return 0
+        val next = attempt.turn(detents)
+        onTimedRepChanged(next)
+        return next.count - attempt.count
+    }
+
     val crown = rememberCrownModifier(enabled = state.crown != DialCrown.NONE) { detents ->
         var moved = 0
         when (state.crown) {
@@ -636,6 +728,9 @@ private fun WorkoutDial(
                 )
                 moved = (next?.alternateIndex ?: -1) - from
                 swapPreview = next
+            }
+            DialCrown.REP_COUNT -> {
+                moved = changeRepCount(detents)
             }
             DialCrown.NONE -> Unit
         }
@@ -683,6 +778,7 @@ private fun WorkoutDial(
         }
         Dial(
             state = state,
+            onRepCountChange = { changeRepCount(it) },
             modifier = Modifier.fillMaxSize().background(Background).then(swipeLeft),
             onTap = {
                 when (state.tap) {
@@ -713,6 +809,19 @@ private fun WorkoutDial(
                 when (hold.action) {
                     DialHoldAction.UNDO -> hold.target?.let(::undo)
                     DialHoldAction.STOP_CARDIO -> stopCardio()
+                    DialHoldAction.STOP_TIMED_REP -> {
+                        val attempt = timedRep
+                        if (attempt != null && attempt.matchesRunningAttempt(hold.timedRepAttempt) &&
+                            attempt.reconcile(snap) != null && !RestTimer.isExpired(
+                                attempt.deadline(SystemClock.elapsedRealtime(), System.currentTimeMillis(), bootCount),
+                                SystemClock.elapsedRealtime(),
+                            )) {
+                            restController.disarm()
+                            onTimedRepChanged(null)
+                            face = DialFace.WORKOUT
+                            DialHaptics.perform(view, DialHaptics.Cue.START)
+                        }
+                    }
                 }
             },
         )
@@ -862,6 +971,9 @@ private fun rememberDialCopy(): DialCopy {
     val cardioStart = stringResource(R.string.dial_cardio_start)
     val cardioHoldToStop = stringResource(R.string.dial_cardio_hold_to_stop)
     val cardioStop = stringResource(R.string.dial_cardio_stop)
+    val timedRepStop = stringResource(R.string.dial_timed_rep_stop)
+    val timesUp = stringResource(R.string.dial_times_up)
+    val repAim = stringResource(R.string.dial_rep_aim)
     val configuration = LocalConfiguration.current
     return remember(configuration) {
         DialCopy(
@@ -900,6 +1012,9 @@ private fun rememberDialCopy(): DialCopy {
             cardioStart = cardioStart,
             cardioHoldToStop = cardioHoldToStop,
             cardioStop = cardioStop,
+            timedRepStop = timedRepStop,
+            timesUp = timesUp,
+            repAim = { repAim.format(it) },
         )
     }
 }

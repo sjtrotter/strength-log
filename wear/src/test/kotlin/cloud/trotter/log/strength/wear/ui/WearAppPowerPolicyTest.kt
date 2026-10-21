@@ -5,20 +5,16 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 /**
- * Guards the whole module against reintroducing a screen lock (#161). A source
- * scan, not a behavioral test, on purpose: :wear's suite is pure JVM (no
- * Robolectric), and wiring an Android test harness to assert one View flag
- * would cost more than the policy it protects. The scan covers every spelling
- * that reaches the flag; if a future change legitimately needs a *scoped*
- * screen-on (an explicit active-effort phase), it updates this test in the
- * same commit and says why.
+ * Guards the whole module against reintroducing a screen lock (#161). Scanning
+ * every source catches routes to the flag beyond any single composable or View,
+ * including active cardio and rep windows.
  */
 class WearAppPowerPolicyTest {
 
     private val forbidden = listOf("keepScreenOn", "setKeepScreenOn", "FLAG_KEEP_SCREEN_ON")
 
     @Test
-    fun `no wear source keeps the screen on`() {
+    fun `no wear code keeps the screen on`() {
         val mainSources = sequenceOf(File("src/main"), File("wear/src/main"))
             .first(File::isDirectory)
         val offenders = mainSources.walkTopDown()

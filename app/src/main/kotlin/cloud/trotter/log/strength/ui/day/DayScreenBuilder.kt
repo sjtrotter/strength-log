@@ -54,6 +54,21 @@ object DayScreenBuilder {
         )
     }
 
+    /** Shared by the day header and the phone's watch projection; excludes "Target ". */
+    fun headerTargetLabel(
+        target: HeaderTarget,
+        aim: (String, Int) -> String = { display, reps -> "$display · aim $reps" },
+    ): String = if (target is HeaderTarget.Prescribed && target.repAim != null) {
+        aim(target.display, target.repAim)
+    } else target.display
+
+    /** Authored supporting detail only; the last performance belongs to the phone. */
+    fun headerTargetDetail(target: HeaderTarget, eachSideLabel: String = "Each side"): String =
+        listOfNotNull(
+            eachSideLabel.takeIf { target is HeaderTarget.Prescribed && target.eachSide },
+            (target as? HeaderTarget.Prescribed)?.resistance?.takeIf { it.isNotBlank() },
+        ).joinToString(" · ")
+
     fun watchStatusLine(
         lastContactMillis: Long,
         syncingChanges: Int,

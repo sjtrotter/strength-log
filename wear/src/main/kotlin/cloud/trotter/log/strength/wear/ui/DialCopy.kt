@@ -37,4 +37,7 @@ data class DialCopy(
     val cardioStart: String,
     val cardioHoldToStop: String,
     val cardioStop: String,
+    val timedRepStop: String = "Stop",
+    val timesUp: String = "Time’s up",
+    val repAim: (Int) -> String = { "/ $it" },
 )

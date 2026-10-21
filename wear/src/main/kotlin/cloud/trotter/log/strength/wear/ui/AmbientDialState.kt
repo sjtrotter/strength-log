@@ -13,8 +13,8 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
  *
  * The day arc is the only thing always drawn. When a clock is running the centre
  * gives its numeral over to a cadence-safe resting label and the time steps down
- * to the bottom band. Seconds belong only to the interactive face because ambient
- * receives no per-second repaint signal.
+ * to the bottom band. Cardio and executing rep windows use their active exercise
+ * label through the same path; minute-cadence updates never promise seconds.
  */
 data class AmbientDialState(
     /** Outer ring: sets logged today / sets today, as an outline arc. */
@@ -44,7 +44,10 @@ fun ambientDialState(
         } else {
             dayProgressText(snapshot.day.dayId, progress.done, progress.total).uppercase()
         },
-        centerText = if (resting) restingText.uppercase() else timeText,
+        centerText = when {
+            resting -> restingText.uppercase()
+            else -> timeText
+        },
         bottomText = timeText.takeIf { resting },
     )
 }

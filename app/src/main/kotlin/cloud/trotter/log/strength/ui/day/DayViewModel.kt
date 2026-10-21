@@ -302,15 +302,20 @@ class DayViewModel @Inject constructor(
         if (dayId == null) {
             flowOf(DayEditUiState())
         } else {
-            combine(repo.daySlotsFlow(dayId), repo.catalogFlow, repo.wizardAnswersFlow, repo.selectedPlanFlow) { slots, catalog, answers, plan ->
+            combine(repo.daySlotsFlow(dayId), repo.catalogFlow, repo.wizardAnswersFlow, repo.selectedPlanFlow, repo.programFlow) { slots, catalog, answers, plan, program ->
                 val origin = PlanOrigin.entries.firstOrNull { it.name == plan?.origin } ?: PlanOrigin.GENERATED
-                buildEditState(slots, catalog, answers.equipment, origin)
+                val block = program.days.firstOrNull { it.id == dayId }?.cardioBlock
+                buildEditState(slots, catalog, answers.equipment, origin).copy(
+                    planId = plan?.id, dayId = dayId, cardioBlock = block,
+                    canRemove = DayEditRules.canRemove(slots.size, origin, block != null),
+                )
             }
         }
     }
     private val prescriptionDraft = savedState.getStateFlow<PrescriptionDraft?>(KEY_PRESCRIPTION_DRAFT, null)
     private val dayEditorOpen = savedState.getStateFlow(KEY_DAY_EDITOR_OPEN, false)
-    val dayEditState: StateFlow<DayEditUiState> = combine(
+    private val cardioDraft = savedState.getStateFlow<CardioBlockDraft?>(KEY_CARDIO_DRAFT, null)
+    private val prescriptionEditState = combine(
         editProgramState, repo.unitFlow, prescriptionDraft, dayEditorOpen,
     ) { state, unit, draft, editorOpen ->
         state.copy(
@@ -319,6 +324,11 @@ class DayViewModel @Inject constructor(
                 state.authored && state.slots.any { it.programExerciseId == restored.slotId }
             },
         )
+    }
+    val dayEditState: StateFlow<DayEditUiState> = combine(prescriptionEditState, cardioDraft) { state, draft ->
+        state.copy(cardioDraft = draft?.takeIf {
+            state.authored && it.planId == state.planId && it.dayId == state.dayId
+        })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
 
     val notificationPermissionAsked = repo.phoneRestNotificationAskedFlow
@@ -1174,7 +1184,51 @@ class DayViewModel @Inject constructor(
 
     fun setDayEditorOpen(open: Boolean) {
         savedState[KEY_DAY_EDITOR_OPEN] = open
-        if (!open) discardPrescription()
+        if (!open) {
+            discardPrescription()
+            savedState[KEY_CARDIO_DRAFT] = null
+        }
+    }
+
+    fun openCardioBlock() {
+        val state = dayEditState.value
+        if (!state.authored) return
+        val plan = state.planId ?: return
+        val day = state.dayId ?: return
+        savedState[KEY_CARDIO_DRAFT] = state.cardioBlock?.let { CardioBlockDraft.from(plan, day, it) }
+            ?: CardioBlockDraft.new(plan, day)
+    }
+
+    fun changeCardioDraft(draft: CardioBlockDraft) {
+        val current = cardioDraft.value ?: return
+        if (draft.planId != current.planId || draft.dayId != current.dayId) return
+        draft.block() // Validate before keeping a draft that a later Save will commit.
+        require(draft.editingSet == null || draft.editingSet in draft.sets.indices)
+        savedState[KEY_CARDIO_DRAFT] = draft
+    }
+
+    fun backCardioBlock() {
+        val draft = cardioDraft.value ?: return
+        savedState[KEY_CARDIO_DRAFT] = if (draft.editingSet != null) draft.copy(editingSet = null) else null
+    }
+
+    /** Both set-page Save and block-page Save commit immediately to the owning day. */
+    fun saveCardioBlock() {
+        val draft = cardioDraft.value ?: return
+        mutate {
+            repo.setCardioBlock(draft.planId, draft.dayId, draft.block())
+            if (cardioDraft.value == draft) {
+                savedState[KEY_CARDIO_DRAFT] = if (draft.editingSet != null) draft.copy(editingSet = null) else null
+            }
+        }
+    }
+
+    fun removeCardioBlock() {
+        val state = dayEditState.value
+        if (!state.authored) return
+        val plan = state.planId ?: return
+        val day = state.dayId ?: return
+        mutate { repo.setCardioBlock(plan, day, null) }
     }
 
     fun openPrescription(slotId: Long) {
@@ -1227,15 +1281,12 @@ class DayViewModel @Inject constructor(
         mutate { repo.addExercise(day, ProgramExercise(exerciseId = exerciseId, repSchemeLabel = "8–12")) }
     }
 
-    /** Removes a slot, checking the selected plan's floor against a fresh read. */
+    /** Removes a slot; the repository enforces its owning day's floor atomically. */
     fun removeDaySlot(position: Int) {
         val day = currentDay() ?: return
         mutate {
             val slots = repo.daySlotsFlow(day).first()
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
-            val plan = repo.selectedPlanFlow.first()
-            val origin = PlanOrigin.entries.firstOrNull { it.name == plan?.origin } ?: PlanOrigin.GENERATED
-            if (!DayEditRules.canRemove(slots.size, origin)) return@mutate
             repo.removeExercise(slot.programExerciseId)
         }
     }
@@ -1649,6 +1700,7 @@ class DayViewModel @Inject constructor(
         const val REST_TICK_MS = 250L
         const val REST_OVER_MS = 2_000L
         const val KEY_PRESCRIPTION_DRAFT = "day_prescription_draft"
+        const val KEY_CARDIO_DRAFT = "day_cardio_block_draft"
         const val KEY_DAY_EDITOR_OPEN = "day_editor_open"
         const val KEY_VIEW_DAY = "day_view_override"
         const val KEY_OPEN_SHEET = "day_open_sheet"

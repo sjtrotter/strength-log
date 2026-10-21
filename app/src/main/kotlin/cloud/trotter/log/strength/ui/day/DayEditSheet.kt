@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -55,6 +61,9 @@ import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -90,7 +99,8 @@ import kotlin.math.roundToInt
  * slot list). Search/filter drafts are saveable too: Create exercise is a
  * designed round trip out to a navigation destination, and returning should
  * restore the picker the user had already narrowed down. The prescription
- * draft and open-editor identity live in DayViewModel's SavedStateHandle.
+ * and cardio drafts, their page identities, and open-editor identity live in
+ * DayViewModel's SavedStateHandle.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,9 +131,12 @@ fun DayEditSheet(
         addingFromPattern = addPatternName != null,
         options = optionsSlotId != null,
         prescription = state.prescriptionDraft != null,
+        cardio = state.cardioDraft != null,
+        cardioSet = state.cardioDraft?.editingSet != null,
     )
     val onBack = {
         when (backTarget) {
+            DayEditPage.CARDIO, DayEditPage.CARDIO_SET -> actions.onBackCardio()
             DayEditPage.PRESCRIPTION -> actions.onDiscardPrescription()
             DayEditPage.SWAP -> swapSlotId = null
             DayEditPage.SUPERSET_EXERCISE -> ssPatternName = null
@@ -147,6 +160,20 @@ fun DayEditSheet(
         val ssSlot = state.slots.firstOrNull { it.programExerciseId == ssSlotId }
         val optionsSlot = state.slots.firstOrNull { it.programExerciseId == optionsSlotId }
         when {
+            state.cardioDraft != null -> {
+                val draft = state.cardioDraft
+                val index = draft.editingSet
+                if (index != null) {
+                    CardioSetPage(
+                        draft = draft.sets[index],
+                        onChange = { set -> actions.onCardioDraft(draft.copy(sets = draft.sets.mapIndexed { i, old -> if (i == index) set else old })) },
+                        onSave = actions.onSaveCardio,
+                        onBack = onBack,
+                    )
+                } else {
+                    CardioBlockPage(draft, actions.onCardioDraft, actions.onSaveCardio, onBack)
+                }
+            }
             state.prescriptionDraft != null -> PrescriptionPage(
                 draft = state.prescriptionDraft,
                 unit = state.unit,
@@ -243,6 +270,8 @@ fun DayEditSheet(
                 onRemoveClick = actions.onRemove,
                 onAddClick = { pickingPattern = true },
                 onResetClick = { confirmingReset = true },
+                onOpenCardio = actions.onOpenCardio,
+                onRemoveCardio = actions.onRemoveCardio,
             )
         }
     }
@@ -265,6 +294,8 @@ private fun DaySlotList(
     onRemoveClick: (Int) -> Unit,
     onAddClick: () -> Unit,
     onResetClick: () -> Unit,
+    onOpenCardio: () -> Unit,
+    onRemoveCardio: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
         Text(stringResource(R.string.day_edit_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
@@ -286,6 +317,14 @@ private fun DaySlotList(
         Spacer(Modifier.size(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SheetButton(stringResource(R.string.day_edit_add_exercise_button), onClick = onAddClick, modifier = Modifier.weight(1f))
+        }
+        if (state.authored) {
+            TextButton(onClick = onOpenCardio) {
+                Text(stringResource(if (state.cardioBlock == null) R.string.day_edit_add_cardio else R.string.day_edit_edit_cardio))
+            }
+            if (state.cardioBlock != null) {
+                TextButton(onClick = onRemoveCardio) { Text(stringResource(R.string.day_edit_remove_cardio)) }
+            }
         }
         if (!state.authored) {
             Spacer(Modifier.size(8.dp))
@@ -481,6 +520,157 @@ private fun PrescriptionNumber(label: String, value: Int, min: Int, max: Int, in
             )
         },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CardioBlockPage(
+    draft: CardioBlockDraft,
+    onChange: (CardioBlockDraft) -> Unit,
+    onSave: () -> Unit,
+    onBack: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(16.dp)) {
+        PickerHeader(stringResource(R.string.day_edit_edit_cardio), onBack)
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+            OutlinedTextField(
+                value = cardioActivityName(draft.activity), onValueChange = {}, readOnly = true,
+                label = { Text(stringResource(R.string.cardio_edit_activity)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                CardioActivity.entries.forEach { activity ->
+                    DropdownMenuItem(text = { Text(cardioActivityName(activity)) }, onClick = {
+                        onChange(draft.copy(activity = activity))
+                        expanded = false
+                    })
+                }
+            }
+        }
+        Text(stringResource(R.string.cardio_edit_start_from), style = MaterialTheme.typography.titleSmall)
+        CardioTemplate.entries.forEach { template ->
+            TextButton(onClick = { onChange(draft.startFrom(template)) }) {
+                Text(stringResource(when (template) {
+                    CardioTemplate.EASY -> R.string.cardio_edit_easy
+                    CardioTemplate.TEMPO -> R.string.cardio_edit_tempo
+                    CardioTemplate.INTERVALS -> R.string.cardio_edit_intervals
+                }))
+            }
+        }
+        draft.sets.forEachIndexed { index, set ->
+            ListItem(
+                modifier = Modifier.clickable { onChange(draft.copy(editingSet = index)) },
+                headlineContent = { Text(stringResource(R.string.cardio_edit_set_title, index + 1, cardioEditRoleName(set.role))) },
+                supportingContent = {
+                    val spec = set.spec()
+                    val end = cardioEditMeasure(spec.end)
+                    val target = spec.aim?.let { stringResource(R.string.cardio_end_aim, end, cardioEditMeasure(it)) } ?: end
+                    Text(if (set.hard) stringResource(R.string.cardio_edit_hard_summary, target) else target)
+                },
+            )
+            Row(Modifier.horizontalScroll(rememberScrollState())) {
+                TextButton(onClick = { onChange(draft.moveSet(index, true)) }, enabled = index > 0) {
+                    Text(stringResource(R.string.day_edit_move_up))
+                }
+                TextButton(onClick = { onChange(draft.moveSet(index, false)) }, enabled = index < draft.sets.lastIndex) {
+                    Text(stringResource(R.string.day_edit_move_down))
+                }
+                TextButton(onClick = { onChange(draft.removeSet(index)) }, enabled = draft.sets.size > 1) {
+                    Text(stringResource(R.string.day_edit_remove_button))
+                }
+            }
+        }
+        TextButton(onClick = { onChange(draft.addSet()) }) { Text(stringResource(R.string.cardio_add_set)) }
+        TextButton(onClick = onSave) { Text(stringResource(R.string.plans_save)) }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CardioSetPage(
+    draft: CardioSetDraft,
+    onChange: (CardioSetDraft) -> Unit,
+    onSave: () -> Unit,
+    onBack: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(16.dp)) {
+        PickerHeader(stringResource(R.string.cardio_edit_set), onBack)
+        Text(stringResource(R.string.cardio_edit_role))
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            CardioRole.entries.forEachIndexed { index, role ->
+                SegmentedButton(
+                    selected = draft.role == role, onClick = { onChange(draft.copy(role = role)) },
+                    shape = SegmentedButtonDefaults.itemShape(index, CardioRole.entries.size),
+                    label = { Text(cardioEditRoleName(role)) },
+                )
+            }
+        }
+        Text(stringResource(R.string.cardio_edit_end))
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            listOf(true, false).forEachIndexed { index, isTime ->
+                SegmentedButton(
+                    selected = draft.endIsTime == isTime, onClick = { onChange(draft.copy(endIsTime = isTime)) },
+                    shape = SegmentedButtonDefaults.itemShape(index, 2),
+                    label = { Text(stringResource(if (isTime) R.string.cardio_edit_time else R.string.cardio_edit_distance)) },
+                )
+            }
+        }
+        CardioMeasureNumber(draft.endIsTime, draft, onChange)
+        val aimLabel = stringResource(R.string.cardio_edit_aim)
+        ListItem(
+            headlineContent = { Text(aimLabel) },
+            trailingContent = {
+                Switch(checked = draft.hasAim, onCheckedChange = { onChange(draft.copy(hasAim = it)) },
+                    modifier = Modifier.semantics { contentDescription = aimLabel })
+            },
+        )
+        if (draft.hasAim) CardioMeasureNumber(!draft.endIsTime, draft, onChange)
+        val hardLabel = stringResource(R.string.cardio_edit_hard)
+        ListItem(
+            headlineContent = { Text(hardLabel) },
+            trailingContent = {
+                Switch(checked = draft.hard, onCheckedChange = { onChange(draft.copy(hard = it)) },
+                    modifier = Modifier.semantics { contentDescription = hardLabel })
+            },
+        )
+        TextButton(onClick = onSave) { Text(stringResource(R.string.plans_save)) }
+    }
+}
+
+@Composable
+private fun CardioMeasureNumber(isTime: Boolean, draft: CardioSetDraft, onChange: (CardioSetDraft) -> Unit) {
+    val label = stringResource(if (isTime) R.string.cardio_edit_seconds else R.string.cardio_distance_label)
+    val increment = if (isTime) 5 else 10
+    ListItem(
+        headlineContent = { Text(label) },
+        trailingContent = {
+            Stepper(
+                value = (if (isTime) draft.seconds else draft.metres).toDouble(),
+                onValueChange = { onChange(if (isTime) draft.copy(seconds = it.toInt()) else draft.copy(metres = it.toInt())) },
+                step = { increment.toDouble() },
+                round = { (it / increment).roundToInt().toDouble() * increment },
+                format = { it.toInt().toString() },
+                minValue = increment.toDouble(), maxValue = if (isTime) 86_400.0 else 200_000.0,
+                inputLabel = label,
+            )
+        },
+    )
+}
+
+@Composable
+private fun cardioEditRoleName(role: CardioRole): String = stringResource(when (role) {
+    CardioRole.WARMUP -> R.string.cardio_warmup
+    CardioRole.WORK -> R.string.cardio_work
+    CardioRole.RECOVERY -> R.string.cardio_recovery
+    CardioRole.COOLDOWN -> R.string.cardio_cooldown
+})
+
+@Composable
+private fun cardioEditMeasure(measure: Measure): String = when (measure) {
+    is Measure.Time -> formatCardioTime(measure.seconds)
+    is Measure.Distance -> stringResource(R.string.cardio_metres, measure.metres)
 }
 
 // --- page 2: pick a pattern (add flow and superset flow) ----------------------

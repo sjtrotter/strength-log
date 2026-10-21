@@ -111,6 +111,22 @@ class DayEditLogicTest {
     // --- min-3-remove enforcement (spec §8.3) -----------------------------------
 
     @Test
+    fun authoredCardioAllowsRemovingTheLastExerciseButGeneratedCardioKeepsItsFloor() {
+        assertTrue(DayEditRules.canRemove(1, PlanOrigin.AUTHORED, hasCardio = true))
+        assertFalse(DayEditRules.canRemove(1, PlanOrigin.AUTHORED))
+        assertFalse(DayEditRules.canRemove(0, PlanOrigin.AUTHORED, hasCardio = true))
+        assertFalse(DayEditRules.canRemove(3, hasCardio = true))
+    }
+
+    @Test
+    fun cardioPagesPopTheSetBeforeTheBlock() {
+        assertEquals(DayEditPage.CARDIO_SET, dayEditBackTarget(false, false, false, false, false, false,
+            cardio = true, cardioSet = true))
+        assertEquals(DayEditPage.CARDIO, dayEditBackTarget(false, false, false, false, false, false,
+            cardio = true))
+    }
+
+    @Test
     fun canRemove_is_false_at_or_below_the_minimum() {
         assertFalse(DayEditRules.canRemove(2))
         assertFalse(DayEditRules.canRemove(3))

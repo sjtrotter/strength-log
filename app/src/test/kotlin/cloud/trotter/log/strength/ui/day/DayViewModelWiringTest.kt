@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import android.content.Context
+import android.os.Parcel
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -13,6 +14,10 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -120,6 +125,102 @@ class DayViewModelWiringTest {
         today: Flow<LocalDate> = kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()),
     ): DayViewModel =
         DayViewModel(repo, publisher, shareCardService, handle, today, FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
+
+    @Test
+    fun authoredCardioDraftAndSetPageSurviveParcelRecreationAndSaveImmediately() = runVmTest {
+        val plan = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(plan)
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        val collectFirst = launch { first.dayEditState.collect {} }
+        advanceUntilIdle()
+        first.setDayEditorOpen(true)
+        first.openCardioBlock()
+        advanceUntilIdle()
+        val easy = first.dayEditState.value.cardioDraft!!
+        assertEquals(Measure.Time(1500), easy.block().sets.single().end)
+        first.changeCardioDraft(easy.startFrom(CardioTemplate.INTERVALS).copy(editingSet = 1))
+        advanceUntilIdle()
+        val intervals = first.dayEditState.value.cardioDraft!!
+        assertEquals(11, intervals.sets.size)
+        first.changeCardioDraft(intervals.copy(sets = intervals.sets.mapIndexed { index, set ->
+            if (index == 1) set.copy(endIsTime = false, metres = 400, hasAim = true, seconds = 105) else set
+        }))
+        advanceUntilIdle()
+        val draft = first.dayEditState.value.cardioDraft!!
+        assertNull(repo.programFor(plan).first().days.single().cardioBlock)
+        val parcel = Parcel.obtain()
+        val restoredHandle = try {
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.setDataPosition(0)
+            SavedStateHandle.createHandle(parcel.readBundle(CardioBlockDraft::class.java.classLoader), null)
+        } finally {
+            parcel.recycle()
+        }
+        collectFirst.cancel()
+        first.viewModelScope.cancel()
+        val restored = newViewModel(restoredHandle)
+        val collectEdit = launch { restored.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertTrue(restored.dayEditState.value.editorOpen)
+        assertEquals(draft, restored.dayEditState.value.cardioDraft)
+        restored.saveCardioBlock()
+        advanceUntilIdle()
+        assertEquals(draft.block(), repo.programFor(plan).first().days.single().cardioBlock)
+        assertNull(restored.dayEditState.value.cardioDraft!!.editingSet)
+        assertEquals(CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true),
+            repo.programFor(plan).first().days.single().cardioBlock!!.sets[1])
+        restored.saveCardioBlock()
+        advanceUntilIdle()
+        assertNull(restored.dayEditState.value.cardioDraft)
+        restored.removeCardioBlock()
+        advanceUntilIdle()
+        assertNull(repo.programFor(plan).first().days.single().cardioBlock)
+        collectEdit.cancel()
+    }
+
+    @Test
+    fun authoredCardioAddCopiesTheLastWorkAndRecoveryBeforeCooldownAndAllowsLastExerciseRemoval() = runVmTest {
+        val plan = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("plank"))
+        val vm = newViewModel()
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertFalse(vm.dayEditState.value.canRemove)
+        vm.openCardioBlock()
+        advanceUntilIdle()
+        val intervals = vm.dayEditState.value.cardioDraft!!.startFrom(CardioTemplate.INTERVALS)
+        val cooldown = CardioSetDraft(role = CardioRole.COOLDOWN, seconds = 300)
+        vm.changeCardioDraft(intervals.copy(sets = intervals.sets + cooldown).addSet())
+        advanceUntilIdle()
+        val draft = vm.dayEditState.value.cardioDraft!!
+        assertEquals(14, draft.sets.size)
+        assertEquals(intervals.sets.takeLast(2), draft.sets.takeLast(3).take(2))
+        assertEquals(cooldown, draft.sets.last())
+        assertEquals(CardioActivity.ROAD_RUN, draft.activity)
+        vm.saveCardioBlock()
+        advanceUntilIdle()
+        assertTrue(vm.dayEditState.value.canRemove)
+        vm.removeDaySlot(vm.dayEditState.value.slots.single().position)
+        advanceUntilIdle()
+        assertTrue(vm.dayEditState.value.slots.isEmpty())
+        assertEquals(draft.block(), repo.programFor(plan).first().days.single().cardioBlock)
+        collectEdit.cancel()
+    }
+
+    @Test
+    fun generatedDayCannotOpenAnAuthoredCardioDraft() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList(), null))))
+        val vm = newViewModel()
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        vm.openCardioBlock()
+        vm.removeCardioBlock()
+        advanceUntilIdle()
+        assertNull(vm.dayEditState.value.cardioDraft)
+        collectEdit.cancel()
+    }
 
     @Test
     fun authoredPrescriptionDraftAndPageSurviveProcessRecreationThenSaveAndReseed() = runVmTest {

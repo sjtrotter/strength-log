@@ -39,12 +39,12 @@ object ExercisePicker {
 
 /** The selected plan's origin determines the day-edit removal floor. */
 object DayEditRules {
-    fun canRemove(slotCount: Int, origin: PlanOrigin = PlanOrigin.GENERATED): Boolean =
-        slotCount > minExercisesPerDay(origin)
+    fun canRemove(slotCount: Int, origin: PlanOrigin = PlanOrigin.GENERATED, hasCardio: Boolean = false): Boolean =
+        slotCount > (if (origin == PlanOrigin.AUTHORED && hasCardio) 0 else minExercisesPerDay(origin))
 }
 
 /** A page of the day-edit sheet above its root slot list (issue #122). */
-enum class DayEditPage { PRESCRIPTION, SWAP, SUPERSET_PATTERN, SUPERSET_EXERCISE, ADD_PATTERN, ADD_EXERCISE, OPTIONS }
+enum class DayEditPage { CARDIO, CARDIO_SET, PRESCRIPTION, SWAP, SUPERSET_PATTERN, SUPERSET_EXERCISE, ADD_PATTERN, ADD_EXERCISE, OPTIONS }
 
 /**
  * Which page a back press pops, given which of the sheet's page states are
@@ -63,7 +63,11 @@ fun dayEditBackTarget(
     addingFromPattern: Boolean,
     options: Boolean,
     prescription: Boolean = false,
+    cardio: Boolean = false,
+    cardioSet: Boolean = false,
 ): DayEditPage? = when {
+    cardioSet -> DayEditPage.CARDIO_SET
+    cardio -> DayEditPage.CARDIO
     prescription -> DayEditPage.PRESCRIPTION
     swapping -> DayEditPage.SWAP
     supersetSlot && supersetPatternPicked -> DayEditPage.SUPERSET_EXERCISE

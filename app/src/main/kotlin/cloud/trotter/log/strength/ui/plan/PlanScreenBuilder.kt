@@ -27,6 +27,8 @@ object PlanScreenBuilder {
                     ).size
                 }.sum(),
                 isNext = day.id == nextDayId,
+                cardioActivity = day.cardioBlock?.activity,
+                cardioSetCount = day.cardioBlock?.sets?.size ?: 0,
             )
         }
 }

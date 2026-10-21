@@ -184,6 +184,41 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
+    fun addDayThenAuthorCardioRunsAndFinishesWithoutExercises() = test {
+        val plan = repo.createAuthoredPlan("Running", "Day A")
+        repo.publishCreatedAuthoredPlan(plan)
+        assertEquals("B", repo.addDay(plan, "Run"))
+        val vm = readyVm()
+        backgroundScope.launch { vm.dayEditState.collect {} }
+        vm.selectDay("B")
+        runCurrent()
+        vm.setDayEditorOpen(true)
+        vm.openCardioBlock()
+        runCurrent()
+        val draft = vm.dayEditState.value.cardioDraft!!
+        vm.changeCardioDraft(draft.copy(sets = listOf(CardioSetDraft(seconds = 10, hasAim = true))))
+        vm.saveCardioBlock()
+        runCurrent()
+        vm.setDayEditorOpen(false)
+        assertTrue(vm.uiState.value.exercises.isEmpty())
+        assertTrue(vm.uiState.value.cardio!!.finishesDay)
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        vm.openCardioDistance()
+        runCurrent()
+        vm.saveCardioDistance(vm.distanceAction()) // Blank distance is allowed by #280.
+        runCurrent()
+        val session = repo.cardioSessionsFlow.first().single()
+        assertEquals(plan, session.planId)
+        assertEquals("B", session.dayId)
+        assertEquals(CardioSetStatus.FINISHED, repo.cardioSetsFor(session.id).single().status)
+        assertEquals(session.id, vm.sessionReceipt.value?.sessionId)
+        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals(listOf(session.id), publishedCardio)
+    }
+
+    @Test
     fun oldDistanceReceiptWaitsForNewRunToLogAndKeepsTheFirstReceipt() = test {
         prepareAuthoredCardioDay(time(CardioRole.WORK))
         val vm = readyVm()

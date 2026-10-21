@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.runtime.Immutable
+import cloud.trotter.log.strength.domain.model.CardioActivity
 
 @Immutable
 data class PlanUiState(
@@ -23,6 +24,8 @@ data class PlanDay(
     val liftCount: Int,
     val setCount: Int,
     val isNext: Boolean,
+    val cardioActivity: CardioActivity? = null,
+    val cardioSetCount: Int = 0,
 )
 
 data class PlanActions(

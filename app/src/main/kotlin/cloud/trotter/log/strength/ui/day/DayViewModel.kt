@@ -105,8 +105,9 @@ import kotlinx.coroutines.sync.withLock
  * watch delta path ([cloud.trotter.log.strength.sync.SetEditApplier])
  * shares the same repository helper so a watch-first workout stamps too.
  *
- * Cardio runs persist their frozen prescriptions, per-set outcomes, clock anchors
- * and distance drafts as one saved value. Foreground alarms are shared with timed reps.
+ * Cardio runs persist their frozen prescriptions, per-set outcomes and clock anchors
+ * as one saved value. Logged distance drafts have separate saved state and never
+ * retain execution ownership. Foreground alarms are shared with timed reps.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -129,6 +130,8 @@ class DayViewModel @Inject constructor(
     private var pinHeldFor: String? = null
     private val openSheet = savedState.getStateFlow<OpenSheet?>(KEY_OPEN_SHEET, null)
     private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null)
+    private val pendingCardioDistances = savedState.getStateFlow<ArrayList<CardioRun>>(KEY_CARDIO_DISTANCES, arrayListOf())
+    private var cardioDraftSaveInFlight = false
     private var cardioAlertAnchor: String? = null
     private var cardioSaveInFlight = false
     private val cardioTick = MutableStateFlow(0L)
@@ -244,7 +247,7 @@ class DayViewModel @Inject constructor(
 
     private val executionState = combine(
         cardioRun, cardioTick, cardioSecondTicker, timedRepEvent,
-    ) { run, _, _, reps -> run to reps }
+    ) { run, _, _, reps -> run to reps }.combine(pendingCardioDistances) { execution, _ -> execution }
 
     private val cardioHistory = combine(repo.selectedPlanCardioSessionsFlow, repo.cardioSetResultsFlow) { sessions, sets ->
         sessions to sets
@@ -387,6 +390,7 @@ class DayViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            maybeAmendCardioDistances()
             effectiveDayId.collect { day ->
                 if (day != pinHeldFor) pinHeldFor = null
             }
@@ -428,10 +432,9 @@ class DayViewModel @Inject constructor(
         val program = repo.programFor(plan.id).first()
         val day = program.days.firstOrNull { it.id == dayId } ?: return null
         val block = day.effectiveCardio(repo.wizardAnswersFor(plan.id).first().cardio) ?: return null
-        val rotation = if (plan.origin == PlanOrigin.AUTHORED.name) program.days else program.strengthDays
-        val index = rotation.indexOfFirst { it.id == dayId }
-        val next = if (index >= 0) rotation[(index + 1) % rotation.size] else
-            program.days.firstOrNull { it.id == plan.suggestedDayId }
+        val nextId = Rotation.nextFor(program, dayId, authored = plan.origin == PlanOrigin.AUTHORED.name)
+            ?: plan.suggestedDayId
+        val next = program.days.firstOrNull { it.id == nextId }
         if (currentDay() != dayId || repo.selectedPlanIdFlow.first() != plan.id) return null
         val json = CardioBlockJson.encode(block)
         return CardioRun(plan.id, plan.name, dayId, program.days.indexOf(day), json, json,
@@ -442,18 +445,21 @@ class DayViewModel @Inject constructor(
         savedState[KEY_CARDIO_RUN] = run
     }
 
-    fun stopCardio() {
+    private fun CardioRun.matches(action: CardioSetAction): Boolean =
+        runId == action.runId && dayId == action.dayId && position == action.setIndex
+
+    fun stopCardio(action: CardioSetAction) {
         val run = reconcileCardio() ?: return
-        if (!run.running || run.complete) return
+        if (!run.matches(action) || !run.running || run.complete) return
         cardioAlarm.cancel()
         cardioAlertAnchor = null
         saveCardioRun(run.finish(CardioSetStatus.SHORTENED, cardioElapsedSeconds(run), cardioClock))
         maybeLogCardio()
     }
 
-    fun reachCardioTarget() {
+    fun reachCardioTarget(action: CardioSetAction) {
         val run = reconcileCardio() ?: return
-        if (!run.running || run.complete) return
+        if (!run.matches(action) || !run.running || run.complete) return
         val target = run.block.sets[run.position].end as? Measure.Distance ?: return
         var next = run.finish(CardioSetStatus.FINISHED, cardioElapsedSeconds(run), cardioClock, target.metres)
         if (!next.complete && next.block.sets[next.position].role in listOf(CardioRole.RECOVERY, CardioRole.COOLDOWN)) {
@@ -463,9 +469,12 @@ class DayViewModel @Inject constructor(
         maybeLogCardio()
     }
 
-    fun skipCardioSet() {
+    fun skipCardioSet(action: CardioSetAction) {
         mutate {
-            val run = cardioRun.value ?: newCardioRun() ?: return@mutate
+            if (action.dayId != currentDay()) return@mutate
+            val existing = cardioRun.value
+            if (existing?.runId != action.runId || (existing?.position ?: 0) != action.setIndex) return@mutate
+            val run = existing ?: newCardioRun() ?: return@mutate
             if (timedRepEvent.value?.awaitingCount == false || run.running || run.complete) return@mutate
             saveCardioRun(run.finish(CardioSetStatus.SKIPPED, 0, cardioClock))
             maybeLogCardio()
@@ -486,9 +495,11 @@ class DayViewModel @Inject constructor(
     }
 
     fun addCardioSet() {
+        val dayId = currentDay() ?: return
         mutate {
+            if (currentDay() != dayId || cardioRun.value?.let { it.dayId != dayId } == true) return@mutate
             val run = reconcileCardio() ?: newCardioRun() ?: return@mutate
-            if (run.complete || timedRepEvent.value?.awaitingCount == false) return@mutate
+            if (run.dayId != dayId || run.complete || timedRepEvent.value?.awaitingCount == false) return@mutate
             val block = run.block
             val workIndex = block.sets.indexOfLast { it.role == CardioRole.WORK }
             val work = block.sets.getOrNull(workIndex) ?: block.sets[run.position].copy(role = CardioRole.WORK)
@@ -511,47 +522,74 @@ class DayViewModel @Inject constructor(
         savedState[KEY_OPEN_SHEET] = OpenSheet(day, OpenSheet.Kind.CARDIO_SETS, 0, 0)
     }
 
-    fun requestCardioDistance(position: Int) {
-        val run = cardioRun.value ?: return
-        saveCardioRun(run.copy(drafts = run.drafts.map {
-            if (it.position == position) it.copy(requested = false, dismissed = false, saved = false) else it
+    private fun distanceRuns(): List<CardioRun> = listOfNotNull(cardioRun.value) + pendingCardioDistances.value
+
+    private fun distanceRun(action: CardioSetAction): CardioRun? = distanceRuns().firstOrNull {
+        it.runId == action.runId && it.dayId == action.dayId && it.drafts.any { draft -> draft.position == action.setIndex }
+    }
+
+    private fun saveDistanceRun(run: CardioRun) {
+        if (cardioRun.value?.runId == run.runId) saveCardioRun(run)
+        else savedState[KEY_CARDIO_DISTANCES] = ArrayList(pendingCardioDistances.value.map {
+            if (it.runId == run.runId) run else it
+        })
+    }
+
+    fun requestCardioDistance(action: CardioSetAction) {
+        val run = distanceRun(action) ?: return
+        if (run.dayId != currentDay() || run.planId != uiState.value.planId) return
+        saveDistanceRun(run.copy(drafts = run.drafts.map {
+            if (it.position == action.setIndex) it.copy(requested = false, dismissed = false, saved = false) else it
         }))
     }
 
     fun openCardioDistance() {
-        val run = cardioRun.value ?: return
-        val draft = run.drafts.firstOrNull { !it.saved && !it.requested && !it.dismissed } ?: return
-        if (run.dayId != currentDay() || openSheet.value != null) return
-        saveCardioRun(run.copy(drafts = run.drafts.map {
+        if (openSheet.value != null) return
+        val state = uiState.value
+        if (state.viewDayId != currentDay()) return
+        val run = distanceRuns().firstOrNull { entry ->
+            entry.dayId == currentDay() && entry.planId == state.planId &&
+                entry.drafts.any { !it.saved && !it.requested && !it.dismissed }
+        } ?: return
+        val draft = run.drafts.first { !it.saved && !it.requested && !it.dismissed }
+        saveDistanceRun(run.copy(drafts = run.drafts.map {
             if (it.position == draft.position) it.copy(requested = true) else it
         }))
-        savedState[KEY_OPEN_SHEET] = OpenSheet(run.dayId, OpenSheet.Kind.CARDIO_DISTANCE, 0, draft.position)
+        savedState[KEY_OPEN_SHEET] = OpenSheet(run.dayId, OpenSheet.Kind.CARDIO_DISTANCE, 0, draft.position, run.runId)
     }
+
+    private fun distanceSheetAction(): CardioSetAction? = openSheet.value
+        ?.takeIf { it.kind == OpenSheet.Kind.CARDIO_DISTANCE }
+        ?.let { CardioSetAction(it.dayId, it.cardioRunId, it.setIndex) }
 
     fun changeCardioDistance(text: String) {
-        val position = openSheet.value?.takeIf { it.kind == OpenSheet.Kind.CARDIO_DISTANCE }?.setIndex ?: return
-        val run = cardioRun.value ?: return
-        saveCardioRun(run.copy(drafts = run.drafts.map { if (it.position == position) it.copy(text = text) else it }))
+        val action = distanceSheetAction() ?: return
+        val run = distanceRun(action) ?: return
+        saveDistanceRun(run.copy(drafts = run.drafts.map { if (it.position == action.setIndex) it.copy(text = text) else it }))
     }
 
-    fun saveCardioDistance() {
-        val position = openSheet.value?.takeIf { it.kind == OpenSheet.Kind.CARDIO_DISTANCE }?.setIndex ?: return
+    fun saveCardioDistance(action: CardioSetAction) {
         mutate {
-            val run = cardioRun.value ?: return@mutate
-            val draft = run.drafts.firstOrNull { it.position == position && it.valid } ?: return@mutate
+            if (distanceSheetAction() != action) return@mutate
+            val run = distanceRun(action) ?: return@mutate
+            val position = action.setIndex
+            val draft = run.drafts.firstOrNull { it.position == position && it.valid && !it.saved } ?: return@mutate
             val next = run.copy(results = run.results.mapIndexed { index, result ->
                 if (index == position) result.copy(metres = draft.metres) else result
             }, drafts = run.drafts.map { if (it.position == position) it.copy(saved = true, amended = false) else it }, saveFailed = false)
-            // Persist the intent first. A failed amendment is retried before showing the receipt.
-            saveCardioRun(next)
+            // Persist the intent before amending; a restored draft can retry the same set.
+            saveDistanceRun(next)
             savedState[KEY_OPEN_SHEET] = null
             maybeLogCardio()
+            maybeAmendCardioDistances()
         }
     }
 
     fun retryCardioSave() {
         cardioRun.value?.let { saveCardioRun(it.copy(saveFailed = false)) }
+        savedState[KEY_CARDIO_DISTANCES] = ArrayList(pendingCardioDistances.value.map { it.copy(saveFailed = false) })
         maybeLogCardio()
+        maybeAmendCardioDistances()
     }
 
     private fun cardioElapsedSeconds(run: CardioRun): Int =
@@ -574,21 +612,19 @@ class DayViewModel @Inject constructor(
     private fun maybeLogCardio() {
         val run = cardioRun.value ?: return
         if (!run.complete || run.saveFailed || cardioSaveInFlight) return
-        if (run.sessionId != null && run.drafts.any { !it.saved } &&
-            run.drafts.none { it.saved && !it.amended }) return
         if (run.startedAt == null) return clearCardioExecution()
         cardioSaveInFlight = true
         viewModelScope.launch {
             try {
                 mutationLock.withLock {
-                    var current = cardioRun.value ?: return@withLock
+                    val current = cardioRun.value?.takeIf { it.runId == run.runId } ?: return@withLock
                     val activity = current.block.activity
                     val mode = when (activity) {
                         CardioActivity.ROAD_RUN, CardioActivity.TRAIL_RUN, CardioActivity.TRACK_RUN -> CardioMode.OUTDOOR_RUN
                         CardioActivity.TREADMILL_RUN -> CardioMode.TREADMILL
                         else -> CardioMode.LOW_IMPACT
                     }
-                    // Keep final entry on its originating day while the committed rotation moves on.
+                    // Keep entry on its originating day while the committed rotation moves on.
                     if (current.finishesDay) savedState[KEY_VIEW_DAY] = current.dayId
                     val id = current.sessionId ?: repo.logCardioSession(CardioSessionEntity(
                         dayId = current.dayId, mode = mode.name,
@@ -599,51 +635,81 @@ class DayViewModel @Inject constructor(
                         stepsCompleted = current.results.count { it.status == CardioSetStatus.FINISHED.name },
                         planId = current.planId, planName = current.planName, activity = activity.name,
                     ), current.resultSets, finishDay = current.finishesDay)
-                    val latest = cardioRun.value?.takeIf {
-                        it.planId == current.planId && it.dayId == current.dayId && it.startedAt == current.startedAt
-                    } ?: return@withLock
-                    current = latest.copy(sessionId = id)
-                    saveCardioRun(current)
-                    current.drafts.filter { it.saved && !it.amended }.forEach { draft ->
+                    val latest = cardioRun.value?.takeIf { it.runId == current.runId } ?: return@withLock
+                    val logged = latest.copy(sessionId = id)
+                    // Drafts now own only amendment state, never the execution slot or alarm.
+                    if (logged.drafts.isNotEmpty()) {
+                        savedState[KEY_CARDIO_DISTANCES] = ArrayList(
+                            pendingCardioDistances.value.filterNot { it.runId == logged.runId } + logged,
+                        )
+                    }
+                    clearCardioExecution(keepDistanceSheet = true)
+                    viewModelScope.launch { sessionPublisher.publishCardio(id) }
+                    if (logged.drafts.isEmpty()) finishCardioReceipt(logged)
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                cardioRun.value?.takeIf { it.runId == run.runId }?.let { saveCardioRun(it.copy(saveFailed = true)) }
+            } finally {
+                cardioSaveInFlight = false
+                if (viewModelScope.isActive) {
+                    maybeLogCardio()
+                    maybeAmendCardioDistances()
+                }
+            }
+        }
+    }
+
+    private fun maybeAmendCardioDistances() {
+        if (cardioDraftSaveInFlight) return
+        val pending = pendingCardioDistances.value.firstOrNull { run ->
+            !run.saveFailed && run.drafts.any { it.saved && !it.amended }
+        } ?: return
+        cardioDraftSaveInFlight = true
+        viewModelScope.launch {
+            try {
+                mutationLock.withLock {
+                    val id = requireNotNull(pending.sessionId)
+                    pending.drafts.filter { it.saved && !it.amended }.forEach { draft ->
                         repo.amendCardioSetDistance(id, draft.position, draft.metres)
-                        val acknowledged = cardioRun.value?.takeIf {
-                            it.planId == current.planId && it.dayId == current.dayId && it.startedAt == current.startedAt
-                        } ?: return@withLock
-                        saveCardioRun(acknowledged.copy(drafts = acknowledged.drafts.map {
+                        val latest = pendingCardioDistances.value.firstOrNull { it.runId == pending.runId } ?: return@withLock
+                        saveDistanceRun(latest.copy(drafts = latest.drafts.map {
                             if (it.position == draft.position && it.saved && it.text == draft.text) it.copy(amended = true) else it
                         }))
                     }
-                    // Reopening or editing a draft while Room was suspended must survive the acknowledgement.
-                    current = cardioRun.value?.takeIf {
-                        it.planId == current.planId && it.dayId == current.dayId && it.startedAt == current.startedAt
-                    } ?: return@withLock
-                    val pendingEntry = current.drafts.any { !it.saved }
-                    if (!pendingEntry) {
-                        if (current.finishesDay) {
-                            _sessionReceipt.value = SessionReceipt(
-                                sessionId = id, dayIndex = current.dayIndex, headline = "", dayTitle = "",
-                                completedSetCount = 0, totalSetCount = 0, setCount = 0, strongest = null,
-                                nextDayLine = current.nextDayTitle, cardio = current,
-                            )
-                            savedState[KEY_VIEW_DAY] = null
-                            val advancedTo = repo.suggestedDayFlow.first()
-                            pinHeldFor = current.dayId.takeIf { advancedTo != it && effectiveDayId.value == it }
-                            savedState[KEY_SELECTED_PAGE] = null
-                            closeSheet()
-                        }
-                        clearCardioExecution()
-                        viewModelScope.launch { sessionPublisher.publishCardio(id) }
+                    val latest = pendingCardioDistances.value.firstOrNull { it.runId == pending.runId } ?: return@withLock
+                    if (latest.drafts.all { it.saved && it.amended }) {
+                        savedState[KEY_CARDIO_DISTANCES] = ArrayList(pendingCardioDistances.value.filterNot { it.runId == latest.runId })
+                        finishCardioReceipt(latest)
                     }
                 }
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                cardioRun.value?.let { saveCardioRun(it.copy(saveFailed = true)) }
+                pendingCardioDistances.value.firstOrNull { it.runId == pending.runId }?.let {
+                    saveDistanceRun(it.copy(saveFailed = true))
+                }
             } finally {
-                cardioSaveInFlight = false
-                // A distance Done queued behind this write may have made another amendment ready.
-                if (viewModelScope.isActive) maybeLogCardio()
+                cardioDraftSaveInFlight = false
+                if (viewModelScope.isActive) maybeAmendCardioDistances()
             }
+        }
+    }
+
+    private suspend fun finishCardioReceipt(run: CardioRun) {
+        if (!run.finishesDay) return
+        _sessionReceipt.value = SessionReceipt(
+            sessionId = requireNotNull(run.sessionId), dayIndex = run.dayIndex, headline = "", dayTitle = "",
+            completedSetCount = 0, totalSetCount = 0, setCount = 0, strongest = null,
+            nextDayLine = run.nextDayTitle, cardio = run,
+        )
+        if (currentDay() == run.dayId && cardioRun.value == null) {
+            savedState[KEY_VIEW_DAY] = null
+            val advancedTo = repo.suggestedDayFlow.first()
+            pinHeldFor = run.dayId.takeIf { advancedTo != it && effectiveDayId.value == it }
+            savedState[KEY_SELECTED_PAGE] = null
+            closeSheet()
         }
     }
 
@@ -947,10 +1013,11 @@ class DayViewModel @Inject constructor(
 
     fun closeSheet() {
         if (openSheet.value?.kind == OpenSheet.Kind.CARDIO_DISTANCE) {
-            val position = openSheet.value?.setIndex
-            cardioRun.value?.let { run -> saveCardioRun(run.copy(drafts = run.drafts.map {
-                if (it.position == position) it.copy(dismissed = true) else it
-            })) }
+            distanceSheetAction()?.let { action ->
+                distanceRun(action)?.let { run -> saveDistanceRun(run.copy(drafts = run.drafts.map {
+                    if (it.position == action.setIndex) it.copy(dismissed = true) else it
+                })) }
+            }
         }
         if (openSheet.value?.kind == OpenSheet.Kind.TIMED_REP_COUNT) {
             timedRepEvent.value?.let { savedState[KEY_TIMED_REP_EVENT] = it.copy(sheetDismissed = true) }
@@ -1017,14 +1084,11 @@ class DayViewModel @Inject constructor(
             val program = repo.programFlow.first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
             val dayIndex = program.days.indexOfFirst { it.id == day }
-            // Cardio lives outside the strength rotation (§6.4), so its receipt
-            // points back to the plan's current suggestion. A removed day has
-            // no next day to name (a wizard re-run may race this read).
-            val nextDayId = when {
-                program.strengthDays.any { it.id == day } -> Rotation.next(program, day)
-                dayIndex >= 0 -> repo.suggestedDayFlow.first()
-                else -> null
-            }
+            val plan = repo.selectedPlanFlow.first()
+            val nextDayId = if (dayIndex >= 0) {
+                Rotation.nextFor(program, day, authored = plan?.origin == PlanOrigin.AUTHORED.name)
+                    ?: repo.suggestedDayFlow.first()
+            } else null
             val sessionId = repo.advanceDay(day, today.first())
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_DAY] = null
@@ -1248,12 +1312,12 @@ class DayViewModel @Inject constructor(
             hasProgram = true,
             isProgramDay = program.strengthDays.any { it.id == dayId },
             viewDayId = dayId,
+            planId = ctx.plan?.id,
             dayIndex = dayIndex,
             dayTitle = day.title,
             emphasisLine = day.emphasisLine,
             unit = ctx.unit,
-            nextDayId = dayId.takeIf { id -> program.strengthDays.any { it.id == id } }
-                ?.let { Rotation.next(program, it) },
+            nextDayId = Rotation.nextFor(program, dayId, authored = ctx.plan?.origin == PlanOrigin.AUTHORED.name),
             exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, history) },
             cardio = day.effectiveCardio(ctx.cardioPrefs)?.let {
                 CardioCardState(label = activityLabel(it.activity), detail = day.cardio?.detail.orEmpty(),
@@ -1266,7 +1330,10 @@ class DayViewModel @Inject constructor(
         !state.loading && sheet.dayId == state.viewDayId &&
             if (sheet.kind == OpenSheet.Kind.CARDIO_SETS || sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) {
                 state.cardio != null && (sheet.kind != OpenSheet.Kind.CARDIO_DISTANCE ||
-                    cardioRun.value?.takeIf { it.dayId == sheet.dayId }?.drafts?.any { it.position == sheet.setIndex } == true)
+                    distanceRuns().any { run ->
+                        run.runId == sheet.cardioRunId && run.dayId == sheet.dayId && run.planId == state.planId &&
+                            run.drafts.any { it.position == sheet.setIndex }
+                    })
             } else state.exercises.any { card ->
             card.programExerciseId == sheet.programExerciseId &&
                 (sheet.kind == OpenSheet.Kind.ALL_SETS || card.rows.getOrNull(sheet.setIndex) != null) &&
@@ -1350,8 +1417,11 @@ class DayViewModel @Inject constructor(
         }
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
         val base = state.cardio?.let { source ->
-            source.copy(loggedSeconds = logged?.seconds, loggedSets = loggedSets,
-                block = if (savedRun == null && loggedSets.isNotEmpty()) {
+            source.copy(loggedSeconds = logged?.seconds, loggedSessionId = logged?.id, loggedSets = loggedSets,
+                distanceRuns = distanceRuns().filter { it.dayId == state.viewDayId && it.planId == state.planId },
+                canAddSet = (cardioRun.value == null || cardioRun.value?.dayId == state.viewDayId) &&
+                    timedRepEvent.value?.awaitingCount != false,
+                block = if (savedRun?.dayId != state.viewDayId && loggedSets.isNotEmpty()) {
                     source.block?.copy(sets = loggedSets.map { it.spec })
                 } else source.block)
         }
@@ -1393,11 +1463,11 @@ class DayViewModel @Inject constructor(
         return (cardioClock.elapsedRealtimeMillis() - elapsedAnchor).coerceAtLeast(0L)
     }
 
-    private fun clearCardioExecution() {
+    private fun clearCardioExecution(keepDistanceSheet: Boolean = false) {
         cardioAlarm.cancel()
         cardioAlertAnchor = null
         savedState[KEY_CARDIO_RUN] = null
-        if (openSheet.value?.kind in listOf(OpenSheet.Kind.CARDIO_DISTANCE, OpenSheet.Kind.CARDIO_SETS)) {
+        if (!keepDistanceSheet && openSheet.value?.kind in listOf(OpenSheet.Kind.CARDIO_DISTANCE, OpenSheet.Kind.CARDIO_SETS)) {
             savedState[KEY_OPEN_SHEET] = null
         }
         cardioTick.value++
@@ -1561,6 +1631,7 @@ class DayViewModel @Inject constructor(
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"
         const val KEY_CARDIO_RUN = "day_cardio_run"
+        const val KEY_CARDIO_DISTANCES = "day_cardio_distances"
         const val STOP_TIMEOUT_MS = 5_000L
         const val CARDIO_TICK_MS = 1_000L
 

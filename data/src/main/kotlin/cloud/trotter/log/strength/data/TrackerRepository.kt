@@ -33,6 +33,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.GoalSource
@@ -1069,9 +1070,9 @@ open class TrackerRepository(
     /** Room only: both the phone commit and strength DONE use the originating plan's rotation. */
     private suspend fun advanceRotation(plan: PlanEntity, dayId: String) {
         val program = assemble(programDao.daysForPlan(plan.id), programDao.exercisesForPlan(plan.id))
-        val rotation = if (plan.origin == PlanOrigin.AUTHORED.name) program.days else program.strengthDays
-        val index = rotation.indexOfFirst { it.id == dayId }
-        if (index >= 0) planDao.updateSuggestedDay(plan.id, rotation[(index + 1) % rotation.size].id)
+        Rotation.nextFor(program, dayId, authored = plan.origin == PlanOrigin.AUTHORED.name)?.let {
+            planDao.updateSuggestedDay(plan.id, it)
+        }
     }
 
     suspend fun amendCardioSetDistance(sessionId: Long, position: Int, metres: Int?) {

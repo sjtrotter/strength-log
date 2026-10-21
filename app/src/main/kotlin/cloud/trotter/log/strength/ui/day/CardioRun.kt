@@ -31,7 +31,7 @@ data class CardioDistanceDraft(
     val valid: Boolean get() = text.isBlank() || (text.all(Char::isDigit) && metres != null)
 }
 
-/** One saved value commits each transition, including the sheet delivery and logging acknowledgement. */
+/** Frozen execution snapshot, retained separately after logging only while distance amendments remain. */
 @Parcelize
 data class CardioRun(
     val planId: Long,
@@ -51,7 +51,10 @@ data class CardioRun(
     val completedAt: Long? = null,
     val sessionId: Long? = null,
     val saveFailed: Boolean = false,
+    val runId: String = java.util.UUID.randomUUID().toString(),
 ) : Parcelable {
+    fun action(setIndex: Int = position): CardioSetAction = CardioSetAction(dayId, runId, setIndex)
+
     val block: CardioBlock get() = requireNotNull(CardioBlockJson.decode(blockJson))
     val position: Int get() = results.size
     val complete: Boolean get() = position == block.sets.size
@@ -115,3 +118,6 @@ data class CardioRun(
         return run
     }
 }
+
+/** Identity captured by the rendered control, including a ready block before its first action. */
+data class CardioSetAction(val dayId: String, val runId: String?, val setIndex: Int)

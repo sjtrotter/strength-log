@@ -143,7 +143,7 @@ internal fun CardioPage(
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.cardio_skip)) },
                             enabled = run?.running != true && !completed && startEnabled,
-                            onClick = { menu = false; actions.onSkipCardioSet() })
+                            onClick = { menu = false; actions.onSkipCardioSet(run?.action() ?: CardioSetAction(dayId, null, position)) })
                         DropdownMenuItem(text = { Text(stringResource(R.string.cardio_end)) },
                             enabled = !completed && (run != null || startEnabled),
                             onClick = { menu = false; onEnd() })
@@ -186,9 +186,9 @@ internal fun CardioPage(
             }
             if (run?.running == true) {
                 (spec?.end as? Measure.Distance)?.let {
-                    Button(onClick = actions.onReachCardioTarget) { Text(stringResource(R.string.cardio_reached, it.metres)) }
+                    Button(onClick = { actions.onReachCardioTarget(run.action()) }) { Text(stringResource(R.string.cardio_reached, it.metres)) }
                 }
-                TextButton(onClick = actions.onStopCardio) { Text(stringResource(R.string.day_cardio_stop_button)) }
+                TextButton(onClick = { actions.onStopCardio(run.action()) }) { Text(stringResource(R.string.day_cardio_stop_button)) }
             } else if (run?.complete != true) {
                 Button(onClick = actions.onStartCardio, enabled = startEnabled) { Text(stringResource(R.string.day_cardio_start_button)) }
             }
@@ -197,9 +197,15 @@ internal fun CardioPage(
                 Button(onClick = actions.onRetryCardioSave) { Text(stringResource(R.string.cardio_retry)) }
             }
             TextButton(onClick = actions.onOpenCardioSets) { Text(stringResource(R.string.cardio_all_sets)) }
-            run?.drafts?.filter { !it.saved }?.forEach { draft ->
-                TextButton(onClick = { actions.onRequestCardioDistance(draft.position) }) {
-                    Text(stringResource(R.string.cardio_enter_distance))
+            cardio.distanceRuns.forEach { entry ->
+                entry.drafts.filter { !it.saved }.forEach { draft ->
+                    TextButton(onClick = { actions.onRequestCardioDistance(entry.action(draft.position)) }) {
+                        Text(stringResource(R.string.cardio_enter_distance))
+                    }
+                }
+                if (entry.sessionId != null && entry.saveFailed) {
+                    Text(stringResource(R.string.cardio_save_failed))
+                    Button(onClick = actions.onRetryCardioSave) { Text(stringResource(R.string.cardio_retry)) }
                 }
             }
             if (run?.sessionId != null) {
@@ -261,15 +267,16 @@ internal fun CardioSetsSheet(cardio: CardioCardState, actions: DayActions) {
                         }
                     },
                     trailingContent = {
-                        if (run?.drafts?.any { it.position == index } == true) {
-                            TextButton(onClick = { actions.onCloseAllSets(); actions.onRequestCardioDistance(index) }) {
+                        val entry = run ?: cardio.distanceRuns.firstOrNull { it.sessionId == cardio.loggedSessionId }
+                        if (entry?.drafts?.any { it.position == index } == true) {
+                            TextButton(onClick = { actions.onCloseAllSets(); actions.onRequestCardioDistance(entry.action(index)) }) {
                                 Text(stringResource(R.string.cardio_enter_distance))
                             }
                         }
                     },
                 )
             }
-            item { TextButton(onClick = actions.onAddCardioSet, enabled = run?.complete != true && (run != null || results.isEmpty())) { Text(stringResource(R.string.cardio_add_set)) } }
+            item { TextButton(onClick = actions.onAddCardioSet, enabled = cardio.canAddSet && run?.complete != true && (run != null || results.isEmpty())) { Text(stringResource(R.string.cardio_add_set)) } }
         }
     }
 }
@@ -298,7 +305,7 @@ internal fun CardioDistanceSheet(run: CardioRun, position: Int, actions: DayActi
                 }) { Icon(Icons.Default.Add, stringResource(R.string.cardio_increase_distance)) }
             }
             if (!draft.valid) Text(stringResource(R.string.cardio_distance_invalid), color = MaterialTheme.colorScheme.error)
-            Button(onClick = actions.onSaveCardioDistance, enabled = draft.valid) { Text(stringResource(R.string.cardio_done)) }
+            Button(onClick = { actions.onSaveCardioDistance(run.action(position)) }, enabled = draft.valid) { Text(stringResource(R.string.cardio_done)) }
         }
     }
 }

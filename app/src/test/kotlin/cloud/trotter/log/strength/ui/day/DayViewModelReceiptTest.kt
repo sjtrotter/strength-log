@@ -132,6 +132,24 @@ class DayViewModelReceiptTest {
     }
 
     @Test
+    fun authoredStrengthCompletionAndReceiptBothSelectTheFollowingCardioDay() = runVmTest {
+        val planId = repo.createAuthoredPlan("Mixed plan", "Lower")
+        repo.publishCreatedAuthoredPlan(planId)
+        insertProgram()
+        val days = repo.programFlow.first().days
+        repo.replaceProgram(Program(listOf(
+            days[0],
+            ProgramDay("B", "Cardio", "", emptyList(), null, kind = ProgramDayKind.CARDIO),
+            days[1].copy(id = "C"),
+        )))
+        val vm = newViewModel()
+        advanceUntilIdle()
+        completeOneSession(vm)
+        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("DAY B · CARDIO", vm.sessionReceipt.value?.nextDayLine)
+    }
+
+    @Test
     fun thereIsNoReceiptUntilDoneCommitsSomething() = runVmTest {
         insertProgram()
         val vm = newViewModel()

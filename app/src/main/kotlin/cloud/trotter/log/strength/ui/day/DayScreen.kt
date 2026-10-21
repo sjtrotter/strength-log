@@ -143,8 +143,9 @@ fun DayScreen(
     LaunchedEffect(state.timedRep?.requestsSheet, countHostFree) {
         if (state.timedRep?.requestsSheet == true && countHostFree) actions.onOpenTimedRepCount()
     }
-    val cardioRequestsSheet = state.cardio?.run?.drafts?.any { !it.saved && !it.requested && !it.dismissed } == true
-    LaunchedEffect(cardioRequestsSheet, countHostFree, state.cardio?.run?.drafts) {
+    val distanceRuns = state.cardio?.distanceRuns.orEmpty()
+    val cardioRequestsSheet = distanceRuns.any { run -> run.drafts.any { !it.saved && !it.requested && !it.dismissed } }
+    LaunchedEffect(cardioRequestsSheet, countHostFree, distanceRuns) {
         if (cardioRequestsSheet && countHostFree) actions.onOpenCardioDistance()
     }
     val dayBackProgress = rememberBackGestureProgress(
@@ -456,7 +457,7 @@ fun DayScreen(
     }
     openSheet?.let { sheet ->
         if (sheet.kind == OpenSheet.Kind.CARDIO_SETS) state.cardio?.let { CardioSetsSheet(it, actions) }
-        if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.run?.let { CardioDistanceSheet(it, sheet.setIndex, actions) }
+        if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.distanceRuns?.firstOrNull { it.runId == sheet.cardioRunId }?.let { CardioDistanceSheet(it, sheet.setIndex, actions) }
         state.exercises.firstOrNull { it.programExerciseId == sheet.programExerciseId }?.let { card ->
             when (sheet.kind) {
                 OpenSheet.Kind.CARDIO_SETS, OpenSheet.Kind.CARDIO_DISTANCE -> Unit
@@ -672,16 +673,16 @@ data class DayActions(
     /** The recovery out of the no-program state (#127): back into the wizard. */
     val onSetUpProgram: () -> Unit,
     val onStartCardio: () -> Unit = {},
-    val onStopCardio: () -> Unit = {},
-    val onReachCardioTarget: () -> Unit = {},
-    val onSkipCardioSet: () -> Unit = {},
+    val onStopCardio: (CardioSetAction) -> Unit = {},
+    val onReachCardioTarget: (CardioSetAction) -> Unit = {},
+    val onSkipCardioSet: (CardioSetAction) -> Unit = {},
     val onEndCardioBlock: () -> Unit = {},
     val onAddCardioSet: () -> Unit = {},
     val onOpenCardioSets: () -> Unit = {},
     val onOpenCardioDistance: () -> Unit = {},
-    val onRequestCardioDistance: (Int) -> Unit = {},
+    val onRequestCardioDistance: (CardioSetAction) -> Unit = {},
     val onCardioDistanceChange: (String) -> Unit = {},
-    val onSaveCardioDistance: () -> Unit = {},
+    val onSaveCardioDistance: (CardioSetAction) -> Unit = {},
     val onRetryCardioSave: () -> Unit = {},
     val onCardioScreenLive: (Boolean) -> Unit = {},
     val onAdjustRest: (Int) -> Unit = {},

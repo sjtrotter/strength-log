@@ -49,17 +49,21 @@ class CardioSetsScreenTest {
 
     @Test fun distanceShowsStaticTargetAndElapsedUntilReachedTap() {
         var reached = 0
+        var delivered: CardioSetAction? = null
         val run = run()
         val cardio = CardioCardState("Track run", "", false, block = run.block, run = run, elapsedSeconds = 127)
         rule.setContent { AppTheme {
-            CardioPage(cardio, "D", dayAccent(0), pagerActions().copy(onReachCardioTarget = { reached++ }), false, {})
+            CardioPage(cardio, "D", dayAccent(0), pagerActions().copy(onReachCardioTarget = { delivered = it; reached++ }), false, {})
         } }
         rule.onNodeWithText("Target").assertExists()
         rule.onNodeWithText("400 m").assertExists()
         rule.onNodeWithText("Elapsed 2:07").assertExists()
         rule.onNodeWithText("Stop").assertExists()
         rule.onNodeWithText("Reached 400 m").performClick()
-        rule.runOnIdle { assertEquals(1, reached) }
+        rule.runOnIdle {
+            assertEquals(1, reached)
+            assertEquals(run.action(), delivered)
+        }
     }
 
     @Test fun entryIsBlankWithoutKeyboardFocusAndOnlyPositiveMetresOrBlankEnableDone() {
@@ -67,9 +71,10 @@ class CardioSetsScreenTest {
             results = listOf(SavedCardioResult("SHORTENED", 23)),
             drafts = listOf(CardioDistanceDraft(0, stopped = true))))
         var saved = 0
+        var delivered: CardioSetAction? = null
         val actions = pagerActions().copy(
             onCardioDistanceChange = { text -> run = run.copy(drafts = listOf(run.drafts.single().copy(text = text))) },
-            onSaveCardioDistance = { saved++ },
+            onSaveCardioDistance = { delivered = it; saved++ },
         )
         rule.setContent { AppTheme { CardioDistanceSheet(run, 0, actions) } }
         rule.onNodeWithText("Set stopped").assertExists()
@@ -83,7 +88,10 @@ class CardioSetsScreenTest {
         rule.onNodeWithText("Done").assertIsEnabled()
         rule.onNodeWithText("Distance (m)").performTextReplacement("")
         rule.onNodeWithText("Done").performClick()
-        rule.runOnIdle { assertEquals(1, saved) }
+        rule.runOnIdle {
+            assertEquals(1, saved)
+            assertEquals(run.action(0), delivered)
+        }
     }
 
     @Test fun allSetsReportsStatusesAndTheMeasuredAimComparison() {
@@ -95,6 +103,16 @@ class CardioSetsScreenTest {
         rule.onNodeWithText("Finished · 2:07 / 1:45 · Aim missed").assertExists()
         rule.onNodeWithText("Set 2, Recovery, Ready").assertExists()
         rule.onNodeWithText("Add set").assertIsEnabled()
+    }
+
+    @Test fun addSetIsDisabledWhenAnotherDayOwnsExecution() {
+        val cardio = CardioCardState("Track run", "", false, block = block(), canAddSet = false)
+        var additions = 0
+        rule.setContent { AppTheme {
+            CardioSetsSheet(cardio, pagerActions().copy(onAddCardioSet = { additions++ }))
+        } }
+        rule.onNodeWithText("Add set").assertIsNotEnabled().performClick()
+        rule.runOnIdle { assertEquals(0, additions) }
     }
 
     @Test fun distanceAndRecoveryHoldTheViewAwakeAndDisposalClearsIt() {

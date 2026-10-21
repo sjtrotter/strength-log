@@ -35,6 +35,7 @@ data class DayUiState(
     val selectedPageKey: String? = null,
     val openSheet: OpenSheet? = null,
     val viewDayId: String? = null,
+    val planId: Long? = null,
     val dayIndex: Int = 0,
     val dayTitle: String = "",
     val emphasisLine: String = "",
@@ -77,6 +78,7 @@ data class OpenSheet(
     val kind: Kind,
     val programExerciseId: Long,
     val setIndex: Int,
+    val cardioRunId: String? = null,
 ) : Parcelable {
     enum class Kind { EDITOR, ALL_SETS, TIMED_REP_COUNT, CARDIO_DISTANCE, CARDIO_SETS }
 }
@@ -125,9 +127,12 @@ data class CardioCardState(
     val elapsedSeconds: Int = 0,
     /** Most recent logged session for this day, derived from Room history. */
     val loggedSeconds: Int? = null,
+    val loggedSessionId: Long? = null,
     val loggedSets: List<cloud.trotter.log.strength.domain.model.CardioSetResult> = emptyList(),
     val block: cloud.trotter.log.strength.domain.model.CardioBlock? = null,
     val run: CardioRun? = null,
+    val distanceRuns: List<CardioRun> = emptyList(),
+    val canAddSet: Boolean = true,
     val finishesDay: Boolean = false,
 )
 

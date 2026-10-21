@@ -18,6 +18,7 @@ class TimedRepStateTest {
         List(2) { WatchSet(0.0, 0, "WORK", false) }, emptyList(),
         goalLabel = "2:00 · aim 40", tracking = "reps", targetDetail = "Each side · Red band",
         repWindowSeconds = 120, repAim = 40, prescribed = true,
+        exerciseId = "push-ups",
     )
     private val snapshot = WatchSnapshot(revision = 1L, suggestedDayId = "A",
         day = WatchDay("A", "Test", 0, listOf(exercise)), unit = "lb", planId = 9L)
@@ -51,6 +52,7 @@ class TimedRepStateTest {
         assertTrue("1:00" in texts(running))
         assertEquals(DialTap.NONE, running.tap)
         assertEquals(DialHoldAction.STOP_TIMED_REP, running.hold?.action)
+        assertEquals(attempt, running.hold?.timedRepAttempt)
         assertNull(buildTimedRepDelta(attempt, snapshot, 150_000L))
         val alarm = RecordingAlarm()
         var buzzes = 0
@@ -159,12 +161,47 @@ class TimedRepStateTest {
         assertNull(restored.reconcile(snapshot.copy(planId = 10L)))
         assertNull(restored.reconcile(snapshot.copy(day = snapshot.day.copy(dayId = "B"))))
         for (changed in listOf(exercise.copy(programExerciseId = 8L), exercise.copy(slot = "ss"),
+            exercise.copy(exerciseId = "squats"),
             exercise.copy(sets = exercise.sets.mapIndexed { i, set -> set.copy(done = i == 0) }),
             exercise.copy(repWindowSeconds = 60))) {
             assertNull(restored.reconcile(snapshot.copy(day = snapshot.day.copy(exercises = listOf(changed)))))
         }
         assertNull(restored.copy(owner = restored.owner.copy(setIndex = 1)).reconcile(snapshot))
         assertNotNull(restored.reconcile(snapshot))
+    }
+
+    @Test
+    fun `phone swap with the same slot and prescription discards running and count attempts`() {
+        val attempt = assertNotNull(start())
+        val swapped = snapshot.copy(day = snapshot.day.copy(exercises = listOf(
+            exercise.copy(exerciseId = "squats", name = "Squats"),
+        )))
+        assertEquals("push-ups", attempt.owner.exerciseId)
+        assertNull(attempt.reconcile(swapped))
+        assertNull(attempt.resume(swapped, 70_000L, 160_000L, 4))
+        assertNull(attempt.timeUp().reconcile(swapped))
+        assertNull(buildTimedRepDelta(attempt.timeUp().turn(38), swapped, 240_000L))
+    }
+
+    @Test
+    fun `stop requires the same running attempt and cannot clear count or a later start`() {
+        val pressed = assertNotNull(start())
+        assertTrue(pressed.matchesRunningAttempt(pressed))
+        assertFalse(pressed.matchesRunningAttempt(null))
+        assertFalse(pressed.timeUp().turn(38).matchesRunningAttempt(pressed))
+        assertFalse(pressed.copy(startedAtElapsedMillis = 20_000L).matchesRunningAttempt(pressed))
+        assertFalse(pressed.copy(owner = pressed.owner.copy(exerciseId = "squats"))
+            .matchesRunningAttempt(pressed))
+    }
+
+    @Test
+    fun `saved attempt without content identity is discarded`() {
+        val saved = with(timedRepStateSaver) { assertNotNull(scope.save(assertNotNull(start()))) }
+        assertNull(timedRepStateSaver.restore((saved as List<*>).toMutableList().also { values ->
+            val keyIndex = values.indexOf("slotExerciseId")
+            values.removeAt(keyIndex + 1)
+            values.removeAt(keyIndex)
+        }))
     }
 
     @Test

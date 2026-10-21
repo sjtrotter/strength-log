@@ -9,6 +9,7 @@ data class TimedRepOwner(
     val planId: Long?,
     val dayId: String,
     val programExerciseId: Long,
+    val exerciseId: String,
     val slot: String,
     val setIndex: Int,
 )
@@ -47,6 +48,9 @@ data class TimedRepState(
 
     fun timeUp(): TimedRepState = copy(phase = TimedRepPhase.COUNT)
 
+    fun matchesRunningAttempt(pressed: TimedRepState?): Boolean =
+        phase == TimedRepPhase.RUNNING && this == pressed
+
     fun turn(detents: Int): TimedRepState = if (phase == TimedRepPhase.COUNT) {
         copy(count = (count.toLong() + detents).coerceIn(0L, 999L).toInt())
     } else this
@@ -56,7 +60,8 @@ data class TimedRepState(
         if (owner.planId != snapshot.planId || owner.dayId != snapshot.day.dayId) return null
         val exercise = snapshot.day.exercises.find { it.programExerciseId == owner.programExerciseId }
             ?: return null
-        if (exercise.slot != owner.slot || exercise.repWindowSeconds != totalSeconds) return null
+        if (exercise.exerciseId != owner.exerciseId || exercise.slot != owner.slot ||
+            exercise.repWindowSeconds != totalSeconds) return null
         if (owner.setIndex != currentRoundIndex(exercise)) return null
         if (exercise.sets.getOrNull(owner.setIndex)?.done != false) return null
         return this
@@ -77,7 +82,8 @@ fun startTimedRep(
     val index = currentRoundIndex(exercise)
     if (exercise.repWindowSeconds <= 0 || exercise.sets.getOrNull(index)?.done != false) return null
     return TimedRepState(
-        TimedRepOwner(snapshot.planId, snapshot.day.dayId, exercise.programExerciseId, exercise.slot, index),
+        TimedRepOwner(snapshot.planId, snapshot.day.dayId, exercise.programExerciseId,
+            exercise.exerciseId, exercise.slot, index),
         exercise.repWindowSeconds, nowWallMillis, nowElapsedMillis, bootCount,
     )
 }
@@ -100,15 +106,18 @@ internal val timedRepStateSaver = mapSaver<TimedRepState?>(
         if (state == null) emptyMap() else mapOf(
             "planId" to state.owner.planId, "dayId" to state.owner.dayId,
             "exerciseId" to state.owner.programExerciseId, "slot" to state.owner.slot,
+            "slotExerciseId" to state.owner.exerciseId,
             "setIndex" to state.owner.setIndex, "seconds" to state.totalSeconds,
             "wall" to state.startedAtWallMillis, "elapsed" to state.startedAtElapsedMillis,
             "boot" to state.bootCount, "phase" to state.phase.name, "count" to state.count,
         )
     },
     restore = { saved ->
-        if (saved.isEmpty()) null else TimedRepState(
+        // Older saved attempts lack the slot's content identity and cannot be validated.
+        if (saved["slotExerciseId"] !is String) null else TimedRepState(
             TimedRepOwner(saved["planId"] as Long?, saved["dayId"] as String,
-                saved["exerciseId"] as Long, saved["slot"] as String, saved["setIndex"] as Int),
+                saved["exerciseId"] as Long, saved["slotExerciseId"] as String,
+                saved["slot"] as String, saved["setIndex"] as Int),
             saved["seconds"] as Int, saved["wall"] as Long, saved["elapsed"] as Long,
             saved["boot"] as Int, TimedRepPhase.valueOf(saved["phase"] as String),
             (saved["count"] as Int).coerceIn(0, 999),

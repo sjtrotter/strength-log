@@ -219,7 +219,6 @@ fun WearApp(
             restController.disarm()
         }
     }
-    TimedRepScreenAwake(timedRep?.phase == TimedRepPhase.RUNNING)
 
     val loadingMachine = remember(companionDetector, rootScope) {
         LoadingDialStateMachine(companionDetector, rootScope)
@@ -289,9 +288,6 @@ fun WearApp(
                     snapshot = snap,
                     ambientTick = ambientTick,
                     rest = restController.activeRest,
-                    repWindowDeadlineMillis = timedRep?.takeIf { it.phase == TimedRepPhase.RUNNING }?.deadline(
-                        SystemClock.elapsedRealtime(), System.currentTimeMillis(), bootCountNow(),
-                    ),
                     burnInProtectionRequired = burnInProtectionRequired,
                     deviceHasLowBitAmbient = deviceHasLowBitAmbient,
                 )
@@ -695,6 +691,13 @@ private fun WorkoutDial(
 
     // The crown reads the screen it's on: exercises on the overview, rounds in a
     // session, nothing where there is nothing to look through (§6).
+    fun changeRepCount(detents: Int): Int {
+        val attempt = timedRep ?: return 0
+        val next = attempt.turn(detents)
+        onTimedRepChanged(next)
+        return next.count - attempt.count
+    }
+
     val crown = rememberCrownModifier(enabled = state.crown != DialCrown.NONE) { detents ->
         var moved = 0
         when (state.crown) {
@@ -727,10 +730,7 @@ private fun WorkoutDial(
                 swapPreview = next
             }
             DialCrown.REP_COUNT -> {
-                val attempt = timedRep ?: return@rememberCrownModifier
-                val next = attempt.turn(detents)
-                moved = next.count - attempt.count
-                onTimedRepChanged(next)
+                moved = changeRepCount(detents)
             }
             DialCrown.NONE -> Unit
         }
@@ -778,6 +778,7 @@ private fun WorkoutDial(
         }
         Dial(
             state = state,
+            onRepCountChange = { changeRepCount(it) },
             modifier = Modifier.fillMaxSize().background(Background).then(swipeLeft),
             onTap = {
                 when (state.tap) {
@@ -809,10 +810,17 @@ private fun WorkoutDial(
                     DialHoldAction.UNDO -> hold.target?.let(::undo)
                     DialHoldAction.STOP_CARDIO -> stopCardio()
                     DialHoldAction.STOP_TIMED_REP -> {
-                        restController.disarm()
-                        onTimedRepChanged(null)
-                        face = DialFace.WORKOUT
-                        DialHaptics.perform(view, DialHaptics.Cue.START)
+                        val attempt = timedRep
+                        if (attempt != null && attempt.matchesRunningAttempt(hold.timedRepAttempt) &&
+                            attempt.reconcile(snap) != null && !RestTimer.isExpired(
+                                attempt.deadline(SystemClock.elapsedRealtime(), System.currentTimeMillis(), bootCount),
+                                SystemClock.elapsedRealtime(),
+                            )) {
+                            restController.disarm()
+                            onTimedRepChanged(null)
+                            face = DialFace.WORKOUT
+                            DialHaptics.perform(view, DialHaptics.Cue.START)
+                        }
                     }
                 }
             },

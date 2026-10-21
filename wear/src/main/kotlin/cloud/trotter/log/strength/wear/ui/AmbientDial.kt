@@ -49,14 +49,13 @@ fun AmbientDial(
     rest: RestTimerController.ActiveRest? = null,
     burnInProtectionRequired: Boolean = false,
     deviceHasLowBitAmbient: Boolean = false,
-    repWindowDeadlineMillis: Long? = null,
 ) {
     // Raw templates resolved in composition (the lint-endorsed configuration-
     // aware path); the state builder formats them with runtime values later.
     val dayTemplate = stringResource(R.string.dial_day)
     val progressTemplate = stringResource(R.string.ambient_day_progress)
     val restingText = stringResource(R.string.ambient_resting)
-    val state = remember(ambientTick, snapshot, rest, repWindowDeadlineMillis, dayTemplate, progressTemplate, restingText) {
+    val state = remember(ambientTick, snapshot, rest, dayTemplate, progressTemplate, restingText) {
         val remaining = rest?.let {
             RestTimer.remainingSeconds(it.deadlineMillis, SystemClock.elapsedRealtime())
         }
@@ -67,9 +66,6 @@ fun AmbientDial(
             dayText = { dayTemplate.format(it) },
             dayProgressText = { day, done, total -> progressTemplate.format(day, done, total) },
             restingText = rest?.ambientLabel ?: restingText,
-            countdownSeconds = repWindowDeadlineMillis?.let {
-                RestTimer.remainingSeconds(it, SystemClock.elapsedRealtime())
-            },
         )
     }
 

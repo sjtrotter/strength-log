@@ -13,8 +13,8 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
  *
  * The day arc is the only thing always drawn. When a clock is running the centre
  * gives its numeral over to a cadence-safe resting label and the time steps down
- * to the bottom band. An executing rep window instead shows its remaining time
- * at the system's ambient update cadence; it never starts a per-second ticker.
+ * to the bottom band. Cardio and executing rep windows use their active exercise
+ * label through the same path; minute-cadence updates never promise seconds.
  */
 data class AmbientDialState(
     /** Outer ring: sets logged today / sets today, as an outline arc. */
@@ -34,7 +34,6 @@ fun ambientDialState(
     dayText: (String) -> String,
     dayProgressText: (String, Int, Int) -> String,
     restingText: String,
-    countdownSeconds: Int? = null,
 ): AmbientDialState {
     val progress = DayProgress.of(snapshot.day)
     val resting = restRemainingSeconds?.let { it > 0 } == true
@@ -46,10 +45,9 @@ fun ambientDialState(
             dayProgressText(snapshot.day.dayId, progress.done, progress.total).uppercase()
         },
         centerText = when {
-            countdownSeconds != null -> DialFormat.clock(countdownSeconds.toLong())
             resting -> restingText.uppercase()
             else -> timeText
         },
-        bottomText = timeText.takeIf { resting || countdownSeconds != null },
+        bottomText = timeText.takeIf { resting },
     )
 }

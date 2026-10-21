@@ -101,6 +101,7 @@ data class DialHold(
     val action: DialHoldAction,
     val disc: DiscContent,
     val target: UndoTarget? = null,
+    val timedRepAttempt: TimedRepState? = null,
 )
 
 data class DialUiState(

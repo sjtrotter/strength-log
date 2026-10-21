@@ -744,6 +744,7 @@ private class ScreenContext(
             hold = if (counting) null else DialHold(
                 DialHoldAction.STOP_TIMED_REP,
                 DiscContent(DiscStyle.FLAT, listOf(DiscLine(copy.timedRepStop.uppercase(), DialTextRole.DISC_LABEL, DialTone.PRIMARY))),
+                timedRepAttempt = attempt,
             ),
         )
     }

@@ -31,11 +31,10 @@ fun ambientDialState(
     snapshot: cloud.trotter.log.strength.domain.sync.WatchSnapshot,
     timeText: String,
     restRemainingSeconds: Int? = null,
-    countdownSeconds: Int? = null,
+    ambientLabel: String? = null,
 ): AmbientDialState = ambientDialState(
     snapshot, timeText, restRemainingSeconds,
     dayText = { "day $it" },
     dayProgressText = { day, done, total -> "day $day · $done/$total" },
-    restingText = "resting",
-    countdownSeconds = countdownSeconds,
+    restingText = ambientLabel ?: "resting",
 )

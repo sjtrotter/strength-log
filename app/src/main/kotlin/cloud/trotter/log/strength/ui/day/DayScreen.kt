@@ -122,9 +122,9 @@ fun DayScreen(
 ) {
     val accent = dayAccent(state.dayIndex)
     val onAccent = onDayAccent(state.dayIndex)
-    // The day-edit sheet (#11) is not a nav route (brief D1): it lives entirely
-    // as local UI state here, sharing this screen's DayViewModel-derived data.
-    var showEditSheet by rememberSaveable { mutableStateOf(false) }
+    // The sheet stays inside the day feature; its shared ViewModel restores
+    // the open editor and prescription draft after process death.
+    val showEditSheet = dayEditState.editorOpen
     // The page menu reuses the day editor's slot picker.
     var swapCardSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     // Clearing the entire day retains its confirmation; single-set removal offers Undo.
@@ -266,7 +266,7 @@ fun DayScreen(
                                         text = { Text(stringResource(R.string.day_menu_edit_day)) },
                                         onClick = {
                                             menuOpen = false
-                                            showEditSheet = true
+                                            dayEditActions.onEditorOpen(true)
                                         },
                                     )
                                     DropdownMenuItem(
@@ -301,7 +301,7 @@ fun DayScreen(
                     )
                 },
                 bottomBar = {
-                    if (!standaloneCardio) {
+                    if (!standaloneCardio && pages.isNotEmpty()) {
                         Row(
                             modifier = Modifier.fillMaxWidth().navigationBarsPadding()
                                 .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp),
@@ -357,7 +357,7 @@ fun DayScreen(
                             }
                         }
                     }
-                    Row(
+                    if (pages.isNotEmpty()) Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -377,7 +377,16 @@ fun DayScreen(
                             )
                         }
                     }
-                    if (pages.isNotEmpty()) {
+                    if (pages.isEmpty()) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(stringResource(R.string.day_no_exercises), style = MaterialTheme.typography.bodyLarge)
+                                TextButton(onClick = { dayEditActions.onEditorOpen(true) }) {
+                                    Text(stringResource(R.string.day_menu_edit_day))
+                                }
+                            }
+                        }
+                    } else {
                         HorizontalPager(
                             state = pagerState,
                             key = { pages[it].key },
@@ -454,7 +463,7 @@ fun DayScreen(
             state = dayEditState,
             actions = dayEditActions,
             accent = accent,
-            onDismiss = { showEditSheet = false },
+            onDismiss = { dayEditActions.onEditorOpen(false) },
             onCreateExercise = actions.onCreateExercise,
         )
     }

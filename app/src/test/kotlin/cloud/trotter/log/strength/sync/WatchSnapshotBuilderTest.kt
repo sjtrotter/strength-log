@@ -48,6 +48,23 @@ class WatchSnapshotBuilderTest {
         LoggedSlot(id, slot, sets, checkDate = "2026-07-09")
 
     @Test
+    fun `an empty next day retains plan identity title and its index in the rotation`() {
+        val authored = program.copy(days = program.days + ProgramDay("C", "Daily rehab", "", emptyList(), null))
+        val snapshot = WatchSnapshotBuilder.build(
+            authored, "C", emptyList(), emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
+            planId = 42L, planName = "Rehab",
+        )!!
+        assertEquals(42L, snapshot.planId)
+        assertEquals("Rehab", snapshot.planName)
+        assertEquals("C", snapshot.suggestedDayId)
+        assertEquals("C", snapshot.day.dayId)
+        assertEquals("Daily rehab", snapshot.day.title)
+        assertEquals(2, snapshot.day.accentIndex)
+        assertEquals(emptyList(), snapshot.day.exercises)
+        assertEquals(listOf("A", "B", "C"), snapshot.cycle.map { it.dayId })
+    }
+
+    @Test
     fun `snapshot tracking and unopened rows follow the prescription over the catalog`() {
         val exercise = ProgramExercise("bb_back_squat", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 50)))
         val authored = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise), null)))

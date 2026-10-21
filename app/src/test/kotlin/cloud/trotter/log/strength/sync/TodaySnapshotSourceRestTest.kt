@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.widget.TodayWidgetContent
 import cloud.trotter.log.strength.widget.todayWidgetContent
@@ -26,12 +27,14 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -82,6 +85,48 @@ class TodaySnapshotSourceRestTest {
     fun tearDown() {
         db.close()
         storeScope.cancel()
+    }
+
+    @Test
+    fun `an empty authored day publishes its plan and day identity without exercises`() = runTest(dispatcher) {
+        val planId = repo.createAuthoredPlan("Rehab", "Daily rehab")
+        repo.publishCreatedAuthoredPlan(planId)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val snapshot = source.snapshots.publishableSnapshots().first()
+        val published = mutableListOf<WatchSnapshot>()
+        publishSnapshotWithinSizeLimit(
+            snapshot,
+            spendStamp = { SnapshotStamp(epoch = 1L, revision = 1L) },
+            publishBytes = { published += SyncCodec.decodeSnapshot(it) },
+        )
+
+        assertEquals(1, published.size)
+        val day = published.single()
+        assertEquals(planId, day.planId)
+        assertEquals("Rehab", day.planName)
+        assertEquals("A", day.suggestedDayId)
+        assertEquals("A", day.day.dayId)
+        assertEquals("Daily rehab", day.day.title)
+        assertEquals(0, day.day.accentIndex)
+        assertTrue(day.day.exercises.isEmpty())
+    }
+
+    @Test
+    fun `no program projects null and publishes nothing`() = runTest(dispatcher) {
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val projection = source.snapshots.first()
+        assertEquals(null, projection)
+        var stamps = 0
+        val published = mutableListOf<ByteArray>()
+        flowOf(projection).publishableSnapshots().collect {
+            publishSnapshotWithinSizeLimit(
+                it,
+                spendStamp = { stamps++; SnapshotStamp(epoch = 1L, revision = 1L) },
+                publishBytes = { bytes -> published += bytes },
+            )
+        }
+        assertEquals(0, stamps)
+        assertEquals(emptyList<ByteArray>(), published)
     }
 
     @Test

@@ -13,6 +13,7 @@ private val TEST_DIAL_COPY = DialCopy(
     thenPartner = { name, summary -> "then $name $summary" },
     releaseToReturn = "↺ release to return", queued = { "$it queued" },
     noProgram = "no program", setUpOnPhone = "set up on your phone",
+    noExercisesYet = "No exercises yet",
     rampLabel = { "R$it" }, topLabel = "TOP", backoffLabel = "B/O",
     cardio = "cardio", cardioStart = "start finisher",
     cardioHoldToStop = "hold to stop", cardioStop = "stop + log",

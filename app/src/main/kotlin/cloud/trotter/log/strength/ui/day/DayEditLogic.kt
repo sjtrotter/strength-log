@@ -44,7 +44,7 @@ object DayEditRules {
 }
 
 /** A page of the day-edit sheet above its root slot list (issue #122). */
-enum class DayEditPage { SWAP, SUPERSET_PATTERN, SUPERSET_EXERCISE, ADD_PATTERN, ADD_EXERCISE, OPTIONS }
+enum class DayEditPage { PRESCRIPTION, SWAP, SUPERSET_PATTERN, SUPERSET_EXERCISE, ADD_PATTERN, ADD_EXERCISE, OPTIONS }
 
 /**
  * Which page a back press pops, given which of the sheet's page states are
@@ -62,7 +62,9 @@ fun dayEditBackTarget(
     pickingPattern: Boolean,
     addingFromPattern: Boolean,
     options: Boolean,
+    prescription: Boolean = false,
 ): DayEditPage? = when {
+    prescription -> DayEditPage.PRESCRIPTION
     swapping -> DayEditPage.SWAP
     supersetSlot && supersetPatternPicked -> DayEditPage.SUPERSET_EXERCISE
     supersetSlot -> DayEditPage.SUPERSET_PATTERN

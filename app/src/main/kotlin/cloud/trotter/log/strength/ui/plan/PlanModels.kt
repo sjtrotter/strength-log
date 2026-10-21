@@ -8,6 +8,12 @@ data class PlanUiState(
     val loading: Boolean = false,
     val hasProgram: Boolean = false,
     val days: List<PlanDay> = emptyList(),
+    val planId: Long? = null,
+    val authored: Boolean = false,
+    val menuDayId: String? = null,
+    val dialog: String? = null,
+    val dialogDayId: String? = null,
+    val dayTitleDraft: String = "",
 )
 
 data class PlanDay(
@@ -23,4 +29,11 @@ data class PlanActions(
     val onOpenDay: (String) -> Unit,
     val onOpenPlans: () -> Unit,
     val onSetUpProgram: () -> Unit,
+    val onAddDay: () -> Unit = {},
+    val onDayMenu: (String?) -> Unit = {},
+    val onRenameDay: (String) -> Unit = {},
+    val onRemoveDay: (String) -> Unit = {},
+    val onDayTitleDraft: (String) -> Unit = {},
+    val onSaveDayDialog: () -> Unit = {},
+    val onDismissDayDialog: () -> Unit = {},
 )

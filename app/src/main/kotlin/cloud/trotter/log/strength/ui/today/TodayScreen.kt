@@ -127,7 +127,14 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                                 style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
-                            state.coachLine?.let { coachLine ->
+                            if (state.lifts.isEmpty() && state.cardio == null) {
+                                Text(
+                                    text = stringResource(R.string.day_no_exercises),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            state.coachLine?.takeIf { state.lifts.isNotEmpty() || state.cardio != null }?.let { coachLine ->
                                 Text(
                                     text = coachLine.resolve(),
                                     style = MaterialTheme.typography.bodyLarge,

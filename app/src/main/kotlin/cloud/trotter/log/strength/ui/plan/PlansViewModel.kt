@@ -30,9 +30,49 @@ class PlansViewModel @Inject constructor(
     private val selections = Channel<Unit>(Channel.BUFFERED)
     val selected = selections.receiveAsFlow()
 
-    val uiState = combine(repo.planSummariesFlow, menuPlanId, renamePlanId, renameDraft) { plans, menu, rename, draft ->
+    private val newPlanPage = savedState.getStateFlow<String?>(NEW_PAGE, null)
+    private val newPlanName = savedState.getStateFlow(NEW_NAME, "")
+    private val creating = MutableStateFlow(false)
+    private val newPlanState = combine(newPlanPage, newPlanName, creating) { page, name, busy ->
+        Triple(page, name, busy)
+    }
+    private val existingState = combine(repo.planSummariesFlow, menuPlanId, renamePlanId, renameDraft) { plans, menu, rename, draft ->
         PlansUiState(plans, menu, rename, draft)
+    }
+    val uiState = combine(existingState, newPlanState) { state, new ->
+        state.copy(newPlanPage = new.first, newPlanName = new.second, creating = new.third)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PlansUiState())
+
+    fun showNewPlan() { savedState[NEW_PAGE] = "choice" }
+    fun startEmpty() { savedState[NEW_PAGE] = "name" }
+    fun setNewPlanName(name: String) { if (!creating.value) savedState[NEW_NAME] = name }
+    fun dismissNewPlan() {
+        if (creating.value) return
+        savedState[NEW_PAGE] = null
+        savedState[NEW_NAME] = ""
+        savedState[CREATED_ID] = null
+    }
+
+    fun createEmpty() {
+        val name = newPlanName.value.trim()
+        if (creating.value || name.length !in 1..40) return
+        creating.value = true
+        viewModelScope.launch {
+            try {
+                val remembered = savedState.get<Long>(CREATED_ID)?.takeIf { repo.planHasDays(it) }
+                val id = remembered ?: repo.createAuthoredPlan(name, context.getString(R.string.authored_day_title, "A"))
+                    .also { savedState[CREATED_ID] = it }
+                repo.publishCreatedAuthoredPlan(id)
+                creating.value = false
+                if (repo.selectedPlanIdFlow.first() == id) {
+                    dismissNewPlan()
+                    selections.send(Unit)
+                }
+            } finally {
+                creating.value = false
+            }
+        }
+    }
 
     fun openMenu(id: Long?) {
         menuPlanId.value = id
@@ -92,6 +132,9 @@ class PlansViewModel @Inject constructor(
     }
 
     private companion object {
+        const val NEW_PAGE = "plans_new_page"
+        const val NEW_NAME = "plans_new_name"
+        const val CREATED_ID = "plans_created_id"
         const val RENAME_ID = "plans_rename_id"
         const val RENAME_DRAFT = "plans_rename_draft"
     }

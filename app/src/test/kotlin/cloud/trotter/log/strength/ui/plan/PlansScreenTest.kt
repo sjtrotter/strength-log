@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.data.PlanSummary
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -24,6 +25,33 @@ import org.robolectric.annotation.Config
 class PlansScreenTest {
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    private fun actions() = PlansActions(
+        onBack = {}, onNewPlan = {}, onSelect = {}, onMenu = {},
+        onRename = {}, onRenameDraft = {}, onSaveRename = {}, onDismissRename = {},
+        onDuplicate = {}, onArchive = {}, onRestore = {},
+    )
+
+    @Test
+    fun newPlanOpensTheChoiceDialog() {
+        var opened = false
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(), actions().copy(onShowNewPlan = { opened = true }))
+        } }
+        composeTestRule.onNodeWithText("New plan").performClick()
+        assertTrue(opened)
+    }
+
+    @Test
+    fun newPlanChoiceOffersWizardAndEmpty() {
+        var startedEmpty = false
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(newPlanPage = "choice"), actions().copy(onStartEmpty = { startedEmpty = true }))
+        } }
+        composeTestRule.onNodeWithText("Generate with the wizard").assertExists()
+        composeTestRule.onNodeWithText("Start empty").performClick()
+        assertTrue(startedEmpty)
+    }
 
     @Test
     fun planNameLabelsTheRadioRowAndOverflowRemainsASeparateAction() {

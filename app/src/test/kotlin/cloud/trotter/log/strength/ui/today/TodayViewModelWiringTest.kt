@@ -129,6 +129,24 @@ class TodayViewModelWiringTest {
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
 
+    @Test
+    fun emptyAuthoredDaysRemainVisibleAndRemovingTheSuggestedDayMovesToday() = runVmTest {
+        val plan = repo.createAuthoredPlan("Physio", "Day A")
+        repo.publishCreatedAuthoredPlan(plan)
+        repo.addDay(plan, "Day B")
+        val vm = newTodayViewModel()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.hasProgram)
+        assertEquals("Day A", vm.uiState.value.dayTitle)
+        assertTrue(vm.uiState.value.lifts.isEmpty())
+        assertTrue(repo.removeDay(plan, "A"))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.hasProgram)
+        assertEquals("B", vm.uiState.value.dayId)
+        assertEquals("Day B", vm.uiState.value.dayTitle)
+        assertTrue(vm.uiState.value.lifts.isEmpty())
+    }
+
     /** A 3-day rotation. Day A carries both seeding shapes on purpose: a
      *  weighted main, whose `targetSets` of 3 seeds to 6 rows (4 ramps + TOP +
      *  back-off, §11), and an accessory, which seeds to its target of 4. The

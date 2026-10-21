@@ -102,6 +102,15 @@ interface ProgramDao {
     @Query("UPDATE program_exercise SET exerciseId = :exerciseId WHERE id = :id")
     suspend fun setExerciseId(id: Long, exerciseId: String)
 
+    @Query("UPDATE program_exercise SET prescriptionJson = :json, targetSets = :sets WHERE id = :id")
+    suspend fun setPrescription(id: Long, json: String, sets: Int)
+
+    @Query("UPDATE program_exercise SET position = :position WHERE id = :id")
+    suspend fun setPosition(id: Long, position: Int)
+
+    @Query("DELETE FROM program_day WHERE planId = :planId AND dayId = :dayId")
+    suspend fun deleteDay(planId: Long, dayId: String)
+
     @Query("UPDATE program_exercise SET note = :note WHERE id = :id")
     suspend fun setExerciseNote(id: Long, note: String)
 

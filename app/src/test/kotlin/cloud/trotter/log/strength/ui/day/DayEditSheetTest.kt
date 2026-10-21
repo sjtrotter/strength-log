@@ -19,7 +19,7 @@ class DayEditSheetTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun show(canSetSuperset: Boolean) {
+    private fun show(canSetSuperset: Boolean, authored: Boolean = false, edit: Boolean = true) {
         val slot = DayEditSlotState(
             programExerciseId = 1L,
             position = 0,
@@ -32,7 +32,7 @@ class DayEditSheetTest {
         composeTestRule.setContent {
             AppTheme {
                 DayEditSheet(
-                    state = DayEditUiState(slots = listOf(slot)),
+                    state = DayEditUiState(slots = listOf(slot), authored = authored),
                     actions = DayEditActions(
                         onSwap = { _, _ -> },
                         onAdd = {},
@@ -47,7 +47,28 @@ class DayEditSheetTest {
                 )
             }
         }
-        composeTestRule.onNodeWithText("Edit").performClick()
+        if (edit) composeTestRule.onNodeWithText("Edit").performClick()
+    }
+
+    @Test
+    fun authoredSlotOffersPrescriptionAndMovesWithoutSupersets() {
+        show(canSetSuperset = true, authored = true)
+        composeTestRule.onNodeWithText("Prescription").assertExists()
+        composeTestRule.onNodeWithText("Move up").assertExists()
+        composeTestRule.onNodeWithText("Move down").assertExists()
+        composeTestRule.onNodeWithText("Add superset").assertDoesNotExist()
+    }
+
+    @Test
+    fun authoredDayHidesResetToTemplate() {
+        show(canSetSuperset = false, authored = true, edit = false)
+        composeTestRule.onNodeWithText("Reset day to template").assertDoesNotExist()
+    }
+
+    @Test
+    fun generatedDayKeepsResetToTemplate() {
+        show(canSetSuperset = true, edit = false)
+        composeTestRule.onNodeWithText("Reset day to template").assertExists()
     }
 
     @Test

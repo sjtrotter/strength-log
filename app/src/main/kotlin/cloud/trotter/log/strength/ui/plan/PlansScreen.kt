@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.plan
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
@@ -58,7 +59,7 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = actions.onNewPlan) {
+            ExtendedFloatingActionButton(onClick = actions.onShowNewPlan) {
                 Text(stringResource(R.string.plans_new))
             }
         },
@@ -82,6 +83,42 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
             // Leave the last row and its menu clear of the floating action button.
             item(key = "bottom_space") { Box(Modifier.padding(bottom = 88.dp)) }
         }
+    }
+    if (state.newPlanPage != null) {
+        AlertDialog(
+            onDismissRequest = actions.onDismissNewPlan,
+            title = { Text(stringResource(R.string.plans_new)) },
+            text = {
+                if (state.newPlanPage == "choice") {
+                    Column {
+                        TextButton(onClick = { actions.onDismissNewPlan(); actions.onNewPlan() }) {
+                            Text(stringResource(R.string.plans_generate))
+                        }
+                        TextButton(onClick = actions.onStartEmpty) { Text(stringResource(R.string.plans_start_empty)) }
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = state.newPlanName,
+                        onValueChange = actions.onNewPlanName,
+                        label = { Text(stringResource(R.string.plans_name)) },
+                        singleLine = true,
+                        enabled = !state.creating,
+                    )
+                }
+            },
+            confirmButton = {
+                if (state.newPlanPage == "name") {
+                    TextButton(onClick = actions.onCreateEmpty, enabled = !state.creating && state.newPlanName.trim().length in 1..40) {
+                        Text(stringResource(R.string.plans_create))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = actions.onDismissNewPlan, enabled = !state.creating) {
+                    Text(stringResource(R.string.setup_cancel_button))
+                }
+            },
+        )
     }
     if (state.renamePlanId != null) {
         AlertDialog(

@@ -8,6 +8,8 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.WearSyncPaths
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
@@ -45,13 +47,13 @@ class WearSyncPublisher(
         if (started) return
         started = true
         source.snapshots
-            .distinctUntilChanged()
-            .onEach { content -> content?.let { publish(it) } }
+            .publishableSnapshots()
+            .onEach { publish(it) }
             .launchIn(scope)
     }
 
     private suspend fun publish(content: WatchSnapshot) {
-publishSnapshotWithinSizeLimit(
+        publishSnapshotWithinSizeLimit(
             content = content,
             spendStamp = store::nextStamp,
             publishBytes = { bytes ->
@@ -76,6 +78,10 @@ publishSnapshotWithinSizeLimit(
         internal const val MAX_SNAPSHOT_BYTES = 90_000
     }
 }
+
+/** A missing projection can be transient during restore; leave the watch's cached day alone. */
+internal fun Flow<WatchSnapshot?>.publishableSnapshots(): Flow<WatchSnapshot> =
+    distinctUntilChanged().filterNotNull()
 
 /** Size gate separated from Play Services so its no-revision/no-publish contract is JVM-testable. */
 internal suspend fun publishSnapshotWithinSizeLimit(

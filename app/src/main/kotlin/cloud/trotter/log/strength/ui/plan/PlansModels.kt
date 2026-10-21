@@ -7,6 +7,9 @@ data class PlansUiState(
     val menuPlanId: Long? = null,
     val renamePlanId: Long? = null,
     val renameDraft: String = "",
+    val newPlanPage: String? = null,
+    val newPlanName: String = "",
+    val creating: Boolean = false,
 )
 
 data class PlansActions(
@@ -21,4 +24,9 @@ data class PlansActions(
     val onDuplicate: (Long) -> Unit,
     val onArchive: (Long) -> Unit,
     val onRestore: (Long) -> Unit,
+    val onShowNewPlan: () -> Unit = {},
+    val onStartEmpty: () -> Unit = {},
+    val onNewPlanName: (String) -> Unit = {},
+    val onCreateEmpty: () -> Unit = {},
+    val onDismissNewPlan: () -> Unit = {},
 )

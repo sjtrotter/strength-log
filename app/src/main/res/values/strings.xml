@@ -589,4 +589,26 @@
     <string name="set_edit_one">one</string>
     <string name="set_edit_partner_field">%1$s, %2$s</string>
     <string name="set_done_description">%1$s, %2$s</string>
+    <string name="plans_generate">Generate with the wizard</string>
+    <string name="plans_start_empty">Start empty</string>
+    <string name="plans_create">Create</string>
+    <string name="authored_day_title">Day %1$s</string>
+    <string name="plan_add_day">Add day</string>
+    <string name="plan_day_menu">Day options</string>
+    <string name="plan_rename_day">Rename day</string>
+    <string name="plan_remove_day">Remove day</string>
+    <string name="plan_remove_day_confirm">Remove %1$s and its exercises? History is kept.</string>
+    <string name="day_edit_prescription">Prescription</string>
+    <string name="day_edit_move_up">Move up</string>
+    <string name="day_edit_move_down">Move down</string>
+    <string name="prescription_load_reps">Load × reps</string>
+    <string name="prescription_reps">Reps</string>
+    <string name="prescription_hold">Hold</string>
+    <string name="prescription_reps_in_time">Reps in time</string>
+    <string name="prescription_sets">Sets</string>
+    <string name="prescription_seconds">Seconds</string>
+    <string name="prescription_load">Load (%1$s)</string>
+    <string name="prescription_rep_aim">Rep aim</string>
+    <string name="prescription_resistance">Band or resistance</string>
+    <string name="day_no_exercises">No exercises yet</string>
 </resources>

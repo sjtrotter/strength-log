@@ -83,6 +83,55 @@ class PlansViewModelTest {
     }
 
     @Test
+    fun `start empty restores name draft then creates selects and returns once`() = runTest(dispatcher) {
+        seed()
+        val global = settings.globalLifterFlow.first()
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        first.showNewPlan()
+        advanceUntilIdle()
+        assertEquals("choice", first.uiState.value.newPlanPage)
+        first.startEmpty()
+        first.setNewPlanName("  Physio  ")
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        first.viewModelScope.cancel()
+        val restored = viewModel(restoredHandle)
+        advanceUntilIdle()
+        assertEquals("name", restored.uiState.value.newPlanPage)
+        assertEquals("  Physio  ", restored.uiState.value.newPlanName)
+        restored.createEmpty()
+        restored.createEmpty()
+        advanceUntilIdle()
+        val created = db.planDao().allPlans().last()
+        assertEquals(2, db.planDao().allPlans().size)
+        assertEquals("Physio", created.name)
+        assertEquals("AUTHORED", created.origin)
+        assertEquals(created.id, settings.selectedPlanIdFlow.first())
+        assertEquals(global, settings.globalLifterFlow.first())
+        assertTrue(repo.programFor(created.id).first().days.single().exercises.isEmpty())
+        assertEquals("Day A", repo.programFor(created.id).first().days.single().title)
+        assertNull(restored.uiState.value.newPlanPage)
+        assertEquals(Unit, restored.selected.first())
+    }
+
+    @Test
+    fun `start empty refuses invalid names and dismiss discards the draft`() = runTest(dispatcher) {
+        val vm = viewModel()
+        vm.showNewPlan()
+        vm.startEmpty()
+        for (name in listOf("  ", "x".repeat(41))) {
+            vm.setNewPlanName(name)
+            vm.createEmpty()
+            advanceUntilIdle()
+            assertTrue(db.planDao().allPlans().isEmpty())
+        }
+        vm.dismissNewPlan()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.newPlanPage)
+        assertEquals("", vm.uiState.value.newPlanName)
+    }
+
+    @Test
     fun `rename refuses blank and overlong drafts and saves trimmed name`() = runTest(dispatcher) {
         seed()
         val vm = viewModel()

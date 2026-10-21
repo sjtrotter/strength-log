@@ -192,9 +192,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
         }
-        // Pushed from Today, never the start destination (#121), so system back
-        // out of the workout screen is a plain pop to Today — no BackHandler,
-        // no popUpTo, just the stack doing its job.
+        // Pushed from Today, never the start destination (#121), so leaving an
+        // idle workout screen is a plain pop to Today.
         composable(
             route = Routes.DAY,
             enterTransition = { dayFadeThroughEnterTransition },
@@ -377,7 +376,7 @@ private fun PlanRoute(
 }
 
 @Composable
-private fun DayRoute(
+internal fun DayRoute(
     onCreateExercise: (MovementPattern) -> Unit,
     onSetUpProgram: () -> Unit,
     onFinishSession: () -> Unit,
@@ -430,6 +429,16 @@ private fun DayRoute(
             onDone = viewModel::completeDay,
             onStartCardio = viewModel::startCardio,
             onStopCardio = viewModel::stopCardio,
+            onReachCardioTarget = viewModel::reachCardioTarget,
+            onSkipCardioSet = viewModel::skipCardioSet,
+            onEndCardioBlock = viewModel::endCardioBlock,
+            onAddCardioSet = viewModel::addCardioSet,
+            onOpenCardioSets = viewModel::openCardioSets,
+            onOpenCardioDistance = viewModel::openCardioDistance,
+            onRequestCardioDistance = viewModel::requestCardioDistance,
+            onCardioDistanceChange = viewModel::changeCardioDistance,
+            onSaveCardioDistance = viewModel::saveCardioDistance,
+            onRetryCardioSave = viewModel::retryCardioSave,
             onCardioScreenLive = viewModel::setCardioScreenLive,
             onStartTimedRep = viewModel::startTimedRep,
             onStopTimedRep = viewModel::stopTimedRep,
@@ -465,8 +474,7 @@ private fun DayRoute(
         sessionReceipt = sessionReceipt,
         onShareSession = viewModel::shareSession,
         onFinishSession = {
-            viewModel.dismissSessionReceipt()
-            onFinishSession()
+            if (viewModel.dismissSessionReceipt()) onFinishSession()
         },
         onBack = onFinishSession,
         removedSets = removedSets,

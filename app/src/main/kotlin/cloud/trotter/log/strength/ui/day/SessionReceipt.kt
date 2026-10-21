@@ -47,6 +47,7 @@ data class SessionReceipt(
      *  program with no successor. */
     val nextDayLine: String?,
     val note: String = "",
+    val cardio: CardioRun? = null,
 )
 
 /** The strongest-set row: the lift's name and its set, already formatted. */

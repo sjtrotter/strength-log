@@ -185,8 +185,10 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                         }
                         state.cardio?.let { cardio ->
                             ListItem(
-                                headlineContent = { Text(cardio.label) },
-                                supportingContent = { Text(cardio.detail) },
+                                headlineContent = { Text(cardio.activity?.let { cloud.trotter.log.strength.ui.day.cardioActivityName(it) } ?: cardio.label) },
+                                supportingContent = { Text(cardio.loggedSeconds?.let {
+                                    stringResource(R.string.day_cardio_logged, cloud.trotter.log.strength.ui.day.formatCardioTime(it))
+                                } ?: cardio.detail) },
                                 colors = liftListItemColors(),
                             )
                             HorizontalDivider()
@@ -200,7 +202,9 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                                 contentColor = dayAccent(state.dayIndex),
                             ),
                         ) {
-                            Text(cardioDay.line)
+                            Text(cardioDay.loggedSeconds?.let {
+                                stringResource(R.string.day_cardio_logged, cloud.trotter.log.strength.ui.day.formatCardioTime(it))
+                            } ?: cardioDay.line)
                         }
                     }
                 }

@@ -70,7 +70,10 @@ object LogScreenBuilder {
         cardio: List<SessionListItem>,
     ): List<SessionListItem> = (strength + cardio).sortedByDescending { it.completedAt }
 
-    fun cardioItem(session: CardioSessionEntity): SessionListItem {
+    fun cardioItem(
+        session: CardioSessionEntity,
+        sets: List<cloud.trotter.log.strength.domain.model.CardioSetResult> = emptyList(),
+    ): SessionListItem {
         val duration = durationDisplay(session.seconds)
         return SessionListItem(
             sessionId = session.id,
@@ -86,6 +89,8 @@ object LogScreenBuilder {
             cardioSummary = cardioModeDisplay(session),
             cardioSemantics = session.label,
             cardioDuration = duration,
+            cardioSets = sets,
+            cardioSeconds = if (sets.isEmpty()) 0 else session.seconds,
             planName = session.planName,
             planId = session.planId,
         )

@@ -244,11 +244,11 @@ class TodayViewModelWiringTest {
         advanceUntilIdle()
         val firstContent = Triple(
             "Squat day", UiText.TodayCoach(TodayCoachKind.DAYS, "15 Oct", 5),
-            TodayCardio("Easy jog", "10 minutes"),
+            TodayCardio("Road run", "10 minutes", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN),
         )
         val secondContent = Triple(
             "Run prep", UiText.TodayCoach(TodayCoachKind.DAYS, "18 Oct", 2),
-            TodayCardio("Intervals", "20 minutes"),
+            TodayCardio("Road run", "20 minutes", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN),
         )
         assertEquals("Strength", today.uiState.value.planName)
         assertEquals(firstContent, today.uiState.value.let { Triple(it.dayTitle, it.coachLine, it.cardio) })

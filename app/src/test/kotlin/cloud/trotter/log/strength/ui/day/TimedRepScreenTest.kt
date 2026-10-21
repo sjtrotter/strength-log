@@ -282,12 +282,11 @@ class TimedRepScreenTest {
         rule.setContent { AppTheme {
             DayScreen(
                 state().copy(
-                    cardio = CardioCardState("Easy cardio", "Run easy.", hard = false),
+                    cardio = cardioFixture(),
                     timedRep = TimedRepState(event(), 120), executionBusy = true,
                 ), pagerActions(), DayEditUiState(), pagerEditActions(), standaloneCardio = true,
             )
         } }
-        rule.onNodeWithText("Cardio finisher").performClick()
         rule.onNodeWithText("Start").assertIsNotEnabled()
     }
 

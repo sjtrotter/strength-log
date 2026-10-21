@@ -123,8 +123,10 @@ class LogViewModel @Inject constructor(
         }
     }
 
-    private val historyItems = combine(ownSessions, repo.cardioSessionsFlow, pendingDeletion) { strength, cardio, deleted ->
-        val items = LogScreenBuilder.interleave(strength, cardio.map(LogScreenBuilder::cardioItem)).toMutableList()
+    private val historyItems = combine(ownSessions, repo.cardioSessionsFlow, pendingDeletion, repo.cardioSetResultsFlow) { strength, cardio, deleted, sets ->
+        val items = LogScreenBuilder.interleave(strength, cardio.map {
+            LogScreenBuilder.cardioItem(it, sets[it.id].orEmpty())
+        }).toMutableList()
         deleted?.let { pending ->
             items.add(pending.index.coerceIn(0, items.size), pending.item.copy(undoPending = true, editing = false))
         }

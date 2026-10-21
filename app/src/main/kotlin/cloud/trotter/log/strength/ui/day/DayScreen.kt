@@ -1,14 +1,11 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,18 +22,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -68,14 +60,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
@@ -95,7 +83,6 @@ import cloud.trotter.log.strength.ui.components.NoteSheet
 import cloud.trotter.log.strength.ui.components.ProgramLoadingState
 import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
-import cloud.trotter.log.strength.ui.theme.CardTitle
 import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.LocalAppPalette
 import cloud.trotter.log.strength.ui.theme.dayAccent
@@ -129,6 +116,14 @@ fun DayScreen(
     var swapCardSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     // Clearing the entire day retains its confirmation; single-set removal offers Undo.
     var confirmingClearChecks by rememberSaveable { mutableStateOf(false) }
+    var confirmingEndCardio by rememberSaveable(state.viewDayId) { mutableStateOf(false) }
+    var endingCardioStartedAt by rememberSaveable(state.viewDayId) { mutableStateOf<Long?>(null) }
+    LaunchedEffect(state.cardio?.run, sessionReceipt) {
+        if (state.cardio?.run?.complete == true || sessionReceipt != null ||
+            (endingCardioStartedAt != null && state.cardio?.run?.startedAt != endingCardioStartedAt)) {
+            confirmingEndCardio = false
+        }
+    }
     var confirmingPartialFinish by rememberSaveable { mutableStateOf(false) }
     var noteCardId by rememberSaveable { mutableStateOf<Long?>(null) }
     var receiptNoteOpen by rememberSaveable { mutableStateOf(false) }
@@ -144,13 +139,18 @@ fun DayScreen(
     val openSheet = state.openSheet
     val countHostFree = !showEditSheet && !exercisesOpen && openSheet == null &&
         noteCardId == null && !receiptNoteOpen && swapCardSlotId == null &&
-        !confirmingPartialFinish && !confirmingClearChecks && cascadeCeremony == null && sessionReceipt == null
+        !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && cascadeCeremony == null && sessionReceipt == null
     LaunchedEffect(state.timedRep?.requestsSheet, countHostFree) {
         if (state.timedRep?.requestsSheet == true && countHostFree) actions.onOpenTimedRepCount()
     }
+    val distanceRuns = state.cardio?.distanceRuns.orEmpty()
+    val cardioRequestsSheet = distanceRuns.any { run -> run.drafts.any { !it.saved && !it.requested && !it.dismissed } }
+    LaunchedEffect(cardioRequestsSheet, countHostFree, distanceRuns) {
+        if (cardioRequestsSheet && countHostFree) actions.onOpenCardioDistance()
+    }
     val dayBackProgress = rememberBackGestureProgress(
         enabled = onBack != null &&
-            !showEditSheet && !exercisesOpen && openSheet == null &&
+            !showEditSheet && !exercisesOpen && openSheet == null && !confirmingEndCardio &&
             noteCardId == null && !confirmingPartialFinish &&
             swapCardSlotId == null &&
             !confirmingClearChecks &&
@@ -423,8 +423,9 @@ fun DayScreen(
                             } else {
                                 state.cardio?.let {
                                     CardioPage(
-                                        it, accent, onAccent, actions.onStartCardio, actions.onStopCardio,
-                                        startEnabled = !state.executionBusy,
+                                        it, state.viewDayId.orEmpty(), accent, actions,
+                                        startEnabled = !state.executionBusy || it.run?.let { run -> !run.running && !run.complete } == true,
+                                        onEnd = { endingCardioStartedAt = it.run?.startedAt; confirmingEndCardio = true },
                                     )
                                 }
                             }
@@ -445,9 +446,21 @@ fun DayScreen(
         }
     }
 
+    if (confirmingEndCardio) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmingEndCardio = false },
+            title = { Text(stringResource(R.string.cardio_end_title)) },
+            text = { Text(stringResource(R.string.cardio_end_message)) },
+            dismissButton = { TextButton(onClick = { confirmingEndCardio = false }) { Text(stringResource(R.string.cardio_keep_going)) } },
+            confirmButton = { TextButton(onClick = { confirmingEndCardio = false; actions.onEndCardioBlock() }) { Text(stringResource(R.string.cardio_end_log)) } },
+        )
+    }
     openSheet?.let { sheet ->
+        if (sheet.kind == OpenSheet.Kind.CARDIO_SETS) state.cardio?.let { CardioSetsSheet(it, actions) }
+        if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.distanceRuns?.firstOrNull { it.runId == sheet.cardioRunId }?.let { CardioDistanceSheet(it, sheet.setIndex, actions) }
         state.exercises.firstOrNull { it.programExerciseId == sheet.programExerciseId }?.let { card ->
             when (sheet.kind) {
+                OpenSheet.Kind.CARDIO_SETS, OpenSheet.Kind.CARDIO_DISTANCE -> Unit
                 OpenSheet.Kind.ALL_SETS -> AllSetsSheet(
                     card = card,
                     actions = actions,
@@ -643,126 +656,6 @@ private fun ClearChecksConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Uni
     )
 }
 
-@Composable
-private fun CardioPage(
-    cardio: CardioCardState,
-    accent: Color,
-    onAccent: Color,
-    onStart: () -> Unit,
-    onStop: () -> Unit,
-    startEnabled: Boolean = true,
-) {
-    // Saveable so pager eviction and rotation preserve the disclosure.
-    var open by rememberSaveable { mutableStateOf(false) }
-    val expandedState = stringResource(R.string.day_expanded_state)
-    val collapsedState = stringResource(R.string.day_collapsed_state)
-    val executing = cardio.phase != CardioPhase.SUGGESTION
-    LaunchedEffect(executing) { open = executing }
-    val chevronRotation by animateFloatAsState(if (open) 180f else 0f, tween(200), label = "cardioChevron")
-    Card(
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp)
-                .then(if (!executing) Modifier.clickable { open = !open } else Modifier)
-                .semantics { if (!executing) stateDescription = if (open) expandedState else collapsedState },
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.day_cardio_title),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = CardTitle,
-                    )
-                    Spacer(Modifier.size(5.dp))
-                    Text(
-                        text = stringResource(
-                            if (cardio.hard) R.string.day_cardio_hard_label else R.string.day_cardio_easy_label,
-                            cardio.label,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-                if (!executing) {
-                    Icon(
-                        imageVector = Icons.Outlined.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp).rotate(chevronRotation).clearAndSetSemantics {},
-                    )
-                }
-            }
-            Column(Modifier.animateContentSize(tween(320))) {
-                if (open) {
-                    Spacer(Modifier.size(10.dp))
-                    if (executing) {
-                        if (cardio.phase == CardioPhase.OVERRUN) {
-                            Text(
-                                text = stringResource(R.string.day_cardio_overrun),
-                                color = accent,
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        } else {
-                            Text(
-                                text = stringResource(
-                                    R.string.day_cardio_step_left,
-                                    cardio.currentStepLabel.orEmpty(),
-                                    formatCardioTime(cardio.stepSecondsLeft),
-                                ),
-                                color = accent,
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        }
-                        Spacer(Modifier.size(5.dp))
-                        Text(
-                            text = stringResource(R.string.day_cardio_elapsed, formatCardioTime(cardio.elapsedSeconds)),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                        TextButton(
-                            onClick = onStop,
-                            modifier = Modifier.heightIn(min = 48.dp),
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        ) {
-                            Text(stringResource(R.string.day_cardio_stop_button))
-                        }
-                    } else {
-                        Text(
-                            text = cardio.detail,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        Spacer(Modifier.size(8.dp))
-                        Button(
-                            onClick = onStart,
-                            enabled = startEnabled,
-                            colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
-                        ) {
-                            Text(stringResource(R.string.day_cardio_start_button))
-                        }
-                    }
-                }
-            }
-            if (!executing) {
-                cardio.loggedSeconds?.let { seconds ->
-                    Spacer(Modifier.size(6.dp))
-                    Text(
-                        text = stringResource(R.string.day_cardio_logged, formatCardioTime(seconds)),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun formatCardioTime(seconds: Int): String = "%d:%02d".format(seconds / 60, seconds % 60)
-
 /** Callbacks the screen forwards to [DayViewModel] — one place, so previews stay trivial. */
 data class DayActions(
     val onSelectDay: (String) -> Unit,
@@ -780,7 +673,17 @@ data class DayActions(
     /** The recovery out of the no-program state (#127): back into the wizard. */
     val onSetUpProgram: () -> Unit,
     val onStartCardio: () -> Unit = {},
-    val onStopCardio: () -> Unit = {},
+    val onStopCardio: (CardioSetAction) -> Unit = {},
+    val onReachCardioTarget: (CardioSetAction) -> Unit = {},
+    val onSkipCardioSet: (CardioSetAction) -> Unit = {},
+    val onEndCardioBlock: () -> Unit = {},
+    val onAddCardioSet: () -> Unit = {},
+    val onOpenCardioSets: () -> Unit = {},
+    val onOpenCardioDistance: () -> Unit = {},
+    val onRequestCardioDistance: (CardioSetAction) -> Unit = {},
+    val onCardioDistanceChange: (String) -> Unit = {},
+    val onSaveCardioDistance: (CardioSetAction) -> Unit = {},
+    val onRetryCardioSave: () -> Unit = {},
     val onCardioScreenLive: (Boolean) -> Unit = {},
     val onAdjustRest: (Int) -> Unit = {},
     val onSkipRest: () -> Unit = {},

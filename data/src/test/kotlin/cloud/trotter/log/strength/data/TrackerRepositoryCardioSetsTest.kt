@@ -10,6 +10,10 @@ import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
@@ -102,6 +106,46 @@ class TrackerRepositoryCardioSetsTest {
         assertEquals(session.copy(id = id), repo.cardioSession(id))
         assertEquals(sets, repo.cardioSetsFor(id))
         assertEquals(listOf(0, 1, 2), db.cardioSetResultDao().forSession(id).map { it.position })
+    }
+
+    @Test fun `distance amendment preserves the session identity prescription and other results`() = runTest {
+        val id = repo.logCardioSession(session, sets)
+        val header = repo.cardioSession(id)
+        val before = db.cardioSetResultDao().forSession(id)
+        repo.amendCardioSetDistance(id, 1, 400)
+        assertEquals(header, repo.cardioSession(id))
+        assertEquals(sets[1].copy(metres = 400), repo.cardioSetsFor(id)[1])
+        assertEquals(before[0], db.cardioSetResultDao().forSession(id)[0])
+        assertEquals(before[2], db.cardioSetResultDao().forSession(id)[2])
+        repo.amendCardioSetDistance(id, 1, null)
+        assertNull(repo.cardioSetsFor(id)[1].metres)
+        assertNull(repo.cardioSetsFor(id)[1].distanceSource)
+    }
+
+    @Test fun `set aware retry uses the existing day and start identity without appending results`() = runTest {
+        val id = repo.logCardioSession(session, sets)
+        assertEquals(id, repo.logCardioSession(session.copy(completedAt = 999_000), sets))
+        assertEquals(1, db.cardioSessionDao().all().size)
+        assertEquals(sets, repo.cardioSetsFor(id))
+    }
+
+    @Test fun `cardio completion advances the originating authored plan once even if another plan is selected`() = runTest {
+        val planId = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(planId)
+        val block = CardioBlock(CardioActivity.TRACK_RUN, sets.map { it.spec })
+        repo.replaceProgram(Program(listOf("A", "B", "C").map {
+            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+        }))
+        val otherPlan = repo.createAuthoredPlan("Other", "Other day")
+        repo.publishCreatedAuthoredPlan(otherPlan)
+        val origin = session.copy(planId = planId)
+        val id = repo.logCardioSession(origin, sets, finishDay = true)
+        assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
+        assertEquals("A", db.planDao().plan(otherPlan)?.suggestedDayId)
+        assertEquals(planId, repo.cardioSession(id)?.planId)
+        assertEquals("Running", repo.cardioSession(id)?.planName)
+        assertEquals(id, repo.logCardioSession(origin, sets, finishDay = true))
+        assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
     }
 
     @Test fun `invalid stored set rows are skipped while valid results keep their order`() = runTest {

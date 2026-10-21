@@ -87,6 +87,8 @@ data class SessionListItem(
     val cardioSummary: String? = null,
     val cardioSemantics: String? = null,
     val cardioDuration: String? = null,
+    val cardioSets: List<cloud.trotter.log.strength.domain.model.CardioSetResult> = emptyList(),
+    val cardioSeconds: Int = 0,
     val editing: Boolean = false,
     val note: String = "",
     val undoPending: Boolean = false,

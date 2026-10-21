@@ -62,6 +62,8 @@ data class ProgramDay(
     val exercises: List<ProgramExercise>,
     val cardio: CardioSuggestion?, // null if user opted out of finishers
     val kind: ProgramDayKind = ProgramDayKind.STRENGTH,
+    /** Stored only for authored days; generated cardio comes from CardioPlanner. */
+    val cardioBlock: CardioBlock? = null,
 )
 
 data class Program(val days: List<ProgramDay>) {

@@ -92,6 +92,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         emphasisLine = day.emphasisLine,
                         cardioJson = day.cardioJson,
                         kind = day.kind,
+                        cardioBlockJson = day.cardioBlockJson,
                         exercises = exercisesByDay[plan.id to day.dayId].orEmpty().sortedBy { it.position }.map { ex ->
                             ProgramExerciseBackup(
                                 id = ex.id,
@@ -206,6 +207,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 emphasisLine = day.emphasisLine,
                 cardioJson = day.cardioJson,
                 kind = day.kind,
+                cardioBlockJson = if (schemaVersion >= 11) day.cardioBlockJson else null,
             )
         }
     }

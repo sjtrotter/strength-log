@@ -42,6 +42,7 @@ data class ProgramDayEntity(
     val cardioJson: String?,
     /** [ProgramDayKind.name]; pre-v7 rows migrate to STRENGTH. */
     val kind: String = "STRENGTH",
+    val cardioBlockJson: String? = null,
 )
 
 /** One exercise slot inside a plan day, ordered by [position] within its [dayId] (spec §7). */

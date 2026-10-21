@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
@@ -55,6 +56,7 @@ fun ProgramDayEntity.toDomain(exercises: List<ProgramExerciseEntity>): ProgramDa
         exercises = exercises.sortedBy { it.position }.map { it.toDomain() },
         cardio = CardioDto.decode(cardioJson),
         kind = ProgramDayKind.entries.firstOrNull { it.name == kind } ?: ProgramDayKind.STRENGTH,
+        cardioBlock = CardioBlockJson.decode(cardioBlockJson),
     )
 
 fun ProgramDay.toEntity(planId: Long): ProgramDayEntity =
@@ -66,6 +68,7 @@ fun ProgramDay.toEntity(planId: Long): ProgramDayEntity =
         emphasisLine = emphasisLine,
         cardioJson = CardioDto.encode(cardio),
         kind = kind.name,
+        cardioBlockJson = cardioBlock?.let(CardioBlockJson::encode),
     )
 
 /** Custom-exercise overlay row → the catalog's [ExerciseEntry] shape (PLAN.md A4).

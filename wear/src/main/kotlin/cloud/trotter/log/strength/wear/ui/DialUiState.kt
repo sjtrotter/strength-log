@@ -65,6 +65,7 @@ enum class DialTap {
     CONFIRM_SWAP,
     DISMISS,
     START_CARDIO,
+    CARDIO_SET,
 }
 
 /**
@@ -74,7 +75,7 @@ enum class DialTap {
  * screens where [PEEK] has nothing to show: a lift with no logged rounds. The two
  * can't collide, because a peek scrubs *results* and an untouched lift has none.
  */
-enum class DialCrown { NONE, SELECT_EXERCISE, PEEK, SELECT_ALTERNATE, REP_COUNT }
+enum class DialCrown { NONE, SELECT_EXERCISE, PEEK, SELECT_ALTERNATE, REP_COUNT, CARDIO_SET }
 
 /**
  * What a leftward swipe does here (v3 §3). It is contextual and it is rare: only
@@ -96,13 +97,17 @@ data class CycleSegment(val dayLabel: String, val accentIndex: Int, val mark: Cy
  * nothing is logged to take back. [disc] is what the disc says while the hold
  * fills; the fill itself is the disc's own ring, drawn by the composable.
  */
-enum class DialHoldAction { UNDO, STOP_CARDIO, STOP_TIMED_REP }
+enum class DialHoldAction { UNDO, STOP_CARDIO, STOP_TIMED_REP, STOP_CARDIO_SET, CARDIO_SET_OPTIONS }
 data class DialHold(
     val action: DialHoldAction,
     val disc: DiscContent,
     val target: UndoTarget? = null,
     val timedRepAttempt: TimedRepState? = null,
+    val cardioSetAttempt: CardioSetState? = null,
 )
+
+/** Editable cardio controls exposed alongside the disc's touch actions. */
+enum class CardioSetInput { NONE, OPTIONS, DISTANCE }
 
 data class DialUiState(
     val screen: DialScreen,
@@ -130,6 +135,8 @@ data class DialUiState(
     val crown: DialCrown = DialCrown.NONE,
     val swipe: DialSwipe = DialSwipe.NONE,
     val hold: DialHold? = null,
+    val roundDescriptions: List<String> = emptyList(),
+    val cardioSetInput: CardioSetInput = CardioSetInput.NONE,
 )
 
 /** The state machine offers undo by supplying the target the gesture will undo. */

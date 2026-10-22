@@ -75,6 +75,8 @@ data class WatchSnapshot(
     val planId: Long? = null,
     /** That plan's current name. Additive with a null default, like [planId]. */
     val planName: String? = null,
+    /** Effective authored or generated sets; null preserves the legacy wrist timer. */
+    val cardioBlock: WatchCardioBlock? = null,
 )
 
 /** One day of the program as the cycle ring and its day-browse preview read it. */

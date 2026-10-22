@@ -4,6 +4,10 @@ import cloud.trotter.log.strength.data.LoggedSlot
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.effectiveCardio
+import cloud.trotter.log.strength.domain.sync.toWatch
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
@@ -13,6 +17,7 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
@@ -73,10 +78,12 @@ object WatchSnapshotBuilder {
         planName: String? = null,
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
-        val strengthDays = program.strengthDays
-        val dayIndex = strengthDays.indexOfFirst { it.id == dayId }
+        val watchDays = program.days.filter {
+            it.kind == ProgramDayKind.STRENGTH || it.cardioBlock != null || it.cardio != null
+        }
+        val dayIndex = watchDays.indexOfFirst { it.id == dayId }
         if (dayIndex < 0) return null
-        val day = strengthDays[dayIndex]
+        val day = watchDays[dayIndex]
 
         val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
         val previewSeeds = DayScreenBuilder.seedPlan(
@@ -100,7 +107,12 @@ object WatchSnapshotBuilder {
                 emphasisLine = day.emphasisLine,
             ),
             unit = unit.name.lowercase(),
-            cycle = strengthDays.map { it.toCycleDay(catalog) },
+            cycle = watchDays.map { it.toCycleDay(catalog) },
+            cardioBlock = day.effectiveCardio(
+                CardioMode.entries.firstOrNull { it.name == cardioMode }?.let {
+                    CardioPrefs(mode = it, fiveKGoal = cardioFiveK ?: false)
+                },
+            )?.toWatch(),
             cardioAckStamp = cardioAckStamp,
             planId = planId,
             planName = planName,

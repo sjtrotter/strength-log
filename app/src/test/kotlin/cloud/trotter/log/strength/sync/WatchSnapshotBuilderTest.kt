@@ -6,14 +6,21 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.MovementPattern
-import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
@@ -43,6 +50,39 @@ class WatchSnapshotBuilderTest {
             ProgramDay("B", "Day B — Bench", "chest", listOf(ProgramExercise("bb_bench", isMain = true)), cardio = null),
         ),
     )
+
+    @Test
+    fun `cardio-only authored day retains its identity and effective block`() {
+        val block = CardioBlock(
+            CardioActivity.TRACK_RUN,
+            listOf(CardioSetSpec(
+                CardioRole.WORK,
+                Measure.Distance(400),
+                Measure.Time(105), hard = true,
+            )),
+        )
+        val running = Program(listOf(ProgramDay("R", "Track day", "", emptyList(), null,
+            kind = ProgramDayKind.CARDIO, cardioBlock = block)))
+        val snapshot = WatchSnapshotBuilder.build(running, "R", emptyList(), emptyList(), cfg,
+            catalog, WeightUnit.LB, revision = 1L, planId = 42L, planName = "Running")!!
+        assertEquals("R", snapshot.suggestedDayId)
+        assertEquals("Track day", snapshot.day.title)
+        assertEquals(emptyList(), snapshot.day.exercises)
+        assertEquals(block, snapshot.cardioBlock?.toDomain())
+        assertEquals(42L, snapshot.planId)
+        assertEquals(listOf("R"), snapshot.cycle.map { it.dayId })
+    }
+
+    @Test
+    fun `generated finisher publishes structured sets alongside unchanged legacy facts`() {
+        val suggestion = CardioSuggestion("Intervals", "", true)
+        val generated = program.copy(days = listOf(program.days.first().copy(cardio = suggestion)))
+        val snapshot = WatchSnapshotBuilder.build(generated, "A", emptyList(), emptyList(), cfg,
+            catalog, WeightUnit.LB, revision = 1L, cardioMode = "OUTDOOR_RUN", cardioFiveK = true)!!
+        assertEquals(suggestion.copy(mode = "OUTDOOR_RUN", fiveK = true), snapshot.cardio)
+        assertEquals(11, snapshot.cardioBlock?.sets?.size)
+        assertEquals("RECOVERY", snapshot.cardioBlock?.sets?.last()?.role)
+    }
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
         LoggedSlot(id, slot, sets, checkDate = "2026-07-09")

@@ -18,7 +18,7 @@ import kotlin.math.sqrt
 /** One item of the inner ring — a round of the current exercise, or (on the
  *  "today" screen) a whole exercise. `PEEKED` is the crown-scrub marker: white,
  *  "you are looking here", distinct from the accent "you are here" (§4). */
-enum class RoundState { DONE, CURRENT, UPCOMING, PEEKED }
+enum class RoundState { DONE, CURRENT, UPCOMING, PEEKED, SHORTENED, SKIPPED }
 
 /** How much of a day's name its cycle segment can hold — "DAY C", "C", or nothing. */
 enum class CycleLabelFit { FULL, SHORT, NONE }

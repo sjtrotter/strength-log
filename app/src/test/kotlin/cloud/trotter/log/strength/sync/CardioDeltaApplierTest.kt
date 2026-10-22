@@ -6,10 +6,16 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.sync.CardioDelta
+import cloud.trotter.log.strength.domain.sync.WatchCardioBlock
+import cloud.trotter.log.strength.domain.sync.WatchCardioSetResult
+import cloud.trotter.log.strength.domain.sync.WatchCardioSetSpec
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -61,6 +67,136 @@ class CardioDeltaApplierTest {
         startedAt = startedAt, completedAt = startedAt + 60_000L,
         seconds = 60, stepsCompleted = 0, stamp = stamp,
     )
+
+    @Test fun `structured run logs activity and sets and advances its originating plan once`() = runTest {
+        val planId = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(planId)
+        val spec = WatchCardioSetSpec("WORK", "TIME", 60)
+        val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
+        repo.replaceProgram(Program(listOf("A", "B", "C").map {
+            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+        }))
+        val other = repo.createAuthoredPlan("Other", "Other day")
+        repo.publishCreatedAuthoredPlan(other)
+        val result = WatchCardioSetResult(spec, "FINISHED", 60, 200, "MANUAL")
+        val event = delta().copy(planId = planId, activity = "TRACK_RUN", sets = listOf(result), stepsCompleted = 1, finishesDay = true)
+        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(event))
+        val session = repo.cardioSessionsFlow.first().single()
+        assertEquals("TRACK_RUN", session.activity)
+        assertEquals(planId, session.planId)
+        assertEquals(listOf(result.toDomain()), repo.cardioSetsFor(session.id))
+        assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
+        assertEquals("A", db.planDao().plan(other)?.suggestedDayId)
+        // Change the rotation before replay: a duplicate must not reset it to B.
+        db.planDao().updateSuggestedDay(planId, "C")
+        assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(event.copy(stamp = 99L)))
+        assertEquals("C", db.planDao().plan(planId)?.suggestedDayId)
+        assertEquals(1, repo.cardioSessionsFlow.first().size)
+        assertEquals(1, publisher.cardioPublishes)
+        assertEquals(99L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+    }
+
+    @Test fun `old watch retains summary logging without set rows or rotation`() = runTest {
+        val planId = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(planId)
+        val block = WatchCardioBlock("TRACK_RUN", listOf(WatchCardioSetSpec("WORK", "TIME", 60))).toDomain()
+        repo.replaceProgram(Program(listOf("A", "B").map {
+            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+        }))
+        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta()))
+        val session = repo.cardioSessionsFlow.first().single()
+        assertEquals(null, session.activity)
+        assertEquals(emptyList<CardioSetResult>(), repo.cardioSetsFor(session.id))
+        assertEquals(60, session.seconds)
+        assertEquals("A", db.planDao().plan(planId)?.suggestedDayId)
+    }
+
+    @Test fun `start eligibility survives edits from cardio-only to mixed and from mixed to cardio-only`() = runTest {
+        val planId = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(planId)
+        val spec = WatchCardioSetSpec("WORK", "TIME", 60)
+        val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
+        val cardioOnly = Program(listOf("A", "B").map {
+            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+        })
+        val mixed = Program(cardioOnly.days.map {
+            it.copy(exercises = listOf(ProgramExercise("bb_back_squat")))
+        })
+        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        listOf(true to mixed, false to cardioOnly).forEachIndexed { index, (eligibleAtStart, edited) ->
+            repo.replaceProgram(edited)
+            db.planDao().updateSuggestedDay(planId, "A")
+            val event = delta(startedAt = 1_000L + index * 100_000L).copy(
+                planId = planId, activity = "TRACK_RUN", finishesDay = eligibleAtStart,
+                sets = listOf(WatchCardioSetResult(spec, "FINISHED", 60)),
+            )
+            assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(event))
+            assertEquals(if (eligibleAtStart) "B" else "A", db.planDao().plan(planId)?.suggestedDayId)
+        }
+        assertEquals(2, repo.cardioSessionsFlow.first().size)
+    }
+
+    @Test fun `structured old-watch completion without eligibility logs sets without finishing the day`() = runTest {
+        val planId = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(planId)
+        val spec = WatchCardioSetSpec("WORK", "TIME", 60)
+        val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
+        repo.replaceProgram(Program(listOf("A", "B").map {
+            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+        }))
+        val result = WatchCardioSetResult(spec, "FINISHED", 60)
+        val event = delta().copy(planId = planId, sets = listOf(result))
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, markerStore, publisher).apply(event))
+        val session = repo.cardioSessionsFlow.first().single()
+        assertEquals(listOf(result.toDomain()), repo.cardioSetsFor(session.id))
+        assertEquals("A", db.planDao().plan(planId)?.suggestedDayId)
+    }
+
+    @Test fun `offline A delivered after phone finishes B logs without rewinding C`() = runTest {
+        val planId = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(planId)
+        val spec = WatchCardioSetSpec("WORK", "TIME", 60)
+        val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
+        repo.replaceProgram(Program(listOf("A", "B", "C").map {
+            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+        }))
+        val result = WatchCardioSetResult(spec, "FINISHED", 60)
+        val offline = delta().copy(planId = planId, activity = "TRACK_RUN", finishesDay = true, sets = listOf(result))
+        // The phone has moved on to B while A's watch completion is offline.
+        db.planDao().updateSuggestedDay(planId, "B")
+        repo.logCardioSession(CardioSessionEntity(dayId = "B", mode = "OUTDOOR_RUN", hard = false,
+            label = "Phone B", startedAt = 100_000, completedAt = 160_000, seconds = 60,
+            stepsCompleted = 1, planId = planId, activity = "TRACK_RUN"),
+            listOf(result.toDomain()), finishDay = true)
+        assertEquals("C", db.planDao().plan(planId)?.suggestedDayId)
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, markerStore, publisher).apply(offline))
+        assertEquals("C", db.planDao().plan(planId)?.suggestedDayId)
+        val loggedA = repo.cardioSessionsFlow.first().single { it.dayId == "A" }
+        assertEquals(offline.startedAt, loggedA.startedAt)
+        assertEquals(listOf(result.toDomain()), repo.cardioSetsFor(loggedA.id))
+        assertEquals(1, publisher.cardioPublishes)
+    }
+
+    @Test fun `optional activity can be absent when a sender supplies sets`() = runTest {
+        val result = WatchCardioSetResult(WatchCardioSetSpec("WORK", "TIME", 60), "FINISHED", 60)
+        val event = delta().copy(sets = listOf(result))
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, markerStore, publisher).apply(event))
+        val session = repo.cardioSessionsFlow.first().single()
+        assertEquals(null, session.activity)
+        assertEquals(listOf(result.toDomain()), repo.cardioSetsFor(session.id))
+    }
+
+    @Test fun `invalid structured prescriptions are acknowledged without partial logging`() = runTest {
+        val invalid = WatchCardioSetSpec("WORK", "TIME", 0)
+        val event = delta().copy(activity = "TRACK_RUN", sets = listOf(
+            WatchCardioSetResult(invalid, "FINISHED", 60),
+        ))
+        assertEquals(CardioDeltaApplier.Outcome.INVALID, CardioDeltaApplier(repo, markerStore, publisher).apply(event))
+        assertEquals(emptyList<CardioSessionEntity>(), repo.cardioSessionsFlow.first())
+        assertEquals(event.stamp, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+    }
 
     @Test fun `a replayed delta inserts and publishes once but still acks`() = runTest {
         val applier = CardioDeltaApplier(repo, markerStore, publisher)

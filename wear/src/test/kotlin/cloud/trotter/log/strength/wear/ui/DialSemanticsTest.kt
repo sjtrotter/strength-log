@@ -19,6 +19,8 @@ import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
 import androidx.compose.ui.test.performRotaryScrollInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import cloud.trotter.log.strength.domain.sync.WatchCardioBlock
+import cloud.trotter.log.strength.domain.sync.WatchCardioSetSpec
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
@@ -225,6 +227,88 @@ class DialSemanticsTest {
             .assertCountEquals(0)
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `cardio options semantics move clamp and commit the selected option and end confirmation`() {
+        val run = mutableStateOf(CardioSetState(9, "A", cardioBlock).openOptions())
+        composeTestRule.setContent {
+            WearTrackerTheme {
+                Dial(
+                    state = cardioDial(run.value),
+                    onTap = { run.value = run.value.tap(100_000, 10_000, 4) },
+                    onCardioSetTurn = { run.value = run.value.turn(it) },
+                )
+            }
+        }
+        composeTestRule.onNode(hasClickLabel("Skip set"))
+            .performCustomAccessibilityActionWithLabel("Previous option")
+            .assertTextContains("Skip set")
+            .performCustomAccessibilityActionWithLabel("Next option")
+        composeTestRule.onNode(hasClickLabel("End block"))
+            .performCustomAccessibilityActionWithLabel("Next option")
+        composeTestRule.onNode(hasClickLabel("Back"))
+            .performCustomAccessibilityActionWithLabel("Next option")
+            .assertTextContains("Back")
+            .performCustomAccessibilityActionWithLabel("Previous option")
+        composeTestRule.onNode(hasClickLabel("End block"))
+            .performCustomAccessibilityActionWithLabel("Select option")
+        composeTestRule.onNode(hasClickLabel("Keep going"))
+            .performCustomAccessibilityActionWithLabel("Next option")
+        composeTestRule.onNode(hasClickLabel("End and log"))
+            .performCustomAccessibilityActionWithLabel("Select option")
+        composeTestRule.runOnIdle {
+            assertEquals(true, run.value.complete)
+            assertEquals(null, run.value.delta())
+        }
+        composeTestRule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
+            .assertCountEquals(0)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `cardio distance semantics share crown steps clear to blank and Done keeps unknown distance`() {
+        val run = mutableStateOf(CardioSetState(9, "A", cardioBlock)
+            .start(100_000, 10_000, 4).stop(101_000, 11_000, 4))
+        composeTestRule.setContent {
+            WearTrackerTheme {
+                Dial(
+                    state = cardioDial(run.value),
+                    onTap = { run.value = run.value.tap(102_000, 12_000, 4) },
+                    onCardioSetTurn = { run.value = run.value.turn(it) },
+                )
+            }
+        }
+        val disc = composeTestRule.onNode(hasClickLabel("Done"))
+        disc.performCustomAccessibilityActionWithLabel("Decrease distance by 1 metre")
+        composeTestRule.runOnIdle { assertEquals(null, run.value.draftMetres) }
+        disc.performCustomAccessibilityActionWithLabel("Increase distance by 1 metre")
+            .assertTextContains("1")
+            .performCustomAccessibilityActionWithLabel("Increase distance by 1 metre")
+            .assertTextContains("2")
+            .performCustomAccessibilityActionWithLabel("Decrease distance by 1 metre")
+            .assertTextContains("1")
+        composeTestRule.runOnIdle { run.value = run.value.turn(Int.MAX_VALUE) }
+        disc.performCustomAccessibilityActionWithLabel("Increase distance by 1 metre")
+        composeTestRule.runOnIdle { assertEquals(Int.MAX_VALUE, run.value.draftMetres) }
+        disc.performCustomAccessibilityActionWithLabel("Clear distance")
+        composeTestRule.runOnIdle { assertEquals(null, run.value.draftMetres) }
+        disc.performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(null, run.value.results.single().metres)
+            assertEquals(emptyList<Int>(), run.value.entries)
+        }
+        composeTestRule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
+            .assertCountEquals(0)
+    }
+
+    private val cardioBlock = WatchCardioBlock("TRACK_RUN", listOf(WatchCardioSetSpec("WORK", "TIME", 60)))
+    private fun cardioDial(run: CardioSetState) = cardioSetsDial(DialInputs(
+        snapshot = WatchSnapshot(revision = 1, suggestedDayId = "A", unit = "lb", planId = 9,
+            day = WatchDay("A", "Run", 0, emptyList()), cardioBlock = cardioBlock),
+        exerciseIndex = 0, phase = SetPhase.READY, face = DialFace.WORKOUT,
+        pendingCount = 0, rest = null, nowElapsedMillis = 11_000, nowWallMillis = 101_000, bootCount = 4,
+    ), run)
+
     @Test
     fun `none keeps merged copy without exposing a click action`() {
         composeTestRule.setContent {
@@ -264,7 +348,7 @@ class DialSemanticsTest {
             DialTap.TICK -> DialScreen.LIFTING
             DialTap.SKIP_REST -> DialScreen.REST
             DialTap.DISMISS -> DialScreen.DAY_DONE
-            DialTap.START_CARDIO -> DialScreen.CARDIO_OFFER
+            DialTap.START_CARDIO, DialTap.CARDIO_SET -> DialScreen.CARDIO_OFFER
         },
         accentIndex = 0,
         cycle = emptyList(),
@@ -316,6 +400,7 @@ class DialSemanticsTest {
         DialTap.CONFIRM_SWAP to "confirm swap",
         DialTap.DISMISS to "dismiss",
         DialTap.START_CARDIO to "start finisher",
+        DialTap.CARDIO_SET to "ACTION",
     )
 
     private fun hasClickLabel(label: String) = SemanticsMatcher("click label '$label'") { node ->

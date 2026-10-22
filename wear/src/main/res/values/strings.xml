@@ -84,4 +84,10 @@
     <string name="dial_decrement_reps_action">Decrease reps</string>
     <string name="dial_times_up">Time’s up</string>
     <string name="dial_rep_aim">/ %1$d</string>
+    <string name="dial_next_option_action">Next option</string>
+    <string name="dial_previous_option_action">Previous option</string>
+    <string name="dial_select_option_action">Select option</string>
+    <string name="dial_increase_distance_action">Increase distance by 1 metre</string>
+    <string name="dial_decrease_distance_action">Decrease distance by 1 metre</string>
+    <string name="dial_clear_distance_action">Clear distance</string>
 </resources>

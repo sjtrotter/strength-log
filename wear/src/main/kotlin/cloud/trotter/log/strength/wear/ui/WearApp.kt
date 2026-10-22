@@ -109,11 +109,18 @@ fun WearApp(
     val cardioAnchors = cardioStartedAtElapsed.takeIf { it > 0L }?.let {
         CardioAnchors(cardioStartedAtWall, it, cardioStartedAtBoot, cardioPlanId)
     }
+    var savedCardioSets by rememberSaveable(stateSaver = cardioSetStateSaver) {
+        mutableStateOf<CardioSetState?>(null)
+    }
+    val cardioSets = snapshot?.let { savedCardioSets?.reconcile(it) }
+    LaunchedEffect(snapshot, cardioSets) {
+        if (snapshot != null && savedCardioSets != cardioSets) savedCardioSets = cardioSets
+    }
     var savedTimedRep by rememberSaveable(stateSaver = timedRepStateSaver) {
         mutableStateOf<TimedRepState?>(null)
     }
     // Do not discard a restored attempt while the initial snapshot is loading.
-    val timedRep = snapshot?.let { savedTimedRep?.reconcile(it)?.takeIf { cardioAnchors == null } }
+    val timedRep = snapshot?.let { savedTimedRep?.reconcile(it)?.takeIf { cardioAnchors == null && cardioSets?.ownsExecution != true } }
     LaunchedEffect(snapshot, timedRep) {
         if (snapshot != null && savedTimedRep != timedRep) savedTimedRep = timedRep
     }
@@ -123,7 +130,7 @@ fun WearApp(
     )
 
     fun startCardio() {
-        if (timedRep != null) return
+        if (timedRep != null || cardioSets?.ownsExecution == true) return
         cardioPlanId = snapshot?.planId
         cardioStartedAtWall = System.currentTimeMillis()
         cardioStartedAtElapsed = SystemClock.elapsedRealtime()
@@ -156,6 +163,90 @@ fun WearApp(
         cardioStartedAtBoot = 0
         restController.disarm()
         DialHaptics.perform(rootView, DialHaptics.Cue.CONFIRM_TICK)
+    }
+
+    fun localCardioSets(): CardioSetState? {
+        if (timedRep != null || cardioAnchors != null) return null
+        cardioSets?.let { return it }
+        val snap = snapshot ?: return null
+        return newCardioSetState(snap, timedRep = null, legacyCardioRunning = false)
+    }
+
+    fun tapCardioSet() {
+        val run = localCardioSets() ?: return
+        val next = run.tap(System.currentTimeMillis(), SystemClock.elapsedRealtime(), bootCountNow(),
+            finishesDay = snapshot?.day?.exercises?.isEmpty() == true)
+        if (cardioSets == null || next.active != run.active) restController.disarm()
+        savedCardioSets = next
+    }
+
+    fun holdCardioSet(hold: DialHold) {
+        val run = localCardioSets() ?: return
+        val pressed = hold.cardioSetAttempt ?: return
+        if (pressed.planId != run.planId || pressed.dayId != run.dayId || pressed.block != run.block ||
+            pressed.position != run.position || pressed.active != run.active) return
+        if (hold.action == DialHoldAction.STOP_CARDIO_SET) restController.disarm()
+        savedCardioSets = when (hold.action) {
+            DialHoldAction.STOP_CARDIO_SET -> run.stop(System.currentTimeMillis(), SystemClock.elapsedRealtime(), bootCountNow())
+            DialHoldAction.CARDIO_SET_OPTIONS -> run.openOptions()
+            else -> run
+        }
+    }
+
+    LaunchedEffect(cardioSets?.peekIndex) {
+        if (cardioSets?.peekIndex != null) {
+            delay(PeekScrub.IDLE_TIMEOUT_MILLIS)
+            savedCardioSets = savedCardioSets?.copy(peekIndex = null)
+        }
+    }
+
+    // Uses the existing single exact-alarm adapter above the ambient swap. Restored
+    // past boundaries are reconciled before arming, without replaying their buzzes.
+    LaunchedEffect(cardioSets?.active, cardioSets?.position) {
+        val run = cardioSets ?: return@LaunchedEffect
+        if (run.active == null) return@LaunchedEffect
+        val wall = System.currentTimeMillis()
+        val elapsed = SystemClock.elapsedRealtime()
+        val resumed = run.resume(wall, elapsed, bootCountNow())
+        if (resumed != run) {
+            savedCardioSets = resumed
+            return@LaunchedEffect
+        }
+        val deadline = run.deadline(elapsed, wall, bootCountNow()) ?: return@LaunchedEffect
+        try {
+            val spec = run.block.sets[run.position]
+            restController.arm(deadline, spec.endValue, ambientLabel = cardioActivityLabel(run.block.activity)) {
+                val current = savedCardioSets
+                if (current != null && current.active == run.active && current.position == run.position) {
+                    savedCardioSets = current.resume(System.currentTimeMillis(), SystemClock.elapsedRealtime(), bootCountNow())
+                }
+            }
+            while (!RestTimer.isExpired(deadline, SystemClock.elapsedRealtime())) delay(LIVE_TICK_MILLIS)
+            restController.completeIfExpired()
+            val current = savedCardioSets
+            if (current != null && current.active == run.active && current.position == run.position) {
+                savedCardioSets = current.resume(System.currentTimeMillis(), SystemClock.elapsedRealtime(), bootCountNow())
+            }
+        } finally {
+            restController.disarm()
+        }
+    }
+
+    val cardioDelta = cardioSets?.takeIf { it.queuedStamp == null }?.delta()
+    LaunchedEffect(cardioDelta, cardioSets?.saveFailed) {
+        val delta = cardioDelta ?: return@LaunchedEffect
+        if (cardioSets.saveFailed) return@LaunchedEffect
+        client.sendCardio(delta, onQueued = { stamp ->
+            val current = savedCardioSets
+            if (current != null && current.planId == delta.planId && current.dayId == delta.dayId && current.startedAt == delta.startedAt) {
+                savedCardioSets = current.copy(queuedStamp = stamp, saveFailed = false)
+            }
+        }, onFailure = {
+            val current = savedCardioSets
+            if (current != null && current.planId == delta.planId && current.dayId == delta.dayId && current.startedAt == delta.startedAt) {
+                savedCardioSets = current.copy(saveFailed = true)
+            }
+        })
     }
 
     // Boundary buzzes are armed at the ROOT so ambient keeps them, and the
@@ -294,6 +385,16 @@ fun WearApp(
                 else -> WorkoutDial(
                     snap = snap,
                     cardioAnchors = cardioAnchors,
+                    cardioSets = cardioSets,
+                    onCardioSetTap = ::tapCardioSet,
+                    onCardioSetDismiss = { savedCardioSets = null },
+                    onCardioSetHold = ::holdCardioSet,
+                    onCardioSetTurn = { detents ->
+                        val run = localCardioSets()
+                        val next = run?.turn(detents)
+                        savedCardioSets = next
+                        if (run == null || next == null) 0 else next.crownPosition() - run.crownPosition()
+                    },
                     timedRep = timedRep,
                     onTimedRepChanged = { savedTimedRep = it },
                     bootCount = bootCountNow(),
@@ -358,6 +459,11 @@ private const val PHONE_PLAY_LISTING =
 private fun WorkoutDial(
     snap: WatchSnapshot,
     cardioAnchors: CardioAnchors?,
+    cardioSets: CardioSetState?,
+    onCardioSetTap: () -> Unit,
+    onCardioSetDismiss: () -> Unit,
+    onCardioSetHold: (DialHold) -> Unit,
+    onCardioSetTurn: (Int) -> Int,
     timedRep: TimedRepState?,
     onTimedRepChanged: (TimedRepState?) -> Unit,
     bootCount: Int,
@@ -422,7 +528,7 @@ private fun WorkoutDial(
     fun startSet() {
         if (exercise?.repWindowSeconds?.let { it > 0 } == true) {
             val attempt = startTimedRep(
-                snap, exerciseIndex, cardioAnchors != null, timedRep,
+                snap, exerciseIndex, cardioAnchors != null || cardioSets?.ownsExecution == true, timedRep,
                 System.currentTimeMillis(), SystemClock.elapsedRealtime(), bootCount,
             ) ?: return
             clearRest()
@@ -439,7 +545,7 @@ private fun WorkoutDial(
             DialHaptics.perform(view, DialHaptics.Cue.START)
             return
         }
-        if (cardioAnchors != null || timedRep != null) return
+        if (cardioAnchors != null || cardioSets?.ownsExecution == true || timedRep != null) return
         lifting = true
         restedSeconds = NO_REST
         val wallNow = System.currentTimeMillis()
@@ -613,6 +719,8 @@ private fun WorkoutDial(
         pendingSwapExerciseIds = pendingSwaps,
         tickMemory = tickMemory,
         cardioAnchors = cardioAnchors,
+        cardioSets = cardioSets,
+        bootCount = bootCount,
         timedRep = timedRep,
         timedRepDeadlineMillis = timedRep?.deadline(nowElapsedMillis, System.currentTimeMillis(), bootCount) ?: 0L,
     )
@@ -661,8 +769,8 @@ private fun WorkoutDial(
         if (SwapPicker.expired(current, SystemClock.elapsedRealtime())) swapPreview = null
     }
 
-    LaunchedEffect(restDeadlineMillis, timedRep?.owner, cardioAnchors) {
-        if (restDeadlineMillis <= 0L || timedRep != null || cardioAnchors != null) return@LaunchedEffect
+    LaunchedEffect(restDeadlineMillis, timedRep?.owner, cardioAnchors, cardioSets?.ownsExecution) {
+        if (restDeadlineMillis <= 0L || timedRep != null || cardioAnchors != null || cardioSets?.ownsExecution == true) return@LaunchedEffect
         restController.arm(restDeadlineMillis, restTotalSeconds)
         while (!RestTimer.isExpired(restDeadlineMillis, SystemClock.elapsedRealtime())) {
             delay(LIVE_TICK_MILLIS)
@@ -677,8 +785,8 @@ private fun WorkoutDial(
     // A timed hold buzzes once at its goal and ticks itself (§5.6). Same controller,
     // so it is the same single-buzz guarantee, and a manual tick cancels it.
     val latestTick by rememberUpdatedState({ tick() })
-    LaunchedEffect(lifting, startedAtElapsedMillis, holdGoal, timedRep?.owner, cardioAnchors) {
-        if (timedRep != null || cardioAnchors != null || !lifting || holdGoal <= 0 || startedAtElapsedMillis <= 0L) return@LaunchedEffect
+    LaunchedEffect(lifting, startedAtElapsedMillis, holdGoal, timedRep?.owner, cardioAnchors, cardioSets?.ownsExecution) {
+        if (timedRep != null || cardioAnchors != null || cardioSets?.ownsExecution == true || !lifting || holdGoal <= 0 || startedAtElapsedMillis <= 0L) return@LaunchedEffect
         val goalDeadline = RestTimer.deadlineFrom(startedAtElapsedMillis, holdGoal)
         restController.arm(goalDeadline, holdGoal) { firing ->
             scheduleTimedHoldTick(firing, latestTick)
@@ -732,6 +840,7 @@ private fun WorkoutDial(
             DialCrown.REP_COUNT -> {
                 moved = changeRepCount(detents)
             }
+            DialCrown.CARDIO_SET -> moved = onCardioSetTurn(detents)
             DialCrown.NONE -> Unit
         }
         repeat(kotlin.math.abs(moved)) {
@@ -779,6 +888,7 @@ private fun WorkoutDial(
         Dial(
             state = state,
             onRepCountChange = { changeRepCount(it) },
+            onCardioSetTurn = { onCardioSetTurn(it) },
             modifier = Modifier.fillMaxSize().background(Background).then(swipeLeft),
             onTap = {
                 when (state.tap) {
@@ -800,8 +910,12 @@ private fun WorkoutDial(
                         SwapPicker.resolve(swapPreview?.alternateIndex, ex.alternates.size)
                             ?.let { confirmSwap(ex.alternates[it]) }
                     }
-                    DialTap.DISMISS -> onDismiss()
+                    DialTap.DISMISS -> if (cardioSets?.complete == true) {
+                        onCardioSetDismiss()
+                        face = DialFace.OVERVIEW
+                    } else onDismiss()
                     DialTap.START_CARDIO -> startCardio()
+                    DialTap.CARDIO_SET -> onCardioSetTap()
                     DialTap.NONE -> Unit
                 }
             },
@@ -809,6 +923,7 @@ private fun WorkoutDial(
                 when (hold.action) {
                     DialHoldAction.UNDO -> hold.target?.let(::undo)
                     DialHoldAction.STOP_CARDIO -> stopCardio()
+                    DialHoldAction.STOP_CARDIO_SET, DialHoldAction.CARDIO_SET_OPTIONS -> onCardioSetHold(hold)
                     DialHoldAction.STOP_TIMED_REP -> {
                         val attempt = timedRep
                         if (attempt != null && attempt.matchesRunningAttempt(hold.timedRepAttempt) &&

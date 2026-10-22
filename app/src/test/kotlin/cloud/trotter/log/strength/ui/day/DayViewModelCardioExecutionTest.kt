@@ -9,6 +9,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -201,6 +202,19 @@ class DayViewModelCardioExecutionTest {
         assertNull(alarm.deadline)
         assertNull(alarm.callback)
         assertEquals(1, alarm.buzzes) // Only the warm-up boundary buzzed.
+    }
+
+    private fun assertAutoEndedSaveFailed(vm: DayViewModel, run: CardioRun) {
+        val card = requireNotNull(vm.uiState.value.cardio)
+        val failed = requireNotNull(card.run)
+        assertEquals(run.runId, failed.runId)
+        assertEquals(run.block, card.block)
+        assertEquals(activityLabel(run.block.activity), card.label)
+        assertTrue(failed.complete)
+        assertTrue(failed.saveFailed) // CardioPage exposes the existing failure message and Retry.
+        assertFalse(failed.showReceipt)
+        assertTrue(vm.uiState.value.executionBusy)
+        assertFalse(vm.uiState.value.executionKeepsScreenOn)
     }
 
     private suspend fun TestScope.stopFirstRunAndDismissDistance(vm: DayViewModel): CardioRun {
@@ -1042,6 +1056,93 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
+    fun removedRunDayShowsFailedSaveOnAnotherDayAndRetryLogsOnce() = test {
+        val plan = prepareLegacyCardioDays()
+        repo.addExercise("B", ProgramExercise("plank"))
+        assertTrue(repo.setCardioBlock(plan, "B", null))
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        val run = startLegacyWorkSet(vm)
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
+        assertTrue(repo.removeDay(plan, "A"))
+        runCurrent()
+        assertEquals("B", vm.uiState.value.viewDayId)
+        assertAutoEndedSaveFailed(vm, run)
+        assertTrue(repo.cardioSessionsFlow.first().isEmpty())
+
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
+        // Rebuilding this day's logs with the same DayContext must not retry.
+        vm.changeSeconds(vm.uiState.value.exercises.single().programExerciseId, Slot.MAIN, 0, 42)
+        runCurrent()
+        assertEquals(42, repo.logFlow("B").first().single().sets.first().seconds)
+        assertAutoEndedSaveFailed(vm, run)
+        assertTrue(repo.cardioSessionsFlow.first().isEmpty())
+        vm.retryCardioSave()
+        vm.retryCardioSave()
+        runCurrent()
+        assertInterruptedLegacyRunLogged(vm, run)
+        assertNull(handle.get<CardioRun>("day_cardio_run"))
+        assertNull(vm.uiState.value.cardio)
+        assertEquals("B", repo.suggestedDayFlow.first())
+    }
+
+    @Test
+    fun autoEndedRunRetriesOnLaterPlanContextAndLogsOnce() = test {
+        val plan = prepareLegacyCardioDays()
+        val other = repo.duplicatePlan(plan, "Other plan")
+        assertTrue(repo.setCardioBlock(other, "A", CardioBlock(CardioActivity.OUTDOOR_WALK, listOf(distance()))))
+        val vm = readyVm()
+        val run = startLegacyWorkSet(vm)
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
+        repo.selectPlan(other)
+        runCurrent()
+        assertEquals(other, vm.uiState.value.planId)
+        assertAutoEndedSaveFailed(vm, run)
+        assertTrue(repo.cardioSessionsFlow.first().isEmpty())
+
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
+        repo.selectPlan(plan)
+        runCurrent()
+        assertInterruptedLegacyRunLogged(vm, run)
+        assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
+        assertEquals("A", db.planDao().plan(other)?.suggestedDayId)
+        repo.selectPlan(other)
+        runCurrent()
+        assertEquals(1, repo.cardioSessionsFlow.first().size)
+    }
+
+    @Test
+    fun failedAutoEndedRunRestoresOnAnotherDayAndRetryLogsOnce() = test {
+        val plan = prepareLegacyCardioDays()
+        repo.addExercise("B", ProgramExercise("plank"))
+        assertTrue(repo.setCardioBlock(plan, "B", null))
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        val run = startLegacyWorkSet(first)
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
+        assertTrue(repo.removeDay(plan, "A"))
+        runCurrent()
+        assertAutoEndedSaveFailed(first, run)
+        first.setCardioScreenLive(false)
+        first.viewModelScope.cancel()
+
+        // The restore's automatic retry also fails; manual Retry must stay reachable.
+        val restoredHandle = recreateHandle(handle)
+        val restored = readyVm(restoredHandle)
+        assertEquals("B", restored.uiState.value.viewDayId)
+        assertAutoEndedSaveFailed(restored, run)
+        assertTrue(repo.cardioSessionsFlow.first().isEmpty())
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
+        restored.retryCardioSave()
+        restored.retryCardioSave()
+        runCurrent()
+        assertInterruptedLegacyRunLogged(restored, run)
+        assertNull(restoredHandle.get<CardioRun>("day_cardio_run"))
+        assertNull(restored.uiState.value.cardio)
+        assertEquals("B", repo.suggestedDayFlow.first())
+    }
+
+    @Test
     fun unstartedRunIsClearedOnPlanSwitchWithoutLoggingOrAdvancing() = test {
         val plan = prepareLegacyCardioDays()
         val other = repo.duplicatePlan(plan, "Other plan")
@@ -1093,7 +1194,7 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
-    fun interruptedRunRetriesAfterProcessDeathWithoutReceiptOrMovingAnotherPlansCursor() = test {
+    fun interruptedRunAutomaticallyRetriesAfterProcessDeathWithoutReceiptOrMovingAnotherPlansCursor() = test {
         val plan = prepareLegacyCardioDays()
         val other = repo.duplicatePlan(plan, "Other plan")
         val handle = SavedStateHandle()
@@ -1112,8 +1213,6 @@ class DayViewModelCardioExecutionTest {
         first.viewModelScope.cancel()
         db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
         val restored = readyVm(recreateHandle(handle))
-        restored.retryCardioSave()
-        runCurrent()
         assertInterruptedLegacyRunLogged(restored, run)
         assertEquals(other, restored.uiState.value.planId)
         assertEquals("A", repo.suggestedDayFlow.first())

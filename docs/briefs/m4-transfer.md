@@ -15,6 +15,7 @@ Read: PLAN A2 + A5; D9/D10.
 surface): one row per set, Strong's column layout —
 `Date, Workout Name, Duration, Exercise Name, Set Order, Weight, Weight Unit,
 Reps, Distance, Distance Unit, Seconds, Notes, Workout Notes, RPE`.
+Appended cardio columns are Activity, Role, Target, Aim, Hard, Status, Distance Source, Steps Completed, and Cardio Mode, with one row per cardio set.
 - Date = completedAt as `yyyy-MM-dd HH:mm:ss` local time; Workout Name =
   dayTitle; Set Order = 1-based setIndex; Weight in the user's display unit
   with `Weight Unit` = `lb`/`kg` (A5 requires the explicit unit column);

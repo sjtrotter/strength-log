@@ -23,6 +23,7 @@ class CsvHistoryService(private val repository: TrackerRepository) {
         val history = repository.exportSessionHistory()
         val csv = HistoryCsvWriter.export(
             history.sessions, history.sessionSets, history.unit, cardioSessions = history.cardioSessions,
+            cardioSets = history.cardioSets,
         )
         out.write(csv.toByteArray(Charsets.UTF_8))
         out.flush()

@@ -2,6 +2,13 @@ package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.transfer.backup.BackupCodec
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -20,8 +27,8 @@ import java.time.format.DateTimeParseException
  *
  * The reader only knows the header spellings in [HISTORY_FIELD_ALIASES] and
  * maps by column *name*, not position — a file with the same columns in a
- * different order, or extra columns this app ignores (Duration, RPE, Notes,
- * ...), parses identically.
+ * different order parses identically. A Role header selects the set-aware
+ * cardio format; files without it retain the legacy cardio interpretation.
  */
 object HistoryCsvReader {
 
@@ -86,18 +93,38 @@ object HistoryCsvReader {
         if (hasStrengthRows) requireStrengthColumns(columns)
         val weightUnitResolver = if (hasStrengthRows) resolveWeightUnit(header, columns) else null
 
-        // Cardio / bodyweight rows (both weight and reps blank) aren't strength
-        // sets we model, so parseRow returns null for them and they're dropped
-        // here rather than rejecting the whole file.
         val cardioRows = mutableListOf<PreviewCardioSession>()
-        val parsedRows = typedRows.mapNotNull { row ->
-            if (row.cardio) {
+        val parsedRows = mutableListOf<ParsedRow>()
+        var cardioGroup: CardioSetGroup? = null
+        fun finishCardioGroup() {
+            cardioGroup?.let { cardioRows += it.session() }
+            cardioGroup = null
+        }
+        for (row in typedRows) {
+            if (!row.cardio) {
+                finishCardioGroup()
+                parseRow(row.fields, row.line, columns, zone, checkNotNull(weightUnitResolver))?.let(parsedRows::add)
+            } else if (HistoryField.ROLE !in columns) {
                 cardioRows += checkNotNull(parseCardioRow(row.fields, row.line, columns, zone))
-                null
             } else {
-                parseRow(row.fields, line = row.line, columns = columns, zone = zone, weightUnit = checkNotNull(weightUnitResolver))
+                val cells = CardioCells(row.fields, row.line, columns)
+                if (cells.required(HistoryField.ROLE).isBlank()) {
+                    finishCardioGroup()
+                    cardioRows += parseCardioSummary(cells, zone)
+                } else {
+                    val setRow = parseCardioSet(cells, zone)
+                    if (setRow.order == 1) {
+                        finishCardioGroup()
+                        cardioGroup = CardioSetGroup(setRow)
+                    } else {
+                        val group = cardioGroup
+                            ?: throw CsvImportError.MalformedRow(row.line, "cardio sets must start at order 1")
+                        group.append(setRow)
+                    }
+                }
             }
         }
+        finishCardioGroup()
 
         val sessions = groupIntoSessions(parsedRows)
         val unmatched = matchExerciseNames(sessions, catalog)
@@ -200,6 +227,137 @@ object HistoryCsvReader {
             completedAt = completedAt,
             seconds = seconds,
             stepsCompleted = steps,
+        )
+    }
+
+    private class CardioCells(
+        private val fields: List<String>,
+        val line: Int,
+        private val columns: Map<HistoryField, Int>,
+    ) {
+        fun required(field: HistoryField): String {
+            val index = columns[field] ?: throw CsvImportError.MalformedRow(line, "cardio row needs ${field.name}")
+            return fields.getOrNull(index)
+                ?: throw CsvImportError.MalformedRow(line, "row is too short for column ${field.name}")
+        }
+
+        fun optional(field: HistoryField): String = if (field in columns) required(field) else ""
+
+        fun completedAt(zone: ZoneId): Long = parseDate(required(HistoryField.DATE).trim(), zone)
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio date")
+
+        fun label(): String {
+            val label = Csv.deneutralizeFormula(required(HistoryField.EXERCISE_NAME))
+            if (label.isBlank() || label.length > 80) {
+                throw CsvImportError.MalformedRow(line, "cardio label must be non-blank and at most 80 characters")
+            }
+            return label
+        }
+
+        fun dayId(): String? = Csv.deneutralizeFormula(required(HistoryField.WORKOUT_NAME)).ifBlank { null }
+
+        fun integer(field: HistoryField, range: IntRange): Int {
+            val value = required(field).trim().toIntOrNull()
+                ?: throw CsvImportError.MalformedRow(line, "unparsable cardio ${field.name}")
+            if (value !in range) throw CsvImportError.MalformedRow(line, "cardio ${field.name} out of range")
+            return value
+        }
+
+        fun hard(): Boolean = required(HistoryField.HARD).toBooleanStrictOrNull()
+            ?: throw CsvImportError.MalformedRow(line, "unparsable cardio hard flag")
+    }
+
+    private fun parseCardioSummary(cells: CardioCells, zone: ZoneId): PreviewCardioSession {
+        val completedAt = cells.completedAt(zone)
+        val seconds = cells.integer(HistoryField.SECONDS, 60..86_400)
+        return PreviewCardioSession(
+            dayId = cells.dayId(),
+            mode = cells.required(HistoryField.CARDIO_MODE).trim().ifBlank { "OUTDOOR_RUN" },
+            hard = cells.hard(),
+            label = cells.label(),
+            startedAt = completedAt - seconds * 1_000L,
+            completedAt = completedAt,
+            seconds = seconds,
+            stepsCompleted = cells.integer(HistoryField.STEPS_COMPLETED, 0..Int.MAX_VALUE),
+            activity = cells.optional(HistoryField.ACTIVITY).ifBlank { null },
+        )
+    }
+
+    private data class ParsedCardioSet(
+        val line: Int,
+        val key: List<String>,
+        val duration: String,
+        val order: Int,
+        val activity: CardioActivity,
+        val completedAt: Long,
+        val dayId: String?,
+        val label: String,
+        val result: CardioSetResult,
+    )
+
+    private fun parseCardioSet(cells: CardioCells, zone: ZoneId): ParsedCardioSet = try {
+        val activity = CardioActivity.valueOf(cells.required(HistoryField.ACTIVITY))
+        val result = CardioSetResult(
+            spec = CardioSetSpec(
+                role = CardioRole.valueOf(cells.required(HistoryField.ROLE)),
+                end = parseCardioMeasure(cells.required(HistoryField.TARGET)),
+                aim = cells.optional(HistoryField.AIM).takeIf { it.isNotBlank() }?.let(::parseCardioMeasure),
+                hard = cells.hard(),
+            ),
+            status = CardioSetStatus.valueOf(cells.required(HistoryField.STATUS)),
+            elapsedSeconds = cells.integer(HistoryField.SECONDS, 0..86_400),
+            metres = cells.optional(HistoryField.DISTANCE).takeIf { it.isNotBlank() }?.let { distance ->
+                require(cells.required(HistoryField.DISTANCE_UNIT) == "m") { "cardio distance unit must be m" }
+                distance.toIntOrNull() ?: throw IllegalArgumentException("unparsable cardio metres '$distance'")
+            },
+            distanceSource = cells.optional(HistoryField.DISTANCE_SOURCE).takeIf { it.isNotBlank() }
+                ?.let(DistanceSource::valueOf),
+        )
+        ParsedCardioSet(
+            line = cells.line,
+            key = listOf(cells.required(HistoryField.DATE), cells.required(HistoryField.WORKOUT_NAME),
+                cells.required(HistoryField.EXERCISE_NAME), cells.optional(HistoryField.PLAN)),
+            duration = cells.required(HistoryField.DURATION),
+            order = cells.integer(HistoryField.SET_ORDER, 1..Int.MAX_VALUE),
+            activity = activity,
+            completedAt = cells.completedAt(zone),
+            dayId = cells.dayId(),
+            label = cells.label(),
+            result = result,
+        )
+    } catch (error: IllegalArgumentException) {
+        throw CsvImportError.MalformedRow(cells.line, error.message ?: "invalid cardio set")
+    }
+
+    private class CardioSetGroup(private val first: ParsedCardioSet) {
+        private val sets = mutableListOf(first.result)
+        private var seconds = first.result.elapsedSeconds
+
+        fun append(row: ParsedCardioSet) {
+            if (row.order != sets.size + 1 || row.key != first.key) {
+                throw CsvImportError.MalformedRow(row.line, "cardio set order or session cells changed")
+            }
+            if (row.activity != first.activity || row.duration != first.duration) {
+                throw CsvImportError.MalformedRow(row.line, "cardio activity or duration changed inside session")
+            }
+            if (seconds.toLong() + row.result.elapsedSeconds > 86_400) {
+                throw CsvImportError.MalformedRow(row.line, "cardio session seconds out of range")
+            }
+            sets += row.result
+            seconds += row.result.elapsedSeconds
+        }
+
+        fun session(): PreviewCardioSession = PreviewCardioSession(
+            dayId = first.dayId,
+            mode = CardioBlocks.legacyModeOf(first.activity).name,
+            hard = sets.any { it.spec.role == CardioRole.WORK && it.spec.hard },
+            label = first.label,
+            startedAt = first.completedAt - seconds * 1_000L,
+            completedAt = first.completedAt,
+            seconds = seconds,
+            stepsCompleted = sets.count { it.status == CardioSetStatus.FINISHED },
+            activity = first.activity.name,
+            sets = sets.toList(),
         )
     }
 

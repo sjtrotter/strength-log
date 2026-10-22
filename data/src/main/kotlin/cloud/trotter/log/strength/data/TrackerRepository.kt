@@ -1569,6 +1569,10 @@ open class TrackerRepository(
         sessions = sessionDao.allSessions(),
         sessionSets = sessionDao.allSessionSets(),
         cardioSessions = cardioSessionDao.all(),
+        cardioSets = cardioSetResultDao.all().groupBy { it.cardioSessionId }.mapNotNull { (id, rows) ->
+            val sets = rows.mapNotNull { it.toDomainOrNull() }
+            if (sets.size == rows.size) id to sets else null
+        }.toMap(),
     )
 
     /**
@@ -1592,7 +1596,7 @@ open class TrackerRepository(
     suspend fun importSessionHistory(
         sessions: List<ImportedSession>,
         newCustomExercises: List<CustomExerciseEntity>,
-        cardioSessions: List<CardioSessionEntity> = emptyList(),
+        cardioSessions: List<ImportedCardioSession> = emptyList(),
     ) {
         db.withTransaction {
             if (newCustomExercises.isNotEmpty()) customExerciseDao.upsertAll(newCustomExercises)
@@ -1602,7 +1606,14 @@ open class TrackerRepository(
                     sessionDao.insertSets(imported.sets.map { it.copy(id = 0, sessionId = sessionId) })
                 }
             }
-            cardioSessions.forEach { cardioSessionDao.insert(it.copy(id = 0)) }
+            cardioSessions.forEach { imported ->
+                val sessionId = cardioSessionDao.insert(imported.session.copy(id = 0))
+                if (imported.sets.isNotEmpty()) {
+                    cardioSetResultDao.insertAll(imported.sets.mapIndexed { position, set ->
+                        set.toEntity(sessionId, position)
+                    })
+                }
+            }
         }
     }
 

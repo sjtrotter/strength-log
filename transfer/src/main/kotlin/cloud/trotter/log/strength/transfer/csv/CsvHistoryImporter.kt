@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.ImportedSession
+import cloud.trotter.log.strength.data.ImportedCardioSession
 import cloud.trotter.log.strength.data.SessionHistorySnapshot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
@@ -8,6 +9,7 @@ import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.util.UUID
@@ -25,7 +27,7 @@ object CsvHistoryImporter {
     data class CommitPlan(
         val sessions: List<ImportedSession>,
         val newCustomExercises: List<CustomExerciseEntity>,
-        val cardioSessions: List<CardioSessionEntity> = emptyList(),
+        val cardioSessions: List<ImportedCardioSession> = emptyList(),
     )
 
     /**
@@ -101,19 +103,39 @@ object CsvHistoryImporter {
             }
         } ?: mutableSetOf()
         val newSessions = sessions.filter { seen.add(normalizedSessionFingerprint(it.session, it.sets)) }
-        val seenCardio = existingHistory?.cardioSessions.orEmpty()
-            .mapTo(mutableSetOf(), ::cardioFingerprint)
+        val seenCardio = existingHistory?.let { history ->
+            history.cardioSessions.mapTo(mutableSetOf()) { session ->
+                cardioFingerprint(session, history.cardioSets[session.id].orEmpty())
+            }
+        } ?: mutableSetOf()
         val cardioSessions = preview.cardioSessions
             .map {
-                CardioSessionEntity(
-                    dayId = it.dayId, mode = it.mode, hard = it.hard, label = it.label,
-                    startedAt = it.startedAt, completedAt = it.completedAt, seconds = it.seconds,
-                    stepsCompleted = it.stepsCompleted,
+                ImportedCardioSession(
+                    session = CardioSessionEntity(
+                        dayId = it.dayId, mode = it.mode, hard = it.hard, label = it.label,
+                        startedAt = it.startedAt, completedAt = it.completedAt, seconds = it.seconds,
+                        stepsCompleted = it.stepsCompleted, activity = it.activity,
+                    ),
+                    sets = it.sets,
                 )
             }
-            .filter { seenCardio.add(cardioFingerprint(it)) }
+            .filter { seenCardio.add(cardioFingerprint(it.session, it.sets)) }
         return CommitPlan(newSessions, newCustomExercises, cardioSessions)
     }
+
+    /**
+     * Cardio normalized to what its CSV row preserves: no id, no startedAt
+     * (the reader derives it from completedAt − seconds), null dayId collapsed
+     * to empty, and completion time at second precision.
+     */
+    private fun cardioFingerprint(session: CardioSessionEntity, sets: List<CardioSetResult>): List<Any?> = listOf(
+        session.dayId.orEmpty(), session.mode, session.hard, session.label,
+        session.completedAt / 1000, session.seconds, session.stepsCompleted, session.activity,
+        sets.map { set ->
+            listOf(set.spec.role, set.spec.end, set.spec.aim, set.spec.hard, set.status,
+                set.elapsedSeconds, set.metres, set.distanceSource)
+        },
+    )
 
     /**
      * Normalizes both native and imported history to exactly what CSV preserves:
@@ -122,16 +144,6 @@ object CsvHistoryImporter {
      * two truly identical sessions completed within one second collide; that is
      * an acceptable limitation of the interchange format's second precision.
      */
-    /**
-     * Cardio normalized to what its CSV row preserves: no id, no startedAt
-     * (the reader derives it from completedAt − seconds), null dayId collapsed
-     * to empty, and completion time at second precision.
-     */
-    private fun cardioFingerprint(session: CardioSessionEntity): List<Any> = listOf(
-        session.dayId.orEmpty(), session.mode, session.hard, session.label,
-        session.completedAt / 1000, session.seconds, session.stepsCompleted,
-    )
-
     private fun normalizedSessionFingerprint(
         session: WorkoutSessionEntity,
         sets: List<SessionSetEntity>,

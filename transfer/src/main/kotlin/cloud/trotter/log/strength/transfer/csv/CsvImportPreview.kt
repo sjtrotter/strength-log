@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 
 /**
  * Pure preview/confirm model for a CSV history import (issue #16; PLAN.md A2:
@@ -10,7 +11,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
  * lets the user edit each [UnmatchedExerciseName.suggestedPattern], and only
  * then calls commit.
  *
- * [sessions] already groups every CSV row into workouts (by Date + Workout
+ * [sessions] already groups strength rows into workouts (by Date + Workout
  * Name, PLAN.md A2). Each [PreviewSet.exerciseId] is filled in when its
  * [PreviewSet.exerciseName] matched the catalog or an existing custom
  * exercise (case/whitespace-insensitive exact match); it is `null` exactly
@@ -41,6 +42,8 @@ data class PreviewCardioSession(
     val completedAt: Long,
     val seconds: Int,
     val stepsCompleted: Int,
+    val activity: String? = null,
+    val sets: List<CardioSetResult> = emptyList(),
 )
 
 /** One CSV row, resolved as far as it can be without user input. [seconds] is a

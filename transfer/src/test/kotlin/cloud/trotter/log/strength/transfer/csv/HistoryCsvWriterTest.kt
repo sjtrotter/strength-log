@@ -34,17 +34,19 @@ class HistoryCsvWriterTest {
         val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, zone)
         val header = Csv.parse(csv).first()
         assertEquals(HISTORY_CSV_HEADER, header)
-        assertEquals("Plan", header.last())
+        assertEquals("Plan", header[15])
+        assertEquals(listOf("Activity", "Role", "Target", "Aim", "Hard", "Status", "Distance Source",
+            "Steps Completed", "Cardio Mode"), header.drop(16))
     }
 
     @Test
-    fun `strength rows append the copied plan name in the last cell`() {
+    fun `strength rows keep the copied plan name in column sixteen`() {
         val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235, planId = 2, planName = "Test prep")
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
         val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
 
         assertEquals(HISTORY_CSV_HEADER.size, row.size)
-        assertEquals("Test prep", row.last())
+        assertEquals("Test prep", row[HISTORY_CSV_HEADER.indexOf("Plan")])
     }
 
     @Test
@@ -53,7 +55,7 @@ class HistoryCsvWriterTest {
         val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5))
         val row = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))[1]
 
-        assertEquals("'=SUM(A1)", row.last())
+        assertEquals("'=SUM(A1)", row[HISTORY_CSV_HEADER.indexOf("Plan")])
     }
 
     @Test
@@ -69,7 +71,7 @@ class HistoryCsvWriterTest {
             ))[1]
 
             assertEquals(HISTORY_CSV_HEADER.size, row.size)
-            assertEquals(expected, row.last())
+            assertEquals(expected, row[HISTORY_CSV_HEADER.indexOf("Plan")])
         }
     }
 

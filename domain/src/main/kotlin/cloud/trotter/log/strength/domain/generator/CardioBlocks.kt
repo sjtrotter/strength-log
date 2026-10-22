@@ -10,6 +10,12 @@ import cloud.trotter.log.strength.domain.model.Measure
 
 /** Adapts the shipped interval plan without changing its steps or duration. */
 object CardioBlocks {
+    fun legacyModeOf(activity: CardioActivity): CardioMode = when (activity) {
+        CardioActivity.ROAD_RUN, CardioActivity.TRAIL_RUN, CardioActivity.TRACK_RUN -> CardioMode.OUTDOOR_RUN
+        CardioActivity.TREADMILL_RUN -> CardioMode.TREADMILL
+        else -> CardioMode.LOW_IMPACT
+    }
+
     fun fromLegacy(suggestion: CardioSuggestion, fiveK: Boolean, activity: CardioActivity): CardioBlock {
         val steps = CardioIntervals.plan(suggestion, fiveK).steps
         return CardioBlock(activity, steps.mapIndexed { index, step ->

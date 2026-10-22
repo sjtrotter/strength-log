@@ -112,6 +112,8 @@ fun WearApp(
     var savedCardioSets by rememberSaveable(stateSaver = cardioSetStateSaver) {
         mutableStateOf<CardioSetState?>(null)
     }
+    // Reconciliation retains started work from another plan/day, so its frozen
+    // cardio face and execution ownership outlive the phone's selection changes.
     val cardioSets = snapshot?.let { savedCardioSets?.reconcile(it) }
     LaunchedEffect(snapshot, cardioSets) {
         if (snapshot != null && savedCardioSets != cardioSets) savedCardioSets = cardioSets

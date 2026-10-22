@@ -153,12 +153,13 @@ class WearSyncStoreTest {
     }
 
     @Test
-    fun `unparsable cardio ack preference reads empty and the next record repairs it`() = runTest {
+    fun `unparsable cardio ack preference reads as the max alone and the next record repairs it`() = runTest {
         val store = newStore().first
         val key = stringPreferencesKey("cardio_acked_stamps")
         for (garbage in listOf("garbage", "1,broken,2", "1,", "9223372036854775808", "")) {
             preferences.edit { it[key] = garbage }
-            assertEquals(emptyList<Long>(), store.acksFlow.first().recent)
+            val highest = store.lastApplied(CardioDeltaApplier.MARKER_KEY)
+            assertEquals(listOf(highest).filter { it > 0L }, store.acksFlow.first().recent)
             store.record(5L)
             assertEquals(listOf(5L), store.acksFlow.first().recent)
         }

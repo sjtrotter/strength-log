@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
 import cloud.trotter.log.strength.widget.TodayWidgetContent
 import cloud.trotter.log.strength.widget.todayWidgetContent
 import java.io.File
@@ -35,6 +36,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -93,14 +95,16 @@ class TodaySnapshotSourceRestTest {
     }
 
     @Test
-    fun `existing cardio max without a recent log still publishes for legacy settlement`() = runTest(dispatcher) {
+    fun `an upgraded phone publishes its max as the only processed stamp`() = runTest(dispatcher) {
         val planId = repo.createAuthoredPlan("Running", "Track")
         repo.publishCreatedAuthoredPlan(planId)
         syncStore.markApplied(CardioDeltaApplier.MARKER_KEY, 101L)
         val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore)
         val snapshot = source.snapshots.publishableSnapshots().first()
         assertEquals(101L, snapshot.cardioAckStamp)
-        assertEquals(emptyList<Long>(), snapshot.cardioAckedStamps)
+        // A lost 100 must stay queued on a new watch, which only the list rule does.
+        assertEquals(listOf(101L), snapshot.cardioAckedStamps)
+        assertFalse(snapshot.acknowledgesCardio(100L))
     }
 
     @Test

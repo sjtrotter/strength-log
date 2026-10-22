@@ -88,9 +88,14 @@ class WearSyncStore(
         CardioAcks(prefs[appliedKey(CardioDeltaApplier.MARKER_KEY)] ?: 0L, cardioAckedStamps(prefs))
     }.distinctUntilChanged()
 
+    /** A missing or unreadable list stands in as the highest processed stamp alone:
+     *  an empty list beside a non-zero max would send a new watch back to the max
+     *  rule, which retires a lost earlier stamp (#308). */
     private fun cardioAckedStamps(prefs: Preferences): List<Long> {
-        val stored = prefs[CARDIO_ACKED_STAMPS] ?: return emptyList()
-        return stored.split(',').map { it.toLongOrNull() ?: return emptyList() }
+        val highest = prefs[appliedKey(CardioDeltaApplier.MARKER_KEY)] ?: 0L
+        val fallback = if (highest > 0L) listOf(highest) else emptyList()
+        val stored = prefs[CARDIO_ACKED_STAMPS] ?: return fallback
+        return stored.split(',').map { it.toLongOrNull() ?: return fallback }
     }
 
     override val continuityFlow: Flow<WatchContinuity> = dataStore.data.map { prefs ->

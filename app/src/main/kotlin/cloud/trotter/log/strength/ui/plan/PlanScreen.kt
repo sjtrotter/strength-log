@@ -35,6 +35,7 @@ import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
 import cloud.trotter.log.strength.ui.components.NoProgramState
 import cloud.trotter.log.strength.ui.components.ProgramLoadingState
+import cloud.trotter.log.strength.ui.day.cardioActivityName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +115,13 @@ private fun PlanDayItem(day: PlanDay, state: PlanUiState, actions: PlanActions) 
             Text(stringResource(R.string.today_day_label, day.dayId))
         },
         headlineContent = { Text(day.title) },
-        supportingContent = { Text("$lifts, $sets") },
+        supportingContent = {
+            val activity = day.cardioActivity
+            Text(if (day.liftCount == 0 && activity != null) {
+                stringResource(R.string.plan_cardio_summary, cardioActivityName(activity),
+                    pluralStringResource(R.plurals.plan_sets, day.cardioSetCount, day.cardioSetCount))
+            } else "$lifts, $sets")
+        },
         trailingContent = {
             if (state.authored) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

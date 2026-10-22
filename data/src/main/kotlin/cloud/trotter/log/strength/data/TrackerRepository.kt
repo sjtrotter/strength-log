@@ -30,6 +30,7 @@ import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -39,6 +40,7 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -522,6 +524,18 @@ open class TrackerRepository(
         true
     }
 
+    /** Authored cardio is stored on its owning day; null removes it if an exercise remains. */
+    suspend fun setCardioBlock(planId: Long, dayId: String, block: CardioBlock?): Boolean =
+        db.withTransaction {
+            if (planDao.plan(planId)?.origin != PlanOrigin.AUTHORED.name) return@withTransaction false
+            val day = programDao.day(planId, dayId) ?: return@withTransaction false
+            if (block == null && programDao.exercisesForDay(planId, dayId).isEmpty()) return@withTransaction false
+            // encode reconstructs the domain objects, enforcing all their requires.
+            val json = block?.let(CardioBlockJson::encode)
+            programDao.upsertDay(day.copy(cardioBlockJson = json))
+            true
+        }
+
     /** Sets belong to the slot, never the prescription JSON. Null keeps its current count. */
     suspend fun setPrescription(programExerciseId: Long, prescription: Prescription, sets: Int? = null) {
         db.withTransaction {
@@ -686,7 +700,12 @@ open class TrackerRepository(
             val plan = planDao.plan(row.planId) ?: return@withTransaction false
             val origin = PlanOrigin.entries.firstOrNull { it.name == plan.origin } ?: PlanOrigin.GENERATED
             val count = programDao.exercisesForDay(row.planId, row.dayId).size
-            if (count <= minExercisesPerDay(origin)) return@withTransaction false
+            val hasCardio = origin == PlanOrigin.AUTHORED &&
+                CardioBlockJson.decode(
+                    programDao.day(row.planId, row.dayId)?.cardioBlockJson,
+                ) != null
+            val floor = if (hasCardio) 0 else minExercisesPerDay(origin)
+            if (count <= floor) return@withTransaction false
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
             programDao.deleteExercise(row.id)
             true

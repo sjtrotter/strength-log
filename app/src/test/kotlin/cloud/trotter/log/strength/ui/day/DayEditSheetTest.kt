@@ -1,11 +1,14 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,7 +22,14 @@ class DayEditSheetTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun show(canSetSuperset: Boolean, authored: Boolean = false, edit: Boolean = true) {
+    private fun show(
+        canSetSuperset: Boolean,
+        authored: Boolean = false,
+        edit: Boolean = true,
+        hasSlot: Boolean = true,
+        hasCardio: Boolean = false,
+        onRemoveCardio: () -> Unit = {},
+    ) {
         val slot = DayEditSlotState(
             programExerciseId = 1L,
             position = 0,
@@ -32,7 +42,10 @@ class DayEditSheetTest {
         composeTestRule.setContent {
             AppTheme {
                 DayEditSheet(
-                    state = DayEditUiState(slots = listOf(slot), authored = authored),
+                    state = DayEditUiState(
+                        slots = if (hasSlot) listOf(slot) else emptyList(), authored = authored,
+                        cardioBlock = if (hasCardio) cardioFixture().block else null,
+                    ),
                     actions = DayEditActions(
                         onSwap = { _, _ -> },
                         onAdd = {},
@@ -40,6 +53,7 @@ class DayEditSheetTest {
                         onSetSuperset = { _, _ -> },
                         onRemoveSuperset = {},
                         onResetToTemplate = {},
+                        onRemoveCardio = onRemoveCardio,
                     ),
                     accent = Color.White,
                     onDismiss = {},
@@ -48,6 +62,21 @@ class DayEditSheetTest {
             }
         }
         if (edit) composeTestRule.onNodeWithText("Edit").performClick()
+    }
+
+    @Test
+    fun cardioOnlyDayDisablesRemoveCardio() {
+        show(canSetSuperset = false, authored = true, edit = false, hasSlot = false, hasCardio = true)
+        composeTestRule.onNodeWithText("Remove cardio").assertIsNotEnabled()
+    }
+
+    @Test
+    fun dayWithAnExerciseCanRemoveCardio() {
+        var removals = 0
+        show(canSetSuperset = false, authored = true, edit = false, hasCardio = true,
+            onRemoveCardio = { removals++ })
+        composeTestRule.onNodeWithText("Remove cardio").assertIsEnabled().performClick()
+        composeTestRule.runOnIdle { assertEquals(1, removals) }
     }
 
     @Test

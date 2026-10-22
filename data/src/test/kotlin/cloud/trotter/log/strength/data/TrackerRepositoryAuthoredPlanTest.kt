@@ -12,6 +12,11 @@ import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -60,6 +65,76 @@ class TrackerRepositoryAuthoredPlanTest {
     fun tearDown() {
         db.close()
         storeScope.cancel()
+    }
+
+    @Test
+    fun `cardio block writes and removal belong to the authored day even after selection changes`() = runTest {
+        val plan = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("plank"))
+        val other = repo.createAuthoredPlan("Other", "Other day")
+        repo.publishCreatedAuthoredPlan(other)
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(
+            CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true),
+        ))
+        assertTrue(repo.setCardioBlock(plan, "A", block))
+        assertEquals(block, repo.programFor(plan).first().days.single().cardioBlock)
+        assertNull(repo.programFor(other).first().days.single().cardioBlock)
+        assertTrue(repo.setCardioBlock(plan, "A", null))
+        assertNull(repo.programFor(plan).first().days.single().cardioBlock)
+        assertEquals("plank", repo.programFor(plan).first().days.single().exercises.single().exerciseId)
+    }
+
+    @Test
+    fun `generated cardio block cannot be edited or removed`() = runTest {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList(), null, cardioBlock = block))))
+        val plan = repo.selectedPlanIdFlow.first()!!
+        assertFalse(repo.setCardioBlock(plan, "A", block.copy(activity = CardioActivity.ROWER)))
+        assertEquals(block, repo.programFor(plan).first().days.single().cardioBlock)
+        assertFalse(repo.setCardioBlock(plan, "A", null))
+        assertEquals(block, repo.programFor(plan).first().days.single().cardioBlock)
+    }
+
+    @Test
+    fun `removing the last exercise prevents removal of the remaining cardio block`() = runTest {
+        val plan = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("plank"))
+        val slot = repo.daySlotsFlow("A").first().single().programExerciseId
+        assertFalse(repo.removeExercise(slot))
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500))))
+        assertTrue(repo.setCardioBlock(plan, "A", block))
+        assertTrue(repo.removeExercise(slot))
+        assertFalse(repo.setCardioBlock(plan, "A", null))
+        assertTrue(repo.programFor(plan).first().days.single().exercises.isEmpty())
+        assertEquals(block, repo.programFor(plan).first().days.single().cardioBlock)
+    }
+
+    @Test
+    fun `removing cardio prevents removal of the last remaining exercise`() = runTest {
+        val plan = repo.createAuthoredPlan("Running", "Run")
+        repo.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("plank"))
+        val slot = repo.daySlotsFlow("A").first().single().programExerciseId
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500))))
+        assertTrue(repo.setCardioBlock(plan, "A", block))
+        assertTrue(repo.setCardioBlock(plan, "A", null))
+        assertFalse(repo.removeExercise(slot))
+        val day = repo.programFor(plan).first().days.single()
+        assertNull(day.cardioBlock)
+        assertEquals("plank", day.exercises.single().exerciseId)
+    }
+
+    @Test
+    fun `cardio writes revalidate domain requirements before storing`() = runTest {
+        val plan = repo.createAuthoredPlan("Running", "Run")
+        val sets = mutableListOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)))
+        val block = CardioBlock(CardioActivity.ROAD_RUN, sets)
+        sets.clear()
+        val result = runCatching { repo.setCardioBlock(plan, "A", block) }
+        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertNull(repo.programFor(plan).first().days.single().cardioBlock)
     }
 
     @Test

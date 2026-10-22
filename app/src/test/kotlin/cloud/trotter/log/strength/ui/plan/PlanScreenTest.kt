@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -25,6 +26,16 @@ class PlanScreenTest {
         },
     )
     private fun actions() = PlanActions(onOpenDay = {}, onOpenPlans = {}, onSetUpProgram = {})
+
+    @Test
+    fun cardioOnlyDayShowsTheActivityAndSetCount() {
+        val state = state(true).copy(days = listOf(
+            PlanDay("A", 0, "Run", 0, 0, true, cardioActivity = CardioActivity.ROAD_RUN, cardioSetCount = 5),
+        ))
+        rule.setContent { AppTheme { PlanScreen(state, actions()) } }
+        rule.onNodeWithText("Road run · 5 sets").assertExists()
+        rule.onNodeWithText("0 lifts, 0 sets").assertDoesNotExist()
+    }
 
     @Test
     fun authoredPlanOffersDayActionsAndHidesRemovalForTheLastDay() {

@@ -672,4 +672,23 @@
 <string name="cardio_receipt_headline">Day %1$s, done.</string>
 <string name="cardio_receipt_next">Next: %1$s</string>
 <string name="cardio_back_today">Back to Today</string>
+<string name="day_edit_add_cardio">Add cardio</string>
+<string name="day_edit_edit_cardio">Edit cardio</string>
+<string name="day_edit_remove_cardio">Remove cardio</string>
+<string name="cardio_edit_activity">Activity</string>
+<string name="cardio_edit_start_from">Start from</string>
+<string name="cardio_edit_easy">Easy 25:00</string>
+<string name="cardio_edit_tempo">Tempo 20:00</string>
+<string name="cardio_edit_intervals">Intervals 5 × 2:00</string>
+<string name="cardio_edit_set">Edit set</string>
+<string name="cardio_edit_set_title">Set %1$d · %2$s</string>
+<string name="cardio_edit_role">Role</string>
+<string name="cardio_edit_end">End</string>
+<string name="cardio_edit_time">Time</string>
+<string name="cardio_edit_distance">Distance</string>
+<string name="cardio_edit_seconds">Seconds</string>
+<string name="cardio_edit_aim">Aim</string>
+<string name="cardio_edit_hard">Hard</string>
+<string name="cardio_edit_hard_summary">%1$s · Hard</string>
+<string name="plan_cardio_summary">%1$s · %2$s</string>
 </resources>

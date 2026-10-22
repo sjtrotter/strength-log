@@ -11,6 +11,8 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.ui.day.CardioBlockDraft
+import cloud.trotter.log.strength.ui.day.CardioTemplate
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +74,23 @@ class PlanViewModelTest {
             viewModels += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
+
+    @Test
+    fun `added cardio only day exposes its activity and set count immediately`() = runTest(dispatcher) {
+        val plan = repo.createAuthoredPlan("Running", "Day A")
+        repo.publishCreatedAuthoredPlan(plan)
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.addDay()
+        advanceUntilIdle()
+        val block = CardioBlockDraft.new(plan, "B").startFrom(CardioTemplate.INTERVALS).block()
+        repo.setCardioBlock(plan, "B", block)
+        advanceUntilIdle()
+        val row = vm.uiState.value.days.single { it.dayId == "B" }
+        assertEquals(0, row.liftCount)
+        assertEquals(block.activity, row.cardioActivity)
+        assertEquals(11, row.cardioSetCount)
+    }
 
     @Test
     fun `authored days add rename and remove immediately with a seven day cap`() = runTest(dispatcher) {

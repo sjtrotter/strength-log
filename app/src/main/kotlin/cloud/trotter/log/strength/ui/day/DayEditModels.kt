@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -23,6 +24,10 @@ data class DayEditUiState(
     val unit: WeightUnit = WeightUnit.LB,
     val prescriptionDraft: PrescriptionDraft? = null,
     val editorOpen: Boolean = false,
+    val planId: Long? = null,
+    val dayId: String? = null,
+    val cardioBlock: CardioBlock? = null,
+    val cardioDraft: CardioBlockDraft? = null,
 )
 
 /** One row of the day-edit sheet's slot list. */
@@ -63,4 +68,9 @@ data class DayEditActions(
     val onSavePrescription: () -> Unit = {},
     val onDiscardPrescription: () -> Unit = {},
     val onEditorOpen: (Boolean) -> Unit = {},
+    val onOpenCardio: () -> Unit = {},
+    val onCardioDraft: (CardioBlockDraft) -> Unit = {},
+    val onSaveCardio: () -> Unit = {},
+    val onBackCardio: () -> Unit = {},
+    val onRemoveCardio: () -> Unit = {},
 )

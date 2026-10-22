@@ -52,6 +52,8 @@ data class CardioRun(
     val sessionId: Long? = null,
     val saveFailed: Boolean = false,
     val runId: String = java.util.UUID.randomUUID().toString(),
+    /** Invalidated runs log normally without navigating away from the current page. */
+    val showReceipt: Boolean = true,
 ) : Parcelable {
     fun action(setIndex: Int = position): CardioSetAction = CardioSetAction(dayId, runId, setIndex)
 

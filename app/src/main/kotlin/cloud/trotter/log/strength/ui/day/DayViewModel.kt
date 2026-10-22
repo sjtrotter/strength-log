@@ -503,14 +503,21 @@ class DayViewModel @Inject constructor(
     fun endCardioBlock() {
         mutate {
             if (timedRepEvent.value?.awaitingCount == false) return@mutate
-            var run = reconcileCardio() ?: newCardioRun() ?: return@mutate
-            if (run.running) run = run.finish(CardioSetStatus.SHORTENED, cardioElapsedSeconds(run), cardioClock, requestDistance = false)
-            while (!run.complete) run = run.finish(CardioSetStatus.SKIPPED, 0, cardioClock)
-            cardioAlarm.cancel()
-            cardioAlertAnchor = null
-            saveCardioRun(run)
-            maybeLogCardio()
+            val run = reconcileCardio() ?: newCardioRun() ?: return@mutate
+            endCardioRun(run)
         }
+    }
+
+    private fun endCardioRun(run: CardioRun) {
+        var ended = run
+        if (ended.running) {
+            ended = ended.finish(CardioSetStatus.SHORTENED, cardioElapsedSeconds(ended), cardioClock, requestDistance = false)
+        }
+        while (!ended.complete) ended = ended.finish(CardioSetStatus.SKIPPED, 0, cardioClock)
+        cardioAlarm.cancel()
+        cardioAlertAnchor = null
+        saveCardioRun(ended)
+        maybeLogCardio()
     }
 
     fun addCardioSet() {
@@ -640,7 +647,7 @@ class DayViewModel @Inject constructor(
                     val activity = current.block.activity
                     val mode = CardioBlocks.legacyModeOf(activity)
                     // Keep entry on its originating day while the committed rotation moves on.
-                    if (current.finishesDay) savedState[KEY_VIEW_DAY] = current.dayId
+                    if (current.finishesDay && current.showReceipt) savedState[KEY_VIEW_DAY] = current.dayId
                     val id = current.sessionId ?: repo.logCardioSession(CardioSessionEntity(
                         dayId = current.dayId, mode = mode.name,
                         hard = current.block.sets.any { it.role == CardioRole.WORK && it.hard },
@@ -713,7 +720,7 @@ class DayViewModel @Inject constructor(
     }
 
     private suspend fun finishCardioReceipt(run: CardioRun) {
-        if (!run.finishesDay) return
+        if (!run.finishesDay || !run.showReceipt) return
         // Keep the first due receipt when another run finishes before the screen is free.
         if (deferredCardioReceipt.value == null) savedState[KEY_DEFERRED_CARDIO_RECEIPT] = run
         showDeferredCardioReceipt()
@@ -1467,9 +1474,17 @@ class DayViewModel @Inject constructor(
 
     private fun validateCardioRun(ctx: DayContext) {
         val run = cardioRun.value ?: return
-        val plan = ctx.plan ?: return clearCardioExecution()
-        // A run owns its frozen prescription. Edits to its day apply to the next run.
-        if (plan.id != run.planId || ctx.program.days.none { it.id == run.dayId }) {
+        val day = ctx.program.days.firstOrNull { it.id == run.dayId }
+        // Started work owns its frozen prescription. Edits to its block apply to the next run.
+        if (ctx.plan?.id != run.planId || day == null) {
+            if (run.startedAt == null) return clearCardioExecution()
+            if (openSheet.value?.kind in listOf(OpenSheet.Kind.CARDIO_DISTANCE, OpenSheet.Kind.CARDIO_SETS)) {
+                savedState[KEY_OPEN_SHEET] = null
+            }
+            endCardioRun(run.reconcile(cardioClock).copy(showReceipt = false))
+        } else if (run.startedAt == null &&
+            day.effectiveCardio(ctx.cardioPrefs)?.let(CardioBlockJson::encode) != run.sourceBlockJson
+        ) {
             clearCardioExecution()
         }
     }

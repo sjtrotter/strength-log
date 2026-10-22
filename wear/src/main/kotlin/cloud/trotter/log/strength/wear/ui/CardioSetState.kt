@@ -33,12 +33,14 @@ data class CardioSetState(
 ) {
     val position: Int get() = results.size
     val complete: Boolean get() = position == block.sets.size
-    val ownsExecution: Boolean get() = !complete || entries.isNotEmpty()
+    val ownsExecution: Boolean get() = !complete || entries.isNotEmpty() || (startedAt != null && queuedStamp == null)
 
     fun reconcile(snapshot: WatchSnapshot): CardioSetState? {
+        // Started work belongs to its frozen plan/day until it is durably queued.
+        if (startedAt != null && complete && (entries.isNotEmpty() || queuedStamp == null)) return this
         // A completed receipt stays visible through the phone's rotation advance.
         if (complete) return takeIf { planId == snapshot.planId }
-        if (planId != snapshot.planId || dayId != snapshot.day.dayId) return null
+        if (planId != snapshot.planId || dayId != snapshot.day.dayId) return takeIf { startedAt != null }
         if (startedAt == null && block != snapshot.cardioBlock) return null
         val logged = snapshot.cardio?.loggedStartedAt
         return takeIf { logged == null || logged == startedAt }

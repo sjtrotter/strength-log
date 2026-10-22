@@ -26,8 +26,9 @@ class CardioSetStateTest {
     private fun snapshot(block: WatchCardioBlock) = WatchSnapshot(revision = 1, suggestedDayId = "A",
         day = WatchDay("A", "Track", 0, emptyList()), unit = "lb", planId = 9, cardioBlock = block)
     private fun run(vararg sets: WatchCardioSetSpec) = CardioSetState(9, "A", block(*sets))
-    private fun render(run: CardioSetState, elapsed: Long = 10_000, wall: Long = 100_000) = dialUiState(
-        DialInputs(snapshot(run.block), 0, SetPhase.READY, DialFace.WORKOUT, 0, null,
+    private fun render(run: CardioSetState, elapsed: Long = 10_000, wall: Long = 100_000,
+        snap: WatchSnapshot = snapshot(run.block)) = dialUiState(
+        DialInputs(snap, 0, SetPhase.READY, DialFace.WORKOUT, 0, null,
             nowElapsedMillis = elapsed, nowWallMillis = wall, cardioSets = run, bootCount = 4))
     private fun texts(ui: DialUiState) = ui.disc.lines.flatMap { it.spans }.map { it.text }
 
@@ -168,7 +169,7 @@ class CardioSetStateTest {
         assertEquals(220_000L, reboot.delta()?.completedAt)
     }
 
-    @Test fun `state and entry drafts keep their frozen prescription but restore only for their owner`() {
+    @Test fun `restored state and entry drafts keep their frozen prescription across plans and days`() {
         val state = run(time, recovery).start(100_000, 10_000, 4).stop(101_000, 11_000, 4).turn(13)
         val scope = object : SaverScope { override fun canBeSaved(value: Any) = true }
         val saved = with(cardioSetStateSaver) { assertNotNull(scope.save(state)) }
@@ -176,8 +177,8 @@ class CardioSetStateTest {
         assertEquals(state, restored)
         val snapshot = snapshot(state.block)
         assertEquals(restored, restored.reconcile(snapshot))
-        assertNull(restored.reconcile(snapshot.copy(planId = 10)))
-        assertNull(restored.reconcile(snapshot.copy(day = snapshot.day.copy(dayId = "B"))))
+        assertEquals(restored, restored.reconcile(snapshot.copy(planId = 10)))
+        assertEquals(restored, restored.reconcile(snapshot.copy(day = snapshot.day.copy(dayId = "B"))))
         assertEquals(restored, restored.reconcile(snapshot.copy(cardioBlock = block(distance))))
         assertEquals(restored, restored.reconcile(snapshot.copy(cardioBlock = null)))
         assertNull(restored.reconcile(snapshot.copy(cardio = CardioSuggestion("Phone", "", false, loggedStartedAt = 999))))
@@ -187,12 +188,72 @@ class CardioSetStateTest {
         val offer = run(time, time)
         val edited = snapshot(block(distance))
         assertNull(offer.reconcile(edited))
+        assertNull(offer.reconcile(snapshot(offer.block).copy(planId = 10)))
+        assertNull(offer.reconcile(snapshot(offer.block).copy(day = edited.day.copy(dayId = "B"))))
         val active = offer.start(100_000, 10_000, 4)
         assertEquals(active, active.reconcile(edited))
         val paused = active.resume(220_000, 130_000, 4)
         assertEquals(paused, paused.reconcile(edited))
-        assertNull(active.reconcile(edited.copy(planId = 10)))
-        assertNull(active.reconcile(edited.copy(day = edited.day.copy(dayId = "B"))))
+        assertEquals(active, active.reconcile(edited.copy(planId = 10)))
+        assertEquals(active, active.reconcile(edited.copy(day = edited.day.copy(dayId = "B"))))
+    }
+
+    @Test fun `finished first set and running second set survive another plan or day with original delta identity`() {
+        val state = run(time.copy(role = "WARMUP"), time, recovery)
+            .start(100_000, 10_000, 4, finishesDay = true)
+            .resume(220_000, 130_000, 4).start(230_000, 140_000, 4)
+        val own = snapshot(state.block)
+        val exercise = WatchExercise(1, "main", "Push-ups", 0.0, false, null,
+            listOf(WatchSet(0.0, 0, "WORK", false)), emptyList(), tracking = "reps", repWindowSeconds = 120)
+        val otherPlan = own.copy(planId = 10, cardioBlock = block(distance),
+            day = own.day.copy(exercises = listOf(exercise)),
+            cardio = CardioSuggestion("Phone", "", false, loggedStartedAt = 999))
+        val otherDay = otherPlan.copy(planId = own.planId, day = otherPlan.day.copy(dayId = "B"))
+        listOf(otherPlan, otherDay).forEach { snap ->
+            val kept = assertNotNull(state.reconcile(snap))
+            assertEquals(state, kept)
+            assertEquals("FINISHED", kept.results.single().status)
+            assertEquals(30, kept.elapsed(170_000, 260_000, 4))
+            val ui = render(kept, elapsed = 170_000, wall = 260_000, snap = snap)
+            assertEquals(DialScreen.CARDIO_EXECUTING, ui.screen)
+            assertEquals(texts(render(state, elapsed = 170_000, wall = 260_000)), texts(ui))
+            assertEquals(listOf(RoundState.DONE, RoundState.CURRENT, RoundState.UPCOMING), ui.rounds)
+            assertTrue(kept.ownsExecution)
+            assertNull(startTimedRep(snap, 0, kept.ownsExecution, null, 260_000, 170_000, 4))
+            val delta = assertNotNull(kept.end(260_000, 170_000, 4).tap(260_001, 170_001, 4).delta())
+            assertEquals(9L, delta.planId)
+            assertEquals("A", delta.dayId)
+            assertTrue(delta.finishesDay)
+        }
+        assertNull(state.reconcile(own.copy(cardio = CardioSuggestion("Phone", "", false, loggedStartedAt = 999))))
+    }
+
+    @Test fun `complete run survives foreign snapshots through distance entry and durable enqueue then follows receipt rule`() {
+        val state = run(time.copy(aimKind = "DISTANCE", aimValue = 400))
+            .start(100_000, 10_000, 4).resume(220_000, 130_000, 4)
+        val own = snapshot(state.block)
+        val other = own.copy(planId = 10,
+            cardio = CardioSuggestion("Phone", "", false, loggedStartedAt = 999))
+        assertTrue(state.complete)
+        assertEquals(listOf(0), state.entries)
+        assertEquals(state, state.reconcile(other))
+        assertTrue(state.ownsExecution)
+        assertNull(state.delta())
+        val readyToQueue = state.turn(390).tap(230_000, 140_000, 4)
+        assertEquals(readyToQueue, readyToQueue.reconcile(other))
+        assertEquals(readyToQueue, readyToQueue.reconcile(own.copy(cardio = other.cardio)))
+        assertTrue(readyToQueue.ownsExecution)
+        val delta = assertNotNull(readyToQueue.delta())
+        assertEquals(9L, delta.planId)
+        assertEquals("A", delta.dayId)
+        assertEquals(390, delta.sets.single().metres)
+        val failed = readyToQueue.copy(saveFailed = true)
+        assertEquals(failed, failed.reconcile(other))
+        assertTrue(failed.ownsExecution)
+        val queued = readyToQueue.copy(queuedStamp = 230_001)
+        assertFalse(queued.ownsExecution)
+        assertNull(queued.reconcile(other))
+        assertEquals(queued, queued.reconcile(own.copy(day = own.day.copy(dayId = "B"))))
     }
 
     @Test fun `eligibility is captured on first start and survives edits subsequent starts and restore`() {

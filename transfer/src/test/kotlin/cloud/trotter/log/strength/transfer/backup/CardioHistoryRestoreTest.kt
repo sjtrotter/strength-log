@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
@@ -71,6 +72,44 @@ class CardioHistoryRestoreTest {
         assertEquals(before.cardioSetResults, db.cardioSetResultDao().all())
         assertEquals(sets, repository.cardioSetsFor(id))
         assertEquals(backup, service.export())
+    }
+
+    @Test fun `v12 restores negative session id with two ordered linked set results`() = runTest {
+        val expectedSets = sets + CardioSetResult(
+            CardioSetSpec(CardioRole.RECOVERY, Measure.Time(30)), CardioSetStatus.FINISHED, 30,
+        )
+        val summary = CardioSessionBackup(
+            id = -1, dayId = session.dayId, mode = session.mode, hard = session.hard, label = session.label,
+            startedAt = session.startedAt, completedAt = 91_000, seconds = 90, stepsCompleted = 2,
+            activity = session.activity,
+            sets = expectedSets.mapIndexed { index, result ->
+                CardioSetResultBackup(
+                    // Reverse ids so the read must follow position rather than primary key order.
+                    id = 12L - index,
+                    specJson = CardioBlockJson.encodeSet(result.spec),
+                    status = result.status.name,
+                    elapsedSeconds = result.elapsedSeconds,
+                )
+            },
+        )
+        val document = BackupDocument(
+            schemaVersion = 12,
+            settings = SettingsBackup(200, 30, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true),
+            cardioSessions = listOf(summary),
+        )
+
+        service.import(BackupCodec().encode(document))
+
+        assertEquals(
+            listOf(session.copy(id = -1, completedAt = 91_000, seconds = 90, stepsCompleted = 2)),
+            db.cardioSessionDao().all(),
+        )
+        val rows = db.cardioSetResultDao().all()
+        assertEquals(listOf(12L, 11L), rows.map { it.id })
+        assertEquals(listOf(-1L, -1L), rows.map { it.cardioSessionId })
+        assertEquals(listOf(0, 1), rows.map { it.position })
+        assertEquals(rows, db.cardioSetResultDao().forSession(-1))
+        assertEquals(expectedSets, repository.cardioSetsFor(-1))
     }
 
     @Test fun `restoring v11 summary clears existing results without inventing sets`() = runTest {

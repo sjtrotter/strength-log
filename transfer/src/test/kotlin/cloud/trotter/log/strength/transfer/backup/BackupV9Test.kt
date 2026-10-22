@@ -98,6 +98,31 @@ class BackupV9Test {
     }
 
     @Test
+    fun `v9 plan with a recipe and no days round-trips byte-identically`() {
+        val before = snapshot().let { snapshot ->
+            snapshot.copy(
+                selectedPlanId = 7,
+                suggestedDay = null,
+                plans = listOf(snapshot.plans.first().copy(suggestedDayId = null)),
+                days = emptyList(),
+            )
+        }
+        val encoded = codec.encode(before.toDocument().copy(schemaVersion = 9))
+
+        val decoded = codec.decode(encoded)
+        val restored = decoded.toSnapshot()
+
+        assertEquals(9, decoded.schemaVersion)
+        assertEquals(before.plans, restored.plans)
+        assertEquals(PlanRecipeJson.encode(strength), restored.plans.single().recipeJson)
+        assertTrue(restored.days.isEmpty())
+        assertTrue(restored.exercises.isEmpty())
+        assertEquals(7L, restored.selectedPlanId)
+        // Mapping exports the latest schema, so keep both sides of this cycle at v9.
+        assertEquals(encoded, codec.encode(restored.toDocument().copy(schemaVersion = 9)))
+    }
+
+    @Test
     fun `v9 ignores legacy settings fields even when their types are invalid`() {
         val document = snapshot().toDocument()
         val root = Json.parseToJsonElement(codec.encode(document)).jsonObject

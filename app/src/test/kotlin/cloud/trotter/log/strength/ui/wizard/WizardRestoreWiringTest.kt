@@ -30,6 +30,7 @@ import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.transfer.backup.BackupCodec
 import cloud.trotter.log.strength.transfer.backup.BackupDocument
 import cloud.trotter.log.strength.transfer.backup.BackupService
+import cloud.trotter.log.strength.transfer.backup.PlanBackup
 import cloud.trotter.log.strength.transfer.backup.ProgramDayBackup
 import cloud.trotter.log.strength.transfer.backup.ProgramExerciseBackup
 import cloud.trotter.log.strength.transfer.backup.SettingsBackup
@@ -269,6 +270,44 @@ class WizardRestoreWiringTest {
         assertTrue(repo.wizardCompleteFlow.first())
         assertEquals(190, repo.wizardAnswersFlow.first().config.bodyweightLb)
         assertEquals(1, repo.programFlow.first().days.size)
+    }
+
+    @Test
+    fun restoringV8WithTwoPlans_leavesTheWizardWithTheirDaysAndTheSecondSelection() = runBlocking {
+        val codec = BackupCodec()
+        val legacy = backup(wizardComplete = true)
+        val generatedDay = legacy.program.single()
+        val authoredDay = generatedDay.copy(
+            title = "Test A",
+            emphasisLine = "Bench-focused",
+            exercises = generatedDay.exercises.map { it.copy(id = 2, exerciseId = "bb_bench") },
+        )
+        val document = legacy.copy(
+            schemaVersion = 8,
+            settings = legacy.settings.copy(selectedPlanId = 42),
+            program = emptyList(),
+            plans = listOf(
+                PlanBackup(7, "Maintenance", "GENERATED", 1_000, days = listOf(generatedDay)),
+                PlanBackup(42, "Test prep", "AUTHORED", 2_000, days = listOf(authoredDay)),
+            ),
+        )
+        val uri = pickable(codec.encode(document))
+        val vm = newViewModel()
+        vm.awaitOffered()
+
+        vm.restoreFromBackup(uri)
+
+        val state = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
+        assertNull(state.restore.error)
+        assertTrue(repo.wizardCompleteFlow.first())
+        val plans = db.planDao().allPlans()
+        assertEquals(listOf(7L, 42L), plans.map { it.id })
+        assertEquals(listOf("Maintenance", "Test prep"), plans.map { it.name })
+        assertEquals(listOf("GENERATED", "AUTHORED"), plans.map { it.origin })
+        assertEquals(listOf("A" to "Day A"), db.programDao().daysForPlan(7).map { it.dayId to it.title })
+        assertEquals(listOf("A" to "Test A"), db.programDao().daysForPlan(42).map { it.dayId to it.title })
+        assertEquals(42L, settings.selectedPlanIdFlow.first())
+        assertEquals(listOf("Test A"), repo.programFlow.first().days.map { it.title })
     }
 
     @Test

@@ -136,6 +136,35 @@ class RestoreCoordinationTest {
     }
 
     @Test
+    fun withRestoreLockReplaysInterruptedV9RestoreWithNoPlans() = runBlocking {
+        val document = BackupDocument(
+            schemaVersion = 9,
+            settings = SettingsBackup(
+                bodyweightLb = 190, age = 33, level = "NOVICE", weightUnit = "LB", wizardComplete = true,
+            ),
+            plans = emptyList(),
+        )
+        settingsStore.failOnUpdate = 1
+        val failure = runCatching { service.import(BackupCodec().encode(document)) }.exceptionOrNull()
+        assertTrue(failure is RestoreInterruption.SettingsPending)
+        assertNotNull(db.restoreMarkerDao().nonce())
+        assertFalse(settings.wizardCompleteFlow.first())
+
+        val result = service.withRestoreLock {
+            assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
+            assertTrue(settings.wizardCompleteFlow.first())
+            assertTrue(db.planDao().allPlans().isEmpty())
+            assertTrue(repo.programFlow.first().days.isEmpty())
+            assertNull(settings.selectedPlanIdFlow.first())
+            assertNull(db.restoreMarkerDao().nonce())
+            "settled"
+        }
+
+        assertEquals("settled", result)
+        assertFalse(service.reconcilePendingRestore())
+    }
+
+    @Test
     fun reconciliationWaitsForAnInFlightRestoreInsteadOfReadingItsJournal() = runBlocking {
         val open = CompletableDeferred<Unit>()
         settingsStore.gateOnUpdate = 1

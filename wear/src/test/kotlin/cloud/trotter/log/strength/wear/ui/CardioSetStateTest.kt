@@ -238,7 +238,7 @@ class CardioSetStateTest {
         val retry = restored.tap(230_000, 140_000, 4)
         assertEquals(finished, retry)
         assertEquals(finished.delta(), retry.delta())
-        assertEquals("Saved on watch", retry.copy(queuedStamp = 220_001).receipt(0))
+        assertEquals("Saved on watch", retry.copy(queuedStamp = 220_001).receipt(snapshot(retry.block)))
     }
 
     @Test fun `a held Stop crossing zero cannot shorten auto-started recovery`() {
@@ -279,14 +279,29 @@ class CardioSetStateTest {
 
     @Test fun `receipt waits for actual issued stamp and survives rotation until acknowledged`() {
         val state = run(time).start(100_000, 10_000, 4).resume(220_000, 130_000, 4).copy(queuedStamp = 999_000)
-        assertEquals("Saved on watch", state.receipt(998_999))
-        assertEquals("Logged 2:00", state.receipt(999_000))
+        assertEquals("Saved on watch", state.receipt(snapshot(state.block).copy(cardioAckStamp = 998_999)))
+        assertEquals("Logged 2:00", state.receipt(snapshot(state.block).copy(cardioAckStamp = 999_000)))
         val next = snapshot(state.block).copy(day = WatchDay("B", "Next", 1, emptyList()), cardioAckStamp = 999_000)
         assertEquals(state, state.reconcile(next))
         assertFalse(state.ownsExecution)
         assertEquals(DialTap.NONE, render(state).tap)
         assertEquals(listOf("Saved on watch"), texts(render(state)))
         val logged = dialUiState(DialInputs(next, 0, SetPhase.READY, DialFace.WORKOUT, 0, null, cardioSets = state))
+        assertEquals(listOf("Logged 2:00"), texts(logged))
+        assertEquals(DialTap.DISMISS, logged.tap)
+    }
+
+    @Test fun `receipt and dismiss wait for the queued cardio stamp in the processed list`() {
+        val state = run(time).start(100_000, 10_000, 4).resume(220_000, 130_000, 4).copy(queuedStamp = 100L)
+        val laterOnly = snapshot(state.block).copy(cardioAckStamp = 101L, cardioAckedStamps = listOf(101L))
+        assertEquals("Saved on watch", state.receipt(laterOnly))
+        val pending = dialUiState(DialInputs(laterOnly, 0, SetPhase.READY, DialFace.WORKOUT, 0, null, cardioSets = state))
+        assertEquals(listOf("Saved on watch"), texts(pending))
+        assertEquals(DialTap.NONE, pending.tap)
+
+        val acknowledged = laterOnly.copy(cardioAckedStamps = listOf(100L))
+        assertEquals("Logged 2:00", state.receipt(acknowledged))
+        val logged = dialUiState(DialInputs(acknowledged, 0, SetPhase.READY, DialFace.WORKOUT, 0, null, cardioSets = state))
         assertEquals(listOf("Logged 2:00"), texts(logged))
         assertEquals(DialTap.DISMISS, logged.tap)
     }

@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
 import cloud.trotter.log.strength.widget.TodayWidgetContent
 import cloud.trotter.log.strength.widget.todayWidgetContent
 import java.io.File
@@ -27,6 +28,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -34,6 +36,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -59,6 +62,7 @@ class TodaySnapshotSourceRestTest {
     private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
+    private lateinit var syncStore: WearSyncStore
 
     @Before
     fun setUp() {
@@ -71,6 +75,9 @@ class TodaySnapshotSourceRestTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("pub-rest-settings", ".preferences_pb")
         }
+        syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("pub-wear-sync", ".preferences_pb")
+        })
         settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
@@ -88,10 +95,49 @@ class TodaySnapshotSourceRestTest {
     }
 
     @Test
+    fun `an upgraded phone publishes its max as the only processed stamp`() = runTest(dispatcher) {
+        val planId = repo.createAuthoredPlan("Running", "Track")
+        repo.publishCreatedAuthoredPlan(planId)
+        syncStore.markApplied(CardioDeltaApplier.MARKER_KEY, 101L)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore)
+        val snapshot = source.snapshots.publishableSnapshots().first()
+        assertEquals(101L, snapshot.cardioAckStamp)
+        // A lost 100 must stay queued on a new watch, which only the list rule does.
+        assertEquals(listOf(101L), snapshot.cardioAckedStamps)
+        assertFalse(snapshot.acknowledgesCardio(100L))
+    }
+
+    @Test
+    fun `recorded cardio stamps republish even when a late stamp leaves the max unchanged`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+        ))))
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore)
+        val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
+        backgroundScope.launch {
+            source.snapshots.publishableSnapshots().collect { snapshots.send(it) }
+        }
+        suspend fun awaitStamps(stamps: List<Long>): WatchSnapshot {
+            while (true) {
+                val snapshot = snapshots.receive()
+                if (snapshot.cardioAckedStamps == stamps) return snapshot
+            }
+        }
+
+        assertEquals(0L, awaitStamps(emptyList()).cardioAckStamp)
+        syncStore.record(101L)
+        assertEquals(101L, awaitStamps(listOf(101L)).cardioAckStamp)
+        syncStore.record(100L)
+        val late = awaitStamps(listOf(101L, 100L))
+        assertEquals(101L, late.cardioAckStamp)
+        assertEquals(listOf(101L, 100L), SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(late)).cardioAckedStamps)
+    }
+
+    @Test
     fun `an empty authored day publishes its plan and day identity without exercises`() = runTest(dispatcher) {
         val planId = repo.createAuthoredPlan("Rehab", "Daily rehab")
         repo.publishCreatedAuthoredPlan(planId)
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore)
         val snapshot = source.snapshots.publishableSnapshots().first()
         val published = mutableListOf<WatchSnapshot>()
         publishSnapshotWithinSizeLimit(
@@ -113,7 +159,7 @@ class TodaySnapshotSourceRestTest {
 
     @Test
     fun `no program projects null and publishes nothing`() = runTest(dispatcher) {
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore)
         val projection = source.snapshots.first()
         assertEquals(null, projection)
         var stamps = 0
@@ -141,7 +187,7 @@ class TodaySnapshotSourceRestTest {
             "B", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)), cardio = null,
         ))))
         repo.selectPlan(firstPlan)
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore)
         val widgets = Channel<TodayWidgetContent>(Channel.UNLIMITED)
         backgroundScope.launch { source.snapshots.collect { widgets.send(todayWidgetContent(it)) } }
         suspend fun awaitDay(line: String): TodayWidgetContent {
@@ -176,7 +222,7 @@ class TodaySnapshotSourceRestTest {
             firstSession.copy(planId = secondPlan, completedAt = noon + 60_000, seconds = 120),
             firstSession.copy(planId = null, completedAt = noon + 120_000, seconds = 180),
         ))
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore)
 
         assertEquals(60, source.snapshots.first { it != null }?.cardio?.loggedSeconds)
         repo.selectPlan(secondPlan)
@@ -193,7 +239,7 @@ class TodaySnapshotSourceRestTest {
         val planP = repo.selectedPlanIdFlow.first()!!
         repo.renamePlan(planP, "Strength")
         val planQ = repo.duplicatePlan(planP, "Running")
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore)
         val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
         backgroundScope.launch { source.snapshots.collect { if (it != null) snapshots.send(it) } }
         suspend fun awaitPlan(planId: Long): WatchSnapshot {
@@ -225,7 +271,7 @@ class TodaySnapshotSourceRestTest {
         val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
         repo.updateSets("A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
 
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), InertMarkers)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore)
 
         // Default (master on, no overrides): TOP rests its 180s default.
         val before = source.snapshots.first { it != null }!!
@@ -241,10 +287,4 @@ class TodaySnapshotSourceRestTest {
         val afterOff = source.snapshots.first { it != null }!!
         assertEquals(0, afterOff.day.exercises.single().sets.single().restAfterSeconds)
     }
-}
-
-private object InertMarkers : AppliedEditMarkers {
-    override suspend fun lastApplied(rowKey: String) = 0L
-    override suspend fun markApplied(rowKey: String, editedAtMillis: Long) = Unit
-    override fun lastAppliedFlow(rowKey: String) = kotlinx.coroutines.flow.flowOf(0L)
 }

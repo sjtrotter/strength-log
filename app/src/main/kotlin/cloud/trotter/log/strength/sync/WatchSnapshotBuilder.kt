@@ -76,6 +76,7 @@ object WatchSnapshotBuilder {
         cardioFiveK: Boolean? = null,
         planId: Long? = null,
         planName: String? = null,
+        cardioAckedStamps: List<Long> = emptyList(),
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val watchDays = program.days.filter {
@@ -114,6 +115,7 @@ object WatchSnapshotBuilder {
                 },
             )?.toWatch(),
             cardioAckStamp = cardioAckStamp,
+            cardioAckedStamps = cardioAckedStamps,
             planId = planId,
             planName = planName,
             cardio = day.cardio?.copy(

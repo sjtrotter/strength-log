@@ -68,6 +68,7 @@ class FakeWatchClient : WatchTrackerClient {
             snapshot.copy(
                 revision = snapshot.revision + 1,
                 cardioAckStamp = maxOf(snapshot.cardioAckStamp, delta.stamp),
+                cardioAckedStamps = (snapshot.cardioAckedStamps.filterNot { it == delta.stamp } + delta.stamp).takeLast(32),
                 cardio = snapshot.cardio?.copy(
                     loggedStartedAt = delta.startedAt,
                     loggedSeconds = delta.seconds,

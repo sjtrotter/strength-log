@@ -52,6 +52,18 @@ class WatchSnapshotBuilderTest {
     )
 
     @Test
+    fun `snapshot carries cardio processed stamps alongside the legacy max`() {
+        val snapshot = WatchSnapshotBuilder.build(program, "A", emptyList(), emptyList(), cfg,
+            catalog, WeightUnit.LB, revision = 1L, cardioAckStamp = 101L,
+            cardioAckedStamps = listOf(101L, 100L))!!
+        assertEquals(listOf(101L, 100L), snapshot.cardioAckedStamps)
+        assertEquals(101L, snapshot.cardioAckStamp)
+        val legacy = WatchSnapshotBuilder.build(program, "A", emptyList(), emptyList(), cfg,
+            catalog, WeightUnit.LB, revision = 1L)!!
+        assertEquals(emptyList(), legacy.cardioAckedStamps)
+    }
+
+    @Test
     fun `cardio-only authored day retains its identity and effective block`() {
         val block = CardioBlock(
             CardioActivity.TRACK_RUN,

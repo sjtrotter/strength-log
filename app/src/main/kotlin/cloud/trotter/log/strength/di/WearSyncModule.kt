@@ -14,6 +14,7 @@ import dagger.hilt.components.SingletonComponent
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.sync.SetEditApplier
 import cloud.trotter.log.strength.sync.CardioDeltaApplier
+import cloud.trotter.log.strength.sync.CardioAckLog
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.sync.TodaySnapshotSource
 import cloud.trotter.log.strength.sync.WearSyncPublisher
@@ -48,6 +49,9 @@ object WearSyncModule {
     fun watchContinuitySource(store: WearSyncStore): WatchContinuitySource = store
 
     @Provides
+    fun cardioAckLog(store: WearSyncStore): CardioAckLog = store
+
+    @Provides
     @Singleton
     fun dataClient(@ApplicationContext context: Context): DataClient =
         Wearable.getDataClient(context)
@@ -64,9 +68,9 @@ object WearSyncModule {
     @Singleton
     fun cardioDeltaApplier(
         repo: TrackerRepository,
-        store: WearSyncStore,
+        ackLog: CardioAckLog,
         publisher: SessionPublisher,
-    ): CardioDeltaApplier = CardioDeltaApplier(repo, store, publisher)
+    ): CardioDeltaApplier = CardioDeltaApplier(repo, ackLog, publisher)
 
     /** One source, every glance surface: the widget observer reads this same
      *  instance (glance-surfaces.md §4.2). */
@@ -75,8 +79,8 @@ object WearSyncModule {
     fun todaySnapshotSource(
         repo: TrackerRepository,
         @CivilDay today: Flow<LocalDate>,
-        store: WearSyncStore,
-    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, store)
+        ackLog: CardioAckLog,
+    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog)
 
     @Provides
     @Singleton

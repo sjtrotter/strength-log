@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.map
  * state, not user preference). Its own Preferences DataStore file, a process
  * singleton like every other store (a second handle on one file throws).
  *
- * Holds three things:
+ * Holds:
  *  - the monotonic snapshot revision, persisted so a phone-app restart resumes
  *    counting up instead of resetting to 0 — a regressed revision would make a
  *    live watch treat a genuinely newer snapshot as stale;
@@ -29,13 +29,15 @@ import kotlinx.coroutines.flow.map
  *    can tell "1 because we started over" from "1, which is older than the 500 I
  *    hold";
  *  - the per-row applied-edit markers ([AppliedEditMarkers]) that dedupe replayed
- *    watch deltas.
+ *    watch deltas;
+ *  - the recent processed wrist cardio stamps ([CardioAckLog]), so out-of-order
+ *    delivery cannot acknowledge a session the phone never received.
  */
 class WearSyncStore(
     private val dataStore: DataStore<Preferences>,
     private val nowMillis: () -> Long = System::currentTimeMillis,
     private val entropy: () -> Long = { java.security.SecureRandom().nextLong() },
-) : AppliedEditMarkers, WatchContinuitySource {
+) : AppliedEditMarkers, WatchContinuitySource, CardioAckLog {
 
     /**
      * Atomically increments the revision and returns it with its epoch. One
@@ -72,6 +74,29 @@ class WearSyncStore(
 
     override fun lastAppliedFlow(rowKey: String): Flow<Long> =
         dataStore.data.map { it[appliedKey(rowKey)] ?: 0L }.distinctUntilChanged()
+
+    override suspend fun record(stamp: Long) {
+        dataStore.edit { prefs ->
+            val recent = (cardioAckedStamps(prefs).filterNot { it == stamp } + stamp).takeLast(32)
+            prefs[CARDIO_ACKED_STAMPS] = recent.joinToString(",")
+            val marker = appliedKey(CardioDeltaApplier.MARKER_KEY)
+            if (stamp > (prefs[marker] ?: 0L)) prefs[marker] = stamp
+        }
+    }
+
+    override val acksFlow: Flow<CardioAcks> = dataStore.data.map { prefs ->
+        CardioAcks(prefs[appliedKey(CardioDeltaApplier.MARKER_KEY)] ?: 0L, cardioAckedStamps(prefs))
+    }.distinctUntilChanged()
+
+    /** A missing or unreadable list stands in as the highest processed stamp alone:
+     *  an empty list beside a non-zero max would send a new watch back to the max
+     *  rule, which retires a lost earlier stamp (#308). */
+    private fun cardioAckedStamps(prefs: Preferences): List<Long> {
+        val highest = prefs[appliedKey(CardioDeltaApplier.MARKER_KEY)] ?: 0L
+        val fallback = if (highest > 0L) listOf(highest) else emptyList()
+        val stored = prefs[CARDIO_ACKED_STAMPS] ?: return fallback
+        return stored.split(',').map { it.toLongOrNull() ?: return fallback }
+    }
 
     override val continuityFlow: Flow<WatchContinuity> = dataStore.data.map { prefs ->
         WatchContinuity(
@@ -116,6 +141,7 @@ class WearSyncStore(
         val REVISION = longPreferencesKey("snapshot_revision")
         val EPOCH = longPreferencesKey("snapshot_epoch")
         const val APPLIED_PREFIX = "applied:"
+        val CARDIO_ACKED_STAMPS = stringPreferencesKey("cardio_acked_stamps")
         val LAST_CONTACT = longPreferencesKey("last_watch_contact")
         val SYNCING_CHANGES = intPreferencesKey("syncing_changes")
         val REMOTE_TICK_DAY = stringPreferencesKey("remote_tick_day")

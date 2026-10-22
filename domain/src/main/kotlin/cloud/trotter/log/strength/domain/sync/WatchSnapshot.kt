@@ -67,7 +67,7 @@ data class WatchSnapshot(
     val epoch: Long = 0L,
     /** The suggested day's finisher, including defaulted LOGGED acknowledgement facts. */
     val cardio: CardioSuggestion? = null,
-    /** Highest wrist cardio stamp the phone has processed — the queue's ack.
+    /** Highest wrist cardio stamp the phone has processed — the legacy queue ack.
      *  Additive with default, like [cardio]; an old phone publishes 0 and the
      *  watch simply keeps re-sending into its dedupe. */
     val cardioAckStamp: Long = 0L,
@@ -77,7 +77,16 @@ data class WatchSnapshot(
     val planName: String? = null,
     /** Effective authored or generated sets; null preserves the legacy wrist timer. */
     val cardioBlock: WatchCardioBlock? = null,
+    /**
+     * The most recent wrist cardio stamps the phone processed, newest last, at
+     * most 32. Empty from an older phone.
+     */
+    val cardioAckedStamps: List<Long> = emptyList(),
 )
+
+/** Explicit processed stamps settle cardio; older phones retain the legacy max rule. */
+fun WatchSnapshot.acknowledgesCardio(stamp: Long): Boolean =
+    if (cardioAckedStamps.isEmpty()) stamp <= cardioAckStamp else stamp in cardioAckedStamps
 
 /** One day of the program as the cycle ring and its day-browse preview read it. */
 @Serializable

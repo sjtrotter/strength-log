@@ -6,6 +6,14 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.mapping.toDomain
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.DistanceSource
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
@@ -130,6 +138,76 @@ class TrackerRepositorySessionHistoryImportTest {
         repo.importSessionHistory(listOf(imported), newCustomExercises = emptyList())
 
         assertEquals(0, repo.programFlow.first().days.size)
+    }
+
+    private fun cardio() = ImportedCardioSession(
+        session = CardioSessionEntity(
+            id = 999, dayId = "A", mode = "OUTDOOR_RUN", hard = true, label = "Track",
+            startedAt = 1_000, completedAt = 146_000, seconds = 145, stepsCompleted = 1, activity = "TRACK_RUN",
+        ),
+        sets = listOf(
+            CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true),
+                CardioSetStatus.FINISHED, 100, 400, DistanceSource.MANUAL),
+            CardioSetResult(CardioSetSpec(CardioRole.COOLDOWN, Measure.Time(60)), CardioSetStatus.SHORTENED, 45),
+        ),
+    )
+
+    @Test
+    fun importSessionHistoryLinksCardioSetsInPositionOrderUnderFreshSessionIds() = runTest {
+        val first = cardio()
+        val second = first.copy(session = first.session.copy(dayId = "B"), sets = first.sets.reversed())
+        repo.importSessionHistory(emptyList(), emptyList(), listOf(first, second))
+
+        val history = repo.exportSessionHistory()
+        assertEquals(2, history.cardioSessions.size)
+        history.cardioSessions.zip(listOf(first, second)).forEach { (stored, imported) ->
+            assertNotEquals(999L, stored.id)
+            assertEquals(imported.session.copy(id = stored.id), stored)
+            val rows = db.cardioSetResultDao().forSession(stored.id)
+            assertEquals(listOf(0, 1), rows.map { it.position })
+            assertTrue(rows.all { it.cardioSessionId == stored.id })
+            assertEquals(imported.sets, rows.map { it.toDomain() })
+            assertEquals(imported.sets, history.cardioSets[stored.id])
+        }
+        assertNotEquals(history.cardioSessions[0].id, history.cardioSessions[1].id)
+    }
+
+    @Test
+    fun cardioSetInsertFailureRollsBackTheEntireHistoryImport() = runTest {
+        db.openHelper.writableDatabase.execSQL(
+            "CREATE TRIGGER reject_imported_set BEFORE INSERT ON cardio_set_result " +
+                "WHEN NEW.position = 1 BEGIN SELECT RAISE(ABORT, 'set write failed'); END",
+        )
+        val strength = ImportedSession(session("Day A", 1_000), listOf(set("custom_csv", "Custom", 0)))
+        val custom = CustomExerciseEntity("custom_csv", "Custom", "H_PULL", "", false, 0.0)
+        val failure = runCatching {
+            repo.importSessionHistory(listOf(strength), listOf(custom), listOf(cardio()))
+        }.exceptionOrNull()
+        assertTrue(checkNotNull(failure).message.orEmpty().contains("set write failed"))
+        val history = repo.exportSessionHistory()
+        assertTrue(history.sessions.isEmpty())
+        assertTrue(history.sessionSets.isEmpty())
+        assertTrue(history.cardioSessions.isEmpty())
+        assertTrue(db.cardioSetResultDao().all().isEmpty())
+        assertTrue(repo.catalogFlow.first().entries.none { it.id == custom.id })
+    }
+
+    @Test
+    fun exportSessionHistoryOmitsTheWholeSetListWhenOneStoredRowCannotDecode() = runTest {
+        val imported = cardio()
+        repo.importSessionHistory(emptyList(), emptyList(), listOf(imported, imported))
+        val sessions = db.cardioSessionDao().all()
+        val broken = sessions[0]
+        val valid = sessions[1]
+        db.openHelper.writableDatabase.execSQL(
+            "UPDATE cardio_set_result SET status = 'UNKNOWN' WHERE cardioSessionId = ? AND position = 1",
+            arrayOf<Any>(broken.id),
+        )
+        val history = repo.exportSessionHistory()
+        assertEquals(sessions, history.cardioSessions)
+        assertTrue(broken.id !in history.cardioSets)
+        assertEquals(imported.sets, history.cardioSets[valid.id])
+        assertEquals(4, db.cardioSetResultDao().all().size)
     }
 
     @Test

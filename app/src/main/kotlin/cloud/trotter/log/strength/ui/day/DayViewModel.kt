@@ -14,20 +14,19 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.di.CivilDay
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
-import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.effectiveCardio
-import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
@@ -639,11 +638,7 @@ class DayViewModel @Inject constructor(
                 mutationLock.withLock {
                     val current = cardioRun.value?.takeIf { it.runId == run.runId } ?: return@withLock
                     val activity = current.block.activity
-                    val mode = when (activity) {
-                        CardioActivity.ROAD_RUN, CardioActivity.TRAIL_RUN, CardioActivity.TRACK_RUN -> CardioMode.OUTDOOR_RUN
-                        CardioActivity.TREADMILL_RUN -> CardioMode.TREADMILL
-                        else -> CardioMode.LOW_IMPACT
-                    }
+                    val mode = CardioBlocks.legacyModeOf(activity)
                     // Keep entry on its originating day while the committed rotation moves on.
                     if (current.finishesDay) savedState[KEY_VIEW_DAY] = current.dayId
                     val id = current.sessionId ?: repo.logCardioSession(CardioSessionEntity(

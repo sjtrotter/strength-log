@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 
@@ -13,4 +15,10 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 data class ImportedSession(
     val session: WorkoutSessionEntity,
     val sets: List<SessionSetEntity>,
+)
+
+/** One cardio session and its ordered sets to append in the history transaction. */
+data class ImportedCardioSession(
+    val session: CardioSessionEntity,
+    val sets: List<CardioSetResult>,
 )

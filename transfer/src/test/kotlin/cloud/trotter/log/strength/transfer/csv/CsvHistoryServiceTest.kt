@@ -5,6 +5,13 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.ImportedSession
+import cloud.trotter.log.strength.data.ImportedCardioSession
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
@@ -89,6 +96,36 @@ class CsvHistoryServiceTest {
         service.exportTo(out)
         val text = out.toString(Charsets.UTF_8.name())
         assertEquals(listOf(HISTORY_CSV_HEADER), Csv.parse(text))
+    }
+
+    @Test
+    fun `export includes all cardio sets or falls back to one summary when any stored set is invalid`() = runTest {
+        val sets = listOf(
+            CardioSetResult(CardioSetSpec(CardioRole.WARMUP, Measure.Time(60)), CardioSetStatus.FINISHED, 60),
+            CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(60), hard = true), CardioSetStatus.SHORTENED, 30),
+        )
+        val session = CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = true, label = "Run",
+            startedAt = 1_000, completedAt = 91_000, seconds = 90, stepsCompleted = 1, activity = "ROAD_RUN")
+        repo.importSessionHistory(emptyList(), emptyList(), listOf(ImportedCardioSession(session, sets)))
+        val out = ByteArrayOutputStream()
+        service.exportTo(out)
+        val preview = service.preview(ByteArrayInputStream(out.toByteArray()))
+        assertEquals(3, Csv.parse(out.toString(Charsets.UTF_8.name())).size)
+        assertEquals(sets, preview.cardioSessions.single().sets)
+        service.commit(preview)
+        assertEquals(1, repo.exportSessionHistory().cardioSessions.size)
+
+        db.openHelper.writableDatabase.execSQL("UPDATE cardio_set_result SET status = 'UNKNOWN' WHERE position = 1")
+        out.reset()
+        service.exportTo(out)
+        val rows = Csv.parse(out.toString(Charsets.UTF_8.name()))
+        assertEquals(2, rows.size)
+        assertEquals("", rows[1][HISTORY_CSV_HEADER.indexOf("Role")])
+        assertEquals("true", rows[1][HISTORY_CSV_HEADER.indexOf("Hard")])
+        assertEquals("90", rows[1][HISTORY_CSV_HEADER.indexOf("Seconds")])
+        val summary = service.preview(ByteArrayInputStream(out.toByteArray())).cardioSessions.single()
+        assertTrue(summary.sets.isEmpty())
+        assertEquals("ROAD_RUN", summary.activity)
     }
 
     @Test

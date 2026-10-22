@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.ImportedSession
+import cloud.trotter.log.strength.data.ImportedCardioSession
 import cloud.trotter.log.strength.data.SessionHistorySnapshot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
@@ -8,6 +9,7 @@ import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.util.UUID
@@ -25,7 +27,7 @@ object CsvHistoryImporter {
     data class CommitPlan(
         val sessions: List<ImportedSession>,
         val newCustomExercises: List<CustomExerciseEntity>,
-        val cardioSessions: List<CardioSessionEntity> = emptyList(),
+        val cardioSessions: List<ImportedCardioSession> = emptyList(),
     )
 
     /**
@@ -101,19 +103,55 @@ object CsvHistoryImporter {
             }
         } ?: mutableSetOf()
         val newSessions = sessions.filter { seen.add(normalizedSessionFingerprint(it.session, it.sets)) }
-        val seenCardio = existingHistory?.cardioSessions.orEmpty()
-            .mapTo(mutableSetOf(), ::cardioFingerprint)
+        val seenCardioSets = mutableSetOf<List<Any?>>()
+        val seenCardioSummaries = mutableSetOf<List<Any?>>()
+        existingHistory?.cardioSessions?.forEach { session ->
+            seenCardioSets += cardioSetsFingerprint(session, existingHistory.cardioSets[session.id].orEmpty())
+            seenCardioSummaries += cardioSummaryFingerprint(session)
+        }
         val cardioSessions = preview.cardioSessions
             .map {
-                CardioSessionEntity(
-                    dayId = it.dayId, mode = it.mode, hard = it.hard, label = it.label,
-                    startedAt = it.startedAt, completedAt = it.completedAt, seconds = it.seconds,
-                    stepsCompleted = it.stepsCompleted,
+                ImportedCardioSession(
+                    session = CardioSessionEntity(
+                        dayId = it.dayId, mode = it.mode, hard = it.hard, label = it.label,
+                        startedAt = it.startedAt, completedAt = it.completedAt, seconds = it.seconds,
+                        stepsCompleted = it.stepsCompleted, activity = it.activity,
+                    ),
+                    sets = it.sets,
                 )
             }
-            .filter { seenCardio.add(cardioFingerprint(it)) }
+            .filter {
+                // Within one file a summary only collides with another summary; stored history
+                // contributes both forms because a stored set session may come back as a summary.
+                if (it.sets.isEmpty()) {
+                    seenCardioSummaries.add(cardioSummaryFingerprint(it.session))
+                } else {
+                    seenCardioSets.add(cardioSetsFingerprint(it.session, it.sets))
+                }
+            }
         return CommitPlan(newSessions, newCustomExercises, cardioSessions)
     }
+
+    /**
+     * Cardio normalized to what a summary row preserves: no id, no startedAt
+     * (the reader derives it from completedAt − seconds), null dayId collapsed
+     * to empty, and completion time at second precision. A summary row carries
+     * no sets and, from older exports, no activity, so it matches on these alone.
+     */
+    private fun cardioSummaryFingerprint(session: CardioSessionEntity): List<Any?> = listOf(
+        session.dayId.orEmpty(), session.mode, session.hard, session.label,
+        session.completedAt / 1000, session.seconds, session.stepsCompleted,
+    )
+
+    /** Set rows preserve the activity and every ordered set fact as well. */
+    private fun cardioSetsFingerprint(session: CardioSessionEntity, sets: List<CardioSetResult>): List<Any?> =
+        cardioSummaryFingerprint(session) + listOf(
+            session.activity,
+            sets.map { set ->
+                listOf(set.spec.role, set.spec.end, set.spec.aim, set.spec.hard, set.status,
+                    set.elapsedSeconds, set.metres, set.distanceSource)
+            },
+        )
 
     /**
      * Normalizes both native and imported history to exactly what CSV preserves:
@@ -122,16 +160,6 @@ object CsvHistoryImporter {
      * two truly identical sessions completed within one second collide; that is
      * an acceptable limitation of the interchange format's second precision.
      */
-    /**
-     * Cardio normalized to what its CSV row preserves: no id, no startedAt
-     * (the reader derives it from completedAt − seconds), null dayId collapsed
-     * to empty, and completion time at second precision.
-     */
-    private fun cardioFingerprint(session: CardioSessionEntity): List<Any> = listOf(
-        session.dayId.orEmpty(), session.mode, session.hard, session.label,
-        session.completedAt / 1000, session.seconds, session.stepsCompleted,
-    )
-
     private fun normalizedSessionFingerprint(
         session: WorkoutSessionEntity,
         sets: List<SessionSetEntity>,

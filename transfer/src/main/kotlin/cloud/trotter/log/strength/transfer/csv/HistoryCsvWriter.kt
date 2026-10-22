@@ -4,6 +4,8 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.transfer.SessionDurationBounds
 import java.time.Instant
 import java.time.ZoneId
@@ -11,13 +13,13 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Renders session history as Strong-compatible CSV (PLAN.md A2/A5, issue
- * #16): one row per set, [HISTORY_CSV_HEADER]'s column layout. Pure and
- * Android-free — [cloud.trotter.log.strength.transfer.csv.CsvHistoryService]
+ * #16): one row per strength or cardio set, or one summary for cardio without
+ * sets, using [HISTORY_CSV_HEADER]'s column layout. Pure and Android-free — [cloud.trotter.log.strength.transfer.csv.CsvHistoryService]
  * supplies the data from [cloud.trotter.log.strength.data.TrackerRepository.exportSessionHistory].
  *
- * Duration is `H:MM:SS` of `completedAt - startedAt` (Strong's own on-disk
+ * Strength Duration is `H:MM:SS` of `completedAt - startedAt` (Strong's own on-disk
  * format) when the session carries a real start stamp (session-start
- * capture), and empty otherwise — never a synthesized estimate. Import
+ * capture), and empty otherwise — never a synthesized estimate. Strength import
  * ([CsvHistoryImporter]) deliberately never reads this column back: a CSV
  * round-trip has no reliable start-time semantics (a foreign file's Duration
  * column format isn't ours to trust), so re-deriving `startedAt` from it
@@ -34,7 +36,8 @@ object HistoryCsvWriter {
      * `:data` always inserts a session's sets in exercise-position-then-
      * setIndex order (one contiguous batch per completed day, per slot, in
      * `setIndex` order), so ascending id already *is* that order. Two exports
-     * of the same state are therefore byte-identical.
+     * of the same state are therefore byte-identical. [cardioSets] lists already
+     * follow stored position order and are written in that order.
      */
     fun export(
         sessions: List<WorkoutSessionEntity>,
@@ -42,6 +45,7 @@ object HistoryCsvWriter {
         unit: WeightUnit,
         zone: ZoneId = ZoneId.systemDefault(),
         cardioSessions: List<CardioSessionEntity> = emptyList(),
+        cardioSets: Map<Long, List<CardioSetResult>> = emptyMap(),
     ): String {
         val setsBySession = sessionSets.groupBy { it.sessionId }
         val rows = mutableListOf<List<String>>()
@@ -50,7 +54,7 @@ object HistoryCsvWriter {
         for (item in history.sortedWith(compareBy({ it.completedAt }, { it.id }, { it is HistoryRow.Cardio }))) {
             when (item) {
                 is HistoryRow.Strength -> writeStrengthRows(rows, item.session, setsBySession, unit, zone)
-                is HistoryRow.Cardio -> writeCardioRow(rows, item.session, zone)
+                is HistoryRow.Cardio -> writeCardioRows(rows, item.session, cardioSets[item.id].orEmpty(), zone)
             }
         }
         return rows.joinToString("\r\n", postfix = "\r\n") { Csv.writeRow(it) }
@@ -110,33 +114,51 @@ object HistoryCsvWriter {
                         "", // Workout Notes — not tracked
                         "", // RPE — not tracked
                         Csv.neutralizeFormula(session.planName.orEmpty()),
-                    ),
+                    ) + List(9) { "" },
                 )
             }
     }
 
-    private fun writeCardioRow(rows: MutableList<List<String>>, session: CardioSessionEntity, zone: ZoneId) {
-            val date = DATE_FORMAT.format(Instant.ofEpochMilli(session.completedAt).atZone(zone))
-            rows.add(
-                listOf(
-                    date,
-                    Csv.neutralizeFormula(session.dayId.orEmpty()),
-                    formatDuration(session.seconds),
-                    Csv.neutralizeFormula(session.label),
-                    "",
-                    CARDIO_MARKER,
-                    "",
-                    "",
-                    "",
-                    "",
-                    session.hard.toString(),
-                    session.seconds.toString(),
-                    session.mode,
-                    "", // Workout Notes — notes, never a routing discriminator
-                    session.stepsCompleted.toString(),
-                    Csv.neutralizeFormula(session.planName.orEmpty()),
-                ),
-            )
+    private fun writeCardioRows(
+        rows: MutableList<List<String>>,
+        session: CardioSessionEntity,
+        sets: List<CardioSetResult>,
+        zone: ZoneId,
+    ) {
+        val date = DATE_FORMAT.format(Instant.ofEpochMilli(session.completedAt).atZone(zone))
+        fun row(position: Int?, set: CardioSetResult?): List<String> = listOf(
+            date,
+            Csv.neutralizeFormula(session.dayId.orEmpty()),
+            formatDuration(session.seconds),
+            Csv.neutralizeFormula(session.label),
+            position?.let { (it + 1).toString() }.orEmpty(),
+            CARDIO_MARKER,
+            "",
+            "",
+            "",
+            set?.metres?.toString().orEmpty(),
+            if (set?.metres != null) "m" else "",
+            (set?.elapsedSeconds ?: session.seconds).toString(),
+            "",
+            "",
+            "",
+            Csv.neutralizeFormula(session.planName.orEmpty()),
+            Csv.neutralizeFormula(session.activity.orEmpty()),
+            set?.spec?.role?.name.orEmpty(),
+            set?.spec?.end?.let(::formatCardioMeasure).orEmpty(),
+            set?.spec?.aim?.let(::formatCardioMeasure).orEmpty(),
+            (set?.spec?.hard ?: session.hard).toString(),
+            set?.status?.name.orEmpty(),
+            set?.distanceSource?.name.orEmpty(),
+            if (set == null) session.stepsCompleted.toString() else "",
+            if (set == null) Csv.neutralizeFormula(session.mode) else "",
+        )
+        // Set rows only import with a known activity; anything else keeps its summary row.
+        if (sets.isEmpty() || CardioActivity.entries.none { it.name == session.activity }) {
+            rows.add(row(null, null))
+        } else {
+            sets.forEachIndexed { position, set -> rows.add(row(position, set)) }
+        }
     }
 
     /** Whole numbers print without a trailing ".0" (Strong's own convention);

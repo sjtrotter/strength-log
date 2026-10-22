@@ -23,6 +23,24 @@ class CardioBlocksTest {
     private val activity = CardioActivity.ROAD_RUN
 
     @Test
+    fun `every activity retains its legacy mode`() {
+        val expected = mapOf(
+            CardioActivity.ROAD_RUN to CardioMode.OUTDOOR_RUN,
+            CardioActivity.TRAIL_RUN to CardioMode.OUTDOOR_RUN,
+            CardioActivity.TRACK_RUN to CardioMode.OUTDOOR_RUN,
+            CardioActivity.TREADMILL_RUN to CardioMode.TREADMILL,
+            CardioActivity.OUTDOOR_WALK to CardioMode.LOW_IMPACT,
+            CardioActivity.TREADMILL_WALK to CardioMode.LOW_IMPACT,
+            CardioActivity.OUTDOOR_RIDE to CardioMode.LOW_IMPACT,
+            CardioActivity.STATIONARY_BIKE to CardioMode.LOW_IMPACT,
+            CardioActivity.ELLIPTICAL to CardioMode.LOW_IMPACT,
+            CardioActivity.ROWER to CardioMode.LOW_IMPACT,
+        )
+        assertEquals(CardioActivity.entries.toSet(), expected.keys)
+        expected.forEach { (activity, mode) -> assertEquals(mode, CardioBlocks.legacyModeOf(activity)) }
+    }
+
+    @Test
     fun `easy is one work set of 1500 seconds for either fiveK preference`() {
         listOf(false, true).forEach { fiveK ->
             assertEquals(

@@ -38,7 +38,9 @@ class CsvHistoryImporterTest {
             stepsCompleted = 1, planId = 2, planName = "Test prep",
         )
         val csv = HistoryCsvWriter.export(listOf(session), listOf(set), WeightUnit.LB, zone, listOf(cardio))
-        val withoutPlan = Csv.parse(csv).joinToString("\r\n", postfix = "\r\n") { Csv.writeRow(it.dropLast(1)) }
+        val withoutPlan = Csv.parse(csv).joinToString("\r\n", postfix = "\r\n") { row ->
+            Csv.writeRow(row.filterIndexed { index, _ -> index != HISTORY_CSV_HEADER.indexOf("Plan") })
+        }
 
         for (text in listOf(csv, withoutPlan)) {
             val preview = HistoryCsvReader.preview(text, catalog, zone)
@@ -48,8 +50,8 @@ class CsvHistoryImporterTest {
             assertEquals(1, imported.cardioSessions.size)
             assertNull(imported.sessions.single().session.planId)
             assertNull(imported.sessions.single().session.planName)
-            assertNull(imported.cardioSessions.single().planId)
-            assertNull(imported.cardioSessions.single().planName)
+            assertNull(imported.cardioSessions.single().session.planId)
+            assertNull(imported.cardioSessions.single().session.planName)
         }
     }
 

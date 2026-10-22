@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.wear.ui
 
 import androidx.compose.runtime.saveable.mapSaver
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchCardioBlock
@@ -158,11 +160,8 @@ data class CardioSetState(
     fun delta(): CardioDelta? {
         if (!complete || entries.isNotEmpty()) return null
         val start = startedAt ?: return null // Skipping everything never logs or advances.
-        val mode = when (block.activity) {
-            "ROAD_RUN", "TRAIL_RUN", "TRACK_RUN" -> "OUTDOOR_RUN"
-            "TREADMILL_RUN" -> "TREADMILL"
-            else -> "LOW_IMPACT"
-        }
+        val mode = CardioActivity.entries.find { it.name == block.activity }
+            ?.let { CardioBlocks.legacyModeOf(it).name } ?: "LOW_IMPACT"
         val end = requireNotNull(completedAt).coerceAtLeast(start + 1L)
         return CardioDelta(dayId = dayId, mode = mode, hard = block.sets.any { it.role == "WORK" && it.hard },
             label = cardioActivityLabel(block.activity), startedAt = start, completedAt = end,

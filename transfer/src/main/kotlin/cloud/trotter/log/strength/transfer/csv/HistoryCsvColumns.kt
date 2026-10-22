@@ -3,14 +3,12 @@ package cloud.trotter.log.strength.transfer.csv
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /**
- * Strong's column layout (PLAN.md A2/A5, issue #16) — the header this app's
- * own export always writes, and the de facto interchange format Hevy/
- * FitNotes/spreadsheets also target. Duration, Distance, Distance Unit,
- * Workout Notes is always emitted empty: this app doesn't
- * track them, but the headers stay present for round-trip compatibility with
- * tools that read a fixed Strong-shaped column set. The `Seconds` column is
- * written for TIMED holds/carries and read back on import (tracking types).
- * Plan is appended last so positional Strong readers are unaffected; the importer ignores it.
+ * Strong's first 16 columns retain their names and positions through Plan.
+ * Strength writes Seconds for timed sets; cardio writes one row per set with
+ * Distance/Distance Unit carrying measured metres (`m`). Activity, Role, Target,
+ * Aim, Hard, Status, Distance Source, Steps Completed, and Cardio Mode are
+ * appended to preserve cardio prescriptions, results, and legacy summaries.
+ * Workout Notes is always empty, and imports carry no plan.
  */
 val HISTORY_CSV_HEADER: List<String> = listOf(
     "Date",
@@ -29,16 +27,22 @@ val HISTORY_CSV_HEADER: List<String> = listOf(
     "Workout Notes",
     "RPE",
     "Plan",
+    "Activity",
+    "Role",
+    "Target",
+    "Aim",
+    "Hard",
+    "Status",
+    "Distance Source",
+    "Steps Completed",
+    "Cardio Mode",
 )
 
-/**
- * The facts the importer actually reads out of a row; every other Strong/Hevy
- * column (Duration, RPE, Notes, ...) is accepted in the header but ignored,
- * matching what this app tracks (PLAN.md A1). SECONDS carries a TIMED hold/carry.
- */
+/** Fields read by the header-driven strength and cardio import paths. */
 internal enum class HistoryField {
     DATE, WORKOUT_NAME, DURATION, EXERCISE_NAME, SET_ORDER, WEIGHT, WEIGHT_UNIT,
-    SET_TYPE, REPS, SECONDS, DISTANCE, DISTANCE_UNIT, NOTES, WORKOUT_NOTES, RPE,
+    SET_TYPE, REPS, SECONDS, DISTANCE, DISTANCE_UNIT, NOTES, WORKOUT_NOTES, RPE, PLAN,
+    ACTIVITY, ROLE, TARGET, AIM, HARD, STATUS, DISTANCE_SOURCE, STEPS_COMPLETED, CARDIO_MODE,
 }
 
 /** Header spellings recognized for each field, matched case/whitespace-
@@ -54,14 +58,22 @@ internal val HISTORY_FIELD_ALIASES: Map<HistoryField, List<String>> = mapOf(
     HistoryField.WEIGHT_UNIT to listOf("Weight Unit"),
     HistoryField.REPS to listOf("Reps"),
     HistoryField.SECONDS to listOf("Seconds"),
-    // Read only to tell a cardio row (has a distance) apart from a TIMED hold
-    // (seconds, no distance); the value itself isn't imported.
     HistoryField.DISTANCE to listOf("Distance"),
     HistoryField.DURATION to listOf("Duration"),
     HistoryField.DISTANCE_UNIT to listOf("Distance Unit"),
     HistoryField.NOTES to listOf("Notes"),
     HistoryField.WORKOUT_NOTES to listOf("Workout Notes"),
     HistoryField.RPE to listOf("RPE"),
+    HistoryField.PLAN to listOf("Plan"),
+    HistoryField.ACTIVITY to listOf("Activity"),
+    HistoryField.ROLE to listOf("Role"),
+    HistoryField.TARGET to listOf("Target"),
+    HistoryField.AIM to listOf("Aim"),
+    HistoryField.HARD to listOf("Hard"),
+    HistoryField.STATUS to listOf("Status"),
+    HistoryField.DISTANCE_SOURCE to listOf("Distance Source"),
+    HistoryField.STEPS_COMPLETED to listOf("Steps Completed"),
+    HistoryField.CARDIO_MODE to listOf("Cardio Mode"),
 )
 
 internal const val CARDIO_MARKER = "cardio"

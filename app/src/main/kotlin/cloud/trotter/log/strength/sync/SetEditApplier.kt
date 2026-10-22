@@ -113,7 +113,7 @@ class SetEditApplier(
         val guarded = delta.guardedFor(tracking)
 
         if (guarded.done == true && planId == repo.selectedPlanIdFlow.first()) {
-            repo.stampSessionStartIfUnset()
+            repo.stampSessionStartIfUnset(planId)
         }
         if (delta.slot == Slot.MAIN) {
             applyToMain(guarded, track, partnerTrack = logs.trackOf(delta.programExerciseId, Slot.SS))

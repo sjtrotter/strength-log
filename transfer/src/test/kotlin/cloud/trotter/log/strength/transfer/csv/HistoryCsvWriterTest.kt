@@ -30,6 +30,32 @@ class HistoryCsvWriterTest {
         )
 
     @Test
+    fun `only performed sets export with their original Set Order`() {
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val sets = listOf(
+            set(1, 3, "Barbell Back Squat", 2, 235.0, 3),
+            set(1, 2, "Barbell Back Squat", 1, 230.0, 4).copy(done = false),
+            set(1, 1, "Barbell Back Squat", 0, 225.0, 5),
+        )
+
+        val rows = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone)).drop(1)
+
+        assertEquals(2, rows.size)
+        assertEquals(listOf("1", "3"), rows.map { it[HISTORY_CSV_HEADER.indexOf("Set Order")] })
+        assertEquals(listOf("225", "235"), rows.map { it[HISTORY_CSV_HEADER.indexOf("Weight")] })
+    }
+
+    @Test
+    fun `a session with no performed sets writes no rows`() {
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val sets = listOf(set(1, 1, "Barbell Back Squat", 0, 225.0, 5).copy(done = false))
+
+        val rows = Csv.parse(HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone))
+
+        assertEquals(listOf(HISTORY_CSV_HEADER), rows)
+    }
+
+    @Test
     fun `header matches Strong's column layout`() {
         val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, zone)
         val header = Csv.parse(csv).first()

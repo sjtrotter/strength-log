@@ -15,7 +15,11 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.transfer.csv.CsvHistoryService
+import cloud.trotter.log.strength.transfer.csv.HistoryCsvWriter
 import java.io.File
+import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -61,6 +65,19 @@ class CardioHistoryRestoreTest {
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }
+
+    @Test fun `a zero second cardio row imported from csv survives a backup round trip`() = runTest {
+        val zero = session.copy(seconds = 0, startedAt = 61_000, completedAt = 61_000)
+        val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC, listOf(zero))
+        val csvService = CsvHistoryService(repository)
+        csvService.commit(csvService.preview(csv.byteInputStream()))
+        val imported = db.cardioSessionDao().all().single()
+        assertTrue(imported.startedAt < imported.completedAt)
+
+        service.import(service.export())
+
+        assertEquals(listOf(imported), db.cardioSessionDao().all())
+    }
 
     @Test fun `v12 service round trip restores exact rows replacing later results`() = runTest {
         val id = repository.logCardioSession(session, sets)
@@ -110,6 +127,32 @@ class CardioHistoryRestoreTest {
         assertEquals(listOf(0, 1), rows.map { it.position })
         assertEquals(rows, db.cardioSetResultDao().forSession(-1))
         assertEquals(expectedSets, repository.cardioSetsFor(-1))
+    }
+
+    @Test fun `v12 service restores a twenty second shortened cardio session`() = runTest {
+        assertShortSessionRestores(20)
+    }
+
+    @Test fun `v12 service restores a zero second shortened cardio session`() = runTest {
+        assertShortSessionRestores(0)
+    }
+
+    private suspend fun assertShortSessionRestores(seconds: Int) {
+        val shortSets = listOf(sets.single().copy(status = CardioSetStatus.SHORTENED, elapsedSeconds = seconds))
+        val shortSession = session.copy(
+            completedAt = session.startedAt + maxOf(1L, seconds * 1_000L), seconds = seconds, stepsCompleted = 0,
+        )
+        val id = repository.logCardioSession(shortSession, shortSets)
+        val before = repository.exportSnapshot()
+        val backup = service.export()
+        repository.logCardioSession(session.copy(startedAt = 2_000), sets)
+
+        service.import(backup)
+
+        assertEquals(before.cardioSessions, db.cardioSessionDao().all())
+        assertEquals(before.cardioSetResults, db.cardioSetResultDao().all())
+        assertEquals(shortSets, repository.cardioSetsFor(id))
+        assertEquals(backup, service.export())
     }
 
     @Test fun `restoring v11 summary clears existing results without inventing sets`() = runTest {

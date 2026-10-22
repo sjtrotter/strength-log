@@ -866,7 +866,7 @@ class DayViewModel @Inject constructor(
             // A tick is performing, not planning (weight/rep edits don't stamp) —
             // only the FIRST done=true tick since the last advance/clear starts
             // the session clock (session-start capture).
-            if (checked) repo.stampSessionStartIfUnset()
+            if (checked) repo.planIdOfSlot(programExerciseId)?.let { repo.stampSessionStartIfUnset(it) }
             val storedMain = trackFor(day, programExerciseId, Slot.MAIN)
             if (countEvent != null && storedMain.getOrNull(index)?.done != false) return@mutate
             val main = if (countEvent == null) storedMain else storedMain.mapIndexed { i, set ->

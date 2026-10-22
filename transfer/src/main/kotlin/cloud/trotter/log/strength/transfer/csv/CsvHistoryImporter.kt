@@ -99,7 +99,10 @@ object CsvHistoryImporter {
         val seen = existingHistory?.let { history ->
             val setsBySession = history.sessionSets.groupBy { it.sessionId }
             history.sessions.mapTo(mutableSetOf()) { session ->
-                normalizedSessionFingerprint(session, setsBySession[session.id].orEmpty())
+                normalizedSessionFingerprint(
+                    session,
+                    setsBySession[session.id].orEmpty().filter { it.done }.sortedBy { it.id },
+                )
             }
         } ?: mutableSetOf()
         val newSessions = sessions.filter { seen.add(normalizedSessionFingerprint(it.session, it.sets)) }
@@ -155,7 +158,8 @@ object CsvHistoryImporter {
 
     /**
      * Normalizes both native and imported history to exactly what CSV preserves:
-     * title, whole-second completion time, and ordered exercise/value tuples.
+     * title, whole-second completion time, and ordered performed exercise/value tuples.
+     * Existing history supplies only done sets in id order, matching the writer.
      * Row ids and native-only set metadata are deliberately absent. Consequently,
      * two truly identical sessions completed within one second collide; that is
      * an acceptable limitation of the interchange format's second precision.

@@ -343,22 +343,22 @@ class SetEditApplierTest {
     fun `a done=true delta on the main row stamps the session start if unset`() = runTest {
         seedProgram()
         val id = squatId()
-        assertEquals(null, repo.sessionStartedAtFlow.first())
+        assertEquals(null, repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
 
         applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, done = true, editedAtMillis = 1L))
 
-        assertTrue(repo.sessionStartedAtFlow.first() != null)
+        assertTrue(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first() != null)
     }
 
     @Test
     fun `a done=true delta on the ss row stamps the session start if unset`() = runTest {
         seedProgram()
         val id = curlId()
-        assertEquals(null, repo.sessionStartedAtFlow.first())
+        assertEquals(null, repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
 
         applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 0, done = true, editedAtMillis = 1L))
 
-        assertTrue(repo.sessionStartedAtFlow.first() != null)
+        assertTrue(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first() != null)
     }
 
     @Test
@@ -369,7 +369,7 @@ class SetEditApplierTest {
         applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, weightLb = 140.0, editedAtMillis = 1L))
         applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1, reps = 4, editedAtMillis = 2L))
 
-        assertEquals(null, repo.sessionStartedAtFlow.first())
+        assertEquals(null, repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
     }
 
     @Test
@@ -379,7 +379,7 @@ class SetEditApplierTest {
 
         applier.apply(SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0, done = false, editedAtMillis = 1L))
 
-        assertEquals(null, repo.sessionStartedAtFlow.first())
+        assertEquals(null, repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
     }
 
     // --- per-type delta guard (design risk #2: a stale/old watch can't write dead fields) ---
@@ -955,14 +955,15 @@ class SetEditApplierTest {
         assertTrue(pLogs.first { it.programExerciseId == id && it.slot == Slot.SS }.sets[0].done)
         assertEquals(qLogs, db.programDao().logsForPlan(planQ))
         assertEquals(planQ, repo.selectedPlanIdFlow.first())
-        assertEquals(null, repo.sessionStartedAtFlow.first())
+        assertEquals(null, repo.sessionStartedAtFlow(planQ).first())
+        assertEquals(null, repo.sessionStartedAtFlow(planP).first())
 
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = curlId(), slot = slot, setIndex = 0,
             done = true, editedAtMillis = 11L, planId = planQ,
         )))
         assertTrue(track(curlId(), slot)!![0].done)
-        assertTrue(repo.sessionStartedAtFlow.first() != null)
+        assertTrue(repo.sessionStartedAtFlow(planQ).first() != null)
     }
 
     @Test

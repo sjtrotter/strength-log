@@ -295,7 +295,7 @@ class PlanSettingsTest {
     fun `advance moves only the selected rotation inside the session transaction`() = runTest {
         db.planDao().insertPlans(listOf(plan(1, strengthAnswers(), "A"), plan(2, physiqueAnswers(), "C")))
         db.programDao().upsertDays(listOf(day(1, "A", 0), day(1, "B", 1)))
-        settings.stampSessionStartIfUnset(1_000, repo.currentDate().toString())
+        settings.stampSessionStartIfUnset(1_000, repo.currentDate().toString(), planId = 1, selectedPlanId = 1)
 
         val sessionId = repo.advanceDay("A")
 
@@ -311,7 +311,7 @@ class PlanSettingsTest {
     fun `failed rotation write rolls back the session and keeps the start stamp`() = runTest {
         db.planDao().insertPlan(plan(1, strengthAnswers(), "A"))
         db.programDao().upsertDays(listOf(day(1, "A", 0), day(1, "B", 1)))
-        settings.stampSessionStartIfUnset(1_000, repo.currentDate().toString())
+        settings.stampSessionStartIfUnset(1_000, repo.currentDate().toString(), planId = 1, selectedPlanId = 1)
         db.openHelper.writableDatabase.execSQL(
             "CREATE TRIGGER fail_rotation BEFORE UPDATE OF suggestedDayId ON plan BEGIN SELECT RAISE(ABORT, 'rotation failed'); END",
         )

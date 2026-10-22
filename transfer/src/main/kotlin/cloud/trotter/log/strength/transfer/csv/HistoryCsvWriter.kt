@@ -13,8 +13,8 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Renders session history as Strong-compatible CSV (PLAN.md A2/A5, issue
- * #16): one row per strength or cardio set, or one summary for cardio without
- * sets, using [HISTORY_CSV_HEADER]'s column layout. Pure and Android-free — [cloud.trotter.log.strength.transfer.csv.CsvHistoryService]
+ * #16): one row per performed set for strength, one row per cardio set, or one
+ * summary for cardio without sets, using [HISTORY_CSV_HEADER]'s column layout. Pure and Android-free — [cloud.trotter.log.strength.transfer.csv.CsvHistoryService]
  * supplies the data from [cloud.trotter.log.strength.data.TrackerRepository.exportSessionHistory].
  *
  * Strength Duration is `H:MM:SS` of `completedAt - startedAt` (Strong's own on-disk
@@ -82,7 +82,7 @@ object HistoryCsvWriter {
     ) {
             val date = DATE_FORMAT.format(Instant.ofEpochMilli(session.completedAt).atZone(zone))
             val duration = durationField(session)
-            val sets = setsBySession[session.id].orEmpty().sortedBy { it.id }
+            val sets = setsBySession[session.id].orEmpty().filter { it.done }.sortedBy { it.id }
             for (set in sets) {
                 // A set's tracking type is read off its own values (the same
                 // fallback history rendering uses, so no catalog lookup is needed

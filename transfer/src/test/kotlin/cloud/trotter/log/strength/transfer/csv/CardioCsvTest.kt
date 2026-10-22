@@ -39,6 +39,38 @@ class CardioCsvTest {
     }
 
     @Test
+    fun `summary rows import twenty second and zero second sessions`() {
+        listOf(20, 0).forEach { seconds ->
+            val source = cardio("Short run").copy(seconds = seconds, completedAt = 1_000 + seconds * 1_000L)
+            val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC, listOf(source))
+            assertEquals(seconds.toString(), cell(Csv.parse(csv)[1], "Seconds"))
+
+            val imported = CsvHistoryImporter.commit(preview(csv), emptyMap()).cardioSessions.single()
+
+            assertEquals(seconds, imported.session.seconds)
+            assertEquals(source.completedAt - maxOf(seconds * 1_000L, 1L), imported.session.startedAt)
+            assertTrue(imported.session.startedAt < imported.session.completedAt)
+            assertTrue(imported.sets.isEmpty())
+        }
+    }
+
+    @Test
+    fun `summary rows still reject negative and over day seconds`() {
+        val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC, listOf(cardio("Run")))
+        listOf("-1", "86401").forEach { seconds ->
+            assertFailsWith<CsvImportError.MalformedRow> { preview(changeCell(csv, 1, "Seconds", seconds)) }
+        }
+    }
+
+    @Test
+    fun `legacy sixteen column rows still reject twenty second sessions`() {
+        val csv = "Date,Workout Name,Duration,Exercise Name,Set Order,Set Type,Weight,Weight Unit,Reps," +
+            "Distance,Distance Unit,Seconds,Notes,Workout Notes,RPE,Plan\r\n" +
+            "2026-08-10 10:00:00,A,0:00:20,Legacy,,cardio,,,,,true,20,TREADMILL,,0,Old plan\r\n"
+        assertFailsWith<CsvImportError.MalformedRow> { preview(csv) }
+    }
+
+    @Test
     fun `cardio-only csv needs no strength columns or weight unit resolution`() {
         val rows = Csv.parse(HistoryCsvWriter.export(
             emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC, listOf(cardio("Tempo")),
@@ -357,7 +389,9 @@ class CardioCsvTest {
         val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(60))
         listOf(0, 30, 86_400).forEach { seconds ->
             val sets = listOf(CardioSetResult(spec, CardioSetStatus.SHORTENED, seconds))
-            assertEquals(seconds, preview(exportSets(sets)).cardioSessions.single().seconds)
+            val parsed = preview(exportSets(sets)).cardioSessions.single()
+            assertEquals(seconds, parsed.seconds)
+            assertTrue(parsed.startedAt < parsed.completedAt)
         }
         val sets = listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 86_400),
             CardioSetResult(spec, CardioSetStatus.FINISHED, 1))

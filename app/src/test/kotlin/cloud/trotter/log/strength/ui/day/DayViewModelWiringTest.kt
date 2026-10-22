@@ -1399,16 +1399,16 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
-        assertNull(repo.sessionStartedAtFlow.first())
+        assertNull(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
 
         vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
         advanceUntilIdle()
-        val stampedAt = repo.sessionStartedAtFlow.first()
+        val stampedAt = repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first()
         assertTrue("the first tick must stamp a session start", stampedAt != null)
 
         vm.toggleDone(squatId, index = 1, checked = true, isSuperset = false)
         advanceUntilIdle()
-        assertEquals("a later tick must not move the stamp", stampedAt, repo.sessionStartedAtFlow.first())
+        assertEquals("a later tick must not move the stamp", stampedAt, repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
     }
 
     @Test
@@ -1421,7 +1421,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(squatId, index = 0, checked = false, isSuperset = false)
         advanceUntilIdle()
 
-        assertNull("un-ticking is not performing a set", repo.sessionStartedAtFlow.first())
+        assertNull("un-ticking is not performing a set", repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
     }
 
     @Test
@@ -1456,7 +1456,7 @@ class DayViewModelWiringTest {
         vm.changeReps(squatId, Slot.MAIN, index = 4, newReps = 3)
         advanceUntilIdle()
 
-        assertNull("weight/rep edits are planning, not performing", repo.sessionStartedAtFlow.first())
+        assertNull("weight/rep edits are planning, not performing", repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
     }
 
     @Test
@@ -1469,7 +1469,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(curlId, index = 0, checked = true, isSuperset = true)
         advanceUntilIdle()
 
-        assertTrue(repo.sessionStartedAtFlow.first() != null)
+        assertTrue(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first() != null)
     }
 
     @Test
@@ -1480,12 +1480,12 @@ class DayViewModelWiringTest {
         val squatId = slotId("bb_back_squat")
         vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
         advanceUntilIdle()
-        assertTrue(repo.sessionStartedAtFlow.first() != null)
+        assertTrue(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first() != null)
 
         vm.clearChecks()
         advanceUntilIdle()
 
-        assertNull(repo.sessionStartedAtFlow.first())
+        assertNull(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
     }
 
     @Test
@@ -1498,14 +1498,14 @@ class DayViewModelWiringTest {
 
         vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
         advanceUntilIdle()
-        val stampedAt = repo.sessionStartedAtFlow.first()
+        val stampedAt = repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first()
 
         vm.completeDay()
         advanceUntilIdle()
 
         val session = repo.sessionSummariesFlow.first().first().session
         assertEquals(stampedAt, session.startedAt)
-        assertNull("advanceDay must consume the stamp", repo.sessionStartedAtFlow.first())
+        assertNull("advanceDay must consume the stamp", repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
         collect.cancel()
     }
 

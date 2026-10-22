@@ -198,11 +198,14 @@ class BackupCodecTest {
     }
 
     @Test
-    fun `cardio duration bounds pin 59 60 86400 and 86401 seconds independently`() {
+    fun `cardio duration bounds pin negative zero short and maximum seconds independently`() {
         fun decode(seconds: Int) = codec.decode(codec.encode(document(cardioSessions = listOf(
             cardio(seconds = seconds, startedAt = 1_000, completedAt = 2_000),
         ))))
-        assertFailsWith<BackupError.Inconsistent> { decode(59) }
+        assertFailsWith<BackupError.Inconsistent> { decode(-1) }
+        assertEquals(0, decode(0).cardioSessions.single().seconds)
+        assertEquals(20, decode(20).cardioSessions.single().seconds)
+        assertEquals(59, decode(59).cardioSessions.single().seconds)
         assertEquals(60, decode(60).cardioSessions.single().seconds)
         assertEquals(86_400, decode(86_400).cardioSessions.single().seconds)
         assertFailsWith<BackupError.Inconsistent> { decode(86_401) }

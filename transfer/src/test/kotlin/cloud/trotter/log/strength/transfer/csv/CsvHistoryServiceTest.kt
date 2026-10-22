@@ -221,6 +221,31 @@ class CsvHistoryServiceTest {
     }
 
     @Test
+    fun `exporting and re-importing history with unchecked sets inserts nothing`() = runTest {
+        val first = SessionSetEntity(
+            0, 0, "bb_back_squat", "Barbell Back Squat", Slot.MAIN, 0, SetKind.WORK.name, 225.0, 5, done = true,
+        )
+        val sets = listOf(
+            first,
+            first.copy(setIndex = 1, weightLb = 230.0, done = false),
+            first.copy(setIndex = 2, weightLb = 235.0, reps = 3),
+        )
+        repo.importSessionHistory(
+            listOf(ImportedSession(WorkoutSessionEntity(0, "A", "Day A", null, 1_720_000_900_789L, 180), sets)),
+            emptyList(),
+        )
+        val before = repo.exportSessionHistory()
+        val out = ByteArrayOutputStream()
+
+        service.exportTo(out)
+        val preview = service.preview(ByteArrayInputStream(out.toByteArray()))
+        assertEquals(2, preview.sessions.single().sets.size)
+        service.commit(preview)
+
+        assertEquals(before, repo.exportSessionHistory())
+    }
+
+    @Test
     fun `kg weights round-trip export to import to export byte-identical`() = runTest {
         repo.setUnit(WeightUnit.KG)
         // Canonical storage is lb; these are exactly toLb(100 / 102.5 / 42.5 kg).

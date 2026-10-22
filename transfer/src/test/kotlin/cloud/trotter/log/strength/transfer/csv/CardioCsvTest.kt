@@ -48,7 +48,8 @@ class CardioCsvTest {
             val imported = CsvHistoryImporter.commit(preview(csv), emptyMap()).cardioSessions.single()
 
             assertEquals(seconds, imported.session.seconds)
-            assertEquals(source.completedAt - seconds * 1_000L, imported.session.startedAt)
+            assertEquals(source.completedAt - maxOf(seconds * 1_000L, 1L), imported.session.startedAt)
+            assertTrue(imported.session.startedAt < imported.session.completedAt)
             assertTrue(imported.sets.isEmpty())
         }
     }
@@ -388,7 +389,9 @@ class CardioCsvTest {
         val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(60))
         listOf(0, 30, 86_400).forEach { seconds ->
             val sets = listOf(CardioSetResult(spec, CardioSetStatus.SHORTENED, seconds))
-            assertEquals(seconds, preview(exportSets(sets)).cardioSessions.single().seconds)
+            val parsed = preview(exportSets(sets)).cardioSessions.single()
+            assertEquals(seconds, parsed.seconds)
+            assertTrue(parsed.startedAt < parsed.completedAt)
         }
         val sets = listOf(CardioSetResult(spec, CardioSetStatus.FINISHED, 86_400),
             CardioSetResult(spec, CardioSetStatus.FINISHED, 1))

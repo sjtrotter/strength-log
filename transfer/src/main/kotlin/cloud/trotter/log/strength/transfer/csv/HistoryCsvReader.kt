@@ -230,6 +230,11 @@ object HistoryCsvReader {
         )
     }
 
+    /** A 0-second session still starts before it completes: backup and Health
+     *  Connect both require completedAt > startedAt. */
+    private fun cardioStartedAt(completedAt: Long, seconds: Int): Long =
+        completedAt - maxOf(seconds * 1_000L, 1L)
+
     private class CardioCells(
         private val fields: List<String>,
         val line: Int,
@@ -275,7 +280,7 @@ object HistoryCsvReader {
             mode = Csv.deneutralizeFormula(cells.required(HistoryField.CARDIO_MODE)).trim().ifBlank { "OUTDOOR_RUN" },
             hard = cells.hard(),
             label = cells.label(),
-            startedAt = completedAt - seconds * 1_000L,
+            startedAt = cardioStartedAt(completedAt, seconds),
             completedAt = completedAt,
             seconds = seconds,
             stepsCompleted = cells.integer(HistoryField.STEPS_COMPLETED, 0..Int.MAX_VALUE),
@@ -352,7 +357,7 @@ object HistoryCsvReader {
             mode = CardioBlocks.legacyModeOf(first.activity).name,
             hard = sets.any { it.spec.role == CardioRole.WORK && it.spec.hard },
             label = first.label,
-            startedAt = first.completedAt - seconds * 1_000L,
+            startedAt = cardioStartedAt(first.completedAt, seconds),
             completedAt = first.completedAt,
             seconds = seconds,
             stepsCompleted = sets.count { it.status == CardioSetStatus.FINISHED },

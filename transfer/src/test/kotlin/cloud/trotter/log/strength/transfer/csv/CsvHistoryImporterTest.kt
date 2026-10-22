@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.csv
 
+import cloud.trotter.log.strength.data.SessionHistorySnapshot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
@@ -26,6 +27,26 @@ class CsvHistoryImporterTest {
         "Date,Workout Name,Exercise Name,Set Order,Weight,Weight Unit,Reps\n" +
             "2026-07-01 08:00:00,Day A,Barbell Back Squat,1,225,lb,5\n" +
             "2026-07-01 08:00:00,Day A,Mystery Move,1,100,lb,10\n"
+
+    @Test
+    fun `own export matches existing done sets in id order with unchecked sets omitted`() {
+        val zone = ZoneId.of("UTC")
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 235)
+        val first = SessionSetEntity(1, 1, "bb_back_squat", "Barbell Back Squat", Slot.MAIN, 0, "WORK", 225.0, 5, true)
+        val sets = listOf(
+            first.copy(id = 3, setIndex = 2, weightLb = 235.0, reps = 3),
+            first.copy(id = 2, setIndex = 1, done = false),
+            first,
+        )
+        val csv = HistoryCsvWriter.export(listOf(session), sets, WeightUnit.LB, zone)
+        val preview = HistoryCsvReader.preview(csv, catalog, zone)
+        val history = SessionHistorySnapshot(WeightUnit.LB, listOf(session), sets)
+
+        val imported = CsvHistoryImporter.commit(preview, emptyMap(), history)
+
+        assertTrue(imported.sessions.isEmpty())
+        assertTrue(imported.newCustomExercises.isEmpty())
+    }
 
     @Test
     fun `imports with and without Plan leave strength and cardio plan fields null`() {

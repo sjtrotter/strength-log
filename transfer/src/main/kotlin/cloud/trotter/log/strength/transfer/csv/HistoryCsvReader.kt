@@ -269,7 +269,7 @@ object HistoryCsvReader {
 
     private fun parseCardioSummary(cells: CardioCells, zone: ZoneId): PreviewCardioSession {
         val completedAt = cells.completedAt(zone)
-        val seconds = cells.integer(HistoryField.SECONDS, 60..86_400)
+        val seconds = cells.integer(HistoryField.SECONDS, 0..86_400)
         return PreviewCardioSession(
             dayId = cells.dayId(),
             mode = Csv.deneutralizeFormula(cells.required(HistoryField.CARDIO_MODE)).trim().ifBlank { "OUTDOOR_RUN" },

@@ -165,6 +165,34 @@ class RestoreCoordinationTest {
     }
 
     @Test
+    fun interruptedRestoreReplaysNotesForBothSessionsUnderTheRestoreLock() = runBlocking {
+        val notes = mapOf(11L to "Easy first session", 12L to "Add weight next time")
+        val codec = BackupCodec()
+        val document = BackupDocument(
+            settings = SettingsBackup(190, 33, "NOVICE", weightUnit = "LB", wizardComplete = true, sessionNotes = notes),
+            sessions = listOf(
+                SessionBackup(11, "A", "Day A", null, 1_000, 190, emptyList()),
+                SessionBackup(12, "A", "Day A", null, 2_000, 190, emptyList()),
+            ),
+        )
+        settingsStore.failOnUpdate = 1
+
+        val failure = runCatching { service.import(codec.encode(document)) }.exceptionOrNull()
+
+        assertTrue(failure is RestoreInterruption.SettingsPending)
+        assertEquals(listOf(11L, 12L), db.sessionDao().allSessions().map { it.id })
+        assertNotNull(db.restoreMarkerDao().nonce())
+        assertTrue(settings.sessionNotesFlow.first().isEmpty())
+
+        service.withRestoreLock {
+            assertEquals(notes, settings.sessionNotesFlow.first())
+            assertNull(db.restoreMarkerDao().nonce())
+        }
+        assertFalse(service.reconcilePendingRestore())
+        assertEquals(notes, settings.sessionNotesFlow.first())
+    }
+
+    @Test
     fun reconciliationWaitsForAnInFlightRestoreInsteadOfReadingItsJournal() = runBlocking {
         val open = CompletableDeferred<Unit>()
         settingsStore.gateOnUpdate = 1

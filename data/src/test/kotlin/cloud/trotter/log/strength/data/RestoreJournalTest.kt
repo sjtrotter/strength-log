@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -200,6 +201,33 @@ class RestoreJournalTest {
         assertSettingsRestored()
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse("and is spent", repo.reconcilePendingRestore(journal))
+    }
+
+    @Test
+    fun settingsFailureAfterTheCommit_replaysNotesForBothSessions() = runTest {
+        val restored = snapshot().copy(
+            sessions = listOf(
+                WorkoutSessionEntity(11, "R", "Restored", null, 1_000, 190),
+                WorkoutSessionEntity(12, "R", "Restored", null, 2_000, 190),
+            ),
+            sessionNotes = mapOf(11L to "Easy first session", 12L to "Add weight next time"),
+        )
+        settingsStore.failOnUpdate = 1
+
+        val failure = runCatching { repo.importSnapshot(restored, journal) }.exceptionOrNull()
+
+        assertTrue(failure is RestoreInterruption.SettingsPending)
+        assertEquals(restored.sessions, db.sessionDao().allSessions())
+        assertNotNull(db.restoreMarkerDao().nonce())
+        assertTrue(settings.sessionNotesFlow.first().isEmpty())
+
+        assertTrue(repo.reconcilePendingRestore(journal))
+
+        assertEquals(restored.sessionNotes, settings.sessionNotesFlow.first())
+        assertSettingsRestored()
+        assertNull(db.restoreMarkerDao().nonce())
+        assertFalse(repo.reconcilePendingRestore(journal))
+        assertEquals(restored.sessionNotes, settings.sessionNotesFlow.first())
     }
 
     @Test

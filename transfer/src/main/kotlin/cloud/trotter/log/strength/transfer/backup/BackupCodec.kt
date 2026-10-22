@@ -451,7 +451,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             if (session.completedAt <= session.startedAt) {
                 throw BackupError.Inconsistent("cardio session[$index] completedAt must be after startedAt")
             }
-            if (session.seconds !in 60..86_400) {
+            if (session.seconds !in 0..86_400) {
                 throw BackupError.Inconsistent("cardio session[$index] seconds out of range: ${session.seconds}")
             }
             if (session.label.isBlank()) {

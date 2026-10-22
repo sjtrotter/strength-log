@@ -112,6 +112,32 @@ class CardioHistoryRestoreTest {
         assertEquals(expectedSets, repository.cardioSetsFor(-1))
     }
 
+    @Test fun `v12 service restores a twenty second shortened cardio session`() = runTest {
+        assertShortSessionRestores(20)
+    }
+
+    @Test fun `v12 service restores a zero second shortened cardio session`() = runTest {
+        assertShortSessionRestores(0)
+    }
+
+    private suspend fun assertShortSessionRestores(seconds: Int) {
+        val shortSets = listOf(sets.single().copy(status = CardioSetStatus.SHORTENED, elapsedSeconds = seconds))
+        val shortSession = session.copy(
+            completedAt = session.startedAt + maxOf(1L, seconds * 1_000L), seconds = seconds, stepsCompleted = 0,
+        )
+        val id = repository.logCardioSession(shortSession, shortSets)
+        val before = repository.exportSnapshot()
+        val backup = service.export()
+        repository.logCardioSession(session.copy(startedAt = 2_000), sets)
+
+        service.import(backup)
+
+        assertEquals(before.cardioSessions, db.cardioSessionDao().all())
+        assertEquals(before.cardioSetResults, db.cardioSetResultDao().all())
+        assertEquals(shortSets, repository.cardioSetsFor(id))
+        assertEquals(backup, service.export())
+    }
+
     @Test fun `restoring v11 summary clears existing results without inventing sets`() = runTest {
         repository.logCardioSession(session, sets)
         val summary = CardioSessionBackup(

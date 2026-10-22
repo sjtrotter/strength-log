@@ -66,6 +66,33 @@ class BackupV12Test {
         assertEquals(text, codec.encode(snapshot.toDocument()))
     }
 
+    @Test fun `v12 restores a twenty second session with one shortened set`() {
+        val shortened = sets.first().copy(elapsedSeconds = 20)
+        val short = session.copy(completedAt = 21_000, seconds = 20, stepsCompleted = 0, sets = listOf(shortened))
+
+        val snapshot = decode(document(short)).toSnapshot()
+
+        assertEquals(20, snapshot.cardioSessions.single().seconds)
+        assertEquals(20, snapshot.cardioSetResults.single().elapsedSeconds)
+        assertEquals(CardioSetStatus.SHORTENED, snapshot.cardioSetResults.single().toDomain().status)
+    }
+
+    @Test fun `v12 restores a zero second session with one shortened set`() {
+        val shortened = sets.first().copy(elapsedSeconds = 0, metres = null, distanceSource = null)
+        // Millisecond timestamps remain ordered even when elapsed whole seconds is zero.
+        val zero = session.copy(completedAt = 1_001, seconds = 0, stepsCompleted = 0, sets = listOf(shortened))
+
+        val snapshot = decode(document(zero)).toSnapshot()
+
+        assertEquals(0, snapshot.cardioSessions.single().seconds)
+        assertEquals(0, snapshot.cardioSetResults.single().elapsedSeconds)
+        assertEquals(CardioSetStatus.SHORTENED, snapshot.cardioSetResults.single().toDomain().status)
+    }
+
+    @Test fun `v12 still rejects a cardio session longer than 86400 seconds`() {
+        assertFailsWith<BackupError.Inconsistent> { decode(document(session.copy(seconds = 86_401))) }
+    }
+
     @Test fun `absent activity and sets stay legacy summaries`() {
         val summary = session.copy(activity = null, sets = emptyList())
         val document = document(summary)

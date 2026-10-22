@@ -210,19 +210,18 @@ open class TrackerRepository(
      *  screen's offer hides itself once it has. */
     val healthBackfillDoneFlow: Flow<Boolean> = settings.healthBackfillDoneFlow
 
-    /** The in-progress session's start stamp (session-start capture), or `null`
-     *  between an advance/clear and the next performed tick. A stamp whose stored
-     *  calendar date isn't today reads as `null`: it belonged to a session
-     *  abandoned on an earlier day (ticked, never advanced), and must never be
-     *  inherited by today's — the same cross-day staleness rule [CheckmarkReset]
-     *  applies to checkmarks, off the one injectable [clock] (SSOT). */
-    val sessionStartedAtFlow: Flow<Long?> = settings.sessionStartRawFlow.map { stamp ->
-        stamp?.takeIf { it.date == CheckmarkReset.today(clock) }?.startedAtMillis
-    }
+    /** The in-progress start for [planId], or `null` after advance/clear or when
+     *  the stored date or plan differs. Legacy stamps without a plan serve the
+     *  selected plan. One slot is shared: ticking Q replaces P's stamp, so P
+     *  finished later records no start unless P is ticked again. */
+    fun sessionStartedAtFlow(planId: Long): Flow<Long?> =
+        combine(settings.sessionStartRawFlow, selectedPlanIdFlow) { stamp, selectedId ->
+            stamp?.takeIf { it.date == CheckmarkReset.today(clock) && it.belongsTo(planId, selectedId) }?.startedAtMillis
+        }
 
-    fun sessionStartedAtFlow(today: Flow<LocalDate>): Flow<Long?> =
-        combine(settings.sessionStartRawFlow, today) { stamp, date ->
-            stamp?.takeIf { it.date == date.toString() }?.startedAtMillis
+    fun sessionStartedAtFlow(planId: Long, today: Flow<LocalDate>): Flow<Long?> =
+        combine(settings.sessionStartRawFlow, selectedPlanIdFlow, today) { stamp, selectedId, date ->
+            stamp?.takeIf { it.date == date.toString() && it.belongsTo(planId, selectedId) }?.startedAtMillis
         }
 
     // Block bodies, not expression form: DataStore's Preferences (SettingsStore's
@@ -975,19 +974,20 @@ open class TrackerRepository(
      * Clears today's checkmarks for one day without advancing the rotation (spec
      * §8.2 footer "clear today's checkmarks"). Invalidates each log's checkDate so
      * the daily-reset rule surfaces every set as unchecked; weights and reps stay.
-     * Also clears the session-start stamp (restart semantics, session-start
-     * capture): the next tick starts timing a fresh session.
+     * Also clears this plan's session-start stamp (restart semantics): the next
+     * tick starts timing a fresh session. Another plan's stamp is left intact.
      */
     suspend fun clearChecks(dayId: String) {
         val planId = selectedPlanId() ?: return
         programDao.clearChecksForDay(planId, dayId)
-        settings.clearSessionStartedAt()
+        settings.clearSessionStartedAt(planId, selectedPlanId())
     }
 
     /**
      * Stamps "now" as the in-progress session's start — a no-op if already
-     * stamped *today* since the last advance/clear (session-start capture); a
-     * stamp left over from a previous calendar day is overwritten, not kept.
+     * stamped *today* for [planId] since the last advance/clear; a stamp from
+     * another calendar day or plan is overwritten. There is one slot, so ticking
+     * Q replaces P's start; P finished later has no start unless ticked again.
      * Ticking a set is performing, not planning, so this is called from the day
      * screen's first done=true tick and from the watch delta applier's first
      * done=true apply; both go through this one helper so "session start" means
@@ -995,8 +995,9 @@ open class TrackerRepository(
      * is [CheckmarkReset]'s device-local date off [clock] — the one date basis
      * the daily reset already uses.
      */
-    suspend fun stampSessionStartIfUnset() =
-        settings.stampSessionStartIfUnset(clock.millis(), CheckmarkReset.today(clock))
+    suspend fun stampSessionStartIfUnset(planId: Long) {
+        settings.stampSessionStartIfUnset(clock.millis(), CheckmarkReset.today(clock), planId, selectedPlanId())
+    }
 
     // --- rotation & session history ------------------------------------------
 
@@ -1258,16 +1259,9 @@ open class TrackerRepository(
         val planId = selectedPlanId() ?: return 0
         val plan = planDao.plan(planId) ?: return 0
         val bodyweight = configFlow.first().bodyweightLb
-        // Date-scoped read (see [sessionStartedAtFlow]): a stamp from a day the
-        // user ticked but never advanced reads as null here, so the completed
-        // session records no start rather than inheriting the abandoned one.
-        val sessionStartedAt = if (today == null) {
-            sessionStartedAtFlow.first()
-        } else {
-            settings.sessionStartRawFlow.first()
-                ?.takeIf { it.date == today.toString() }
-                ?.startedAtMillis
-        }
+        // Read before Room: only this plan's stamp for the completion date can
+        // supply the start. Another plan's or an abandoned day's stamp is absent.
+        val sessionStartedAt = sessionStartedAtFlow(planId, flowOf(today ?: currentDate())).first()
         val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
         var newSessionId = 0L
         db.withTransaction {
@@ -1324,7 +1318,7 @@ open class TrackerRepository(
         }
         // Consumed: cleared only once the session row above is durably committed
         // (see the crash-ordering note on this method).
-        settings.clearSessionStartedAt()
+        settings.clearSessionStartedAt(planId, selectedPlanId())
         return newSessionId
     }
 

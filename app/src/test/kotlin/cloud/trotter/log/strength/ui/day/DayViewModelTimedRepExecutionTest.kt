@@ -199,7 +199,7 @@ class DayViewModelTimedRepExecutionTest {
         assertEquals(120, vm.uiState.value.exercises.single().timedRepDurationSeconds)
         assertFalse(vm.uiState.value.executionKeepsScreenOn)
         assertEquals(seeded, repo.logFlow("A").first())
-        assertNull(repo.sessionStartedAtFlow.first())
+        assertNull(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
         assertNull(repo.phoneRestFlow.first())
         assertNull(alarm.deadline)
         assertEquals(0, alarm.buzzes)
@@ -397,7 +397,7 @@ class DayViewModelTimedRepExecutionTest {
         assertEquals(1, vm.uiState.value.exercises.single().focusIndex)
         assertNull(vm.uiState.value.timedRep)
         assertNull(vm.uiState.value.openSheet)
-        assertTrue(repo.sessionStartedAtFlow.first() != null)
+        assertTrue(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first() != null)
         assertTrue(repo.phoneRestFlow.first() != null)
         assertEquals(1, rest.armed.size)
     }

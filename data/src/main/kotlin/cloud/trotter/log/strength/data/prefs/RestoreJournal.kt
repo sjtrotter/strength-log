@@ -69,6 +69,7 @@ class RestoreJournal(
             topSetHelperSeen = snapshot.topSetHelperSeen,
             supersetHelperSeen = snapshot.supersetHelperSeen,
             themePreference = snapshot.themePreference,
+            sessionNotes = snapshot.sessionNotes,
         )
         dataStore.edit { it[Keys.NONCE] = nonce }
     }
@@ -124,6 +125,7 @@ class RestoreJournal(
             topSetHelperSeen = staged.topSetHelperSeenFlow.first(),
             supersetHelperSeen = staged.supersetHelperSeenFlow.first(),
             themePreference = staged.themePreferenceFlow.first(),
+            sessionNotes = staged.sessionNotesFlow.first(),
         )
         clear()
         return true

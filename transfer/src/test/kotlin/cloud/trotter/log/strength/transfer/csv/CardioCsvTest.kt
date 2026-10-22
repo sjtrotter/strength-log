@@ -264,6 +264,20 @@ class CardioCsvTest {
     }
 
     @Test
+    fun `a set session and a distinct summary in one file both import in either order`() {
+        val set = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(90)), CardioSetStatus.FINISHED, 90)
+        // Export orders same-second sessions by id, so the ids pick the row order.
+        listOf(1L to 2L, 2L to 1L).forEach { (setsId, summaryId) ->
+            val withSets = cardio("Run").copy(id = setsId, activity = "ROAD_RUN")
+            val summary = cardio("Run").copy(id = summaryId, activity = "TRAIL_RUN")
+            val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC,
+                listOf(withSets, summary), mapOf(setsId to listOf(set)))
+            val imported = CsvHistoryImporter.commit(preview(csv), emptyMap()).cardioSessions
+            assertEquals(setOf("ROAD_RUN", "TRAIL_RUN"), imported.map { it.session.activity }.toSet())
+        }
+    }
+
+    @Test
     fun `summary activity and mode cells cross the formula neutralization boundary`() {
         val source = cardio("Odd").copy(activity = "=1+1", mode = "+SUM(A1)")
         val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC, listOf(source))

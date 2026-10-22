@@ -121,8 +121,13 @@ object CsvHistoryImporter {
                 )
             }
             .filter {
-                val summaryIsNew = seenCardioSummaries.add(cardioSummaryFingerprint(it.session))
-                if (it.sets.isEmpty()) summaryIsNew else seenCardioSets.add(cardioSetsFingerprint(it.session, it.sets))
+                // Within one file a summary only collides with another summary; stored history
+                // contributes both forms because a stored set session may come back as a summary.
+                if (it.sets.isEmpty()) {
+                    seenCardioSummaries.add(cardioSummaryFingerprint(it.session))
+                } else {
+                    seenCardioSets.add(cardioSetsFingerprint(it.session, it.sets))
+                }
             }
         return CommitPlan(newSessions, newCustomExercises, cardioSessions)
     }

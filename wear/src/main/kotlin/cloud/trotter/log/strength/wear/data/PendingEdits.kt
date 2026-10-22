@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
 import kotlin.math.abs
 
 /**
@@ -47,14 +48,16 @@ import kotlin.math.abs
 object PendingEdits {
 
     /**
-     * Cardio settles on the snapshot's ack stamp and nothing else: a completion
+     * Cardio settles only on stamps the phone processed, so out-of-order
+     * delivery cannot retire a lost completion. A completion
      * is history, so neither a day rollover nor a program switch may retire an
      * undelivered one (the 23:55 run must survive to the 00:05 reconnect). An
-     * old phone publishing the default 0 simply never settles the queue, and
-     * its content dedupe absorbs the re-sends.
+     * old phone without a recent-stamp list retains the legacy max rule. A
+     * stamp aged out of the newest 32 re-sends; the phone's content dedupe
+     * re-acknowledges it without logging another session.
      */
     fun reconcileCardio(pending: List<CardioDelta>, snapshot: WatchSnapshot): List<CardioDelta> =
-        pending.filter { delta -> delta.stamp > snapshot.cardioAckStamp }
+        pending.filter { delta -> !snapshot.acknowledgesCardio(delta.stamp) }
 
     /** The deltas still worth re-sending after reconciling against [snapshot]. */
     fun reconcile(pending: List<SetEditDelta>, snapshot: WatchSnapshot): List<SetEditDelta> =

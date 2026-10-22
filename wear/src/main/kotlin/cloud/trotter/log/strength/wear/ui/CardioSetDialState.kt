@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.wear.ui
 
 import cloud.trotter.log.strength.domain.sync.WatchCardioSetSpec
+import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
 
 /** Structured cardio uses the existing dial states, rings and single disc. */
 internal fun cardioSetsDial(inputs: DialInputs, run: CardioSetState): DialUiState {
@@ -52,12 +53,12 @@ internal fun cardioSetsDial(inputs: DialInputs, run: CardioSetState): DialUiStat
             bottom = "${run.results.count { it.status == "FINISHED" }} finished · " +
                 "${run.results.count { it.status == "SHORTENED" }} shortened · " +
                 "${run.results.count { it.status == "SKIPPED" }} skipped"
-            tap = if (run.startedAt == null || (run.queuedStamp != null && snapshot.cardioAckStamp >= run.queuedStamp))
+            tap = if (run.startedAt == null || (run.queuedStamp != null && snapshot.acknowledgesCardio(run.queuedStamp)))
                 DialTap.DISMISS else if (run.saveFailed) DialTap.CARDIO_SET else DialTap.NONE
             crown = DialCrown.NONE
             if (run.saveFailed && run.queuedStamp == null) {
-                listOf(line(run.receipt(snapshot.cardioAckStamp)), line("Tap to retry"))
-            } else listOf(line(if (run.startedAt == null) "Back to Today" else run.receipt(snapshot.cardioAckStamp)))
+                listOf(line(run.receipt(snapshot)), line("Tap to retry"))
+            } else listOf(line(if (run.startedAt == null) "Back to Today" else run.receipt(snapshot)))
         }
         run.peekIndex != null -> {
             val index = run.peekIndex

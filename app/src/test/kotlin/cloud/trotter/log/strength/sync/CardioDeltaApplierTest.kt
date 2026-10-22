@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -38,12 +39,10 @@ class CardioDeltaApplierTest {
     private lateinit var db: StrengthDatabase
     private lateinit var repo: TrackerRepository
     private lateinit var scope: CoroutineScope
-    private val markers = mutableMapOf<String, Long>()
-
-    private val markerStore = object : AppliedEditMarkers {
-        override suspend fun lastApplied(rowKey: String) = markers[rowKey] ?: 0L
-        override suspend fun markApplied(rowKey: String, editedAtMillis: Long) { markers[rowKey] = editedAtMillis }
-        override fun lastAppliedFlow(rowKey: String) = kotlinx.coroutines.flow.flow { emit(markers[rowKey] ?: 0L) }
+    private val recordedStamps = mutableListOf<Long>()
+    private val ackLog = object : CardioAckLog {
+        override val acksFlow = flowOf(CardioAcks())
+        override suspend fun record(stamp: Long) { recordedStamps += stamp }
     }
     private val publisher = object : SessionPublisher {
         var cardioPublishes = 0
@@ -80,7 +79,7 @@ class CardioDeltaApplierTest {
         repo.publishCreatedAuthoredPlan(other)
         val result = WatchCardioSetResult(spec, "FINISHED", 60, 200, "MANUAL")
         val event = delta().copy(planId = planId, activity = "TRACK_RUN", sets = listOf(result), stepsCompleted = 1, finishesDay = true)
-        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        val applier = CardioDeltaApplier(repo, ackLog, publisher)
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(event))
         val session = repo.cardioSessionsFlow.first().single()
         assertEquals("TRACK_RUN", session.activity)
@@ -94,7 +93,7 @@ class CardioDeltaApplierTest {
         assertEquals("C", db.planDao().plan(planId)?.suggestedDayId)
         assertEquals(1, repo.cardioSessionsFlow.first().size)
         assertEquals(1, publisher.cardioPublishes)
-        assertEquals(99L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+        assertEquals(listOf(10L, 99L), recordedStamps)
     }
 
     @Test fun `old watch retains summary logging without set rows or rotation`() = runTest {
@@ -104,8 +103,9 @@ class CardioDeltaApplierTest {
         repo.replaceProgram(Program(listOf("A", "B").map {
             ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
         }))
-        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        val applier = CardioDeltaApplier(repo, ackLog, publisher)
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta()))
+        assertEquals(listOf(10L), recordedStamps)
         val session = repo.cardioSessionsFlow.first().single()
         assertEquals(null, session.activity)
         assertEquals(emptyList<CardioSetResult>(), repo.cardioSetsFor(session.id))
@@ -124,7 +124,7 @@ class CardioDeltaApplierTest {
         val mixed = Program(cardioOnly.days.map {
             it.copy(exercises = listOf(ProgramExercise("bb_back_squat")))
         })
-        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        val applier = CardioDeltaApplier(repo, ackLog, publisher)
         listOf(true to mixed, false to cardioOnly).forEachIndexed { index, (eligibleAtStart, edited) ->
             repo.replaceProgram(edited)
             db.planDao().updateSuggestedDay(planId, "A")
@@ -148,7 +148,7 @@ class CardioDeltaApplierTest {
         }))
         val result = WatchCardioSetResult(spec, "FINISHED", 60)
         val event = delta().copy(planId = planId, sets = listOf(result))
-        assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, markerStore, publisher).apply(event))
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, ackLog, publisher).apply(event))
         val session = repo.cardioSessionsFlow.first().single()
         assertEquals(listOf(result.toDomain()), repo.cardioSetsFor(session.id))
         assertEquals("A", db.planDao().plan(planId)?.suggestedDayId)
@@ -171,7 +171,7 @@ class CardioDeltaApplierTest {
             stepsCompleted = 1, planId = planId, activity = "TRACK_RUN"),
             listOf(result.toDomain()), finishDay = true)
         assertEquals("C", db.planDao().plan(planId)?.suggestedDayId)
-        assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, markerStore, publisher).apply(offline))
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, ackLog, publisher).apply(offline))
         assertEquals("C", db.planDao().plan(planId)?.suggestedDayId)
         val loggedA = repo.cardioSessionsFlow.first().single { it.dayId == "A" }
         assertEquals(offline.startedAt, loggedA.startedAt)
@@ -182,7 +182,7 @@ class CardioDeltaApplierTest {
     @Test fun `optional activity can be absent when a sender supplies sets`() = runTest {
         val result = WatchCardioSetResult(WatchCardioSetSpec("WORK", "TIME", 60), "FINISHED", 60)
         val event = delta().copy(sets = listOf(result))
-        assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, markerStore, publisher).apply(event))
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, CardioDeltaApplier(repo, ackLog, publisher).apply(event))
         val session = repo.cardioSessionsFlow.first().single()
         assertEquals(null, session.activity)
         assertEquals(listOf(result.toDomain()), repo.cardioSetsFor(session.id))
@@ -193,48 +193,48 @@ class CardioDeltaApplierTest {
         val event = delta().copy(activity = "TRACK_RUN", sets = listOf(
             WatchCardioSetResult(invalid, "FINISHED", 60),
         ))
-        assertEquals(CardioDeltaApplier.Outcome.INVALID, CardioDeltaApplier(repo, markerStore, publisher).apply(event))
+        assertEquals(CardioDeltaApplier.Outcome.INVALID, CardioDeltaApplier(repo, ackLog, publisher).apply(event))
         assertEquals(emptyList<CardioSessionEntity>(), repo.cardioSessionsFlow.first())
-        assertEquals(event.stamp, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+        assertEquals(listOf(event.stamp), recordedStamps)
     }
 
     @Test fun `a replayed delta inserts and publishes once but still acks`() = runTest {
-        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        val applier = CardioDeltaApplier(repo, ackLog, publisher)
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta()))
         assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(delta()))
         assertEquals(1, repo.cardioSessionsFlow.first().size)
         assertEquals(1, publisher.cardioPublishes)
-        assertEquals(10L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+        assertEquals(listOf(10L, 10L), recordedStamps)
     }
 
     @Test fun `same content under a new stamp dedupes but advances the ack`() = runTest {
-        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        val applier = CardioDeltaApplier(repo, ackLog, publisher)
         applier.apply(delta(stamp = 10L))
         assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(delta(stamp = 11L)))
         assertEquals(1, repo.cardioSessionsFlow.first().size)
         assertEquals(1, publisher.cardioPublishes)
-        assertEquals(11L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+        assertEquals(listOf(10L, 11L), recordedStamps)
     }
 
     @Test fun `an older stamp arriving late still inserts its session`() = runTest {
-        val applier = CardioDeltaApplier(repo, markerStore, publisher)
-        applier.apply(delta(stamp = 11L, startedAt = 5_000L))
+        val applier = CardioDeltaApplier(repo, ackLog, publisher)
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta(stamp = 101L, startedAt = 5_000L)))
         assertEquals(
             CardioDeltaApplier.Outcome.APPLIED,
-            applier.apply(delta(stamp = 10L, startedAt = 1_000L)),
+            applier.apply(delta(stamp = 100L, startedAt = 1_000L)),
         )
         assertEquals(2, repo.cardioSessionsFlow.first().size)
-        assertEquals(11L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+        assertEquals(listOf(101L, 100L), recordedStamps)
     }
 
     @Test fun `an invalid delta is acked and dropped, never replayed forever`() = runTest {
-        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        val applier = CardioDeltaApplier(repo, ackLog, publisher)
         assertEquals(
             CardioDeltaApplier.Outcome.INVALID,
             applier.apply(delta(stamp = 12L).copy(mode = "FUTURE_MODE")),
         )
         assertEquals(0, repo.cardioSessionsFlow.first().size)
-        assertEquals(12L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+        assertEquals(listOf(12L), recordedStamps)
     }
 
     @Test fun `explicit-plan cardio stays with its plan and old-watch cardio uses selection`() = runTest {
@@ -243,7 +243,7 @@ class CardioDeltaApplierTest {
         repo.renamePlan(planP, "Strength")
         val planQ = repo.duplicatePlan(planP, "Running")
         repo.selectPlan(planQ)
-        val applier = CardioDeltaApplier(repo, markerStore, publisher)
+        val applier = CardioDeltaApplier(repo, ackLog, publisher)
 
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta().copy(planId = planP)))
         val planned = repo.cardioSessionsFlow.first().single()
@@ -256,6 +256,6 @@ class CardioDeltaApplierTest {
         // Plan identity does not change content identity, even across selection.
         assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(delta(stamp = 12L).copy(planId = planQ)))
         assertEquals(2, repo.cardioSessionsFlow.first().size)
-        assertEquals(12L, markerStore.lastApplied(CardioDeltaApplier.MARKER_KEY))
+        assertEquals(listOf(10L, 11L, 12L), recordedStamps)
     }
 }

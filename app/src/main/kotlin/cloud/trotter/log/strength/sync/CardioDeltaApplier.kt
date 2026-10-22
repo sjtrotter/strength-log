@@ -13,7 +13,7 @@ import kotlinx.coroutines.sync.withLock
 /** Phone-side single-write consumer for completed wrist cardio sessions. */
 class CardioDeltaApplier(
     private val repo: TrackerRepository,
-    private val markers: AppliedEditMarkers,
+    private val ackLog: CardioAckLog,
     private val sessionPublisher: SessionPublisher,
 ) {
     enum class Outcome { APPLIED, DUPLICATE, INVALID }
@@ -23,10 +23,11 @@ class CardioDeltaApplier(
      * Idempotence is CONTENT identity (dayId + startedAt — the same key the
      * phone's own STOP uses), never stamp order: fire-and-forget sends carry no
      * ordering contract, so an older stamp arriving late must still insert.
-     * The marker only ever advances as the highest stamp SEEN — the ack the
-     * snapshot exposes for queue settlement — and it advances for every
-     * outcome, INVALID included: a delta this phone can never apply must be
-     * acked and dropped, or the watch re-sends it forever.
+     * The ack log records each processed stamp and preserves the highest stamp
+     * for old watches. Every outcome records its stamp, INVALID included: a
+     * delta this phone can never apply must be acked and dropped, or the watch
+     * re-sends it forever. Recording happens after repository work returns,
+     * outside any Room transaction.
      * Its explicit plan survives a phone plan switch; a null plan keeps the old
      * selected-plan behavior.
      */
@@ -38,7 +39,7 @@ class CardioDeltaApplier(
             delta.seconds < 0 || delta.stepsCompleted < 0 ||
             CardioMode.entries.none { it.name == delta.mode && it != CardioMode.NONE }
         ) {
-            ack(delta.stamp)
+            ackLog.record(delta.stamp)
             return Outcome.INVALID
         }
 
@@ -57,13 +58,8 @@ class CardioDeltaApplier(
             )
             sessionPublisher.publishCardio(id)
         }
-        ack(delta.stamp)
+        ackLog.record(delta.stamp)
         if (duplicate) Outcome.DUPLICATE else Outcome.APPLIED
-    }
-
-    private suspend fun ack(stamp: Long) {
-        val held = markers.lastApplied(MARKER_KEY)
-        if (stamp > held) markers.markApplied(MARKER_KEY, stamp)
     }
 
     companion object { const val MARKER_KEY = "cardio:event" }

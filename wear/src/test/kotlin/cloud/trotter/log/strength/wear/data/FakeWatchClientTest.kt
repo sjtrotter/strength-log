@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.wear.data
 
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
+import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -9,6 +10,20 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class FakeWatchClientTest {
+
+    @Test
+    fun `cardio acknowledgements retain the newest 32 with replay order and a monotonic max`() = runTest {
+        val client = FakeWatchClient()
+        val event = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy Zone 2", 100L, 60_100L, 60, 0, 1L)
+        for (stamp in 1L..40L) client.sendCardio(event.copy(stamp = stamp))
+        assertEquals((9L..40L).toList(), client.snapshotFlow().first().cardioAckedStamps)
+        client.sendCardio(event.copy(stamp = 20L))
+        assertEquals((9L..40L).filterNot { it == 20L } + 20L, client.snapshotFlow().first().cardioAckedStamps)
+        client.sendCardio(event.copy(stamp = 5L))
+        val late = client.snapshotFlow().first()
+        assertEquals((10L..40L).filterNot { it == 20L } + listOf(20L, 5L), late.cardioAckedStamps)
+        assertEquals(40L, late.cardioAckStamp)
+    }
 
     @Test
     fun `applies a weight edit to the addressed round only`() = runTest {

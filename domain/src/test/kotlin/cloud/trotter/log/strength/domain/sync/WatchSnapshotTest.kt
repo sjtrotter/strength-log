@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.domain.sync
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class WatchSnapshotTest {
 
@@ -70,6 +72,41 @@ class WatchSnapshotTest {
     @Test
     fun `schemaVersion defaults to 1`() {
         assertEquals(1, sample.schemaVersion)
+    }
+
+    @Test
+    fun `cardio acknowledgement list settles only processed stamps despite a higher max`() {
+        val snapshot = sample.copy(cardioAckStamp = 101L, cardioAckedStamps = listOf(101L))
+        assertFalse(snapshot.acknowledgesCardio(100L))
+        assertTrue(snapshot.acknowledgesCardio(101L))
+        assertFalse(snapshot.acknowledgesCardio(102L))
+        assertTrue(snapshot.copy(cardioAckedStamps = listOf(100L, 101L)).acknowledgesCardio(100L))
+    }
+
+    @Test
+    fun `empty cardio acknowledgement list preserves the legacy max rule`() {
+        val snapshot = sample.copy(cardioAckStamp = 101L)
+        assertTrue(snapshot.acknowledgesCardio(100L))
+        assertTrue(snapshot.acknowledgesCardio(101L))
+        assertFalse(snapshot.acknowledgesCardio(102L))
+    }
+
+    @Test
+    fun `old JSON without cardio acknowledgement list decodes empty and uses max`() {
+        val oldWire = """
+            {"schemaVersion":1,"revision":2,"suggestedDayId":"A","unit":"lb","cardioAckStamp":101,
+             "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[]}}
+        """.trimIndent()
+        val decoded = SyncCodec.decodeSnapshot(oldWire.encodeToByteArray())
+        assertEquals(emptyList(), decoded.cardioAckedStamps)
+        assertTrue(decoded.acknowledgesCardio(100L))
+        assertEquals(1, decoded.schemaVersion)
+    }
+
+    @Test
+    fun `cardio acknowledgement stamps round-trip in processing order`() {
+        val snapshot = sample.copy(cardioAckStamp = 101L, cardioAckedStamps = listOf(101L, 100L))
+        assertEquals(snapshot, SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(snapshot)))
     }
 
     @Test

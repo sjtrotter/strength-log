@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchCardioBlock
 import cloud.trotter.log.strength.domain.sync.WatchCardioSetResult
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
 
 /** Frozen prescription and device-local anchors. A snapshot never starts execution. */
 data class CardioSetState(
@@ -169,8 +170,8 @@ data class CardioSetState(
             stamp = end, planId = planId, activity = block.activity, sets = results, finishesDay = finishesDay)
     }
 
-    fun receipt(ackStamp: Long): String = when {
-        queuedStamp != null && ackStamp >= queuedStamp -> "Logged ${cardioSetTime(results.sumOf { it.elapsedSeconds })}"
+    fun receipt(snapshot: WatchSnapshot): String = when {
+        queuedStamp != null && snapshot.acknowledgesCardio(queuedStamp) -> "Logged ${cardioSetTime(results.sumOf { it.elapsedSeconds })}"
         queuedStamp != null -> "Saved on watch"
         saveFailed -> "Couldn't save"
         else -> "Saving…"

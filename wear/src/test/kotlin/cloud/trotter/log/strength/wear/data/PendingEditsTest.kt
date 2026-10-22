@@ -171,6 +171,30 @@ class PendingEditsTest {
     }
 
     @Test
+    fun `out of order cardio acknowledgement keeps a missing earlier completion queued`() {
+        val first = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy Zone 2", 100L, 60_100L, 60, 0, 100L)
+        val second = first.copy(startedAt = 200_000L, completedAt = 260_000L, stamp = 101L)
+        val pending = listOf(first, second)
+        val laterOnly = snapshot().copy(cardioAckStamp = 101L, cardioAckedStamps = listOf(101L))
+        assertEquals(listOf(first), PendingEdits.reconcileCardio(pending, laterOnly))
+        assertTrue(PendingEdits.reconcileCardio(pending,
+            laterOnly.copy(cardioAckedStamps = listOf(100L, 101L))).isEmpty())
+        assertTrue(PendingEdits.reconcileCardio(pending,
+            laterOnly.copy(cardioAckedStamps = emptyList())).isEmpty())
+    }
+
+    @Test
+    fun `cardio survives a plan switch and a processed stamp aged out of the recent list`() {
+        val delta = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy Zone 2", 100L, 60_100L, 60, 0, 100L,
+            planId = 1L)
+        val otherPlan = snapshot(dayId = "B").copy(planId = 2L, cardioAckStamp = 140L,
+            cardioAckedStamps = (109L..140L).toList())
+        assertEquals(listOf(delta), PendingEdits.reconcileCardio(listOf(delta), otherPlan))
+        val reacknowledged = otherPlan.copy(cardioAckedStamps = (110L..140L).toList() + delta.stamp)
+        assertTrue(PendingEdits.reconcileCardio(listOf(delta), reacknowledged).isEmpty())
+    }
+
+    @Test
     fun `cardio stays queued until the phone's ack stamp covers it`() {
         val delta = CardioDelta(1, "A", "OUTDOOR_RUN", false, "Easy Zone 2", 100L, 60_100L, 60, 0, 9L)
         assertEquals(listOf(delta), PendingEdits.reconcileCardio(listOf(delta), snapshot()))

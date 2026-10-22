@@ -1,11 +1,16 @@
 package cloud.trotter.log.strength.sync
 
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -34,6 +39,7 @@ import org.robolectric.annotation.Config
 class WearSyncStoreTest {
 
     private lateinit var file: File
+    private lateinit var preferences: DataStore<Preferences>
     private val openScopes = mutableListOf<CoroutineScope>()
 
     @Before
@@ -59,8 +65,8 @@ class WearSyncStoreTest {
      */
     private fun newStore(nowMillis: () -> Long = { 1_000L }): Pair<WearSyncStore, CoroutineScope> {
         val scope = CoroutineScope(Dispatchers.IO + Job()).also { openScopes += it }
-        val dataStore = PreferenceDataStoreFactory.create(scope = scope) { file }
-        return WearSyncStore(dataStore, nowMillis, entropy = { 0L }) to scope
+        preferences = PreferenceDataStoreFactory.create(scope = scope) { file }
+        return WearSyncStore(preferences, nowMillis, entropy = { 0L }) to scope
     }
 
     @Test
@@ -116,5 +122,56 @@ class WearSyncStoreTest {
         assertEquals(500L, store.lastApplied("A|1|main"))
         // A different slot is independent.
         assertEquals(0L, store.lastApplied("A|1|ss"))
+    }
+
+    @Test
+    fun `cardio ack log defaults empty and retains the newest 32 processed stamps in order`() = runTest {
+        val store = newStore().first
+        assertEquals(emptyList<Long>(), store.acksFlow.first().recent)
+        for (stamp in 1L..40L) store.record(stamp)
+        assertEquals((9L..40L).toList(), store.acksFlow.first().recent)
+        assertEquals(40L, store.lastApplied(CardioDeltaApplier.MARKER_KEY))
+    }
+
+    @Test
+    fun `re-recording a cardio stamp moves it to the end without duplicates`() = runTest {
+        val store = newStore().first
+        for (stamp in 1L..40L) store.record(stamp)
+        store.record(20L)
+        assertEquals((9L..40L).filterNot { it == 20L } + 20L, store.acksFlow.first().recent)
+        assertEquals(40L, store.lastApplied(CardioDeltaApplier.MARKER_KEY))
+    }
+
+    @Test
+    fun `late older cardio stamp is newest in the log without regressing the max`() = runTest {
+        val store = newStore().first
+        for (stamp in 1L..40L) store.record(stamp)
+        store.record(5L)
+        assertEquals((10L..40L).toList() + 5L, store.acksFlow.first().recent)
+        assertEquals(40L, store.lastAppliedFlow(CardioDeltaApplier.MARKER_KEY).first())
+        assertEquals(40L, store.acksFlow.first().highest)
+    }
+
+    @Test
+    fun `unparsable cardio ack preference reads empty and the next record repairs it`() = runTest {
+        val store = newStore().first
+        val key = stringPreferencesKey("cardio_acked_stamps")
+        for (garbage in listOf("garbage", "1,broken,2", "1,", "9223372036854775808", "")) {
+            preferences.edit { it[key] = garbage }
+            assertEquals(emptyList<Long>(), store.acksFlow.first().recent)
+            store.record(5L)
+            assertEquals(listOf(5L), store.acksFlow.first().recent)
+        }
+    }
+
+    @Test
+    fun `cardio acknowledgement list and max survive a restart`() = runTest {
+        val (store, scope) = newStore()
+        store.record(101L)
+        store.record(100L)
+        scope.release()
+        val resumed = newStore().first
+        assertEquals(listOf(101L, 100L), resumed.acksFlow.first().recent)
+        assertEquals(101L, resumed.lastApplied(CardioDeltaApplier.MARKER_KEY))
     }
 }

@@ -1,3 +1,5 @@
+import java.time.Duration
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -66,7 +68,13 @@ android {
     }
 
     testOptions {
-        unitTests.all { it.useJUnitPlatform() }
+        unitTests.all {
+            it.useJUnitPlatform()
+            // A hung test fails in minutes and, on CI, names itself instead of
+            // holding the job to GitHub's six-hour limit (#310).
+            it.timeout.set(Duration.ofMinutes(20))
+            if (providers.environmentVariable("CI").isPresent) it.testLogging.events("started", "failed")
+        }
         unitTests.isIncludeAndroidResources = true // Robolectric
     }
 }

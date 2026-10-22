@@ -272,14 +272,14 @@ object HistoryCsvReader {
         val seconds = cells.integer(HistoryField.SECONDS, 60..86_400)
         return PreviewCardioSession(
             dayId = cells.dayId(),
-            mode = cells.required(HistoryField.CARDIO_MODE).trim().ifBlank { "OUTDOOR_RUN" },
+            mode = Csv.deneutralizeFormula(cells.required(HistoryField.CARDIO_MODE)).trim().ifBlank { "OUTDOOR_RUN" },
             hard = cells.hard(),
             label = cells.label(),
             startedAt = completedAt - seconds * 1_000L,
             completedAt = completedAt,
             seconds = seconds,
             stepsCompleted = cells.integer(HistoryField.STEPS_COMPLETED, 0..Int.MAX_VALUE),
-            activity = cells.optional(HistoryField.ACTIVITY).ifBlank { null },
+            activity = Csv.deneutralizeFormula(cells.optional(HistoryField.ACTIVITY)).ifBlank { null },
         )
     }
 

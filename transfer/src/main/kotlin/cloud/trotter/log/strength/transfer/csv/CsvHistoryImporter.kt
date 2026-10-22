@@ -103,11 +103,12 @@ object CsvHistoryImporter {
             }
         } ?: mutableSetOf()
         val newSessions = sessions.filter { seen.add(normalizedSessionFingerprint(it.session, it.sets)) }
-        val seenCardio = existingHistory?.let { history ->
-            history.cardioSessions.mapTo(mutableSetOf()) { session ->
-                cardioFingerprint(session, history.cardioSets[session.id].orEmpty())
-            }
-        } ?: mutableSetOf()
+        val seenCardioSets = mutableSetOf<List<Any?>>()
+        val seenCardioSummaries = mutableSetOf<List<Any?>>()
+        existingHistory?.cardioSessions?.forEach { session ->
+            seenCardioSets += cardioSetsFingerprint(session, existingHistory.cardioSets[session.id].orEmpty())
+            seenCardioSummaries += cardioSummaryFingerprint(session)
+        }
         val cardioSessions = preview.cardioSessions
             .map {
                 ImportedCardioSession(
@@ -119,23 +120,33 @@ object CsvHistoryImporter {
                     sets = it.sets,
                 )
             }
-            .filter { seenCardio.add(cardioFingerprint(it.session, it.sets)) }
+            .filter {
+                val summaryIsNew = seenCardioSummaries.add(cardioSummaryFingerprint(it.session))
+                if (it.sets.isEmpty()) summaryIsNew else seenCardioSets.add(cardioSetsFingerprint(it.session, it.sets))
+            }
         return CommitPlan(newSessions, newCustomExercises, cardioSessions)
     }
 
     /**
-     * Cardio normalized to what its CSV row preserves: no id, no startedAt
+     * Cardio normalized to what a summary row preserves: no id, no startedAt
      * (the reader derives it from completedAt − seconds), null dayId collapsed
-     * to empty, and completion time at second precision.
+     * to empty, and completion time at second precision. A summary row carries
+     * no sets and, from older exports, no activity, so it matches on these alone.
      */
-    private fun cardioFingerprint(session: CardioSessionEntity, sets: List<CardioSetResult>): List<Any?> = listOf(
+    private fun cardioSummaryFingerprint(session: CardioSessionEntity): List<Any?> = listOf(
         session.dayId.orEmpty(), session.mode, session.hard, session.label,
-        session.completedAt / 1000, session.seconds, session.stepsCompleted, session.activity,
-        sets.map { set ->
-            listOf(set.spec.role, set.spec.end, set.spec.aim, set.spec.hard, set.status,
-                set.elapsedSeconds, set.metres, set.distanceSource)
-        },
+        session.completedAt / 1000, session.seconds, session.stepsCompleted,
     )
+
+    /** Set rows preserve the activity and every ordered set fact as well. */
+    private fun cardioSetsFingerprint(session: CardioSessionEntity, sets: List<CardioSetResult>): List<Any?> =
+        cardioSummaryFingerprint(session) + listOf(
+            session.activity,
+            sets.map { set ->
+                listOf(set.spec.role, set.spec.end, set.spec.aim, set.spec.hard, set.status,
+                    set.elapsedSeconds, set.metres, set.distanceSource)
+            },
+        )
 
     /**
      * Normalizes both native and imported history to exactly what CSV preserves:

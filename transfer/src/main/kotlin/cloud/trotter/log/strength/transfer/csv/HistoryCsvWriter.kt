@@ -143,7 +143,7 @@ object HistoryCsvWriter {
             "",
             "",
             Csv.neutralizeFormula(session.planName.orEmpty()),
-            session.activity.orEmpty(),
+            Csv.neutralizeFormula(session.activity.orEmpty()),
             set?.spec?.role?.name.orEmpty(),
             set?.spec?.end?.let(::formatCardioMeasure).orEmpty(),
             set?.spec?.aim?.let(::formatCardioMeasure).orEmpty(),
@@ -151,7 +151,7 @@ object HistoryCsvWriter {
             set?.status?.name.orEmpty(),
             set?.distanceSource?.name.orEmpty(),
             if (set == null) session.stepsCompleted.toString() else "",
-            if (set == null) session.mode else "",
+            if (set == null) Csv.neutralizeFormula(session.mode) else "",
         )
         // Set rows only import with a known activity; anything else keeps its summary row.
         if (sets.isEmpty() || CardioActivity.entries.none { it.name == session.activity }) {

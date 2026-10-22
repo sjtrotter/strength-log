@@ -234,7 +234,8 @@ class CardioCsvTest {
     @Test
     fun `sets without a known activity export and import as the summary row`() {
         listOf(null, "SWIM").forEach { activity ->
-            val source = setSession(mixedSets()).copy(activity = activity)
+            val sets = setSession(mixedSets())
+            val source = sets.copy(activity = activity, startedAt = sets.completedAt - sets.seconds * 1_000L)
             val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC,
                 listOf(source), mapOf(source.id to mixedSets()))
             val rows = Csv.parse(csv).drop(1).filter { row -> row.any { it.isNotBlank() } }
@@ -243,7 +244,35 @@ class CardioCsvTest {
             val imported = CsvHistoryImporter.commit(preview(csv), emptyMap()).cardioSessions.single()
             assertEquals(source.copy(id = 0), imported.session)
             assertTrue(imported.sets.isEmpty())
+            val stored = SessionHistorySnapshot(WeightUnit.LB, emptyList(), emptyList(),
+                cardioSessions = listOf(source), cardioSets = mapOf(source.id to mixedSets()))
+            assertTrue(CsvHistoryImporter.commit(preview(csv), emptyMap(), stored).cardioSessions.isEmpty())
         }
+    }
+
+    @Test
+    fun `a previous version summary of a session stored with sets is already present`() {
+        val sets = setSession(mixedSets())
+        val stored = sets.copy(completedAt = 1_786_356_000_000, startedAt = 1_786_356_000_000 - sets.seconds * 1_000L)
+        val csv = "Date,Workout Name,Duration,Exercise Name,Set Order,Set Type,Weight,Weight Unit,Reps," +
+            "Distance,Distance Unit,Seconds,Notes,Workout Notes,RPE,Plan\r\n" +
+            "2026-08-10 10:00:00,A,0:02:25,Sets,,cardio,,,,,${stored.hard},${stored.seconds}," +
+            "${stored.mode},,${stored.stepsCompleted},\r\n"
+        val history = SessionHistorySnapshot(WeightUnit.LB, emptyList(), emptyList(),
+            cardioSessions = listOf(stored), cardioSets = mapOf(stored.id to mixedSets()))
+        assertTrue(CsvHistoryImporter.commit(preview(csv), emptyMap(), history).cardioSessions.isEmpty())
+    }
+
+    @Test
+    fun `summary activity and mode cells cross the formula neutralization boundary`() {
+        val source = cardio("Odd").copy(activity = "=1+1", mode = "+SUM(A1)")
+        val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC, listOf(source))
+        val row = Csv.parse(csv)[1]
+        assertEquals("'=1+1", cell(row, "Activity"))
+        assertEquals("'+SUM(A1)", cell(row, "Cardio Mode"))
+        val imported = CsvHistoryImporter.commit(preview(csv), emptyMap()).cardioSessions.single().session
+        assertEquals("=1+1", imported.activity)
+        assertEquals("+SUM(A1)", imported.mode)
     }
 
     @Test

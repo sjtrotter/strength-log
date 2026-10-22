@@ -26,6 +26,8 @@ jobs:
 
       - name: Build
         run: ./gradlew build
+        # Backstop for a hang the test task's own timeout can't interrupt (#310).
+        timeout-minutes: 30
 
       # The failure log only says "AssertionError at Foo.kt:42"; the XML has
       # the message and the stack, which is what a fix actually needs.

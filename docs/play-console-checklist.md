@@ -41,7 +41,11 @@ from the manifest and `docs/play-data-safety.md`; if either changes, change this
 
 ## Service account
 
-The "Play store listing" workflow needs the service account (the same one the internal-testing
-pipeline uses) to hold **Manage store presence** for this app: Users and permissions → the
-service account's email → App permissions → check "Edit store listing, pricing & distribution".
-Run the workflow in `inspect` mode first; a 403 means this permission is missing.
+In Users and permissions → the service account's email → App permissions, grant
+permissions only for this app: **View app information (read-only)** for listing
+inspection, **Release apps to testing tracks** for the internal-testing pipeline,
+and **Manage store presence** for listing uploads. Never grant Admin or production
+release permissions. If the Console labels differ, the store-listing permission
+may appear as "Edit store listing, pricing & distribution".
+Run the "Play store listing" workflow in `inspect` mode first; a 403 means a
+required permission is missing.

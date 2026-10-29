@@ -135,14 +135,15 @@ around it.
   pipeline publishes it to its own Wear form-factor track.)
 - Listing text and images live in `play/listing/en-US/` and are pushed by the
   manual "Play store listing" workflow (`.github/workflows/play-listing.yml`,
-  modes `inspect` and `upload`; the service account needs store-presence
-  permission). The answers for the Console forms are in
-  `docs/play-console-checklist.md`.
+  modes `inspect` and `upload`; the service account needs View app information
+  (read-only) for inspect and Manage store presence for upload). The answers
+  for the Console forms are in `docs/play-console-checklist.md`.
 
-## 5. Play Console: one-time setup (owner-only — nothing here is scriptable)
+## 5. Play Console: one-time setup (owner-only)
 
-Everything below happens in a browser, signed in as the account that owns
-the listing. The publish pipeline (§6) only works after this is done once.
+Use the browser for Play Console and Cloud Shell for the Google Cloud commands,
+signed in as the owner. The publish pipeline (§6) only works after this is
+done once.
 
 1. **Developer account** — play.google.com/console, one-time $25.
 2. **Decide free vs paid FIRST.** A free app can never become paid under the
@@ -171,11 +172,30 @@ the listing. The publish pipeline (§6) only works after this is done once.
    §1 keystore becomes the *upload* key, which is resettable if lost).
 7. **Internal testing track** — create it and add tester emails (your own,
    at minimum). Testers opt in via the link the Console shows.
-8. **Service account for the pipeline** — Google Cloud console → create a
-   service account (no roles needed at the project level) → create a JSON
-   key. In Play Console: Users and permissions → invite the service
-   account's email with the *Release to testing tracks* permission for this
-   app. The JSON becomes the `PLAY_SERVICE_ACCOUNT_JSON` secret below.
+8. **Service account for the pipeline.** In Google Cloud, create a service
+   account with no project-level roles and no key. The organization policy
+   `iam.managed.disableServiceAccountKeyCreation` blocks keys, so both Play
+   workflows use Workload Identity Federation. They can authenticate only
+   from `main` of `sjtrotter/strength-log`.
+
+   In Cloud Shell, select the project that owns the service account. Set
+   `PROJECT_NUMBER` to its numeric project number and `SA` to the service
+   account's email, then enable the APIs and create the `github` pool and
+   `strength-log` OIDC provider:
+
+   ```sh
+   PROJECT_NUMBER='your-project-number'
+   SA='your-service-account@your-project.iam.gserviceaccount.com'
+   gcloud services enable iamcredentials.googleapis.com sts.googleapis.com androidpublisher.googleapis.com
+   gcloud iam workload-identity-pools create github --location=global --display-name=GitHub
+   gcloud iam workload-identity-pools providers create-oidc strength-log --location=global --workload-identity-pool=github --issuer-uri=https://token.actions.githubusercontent.com --attribute-mapping=google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref --attribute-condition="assertion.repository=='sjtrotter/strength-log' && assertion.ref=='refs/heads/main'"
+   gcloud iam service-accounts add-iam-policy-binding "$SA" --role=roles/iam.workloadIdentityUser --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/sjtrotter/strength-log"
+   ```
+
+   In Play Console → Users and permissions, invite the service account's
+   email. Grant app-level permissions only for this app: **View app information
+   (read-only)**, **Release apps to testing tracks**, and **Manage store presence**.
+   Never grant Admin or production release permissions.
 
 ## 6. The internal-testing pipeline (.github/workflows/publish-internal.yml)
 
@@ -199,11 +219,17 @@ after; no signing material ever exists in the workspace or repo:
 
 | Secret | Value |
 |---|---|
-| `PLAY_SERVICE_ACCOUNT_JSON` | the §5.8 JSON key, verbatim |
 | `UPLOAD_KEYSTORE_BASE64` | `base64 -w0 ~/keystores/strength-log-release.jks` |
 | `UPLOAD_STORE_PASSWORD` | the §1 store password |
 | `UPLOAD_KEY_ALIAS` | `strength-log` |
 | `UPLOAD_KEY_PASSWORD` | the §1 key password |
 
-The workflow refuses to run (with a pointed error) when secrets are absent,
-so a fork or a fresh clone can't half-publish anything.
+Repository variables in the same settings:
+
+| Variable | Value |
+|---|---|
+| `PLAY_WIF_PROVIDER` | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/strength-log` (replace `PROJECT_NUMBER`) |
+| `PLAY_SERVICE_ACCOUNT` | the §5.8 service-account email |
+
+The workflow refuses to run (with a pointed error) when required secrets or
+variables are absent, so a fork or a fresh clone can't half-publish anything.

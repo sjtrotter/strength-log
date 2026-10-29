@@ -1,8 +1,9 @@
 """Push the store listing under play/listing/<locale>/ to Play, or print what Play has.
 
-Runs in the publish workflow with the same service account the internal-testing
-pipeline uses. Layout follows fastlane's supply convention so the files are
-readable by other tools too:
+Runs in the "Play store listing" workflow with the same service account the
+internal-testing pipeline uses. Credentials come from Application Default
+Credentials (in CI, the file the auth step writes). Layout follows fastlane's
+supply convention so the files are readable by other tools too:
 
     play/listing/en-US/title.txt
     play/listing/en-US/short_description.txt
@@ -12,14 +13,13 @@ readable by other tools too:
     play/listing/en-US/images/phoneScreenshots/*.png
     play/listing/en-US/images/wearScreenshots/*.png
 
-Usage: play_listing.py inspect|upload  (credentials from $PLAY_SERVICE_ACCOUNT_JSON)
+Usage: play_listing.py inspect|upload
 """
 import json
-import os
 import sys
 from pathlib import Path
 
-from google.oauth2 import service_account
+import google.auth
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -35,10 +35,7 @@ IMAGE_TYPES = {
 
 
 def service():
-    info = json.loads(os.environ["PLAY_SERVICE_ACCOUNT_JSON"])
-    creds = service_account.Credentials.from_service_account_info(
-        info, scopes=["https://www.googleapis.com/auth/androidpublisher"],
-    )
+    creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/androidpublisher"])
     # Live discovery: the client's bundled document lags the API and lacks
     # commit's changesInReviewBehavior, which the upload relies on.
     return build("androidpublisher", "v3", credentials=creds, cache_discovery=False, static_discovery=False)

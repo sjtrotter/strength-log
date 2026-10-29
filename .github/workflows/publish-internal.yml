@@ -11,15 +11,16 @@ name: Publish to Play internal testing
 # run numbers (and so version codes) don't change on re-run, and Play rejects
 # a code it has already seen. Dispatch a fresh run instead.
 #
-# Secrets required (repo Settings → Secrets and variables → Actions):
-#   PLAY_SERVICE_ACCOUNT_JSON   service-account key granted Play's "Release
-#                               apps to testing tracks" permission for this
-#                               app (docs/RELEASE.md §5.8)
+# Keyless auth uses Workload Identity Federation, only from main of this repo.
+# Repo variables PLAY_WIF_PROVIDER and PLAY_SERVICE_ACCOUNT configure it.
+# Secrets and variables required (Settings → Secrets and variables → Actions):
 #   UPLOAD_KEYSTORE_BASE64      base64 of the upload keystore (.jks) — the
 #                               keystore itself never enters the repo
 #   UPLOAD_STORE_PASSWORD
 #   UPLOAD_KEY_ALIAS
 #   UPLOAD_KEY_PASSWORD
+#   PLAY_WIF_PROVIDER          full provider resource name (variable)
+#   PLAY_SERVICE_ACCOUNT       service-account email (variable, docs/RELEASE.md §5.8)
 on:
   workflow_dispatch:
     inputs:
@@ -38,22 +39,33 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions: { contents: read, id-token: write }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Refuse to run without secrets
+      - name: Refuse to run without secrets or variables
         env:
-          SA: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          WIF_PROVIDER: ${{ vars.PLAY_WIF_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ vars.PLAY_SERVICE_ACCOUNT }}
           KS: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
           SP: ${{ secrets.UPLOAD_STORE_PASSWORD }}
           KA: ${{ secrets.UPLOAD_KEY_ALIAS }}
           KP: ${{ secrets.UPLOAD_KEY_PASSWORD }}
         run: |
           ok=1
-          for pair in "PLAY_SERVICE_ACCOUNT_JSON:$SA" "UPLOAD_KEYSTORE_BASE64:$KS" "UPLOAD_STORE_PASSWORD:$SP" "UPLOAD_KEY_ALIAS:$KA" "UPLOAD_KEY_PASSWORD:$KP"; do
+          for pair in "UPLOAD_KEYSTORE_BASE64:$KS" "UPLOAD_STORE_PASSWORD:$SP" "UPLOAD_KEY_ALIAS:$KA" "UPLOAD_KEY_PASSWORD:$KP"; do
             [ -n "${pair#*:}" ] || { echo "::error::${pair%%:*} secret is missing — see docs/RELEASE.md §6"; ok=0; }
           done
+          for pair in "PLAY_WIF_PROVIDER:$WIF_PROVIDER" "PLAY_SERVICE_ACCOUNT:$SERVICE_ACCOUNT"; do
+            [ -n "${pair#*:}" ] || { echo "::error::${pair%%:*} variable is missing; see docs/RELEASE.md §6"; ok=0; }
+          done
           [ "$ok" = 1 ] || exit 1
+
+      - id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.PLAY_WIF_PROVIDER }}
+          service_account: ${{ vars.PLAY_SERVICE_ACCOUNT }}
 
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
@@ -89,7 +101,7 @@ jobs:
       - name: Upload the phone bundle to the internal track
         uses: r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6 # v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
           packageName: cloud.trotter.log.strength
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: internal
@@ -98,7 +110,7 @@ jobs:
       - name: Upload the wear bundle to its form-factor track
         uses: r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6 # v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
           packageName: cloud.trotter.log.strength
           releaseFiles: wear/build/outputs/bundle/release/wear-release.aab
           track: ${{ inputs.wearTrack }}

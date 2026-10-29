@@ -236,7 +236,7 @@ job does not repeat the uploads.
 
 After both uploads succeed, the release job creates the GitHub Release
 with generated notes. A Release created by hand in the web UI keeps its
-notes; the release job only updates its prerelease status. Versions with
+notes; the release job publishes it if it is still a draft and sets its prerelease status. Versions with
 major 0 are marked as prereleases.
 Promote to production by hand in the Play Console; the service account
 cannot release to production.

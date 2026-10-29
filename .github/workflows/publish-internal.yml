@@ -169,7 +169,7 @@ jobs:
           PRERELEASE: ${{ needs.publish.outputs.prerelease }}
         run: |
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY"; then
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease=$PRERELEASE
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease="$PRERELEASE"
           else
             args=()
             if [[ "$PRERELEASE" == true ]]; then

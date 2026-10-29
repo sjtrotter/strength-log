@@ -1,17 +1,15 @@
-name: Publish to Play internal testing
+name: Release to Play internal testing
 
-# Manually triggered: publishing is a deliberate act, never a side effect of a
-# merge. Play does not accept debug-signed builds on any track — this ships
-# release-signed bundles to the internal testing tracks, which are the "builds
-# for the inner circle" mechanism Play actually provides. Phone and Wear go in
-# SEPARATE uploads: since March 2023 Wear OS artifacts live on their own
-# dedicated form-factor track, not inside the mobile release.
+# Pushing a version tag publishes release-signed phone and Wear bundles;
+# merges never publish. Version names and codes come from the tag:
+# major*100000 + minor*1000 + patch*10, phone +0, watch +1
+# (wear/build.gradle.kts). Each form factor has its own internal track.
+# Tags must only go up: devices never update to a lower code. A run that
+# failed before either upload can be re-run. Once an upload has reached
+# Play, its version code is used; fix it with the next patch tag.
+# Re-running only a failed release job does not repeat the uploads.
 #
-# Rerun policy: never re-run a dispatch whose upload may have reached Play —
-# run numbers (and so version codes) don't change on re-run, and Play rejects
-# a code it has already seen. Dispatch a fresh run instead.
-#
-# Keyless auth uses Workload Identity Federation, only from main of this repo.
+# Keyless auth accepts only main or v* tags of this repo.
 # Repo variables PLAY_WIF_PROVIDER and PLAY_SERVICE_ACCOUNT configure it.
 # Secrets and variables required (Settings → Secrets and variables → Actions):
 #   UPLOAD_KEYSTORE_BASE64      base64 of the upload keystore (.jks) — the
@@ -22,15 +20,8 @@ name: Publish to Play internal testing
 #   PLAY_WIF_PROVIDER          full provider resource name (variable)
 #   PLAY_SERVICE_ACCOUNT       service-account email (variable, docs/RELEASE.md §5.8)
 on:
-  workflow_dispatch:
-    inputs:
-      versionName:
-        description: Human version (defaults to 0.1.<run>)
-        required: false
-      wearTrack:
-        description: Wear form-factor track id (confirm against the API's track list on first use)
-        required: false
-        default: "wear:internal"
+  push:
+    tags: ['v*']
 
 concurrency:
   group: publish-internal
@@ -40,8 +31,58 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions: { contents: read, id-token: write }
+    outputs:
+      name: ${{ steps.version.outputs.name }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Read the version from the tag
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            patch="${BASH_REMATCH[3]}"
+          else
+            echo "::error::Expected vMAJOR.MINOR.PATCH with non-negative integers and no leading zeros."
+            exit 1
+          fi
+          if (( ${#minor} > 2 || ${#patch} > 2 )); then
+            echo "::error::Minor and patch must each be at most 99."
+            exit 1
+          fi
+          if (( ${#major} > 5 )); then
+            echo "::error::Phone version code must not exceed 2099999990."
+            exit 1
+          fi
+          code=$(( major*100000 + minor*1000 + patch*10 ))
+          if (( code < 1000 )); then
+            echo "::error::The first supported tag is v0.1.0; Play already holds lower codes."
+            exit 1
+          fi
+          if (( code > 2099999990 )); then
+            echo "::error::Phone version code must not exceed 2099999990."
+            exit 1
+          fi
+          prerelease=false
+          (( major == 0 )) && prerelease=true
+          echo "name=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "Version ${TAG#v}: phone $code, watch $(( code + 1 )), prerelease=$prerelease"
+
+      - name: Refuse a tag that is not on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The release tag must point to a commit on main."
+            exit 1
+          fi
 
       - name: Refuse to run without secrets or variables
         env:
@@ -85,17 +126,11 @@ jobs:
           ORG_GRADLE_PROJECT_STRENGTHLOG_RELEASE_STORE_PASSWORD: ${{ secrets.UPLOAD_STORE_PASSWORD }}
           ORG_GRADLE_PROJECT_STRENGTHLOG_RELEASE_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_STRENGTHLOG_RELEASE_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
-          # User input reaches the shell only through the environment — never
-          # interpolated into shell source.
-          INPUT_VERSION_NAME: ${{ inputs.versionName }}
+          CODE: ${{ steps.version.outputs.code }}
+          NAME: ${{ steps.version.outputs.name }}
         run: |
-          # +10 clears the hand-uploaded codes (1, 4) and the burned 2 —
-          # Play remembers every code ever uploaded, forever.
-          BASE=$(( ${{ github.run_number }} * 2 + 10 ))
-          NAME="$INPUT_VERSION_NAME"
-          [ -n "$NAME" ] || NAME="0.1.${{ github.run_number }}"
           ./gradlew :app:bundleRelease :wear:bundleRelease \
-            -PSTRENGTHLOG_VERSION_CODE="$BASE" \
+            -PSTRENGTHLOG_VERSION_CODE="$CODE" \
             -PSTRENGTHLOG_VERSION_NAME="$NAME"
 
       - name: Upload the phone bundle to the internal track
@@ -113,9 +148,33 @@ jobs:
           serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
           packageName: cloud.trotter.log.strength
           releaseFiles: wear/build/outputs/bundle/release/wear-release.aab
-          track: ${{ inputs.wearTrack }}
+          track: wear:internal
           status: completed
 
       - name: Scrub the keystore
         if: always()
         run: rm -f "$RUNNER_TEMP/upload.jks"
+
+  # Keep release write permission out of the job that holds signing material.
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          NAME: ${{ needs.publish.outputs.name }}
+          PRERELEASE: ${{ needs.publish.outputs.prerelease }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY"; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease="$PRERELEASE"
+          else
+            args=()
+            if [[ "$PRERELEASE" == true ]]; then
+              args+=(--prerelease)
+            fi
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --generate-notes --title "$NAME" "${args[@]}"
+          fi

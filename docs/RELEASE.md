@@ -176,7 +176,7 @@ done once.
    account with no project-level roles and no key. The organization policy
    `iam.managed.disableServiceAccountKeyCreation` blocks keys, so both Play
    workflows use Workload Identity Federation. They can authenticate only
-   from `main` of `sjtrotter/strength-log`.
+   from `main` or `v*` tags of `sjtrotter/strength-log`.
 
    In Cloud Shell, select the project that owns the service account. Set
    `PROJECT_NUMBER` to its numeric project number and `SA` to the service
@@ -188,8 +188,14 @@ done once.
    SA='your-service-account@your-project.iam.gserviceaccount.com'
    gcloud services enable iamcredentials.googleapis.com sts.googleapis.com androidpublisher.googleapis.com
    gcloud iam workload-identity-pools create github --location=global --display-name=GitHub
-   gcloud iam workload-identity-pools providers create-oidc strength-log --location=global --workload-identity-pool=github --issuer-uri=https://token.actions.githubusercontent.com --attribute-mapping=google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref --attribute-condition="assertion.repository=='sjtrotter/strength-log' && assertion.ref=='refs/heads/main'"
+   gcloud iam workload-identity-pools providers create-oidc strength-log --location=global --workload-identity-pool=github --issuer-uri=https://token.actions.githubusercontent.com --attribute-mapping=google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref --attribute-condition="assertion.repository=='sjtrotter/strength-log' && (assertion.ref=='refs/heads/main' || assertion.ref.startsWith('refs/tags/v'))"
    gcloud iam service-accounts add-iam-policy-binding "$SA" --role=roles/iam.workloadIdentityUser --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/sjtrotter/strength-log"
+   ```
+
+   For an existing provider, apply the same condition:
+
+   ```sh
+   gcloud iam workload-identity-pools providers update-oidc strength-log --location=global --workload-identity-pool=github --attribute-condition="assertion.repository=='sjtrotter/strength-log' && (assertion.ref=='refs/heads/main' || assertion.ref.startsWith('refs/tags/v'))"
    ```
 
    In Play Console → Users and permissions, invite the service account's
@@ -197,21 +203,49 @@ done once.
    (read-only)**, **Release apps to testing tracks**, and **Manage store presence**.
    Never grant Admin or production release permissions.
 
-## 6. The internal-testing pipeline (.github/workflows/publish-internal.yml)
+## 6. Releasing (.github/workflows/publish-internal.yml)
 
-Manually triggered (Actions → "Publish to Play internal testing" → Run):
-publishing stays a deliberate act. It builds **release-signed** bundles for
-both form factors — Play accepts no debug builds on any track; the internal
-tracks *are* the mechanism for "builds for us before anyone else sees them"
-— and uploads them in TWO steps, because Wear OS artifacts live on their own
-dedicated form-factor track (dispatch input `wearTrack`, default
-`wear:internal`; confirm the exact id against the API's track list the
-first time). Version codes are minted from the run number (phone even, wear
-odd) — monotonic across *dispatches*, not re-runs, so: never re-run a
-dispatch whose upload may have reached Play; start a fresh one. And when
-hand-uploading the very first bundles (§5.3), give them LOW version codes
-(1 and 2 are fine) so the pipeline's run-derived codes clear them. The
-version name defaults to `0.1.<run>`, overridable at dispatch.
+Push a version tag to publish release-signed phone and Wear bundles to
+`internal` and `wear:internal`:
+
+```sh
+git tag v0.4.0 <commit on main> && git push origin v0.4.0
+```
+
+Or create a GitHub Release in the web UI that creates the tag. The tagged
+commit must be on `main`; merges alone never publish. Tags must have the
+form `vMAJOR.MINOR.PATCH`, with no leading zeros. Stay on 0.x until the
+first production release, which is 1.0.0. A minor version is a feature
+release; a patch is fixes only. Tags must only go up. Minor and patch must
+each be at most 99. The lowest accepted tag is `v0.1.0`; Play already holds
+codes up to 13 from earlier builds.
+
+The version name is the tag without `v`. The phone version code is
+`major*100000 + minor*1000 + patch*10`; the watch uses that code + 1:
+
+| Tag | Phone code | Watch code |
+|---|---|---|
+| `v0.4.0` | 4000 | 4001 |
+| `v1.0.0` | 100000 | 100001 |
+
+The phone code must be at most 2099999990 (Play's maximum is 2100000000).
+Devices never update to a lower code. A run that failed before either
+upload can be re-run. Once an upload has reached Play, its version code is
+used, so fix it with the next patch tag. Re-running only a failed release
+job does not repeat the uploads.
+
+After both uploads succeed, the release job creates the GitHub Release
+with generated notes. A Release created by hand in the web UI keeps its
+notes; the release job publishes it if it is still a draft and sets its prerelease status. Versions with
+major 0 are marked as prereleases.
+Promote to production by hand in the Play Console; the service account
+cannot release to production.
+
+Protect tags with a GitHub tag ruleset targeting **All tags**, restricting
+creation, update and deletion, with repository admins as bypass. A `v*`
+pattern does not match `/`, so it would miss a tag like `v1/x`, which the
+Google login still accepts. Anyone who can push a version tag can publish
+to testers.
 
 GitHub secrets it needs (Settings → Secrets and variables → Actions) — the
 keystore travels as base64, decoded into the runner's temp dir and scrubbed

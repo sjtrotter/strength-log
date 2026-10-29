@@ -4,9 +4,10 @@ name: Release to Play internal testing
 # merges never publish. Version names and codes come from the tag:
 # major*100000 + minor*1000 + patch*10, phone +0, watch +1
 # (wear/build.gradle.kts). Each form factor has its own internal track.
-# Tags must only go up: devices never update to a lower code. Play rejects
-# a code it has already seen, so re-pushing or re-running the same tag
-# fails; fix a bad release with the next patch tag.
+# Tags must only go up: devices never update to a lower code. A run that
+# failed before either upload can be re-run. Once an upload has reached
+# Play, its version code is used; fix it with the next patch tag.
+# Re-running only a failed release job does not repeat the uploads.
 #
 # Keyless auth accepts only main or v* tags of this repo.
 # Repo variables PLAY_WIF_PROVIDER and PLAY_SERVICE_ACCOUNT configure it.
@@ -60,6 +61,10 @@ jobs:
             exit 1
           fi
           code=$(( major*100000 + minor*1000 + patch*10 ))
+          if (( code < 1000 )); then
+            echo "::error::The first supported tag is v0.1.0; Play already holds lower codes."
+            exit 1
+          fi
           if (( code > 2099999990 )); then
             echo "::error::Phone version code must not exceed 2099999990."
             exit 1
@@ -163,9 +168,13 @@ jobs:
           NAME: ${{ needs.publish.outputs.name }}
           PRERELEASE: ${{ needs.publish.outputs.prerelease }}
         run: |
-          args=()
-          if [[ "$PRERELEASE" == true ]]; then
-            args+=(--prerelease)
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY"; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease=$PRERELEASE
+          else
+            args=()
+            if [[ "$PRERELEASE" == true ]]; then
+              args+=(--prerelease)
+            fi
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --generate-notes --title "$NAME" "${args[@]}"
           fi
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
-            --generate-notes --title "$NAME" "${args[@]}"

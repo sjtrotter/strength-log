@@ -217,7 +217,8 @@ commit must be on `main`; merges alone never publish. Tags must have the
 form `vMAJOR.MINOR.PATCH`, with no leading zeros. Stay on 0.x until the
 first production release, which is 1.0.0. A minor version is a feature
 release; a patch is fixes only. Tags must only go up. Minor and patch must
-each be at most 99.
+each be at most 99. The lowest accepted tag is `v0.1.0`; Play already holds
+codes up to 13 from earlier builds.
 
 The version name is the tag without `v`. The phone version code is
 `major*100000 + minor*1000 + patch*10`; the watch uses that code + 1:
@@ -228,18 +229,23 @@ The version name is the tag without `v`. The phone version code is
 | `v1.0.0` | 100000 | 100001 |
 
 The phone code must be at most 2099999990 (Play's maximum is 2100000000).
-Play rejects a code it has already seen, so re-pushing or re-running the
-same tag fails, and devices never update to a lower code. Fix a failed or
-half-done release with the next patch tag.
+Devices never update to a lower code. A run that failed before either
+upload can be re-run. Once an upload has reached Play, its version code is
+used, so fix it with the next patch tag. Re-running only a failed release
+job does not repeat the uploads.
 
 After both uploads succeed, the release job creates the GitHub Release
-with generated notes. Versions with major 0 are marked as prereleases.
+with generated notes. A Release created by hand in the web UI keeps its
+notes; the release job only updates its prerelease status. Versions with
+major 0 are marked as prereleases.
 Promote to production by hand in the Play Console; the service account
 cannot release to production.
 
-Protect tags with a GitHub tag ruleset on `v*` that restricts creation,
-update and deletion, with repository admins as bypass. Anyone who can
-push a `v*` tag can publish to testers.
+Protect tags with a GitHub tag ruleset targeting **All tags**, restricting
+creation, update and deletion, with repository admins as bypass. A `v*`
+pattern does not match `/`, so it would miss a tag like `v1/x`, which the
+Google login still accepts. Anyone who can push a version tag can publish
+to testers.
 
 GitHub secrets it needs (Settings → Secrets and variables → Actions) — the
 keystore travels as base64, decoded into the runner's temp dir and scrubbed

@@ -47,5 +47,5 @@ inspection, **Release apps to testing tracks** for the internal-testing pipeline
 and **Manage store presence** for listing uploads. Never grant Admin or production
 release permissions. If the Console labels differ, the store-listing permission
 may appear as "Edit store listing, pricing & distribution".
-Run the "Play store listing" workflow in `inspect` mode first; a 403 means a
-required permission is missing.
+Run the "Play store listing" workflow in `inspect` mode first. A 403 usually means a
+missing permission; the error reason also names a disabled API or an IAM failure.

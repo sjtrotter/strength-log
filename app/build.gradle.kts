@@ -17,10 +17,9 @@ android {
         applicationId = "cloud.trotter.log.strength"
         minSdk = 26
         targetSdk = 37
-        // CI supplies these for Play uploads (publish-internal.yml); absent,
-        // local builds stay at the dev defaults. Phone takes the even code,
-        // :wear the odd (base + 1) — every artifact in a release needs a
-        // distinct, monotonic versionCode.
+        // CI supplies these from the release tag (publish-internal.yml);
+        // absent, local builds keep the dev defaults. Phone takes the code,
+        // :wear code + 1. Every upload needs a distinct, increasing code.
         versionCode = providers.gradleProperty("STRENGTHLOG_VERSION_CODE").orNull?.toInt() ?: 1
         versionName = providers.gradleProperty("STRENGTHLOG_VERSION_NAME").orNull ?: "0.1"
     }

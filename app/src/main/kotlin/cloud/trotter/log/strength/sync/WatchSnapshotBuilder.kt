@@ -200,8 +200,8 @@ object WatchSnapshotBuilder {
             repAim = repWindow?.repAim,
             prescribed = pe.prescription != null,
             // Enum name lowercased; the watch parses it back to pick a per-type control.
-            // Unknown/missing entry falls back to "weighted" — only an older watch's
-            // behaviour.
+            // Unknown/missing entry falls back to "weighted", which older
+            // snapshots also assume.
             tracking = tracking.name.lowercase(),
             // Same encoding, for the superset partner (meaningless without one).
             ssTracking = (partnerEntry?.tracking ?: TrackingType.WEIGHTED).name.lowercase(),

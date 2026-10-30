@@ -167,7 +167,7 @@ object DialGeometry {
      * Where a label band lives: the free annulus between the exercise ring's
      * inner edge and the disc's rim. On a round face that space is an arc, so the
      * band is an arc — there is no width to bound and no chord to clear, and the
-     * row can no longer reach the bezel at any length (curved-bands brief §1).
+     * row cannot reach the bezel at any length (curved-bands brief §1).
      */
     fun bandArc(diameterPx: Float): DialBand {
         val ring = exerciseRing(diameterPx)

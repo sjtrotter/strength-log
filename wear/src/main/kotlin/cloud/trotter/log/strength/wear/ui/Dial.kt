@@ -897,8 +897,8 @@ private fun bandToneColor(tone: DialTone, accentIndex: Int): Color = when (tone)
 
 /**
  * [DialTone.ON_DISC] resolves against the disc's own fill — one description, six
- * fills. Since the fills stopped following the day (v3 §2) this resolves without
- * the accent: what reads on a control is decided by the control.
+ * fills. Because the fills are independent of the day (v3 §2), this resolves
+ * without the accent: what reads on a control is decided by the control.
  */
 private fun discToneColor(tone: DialTone, style: DiscStyle, accentIndex: Int): Color = when {
     tone != DialTone.ON_DISC -> bandToneColor(tone, accentIndex)

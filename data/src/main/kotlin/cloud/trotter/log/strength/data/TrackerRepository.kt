@@ -1041,9 +1041,9 @@ open class TrackerRepository(
             (sessionPlanId == planId || (planId == PlanEntity.LEGACY_ID && sessionPlanId == null))
 
     /**
-     * Commits one completed cardio mutation immediately. The transaction is
-     * explicit even though C1 writes one row: this is the single write boundary
-     * future paired effects must join, never a UI-held staging value. Labels
+     * Commits the cardio session, its set results and any rotation advance in
+     * one transaction. Paired effects must share this boundary; no mutation is
+     * staged in UI state. Labels
      * are non-blank and capped at 80 characters; modes are stored by enum name
      * and decoded with [decodedCardioMode] on read. An explicit plan id is
      * preserved and its current name copied when the plan exists; only a

@@ -66,7 +66,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
          *  a second time. */
         val LEGACY_TIMED_FIXUP_DONE = booleanPreferencesKey("legacy_timed_fixup_done")
 
-        /** Rest-timer prefs (W2a). The master gate defaults ON when absent;
+        /** Rest-timer prefs. The master gate defaults ON when absent;
          *  each per-category override is absent-means-default (RestPolicy
          *  owns the numbers, so we never pre-write a default and can't drift
          *  from it). Carried by backup schema v3 and later, absences and all

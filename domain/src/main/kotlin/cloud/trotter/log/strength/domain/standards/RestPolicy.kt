@@ -16,7 +16,7 @@ enum class RestCategory { RAMP, TOP, BACKOFF, WORK, LIGHT }
  * The single place effective rest-after-a-set is computed (SSOT). "Stepped"
  * rest — rest that varies with what the set *is* — is already encoded by
  * [SetKind] plus the tracking type, so rest is a pure `:domain` policy, not
- * per-row stored data. Phone, wire, and (later) watch all read numbers that
+ * per-row stored data. Phone, wire, and watch all read numbers that
  * came from [effectiveRestSeconds]; nothing else computes rest.
  *
  * Pure Kotlin — no Android imports, like everything else in `standards/`.

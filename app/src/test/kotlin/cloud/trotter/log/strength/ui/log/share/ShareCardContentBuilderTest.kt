@@ -12,9 +12,9 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 /**
- * The share card's content model (#103, docs/briefs/session-share.md §2): a
- * pure function of a session/its sets/the display unit, so every shape the
- * card can draw — weighted/timed/reps lifts, 6+ lift overflow, volume/duration
+ * The share card's content model (docs/briefs/session-share.md §2): a pure
+ * function of a session/its sets/the display unit, so every shape the card can
+ * draw — weighted/timed/reps lifts, 6+ lift overflow, volume/duration
  * formatting, and above all §2's "never bodyweight" allowlist — is pinned here
  * on the JVM, with no [ShareCardPainter] Canvas involved.
  */
@@ -164,7 +164,7 @@ class ShareCardContentBuilderTest {
         )
         // 38-minute session (session()'s default startedAt/completedAt).
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        // #144: the share card joins every other surface in counting superset rounds, not rows.
+        // The share card counts superset rounds, not rows.
         assertEquals("1 SET · 38 MIN · 2,175 LB", content.footerLine)
     }
 

@@ -265,7 +265,7 @@ class DayViewModelCardioExecutionTest {
         tick(10_000)
         vm.openCardioDistance()
         runCurrent()
-        vm.saveCardioDistance(vm.distanceAction()) // Blank distance is allowed by #280.
+        vm.saveCardioDistance(vm.distanceAction()) // Blank distance is allowed.
         runCurrent()
         val session = repo.cardioSessionsFlow.first().single()
         assertEquals(plan, session.planId)

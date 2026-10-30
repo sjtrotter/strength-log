@@ -9,8 +9,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * What the session receipt (#126) contains. [DayViewModelReceiptTest] pins when
- * it exists; this pins what it says — and, mostly, what it refuses to say: an
+ * What the session receipt contains. [DayViewModelReceiptTest] pins when it
+ * exists; this pins what it says — and, mostly, what it refuses to say: an
  * unfinished set is not a set the lifter did, and a day with nothing loaded in
  * it has no strongest set to name.
  */

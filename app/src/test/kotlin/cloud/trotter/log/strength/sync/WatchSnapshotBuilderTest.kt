@@ -267,8 +267,7 @@ class WatchSnapshotBuilderTest {
         assertEquals(true, ex.sets.single().done)
     }
 
-    // A catalog with synthetic REPS/TIMED entries. P2 reclassifies real ones;
-    // until then this proves the watch projection is crash-safe ahead of that.
+    // Synthetic REPS/TIMED entries, independent of the live catalog.
     private val trackingCatalog = ExerciseCatalog(
         listOf(
             ExerciseEntry("custom_pullup", "Pull-up", MovementPattern.V_PULL, listOf(Equipment.BODYWEIGHT), perHand = false, goal = GoalSource.Reps(6), subRank = ExerciseCatalog.CUSTOM_SUBRANK),

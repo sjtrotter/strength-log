@@ -35,8 +35,8 @@ import org.robolectric.annotation.Config
 
 /**
  * Screen-level coverage for migrated chrome. These fixtures verify both halves
- * of #123's contract at the real call sites: every action owns at least 48dp,
- * and reserving that space never pushes its target onto a sibling.
+ * of the contract at the real call sites: every action owns at least 48dp, and
+ * reserving that space never pushes its target onto a sibling.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")

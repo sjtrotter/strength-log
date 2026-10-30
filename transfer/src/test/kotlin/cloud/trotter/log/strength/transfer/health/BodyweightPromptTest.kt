@@ -5,8 +5,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 /**
- * The GOAL-vs-ACTUAL bodyweight-prompt decision (#17, A3) — pure, plain JVM.
- * It only decides whether to offer the prompt and what value applying would
+ * The GOAL-vs-ACTUAL bodyweight-prompt decision (A3) — pure, plain JVM. It
+ * only decides whether to offer the prompt and what value applying would
  * write; it never applies anything itself (that is an explicit config write).
  */
 class BodyweightPromptTest {

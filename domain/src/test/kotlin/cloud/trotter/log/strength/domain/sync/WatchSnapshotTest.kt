@@ -225,9 +225,9 @@ class WatchSnapshotTest {
 
     @Test
     fun `an old snapshot without tracking or seconds keys decodes to the weighted defaults`() {
-        // A pre-P5 wire: the exercise carries no `tracking`, its set no `seconds`.
-        // Both must decode as the only old behavior (weighted / 0) so a P4 phone and
-        // a P5 watch interoperate without a schemaVersion gate.
+        // An older wire: the exercise carries no `tracking`, its set no `seconds`.
+        // Both must decode as the weighted / 0 defaults so an older phone and a
+        // newer watch interoperate without a schemaVersion gate.
         val lenient = Json { ignoreUnknownKeys = true }
         val oldWire = """
             {"schemaVersion":1,"revision":2,"suggestedDayId":"A","unit":"lb",
@@ -262,10 +262,10 @@ class WatchSnapshotTest {
 
     @Test
     fun `an old snapshot without the ssTracking key decodes to the weighted default`() {
-        // A pre-#74-fix wire: the exercise carries no `ssTracking`. Must decode as
-        // "weighted" so a stale publisher and a fixed watch interoperate — the only
-        // old behavior was rendering the partner with the main's tracking, and a
-        // WEIGHTED main is the common case this default silently preserves.
+        // An older wire: the exercise carries no `ssTracking`. Must decode as
+        // "weighted" so an older phone and a newer watch interoperate — rendering
+        // the partner with the main's tracking makes a WEIGHTED main the common
+        // case this default silently preserves.
         val lenient = Json { ignoreUnknownKeys = true }
         val oldWire = """
             {"schemaVersion":1,"revision":2,"suggestedDayId":"A","unit":"lb",

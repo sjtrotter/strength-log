@@ -517,8 +517,8 @@ class BackupCodecTest {
 
     @Test
     fun `a session with no recorded bodyweight survives a full round trip`() {
-        // The #171 contract: CSV-imported history has no bodyweight, and a backup
-        // carrying that absence must encode, decode and validate cleanly.
+        // CSV-imported history has no bodyweight, and a backup carrying that
+        // absence must encode, decode and validate cleanly.
         val doc = document(
             sessions = listOf(
                 SessionBackup(

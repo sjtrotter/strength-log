@@ -41,10 +41,10 @@ import org.robolectric.annotation.Config
 
 /**
  * The two halves of "the day screen does not recompose the whole list to move
- * one tick" (#156). Both are invisible to every other test in this module — the
- * screen renders identically either way, it just costs four cards' worth of
- * work per tap instead of one — so they get a test that fails loudly rather
- * than a comment nobody re-reads.
+ * one tick". Both are invisible to every other test in this module — the screen
+ * renders identically either way, it just costs four cards' worth of work per
+ * tap instead of one — so they get a test that fails loudly rather than a
+ * comment nobody re-reads.
  *
  * 1. The render models must be *declared* stable, or the Compose compiler falls
  *    back to comparing them by identity and a rebuilt-but-identical card never
@@ -121,14 +121,13 @@ class ScrollPathStabilityTest {
 
     /**
      * [DayUiState.doneSets]/[DayUiState.totalSets] are counted once per instance
-     * instead of once per read (#156), which is only safe while they stay
-     * *class-body* properties: those re-run their initializer on every
-     * construction, `copy()` included. Promote either one to a constructor
-     * parameter — an easy-looking tidy-up, since that is where every other
-     * property lives — and `copy(exercises = …)` would carry the old counts
-     * forward, leaving the header and the progress rule describing a day the
-     * rows below them no longer show. `DestructiveActionsTest` already builds
-     * exactly that `copy`.
+     * instead of once per read, which is only safe while they stay *class-body*
+     * properties: those re-run their initializer on every construction, `copy()`
+     * included. Promote either one to a constructor parameter — an easy-looking
+     * tidy-up, since that is where every other property lives — and
+     * `copy(exercises = …)` would carry stale counts forward, leaving the header
+     * and the progress rule describing a day the rows below them no longer show.
+     * `DestructiveActionsTest` already builds exactly that `copy`.
      */
     @Test
     fun copyingInNewExercisesRecountsTheSets() {

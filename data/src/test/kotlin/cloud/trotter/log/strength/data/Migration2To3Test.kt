@@ -30,7 +30,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The v2→v3 per-set timing migration (#85) must be purely additive. This opens a
+ * The v2→v3 per-set timing migration must be purely additive. This opens a
  * hand-built v2 DB carrying a real archived set and a real live log, runs the
  * migration, and asserts the two new columns read NULL ("not observed" — never 0,
  * which any later active-time math would read as "started at the epoch") while every
@@ -112,7 +112,7 @@ class Migration2To3Test {
     }
 
     /** Builds the DB at schema v2 (no Room), with one archived plank set and one
-     *  live log written in the pre-#85 `setsJson` shape. */
+     *  live log whose `setsJson` has no timing fields. */
     private fun createV2DatabaseWithRows() {
         val callback = object : SupportSQLiteOpenHelper.Callback(2) {
             override fun onCreate(db: SupportSQLiteDatabase) {

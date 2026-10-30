@@ -41,11 +41,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [CustomExerciseViewModel] wiring (brief #13): the form's one validation rule
- * (blank/whitespace name is never savable), the [Routes.CUSTOM_EXERCISE_PATTERN_ARG]
- * pre-fill from the #11 picker context, and that [CustomExerciseViewModel.save]
- * goes through the existing `:data` API with no bypass — a saved exercise must
- * turn up in [TrackerRepository.catalogFlow] with exactly what the form held.
+ * [CustomExerciseViewModel] wiring: the form's one validation rule (blank/whitespace
+ * name is never savable), the [Routes.CUSTOM_EXERCISE_PATTERN_ARG] pre-fill from the
+ * picker context, and that [CustomExerciseViewModel.save] goes through the existing
+ * `:data` API with no bypass — a saved exercise must turn up in
+ * [TrackerRepository.catalogFlow] with exactly what the form held.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -155,7 +155,7 @@ class CustomExerciseViewModelTest {
         assertEquals(listOf(Equipment.CABLE), saved.equipment)
     }
 
-    // --- tracking-type mapping (P4: form gains a WEIGHTED/REPS/TIMED choice) ----
+    // --- tracking-type mapping (WEIGHTED/REPS/TIMED choice) ---------------------
 
     @Test
     fun defaultTracking_isWeighted_andSavesAFlatGoalAsBefore() = runVmTest {
@@ -229,7 +229,7 @@ class CustomExerciseViewModelTest {
         assertEquals(GoalSource.Time(45, 0.0), saved.goal)
     }
 
-    // --- nav arg: pattern pre-fill from the #11 picker context -------------------
+    // --- nav arg: pattern pre-fill from the picker context -----------------------
 
     @Test
     fun preselectedPatternArg_prefillsTheDraft() = runVmTest {

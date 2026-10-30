@@ -7,7 +7,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** Pure external-session formatting (#17 read path) — plain JVM, no provider. */
+/** Pure external-session formatting — plain JVM, no provider. */
 class ExternalSessionFormatterTest {
 
     private val zone = ZoneId.of("America/New_York")

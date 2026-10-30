@@ -22,12 +22,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The #171 regression: a CSV import must not cost the user their backups.
+ * A CSV import must preserve the user's ability to restore backups.
  *
  * CSV carries no bodyweight column — not even this app's own export — so an
- * imported session records none. That absence used to be written as a 0, which
- * the backup validator rejected outright: after any CSV import, every full
- * backup was unrestorable, and the user only found out on a new device.
+ * imported session records none. That absence must round-trip as null: zero is
+ * not a valid recorded bodyweight for the backup validator.
  *
  * This drives the whole path end to end against the real data layer: log a
  * session, export the CSV, import it back, take a full backup, wipe, restore,
@@ -85,9 +84,9 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
     @Test
     fun csv_imported_history_survives_a_full_backup_and_restore() = runTest {
         seedOneLoggedSession()
-        // A byte-identical re-import of our own export now deduplicates (#216),
-        // which is correct — so make the file foreign: a different completion
-        // time is a different workout, and the import must land it.
+        // A byte-identical re-import of our own export deduplicates, so make
+        // the file foreign: a different completion time is a different workout,
+        // and the import must land it.
         importCsv(exportCsv().replace(Regex("""\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"""), "2020-01-02 03:04:05"))
 
         val sessions = repository.sessionsFlow.first()
@@ -103,7 +102,8 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
         service.import(emptyBackupJson())
         assertTrue(repository.sessionsFlow.first().isEmpty())
 
-        // Before #171 this threw BackupError.Inconsistent and restored nothing.
+        // The backup must restore CSV-imported history with no recorded
+        // bodyweight.
         service.import(backup)
         assertEquals(before, captureState())
     }

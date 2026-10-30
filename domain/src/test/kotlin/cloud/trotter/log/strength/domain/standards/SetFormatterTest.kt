@@ -55,9 +55,9 @@ class SetFormatterTest {
     fun `summaryOfValues renders a legacy reps-shaped TIMED history row as reps, never 0s`() {
         // A plank logged before its reclassification to TIMED: the only field
         // the UI offered at the time was reps, so the user's 45-second hold sits
-        // in `reps` with `seconds` still 0 (the P3 fixup only ever touched live
-        // exercise_log rows, never session_set history). Rendering by value
-        // must read this as its logged rep count, not manufacture "0s".
+        // in `reps` with `seconds` still 0 (the fixup only touches live
+        // exercise_log rows, never session_set history). Rendering by value must
+        // read this as its logged rep count, not manufacture "0s".
         assertEquals("×45", SetFormatter.summaryOfValues(0.0, 45, 0, WeightUnit.LB))
     }
 }

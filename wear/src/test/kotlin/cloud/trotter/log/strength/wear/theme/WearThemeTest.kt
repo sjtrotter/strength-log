@@ -6,11 +6,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * The watch's day colors are the phone's day colors. Not "the same hexes brightened
- * however each surface felt like" — that was #150, where the watch lifted HSL
- * lightness by a flat 0.15 and left day D at 3.68:1 on the background while the
- * phone's contrast-pinned lift cleared AA. The rule now lives in `:domain` and
- * these are the assertions that stop the watch re-deriving one of its own.
+ * The watch's day colors are the phone's day colors. Both read the shared,
+ * contrast-pinned brightening rule in `:domain`; the watch must not derive one of
+ * its own.
  */
 class WearThemeTest {
 

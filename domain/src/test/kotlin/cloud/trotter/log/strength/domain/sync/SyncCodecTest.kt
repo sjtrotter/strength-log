@@ -6,8 +6,9 @@ import kotlin.test.assertNull
 
 /**
  * The wire codec is the SSOT both transports go through, so its round-trips and —
- * crucially — its forward-migration leniency are pinned here (m5-wear.md #20
- * "Serialization" requirement: decode both DTOs with `ignoreUnknownKeys = true`).
+ * crucially — its forward-migration leniency are pinned here
+ * (docs/briefs/m5-wear.md, "#20 Wearable Data Layer sync", "Serialization"
+ * requirement: decode both DTOs with `ignoreUnknownKeys = true`).
  */
 class SyncCodecTest {
 
@@ -152,7 +153,7 @@ class SyncCodecTest {
         assertEquals(5L, decoded.editedAtMillis)
     }
 
-    // --- per-set timing (#85) ------------------------------------------------
+    // --- per-set timing ------------------------------------------------------
 
     @Test
     fun `a delta carrying the set timing round-trips through the wire bytes`() {

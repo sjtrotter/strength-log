@@ -71,12 +71,12 @@ class LogScreenBuilderTest {
 
     @Test
     fun bodyweightDisplay_is_absent_for_a_session_that_recorded_none() {
-        // Imported history (#171): the row drops the BW line rather than
+        // Imported history: the row drops the BW line rather than
         // printing a "0" the session never weighed.
         assertNull(LogScreenBuilder.bodyweightDisplay(null, WeightUnit.LB))
     }
 
-    // --- backfill offer copy (#159) --------------------------------------------
+    // --- backfill offer copy ---------------------------------------------------
 
     @Test
     fun backfillLabel_counts_the_workouts_and_keeps_its_plurals_straight() {
@@ -145,9 +145,9 @@ class LogScreenBuilderTest {
 
     @Test
     fun groupByExercise_renders_a_legacy_reps_shaped_TIMED_row_as_reps_never_0s() {
-        // Logged before "plank" was reclassified to TIMED: history predates the
-        // P3 fixup (which only ever touched live exercise_log rows), so this
-        // row is still weight 0 / reps 45 / seconds 0 — must read as reps.
+        // Logged before "plank" was reclassified to TIMED: history is excluded
+        // from the live exercise_log fixup, so this row is still weight 0 /
+        // reps 45 / seconds 0 — must read as reps.
         val sets = listOf(set("plank", "Plank / Side Plank", SetKind.WORK, 0.0, 45))
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
         assertEquals("×45", groups.single().sets.single().weightRepsDisplay)

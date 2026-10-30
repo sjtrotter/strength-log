@@ -17,12 +17,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Pins the contract the phase-3 M3 rebuild of the dialog/authored-state
- * actions must keep (PR #182 review): one button node whose accessible name
- * is the visible label alone, a >=48dp touch target, and a single click
- * dispatch. Width beyond the target minimum is deliberately NOT asserted —
- * Robolectric has no font metrics, and M3's 58dp button minimum is an
- * audit-accepted delta.
+ * Dialog/authored-state actions must keep one button node whose accessible
+ * name is the visible label alone, a >=48dp touch target, and a single
+ * click dispatch. Width beyond the target minimum is not asserted —
+ * Robolectric has no font metrics, and M3's button minimum is 58dp.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])

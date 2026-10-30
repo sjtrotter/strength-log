@@ -23,7 +23,7 @@ class DialGeometryTest {
     }
 
     @Test
-    fun `the exercise ring clears the cycle ring, which now carries type`() {
+    fun `the exercise ring clears the cycle ring, which carries type`() {
         val exercise = DialGeometry.exerciseRing(384f)
         assertEquals(145f, exercise.radiusPx, tolerance) // 192 - 40 - 14/2
         assertEquals(14f, exercise.strokePx, tolerance)

@@ -31,12 +31,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [TrackerRepository.addCustomExercise] / [TrackerRepository.catalogFlow] (brief
- * #13, PLAN.md A4): id-collision impossibility via the `custom_` prefix and
+ * [TrackerRepository.addCustomExercise] / [TrackerRepository.catalogFlow]
+ * (PLAN.md A4): id-collision impossibility via the `custom_` prefix and
  * catalog-merge visibility of a saved custom exercise — the two `:data`-level
  * guarantees the custom-exercise creation form depends on. Name-blank rejection
- * is a form-layer concern (the ViewModel never calls this API with a blank
- * name) and is covered in `:app`'s CustomExerciseViewModelTest.
+ * is a form-layer concern (the ViewModel never calls this API with a blank name)
+ * and is covered in `:app`'s CustomExerciseViewModelTest.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -125,7 +125,7 @@ class TrackerRepositoryCustomExerciseTest {
         assertTrue(id in catalog.byPattern(MovementPattern.SQUAT_BILATERAL).map { it.id })
     }
 
-    // --- tracking-type mapping (P4: custom-exercise form gains a type choice) --
+    // --- tracking-type mapping (custom-exercise type choice) -------------------
 
     @Test
     fun `a REPS custom exercise stores its rep target and ignores the weight field`() = runTest {

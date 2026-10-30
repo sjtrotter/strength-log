@@ -138,7 +138,7 @@ class DayEditLogicTest {
         assertTrue(DayEditRules.canRemove(6))
     }
 
-    // --- the sheet's back stack (#122) ------------------------------------------
+    // --- the sheet's back stack -------------------------------------------------
 
     private fun backTarget(
         swapping: Boolean = false,

@@ -57,13 +57,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * #172: a restore writes Room and then DataStore with no transaction across the
- * two, so what's pinned here is the *recovery*, not an atomicity the code can't
+ * A restore writes Room and then DataStore with no transaction across the two,
+ * so what's pinned here is the *recovery*, not an atomicity the code can't
  * have. Both stores are instrumented, so a test can name the exact write that
  * dies, and the assertions are about where the device ends up: never restored
- * training data wearing the old device's config, never the backup's settings
- * over data that was never replaced, and never a wizard flag left stale enough
- * to reopen setup over a restored program.
+ * training data wearing the previous device's config, never the backup's
+ * settings over data that was never replaced, and never a wizard flag left
+ * stale enough to reopen setup over a restored program.
  *
  * The truth table the recovery implements, staged payload × committed marker:
  *
@@ -232,9 +232,9 @@ class RestoreJournalTest {
 
     @Test
     fun deathAfterTheTransaction_replaysFromTheStagedPayloadAndMatchingMarker() = runTest {
-        // Process death in the gap the old design could not recover from: the
-        // transaction committed, nothing after it ran. The marker was written
-        // inside that transaction, so it is there — which is the whole point.
+        // Process death after the transaction committed, before anything else
+        // ran. The marker is written inside that transaction, so it is there
+        // for recovery.
         val nonce = "nonce-from-the-committed-transaction"
         stagePreviousBuild(snapshot(), nonce)
         commitPreviousBuildRoomHalf(snapshot(), nonce)
@@ -514,9 +514,9 @@ class RestoreJournalTest {
     // and runTest's virtual clock would fire the timeout the instant it idled.
     @Test
     fun cancellingMidRestore_cannotSplitTheTwoStores() = runBlocking {
-        // The back press from the issue: the screen goes away while the settings
-        // write is in flight. The write is uncancellable precisely so this can't
-        // leave the restored program wearing the old config.
+        // The screen goes away while the settings write is in flight. The write
+        // is uncancellable precisely so this can't leave the restored program
+        // wearing the previous config.
         val open = CompletableDeferred<Unit>()
         settingsStore.gateOnUpdate = 1
         settingsStore.gate = open

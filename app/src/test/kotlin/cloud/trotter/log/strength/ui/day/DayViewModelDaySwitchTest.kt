@@ -44,17 +44,16 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The gap a day switch used to leave open (#127). `flatMapLatest` cancels the
- * day the lifter left, but the cancellation publishes nothing — so until the
- * new day's history read came back from Room, `uiState` kept handing out the
- * *old* day's rows, every one of them still tickable. A tick landing there
- * writes to the day the lifter walked away from.
+ * `flatMapLatest` cancels the day the lifter left, but the cancellation
+ * publishes nothing. Until the new day's history read returns from Room,
+ * `uiState` must not expose the previous day's tickable rows: a tick landing
+ * there writes to the day the lifter walked away from.
  *
  * Pinned by holding the history read open: with the read gated, the screen has
- * to be in its loading state with no rows at all, and the old day's must be
- * gone. Keep-screen-on is pinned in the same way and for the opposite reason —
- * it rides outside the day pipeline now, so flipping it while a read is in
- * flight must leave the day exactly where it was.
+ * to be in its loading state with no rows at all, and the previous day's must
+ * be gone. Keep-screen-on is pinned in the same way and for the opposite
+ * reason — it rides outside the day pipeline, so flipping it while a read is
+ * in flight must leave the day exactly where it was.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

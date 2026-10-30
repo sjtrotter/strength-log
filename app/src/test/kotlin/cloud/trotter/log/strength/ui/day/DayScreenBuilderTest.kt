@@ -233,8 +233,8 @@ class DayScreenBuilderTest {
 
     @Test
     fun seedPlan_aligns_a_late_added_partner_to_the_live_main_track_not_the_seed() {
-        // A partner attached to a slot the lifter has been training (#93): the main
-        // track has grown to 4 rows with EXTRA sets, while a fresh seed would be 2.
+        // A partner attached to a slot the lifter has been training: the main track
+        // has grown to 4 rows with EXTRA sets, while a fresh seed would be 2.
         val slot = ProgramSlot(
             programExerciseId = 9,
             position = 0,
@@ -253,9 +253,8 @@ class DayScreenBuilderTest {
         assertTrue(partner.sets.all { it.weightLb == 50.0 })
     }
 
-    // A catalog carrying synthetic REPS/TIMED entries (P2 will reclassify real
-    // ones; today the whole live catalog is WEIGHTED, so these prove crash-safety
-    // ahead of that). `find` is a plain id lookup, so custom entries resolve.
+    // Synthetic REPS/TIMED entries, independent of the live catalog. `find` is a
+    // plain id lookup, so custom entries resolve.
     private val trackingCatalog = ExerciseCatalog(
         listOf(
             ExerciseEntry("custom_pullup", "Pull-up", MovementPattern.V_PULL, listOf(Equipment.BODYWEIGHT), perHand = false, goal = GoalSource.Reps(6), subRank = ExerciseCatalog.CUSTOM_SUBRANK),
@@ -273,8 +272,8 @@ class DayScreenBuilderTest {
 
     @Test
     fun seedPlan_routes_a_TIMED_partner_through_targetFor_without_throwing() {
-        // A weighted main with a TIMED superset partner — the partner path used to
-        // call goalFor and would throw the moment the partner is reclassified.
+        // A weighted main with a TIMED superset partner — the partner path must
+        // use targetFor because goalFor rejects TIMED entries.
         val slot = ProgramSlot(
             4, 0,
             ProgramExercise("ez_curl", targetSets = 3, superset = SupersetPartner("custom_plank")),
@@ -286,8 +285,8 @@ class DayScreenBuilderTest {
 
     @Test
     fun seedPlan_weighted_seed_is_unchanged_by_the_targetFor_routing() {
-        // Behavior-preserving: the routed path must produce the exact same rows as
-        // the old goalFor->seed path for a WEIGHTED slot.
+        // The routed path must produce the exact same rows as the goalFor->seed
+        // path for a WEIGHTED slot.
         val pe = ProgramExercise("bb_back_squat", isMain = true, targetSets = 6)
         val slot = ProgramSlot(1, 0, pe)
         val routed = DayScreenBuilder.seedPlan(listOf(slot), emptyMap(), cfg, catalog).single().sets
@@ -361,7 +360,7 @@ class DayScreenBuilderTest {
         assertEquals(null, newPartner)
     }
 
-    // --- kind labels from raw kinds (Log screen reuse, #14) ------------------
+    // --- kind labels from raw kinds (Log screen reuse) -----------------------
 
     @Test
     fun kindLabelsForKinds_matches_kindLabels_over_the_same_sequence() {
@@ -371,7 +370,7 @@ class DayScreenBuilderTest {
 
     @Test
     fun kindLabelsForKinds_restarts_the_ramp_counter_per_call() {
-        // Each history exercise group (#14) is labeled independently — R1 always
+        // Each history exercise group is labeled independently — R1 always
         // starts over, it never keeps counting from a previous exercise's group.
         assertEquals(
             listOf("R1", "TOP"),
@@ -379,7 +378,7 @@ class DayScreenBuilderTest {
         )
     }
 
-    // --- "last time" chip (PLAN.md A1 bonus, #14) ----------------------------
+    // --- "last time" chip (PLAN.md A1 bonus) ---------------------------------
 
     @Test
     fun lastTimeDisplay_formats_weight_and_reps_in_the_display_unit() {
@@ -402,12 +401,12 @@ class DayScreenBuilderTest {
     @Test
     fun lastTimeDisplay_renders_a_legacy_reps_shaped_TIMED_row_as_reps_never_0s() {
         // Logged before the exercise's reclassification to TIMED: seconds is
-        // still 0, the hold sits in reps (P3 Decision 5's assumption) — the
-        // history chip must read the value, not "0s".
+        // still 0, the hold sits in reps — the history chip must read the
+        // value, not "0s".
         assertEquals(" × 45", DayScreenBuilder.lastTimeDisplay(LastPerformed(0.0, 45), WeightUnit.LB))
     }
 
-    // --- "Best" profile chip (performance-profile.md Phase 1) ----------------
+    // --- "Best" profile chip (performance-profile.md) ------------------------
 
     @Test
     fun personalRecordDisplay_formats_weight_and_reps_in_the_display_unit() {

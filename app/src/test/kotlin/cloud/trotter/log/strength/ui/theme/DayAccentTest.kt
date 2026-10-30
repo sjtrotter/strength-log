@@ -27,9 +27,9 @@ class DayAccentTest {
 
     @Test
     fun `indices 0-6 map to the seven day accents in order`() {
-        // Extended from the spec's 4 to 7 (wear-companion §8.5 amendment); the
-        // hexes are SSOT in :domain DayAccentColors and the phone now reads all
-        // seven from there rather than a truncated local copy.
+        // The seven day accents follow the wear-companion §8.5 amendment. The
+        // hexes are SSOT in :domain DayAccentColors, and the phone reads all
+        // seven from there.
         assertEquals(Color(0xFFC1440E), dayAccent(0)) // A
         assertEquals(Color(0xFF2D5A3D), dayAccent(1)) // B
         assertEquals(Color(0xFFB8860B), dayAccent(2)) // C
@@ -41,8 +41,8 @@ class DayAccentTest {
 
     @Test
     fun `days E-G are distinct accents, not a cycle back to A-D`() {
-        // Regression guard for the old modulo-4 cycle: day index 4/5/6 must be
-        // their own colors (matching the watch), not A/B/C again.
+        // Day indices 4/5/6 must be their own colors (matching the watch), not
+        // A/B/C again.
         assertNotEquals(dayAccent(0), dayAccent(4))
         assertNotEquals(dayAccent(1), dayAccent(5))
         assertNotEquals(dayAccent(2), dayAccent(6))
@@ -81,8 +81,8 @@ class DayAccentTest {
         // of the seven sit near 2:1 on Background — unusable for a chart line or
         // the cascade scrim's numeral. The lift toward TextPrimary clears AA text
         // contrast (well past the 3:1 a graphic mark needs). Measured from the
-        // phone's own colors even though the rule is now in :domain — this floor
-        // is what the phone promises its own screens.
+        // phone's own colors even though the rule is in :domain — this floor is
+        // what the phone promises its own screens.
         for (dayIndex in 0..6) {
             val ratio = contrastRatio(accentBright(dayIndex), DarkBackground)
             assertTrue(
@@ -94,9 +94,8 @@ class DayAccentTest {
 
     @Test
     fun `the phone brightens with the shared rule, not one of its own`() {
-        // #150: the phone and the watch each derived their own bright variant, so
-        // the same day rendered two colors. Both read DayAccentColors now, and this
-        // is the guard against the phone quietly growing a second rule again.
+        // The phone and the watch both read DayAccentColors, so the same day
+        // renders the same bright color on both surfaces.
         for (dayIndex in 0..6) {
             assertEquals(Color(DayAccentColors.brightHex(dayIndex)), accentBright(dayIndex))
         }

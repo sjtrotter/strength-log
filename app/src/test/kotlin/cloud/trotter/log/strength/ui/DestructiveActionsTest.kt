@@ -43,12 +43,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowDialog
 
 /**
- * Issue #124's second half: the three destructive actions that used to fire on
- * the first tap now cost something. What's pinned here is the *gate*, not the
- * dialog's pixels — the rare ones (clear the day's checkmarks, reset the rest
- * timers) must not reach their action until a confirm is taken, and the
- * frequent one (Remove set in the editor) must reach its undo
- * without a confirmation.
+ * The three destructive actions have different gates. What's pinned here is
+ * the *gate*, not the dialog's pixels — the rare ones (clear the day's
+ * checkmarks, reset the rest timers) must not reach their action until a
+ * confirm is taken, and the frequent one (Remove set in the editor) must reach
+ * its undo without a confirmation.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
@@ -255,9 +254,9 @@ class DestructiveActionsTest {
     /**
      * One short card, so the footer is composed without scrolling the list, and
      * a REPS row rather than a weighted one — a weighted row wants two steppers
-     * plus a ✓ and a × on 411dp and pushes the × off the card (#136), which
-     * would make "the remove button answers to a tap" untestable here for a
-     * reason that has nothing to do with this issue.
+     * plus a ✓ and a × on 411dp and pushes the × off the card, which would make
+     * "the remove button answers to a tap" untestable here for a reason
+     * unrelated to the confirmation gate.
      */
     private fun dayState() = DayUiState(
         hasProgram = true,

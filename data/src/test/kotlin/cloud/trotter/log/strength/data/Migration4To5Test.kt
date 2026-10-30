@@ -29,15 +29,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The v4→v5 restore-marker migration (#172). Purely additive, so what needs
- * pinning is that it adds the table without disturbing a device's data, and that
- * the table it adds behaves as the single-row marker the restore path assumes:
- * one row at most, overwritten rather than accumulated, and readable back as the
- * nonce that was written.
+ * The v4→v5 restore-marker migration. Purely additive, so what needs pinning is
+ * that it adds the table without disturbing a device's data, and that the table
+ * it adds behaves as the single-row marker the restore path assumes: one row at
+ * most, overwritten rather than accumulated, and readable back as the nonce that
+ * was written.
  *
- * A device arriving here mid-nothing — the only possibility, since no build
- * before this one could leave a restore outstanding — must land with an empty
- * marker table, which is exactly "no restore is outstanding".
+ * A device arriving here has no restore marker table, so the migration must
+ * create it empty, which is exactly "no restore is outstanding".
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])

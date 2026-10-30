@@ -23,8 +23,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Issue #126 on screen: a workout that shows it has started, and one that says
- * what it was when it ends.
+ * A workout that shows it has started, and one that says what it was when it
+ * ends.
  *
  * The ordering test is the one worth having. Both post-DONE surfaces are raised
  * by the same call, so the only thing that decides what the lifter experiences

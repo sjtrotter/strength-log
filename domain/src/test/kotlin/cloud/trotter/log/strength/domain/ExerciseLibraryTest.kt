@@ -50,9 +50,8 @@ class ExerciseLibraryTest {
     }
 
     @Test
-    fun `leg extension no longer falls back, KNEE_EXTENSION now has siblings`() {
-        // fallbackPattern is retained on the entry but dormant now that KNEE_EXTENSION
-        // has its own substitution candidates.
+    fun `leg extension substitutes within KNEE_EXTENSION`() {
+        // fallbackPattern stays but is unused while KNEE_EXTENSION has candidates.
         val subs = ExerciseLibrary.substitutionsFor("leg_ext")
         assertEquals(listOf("sl_leg_ext", "sissy_squat", "reverse_nordic"), subs.map { it.id })
     }
@@ -100,7 +99,7 @@ class ExerciseLibraryTest {
         assertEquals(5.0, WeightStepper.increment(225.0, WeightUnit.LB), 1e-9)
     }
 
-    // --- Tracking-types P2 (catalog classification + variant pairs) ---------
+    // --- Tracking types (catalog classification + variant pairs) ------------
 
     @Test
     fun `catalog totals are 184 entries, 149 weighted, 28 reps, 7 timed`() {
@@ -290,7 +289,7 @@ class ExerciseLibraryTest {
         // radius over DialGeometry.BAND_MAX_SWEEP_DEG is ~251px, which at the BAND
         // step (26px + 4px tracking, condensed caps) holds about 16 characters
         // before it ellipsizes. The READY band spends six to eight of those on
-        // "· TOP", so 12 is the target and 16 is the wall (#153).
+        // "· TOP", so 12 is the target and 16 is the wall.
         val shortened = ExerciseLibrary.entries.filter { it.shortName != null }
         assertTrue(shortened.isNotEmpty())
         for (entry in shortened) {
@@ -334,10 +333,10 @@ class ExerciseLibraryTest {
         }
     }
 
-    /** (pattern, subRank) for every id that existed before the tracking-types P2
-     *  data pass, snapshotted so no future edit can silently shift a rank while
-     *  reclassifying a goal (contract: only the `goal` argument moves on the 31
-     *  reclassified/changed lines; nothing moves on the other 144). */
+    /** (pattern, subRank) for the existing ids, snapshotted so no future edit
+     *  can silently shift a rank while reclassifying a goal (contract: only the
+     *  `goal` argument moves on the 31 reclassified/changed lines; nothing moves
+     *  on the other 144). */
     private val preExistingRanks: Map<String, Pair<MovementPattern, Int>> = mapOf(
         "bb_back_squat" to (SQUAT_BILATERAL to 1),
         "hack_squat" to (SQUAT_BILATERAL to 2),

@@ -50,7 +50,7 @@ class DayAccentColorsTest {
     fun `the seven bright accents, in A-G order`() {
         // The one brightening rule's output, pinned so a change to the lift is a
         // deliberate edit to seven literals rather than a silent recolor of both
-        // surfaces (#150).
+        // surfaces.
         assertEquals(0xFFD2815DL, DayAccentColors.brightHex(0)) // A
         assertEquals(0xFF728F7CL, DayAccentColors.brightHex(1)) // B
         assertEquals(0xFFCCAC5BL, DayAccentColors.brightHex(2)) // C
@@ -62,8 +62,8 @@ class DayAccentColorsTest {
 
     @Test
     fun `every bright accent clears WCAG AA on the near-black background`() {
-        // This floor is the whole reason the rule exists, and the reason it is one
-        // rule: the watch's own lift left day D at 3.68:1 before #150.
+        // The shared rule must clear this floor on both surfaces; an independent
+        // HSL lightness lift of 0.15 leaves day D at 3.68:1.
         val background = 0xFF0D0D0FL
         for (dayIndex in 0..6) {
             val ratio = contrastRatio(DayAccentColors.brightHex(dayIndex), background)

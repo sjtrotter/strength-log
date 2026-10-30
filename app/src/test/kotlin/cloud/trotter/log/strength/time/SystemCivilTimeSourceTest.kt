@@ -24,10 +24,10 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
- * The Android half of the civil-time source (#176): the system broadcasts are
- * really wired up, and a reading taken after a zone change is taken in the *new*
- * zone rather than in one captured when the source was built — the exact failure
- * a `@Singleton Clock.systemDefaultZone()` has.
+ * The Android half of the civil-time source: the system broadcasts are really
+ * wired up, and a reading taken after a zone change is taken in the *new* zone
+ * rather than in one captured when the source was built — the exact failure a
+ * `@Singleton Clock.systemDefaultZone()` has.
  *
  * Collection is unconfined, so the broadcast the test delivers drives the flow
  * on the test's own thread and every assertion below is about ordering, not

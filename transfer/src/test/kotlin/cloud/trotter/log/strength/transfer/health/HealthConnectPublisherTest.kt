@@ -32,15 +32,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [HealthConnectPublisher] degrade-invisibly paths (#17, A3) against a fake
- * client — the emulator has no Health Connect provider (D10), so every branch
+ * [HealthConnectPublisher] degrade-invisibly paths (A3) against a fake client
+ * — the emulator has no Health Connect provider (D10), so every branch
  * (unavailable, denied, empty session, provider throws, happy path) is proven
  * here on the JVM with [FakeHealthConnectClient]. The pure record shape itself
  * is [SessionRecordMapperTest]'s job.
  *
- * The backfill (#159) shares that path, so its own section pins what only it
- * cares about: which sessions it writes, that a re-run deduplicates instead of
- * duplicating, and that it answers honestly when a session didn't make it.
+ * The backfill shares that path, so its own section pins what only it cares
+ * about: which sessions it writes, that a re-run deduplicates instead of
+ * duplicating, and that it reports when a session didn't make it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -243,7 +243,7 @@ class HealthConnectPublisherTest {
         assertTrue(calories.metadata.clientRecordId != exercise.metadata.clientRecordId)
     }
 
-    // --- backfill (#159) ---------------------------------------------------------
+    // --- backfill ----------------------------------------------------------------
 
     /** [count] sessions, oldest to newest, each with one done set. */
     private suspend fun seedSessions(count: Int): List<Long> {
@@ -319,9 +319,9 @@ class HealthConnectPublisherTest {
         assertTrue(SessionRecordMapper.clientRecordId(id) in client.deletedClientRecordIds)
     }
 
-    /** A session that predates the bodyweight capture (#171, and every CSV
-     *  import) still belongs in the backfill — it just has no calorie estimate
-     *  to publish alongside it. */
+    /** A session with no recorded bodyweight (including every CSV import)
+     *  still belongs in the backfill — it just has no calorie estimate to
+     *  publish alongside it. */
     @Test
     fun backfillOfASessionWithNoRecordedBodyweightPublishesWithoutCalories() = runTest {
         val id = seedSession(

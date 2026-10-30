@@ -12,8 +12,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 
 /**
- * Shared checks for issue #123's half of the contract that a screenshot cannot
- * see: where a finger actually lands.
+ * Shared checks for the contract that a screenshot cannot see: where a finger
+ * actually lands.
  *
  * Both walk the merged semantics tree — the same tree an accessibility service
  * reads — and use [SemanticsNode.touchBoundsInRoot], not `boundsInRoot`. The
@@ -96,11 +96,11 @@ object TouchTargets {
     /**
      * No two independent controls may claim the same pixel.
      *
-     * Nesting is exempt: a control inside another control's clickable — the
-     * swap pill inside a card header's collapse target — legitimately sits on
-     * top of it, and Compose resolves that by depth. What this catches
-     * is the failure from PR #134: a *sibling* whose 48dp target was never given
-     * 48dp of layout and so quietly annexed the control next to it.
+     * Nesting is exempt: a control inside another control's clickable — the swap
+     * pill inside a card header's collapse target — legitimately sits on top of
+     * it, and Compose resolves that by depth. The failure this catches is a
+     * *sibling* whose 48dp target was never given 48dp of layout and so quietly
+     * annexed the control next to it.
      */
     private fun ComposeContentTestRule.overlappingTouchTargets(): Map<Set<String>, Int> {
         val nodes = interactiveNodes()

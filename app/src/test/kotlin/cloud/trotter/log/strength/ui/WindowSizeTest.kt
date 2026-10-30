@@ -77,8 +77,8 @@ class WindowSizeTest {
      * tablet, and it arrived the instant DONE fired, immediately after the day
      * screen behind it had capped itself.
      *
-     * Coverage is asserted alongside the cap, because the fix must not have been
-     * to shrink the scrim.
+     * Coverage is asserted alongside the cap, so the cap can't be met by
+     * shrinking the scrim.
      */
     @Test
     @Config(qualifiers = "w1280dp-h800dp")
@@ -118,13 +118,13 @@ class WindowSizeTest {
         )
     }
 
-    // CascadeScrim takes the same cap, and is deliberately not pinned here. Its
-    // column wraps its content instead of filling the width, so the only thing
-    // that could push it past 600dp is a long lift name — and Robolectric has no
-    // real font metrics, so it measures every string at a fraction of its true
-    // width. A test on that number would be green whether the cap existed or not.
-    // The receipt above is layout-driven (a fillMaxWidth column, a weighted row)
-    // and so measures the band for real; it is the pin for both.
+    // CascadeScrim takes the same cap, and is not pinned here. Its column wraps
+    // its content instead of filling the width, so the only thing that could push
+    // it past 600dp is a long lift name — and Robolectric has no real font
+    // metrics, so it measures every string at a fraction of its true width. A
+    // test on that number would be green whether the cap existed or not. The
+    // receipt above is layout-driven (a fillMaxWidth column, a weighted row) and
+    // so measures the band for real; it is the pin for both.
 
     /**
      * The screen-level assertion below passes either way — it is a sanity check

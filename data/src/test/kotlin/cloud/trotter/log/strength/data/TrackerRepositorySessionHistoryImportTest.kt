@@ -39,11 +39,10 @@ import org.robolectric.annotation.Config
 
 /**
  * [TrackerRepository.importSessionHistory] and [TrackerRepository.exportSessionHistory]
- * (CSV import/export, issue #16): additive appends that must link each
- * imported session to its own freshly generated id, leave the program and
- * live logs untouched, and read back in the same deterministic order the A2
- * backup uses. Robolectric + in-memory Room, same pattern as
- * [TrackerRepositoryPairedWriteTest] — the transaction is the thing under
+ * (CSV import/export): additive appends that must link each imported session to its own
+ * freshly generated id, leave the program and live logs untouched, and read back in the
+ * same deterministic order the A2 backup uses. Robolectric + in-memory Room, same
+ * pattern as [TrackerRepositoryPairedWriteTest] — the transaction is the thing under
  * test.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -108,8 +107,8 @@ class TrackerRepositorySessionHistoryImportTest {
 
     @Test
     fun importedSessionsKeepTheirUnknownBodyweight() = runTest {
-        // A CSV has no bodyweight column (#171); the column must round-trip as
-        // NULL rather than the 0 that used to make later backups unrestorable.
+        // A CSV has no bodyweight column; the column must round-trip as NULL
+        // because zero is not a valid recorded bodyweight in a backup.
         repo.importSessionHistory(
             listOf(ImportedSession(session("Day A", 1_000L), listOf(set("bb_back_squat", "Barbell Back Squat", 0)))),
             newCustomExercises = emptyList(),

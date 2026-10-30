@@ -39,8 +39,8 @@ class DayGlanceTest {
             title = title,
             accentIndex = accentIndex,
             exercises = exercises.toList(),
-            // The five-clause emphasis line is deliberately not what the glance shows;
-            // a realistic one here keeps that honest.
+            // The glance omits the five-clause emphasis line; a realistic fixture
+            // verifies that omission.
             emphasisLine = "flat press · vertical pull · hip-hinge hamstrings",
         ),
         unit = "lb",

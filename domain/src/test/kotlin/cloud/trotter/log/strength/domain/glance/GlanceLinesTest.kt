@@ -4,8 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * The strings the widget and the watch's glance surfaces both print. Parity used
- * to be two test files agreeing by hand; it is now one contract, and a changed
+ * The strings the widget and the watch's glance surfaces both print. A changed
  * string here is a changed string on the home screen and on the wrist.
  */
 class GlanceLinesTest {
@@ -60,8 +59,7 @@ class GlanceLinesTest {
     @Test
     fun `an over-count reads as done, not as more sets than there are`() {
         // Neither surface can produce this — done counts a subset of the list it totals —
-        // but a public formatter has to answer for it, and the old widget's `done == total`
-        // would have said "2 / 1 SET".
+        // but a public formatter has to answer for it without printing "2 / 1 SET".
         assertEquals("DONE · 1 SET", GlanceLines.statLine(3, 2, 1))
     }
 

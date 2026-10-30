@@ -70,7 +70,7 @@ class SetEditingTest {
         assertEquals(3, s3.size)
     }
 
-    // --- undo of a remove (#124) ---------------------------------------------
+    // --- undo of a remove ----------------------------------------------------
 
     @Test
     fun `insert set undoes a remove exactly`() {

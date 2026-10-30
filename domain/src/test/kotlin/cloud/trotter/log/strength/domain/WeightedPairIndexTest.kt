@@ -68,8 +68,8 @@ class WeightedPairIndexTest {
 
     @Test
     fun `real catalog validates cleanly and dips resolves from bw_dip`() {
-        // P2 populates the links (8 pairs); this just proves the real catalog
-        // builds without throwing and the reverse lookup works end to end.
+        // The live catalog has 8 pairs; this proves it builds without
+        // throwing and the reverse lookup works end to end.
         assertEquals("bw_dip", ExerciseLibrary.bodyweightPairFor("dips"))
     }
 }

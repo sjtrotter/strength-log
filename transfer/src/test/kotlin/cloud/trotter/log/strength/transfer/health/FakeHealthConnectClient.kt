@@ -26,8 +26,8 @@ import kotlin.reflect.KClass
  * Only the surface the publisher touches is implemented; everything else throws
  * if a test ever reaches for it.
  *
- * [storedRecords] models the one provider behavior the backfill leans on (#159):
- * a record carrying a client record id settles under that id instead of landing
+ * [storedRecords] models the one provider behavior the backfill leans on: a
+ * record carrying a client record id settles under that id instead of landing
  * beside the record already there, so re-publishing a session can never leave
  * the user holding two copies of the same workout.
  */

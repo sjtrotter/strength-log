@@ -106,11 +106,10 @@ object Routes {
     const val CUSTOM_EXERCISE_ROUTE = "$CUSTOM_EXERCISE?$CUSTOM_EXERCISE_PATTERN_ARG={$CUSTOM_EXERCISE_PATTERN_ARG}"
 
     /**
-     * Public entry point for #13 (D1: a route, not a sheet, since it's reachable
-     * from two places). [pattern] pre-selects the form's movement pattern for
-     * the #11 picker's "＋ Create exercise" context; Setup (#12) calls this with
-     * `null`. Both callers land with their own PRs — this is the stable surface
-     * they navigate through (`navController.navigate(Routes.customExercise(...))`).
+     * Public entry point for custom exercise creation (D1: a route, not a
+     * sheet, since it's reachable from two places). [pattern] pre-selects the
+     * form's movement pattern for the day edit picker's "＋ Create exercise"
+     * context; Setup calls this with `null`.
      */
     fun customExercise(pattern: MovementPattern? = null): String =
         if (pattern == null) CUSTOM_EXERCISE else "$CUSTOM_EXERCISE?$CUSTOM_EXERCISE_PATTERN_ARG=${pattern.name}"
@@ -127,8 +126,8 @@ object Routes {
  * Every way into the app — launcher, a day-specific launcher alias, the
  * home-screen widget's tap target — is a plain ACTION_MAIN launch of
  * [cloud.trotter.log.strength.MainActivity] with no route extra, so they all
- * land wherever this resolves. #121 moved that landing from the workout screen
- * to Today: orientation first, the editor a tap away.
+ * land wherever this resolves. That landing is Today: orientation first, the
+ * editor a tap away.
  *
  * [take] latches the *first* resolved value: this is only the initial
  * screen, and after that explicit navigation drives every transition. Without

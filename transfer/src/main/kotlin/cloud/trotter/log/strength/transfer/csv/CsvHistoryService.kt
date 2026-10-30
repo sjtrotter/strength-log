@@ -7,14 +7,14 @@ import java.io.OutputStream
 import kotlinx.coroutines.flow.first
 
 /**
- * The #16 CSV history export/import, wired to the data layer — the CSV
+ * The CSV history export/import, wired to the data layer — the CSV
  * counterpart of [cloud.trotter.log.strength.transfer.backup.BackupService].
  * The public surface is Uri-free (streams and strings only, D9); `:app`
- * supplies the share-sheet/SAF plumbing later.
+ * supplies the share-sheet/SAF plumbing.
  *
  * Import is two calls by design: [preview] never touches the database — it
  * only builds the read-only preview/confirm model — and [commit] writes only
- * after the caller (the eventual UI) has let the user review and, if needed,
+ * after the caller has let the user review and, if needed,
  * correct each unmatched exercise name's pattern (PLAN.md A2).
  */
 class CsvHistoryService(private val repository: TrackerRepository) {

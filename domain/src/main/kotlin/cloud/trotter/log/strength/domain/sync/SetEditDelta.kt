@@ -13,9 +13,8 @@ import kotlinx.serialization.Serializable
  * snapshot is the watch's ack — it reconciles optimistic local state against
  * that, never against this delta echoing back.
  *
- * Forward-compat: [schemaVersion] only earns its keep if the #20 transport
- * decoder is lenient — decode both DTOs with `Json { ignoreUnknownKeys = true }`
- * so a future schemaVersion can add fields without breaking an older reader.
+ * Forward-compat: [SyncCodec] decodes with `ignoreUnknownKeys`, so a newer
+ * [schemaVersion] can add fields without breaking an older reader.
  */
 @Serializable
 data class SetEditDelta(

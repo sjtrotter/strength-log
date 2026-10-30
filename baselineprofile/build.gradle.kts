@@ -28,8 +28,8 @@ kotlin {
 }
 
 baselineProfile {
-    // Emulator or attached phone, never a rooted-shell requirement — the one
-    // machine that runs this is CI's API 34 x86_64 image (.github/workflows/ci.yml).
+    // An emulator or attached device. CI uses the AOSP API 34 image in
+    // .github/workflows/baseline-profile.yml, since collection needs `adb root`.
     useConnectedDevices = true
 }
 

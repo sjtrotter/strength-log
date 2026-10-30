@@ -90,27 +90,25 @@ class StrengthLogApp : Application() {
             .fromApplication(this, RepositoryEntryPoint::class.java)
             .trackerRepository()
 
-        // Both startup repairs, in order, in one coroutine — genuinely ordered
-        // rather than two launches that would race. Reconciliation goes first
-        // because it can rewrite settings the fixup and the first screen both
+        // The startup repairs, in order, in one coroutine — genuinely ordered
+        // rather than separate launches that would race. Reconciliation goes first
+        // because it can rewrite settings the fixups and the first screen
         // read (`wizardComplete` among them: leave it stale and a first-run
         // wizard can open over a restored program). Launched and never awaited,
-        // so startup waits for neither.
+        // so startup waits for none of them.
         //
-        // runCatching *per phase* (Fable P3 advisory #1): these run unattended
-        // with nothing downstream to surface a failure to, so neither may
-        // crash-loop the app — and a failed reconcile must not swallow the fixup
-        // behind it. Both are idempotent, so the next launch retries.
+        // runCatching *per phase*: these run unattended with nothing downstream
+        // to surface a failure to, so none may crash-loop the app, and a failed
+        // reconcile must not swallow the fixups behind it. All three are
+        // idempotent, so the next launch retries.
         appScope.launch {
             runCatching { backupService.reconcilePendingRestore() }
                 .onFailure { Log.e(TAG, "Pending restore not reconciled; will retry next launch", it) }
 
-            // One-shot on first launch of the tracking-types build: reinterpret
-            // the reps a user logged for now-TIMED holds (plank, ...) as seconds.
-            // Guarded by a DataStore flag, so this is a cheap no-op on every
-            // later launch; a corrupt row (a stored `setsJson` that fails to
-            // decode) is logged and skipped, and the fixup's own idempotency
-            // (SettingsStore.md) means a future, fixed build can still pick it up.
+            // Reinterprets reps logged for holds that are TIMED (plank, ...) as
+            // seconds. A DataStore flag makes it a no-op after the first
+            // success. One undecodable row rolls the whole fixup back, and it
+            // retries next launch.
             runCatching { repository.runLegacyTimedFixupIfNeeded() }
                 .onFailure { Log.e(TAG, "Legacy TIMED fixup failed; will retry next launch", it) }
             runCatching { repository.runPlanSettingsFixupIfNeeded() }

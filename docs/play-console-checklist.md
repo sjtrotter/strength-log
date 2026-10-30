@@ -1,9 +1,11 @@
 # Play Console — what is left to click, and the answers
 
-The store listing (text, icon, feature graphic, phone screenshots) is pushed by the
-"Play store listing" workflow from `play/listing/`. Everything below has no API and is done
-once, in the browser, signed in as the account that owns the listing. Answers are derived
-from the manifest and `docs/play-data-safety.md`; if either changes, change this too.
+The store listing text, icon and feature graphic are pushed by the
+"Play store listing" workflow from `play/listing/`. Phone screenshots are no longer
+committed; screenshots are rendered in CI and uploaded by the release workflow.
+Everything below has no API and is done once, in the browser, signed in as the
+account that owns the listing. Answers are derived from the manifest and
+`docs/play-data-safety.md`; if either changes, change this too.
 
 ## Policy → App content
 
@@ -28,7 +30,7 @@ from the manifest and `docs/play-data-safety.md`; if either changes, change this
 | App category | Health & Fitness |
 | Tags | Fitness tracking, Workout (whatever the picker offers closest) |
 | Contact email | the developer account's address |
-| Wear OS form factor | Needs at least one Wear OS screenshot (384×384 minimum, 1:1) before the Wear track can go beyond internal. Capture two on the watch: the overview dial and a set in progress. |
+| Wear OS form factor | Needs at least one Wear OS screenshot (384×384 minimum, 1:1) before the Wear track can go beyond internal. Wear screenshots are rendered in CI and uploaded by the release workflow; see [Releasing](RELEASE.md#6-releasing-githubworkflowspublish-internalyml). |
 
 ## Monetization and distribution
 

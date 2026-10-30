@@ -3,18 +3,23 @@ name: Play store listing
 # Manually triggered. "inspect" prints what the Console holds (listing text,
 # image ids, tracks) and changes nothing; "upload" replaces the en-US listing
 # text and images with what is under play/listing/ and commits the edit.
+# "screenshots" replaces phone and Wear screenshots from a release's zip.
 # Keyless auth uses Workload Identity Federation, only from main of this repo.
 # Repo variables PLAY_WIF_PROVIDER and PLAY_SERVICE_ACCOUNT configure it.
-# Needs "View app information (read-only)" for inspect and "Manage store presence" for upload.
+# Needs "View app information (read-only)" for inspect and "Manage store presence" for uploads.
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: inspect or upload
+        description: inspect, upload or screenshots
         required: true
         default: inspect
         type: choice
-        options: [inspect, upload]
+        options: [inspect, upload, screenshots]
+      tag:
+        description: Release tag whose screenshots to upload (screenshots mode)
+        required: false
+        type: string
 
 jobs:
   listing:
@@ -31,6 +36,23 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install --quiet google-api-python-client==2.154.0 google-auth==2.37.0
-      - run: python scripts/play_listing.py "$MODE"
+      - name: Download release screenshots
+        if: inputs.mode == 'screenshots'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Expected vMAJOR.MINOR.PATCH with non-negative integers and no leading zeros."
+            exit 1
+          fi
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern store-screenshots.zip --dir "$RUNNER_TEMP"
+          unzip "$RUNNER_TEMP/store-screenshots.zip" -d "$RUNNER_TEMP/store"
+      - run: |
+          if [[ "$MODE" == screenshots ]]; then
+            python scripts/play_listing.py "$MODE" --images "$RUNNER_TEMP/store"
+          else
+            python scripts/play_listing.py "$MODE"
+          fi
         env:
           MODE: ${{ inputs.mode }}

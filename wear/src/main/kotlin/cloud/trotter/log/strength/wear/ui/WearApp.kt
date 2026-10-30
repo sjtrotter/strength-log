@@ -1052,7 +1052,7 @@ private fun OngoingSessionChip(snapshot: WatchSnapshot?, localSessionStartedAtMi
  *  configuration, so the lambda bag is rebuilt on that key alone. Templates
  *  resolve through [stringResource], the configuration-aware read lint asks for. */
 @Composable
-private fun rememberDialCopy(): DialCopy {
+internal fun rememberDialCopy(): DialCopy {
     val continueText = stringResource(R.string.dial_continue)
     val start = stringResource(R.string.dial_start)
     val day = stringResource(R.string.dial_day)

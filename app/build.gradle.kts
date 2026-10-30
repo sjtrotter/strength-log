@@ -67,8 +67,18 @@ android {
     }
 
     testOptions {
+        val recordStoreShots = providers.gradleProperty("storeShots").orNull == "true"
+        val storeShotsDir = layout.buildDirectory.dir("outputs/store").get().asFile
         unitTests.all {
             it.useJUnitPlatform()
+            it.systemProperty("storeShots.dir", storeShotsDir.absolutePath)
+            it.systemProperty("roborazzi.test.record", recordStoreShots.toString())
+            if (recordStoreShots) {
+                // A cached test task must never stand in for a render.
+                it.outputs.dir(storeShotsDir)
+                it.outputs.upToDateWhen { false }
+                it.outputs.cacheIf { false }
+            }
             // A hung test fails in minutes and, on CI, names itself instead of
             // holding the job to GitHub's six-hour limit (#310).
             it.timeout.set(Duration.ofMinutes(20))
@@ -173,6 +183,9 @@ dependencies {
     // Robolectric (JUnit4, run via the vintage engine under the JUnit platform)
     // for ViewModel wiring tests against a real in-memory Room DB.
     testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
     testImplementation(libs.junit4)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.navigation.testing)

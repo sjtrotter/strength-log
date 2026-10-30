@@ -22,9 +22,8 @@ class TodayScreenBuilderTest {
     private val now = CivilTime(nowInstant, zone, LocalDate.of(2026, 8, 24))
 
     @Test
-    fun standalone_cardio_line_only_exists_when_program_has_cardio_days() {
-        assertNull(TodayScreenBuilder.standaloneCardioLine(false))
-        assertEquals("Log cardio + core, 25 min", TodayScreenBuilder.standaloneCardioLine(true))
+    fun standalone_cardio_line_text() {
+        assertEquals("Log cardio + core, 25 min", TodayScreenBuilder.standaloneCardioLine())
     }
 
     @Test

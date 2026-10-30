@@ -97,19 +97,18 @@ object ShareCardContentBuilder {
      * .trackingOfValues], SSOT with the legacy-history rule the Log screen
      * already applies) rather than the exercise's current catalog entry, then
      * every set in the group is ranked the same way — a session never mixes
-     * tracks within one exercise, but a defensive filter keeps this honest if
-     * legacy data ever did.
+     * tracks within one exercise, and only sets of the first set's shape are
+     * ranked in case legacy data does.
      */
     private fun heaviestSetDisplay(group: List<SessionSetEntity>, unit: WeightUnit): String {
         val tracking = SetFormatter.trackingOfValues(group.first().weightLb, group.first().reps, group.first().seconds)
         val candidates = group.filter { SetFormatter.trackingOfValues(it.weightLb, it.reps, it.seconds) == tracking }
-            .ifEmpty { group }
 
         val best = when (tracking) {
-            TrackingType.WEIGHTED -> candidates.maxWithOrNull(compareBy({ it.weightLb }, { it.reps }))
-            TrackingType.TIMED -> candidates.maxWithOrNull(compareBy({ it.seconds }, { it.weightLb }))
-            TrackingType.REPS -> candidates.maxWithOrNull(compareBy { it.reps })
-        } ?: candidates.first()
+            TrackingType.WEIGHTED -> candidates.maxWith(compareBy({ it.weightLb }, { it.reps }))
+            TrackingType.TIMED -> candidates.maxWith(compareBy({ it.seconds }, { it.weightLb }))
+            TrackingType.REPS -> candidates.maxWith(compareBy { it.reps })
+        }
 
         return when (tracking) {
             TrackingType.WEIGHTED -> "${WeightStepper.format(unit.fromLb(best.weightLb))} × ${best.reps}"

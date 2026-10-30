@@ -178,7 +178,7 @@ class TodayViewModel @Inject constructor(
                 TodayCardio(cloud.trotter.log.strength.ui.day.activityLabel(it.activity), day.cardio?.detail.orEmpty(), it.activity)
             },
             standaloneCardio = standalone?.let {
-                StandaloneCardio(it.id, TodayScreenBuilder.standaloneCardioLine(true)!!)
+                StandaloneCardio(it.id, TodayScreenBuilder.standaloneCardioLine())
             },
             actionLabel = TodayScreenBuilder.actionLabel(dayId, doneSets, totalSets),
             lifeLine = TodayScreenBuilder.lifeLine(

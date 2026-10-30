@@ -59,8 +59,7 @@ object TodayScreenBuilder {
     private fun daysBetween(from: java.time.LocalDate, to: java.time.LocalDate): Int =
         ChronoUnit.DAYS.between(from, to).coerceAtLeast(0).toInt()
 
-    fun standaloneCardioLine(hasCardioDays: Boolean): String? =
-        "Log cardio + core, 25 min".takeIf { hasCardioDays }
+    fun standaloneCardioLine(): String = "Log cardio + core, 25 min"
 
     /**
      * "Last trained 4 Aug, 10 weeks ago." — one fact; null with no history.

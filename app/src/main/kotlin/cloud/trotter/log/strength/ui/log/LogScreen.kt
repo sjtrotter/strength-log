@@ -81,12 +81,12 @@ import cloud.trotter.log.strength.ui.text.resolve
 import kotlinx.coroutines.launch
 
 /**
- * The journal (PLAN.md A1, issue #14; docs/briefs/journal.md): the three
- * derived sections — trajectory, volume, calendar — over the read-only,
- * reverse-chronological list of completed sessions that has always lived here.
- * Expanding a row shows that session's sets grouped by exercise. Stateless in
- * the Compose sense, matching [cloud.trotter.log.strength.ui.day.DayScreen]
- * — [state] renders, [actions] carries every intent back to [LogViewModel].
+ * The journal (PLAN.md A1; docs/briefs/journal.md): the three derived sections
+ * — trajectory, volume, calendar — over the read-only, reverse-chronological
+ * list of completed sessions. Expanding a row shows that session's sets
+ * grouped by exercise. Stateless in the Compose sense, matching
+ * [cloud.trotter.log.strength.ui.day.DayScreen] — [state] renders, [actions]
+ * carries every intent back to [LogViewModel].
  */
 @Composable
 fun LogScreen(state: LogUiState, actions: LogActions) {
@@ -459,15 +459,15 @@ private fun ExerciseGroupRow(group: SessionExerciseGroup) {
 }
 
 /**
- * The share affordance (#103, docs/briefs/session-share.md §1): one quiet
- * text button in the expanded row's action register, caps, pressed = that
- * day's accent — no icon, no fill, nothing on a collapsed row. Since the M3
- * card migration the disclosure lives on the header row, so SHARE is a
- * *sibling* action, not a nested one — it never also toggles the row because
- * nothing above it is clickable at all.
+ * The share affordance (docs/briefs/session-share.md §1): one quiet text
+ * button in the expanded row's action register, caps, pressed = that day's
+ * accent — no icon, no fill, nothing on a collapsed row. The disclosure
+ * lives on the header row, so SHARE is a *sibling* action, not a nested one
+ * — it never also toggles the row because nothing above it is clickable at
+ * all.
  *
- * Its M3-owned 48dp target (#123) is still *reserved* rather than borrowed, so
- * it lands on the row's own air instead of claiming the detail lines above it.
+ * Its M3-owned 48dp target is still *reserved* rather than borrowed, so it
+ * lands on the row's own air instead of claiming the detail lines above it.
  */
 @Composable
 private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
@@ -484,7 +484,7 @@ private fun ShareButton(dayIndex: Int, onClick: () -> Unit) {
 }
 
 /**
- * The "bodyweight changed — update your GOALs?" prompt (#17, A3). Surfaced, never
+ * The "bodyweight changed — update your GOALs?" prompt (A3). Surfaced, never
  * auto-applied: Apply writes the new bodyweight into config; Dismiss leaves GOALs
  * exactly as they were.
  */
@@ -531,13 +531,11 @@ private fun PromptButton(text: String, emphasized: Boolean, onClick: () -> Unit)
 }
 
 /**
- * What Health Connect is actually doing (#158). Before this, a provider that had
- * never been granted and one whose grant had been reset looked the same from
- * here — nothing published, nothing said. Two states, no ambiguity: without the
+ * What Health Connect is actually doing. Two states, no ambiguity: without the
  * workout-write grant the section *is* the Connect affordance; with it, one
- * quiet line, carrying the one-shot backfill offer (#159) while there is history
- * Health Connect has never seen. The status is a statement, not a card: a
- * working export shouldn't ask for attention every visit.
+ * quiet line, carrying the one-shot backfill offer while there is history Health
+ * Connect has never seen. The status is a statement, not a card: a working
+ * export shouldn't ask for attention every visit.
  */
 @Composable
 private fun HealthConnectSection(section: HealthSectionUi, onConnect: () -> Unit, onPublishPast: () -> Unit) {
@@ -559,7 +557,7 @@ private fun HealthConnectSection(section: HealthSectionUi, onConnect: () -> Unit
 }
 
 /** Shown when a Health Connect provider is present but the workout-write grant
- *  isn't (#17, #158): the lazy, user-initiated permission entry point. */
+ *  isn't: the lazy, user-initiated permission entry point. */
 @Composable
 private fun ConnectHealthCard(onConnect: () -> Unit) {
     AppCard(onClick = onConnect) {
@@ -594,7 +592,7 @@ data class LogActions(
     val onToggleExpanded: (Long) -> Unit,
     val onPageCalendar: (Int) -> Unit,
     val onConnectHealth: () -> Unit,
-    /** The one-shot backfill tap (#159): publish the history that predates the grant. */
+    /** The one-shot backfill tap: publish the history that predates the grant. */
     val onPublishPastWorkouts: () -> Unit,
     val onApplyBodyweight: () -> Unit,
     val onDismissBodyweight: () -> Unit,
@@ -607,9 +605,9 @@ data class LogActions(
     val onDeleteSession: (Long) -> Unit = {},
     val onUndoDeleteSession: () -> Unit = {},
     val onSetSessionNote: (Long, String) -> Unit = { _, _ -> },
-    /** The empty journal's way out (#127): straight to the workout that will fill it. */
+    /** The empty journal's way out: straight to the workout that will fill it. */
     val onStartSession: () -> Unit,
-    /** The same slot's way out when there is no program to start (#127). */
+    /** The same slot's way out when there is no program to start. */
     val onSetUpProgram: () -> Unit,
 )
 

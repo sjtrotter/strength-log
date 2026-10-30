@@ -50,10 +50,10 @@ import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import kotlinx.coroutines.delay
 
 /**
- * The app's edge states (issue #127), built as one shape rather than three
- * placeholder strings: the 2dp accent rule Today already draws above its
- * headline, a caps overline, a sentence, and — where the state is one the
- * lifter can act on — a single bordered action.
+ * The app's edge states, built as one shape rather than three placeholder
+ * strings: the 2dp accent rule Today already draws above its headline, a
+ * caps overline, a sentence, and — where the state is one the lifter can
+ * act on — a single bordered action.
  *
  * They live together because they are one register. A screen with nothing to
  * show still has something to say, and what it says has to sound like the rest

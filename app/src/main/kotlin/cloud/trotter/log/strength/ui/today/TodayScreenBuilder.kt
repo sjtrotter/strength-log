@@ -16,7 +16,7 @@ import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 
 /**
- * Pure decision logic behind the Today screen (#121), kept free of Android and
+ * Pure decision logic behind the Today screen, kept free of Android and
  * coroutines so every rule is unit-testable on the JVM.
  */
 object TodayScreenBuilder {

@@ -4,14 +4,14 @@ import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.data.PlanSummary
 import cloud.trotter.log.strength.ui.text.UiText
 
-/** Immutable render model for the Today screen (issue #121) — the ViewModel's
- *  single output. [Immutable] for the reason
- *  [cloud.trotter.log.strength.ui.day.DayUiState] carries it (#156): the
- *  `List` field otherwise leaves the whole screen comparing by identity. */
+/** Immutable render model for the Today screen — the ViewModel's single
+ *  output. [Immutable] for the reason
+ *  [cloud.trotter.log.strength.ui.day.DayUiState] carries it: the `List`
+ *  field otherwise leaves the whole screen comparing by identity. */
 @Immutable
 data class TodayUiState(
     val hasProgram: Boolean = false,
-    /** True only while the program is still being read (#127) — see
+    /** True only while the program is still being read — see
      *  [cloud.trotter.log.strength.ui.day.DayUiState.loading] for why the two
      *  silences are worth telling apart. */
     val loading: Boolean = false,
@@ -51,7 +51,7 @@ data class TodayActions(
     val onStart: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenLog: () -> Unit,
-    /** The recovery out of the no-program state (#127): back into the wizard. */
+    /** The recovery out of the no-program state: back into the wizard. */
     val onSetUpProgram: () -> Unit,
     val onOpenCardio: (String) -> Unit = {},
     val onShowPlanPicker: () -> Unit = {},

@@ -44,7 +44,7 @@ private val ToggleShape = RoundedCornerShape(6.dp)
 /**
  * Per-set done tick (spec §8's "green ✓"). Visually 28dp, but the toggleable
  * area sits on a >= 48dp box so the touch target meets Material's minimum.
- * Design-pass restyle: unchecked fill is [Surface2] (was transparent), and
+ * The unchecked fill is [Surface2], and
  * ticking pops the whole chip in — scale 0.7 -> 1.0 on a spring, ~200ms (design
  * tokens: `--dur-med`/`--ease-spring`, reference `@keyframes pop` scales the
  * tick box) — via a transient [Animatable], never persisted state (A6/motion).

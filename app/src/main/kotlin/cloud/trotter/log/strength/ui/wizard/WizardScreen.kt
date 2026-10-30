@@ -569,7 +569,7 @@ private fun WizardFooter(
         ) {
             // Both dead while a restore is in flight: it is rewriting the very
             // answers this footer navigates, and "GENERATE PROGRAM" landing on
-            // top of a just-restored program is the accident (#172).
+            // top of a just-restored program is the accident.
             if (!state.isFirstStep) {
                 FooterButton(
                     label = stringResource(R.string.wizard_back_button),

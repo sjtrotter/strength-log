@@ -38,12 +38,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.launch
 
 /**
- * The Log screen ViewModel (PLAN.md A1, issue #14; #17 Health Connect read
- * path; journal sections per docs/briefs/journal.md). An editable,
- * reverse-chronological view of the user's own session history, now led by the
- * three derived journal sections, plus a Health Connect section that lists
- * other apps' strength sessions (marked external) and surfaces the
- * bodyweight-GOAL prompt.
+ * The Log screen ViewModel (PLAN.md A1; Health Connect read path; journal
+ * sections per docs/briefs/journal.md). An editable, reverse-chronological
+ * view of the user's own session history, led by the three derived journal
+ * sections, plus a Health Connect section that lists other apps' strength
+ * sessions (marked external) and surfaces the bodyweight-GOAL prompt.
  *
  * Own-history: a session's sets are fetched lazily on expand and cached in
  * [expandedSets]. Which session is expanded, which month the calendar is
@@ -59,13 +58,13 @@ import kotlinx.coroutines.launch
  * The Health Connect reads are entirely degrade-safe: with no provider [healthData]
  * stays empty and the section hides itself, so the Log screen is fully functional
  * without Health Connect (A3). What the section does *not* hide is the connection
- * itself (#158): [onResumed] re-reads the workout-write grant every time the
- * screen resumes, so a permission that was never given — or was revoked in the
- * Health Connect app — reads as "not connected" on the next visit instead of
- * looking exactly like a working export.
+ * itself: [onResumed] re-reads the workout-write grant every time the screen
+ * resumes, so a permission that was never given — or was revoked in the Health
+ * Connect app — reads as "not connected" on the next visit instead of looking
+ * exactly like a working export.
  *
  * "Today" comes from [CivilTimeSource], not from a `Clock` read when some other
- * flow happens to emit (#176) — see [journal].
+ * flow happens to emit — see [journal].
  */
 @HiltViewModel
 class LogViewModel @Inject constructor(
@@ -86,9 +85,9 @@ class LogViewModel @Inject constructor(
     private val bodyweightDismissed: StateFlow<Boolean> = savedState.getStateFlow(KEY_BW_DISMISSED, false)
     private val healthData = MutableStateFlow(HealthData())
 
-    /** True for the length of one backfill run (#159) — a bare field on purpose:
-     *  it is the spinner on a button, not user data, and a process death during
-     *  the run simply leaves the (unset) one-shot flag offering it again. */
+    /** True for the length of one backfill run — a bare field on purpose: it is
+     *  the spinner on a button, not user data, and a process death during the
+     *  run simply leaves the (unset) one-shot flag offering it again. */
     private val backfillRunning = MutableStateFlow(false)
 
     /**
@@ -151,10 +150,10 @@ class LogViewModel @Inject constructor(
     /**
      * The journal's three sections all hang off *today* — the today marker, the
      * month grid, the twelve-week window — so the civil day is an upstream flow
-     * like any other (#176). When the day turns under a parked screen, or the
-     * device changes zone, this re-emits and the sections are rebuilt in the new
-     * day and the new zone; a `Clock` read inside the lambda could only ever be
-     * as fresh as the last database change.
+     * like any other. When the day turns under a parked screen, or the device
+     * changes zone, this re-emits and the sections are rebuilt in the new day
+     * and the new zone; a `Clock` read inside the lambda could only ever be as
+     * fresh as the last database change.
      */
     private val journal = combine(
         journalHistory,
@@ -176,7 +175,7 @@ class LogViewModel @Inject constructor(
         bodyweightDismissed,
     ) { health, config, unit, dismissed -> buildHealthUi(health, config.bodyweightLb, unit, dismissed) }
 
-    /** Only the empty state reads this (#127), so it is the one bit of the
+    /** Only the empty state reads this, so it is the one bit of the
      *  program the journal needs — not the program itself. */
     private val hasProgram = repo.programFlow.map { it.days.isNotEmpty() }.distinctUntilChanged()
 
@@ -200,9 +199,9 @@ class LogViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogUiState())
 
     init {
-        // No onResumed() here: the route drives it on every resume (#158), so the
-        // grant is read when the screen is actually in front rather than once
-        // when this ViewModel happened to be constructed.
+        // No onResumed() here: the route drives it on every resume, so the grant
+        // is read when the screen is actually in front rather than once when this
+        // ViewModel happened to be constructed.
         //
         // expandedSessionId survives process death via SavedStateHandle, but
         // expandedSets is an in-memory cache and doesn't — without this, a
@@ -289,10 +288,10 @@ class LogViewModel @Inject constructor(
     }
 
     /**
-     * The SHARE tap (docs/briefs/session-share.md §1/§4 acceptance #1) — the
-     * only path that ever produces a share intent. Rendering runs off the
-     * main thread inside [ShareCardService]; once it's back, [pendingShare]
-     * carries the built intent for the UI to launch.
+     * The SHARE tap (docs/briefs/session-share.md §1/§4) — the only path
+     * that ever produces a share intent. Rendering runs off the main thread
+     * inside [ShareCardService]; once it's back, [pendingShare] carries the
+     * built intent for the UI to launch.
      */
     fun shareSession(sessionId: Long) {
         viewModelScope.launch {
@@ -319,9 +318,9 @@ class LogViewModel @Inject constructor(
         savedState[KEY_MONTH_OFFSET] = (calendarOffset.value + delta).coerceAtMost(0)
     }
 
-    /** The Health Connect permission-request contract for the screen's launcher
-     *  (#17): permissions are requested lazily, from this entry point, only when
-     *  the user taps Connect. */
+    /** The Health Connect permission-request contract for the screen's launcher:
+     *  permissions are requested lazily, from this entry point, only when the
+     *  user taps Connect. */
     fun permissionContract(): ActivityResultContract<Set<String>, Set<String>> =
         healthReader.permissionRequestContract()
 
@@ -331,7 +330,7 @@ class LogViewModel @Inject constructor(
      * Everything this screen re-reads when it comes back in front. Both facts
      * can have changed while it was away without anything this ViewModel
      * observes having emitted: the Health Connect grant lives in another app,
-     * and the civil day belongs to the device (#176).
+     * and the civil day belongs to the device.
      *
      * Leaving the screen for longer than [STOP_TIMEOUT_MS] restarts civil-time
      * collection on its own; the Health Connect grant is only re-read here.
@@ -344,10 +343,10 @@ class LogViewModel @Inject constructor(
     }
 
     /** Re-reads Health Connect — on every resume of the Log screen and after a
-     *  permission result. The grant is queried, never cached (#158): that is what
-     *  makes a permission revoked elsewhere show up here next visit. The reader is
-     *  already degrade-safe; this extra guard means even an unexpected provider
-     *  failure can only leave the section empty, never crash the Log screen (A3). */
+     *  permission result. The grant is queried, never cached: that is what makes a
+     *  permission revoked elsewhere show up here next visit. The reader is already
+     *  degrade-safe; this extra guard means even an unexpected provider failure
+     *  can only leave the section empty, never crash the Log screen (A3). */
     fun refreshHealth() {
         viewModelScope.launch {
             healthData.value = runCatching {
@@ -366,9 +365,9 @@ class LogViewModel @Inject constructor(
     }
 
     /**
-     * The backfill tap (#159): publishes every logged session, then marks the
-     * one-shot flag — but only if the publisher reports that all of them landed.
-     * A partial failure leaves the flag unset, so the offer is still standing on
+     * The backfill tap: publishes every logged session, then marks the one-shot
+     * flag — but only if the publisher reports that all of them landed. A
+     * partial failure leaves the flag unset, so the offer is still standing on
      * the next visit rather than claiming a success that didn't happen.
      */
     fun publishPastWorkouts() {
@@ -461,17 +460,17 @@ class LogViewModel @Inject constructor(
     }
 
     /**
-     * The one-shot backfill offer (#159), or null when there is nothing to
-     * offer: no export is happening ([publishing] false — a backfill would
-     * write nothing and then wrongly mark itself done), the backfill has already
-     * run, or there is no history yet.
+     * The one-shot backfill offer, or null when there is nothing to offer: no
+     * export is happening ([publishing] false — a backfill would write nothing
+     * and then wrongly mark itself done), the backfill has already run, or there
+     * is no history yet.
      *
      * The gap this contract accepts: "done" is one flag, not per-session publish
      * state, so a session completed *after* a successful backfill while the grant
      * happened to be off is never offered again. Closing it would mean tracking a
      * published/unpublished bit per session, or re-offering after every workout —
-     * both worse than the miss, since the grant being off is itself now visible
-     * on this screen (#158).
+     * both worse than the miss, since the grant being off is itself visible on
+     * this screen.
      */
     private fun backfillOffer(publishing: Boolean, state: BackfillState, sessionCount: Int): BackfillOfferUi? {
         if (!publishing || state.done || sessionCount == 0) return null

@@ -58,7 +58,7 @@ data class DayEditActions(
     val onSwap: (position: Int, newExerciseId: String) -> Unit,
     val onAdd: (exerciseId: String) -> Unit,
     val onRemove: (position: Int) -> Unit,
-    /** Adds a partner to a plain slot, or swaps the one it already has (#93). */
+    /** Adds a partner to a plain slot, or swaps the one it already has. */
     val onSetSuperset: (position: Int, partnerExerciseId: String) -> Unit,
     val onRemoveSuperset: (position: Int) -> Unit,
     val onResetToTemplate: () -> Unit,

@@ -56,9 +56,9 @@ import cloud.trotter.log.strength.ui.text.UiText
  *
  * A confirmed restore is the one operation here that does not belong to this
  * ViewModel's lifetime. It writes Room and then DataStore, and this class is
- * scoped to a nav entry, so a back press used to cancel it mid-write and leave
- * the two stores disagreeing in silence (#172). It runs on [appScope] instead;
- * this ViewModel only waits for it and reports.
+ * scoped to a nav entry, so running it on this scope would let a back press
+ * cancel it mid-write and leave the two stores disagreeing in silence. It runs
+ * on [appScope] instead; this ViewModel only waits for it and reports.
  */
 @HiltViewModel
 class BackupViewModel @Inject constructor(
@@ -222,11 +222,11 @@ class BackupViewModel @Inject constructor(
      *  instead of a crash.
      *
      *  [isRestore] additionally raises [BackupUiState.restoreInFlight], which is
-     *  what shuts the screen's exits (#172). Only the full restore sets it: it
-     *  is the one operation here that writes two stores with no transaction
-     *  across them. An export writes a file, and the CSV import commits in a
-     *  single Room transaction that rolls back cleanly if it is cut — leaving
-     *  those free to be backed out of.
+     *  what shuts the screen's exits. Only the full restore sets it: it is the
+     *  one operation here that writes two stores with no transaction across
+     *  them. An export writes a file, and the CSV import commits in a single
+     *  Room transaction that rolls back cleanly if it is cut — leaving those
+     *  free to be backed out of.
      *
      *  The busy flag is checked and set *before* launching, synchronously on
      *  the caller's thread — every entry point here runs on the main thread,
@@ -248,7 +248,7 @@ class BackupViewModel @Inject constructor(
             } catch (e: RestoreInterruption) {
                 // The picked file was fine; the restore was cut part-way. Saying
                 // "couldn't access that file" would send the user after entirely
-                // the wrong problem (#172).
+                // the wrong problem.
                 postMessage(TransferErrorMessages.of(e), isError = true)
             } catch (e: IOException) {
                 postMessage(UiText.FileAccessFailure(e.message), isError = true)

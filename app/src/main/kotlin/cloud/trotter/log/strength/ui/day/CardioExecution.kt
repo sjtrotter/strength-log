@@ -41,8 +41,8 @@ interface CardioAlarm {
 /**
  * Phone twin of the wear exact-alarm adapter. `OnAlarmListener` needs no exact-alarm
  * permission. Delivery is guaranteed only while the app is foreground and the day
- * screen is live; C1 deliberately has no foreground service. Backgrounding cancels
- * the listener, and returning arms only the next future boundary.
+ * screen is live; the app has no foreground service. Backgrounding cancels the
+ * listener, and returning arms only the next future boundary.
  */
 @Singleton
 class AndroidCardioAlarm @Inject constructor(

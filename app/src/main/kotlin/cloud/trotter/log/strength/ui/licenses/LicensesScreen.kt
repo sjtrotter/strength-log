@@ -40,12 +40,11 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
 data class LicenseEntry(val title: String, val body: String)
 
 /**
- * Static OSS-licenses screen (M6 #23, the "Oswald/Barlow OFL isn't packaged"
- * ledger debt): renders whatever [entries] the route loaded from
- * `assets/licenses/` so the SIL OFL text for the bundled Barlow Condensed
- * font — and the Apache-2.0 notice for the other bundled libraries — actually
- * ship inside the APK instead of living repo-only. Stateless like every other
- * screen here: no view-model, since there's nothing to mutate.
+ * Static OSS-licenses screen: renders whatever [entries] the route loaded
+ * from `assets/licenses/` so the SIL OFL text for the bundled Barlow
+ * Condensed font — and the Apache-2.0 notice for the other bundled libraries
+ * — actually ship inside the APK instead of living repo-only. Stateless like
+ * every other screen here: no view-model, since there's nothing to mutate.
  */
 @Composable
 fun LicensesScreen(entries: List<LicenseEntry>, onBack: () -> Unit) {

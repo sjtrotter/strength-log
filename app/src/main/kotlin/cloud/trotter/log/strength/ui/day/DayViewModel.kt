@@ -168,9 +168,8 @@ class DayViewModel @Inject constructor(
             }
         }
             // Every DataStore-backed flow above re-emits on *any* preferences
-            // write, so without this a rest-timer or unit write rebuilt an
-            // identical context — which used to be merely a wasted history
-            // re-read and now would blank a day the lifter is standing in.
+            // write, so without this an identical context would re-run the
+            // day pipeline and blank the day the lifter is on.
             .distinctUntilChanged()
 
     // Only repository data drives this flow. Saved-selection writes cannot emit
@@ -197,12 +196,12 @@ class DayViewModel @Inject constructor(
             }
                 // flatMapLatest cancels the day the lifter just left, but nothing
                 // *publishes* that — [uiState] keeps handing out the old day's
-                // fully tickable rows until [fetchDayHistory] returns from Room
-                // (#127). So each branch declares itself unresolved before it
-                // reads anything: on the usual fast fetch the real day arrives
-                // well inside ProgramLoadingState's reveal delay and nothing is
-                // drawn, and on a slow one the lifter waits instead of ticking
-                // sets into the day they walked away from.
+                // fully tickable rows until [fetchDayHistory] returns from Room.
+                // So each branch declares itself unresolved before it reads
+                // anything: on the usual fast fetch the real day arrives well
+                // inside ProgramLoadingState's reveal delay and nothing is drawn,
+                // and on a slow one the lifter waits instead of ticking sets into
+                // the day they walked away from.
                 .onStart { emit(DayUiState(loading = true)) }
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, DayUiState(loading = true))
@@ -210,7 +209,7 @@ class DayViewModel @Inject constructor(
     /**
      * Keep-screen-on rides on the outside, not through [contextFlow]: it changes
      * nothing about which day is on screen, and threading it through the
-     * flatMapLatest would restart the whole branch — and now blank the screen —
+     * flatMapLatest would restart the whole branch — and blank the screen —
      * every time a lifter flips a switch mid-workout.
      */
     /** One tick per second while a block runs and someone is watching; nothing
@@ -296,8 +295,8 @@ class DayViewModel @Inject constructor(
     }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayUiState(loading = true))
 
-    /** Render model for the day-edit sheet (#11, spec §8.3) — a second view over
-     *  the same day, kept out of [uiState] so the sheet never touches the
+    /** Render model for the day-edit sheet (spec §8.3) — a second view over the
+     *  same day, kept out of [uiState] so the sheet never touches the
      *  exercise-card render path (see [DayEditUiState] doc). */
     private val editProgramState = effectiveDayId.flatMapLatest { dayId ->
         if (dayId == null) {
@@ -349,14 +348,13 @@ class DayViewModel @Inject constructor(
     val cascadeCeremony: StateFlow<CascadeCeremony?> = _cascadeCeremony.asStateFlow()
 
     /**
-     * The session receipt (#126) — the same bare-field treatment as
-     * [_cascadeCeremony], and for the same reason: everything it reports is
-     * already committed to Room by the time it exists, so losing it to process
-     * death costs the lifter nothing, while restoring it would drop a finished
-     * workout's summary over whatever they came back to. Rotation keeps it,
-     * because a ViewModel outlives a configuration change. A cardio receipt held
-     * for an execution that still owns the screen is saved separately until it
-     * can be presented.
+     * The session receipt — the same bare-field treatment as [_cascadeCeremony],
+     * and for the same reason: everything it reports is already committed to
+     * Room by the time it exists, so losing it to process death costs the lifter
+     * nothing, while restoring it would drop a finished workout's summary over
+     * whatever they came back to. Rotation keeps it, because a ViewModel
+     * outlives a configuration change. A cardio receipt held for an execution
+     * that still owns the screen is saved separately until it can be presented.
      */
     private val _sessionReceipt = MutableStateFlow<SessionReceipt?>(null)
     val sessionReceipt: StateFlow<SessionReceipt?> = _sessionReceipt.asStateFlow()
@@ -371,11 +369,11 @@ class DayViewModel @Inject constructor(
     val pendingShare: StateFlow<Intent?> = _pendingShare.asStateFlow()
 
     /**
-     * The standing undo offers for removed sets (#124), oldest first — a
-     * bounded LIFO stack, because each entry's index describes the track *as it
-     * was when that row left it*. Only the last entry's index still means
-     * anything against the current list, so only the last entry can be taken;
-     * popping it makes the one beneath it current again.
+     * The standing undo offers for removed sets, oldest first — a bounded LIFO
+     * stack, because each entry's index describes the track *as it was when
+     * that row left it*. Only the last entry's index still means anything
+     * against the current list, so only the last entry can be taken; popping it
+     * makes the one beneath it current again.
      *
      * A bare field for the same reason as [_cascadeCeremony]: this is a
      * [UNDO_WINDOW_MS]-long courtesy, not user data, and an offer restored
@@ -661,7 +659,7 @@ class DayViewModel @Inject constructor(
                     ), current.resultSets, finishDay = current.finishesDay)
                     val latest = cardioRun.value?.takeIf { it.runId == current.runId } ?: return@withLock
                     val logged = latest.copy(sessionId = id)
-                    // Drafts now own only amendment state, never the execution slot or alarm.
+                    // Drafts own only amendment state, never the execution slot or alarm.
                     if (logged.drafts.isNotEmpty()) {
                         savedState[KEY_CARDIO_DISTANCES] = ArrayList(
                             pendingCardioDistances.value.filterNot { it.runId == logged.runId } + logged,
@@ -1062,7 +1060,7 @@ class DayViewModel @Inject constructor(
         savedState[KEY_OPEN_SHEET] = null
     }
 
-    /** Writes the keep-screen-on preference (#125). It lives in DataStore, not
+    /** Writes the keep-screen-on preference. It lives in DataStore, not
      *  [SavedStateHandle], so it outlives the process the way every other thing
      *  the user chose does — and the activity, not this screen, applies it. */
     fun setKeepScreenOn(on: Boolean) {
@@ -1089,11 +1087,11 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    /** DONE — advance: record the session (A1), follow the new
-     *  suggested day, then hand the just-written session to Health Connect
-     *  (#17/D7 trigger point). The publish is fired after `advanceDay` returns
-     *  and never blocks or fails the completion — [SessionPublisher] swallows
-     *  every failure path, and the no-op binding covers devices without HC.
+    /** DONE — advance: record the session (A1), follow the new suggested day,
+     *  then hand the just-written session to Health Connect (D7 trigger
+     *  point). The publish is fired after `advanceDay` returns and never
+     *  blocks or fails the completion — [SessionPublisher] swallows every
+     *  failure path, and the no-op binding covers devices without HC.
      *
      *  The all-time top-set highs are read *before* the advance appends to
      *  history; comparing them with what the session actually recorded is the
@@ -1101,11 +1099,11 @@ class DayViewModel @Inject constructor(
      *  ceremony is stored, so it can only ever fire on this transition.
      *
      *  Both post-DONE surfaces are raised here off ONE read of the just-written
-     *  session's sets: the cascade says what moved, the receipt (#126) says what
-     *  was done. Reading twice would let them describe different sessions if a
-     *  watch delta landed in between. The completed day's id, index and title
-     *  are all captured before [TrackerRepository.advanceDay] moves the pointer,
-     *  because from the next line on "the current day" means the next one. */
+     *  session's sets: the cascade says what moved, the receipt says what was
+     *  done. Reading twice would let them describe different sessions if a watch
+     *  delta landed in between. The completed day's id, index and title are all
+     *  captured before [TrackerRepository.advanceDay] moves the pointer, because
+     *  from the next line on "the current day" means the next one. */
     fun completeDay() {
         val day = currentDay() ?: return
         closeUndoWindow()
@@ -1184,7 +1182,7 @@ class DayViewModel @Inject constructor(
         _pendingShare.value = null
     }
 
-    // --- day-edit sheet intents (#11, spec §8.3) ------------------------------
+    // --- day-edit sheet intents (spec §8.3) ------------------------------
 
     fun setDayEditorOpen(open: Boolean) {
         savedState[KEY_DAY_EDITOR_OPEN] = open
@@ -1295,17 +1293,17 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    /** Picking a superset partner for a slot (#93) — the same intent whether the
-     *  slot had no partner or is swapping the one it had. The repository clears
-     *  only the SS track so the new partner seeds fresh from its own GOAL on the
-     *  next observation while the main track's history stays put. */
+    /** Picking a superset partner for a slot — the same intent whether the slot
+     *  had no partner or is swapping the one it had. The repository clears only
+     *  the SS track so the new partner seeds fresh from its own GOAL on the next
+     *  observation while the main track's history stays put. */
     fun setDaySlotSuperset(position: Int, partnerExerciseId: String) {
         val day = currentDay() ?: return
         mutate { repo.setSupersetPartner(day, position, partnerExerciseId) }
     }
 
-    /** Breaking a superset back into a plain slot (#93): the partner and its SS
-     *  track go, the main track stays. */
+    /** Breaking a superset back into a plain slot: the partner and its SS track
+     *  go, the main track stays. */
     fun removeDaySlotSuperset(position: Int) {
         val day = currentDay() ?: return
         mutate { repo.removeSupersetPartner(day, position) }
@@ -1350,9 +1348,9 @@ class DayViewModel @Inject constructor(
 
     /**
      * The state for a context that resolved to no day. The program itself says
-     * which of the two that is (#127): days but no day yet is the one frame
-     * where [effectiveDayId] hasn't caught up with a program emission, and is
-     * still loading; no days at all is the answer, and gets the recovery.
+     * which of the two that is: days but no day yet is the one frame where
+     * [effectiveDayId] hasn't caught up with a program emission, and is still
+     * loading; no days at all is the answer, and gets the recovery.
      */
     private fun noDayState(ctx: DayContext): DayUiState {
         validateCardioRun(ctx)
@@ -1367,9 +1365,9 @@ class DayViewModel @Inject constructor(
             ?: strengthIds.firstOrNull() ?: allIds.firstOrNull()
     }
 
-    /** One batched read for the whole day's "last time" chips (#14 A1 bonus)
-     *  AND its "Best" profile chips (performance-profile.md Phase 1) — never
-     *  one query per exercise for either. */
+    /** One batched read for the whole day's "last time" chips (PLAN.md A1
+     *  bonus) AND its "Best" profile chips (performance-profile.md Phase 1)
+     *  — never one query per exercise for either. */
     private suspend fun fetchDayHistory(slots: List<ProgramSlot>): DayHistory {
         val ids = slots.map { it.exercise.exerciseId }.distinct()
         return DayHistory(repo.lastPerformed(ids), repo.personalRecords(ids))
@@ -1751,9 +1749,9 @@ class DayViewModel @Inject constructor(
         const val STOP_TIMEOUT_MS = 5_000L
         const val CARDIO_TICK_MS = 1_000L
 
-        /** How long a removed set stays undoable (#124). Long enough to notice
-         *  the row vanish and reach for it, short enough that the offer is gone
-         *  before the next set is logged. */
+        /** How long a removed set stays undoable. Long enough to notice the row
+         *  vanish and reach for it, short enough that the offer is gone before
+         *  the next set is logged. */
         const val UNDO_WINDOW_MS = 5_000L
 
         /** How many removals one shared window will hold. Five seconds is not

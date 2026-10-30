@@ -74,7 +74,7 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
 import cloud.trotter.log.strength.ui.text.resolve
 
 /**
- * The Data/Backup screen (PLAN.md A2, brief D9's `:app`-side UI PR): full
+ * The Data/Backup screen (PLAN.md A2, D9): full
  * JSON backup export/restore and Strong-compatible CSV history export/import,
  * reachable from Setup. Stateless like the rest of the app's screens — the
  * route (`AppNavHost`) owns the SAF [androidx.activity.result.ActivityResultLauncher]s
@@ -86,11 +86,11 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
     val accent = dayAccent(0)
 
     // A restore writes Room and then DataStore with no transaction spanning the
-    // two, so walking out mid-write is how they end up disagreeing (#172). The
-    // write itself is app-scoped now and survives, but the screen still refuses
-    // to leave while it runs rather than reporting to nobody. Restore only:
-    // an export or a CSV import has nothing to tear, and gating back on every
-    // operation would just make the screen feel stuck.
+    // two, so walking out mid-write is how they end up disagreeing. The write
+    // itself is app-scoped and survives, but the screen still refuses to leave
+    // while it runs rather than reporting to nobody. Restore only: an export or
+    // a CSV import has nothing to tear, and gating back on every operation
+    // would just make the screen feel stuck.
     BackHandler(enabled = state.restoreInFlight) {}
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {

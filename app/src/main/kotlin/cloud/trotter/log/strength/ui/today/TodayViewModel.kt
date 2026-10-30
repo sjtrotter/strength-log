@@ -30,11 +30,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * Today screen ViewModel (#121, MVVM/UDF). Holds no working truth of its own:
- * every render value derives from repository flows, and every formatting
- * decision is delegated to the pure [TodayScreenBuilder]. Only the plan
- * picker's visibility is saved; selection goes through the repository.
- * Today never seeds a log and never writes one.
+ * Today screen ViewModel (MVVM/UDF). Holds no working truth of its own: every
+ * render value derives from repository flows, and every formatting decision
+ * is delegated to the pure [TodayScreenBuilder]. Only the plan picker's
+ * visibility is saved; selection goes through the repository. Today never
+ * seeds a log and never writes one.
  *
  * Seeding stays [cloud.trotter.log.strength.ui.day.DayViewModel]'s job, but the
  * *rules* are `:domain`'s, so Today can run them without writing anything: a day
@@ -71,7 +71,7 @@ class TodayViewModel @Inject constructor(
             // [contextFlow] picks the day from the same program emission, so a
             // null day here means the program has no days — the answer, not a
             // pause. Loading is the state before this flow emits at all, which
-            // is [uiState]'s initial value below (#127).
+            // is [uiState]'s initial value below.
             flowOf(TodayUiState(planId = ctx?.planId))
         } else {
             civilTimeSource.civilTime.flatMapLatest { now ->

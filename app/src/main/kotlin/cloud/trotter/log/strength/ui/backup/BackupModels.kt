@@ -9,20 +9,20 @@ import cloud.trotter.log.strength.ui.text.BackupErrorKind
 import cloud.trotter.log.strength.ui.text.UiText
 
 /**
- * Everything the Data/Backup screen (PLAN.md A2, brief D9's `:app`-side UI
- * PR) renders. [pendingRestoreConfirm] gates the confirm-overwrite dialog for
- * a JSON restore that has already been read and validated (never a raw
- * exception the user has to interpret); [csvImport] gates the CSV
- * preview/confirm screen once a file has been parsed into a preview model.
- * Both are mutually exclusive with an in-flight [isBusy] operation.
+ * Everything the Data/Backup screen (PLAN.md A2, D9) renders.
+ * [pendingRestoreConfirm] gates the confirm-overwrite dialog for a JSON
+ * restore that has already been read and validated (never a raw exception the
+ * user has to interpret); [csvImport] gates the CSV preview/confirm screen
+ * once a file has been parsed into a preview model. Both are mutually
+ * exclusive with an in-flight [isBusy] operation.
  *
  * [isBusy] and [restoreInFlight] are different questions and the screen asks
  * them separately. [isBusy] means "an operation is running": it disables the
  * action buttons so a second file picker can't stack on the first. Only
- * [restoreInFlight] shuts the *exits* (#172), and only a confirmed full restore
- * sets it — that is the one operation whose two stores can end up disagreeing if
- * the screen goes away, and gating back on every export would be a regression
- * for operations that can't hurt anything.
+ * [restoreInFlight] shuts the *exits*, and only a confirmed full restore sets it
+ * — that is the one operation whose two stores can end up disagreeing if the
+ * screen goes away, and gating back on every export would be a regression for
+ * operations that can't hurt anything.
  */
 data class BackupUiState(
     val isBusy: Boolean = false,
@@ -45,9 +45,9 @@ data class AutomaticBackupUiState(
 data class StatusMessage(val text: UiText, val isError: Boolean)
 
 /**
- * The CSV import preview/confirm screen's state (issue #16's pure preview
- * model, rendered here). [approvedPatterns] starts pre-filled with each
- * [cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName]'s
+ * The CSV import preview/confirm screen's state (docs/briefs/m4-transfer.md,
+ * "#16 CSV history export/import"). [approvedPatterns] starts pre-filled with
+ * each [cloud.trotter.log.strength.transfer.csv.UnmatchedExerciseName]'s
  * suggested pattern so confirming without edits is a deliberate accept of the
  * suggestion, not a silent guess — the user always sees and confirms the
  * screen first (PLAN.md A2: "never silent guessing").
@@ -113,11 +113,10 @@ internal fun automaticBackupResultLine(
  */
 object TransferErrorMessages {
 
-    /** How far an interrupted restore got, in the user's terms (#172). None of
-     *  these is a problem with the file they picked — which is what the generic
-     *  I/O message used to imply — so each says what is true of the device now
-     *  and what, if anything, is left for them to do. Shared with the wizard's
-     *  first-run restore. */
+    /** How far an interrupted restore got, in the user's terms. None of these
+     *  is a problem with the file they picked — so each says what is true of
+     *  the device and what, if anything, is left for them to do. Shared with
+     *  the wizard's first-run restore. */
     fun of(interruption: RestoreInterruption): UiText = UiText.BackupError(when (interruption) {
         is RestoreInterruption.NotStarted -> BackupErrorKind.RESTORE_NOT_STARTED
         is RestoreInterruption.SettingsPending -> BackupErrorKind.SETTINGS_PENDING

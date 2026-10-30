@@ -32,8 +32,7 @@ internal val DarkFocusRing = DarkTextSecondary
 // Faint text: remove-set glyph, superset "↳" marker, footer blurb (design-pass).
 internal val DarkTextFaint = Color(0xFF6B6B73)
 
-// Design-pass recolor: was M3-default 0xFFB3261E, which read too close to Day
-// A's terracotta. Cooler crimson so an error never looks like a Day-A accent;
+// Cooler crimson so an error never looks like Day A's terracotta accent;
 // white text stays >= 4.5:1 (measured 4.84:1 — see DayAccentTest).
 internal val DarkError = Color(0xFFC2334D)
 
@@ -138,10 +137,9 @@ fun accentBorder(dayIndex: Int): Color {
  * goldenrod, is legible unlifted, and the rest are unreadable as a hairline
  * mark.
  *
- * The lift itself is `DayAccentColors.brightHex`, same as the watch's: the phone
- * used to derive it here and the watch derived a different one of its own, so a
- * day read one way in the pocket and another on the wrist (#150). [DayAccentTest]
- * still pins the contrast floor from this side of the fence.
+ * The lift itself is `DayAccentColors.brightHex`, same as the watch's, so a day
+ * has the same colour in the pocket and on the wrist. [DayAccentTest] pins the
+ * contrast floor from this side of the fence.
  */
 fun accentBright(dayIndex: Int): Color = Color(DayAccentColors.brightHex(dayIndex))
 

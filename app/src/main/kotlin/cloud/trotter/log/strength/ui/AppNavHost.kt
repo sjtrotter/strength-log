@@ -81,10 +81,10 @@ import kotlinx.coroutines.withContext
 
 /**
  * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / new plan),
- * `today` (home, #121), `day` (the workout screen, pushed from Today), `setup`
- * (the gear, #12), `customExercise` (creation, #13), `log` (history, #14, D2),
- * and `plan`. Today, Log, and Plan share the navigation bar; the workout and
- * every other destination hide it.
+ * `today` (home), `day` (the workout screen, pushed from Today), `setup` (the
+ * gear), `customExercise` (creation), `log` (history, D2), and `plan`. Today, Log,
+ * and Plan share the navigation bar; the workout and every other destination hide
+ * it.
  */
 object Routes {
     const val TODAY = "today"
@@ -153,9 +153,9 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
     val destination by startViewModel.startDestination.collectAsStateWithLifecycle()
     val start = destination
     if (start == null) {
-        // Authored rather than blank (#127) — and it stays blank anyway on the
-        // ~100ms resolve this normally takes, because the treatment holds itself
-        // back for longer than that (see ProgramLoadingState).
+        // Authored rather than blank — and it stays blank anyway on the ~100ms
+        // resolve this normally takes, because the treatment holds itself back
+        // for longer than that (see ProgramLoadingState).
         ProgramLoadingState()
         return
     }
@@ -191,8 +191,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
         }
-        // Pushed from Today, never the start destination (#121), so leaving an
-        // idle workout screen is a plain pop to Today.
+        // Pushed from Today, never the start destination, so leaving an idle
+        // workout screen is a plain pop to Today.
         composable(
             route = Routes.DAY,
             enterTransition = { dayFadeThroughEnterTransition },
@@ -203,8 +203,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
             DayRoute(
                 onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
-                // Dismissing the session receipt (#126) is the same pop system
-                // back already performs — a finished workout leaves the workout
+                // Dismissing the session receipt is the same pop system back
+                // already performs — a finished workout leaves the workout
                 // screen, and Today re-derives what the rotation now says.
                 onFinishSession = { navController.popBackStack() },
                 onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
@@ -258,9 +258,9 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onOpenLicenses = { navController.navigate(Routes.LICENSES) },
             )
         }
-        // The empty journal's START (#127) leaves nothing behind it: popping LOG
-        // before pushing DAY means backing out of the workout lands on Today,
-        // not on the empty list the lifter just left.
+        // The empty journal's START leaves nothing behind it: popping LOG before
+        // pushing DAY means backing out of the workout lands on Today, not on
+        // the empty list the lifter just left.
         composable(Routes.LOG) {
             LogRoute(
                 onStartSession = {
@@ -289,9 +289,9 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
 }
 
 /**
- * The orientation screen (#121) and the app's home: it says what day is next and
- * what is in it, then hands off. [TodayViewModel] also switches the selected
- * plan; workout writes remain [DayViewModel]'s job.
+ * The orientation screen and the app's home: it says what day is next and what
+ * is in it, then hands off. [TodayViewModel] also switches the selected plan;
+ * workout writes remain [DayViewModel]'s job.
  */
 @Composable
 private fun TodayRoute(
@@ -571,10 +571,10 @@ private fun BackupRoute(onBack: () -> Unit, viewModel: BackupViewModel = hiltVie
 }
 
 /**
- * Static OSS-licenses screen (M6 #23). No view-model: the two license texts
- * ship as APK assets (`app/src/main/assets/licenses/`) rather than live
- * repo-only. They load once per visit off the main thread; there's no state to
- * survive process death because there's nothing to edit.
+ * Static OSS-licenses screen. No view-model: the two license texts ship as APK
+ * assets (`app/src/main/assets/licenses/`) rather than live repo-only. They
+ * load once per visit off the main thread; there's no state to survive process
+ * death because there's nothing to edit.
  */
 @Composable
 private fun LicensesRoute(onBack: () -> Unit) {
@@ -597,9 +597,9 @@ private fun LicensesRoute(onBack: () -> Unit) {
 }
 
 /**
- * Owns the Health Connect permission launcher (#17). The request contract and
- * the permission set come from [LogViewModel] (which delegates to the reader),
- * so `:app` drives the lazy, user-initiated request without importing any
+ * Owns the Health Connect permission launcher. The request contract and the
+ * permission set come from [LogViewModel] (which delegates to the reader), so
+ * `:app` drives the lazy, user-initiated request without importing any
  * androidx.health type. On any result — granted or denied — the ViewModel
  * re-reads Health Connect; a denial simply leaves the section empty (A3).
  */
@@ -612,10 +612,10 @@ private fun LogRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     // Two facts this screen can't observe change while it is away: the Health
     // Connect grant, which lives in another app and can be granted, revoked or
-    // reset there (#158), and the device's civil day, which turns on its own
-    // (#176). Re-reading both on every resume — rather than once when the
-    // ViewModel was built — is what makes the section's status and the
-    // journal's "today" honest on the next visit.
+    // reset there, and the device's civil day, which turns on its own.
+    // Re-reading both on every resume — rather than once when the ViewModel
+    // was built — is what makes the section's status and the journal's "today"
+    // honest on the next visit.
     LifecycleResumeEffect(Unit) {
         viewModel.onResumed()
         onPauseOrDispose {}
@@ -683,7 +683,7 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
     }
     // Registered after the gesture handler so it takes priority while enabled.
     // Back on the first step means leaving the app, and a restore in flight is
-    // writing two stores that share no transaction (#172) — it stays put.
+    // writing two stores that share no transaction — it stays put.
     BackHandler(enabled = state.restore.inFlight) {}
     Box(Modifier.backGesturePreview { backProgress.value }) {
         WizardScreen(
@@ -711,10 +711,9 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
 }
 
 /**
- * On save, returns to the caller (the picker or Setup) with the new exercise
- * already visible there: it's in [cloud.trotter.log.strength.data.catalog.ExerciseCatalog]
- * the moment [CustomExerciseViewModel.save] returns, and [cloud.trotter.log.strength.data.TrackerRepository.catalogFlow]
- * is live, so the #11 picker wiring landing later only needs to observe it.
+ * On save, returns to the caller (the picker or Setup) with the new exercise already visible there: it's in
+ * [cloud.trotter.log.strength.data.catalog.ExerciseCatalog] the moment [CustomExerciseViewModel.save] returns, and
+ * [cloud.trotter.log.strength.data.TrackerRepository.catalogFlow] is live, so the picker only needs to observe it.
  * System back before saving cancels the same way.
  */
 @Composable

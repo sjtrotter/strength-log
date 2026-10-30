@@ -206,8 +206,8 @@ fun DayScreen(
             .backGesturePreview { dayBackProgress.value },
     ) {
         if (!state.hasProgram) {
-            // Two different silences (#127): one that ends on its own, and one
-            // that only ends when the lifter does something about it.
+            // Two different silences: one that ends on its own, and one that
+            // only ends when the lifter does something about it.
             if (state.loading) ProgramLoadingState() else NoProgramState(actions.onSetUpProgram)
             return@Box
         }
@@ -541,7 +541,7 @@ fun DayScreen(
         NoteSheet(sessionReceipt?.note.orEmpty(), actions.onSetSessionNote) { receiptNoteOpen = false }
     }
 
-    // The finished session's receipt (#126), over a day screen that has already
+    // The finished session's receipt, over a day screen that has already
     // advanced — but only once the cascade has been read. One DONE can raise
     // both, and the order they arrive in is a composition rule, not a drawing
     // one: a receipt merely painted *under* the scrim is still in the semantics
@@ -670,7 +670,7 @@ data class DayActions(
     val onClearChecks: () -> Unit,
     val onDone: () -> Unit,
     val onCreateExercise: (MovementPattern) -> Unit,
-    /** The recovery out of the no-program state (#127): back into the wizard. */
+    /** The recovery out of the no-program state: back into the wizard. */
     val onSetUpProgram: () -> Unit,
     val onStartCardio: () -> Unit = {},
     val onStopCardio: (CardioSetAction) -> Unit = {},

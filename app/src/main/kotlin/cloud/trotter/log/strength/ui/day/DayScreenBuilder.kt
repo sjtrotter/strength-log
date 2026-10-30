@@ -151,7 +151,7 @@ object DayScreenBuilder {
      * never rewrites a lifter's living record (spec principle 2).
      *
      * [existing] maps each stored track to its current row count, which the
-     * partner path needs: a partner added to a lived-in slot (#93) must seed
+     * partner path needs: a partner added to a lived-in slot must seed
      * row-aligned to the LIVE main track — the lifter may have added EXTRA sets
      * to it — not to the freshly computed seed.
      */
@@ -206,10 +206,10 @@ object DayScreenBuilder {
 
     /**
      * The same per-row label rule as [kindLabels], taken straight from a list of
-     * [SetKind] — the SSOT the Log screen's history grouping (#14) reuses instead
-     * of re-deriving "R1/TOP/B/O/plain number" from [SessionSetEntity][
-     * cloud.trotter.log.strength.data.db.entity.SessionSetEntity]'s stored
-     * kind name.
+     * [SetKind] — the SSOT the Log screen's history grouping reuses instead of
+     * re-deriving "R1/TOP/B/O/plain number" from [SessionSetEntity][
+     * cloud.trotter.log.strength.data.db.entity.SessionSetEntity]'s stored kind
+     * name.
      */
     fun kindLabelsForKinds(kinds: List<SetKind>): List<String> {
         var ramp = 0
@@ -236,13 +236,13 @@ object DayScreenBuilder {
     }
 
     /**
-     * The "last time: …" chip's value (PLAN.md A1 bonus, issue #14) — `null`
-     * when [last] is `null` (the exercise has no prior completed performance),
-     * in which case the card shows no chip at all. Formats by the logged
-     * VALUE ([SetFormatter.summaryOfValues]), not the exercise's current
-     * tracking type: a `session_set`/last-performed row can be legacy
-     * reps-shaped for an exercise reclassified TIMED since (design risk #3 —
-     * history is never touched by the P3 fixup, only live logs are).
+     * The "last time: …" chip's value (PLAN.md A1 bonus) — `null` when [last]
+     * is `null` (the exercise has no prior completed performance), in which
+     * case the card shows no chip at all. Formats by the logged VALUE
+     * ([SetFormatter.summaryOfValues]), not the exercise's current tracking
+     * type: a `session_set`/last-performed row can be legacy reps-shaped for
+     * an exercise reclassified TIMED (history is never touched by the legacy
+     * reps→seconds fixup, only live logs are).
      */
     fun lastTimeDisplay(last: LastPerformed?, unit: WeightUnit): String? =
         last?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit, spaced = true) }
@@ -263,10 +263,10 @@ object DayScreenBuilder {
 
     /**
      * The TOP set's one-line comparison against the last time this exercise was
-     * performed (issue #127): "+5 LB FROM LAST", "MATCHED", "FIRST LOG". Derived
-     * from what the card already holds — [main] is the live log the rows render
-     * from and [last] is the read [lastTimeDisplay] already made — so narrating
-     * the number costs no extra query.
+     * performed: "+5 LB FROM LAST", "MATCHED", "FIRST LOG". Derived from what
+     * the card already holds — [main] is the live log the rows render from and
+     * [last] is the read [lastTimeDisplay] already made — so narrating the
+     * number costs no extra query.
      *
      * Keyed to [SetKind.TOP], which is why it is silent on REPS and TIMED
      * exercises: [cloud.trotter.log.strength.domain.seeding.SetSeeder] gives

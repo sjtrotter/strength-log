@@ -16,7 +16,7 @@ val ReadableWidth = 600.dp
 
 /**
  * Caps and centres the app's single content column, and carries the system-bar
- * insets with it. Not the two-pane layout reserved for #29 — one column, capped.
+ * insets with it.
  *
  * The order is the whole point, which is why it lives here and not at the nine
  * call sites that would each have to get it right: insets first, cap second, so
@@ -25,8 +25,8 @@ val ReadableWidth = 600.dp
  * out of the window, and the column silently narrows on exactly the devices this
  * cap exists for.
  *
- * The cap never binds on a 360-430dp portrait phone, so those windows measure
- * exactly as they did before it existed.
+ * The cap never binds on a 360-430dp portrait phone, so those windows keep
+ * their full width.
  */
 @Composable
 fun BoxScope.readableWidth(): Modifier =

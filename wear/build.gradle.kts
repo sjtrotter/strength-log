@@ -63,7 +63,19 @@ android {
     }
 
     testOptions {
-        unitTests.all { it.useJUnitPlatform() }
+        val recordStoreShots = providers.gradleProperty("storeShots").orNull == "true"
+        val storeShotsDir = layout.buildDirectory.dir("outputs/store").get().asFile
+        unitTests.all {
+            it.useJUnitPlatform()
+            it.systemProperty("storeShots.dir", storeShotsDir.absolutePath)
+            it.systemProperty("roborazzi.test.record", recordStoreShots.toString())
+            if (recordStoreShots) {
+                // A cached test task must never stand in for a render.
+                it.outputs.dir(storeShotsDir)
+                it.outputs.upToDateWhen { false }
+                it.outputs.cacheIf { false }
+            }
+        }
         unitTests.isIncludeAndroidResources = true // Robolectric Compose semantics tests
     }
 }
@@ -119,6 +131,9 @@ dependencies {
     // Compose semantics run on Robolectric (JUnit4 through the vintage engine),
     // matching :app's device-free accessibility harness.
     testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
     testImplementation(libs.junit4)
     testImplementation(libs.androidx.test.core)
     testRuntimeOnly(libs.junit.vintage.engine)

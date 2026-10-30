@@ -72,10 +72,8 @@ class WindowSizeTest {
 
     /**
      * The two post-DONE surfaces cover the whole window on purpose — they are
-     * hiding one — but their content is a column of text like any other. Before
-     * this cap the receipt was the single surface that went full-bleed on a
-     * tablet, and it arrived the instant DONE fired, immediately after the day
-     * screen behind it had capped itself.
+     * hiding one — but their content is a column of text like any other, so it
+     * is capped like the day screen behind it, even on a tablet.
      *
      * Coverage is asserted alongside the cap, so the cap can't be met by
      * shrinking the scrim.

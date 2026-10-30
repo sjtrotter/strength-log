@@ -75,8 +75,8 @@ class DialStateTest {
         day = WatchDay(
             dayId = "A",
             title = "Lower",
-            // Realistically long on purpose: the band must never show this —
-            // an arc reading "FLAT PRE…" was the on-wrist bug this pins.
+            // Realistically long on purpose: the band must never show this,
+            // or the arc reads a truncated "FLAT PRE…".
             emphasisLine = "flat press · vertical pull · hinge · quad",
             accentIndex = 0,
             exercises = exercises.toList(),

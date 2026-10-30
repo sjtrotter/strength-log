@@ -151,9 +151,8 @@ class DestructiveActionsTest {
 
     // --- dismissing a confirm is not taking it --------------------------------
     //
-    // Back is the route worth pinning and the one this issue was about: before
-    // the conversion it popped the whole screen, and the overlay stayed. It is
-    // also the same `onDismissRequest` a tap on the scrim runs, so these cover
+    // Back is the route worth pinning: it must close the confirm, not pop the
+    // screen from under it and leave the overlay behind. It is also the same `onDismissRequest` a tap on the scrim runs, so these cover
     // both — the scrim tap itself is a window-level touch Robolectric does not
     // route, so it stays an on-device check rather than a simulated one.
 

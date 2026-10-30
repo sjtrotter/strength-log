@@ -26,8 +26,8 @@ class GlanceLinesTest {
 
     @Test
     fun `a blank day id keeps the DAY prefix rather than dropping the clause`() {
-        // "day " isn't blank, so it survives the filter — the same string the widget
-        // produced when it uppercased each clause before filtering.
+        // "day " isn't blank, so it survives the filter: clauses are uppercased
+        // before blanks are dropped.
         assertEquals("DAY  · LOWER", GlanceLines.dayLine("", "Lower"))
     }
 

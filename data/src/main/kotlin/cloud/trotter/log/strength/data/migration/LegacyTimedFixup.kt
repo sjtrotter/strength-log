@@ -3,11 +3,9 @@ package cloud.trotter.log.strength.data.migration
 import cloud.trotter.log.strength.domain.model.LoggedSet
 
 /**
- * The reps→seconds reinterpretation for a live-log set belonging to an entry that
- * was reclassified to TIMED (tracking-types P3, Decision 5). Before the update the
- * only per-set field the UI offered was reps, so a user timing a plank recorded
- * the seconds there; now that the entry tracks time, that value belongs in
- * [LoggedSet.seconds].
+ * The reps→seconds reinterpretation for a legacy live-log set belonging to an
+ * entry reclassified to TIMED. Legacy timed holds store their duration in reps;
+ * that value belongs in [LoggedSet.seconds].
  *
  * Guarded to an *unfixed* row (`seconds == 0 && reps > 0`) so the fixup is
  * idempotent at the row level: a set already carrying seconds (a restored v2

@@ -1,4 +1,4 @@
-# R8 rules for the release build (M6 #23 / PLAN.md A9).
+# R8 rules for the release build (PLAN.md A9).
 #
 # Room, Hilt, Jetpack Compose, DataStore, and the Health Connect client all
 # ship their own consumer-rules.pro inside their AARs — R8 picks those up

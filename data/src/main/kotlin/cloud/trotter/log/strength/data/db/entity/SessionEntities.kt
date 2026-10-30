@@ -16,8 +16,8 @@ data class WorkoutSessionEntity(
     val dayTitle: String,
     val startedAt: Long?,
     val completedAt: Long,
-    /** Null when the session recorded no bodyweight — CSV-imported history carries
-     *  no bodyweight column (#171). "Unknown" must stay distinguishable from a
+    /** Null when the session recorded no bodyweight — CSV-imported history
+     *  carries no bodyweight column. "Unknown" must stay distinguishable from a
      *  number: a 0 here reads as a weightless lifter to the calorie estimate and
      *  as a real value to the backup, which is what made imported history
      *  unrestorable. Added in DB v4. */
@@ -33,7 +33,7 @@ data class WorkoutSessionEntity(
 
 /**
  * One performed set within a [WorkoutSessionEntity] (PLAN.md A1). [exerciseName]
- * is denormalized so history stays honest after the program is edited or the
+ * is denormalized so history stays accurate after the program is edited or the
  * exercise is deleted; [kind] is stored by enum name for the same
  * forward-compatibility reason as [SetDto].
  */

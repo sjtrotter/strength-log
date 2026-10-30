@@ -12,18 +12,20 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * Renders session history as Strong-compatible CSV (PLAN.md A2/A5, issue
- * #16): one row per performed set for strength, one row per cardio set, or one
- * summary for cardio without sets, using [HISTORY_CSV_HEADER]'s column layout. Pure and Android-free — [cloud.trotter.log.strength.transfer.csv.CsvHistoryService]
- * supplies the data from [cloud.trotter.log.strength.data.TrackerRepository.exportSessionHistory].
+ * Renders session history as Strong-compatible CSV (PLAN.md A2/A5): one row
+ * per performed set for strength, one row per cardio set, or one summary for
+ * cardio without sets, using [HISTORY_CSV_HEADER]'s column layout. Pure and
+ * Android-free — [cloud.trotter.log.strength.transfer.csv.CsvHistoryService]
+ * supplies the data from
+ * [cloud.trotter.log.strength.data.TrackerRepository.exportSessionHistory].
  *
- * Strength Duration is `H:MM:SS` of `completedAt - startedAt` (Strong's own on-disk
- * format) when the session carries a real start stamp (session-start
+ * Strength Duration is `H:MM:SS` of `completedAt - startedAt` (Strong's own
+ * on-disk format) when the session carries a real start stamp (session-start
  * capture), and empty otherwise — never a synthesized estimate. Strength import
- * ([CsvHistoryImporter]) deliberately never reads this column back: a CSV
- * round-trip has no reliable start-time semantics (a foreign file's Duration
- * column format isn't ours to trust), so re-deriving `startedAt` from it
- * would be a guess dressed up as recorded data.
+ * ([CsvHistoryImporter]) never reads this column back: a CSV round-trip has no
+ * reliable start-time semantics (a foreign file's Duration column format isn't
+ * ours to trust), so re-deriving `startedAt` from it would be a guess dressed
+ * up as recorded data.
  */
 object HistoryCsvWriter {
 

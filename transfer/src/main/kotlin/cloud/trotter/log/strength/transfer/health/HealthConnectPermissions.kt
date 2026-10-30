@@ -6,14 +6,13 @@ import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.WeightRecord
 
 /**
- * The exact Health Connect permission strings this app asks for (#17, A3, and
- * the session-start-calories brief), requested together from the Log screen's
+ * The exact Health Connect permission strings this app asks for (A3 and the
+ * session-start-calories brief), requested together from the Log screen's
  * Connect card; the user allows or denies each one in the system dialog. Four,
- * and no more, so the rationale is honest:
- * write our own workouts, write a session-level calorie estimate alongside
- * them, read other apps' workouts to show them in the Log, read bodyweight to
- * offer a GOAL update. The app stays fully functional with any subset —
- * including none — granted.
+ * and no more, matching the rationale: write our own workouts, write a
+ * session-level calorie estimate alongside them, read other apps' workouts to
+ * show them in the Log, read bodyweight to offer a GOAL update. The app stays
+ * fully functional with any subset — including none — granted.
  */
 object HealthConnectPermissions {
 

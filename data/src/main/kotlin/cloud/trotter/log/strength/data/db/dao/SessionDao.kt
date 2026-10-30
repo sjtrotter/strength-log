@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * One row of [SessionDao.observeSessionSummaries] — a session plus its total
- * set count, computed in the same aggregate query (the Log screen list, #14,
- * would otherwise need one extra query per row to show a count).
+ * set count, computed in the same aggregate query (the Log screen list would
+ * otherwise need one extra query per row to show a count).
  */
 data class SessionSummaryRow(
     @Embedded val session: WorkoutSessionEntity,
@@ -89,8 +89,8 @@ interface SessionDao {
     fun observeSessions(): Flow<List<WorkoutSessionEntity>>
 
     /**
-     * The Log screen's list (#14): every session, newest first, each paired with
-     * its total set count via one aggregate query — no N+1 as history grows.
+     * The Log screen's list: every session, newest first, each paired with its
+     * total set count via one aggregate query — no N+1 as history grows.
      */
     @Query(
         """
@@ -106,19 +106,19 @@ interface SessionDao {
     @Query("SELECT * FROM session_set WHERE sessionId = :sessionId ORDER BY id")
     suspend fun setsForSession(sessionId: Long): List<SessionSetEntity>
 
-    /** One session by id, for the Health Connect publish path (#17) — the session
+    /** One session by id, for the Health Connect publish path — the session
      *  header (dayTitle, start/end times) that pairs with [setsForSession]. */
     @Query("SELECT * FROM workout_session WHERE id = :sessionId")
     suspend fun sessionById(sessionId: Long): WorkoutSessionEntity?
 
     /**
      * Every completed ([SessionSetEntity.done]) set ever logged for any of
-     * [exerciseIds], newest session first (ties — i.e. rows from the same
-     * session — broken by heaviest weight). One query for a whole day's worth
-     * of exercise ids (#14 "last time" chip) instead of one per exercise; see
-     * [cloud.trotter.log.strength.data.TrackerRepository.lastPerformed] for
-     * how the flat result collapses to one row per exercise. For a ramped main
-     * lift, every round (ramp/top/back-off) shares one `exerciseId`, so "heaviest
+     * [exerciseIds], newest session first (ties — i.e. rows from the same session
+     * — broken by heaviest weight). One query for a whole day's worth of exercise
+     * ids ("last time" chip) instead of one per exercise; see
+     * [cloud.trotter.log.strength.data.TrackerRepository.lastPerformed] for how
+     * the flat result collapses to one row per exercise. For a ramped main lift,
+     * every round (ramp/top/back-off) shares one `exerciseId`, so "heaviest
      * weight in the session" naturally picks its TOP set. The `reps`/`seconds`
      * tiebreaks make the pick type-correct without the SQL knowing the type: a
      * REPS exercise's rows all tie at weight 0 so `reps DESC` picks its best set,

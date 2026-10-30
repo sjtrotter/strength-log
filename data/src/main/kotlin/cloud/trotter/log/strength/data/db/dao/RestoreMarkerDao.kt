@@ -5,8 +5,8 @@ import androidx.room.Query
 import androidx.room.Upsert
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 
-/** The restore commit marker (#172) — see [RestoreMarkerEntity] for why it lives
- *  in Room rather than beside the journal it belongs to. */
+/** The restore commit marker — see [RestoreMarkerEntity] for why it lives in
+ *  Room rather than beside the journal it belongs to. */
 @Dao
 interface RestoreMarkerDao {
 

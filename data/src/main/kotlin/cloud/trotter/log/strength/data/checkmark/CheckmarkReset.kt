@@ -26,9 +26,9 @@ object CheckmarkReset {
      * Returns [sets] unchanged when [checkDate] is [today]; otherwise returns them
      * with every `done` flag cleared. Weights, reps and set kinds are untouched.
      *
-     * The per-set start/complete stamps clear with the check (#85): they are facts
-     * about *that* tick on *that* date, so leaving yesterday's timing on a row that
-     * now reads unchecked would let a stale duration ride into today's session.
+     * The per-set start/complete stamps clear with the check: they are facts about
+     * *that* tick on *that* date, so leaving yesterday's timing on a row that reads
+     * unchecked would let a stale duration ride into today's session.
      */
     fun applyResetIfStale(sets: List<LoggedSet>, checkDate: String, today: String): List<LoggedSet> {
         if (checkDate == today) return sets

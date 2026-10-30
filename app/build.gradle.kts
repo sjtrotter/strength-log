@@ -42,8 +42,8 @@ android {
 
     buildTypes {
         release {
-            // R8 on for the shipping build (M6 #23/A9); :wear shrinks too
-            // (its build.gradle.kts) — the unminified watch APK hit 25 MB.
+            // R8 on for the shipping build (PLAN.md A9);
+            // :wear shrinks too.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -114,7 +114,7 @@ kotlin {
     jvmToolchain(17)
 }
 
-// Recomposition hygiene evidence (#156): `./gradlew :app:compileDebugKotlin
+// Recomposition hygiene evidence: `./gradlew :app:compileDebugKotlin
 // -PcomposeMetrics=true` writes the stability/skippability reports to
 // app/build/compose-metrics. Off by default — the reports cost a full
 // non-incremental Kotlin compile, and nothing in a normal build reads them.
@@ -144,7 +144,7 @@ dependencies {
     // get it from Play's cloud profiles (sideloads, and the release APK
     // docs/RELEASE.md builds).
     implementation(libs.androidx.profileinstaller)
-    // The generator module's output, compiled AOT into the release build (#156).
+    // The generator module's output, compiled AOT into the release build.
     baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.core.ktx)
@@ -166,7 +166,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(libs.kotlinx.coroutines.core)
-    // Wear Data Layer: publish snapshots + receive set-edit deltas (#20). The
+    // Wear Data Layer: publish snapshots + receive set-edit deltas. The
     // play-services adapter gives Task.await() so the flow pipeline stays suspend.
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
@@ -174,7 +174,7 @@ dependencies {
     // module depends on them directly (they are not part of :data's API).
     implementation(libs.room.runtime)
     implementation(libs.androidx.datastore.preferences)
-    // First WorkManager use in the app: quiet, deferrable daily SAF backups.
+    // Quiet, deferrable daily SAF backups.
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.documentfile)
 

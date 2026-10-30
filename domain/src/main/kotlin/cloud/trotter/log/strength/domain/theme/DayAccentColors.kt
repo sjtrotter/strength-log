@@ -5,9 +5,8 @@ import kotlin.math.roundToLong
 /**
  * SSOT for the per-day earth-tone accent colors, their on-accent contrast text
  * color and their bright/deep foreground variants, in day order A-G, as 0xAARRGGBB
- * values. `:app` (via `androidx.compose.ui.graphics.Color`) and `:wear` both
- * read the same hexes from here instead of duplicating the literals — and, since
- * #150, the same *derivations* too.
+ * values. `:app` (via `androidx.compose.ui.graphics.Color`) and `:wear` both read
+ * the same hexes and *derivations* from here instead of duplicating them.
  *
  * Spec §8.5 pins only A-D and says "cycle for >4 days"; this is a deliberate
  * amendment (wear-companion design digest §0/§4.2) expanding the rotation to
@@ -64,19 +63,13 @@ object DayAccentColors {
      * keeps the hue and carries all seven past 4.5:1.
      *
      * This lives here, next to the accents, because it is the same fact as the
-     * color it derives from. It used to live twice: the phone lifted by contrast
-     * measurement (#106) while the watch invented a flat HSL lift that left day D
-     * at 3.68:1 — so the same day rendered differently on the wrist and in the
-     * pocket, and only one of the two actually met AA (#150). Derived, never a
-     * second hex table: a brightened table would be a second thing to keep in
-     * step with the accents. [DayAccentColorsTest] pins the results and the floor.
+     * color it derives from. Derived, never a second hex table: a brightened table
+     * would be a second thing to keep in step with the accents.
+     * [DayAccentColorsTest] pins the results and the floor.
      *
-     * The blend is plain sRGB. The phone's old lift was Compose's `lerp`, which
-     * interpolates in Oklab, and reproducing that here would mean porting a UI
-     * toolkit's colour pipeline into pure Kotlin. Moving to this one nudged the
-     * phone's rendered brights: C by 21/255 on blue, A by 6/4/11 on R/G/B, and
-     * the remaining five by 5/255 or less on any channel. Every one of them
-     * gained contrast headroom rather than losing it.
+     * The blend is plain sRGB. Compose's `lerp` interpolates in Oklab;
+     * reproducing that here would mean porting a UI toolkit's colour pipeline
+     * into pure Kotlin.
      */
     fun brightHex(dayIndex: Int): Long = lift(hex(dayIndex), TEXT_PRIMARY, BRIGHT_LIFT)
 

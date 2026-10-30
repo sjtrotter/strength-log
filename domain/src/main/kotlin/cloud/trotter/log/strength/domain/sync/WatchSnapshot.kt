@@ -9,12 +9,13 @@ import cloud.trotter.log.strength.domain.model.CardioSuggestion
  * the watch is glanceable, not a program browser, so there is no per-day
  * history on the wrist.
  *
- * [epoch] and [revision] together are the freshness contract, and the watch enforces
- * it: within one epoch it installs a snapshot only when the revision is *strictly
- * greater* than the one it holds (an equal revision is a redelivery, and installing
- * one would wipe the watch's optimistic echo, which deliberately doesn't spend a
- * revision); across epochs it adopts unconditionally, because a new epoch means a new
- * authority generation and its revisions have nothing to do with the old ones.
+ * [epoch] and [revision] together are the freshness contract, and the watch
+ * enforces it: within one epoch it installs a snapshot only when the revision is
+ * *strictly greater* than the one it holds (an equal revision is a redelivery,
+ * and installing one would wipe the watch's optimistic echo, which doesn't spend
+ * a revision); across epochs it adopts unconditionally, because a new epoch means
+ * a new authority generation and its revisions have nothing to do with the old
+ * ones.
  *
  * The publisher's side of that bargain: spend a fresh revision on every publish that
  * carries new content, never reuse one, and mint a new epoch whenever the counter
@@ -140,12 +141,13 @@ data class WatchExercise(
      */
     val goalLabel: String = "",
     /**
-     * How this exercise is tracked — [cloud.trotter.log.strength.domain.library.TrackingType]'s
-     * name, lowercased ("weighted"/"reps"/"timed"). Tells the watch which control to
-     * render (weight numeral, reps-only, or a seconds hold) and which field the crown
-     * edits. Additive, appended last, defaulting to "weighted" so a pre-P5 publisher and
-     * every existing fixture decode as the (only) old behavior; a stale watch that
-     * ignores it just keeps drawing the weighted view (self-heals on update).
+     * How this exercise is tracked —
+     * [cloud.trotter.log.strength.domain.library.TrackingType]'s name, lowercased
+     * ("weighted"/"reps"/"timed"). Tells the watch which control to render (weight
+     * numeral, reps-only, or a seconds hold) and which field the crown edits.
+     * Additive, appended last, defaulting to "weighted" so an older phone and every
+     * existing fixture decode as the (only) old behavior; a stale watch that ignores
+     * it just keeps drawing the weighted view (self-heals on update).
      */
     val tracking: String = "weighted",
     /**
@@ -157,10 +159,11 @@ data class WatchExercise(
      */
     val ssTracking: String = "weighted",
     /**
-     * The replacements the phone has already ranked for this lift (brief §6 "Swap",
-     * issue #90) — the *only* alternates the watch may ever offer. The watch never
-     * consults a catalog and never re-plans: it flicks through this list, echoes one
-     * back as an [ExerciseSwapDelta], and the phone applies its own §8.3 swap.
+     * The replacements the phone has already ranked for this lift
+     * (docs/briefs/wear-dial-v3.md §5 "Swap") — the *only* alternates the watch may
+     * ever offer. The watch never consults a catalog and never re-plans: it flicks
+     * through this list, echoes one back as an [ExerciseSwapDelta], and the phone
+     * applies its own §8.3 swap.
      *
      * Ranked best-first (`substitutionsFor`'s subRank order) and capped small: a
      * wrist is not a picker, and an unbounded list would ride every snapshot for

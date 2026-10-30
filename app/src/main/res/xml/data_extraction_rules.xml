@@ -4,9 +4,9 @@
   device-to-device transfer flow for free. This is the "free ride," not the
   guaranteed path — Auto Backup is best-effort, opaque to the user, and skipped
   entirely if the OEM's transfer tool doesn't invoke it. The versioned JSON
-  full backup (PLAN.md A2, #15/PR #42) is the user-visible, guaranteed export;
-  it stays the recommended way to move data on purpose. Nothing here is a
-  secret, so everything the app writes is included and nothing is excluded.
+  full backup (PLAN.md A2) is the user-visible, guaranteed export; it stays the
+  recommended way to move data on purpose. Nothing here is a secret, so
+  everything the app writes is included and nothing is excluded.
 -->
 <data-extraction-rules>
     <cloud-backup>

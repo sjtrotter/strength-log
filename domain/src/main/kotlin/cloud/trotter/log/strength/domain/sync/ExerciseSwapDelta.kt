@@ -4,9 +4,9 @@ import kotlinx.serialization.Serializable
 
 /**
  * A watch->phone request to use one of the phone's own prescribed alternates for a
- * slot today (brief §6 "Swap", issue #90). It rides the same MessageClient transport
- * as [SetEditDelta] but on its own path ([WearSyncPaths.EXERCISE_SWAP]), because a
- * swap is not a set edit:
+ * slot today (docs/briefs/wear-dial-v3.md §5 "Swap"). It rides the same
+ * MessageClient transport as [SetEditDelta] but on its own path
+ * ([WearSyncPaths.EXERCISE_SWAP]), because a swap is not a set edit:
  *
  *  - it addresses a *slot*, not a row — there is no `setIndex`, no `slot` track, and
  *    none of [SetEditDelta]'s three guards (index-in-range, per-row dedupe,

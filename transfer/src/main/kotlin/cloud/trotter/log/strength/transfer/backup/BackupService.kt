@@ -12,9 +12,9 @@ import kotlinx.coroutines.sync.withLock
  * produce a backup string/stream from the current device state, or restore the
  * device from one — replacing all existing data.
  *
- * The public surface is deliberately Uri-free (strings and streams only) so it
- * runs and tests without Android's SAF; the `:app` layer supplies the share-sheet
- * / document-picker plumbing on top later.
+ * The public surface is Uri-free (strings and streams only) so it runs and tests
+ * without Android's SAF; the `:app` layer supplies the share-sheet /
+ * document-picker plumbing on top.
  *
  * Restore is an explicit, unconditional replace — the confirm-overwrite dialog is
  * the UI's responsibility. [import] validates the file end-to-end via [BackupCodec]
@@ -22,7 +22,7 @@ import kotlinx.coroutines.sync.withLock
  * leaves the device untouched.
  *
  * A restore that *starts* is journaled rather than assumed atomic: see
- * [RestoreJournal] and [reconcilePendingRestore] (#172).
+ * [RestoreJournal] and [reconcilePendingRestore].
  */
 class BackupService(
     private val repository: TrackerRepository,
@@ -56,8 +56,8 @@ class BackupService(
 
     /**
      * Finishes a restore that was cut between its Room and settings halves,
-     * returning whether one was outstanding (#172). Called once per launch; a
-     * no-op on every normal start.
+     * returning whether one was outstanding. Called once per launch; a no-op
+     * on every normal start.
      */
     suspend fun reconcilePendingRestore(): Boolean =
         restoreLock.withLock { repository.reconcilePendingRestore(journal) }
@@ -69,8 +69,8 @@ class BackupService(
      *
      * For callers whose *decision* depends on what a restore has already
      * written, not just their own writes. The first-run wizard's finish is the
-     * one that matters (#172): it reads `wizardComplete` to decide whether the
-     * device was restored underneath it, and outside this lock the startup
+     * one that matters: it reads `wizardComplete` to decide whether the device
+     * was restored underneath it, and outside this lock the startup
      * reconciliation can flip that flag between the read and the
      * `replaceProgram` it authorizes — deleting the program that was just
      * restored. Inside it, check and use are one critical section.

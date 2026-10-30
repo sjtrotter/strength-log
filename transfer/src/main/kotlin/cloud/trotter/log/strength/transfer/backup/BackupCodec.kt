@@ -215,7 +215,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
 
     /**
      * Pre-v5, a session's bodyweight was a required number and CSV-imported
-     * history was written as 0 (#171) — the value that made those documents
+     * history was written as 0 — the value that made those documents
      * unrestorable. 0 was never a real bodyweight, so it can only have meant
      * "none recorded", which v5 spells null.
      */

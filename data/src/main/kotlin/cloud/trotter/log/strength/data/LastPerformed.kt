@@ -3,7 +3,7 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.data.db.dao.LastPerformedRow
 
 /** One exercise's most recent completed performance (PLAN.md A1 "last time"
- *  chip on the day screen's exercise cards, issue #14). */
+ *  chip on the day screen's exercise cards). */
 data class LastPerformed(val weightLb: Double, val reps: Int, val seconds: Int = 0)
 
 /**

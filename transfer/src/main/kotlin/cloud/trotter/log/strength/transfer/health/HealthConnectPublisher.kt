@@ -9,13 +9,14 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import java.time.ZoneId
 
 /**
- * Writes completed sessions to Health Connect (#17, brief D7; backfill #159).
- * [publish] — the completion trigger — is silent on every failure path so the
- * feature degrades invisibly (A3): if the provider is absent, the write
- * permission was never granted, the session has no sets, or the insert itself
- * throws, it returns without surfacing anything. [publishAll] runs the same
- * per-session path but reports whether every session made it, because its
- * caller has to decide whether the one-shot backfill may be marked done.
+ * Writes completed sessions to Health Connect (docs/briefs/m4-transfer.md,
+ * "#17 Health Connect"). [publish] — the D7 completion trigger — is silent on
+ * every failure path so the feature degrades invisibly (A3): if the provider
+ * is absent, the write permission was never granted, the session has no sets,
+ * or the insert itself throws, it returns without surfacing anything.
+ * [publishAll] runs the same per-session path but reports whether every
+ * session made it, because its caller has to decide whether the one-shot
+ * backfill may be marked done.
  *
  * The pure session → record mapping is [SessionRecordMapper] (exercise) and
  * [CaloriesRecordMapper] (calories); this class only adds the availability

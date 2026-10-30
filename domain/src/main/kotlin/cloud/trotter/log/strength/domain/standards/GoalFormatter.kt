@@ -8,9 +8,9 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  * The single place a [GoalTarget] becomes a GOAL display string (§2.2, SSOT).
  * Every surface — the day card's GOAL chip, the setup preview, the collapsed
  * summary, the watch snapshot label — formats here, so no surface can invent a
- * "0 lb × 60" rendering for a REPS/TIMED entry (design risk #3).
+ * "0 lb × 60" rendering for a REPS/TIMED entry.
  *
- * WEIGHTED output is the bare unit-converted number, byte-identical to the old
+ * WEIGHTED output is the bare unit-converted number, byte-identical to
  * `WeightStepper.format(unit.fromLb(goalLb))` — the per-hand "/hand" suffix stays
  * a per-surface concern (a separately styled line), not part of this string.
  */

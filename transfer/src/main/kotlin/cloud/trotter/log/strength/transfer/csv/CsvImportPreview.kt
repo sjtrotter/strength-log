@@ -4,8 +4,8 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 
 /**
- * Pure preview/confirm model for a CSV history import (issue #16; PLAN.md A2:
- * "unmatched names ... preview/confirm ... never silent guessing"). Built by
+ * Pure preview/confirm model for a CSV history import (PLAN.md A2: "unmatched
+ * names ... preview/confirm ... never silent guessing"). Built by
  * [HistoryCsvReader.preview] and consumed by [CsvHistoryImporter.commit] —
  * nothing is written to the device between the two; the caller renders this,
  * lets the user edit each [UnmatchedExerciseName.suggestedPattern], and only

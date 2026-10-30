@@ -10,9 +10,9 @@ data class CardioPlan(val steps: List<CardioStep>) {
 
 /**
  * Executable plans derived from [CardioPlanner]'s prose, which remains the
- * single source of truth. Easy Zone 2 deliberately pins the prose's 20–30
- * minute band to its 25-minute midpoint. Hard tempo preserves its stated 20
- * minutes, and hard 5k intervals deliberately pin the stated 4–6 repeats to 5.
+ * single source of truth. Easy Zone 2 pins the prose's 20–30 minute band to
+ * its 25-minute midpoint. Hard tempo preserves its stated 20 minutes, and hard
+ * 5k intervals pin the stated 4–6 repeats to 5.
  */
 object CardioIntervals {
 

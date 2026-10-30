@@ -47,8 +47,8 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
- * The Data/Backup screen's half of #172: what the user is told when a restore
- * stops part-way, and which operations shut the screen's exits.
+ * The Data/Backup screen: what the user is told when a restore stops
+ * part-way, and which operations shut the screen's exits.
  *
  * Real repository, real [BackupService], real dispatchers — both DataStores are
  * instrumented, because the two writes that can fail after the point of no
@@ -158,7 +158,7 @@ class BackupViewModelRestoreTest {
     private suspend fun awaitMessage(): StatusMessage =
         withTimeout(TIMEOUT_MS) { viewModel.uiState.first { it.message != null }.message!! }
 
-    // --- honest reporting ------------------------------------------------------
+    // --- restore results -------------------------------------------------------
 
     @Test
     fun restoringV8WithTwoPlansPreservesTheirDaysAndTheSecondSelectionAndReportsSuccess() = runBlocking {
@@ -271,9 +271,8 @@ class BackupViewModelRestoreTest {
 
     @Test
     fun readingABackupFileIsBusyButDoesNotHoldTheExitsShut() = runBlocking {
-        // Held open mid-read, which is the same "busy" the old gate keyed on —
-        // but reading a file can't leave two stores disagreeing, so the exits
-        // must stay open through it.
+        // Held open mid-read: reading a file can't leave two stores
+        // disagreeing, so the exits must stay open through it.
         val open = CompletableDeferred<Unit>()
         val uri = Uri.parse("content://test.backups/slow")
         shadowOf(context.contentResolver).registerInputStreamSupplier(uri) {

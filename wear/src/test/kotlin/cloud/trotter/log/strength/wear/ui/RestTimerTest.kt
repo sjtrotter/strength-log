@@ -32,7 +32,7 @@ class RestTimerTest {
         assertFalse(RestTimer.shouldRest(StreamAdvance.DayDone, restAfterSeconds = 180))
     }
 
-    // --- shouldRestAfterExercise: the between-exercise (day-list pill) rest, issue #81 ---
+    // --- shouldRestAfterExercise: the between-exercise (day-list pill) rest --------------
 
     @Test
     fun `between-exercise rest shows on back-to-list with a positive rest`() {

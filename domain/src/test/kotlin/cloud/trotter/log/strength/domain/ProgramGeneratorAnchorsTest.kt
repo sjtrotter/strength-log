@@ -10,8 +10,8 @@ import kotlin.test.assertEquals
 /**
  * Covers [ProgramGenerator.activeAnchorIds] — the single source of the spec
  * §6.1 "first N anchors for 2–3-day splits" narrowing that both the generated
- * full-body program and the wizard's anchor-step preview read. Kept in a new
- * file so the pinned §11 verification tests stay untouched.
+ * full-body program and the wizard's anchor-step preview read. Separate from
+ * the pinned §11 tests so those files stay unedited.
  */
 class ProgramGeneratorAnchorsTest {
 

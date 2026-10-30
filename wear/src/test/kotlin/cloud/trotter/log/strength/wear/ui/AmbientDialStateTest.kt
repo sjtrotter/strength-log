@@ -11,7 +11,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** What ambient mode says, and what it deliberately doesn't (brief §7). */
+/** What ambient mode says, and what it omits (brief §7). */
 class AmbientDialStateTest {
 
     private fun exercise(id: Long, doneFlags: List<Boolean>) = WatchExercise(

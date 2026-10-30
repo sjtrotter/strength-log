@@ -31,8 +31,8 @@ import kotlinx.coroutines.withTimeout
 
 /**
  * The watch client's sync contract against a [FakePhoneLink]: when the queue drains,
- * which inbound snapshot is authoritative, and who owns the coroutine an edit rides on
- * (#173, #174).
+ * which inbound snapshot is authoritative, and who owns the coroutine an edit rides
+ * on.
  *
  * Real dispatchers and a real (temp-file) DataStore rather than virtual time: the
  * properties under test are about work outliving its caller and about two drains
@@ -201,9 +201,9 @@ class DataLayerWatchClientTest {
         link.reachability.emit(true)
         eventually("the reconnect drain") { link.sentDeltas.size == 2 && link.sentSwaps.size == 2 }
 
-        // A second `true` with no `false` between drains again, deliberately: the
-        // initial capability query and the change callbacks are independent sources,
-        // and deduplicating would let a late query result latch `true` over a real
+        // A second `true` with no `false` between drains again: the initial
+        // capability query and the change callbacks are independent sources, and
+        // deduplicating would let a late query result latch `true` over a real
         // disconnect and swallow the reconnect that follows it.
         link.reachability.emit(true)
 
@@ -372,8 +372,8 @@ class DataLayerWatchClientTest {
         eventually("the phone's snapshot") { client.snapshotFlow().first().revision == 500L }
 
         // The lifter cleared the phone app's data: same phone, new generation, and its
-        // revisions start over. Refusing this is the wedge #173's guard could have
-        // created — no restart on either side recovers from it.
+        // revisions start over. Refusing this would wedge sync — no restart on either
+        // side could recover from it.
         link.snapshotEvents.emit(phoneSnapshot(revision = 1, epoch = PHONE_EPOCH + 1))
 
         eventually("the new generation") { client.snapshotFlow().first().epoch == PHONE_EPOCH + 1 }
@@ -417,7 +417,7 @@ class DataLayerWatchClientTest {
         val queue = store()
         val client = watchClient(link, queue)
         // The dial's composition scope: cancelled on Activity destroy, which the app's
-        // own day-done dismiss triggers a haptic's worth of time after the tick (#174).
+        // own day-done dismiss triggers a haptic's worth of time after the tick.
         val composition = CoroutineScope(Dispatchers.Unconfined + Job())
 
         composition.launch { client.sendEdit(tickDelta(setIndex = 0, done = true, stamp = 7L)) }

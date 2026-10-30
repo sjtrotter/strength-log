@@ -48,9 +48,8 @@ import org.robolectric.annotation.Config
  * The shared today-state source folds [SettingsStore.restSettingsFlow] into its
  * content combine, so a Setup rest edit changes the projected snapshot — the byte
  * change that, via the publisher's distinctUntilChanged + nextStamp
- * (WearSyncStoreTest), spends a fresh revision. R8 risk #3 flags forgetting this
- * combine as the real bug; this test is that checklist item. Real repo + Room +
- * DataStore on the test dispatcher.
+ * (WearSyncStoreTest), spends a fresh revision. Real repo + Room + DataStore on
+ * the test dispatcher.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

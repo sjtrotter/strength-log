@@ -140,8 +140,8 @@ class BackupRoundTripTest : BackupTestHarness() {
         // The wipe backup predates nothing — it simply carries no rest keys, so
         // the tuned buckets must fall back to RestPolicy's defaults, not linger.
         assertEquals(RestSettings(), repository.restSettingsFlow.first())
-        // Same story for keep-screen-on (#125): the empty backup carries no key,
-        // so the restore must land on the absent-means-off default.
+        // Same story for keep-screen-on: the empty backup carries no key, so the
+        // restore must land on the absent-means-off default.
         assertEquals(false, repository.keepScreenOnFlow.first())
 
         // --- import the real backup and compare deep-equal --------------------

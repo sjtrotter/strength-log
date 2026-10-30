@@ -18,14 +18,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The ± segment's auto-repeat, pinned while #156 rewired what drives it.
- *
- * The repeat used to hang off `collectIsPressedAsState` — a second collector
- * coroutine per segment, and a recomposition every time a finger landed on the
- * app's most-multiplied control. It now reads the interaction source once,
- * directly, from an effect keyed on the source, which never changes. That last
- * part is the hazard: an effect that outlives the composition around it will
- * happily go on calling the `onClick` it closed over on its first pass.
+ * The ± segment's auto-repeat reads the interaction source once, directly,
+ * from an effect keyed on the source, which never changes. An effect that
+ * outlives the composition around it can go on calling the `onClick` it closed
+ * over on its first pass.
  *
  * So these tests hold the stepper the way the day screen does — the emitted
  * value goes back into the state the stepper renders — and assert the exact

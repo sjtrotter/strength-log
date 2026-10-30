@@ -15,14 +15,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * #172: a restore writes Room and then DataStore with nothing spanning the two,
- * and the easy way to land between them was to press back. The write is
- * app-scoped now, but the screen still has to hold still while it runs —
+ * A restore writes Room and then DataStore with nothing spanning the two. The
+ * write is app-scoped, but the screen still has to hold still while it runs —
  * otherwise the result lands on a screen nobody is looking at.
  *
- * The gate is [BackupUiState.restoreInFlight], deliberately not the generic
- * `isBusy`: an export or a CSV preview has nothing to tear, and refusing back
- * during those would be a regression, so both are pinned here.
+ * The gate is [BackupUiState.restoreInFlight], not the generic `isBusy`: an
+ * export or a CSV preview has nothing to tear, and refusing back during those
+ * would be a regression, so both are pinned here.
  *
  * System back is fired through the activity's real dispatcher rather than
  * asserted on the chevron alone — the chevron and the hardware/gesture back are

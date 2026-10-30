@@ -9,7 +9,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * The pure half of the civil-time source (#176): one reading is internally
+ * The pure half of the civil-time source: one reading is internally
  * consistent, and it knows how long it stays valid.
  */
 class CivilTimeTest {

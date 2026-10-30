@@ -37,8 +37,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [ShareCardService] end to end (#103, docs/briefs/session-share.md §3): a
- * real render onto a real Canvas, a real file under `cache/shares/`, and the
+ * [ShareCardService] end to end (docs/briefs/session-share.md §3): a real
+ * render onto a real Canvas, a real file under `cache/shares/`, and the
  * `ACTION_SEND` chooser intent it produces. Run under a plain [runBlocking]
  * rather than `kotlinx-coroutines-test` — the service hops onto
  * `Dispatchers.IO` internally (§3's off-main-thread render), which a virtual-

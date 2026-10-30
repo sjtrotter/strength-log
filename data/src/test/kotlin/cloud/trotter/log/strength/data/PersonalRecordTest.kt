@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 
 /**
  * [toPersonalRecordsByExercise] is the pure reduction behind the profile
- * "Best" chip (docs/briefs/performance-profile.md Phase 1):
+ * "Best" chip (docs/briefs/performance-profile.md):
  * [SessionDao.personalRecordRows] returns everything heaviest-first (ties
  * broken by more reps, then by earliest achievedAt), and this collapses that
  * flat list to one entry per exercise id — the SQL ordering does the real

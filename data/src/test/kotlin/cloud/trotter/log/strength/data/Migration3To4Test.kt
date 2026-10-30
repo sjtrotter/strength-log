@@ -30,13 +30,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The v3→v4 nullable-bodyweight migration (#171). It rebuilds `workout_session`
- * (SQLite can't relax NOT NULL in place), so this opens a hand-built v3 DB
- * holding both kinds of row — a real session and a CSV-imported one written with
- * the fabricated `bodyweightLb = 0` — runs the migration, and asserts the 0
- * became NULL while the real number and every other column survived. It then
- * writes a fresh session to prove the rebuilt table still autoincrements past
- * the ids it inherited.
+ * The v3→v4 nullable-bodyweight migration. It rebuilds `workout_session` (SQLite
+ * can't relax NOT NULL in place), so this opens a hand-built v3 DB holding both
+ * kinds of row — a real session and a CSV-imported one written with the
+ * fabricated `bodyweightLb = 0` — runs the migration, and asserts the 0 became
+ * NULL while the real number and every other column survived. It then writes a
+ * fresh session to prove the rebuilt table still autoincrements past the ids it
+ * inherited.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -142,7 +142,7 @@ class Migration3To4Test {
     }
 
     /** Builds the DB at schema v3 (no Room), with one logged session and one
-     *  CSV-imported session written the pre-#171 way. */
+     *  CSV-imported session carrying a fabricated zero bodyweight. */
     private fun createV3DatabaseWithRows(extraRows: (SupportSQLiteDatabase) -> Unit = {}) {
         val callback = object : SupportSQLiteOpenHelper.Callback(3) {
             override fun onCreate(db: SupportSQLiteDatabase) {

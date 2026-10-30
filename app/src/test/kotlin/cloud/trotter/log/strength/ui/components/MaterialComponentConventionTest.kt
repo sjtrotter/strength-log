@@ -89,7 +89,9 @@ class MaterialComponentConventionTest {
         val materialPattern = Regex("""\b(?:M3|Material 3)\b""", RegexOption.IGNORE_CASE)
         val gapPattern = Regex("""\b(?:lacks?|does not|cannot|no)\b""", RegexOption.IGNORE_CASE)
 
-        // Named in the Phase 10 brief. Wear/dial code is excluded by sourceRoot.
+        // Bespoke components with a what-M3-lacks KDoc
+        // (docs/briefs/material-migration.md). Wear/dial code is excluded by
+        // sourceRoot.
         val standingExceptions = setOf(
             "SelectionCard",
             "EquipmentFilterRow",

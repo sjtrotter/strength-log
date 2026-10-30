@@ -15,8 +15,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Pins the footer's post-M3 contract (PR #185): SAVE's enablement is
- * M3-owned (a nameless exercise cannot be saved), and CANCEL always fires.
+ * Pins the footer's contract: SAVE's enablement is M3-owned (a nameless
+ * exercise cannot be saved), and CANCEL always fires.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")

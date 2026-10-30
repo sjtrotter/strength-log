@@ -33,9 +33,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The one-shot reps→seconds fixup (tracking-types P3, Decision 5) reinterprets the
- * reps a user logged for entries now tracked as TIMED (plank, ...) as seconds,
- * touching only those slots, never deleting, and never running twice.
+ * The one-shot reps→seconds fixup reinterprets the reps a user logged for TIMED
+ * entries (plank, ...) as seconds, touching only those slots, never deleting, and
+ * never running twice.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -114,7 +114,7 @@ class LegacyTimedFixupTest {
     fun `plank reps become seconds, squat untouched, and it never runs twice`() = runTest {
         val plankSlot = slot("plank", 0)
         val squatSlot = slot("bb_back_squat", 1)
-        // Legacy shape: the only field the old UI had was reps, so a 45s hold sits there.
+        // Legacy shape: reps is the only available field, so a 45s hold sits there.
         writeLog(plankSlot, listOf(LoggedSet(0.0, 45, SetKind.WORK, done = true), LoggedSet(0.0, 30, SetKind.WORK)))
         writeLog(squatSlot, listOf(LoggedSet(235.0, 5, SetKind.TOP, done = true)))
 

@@ -9,7 +9,7 @@ class AutomaticBackupStateLineTest {
         assertEquals("Last backup: yesterday", automaticBackupResultLine(now - 86_400_000L, false, false, now))
     }
 
-    @Test fun `failure is honest about retry`() {
+    @Test fun `failure line promises a retry`() {
         assertEquals("Last attempt failed — will retry", automaticBackupResultLine(null, true, false, 0L))
     }
 

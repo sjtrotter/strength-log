@@ -15,13 +15,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Pins the session card's post-M3 interaction contract (PR #185): disclosure
- * lives on the header row — one owner per action — and SHARE is a sibling that
- * never also toggles the row. Before the migration the whole card toggled and
- * SHARE was nested inside it; these tests are the record of the new shape.
+ * Pins the session card's interaction contract: disclosure lives on the header
+ * row — one owner per action — and SHARE is a sibling that never also toggles
+ * the row.
  *
- * Also pins the Health Connect section's two honest states and its backfill
- * offer (#158/#159), where the exact words are the fix.
+ * Also pins the Health Connect section's publishing states and its backfill
+ * offer.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
@@ -186,7 +185,7 @@ class LogScreenInteractionTest {
         assertEquals(emptyList<Long>(), toggled)
     }
 
-    // --- Health Connect status (#158) and backfill offer (#159) ---------------
+    // --- Health Connect status and backfill offer -----------------------------
     //
     // The copy is the feature: "nothing appeared in the Health app" was
     // indistinguishable from "never connected", so these pin the two states'

@@ -93,8 +93,8 @@ class WizardRestoreWiringTest {
 
     /** One instance, shared by every ViewModel here, because its restore lock is
      *  the coordination point under test — a per-ViewModel service would hand
-     *  each caller its own mutex and coordinate nothing (#172). Hilt provides it
-     *  as a `@Singleton` for the same reason. */
+     *  each caller its own mutex and coordinate nothing. Hilt provides it as a
+     *  `@Singleton` for the same reason. */
     private lateinit var service: BackupService
     private lateinit var storeScope: CoroutineScope
 
@@ -517,10 +517,10 @@ class WizardRestoreWiringTest {
 
     @Test
     fun finishingTheWizardWaitsForAnInFlightReconcileAndThenStepsAside() = runBlocking {
-        // The check/use race in full (#172). Leave the device in the split state a
-        // killed restore produces — data in Room, settings still the old ones —
-        // so `wizardComplete` reads false and the app opens on the wizard, then
-        // let the startup reconciliation land while the wizard is being finished.
+        // The check/use race in full. Leave the device in the split state a killed
+        // restore produces — data in Room, settings still the previous ones — so
+        // `wizardComplete` reads false and the app opens on the wizard, then let
+        // the startup reconciliation land while the wizard is being finished.
         settingsStore.failOnUpdate = 1
         runCatching { service.import(BackupCodec().encode(backup(wizardComplete = true))) }
         assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })

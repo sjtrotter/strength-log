@@ -155,7 +155,7 @@ class CardioCsvTest {
     }
 
     @Test
-    fun `hard fiveK exports eleven honest set rows in position order`() {
+    fun `hard fiveK exports eleven set rows in position order`() {
         val block = CardioBlocks.fromLegacy(CardioSuggestion("Intervals", "hard", hard = true), true, CardioActivity.ROAD_RUN)
         val sets = block.sets.map { spec ->
             CardioSetResult(spec, CardioSetStatus.FINISHED, (spec.end as Measure.Time).seconds)

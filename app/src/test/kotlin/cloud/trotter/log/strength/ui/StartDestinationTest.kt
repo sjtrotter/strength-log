@@ -29,14 +29,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Wiring tests for [StartDestinationViewModel]: the #121 regression guard that
- * a completed wizard lands the app on [Routes.TODAY], not the old
- * [Routes.DAY], plus the `.take(1)` latch documented on the ViewModel itself
- * — the start destination is resolved exactly once per process so a
- * first-run `finish()` (wizardComplete false -> true) can't rebuild the
- * NavHost's start destination out from under an explicit navigation already
- * in flight. Same Robolectric + in-memory Room + temp DataStore fixture as
- * the day/wizard wiring tests.
+ * Wiring tests for [StartDestinationViewModel]: a completed wizard starts on
+ * [Routes.TODAY], not [Routes.DAY], plus the `.take(1)` latch documented on
+ * the ViewModel itself — the start destination is resolved exactly once per
+ * process so a first-run `finish()` (wizardComplete false -> true) can't
+ * rebuild the NavHost's start destination out from under an explicit
+ * navigation already in flight. Same Robolectric + in-memory Room + temp
+ * DataStore fixture as the day/wizard wiring tests.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -93,9 +92,7 @@ class StartDestinationTest {
 
     @Test
     fun completedWizard_resolvesToTodayNotDay() = runVmTest {
-        // #121 regression guard: Today replaced the day screen as the start
-        // destination once the wizard is done — a diff that routes back to
-        // Routes.DAY here is the exact bug this test exists to catch.
+        // A completed wizard starts on TODAY, not DAY.
         repo.setWizardComplete(true)
 
         val vm = newViewModel()

@@ -21,10 +21,9 @@ class DialTypeTest {
 
     @Test
     fun `every step the lifter reads renders at 12sp or more on a 192dp face`() {
-        // CYCLE_LABEL is exempt: an owner-waived verdict from the on-wrist round
-        // (issue #152). The cycle ring's colour is the identification and the
-        // word only names it, so the floor that governs everything the lifter
-        // actually *reads* does not apply to it.
+        // CYCLE_LABEL is exempt: the cycle ring's colour is the identification
+        // and the word only names it, so the floor that governs everything the
+        // lifter actually *reads* does not apply to it.
         val type = dialTypography(referenceScale, pixelWatch)
         DialTextRole.entries.filter { it != DialTextRole.CYCLE_LABEL }.forEach { role ->
             val sp = type.style(role).fontSize.value

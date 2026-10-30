@@ -5,10 +5,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 /**
- * Which cached item wins when the node holds more than one (#173). The old read took
- * whichever decoded first, and the Data Layer cache is a set, not a list — so "first"
- * was whatever the buffer happened to hand back, and a glance surface could open on a
- * stale day.
+ * Which cached item wins when the node holds more than one. The Data Layer cache is a
+ * set, not a list, so decode order cannot determine authority: opening a glance on
+ * the first decoded item could show a stale day.
  */
 class SnapshotItemTest {
 

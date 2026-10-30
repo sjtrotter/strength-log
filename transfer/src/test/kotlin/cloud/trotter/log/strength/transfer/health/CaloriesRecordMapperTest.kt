@@ -34,8 +34,8 @@ class CaloriesRecordMapperTest {
 
     @Test
     fun `no recorded bodyweight yields no record`() {
-        // CSV-imported history (#171): kcal is proportional to bodyweight, so with
-        // none recorded there is no honest number to publish.
+        // CSV-imported history: kcal is proportional to bodyweight, so with none
+        // recorded there is no calorie estimate to publish.
         val start = 0L
         val end = start + 3_600_000L
         assertNull(CaloriesRecordMapper.toActiveCalories(session(start, end, bodyweightLb = null), zone))

@@ -23,11 +23,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The backfill done-flag (#159) is deliberately NOT carried by restore: a
- * restored device holds history Health Connect has never seen, so the offer
- * must stand again. This pins that restore's clear() keeps dropping the flag —
- * a future restore refactor that preserves preferences would silently
- * suppress publishing restored history.
+ * The backfill done-flag is NOT carried by restore: a restored device holds
+ * history Health Connect has never seen, so the offer must stand again. This
+ * pins that restore's clear() keeps dropping the flag — a future restore
+ * refactor that preserves preferences would silently suppress publishing
+ * restored history.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])

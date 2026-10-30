@@ -5,7 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * [toLastPerformedByExercise] is the pure reduction behind the #14 "last time"
+ * [toLastPerformedByExercise] is the pure reduction behind the "last time"
  * chip: [SessionDao.lastPerformedRows] returns everything newest-session-first
  * (ties broken by heaviest weight), and this collapses that flat list to one
  * entry per exercise id — the SQL ordering does the real work, so this test

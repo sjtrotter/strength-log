@@ -43,7 +43,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The session receipt's *wiring* (#126): that it comes off the DONE-advance
+ * The session receipt's *wiring*: that it comes off the DONE-advance
  * transition, reports the session that transition just committed, and dies the
  * way a moment dies. [SessionReceiptBuilderTest] pins what it contains.
  *

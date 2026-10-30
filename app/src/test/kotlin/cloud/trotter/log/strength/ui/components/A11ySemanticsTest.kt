@@ -46,11 +46,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Semantics smoke tests (A7, issue #21): a lean Robolectric + compose-ui-test
- * pass pinning the TalkBack-facing contract promised by key app components
- * — not a full accessibility audit (that's the on-device TalkBack checklist
- * in the #21 PR description), just enough to catch a regression that strips
- * a content description or state.
+ * Semantics smoke tests (A7): a lean Robolectric + compose-ui-test pass
+ * pinning the TalkBack-facing contract promised by key app components, enough
+ * to catch a regression that strips a content description or state.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])

@@ -176,7 +176,7 @@ class HistoryCsvReaderTest {
         assertEquals(32, e.maxBytes)
     }
 
-    // --- untrusted-input hardening (PR #48 review) ------------------------------
+    // --- untrusted-input hardening ----------------------------------------------
 
     @Test
     fun `a row truncated before its Weight Unit cell is a typed error, not a crash`() {

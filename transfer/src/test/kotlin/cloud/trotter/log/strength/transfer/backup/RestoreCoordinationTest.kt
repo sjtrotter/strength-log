@@ -36,9 +36,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The turn-taking [BackupService] owes the restore journal (#172). A restore and
- * the startup reconciliation drive the same payload, so they must never overlap:
- * a reconcile reading mid-restore would replay a journal the restore is still
+ * The turn-taking [BackupService] owes the restore journal. A restore and the
+ * startup reconciliation drive the same payload, so they must never overlap: a
+ * reconcile reading mid-restore would replay a journal the restore is still
  * writing, and two restores at once would interleave two nonces through one
  * marker row.
  *

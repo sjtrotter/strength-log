@@ -30,10 +30,10 @@ import org.robolectric.annotation.Config
 
 /**
  * [TrackerRepository.sessionSummariesFlow] and [TrackerRepository.lastPerformed]
- * (issue #14, the Log screen + day-card "last time" chip): the new SQL added
- * alongside [SessionDao]'s existing queries. Robolectric + in-memory Room, same
- * pattern as [TrackerRepositorySessionHistoryImportTest] — the query is the
- * thing under test, not the reduction (that's [LastPerformedTest]).
+ * serve the Log screen + day-card "last time" chip through [SessionDao]'s
+ * queries. Robolectric + in-memory Room, same pattern as
+ * [TrackerRepositorySessionHistoryImportTest] — the query is the thing under
+ * test, not the reduction (that's [LastPerformedTest]).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])

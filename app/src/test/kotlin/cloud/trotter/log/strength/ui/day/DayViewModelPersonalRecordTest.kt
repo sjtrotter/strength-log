@@ -43,12 +43,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The performance-profile Phase 1 "Best" chip end to end: [DayViewModel]
- * batches [TrackerRepository.personalRecords] for a whole day's exercises
- * into [ExerciseCardState.personalRecordDisplay], suppressing it when it
- * would just repeat the "last time" chip. Kept in its own file (not
- * [DayViewModelLastPerformedTest]) for the same diff-isolation reason that
- * file documents.
+ * The performance-profile "Best" chip end to end: [DayViewModel] batches
+ * [TrackerRepository.personalRecords] for a whole day's exercises into
+ * [ExerciseCardState.personalRecordDisplay], suppressing it when it would
+ * just repeat the "last time" chip.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

@@ -14,11 +14,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * The theme is only finished when nothing falls through it (issue #157,
- * Phase 1). Baseline Material is a purple scheme, a Roboto scale and a corner
- * set this app doesn't draw; every role left unspecified is that leaking into
- * the first stock component to read it. These tests walk the roles one by one
- * and name the ones still wearing Material's value.
+ * The theme is only finished when nothing falls through it. Baseline Material
+ * is a purple scheme, a Roboto scale and a corner set this app doesn't draw;
+ * every role left unspecified is that leaking into the first stock component
+ * to read it. These tests walk the roles one by one and name the ones still
+ * wearing Material's value.
  */
 class ThemeCompletenessTest {
 
@@ -139,9 +139,9 @@ class ThemeCompletenessTest {
         assertEquals(RoundedCornerShape(8.dp), AppShapes.small)
         assertEquals(RoundedCornerShape(10.dp), AppShapes.medium)
         assertEquals(RoundedCornerShape(12.dp), AppShapes.large)
-        // extraLarge stays at Material's 28 dp deliberately: dialogs and modal
-        // sheets are the only things that read it and the app has no token of
-        // its own at that size. See Shape.kt.
+        // extraLarge stays at Material's 28 dp: dialogs and modal sheets are
+        // the only things that read it and the app has no token of its own at
+        // that size. See Shape.kt.
         assertEquals(RoundedCornerShape(28.dp), AppShapes.extraLarge)
     }
 
@@ -161,11 +161,11 @@ class ThemeCompletenessTest {
          * unless the alternative is worse.
          *
          * The case it exists for is `scrim`. Material's is pure `#000`; the app
-         * sets `Background` instead, which is honest — that is the app's black —
-         * but it does move the modal sheet's overlay by about 4/255 a channel.
-         * If a future palette decides `#000` is genuinely the right scrim, the
-         * answer is to name it here, not to invent an off-token near-black just
-         * to keep this test quiet.
+         * sets `Background` instead — that is the app's black — but it does move
+         * the modal sheet's overlay by about 4/255 a channel. If a future
+         * palette decides `#000` is genuinely the right scrim, the answer is to
+         * name it here, not to invent an off-token near-black just to keep this
+         * test quiet.
          */
         val DeliberatelyBaseline = emptySet<String>()
 

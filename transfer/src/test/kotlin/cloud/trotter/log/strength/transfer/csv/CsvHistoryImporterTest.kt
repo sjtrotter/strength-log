@@ -15,7 +15,9 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** The commit half of the #16 preview/confirm model: building the entities
+/** The commit half of the preview/confirm model
+ *  (docs/briefs/m4-transfer.md, "#16 CSV history export/import"):
+ *  building the entities
  *  [cloud.trotter.log.strength.data.TrackerRepository.importSessionHistory]
  *  writes, once the caller has supplied an approved pattern per unmatched
  *  name. No repository/Room involved — purely a mapping test. */
@@ -121,8 +123,8 @@ class CsvHistoryImporterTest {
 
         val session = plan.sessions.single().session
         assertEquals("Day A", session.dayTitle)
-        // Not 0 (#171): a fabricated bodyweight poisons the calorie estimate and
-        // used to make every later full backup unrestorable.
+        // Not 0: a fabricated bodyweight poisons the calorie estimate and is not
+        // a valid recorded bodyweight for a full backup.
         assertNull(session.bodyweightLb)
         assertEquals(0L, session.id)
     }

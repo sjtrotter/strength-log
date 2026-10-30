@@ -18,10 +18,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Setup stopped being a flat list (#128): its controls now sit under five
- * overlines. Pinned here so a later edit can't quietly lose one of them, and so
- * a section rule stays a section rule — a heading that grew a click action
- * would be a phantom target on a screen that is otherwise all controls.
+ * Setup's controls sit under five overlines. Pinned here so a later edit can't
+ * quietly lose one of them, and so a section rule stays a section rule — a
+ * heading that grew a click action would be a phantom target on a screen that
+ * is otherwise all controls.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")

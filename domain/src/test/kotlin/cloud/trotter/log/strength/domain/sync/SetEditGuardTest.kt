@@ -6,9 +6,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 /**
- * The pure per-type field guard (design risk #2): a delta keeps only the fields its
- * track actually logs, so a stale/old watch can't write a dead field. `done` (the
- * tick) always survives.
+ * The pure per-type field guard: a delta keeps only the fields its track actually
+ * logs, so a stale watch can't write a dead field. `done` (the tick) always
+ * survives.
  */
 class SetEditGuardTest {
 

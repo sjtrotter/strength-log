@@ -243,7 +243,7 @@ class PendingEditsTest {
         assertEquals(listOf(done1), PendingEdits.reconcile(listOf(done0, done1), reflected))
     }
 
-    // --- superseded-delta drop (PR #63 review finding 1) -----------------------
+    // --- superseded-delta drop -------------------------------------------------
 
     @Test
     fun `a delta superseded by a newer same-row edit drains with it`() {
@@ -274,7 +274,7 @@ class PendingEditsTest {
         assertEquals(listOf(weightEdit, repsEdit), PendingEdits.reconcile(listOf(weightEdit, repsEdit), snapshot()))
     }
 
-    // --- per-field settling of multi-field deltas (#85) -------------------------
+    // --- per-field settling of multi-field deltas -------------------------------
 
     @Test
     fun `a multi-field delta stays queued until every field it carries is reflected`() {
@@ -293,8 +293,7 @@ class PendingEditsTest {
     @Test
     fun `a delta carrying weight and done needs both reflected, not either`() {
         val both = delta(setIndex = 0, weightLb = 245.0, done = true)
-        // done landed, weight didn't → still queued (the old whole-delta check
-        // happened to agree here; the next case is where it didn't).
+        // done landed, weight didn't → still queued.
         val doneOnly = snapshot(
             sets = listOf(WatchSet(235.0, 5, "TOP", done = true), WatchSet(175.0, 8, "BACKOFF", done = false)),
         )
@@ -313,9 +312,9 @@ class PendingEditsTest {
 
     @Test
     fun `a multi-field delta settles per field - one reflected, one overwritten`() {
-        // The case the old whole-delta check got wrong: the weight of the older
-        // multi-field edit can never be reflected (a newer pending edit overwrote
-        // it), while its reps did land. Per-field, both are accounted for.
+        // The weight of the older multi-field edit can never be reflected (a
+        // newer pending edit overwrote it), while its reps did land. Per-field,
+        // both are accounted for.
         val older = delta(setIndex = 0, weightLb = 200.0, reps = 5, editedAtMillis = 1L)
         val newer = delta(setIndex = 0, weightLb = 210.0, editedAtMillis = 2L)
         val reflected = snapshot(
@@ -435,7 +434,7 @@ class PendingEditsTest {
         assertEquals(pending, PendingEdits.reconcileSwaps(pending, snapshot()))
     }
 
-    // --- monotonic stamp issue (PR #63 review finding 2) -----------------------
+    // --- monotonic stamps ------------------------------------------------------
 
     @Test
     fun `two edits in the same wall-clock millisecond get strictly increasing stamps`() {

@@ -40,9 +40,7 @@ import org.robolectric.annotation.Config
 /**
  * The A1 bonus "last time" chip end to end: [DayViewModel] batches
  * [TrackerRepository.lastPerformed] for a whole day's exercises into
- * [ExerciseCardState.lastTimeDisplay]. Kept in its own file (not
- * [DayViewModelWiringTest]) so this PR's diff stays isolated from #11's
- * concurrent day-edit-sheet work on the same shared test file.
+ * [ExerciseCardState.lastTimeDisplay].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

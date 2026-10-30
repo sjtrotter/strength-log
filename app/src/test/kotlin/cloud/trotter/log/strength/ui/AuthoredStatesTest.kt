@@ -27,12 +27,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Issue #127's edge states. What's pinned here is the *distinction*, not the
- * pixels: a screen that is still reading the program must not accuse the lifter
- * of not having one, a screen that knows there isn't one must offer the way
- * back to the wizard, and the empty journal must offer the workout that fills
- * it. The reveal delay is pinned too — it is the whole reason the loading
- * treatment doesn't flash on a fast open.
+ * Edge states. What's pinned here is the *distinction*, not the pixels: a
+ * screen that is still reading the program must not accuse the lifter of not
+ * having one, a screen that knows there isn't one must offer the way back to
+ * the wizard, and the empty journal must offer the workout that fills it. The
+ * reveal delay is pinned too — it is the whole reason the loading treatment
+ * doesn't flash on a fast open.
  *
  * [cloud.trotter.log.strength.ui.components.ProgramLoadingState]'s rule animates
  * forever, so every test that renders it turns the test clock's auto-advance

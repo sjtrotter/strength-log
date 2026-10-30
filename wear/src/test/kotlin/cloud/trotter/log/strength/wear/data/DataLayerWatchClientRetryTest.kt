@@ -20,11 +20,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Listener registration, when Play services says no (#173).
+ * Listener registration, when Play services says no.
  *
- * The old client awaited `addListener` inside a `callbackFlow` collected on the
- * application scope, which has no `CoroutineExceptionHandler` — a transient refusal
- * didn't leave the watch listener-less, it killed the app mid-workout.
+ * `addListener` runs inside a `callbackFlow` collected on the application scope. A
+ * transient refusal must be retried without escaping to the app's exception handler
+ * and killing the app mid-workout.
  *
  * Two things about the harness are deliberate:
  *  - the client runs on its own scope over the test scheduler, **not**

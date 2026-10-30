@@ -20,8 +20,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Pins issue #122: a page's swap menu reaches the same swap mutation as the
- * day-edit sheet's Edit -> Swap.
+ * A page's swap menu reaches the same swap mutation as the day-edit sheet's
+ * Edit -> Swap.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -85,8 +85,8 @@ class CardSwapTest {
         assertEquals(listOf(0 to target.id), swaps)
     }
 
-    /** The whole point of #122: the shortcut is the same mutation, not a
-     *  second swap path that could drift from the sheet's. */
+    /** The shortcut is the same mutation, not a second swap path that
+     *  could drift from the sheet's. */
     @Test
     fun thePageMenuAndTheSheetSwapProduceTheSameMutation() {
         val swaps = mutableListOf<Pair<Int, String>>()

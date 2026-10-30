@@ -68,11 +68,9 @@ class TrackingTypeTest {
     }
 
     @Test
-    fun `catalog reclassification landed in P2 - non-WEIGHTED entries now exist`() {
-        // P1 shipped only the machinery (this test used to assert the catalog
-        // was still all-WEIGHTED); P2's data pass reclassifies ~35 entries and
-        // appends new REPS/TIMED entries. Exact counts are pinned in
-        // ExerciseLibraryTest ("catalog totals are 184 entries, ...").
+    fun `catalog has 35 non-WEIGHTED entries`() {
+        // Exact counts are pinned in ExerciseLibraryTest ("catalog totals are
+        // 184 entries, ...").
         val nonWeighted = ExerciseLibrary.entries.filter { it.tracking != TrackingType.WEIGHTED }
         assertEquals(35, nonWeighted.size)
     }

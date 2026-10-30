@@ -1050,7 +1050,7 @@ class DayViewModelWiringTest {
         assertNull(track(lateralId, Slot.SS))
     }
 
-    // --- tracking types P4: seconds edit persists like reps/weight ------------
+    // --- tracking types: seconds edit persists like reps/weight ---------------
 
     @Test
     fun changeSecondsPersistsOnlyTheEditedRow() = runVmTest {
@@ -1141,7 +1141,7 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
-    // --- day-edit sheet wiring (#11, spec §8.3) --------------------------------
+    // --- day-edit sheet wiring (spec §8.3) -------------------------------------
     // dayEditState is WhileSubscribed, like uiState — each test collects it (same
     // reason collapseOverrideSurvivesViewModelRecreation collects uiState) so
     // `.value` reflects the DB instead of the flow's un-started default.
@@ -1220,8 +1220,8 @@ class DayViewModelWiringTest {
     }
 
     /**
-     * The card's ⇄ chip (#122) end to end: [ExerciseCardState.position] through
-     * the very [DayEditActions.onSwap] `SlotSwapSheet` invokes, down to
+     * The card's ⇄ chip end to end: [ExerciseCardState.position] through the
+     * very [DayEditActions.onSwap] `SlotSwapSheet` invokes, down to
      * [TrackerRepository.swapExercise]. The slot row survives the swap (same
      * programExerciseId, so history stays keyed to it), its live sets are
      * discarded, and the seed pass refills from the new exercise's GOAL (§8.3).
@@ -1272,7 +1272,7 @@ class DayViewModelWiringTest {
         collectEdit.cancel()
     }
 
-    // --- superset partner editing (#93) ---
+    // --- superset partner editing ---------
 
     @Test
     fun setDaySlotSupersetSeedsThePartnerAlignedToTheLiveMainTrack() = runVmTest {
@@ -1346,7 +1346,7 @@ class DayViewModelWiringTest {
 
     // --- collapse overrides survive process death (PLAN.md A6) -------------------
 
-    // --- Health Connect publish trigger (#17, D7) --------------------------------
+    // --- Health Connect publish trigger (D7) -------------------------------------
 
     @Test
     fun completeDayWithNothingLoggedDoesNotWriteOrAdvance() = runVmTest {
@@ -1509,7 +1509,7 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
-    // --- keep-screen-on, now a real preference (#125) -------------------------
+    // --- keep-screen-on preference --------------------------------------------
 
     @Test
     fun theKeepScreenOnToggleReachesDataStore() = runVmTest {
@@ -1545,11 +1545,10 @@ class DayViewModelWiringTest {
     }
 
     /**
-     * The bug #125 exists to kill. The flag used to live in [SavedStateHandle],
-     * so it was scoped to one screen's one visit: a cold launch — or simply
-     * walking to the Log and back, which builds this ViewModel afresh — reset it
-     * to OFF while the lifter was still mid-workout. A new ViewModel with an
-     * empty handle must now still see ON.
+     * The flag must outlive one screen's visit: a cold launch — or simply
+     * walking to the Log and back, which builds this ViewModel afresh — must
+     * preserve it while the lifter is mid-workout. A new ViewModel with an empty
+     * handle must still see ON.
      */
     @Test
     fun keepScreenOnOutlivesTheViewModelThatSetIt() = runVmTest {
@@ -1565,9 +1564,9 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
-    // --- the remove-set undo window (#124) ------------------------------------
+    // --- the remove-set undo window -------------------------------------------
     //
-    // Time matters here, so these advance the virtual clock deliberately:
+    // Time matters here, so these advance the virtual clock:
     // `advanceUntilIdle` would run past the 5s window and close the offer.
 
     @Test

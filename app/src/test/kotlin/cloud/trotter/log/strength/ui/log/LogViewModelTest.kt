@@ -60,8 +60,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [LogViewModel] wiring (issue #14; journal sections per docs/briefs/journal.md):
- * the reverse-chronological list shape, the lazy expand-fetches-once-then-caches
+ * [LogViewModel] wiring (journal sections per docs/briefs/journal.md): the
+ * reverse-chronological list shape, the lazy expand-fetches-once-then-caches
  * behavior, and that the journal sections come off real history — including
  * collapsing to nothing on a fresh install. The pure grouping/format/derivation
  * logic itself is [LogScreenBuilderTest]'s and [JournalBuilderTest]'s job — this
@@ -116,10 +116,11 @@ class LogViewModelTest {
     private val healthReader = HealthConnectReader()
 
     /**
-     * A reader that answers the two questions the Log section's status turns on
-     * (#158), both mutable so a test can revoke a grant between refreshes. It
-     * inherits the no-provider reads, so the external-session list and bodyweight
-     * stay empty — this is about status honesty, not about faking a provider.
+     * A reader that answers the two questions the Log section's status turns on,
+     * both mutable so a test can revoke a grant between refreshes. It inherits
+     * the no-provider reads, so the external-session list and bodyweight stay
+     * empty — this is about reporting publishing status, not about faking a
+     * provider.
      */
     private class FakeHealthReader(
         var available: Boolean = true,
@@ -155,12 +156,12 @@ class LogViewModelTest {
     }
 
     /**
-     * A device clock the test moves by hand (#176). [wallClock] is what the
-     * device would say if asked right now; it only reaches the screen when the
-     * source wakes — on its own at midnight or on a time/zone broadcast
-     * ([tick]), or because the screen resumed ([refresh]). Keeping those two
-     * apart is the whole point: it is what lets a test park a screen across
-     * midnight and watch it go stale.
+     * A device clock the test moves by hand. [wallClock] is what the device
+     * would say if asked right now; it only reaches the screen when the source
+     * wakes — on its own at midnight or on a time/zone broadcast ([tick]), or
+     * because the screen resumed ([refresh]). Keeping those two apart is the
+     * whole point: it is what lets a test park a screen across midnight and
+     * watch it go stale.
      */
     private class FakeCivilTimeSource(initial: CivilTime) : CivilTimeSource {
         private val emissions = MutableStateFlow(initial)
@@ -241,7 +242,7 @@ class LogViewModelTest {
         assertEquals(listOf(2L, null, 1L), vm.uiState.value.sessions.map { it.planId })
     }
 
-    /** #127: the empty journal's action depends on this, and offering to start a
+    /** The empty journal's action depends on this, and offering to start a
      *  session there with no program would promise a workout that lands on
      *  NO PROGRAM YET. */
     @Test
@@ -506,13 +507,12 @@ class LogViewModelTest {
         collect.cancel()
     }
 
-    // --- the civil day (#176) ------------------------------------------------
+    // --- the civil day -------------------------------------------------------
     //
-    // Nothing in Room or DataStore changes at midnight, so before #176 the
-    // journal's "today" was whatever it was when some *other* flow last emitted:
-    // a screen left open across midnight kept yesterday's marker, month and
-    // twelve-week window, and a timezone change kept computing every boundary in
-    // the old zone until the process died.
+    // Nothing in Room or DataStore changes at midnight, so the journal must
+    // observe the civil-time source to update its "today" marker, month and
+    // twelve-week window. A timezone change must recompute every boundary in the
+    // new zone.
 
     @Test
     fun midnightMovesTheTodayMarkerAndTheCalendarMonth() = runVmTest {
@@ -587,7 +587,7 @@ class LogViewModelTest {
         collect.cancel()
     }
 
-    // --- share (#103, docs/briefs/session-share.md) --------------------------
+    // --- share (docs/briefs/session-share.md) --------------------------------
     //
     // The happy path — render, write, build the ACTION_SEND intent — is
     // [cloud.trotter.log.strength.ui.log.share.ShareCardServiceTest]'s
@@ -607,7 +607,7 @@ class LogViewModelTest {
         assertNull(vm.pendingShare.value)
     }
 
-    // --- Health Connect status honesty (#158) --------------------------------
+    // --- Health Connect publishing status ------------------------------------
 
     @Test
     fun aGrantedWorkoutWritePermissionReadsAsPublishing() = runVmTest {
@@ -621,8 +621,8 @@ class LogViewModelTest {
         collect.cancel()
     }
 
-    /** The #158 bug in one test: the grant is re-read, never cached, so a
-     *  permission revoked in the Health Connect app stops claiming to publish. */
+    /** The grant is re-read, never cached, so a permission revoked in the Health
+     *  Connect app stops claiming to publish. */
     @Test
     fun aRevokedPermissionReadsAsNotPublishingOnTheNextRefresh() = runVmTest {
         val reader = FakeHealthReader(available = true, publishing = true)
@@ -641,8 +641,8 @@ class LogViewModelTest {
         collect.cancel()
     }
 
-    /** A read-only grant used to count as "connected" and hide the Connect card
-     *  while nothing was ever published — the invisible half of #158. */
+    /** A read-only grant must leave the Connect card visible because it cannot
+     *  publish workouts. */
     @Test
     fun aReadOnlyGrantIsNotPublishing() = runVmTest {
         val vm = newViewModel(reader = FakeHealthReader(available = true, publishing = false))
@@ -666,7 +666,7 @@ class LogViewModelTest {
         collect.cancel()
     }
 
-    // --- backfill offer (#159) -----------------------------------------------
+    // --- backfill offer ------------------------------------------------------
 
     @Test
     fun theBackfillOfferCountsTheHistoryTheScreenIsShowing() = runVmTest {
@@ -735,8 +735,8 @@ class LogViewModelTest {
         collect.cancel()
     }
 
-    /** Failure honesty: a backfill that didn't publish everything must not claim
-     *  it did, so the flag stays unset and the offer is still there next visit. */
+    /** A backfill that didn't publish everything must not claim it did, so the
+     *  flag stays unset and the offer is still there next visit. */
     @Test
     fun aFailedBackfillKeepsOffering() = runVmTest {
         seedTwoSessions()

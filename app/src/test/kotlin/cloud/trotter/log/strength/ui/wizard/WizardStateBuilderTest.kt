@@ -54,8 +54,8 @@ class WizardStateBuilderTest {
 
     // --- anchor-set narrowing surfaces the :domain SSOT (spec §6.1) -----------
     // The narrowing rule itself is proven in ProgramGeneratorAnchorsTest (the one
-    // place it lives now); here we only assert the wizard state exposes exactly
-    // that helper's output, so preview and generated program can't drift.
+    // place it lives); here we only assert the wizard state exposes exactly that
+    // helper's output, so preview and generated program can't drift.
 
     @Test
     fun buildUiState_surfaces_ProgramGenerators_activeAnchorIds_verbatim() {

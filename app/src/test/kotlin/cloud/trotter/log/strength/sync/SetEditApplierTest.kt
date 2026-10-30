@@ -43,9 +43,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The phone-side end of the wire protocol (#20), through a real in-memory
- * repository. The load-bearing rules: a TOP-weight delta cascades *on the phone*
- * (the watch never computes derived sets), a done delta ticks both superset tracks
+ * The phone-side end of the wire protocol, through a real in-memory repository.
+ * The load-bearing rules: a TOP-weight delta cascades *on the phone* (the watch
+ * never computes derived sets), a done delta ticks both superset tracks
  * atomically, replayed/stale deltas are dropped, and malformed/foreign deltas
  * never touch the log.
  */
@@ -382,7 +382,7 @@ class SetEditApplierTest {
         assertEquals(null, repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
     }
 
-    // --- per-type delta guard (design risk #2: a stale/old watch can't write dead fields) ---
+    // --- per-type delta guard (a stale watch can't write dead fields) -----------------------
 
     /** Day T: a REPS pull-up, a plain TIMED plank, and a loaded TIMED weighted plank. */
     private suspend fun seedTrackingDay() {
@@ -541,7 +541,7 @@ class SetEditApplierTest {
         assertEquals(45, tTrack(id)[0].seconds)
     }
 
-    // --- per-set timing (#85: the watch sends facts, the phone stores them) -----
+    // --- per-set timing (the watch sends facts, the phone stores them) ----------
 
     @Test
     fun `a tick delta persists the wrist-observed start and complete stamps`() = runTest {
@@ -652,7 +652,7 @@ class SetEditApplierTest {
             ),
         )
 
-        // The watch's long-press undo (#88): done=false, and no stamps of its own.
+        // The watch's long-press undo: done=false, and no stamps of its own.
         val outcome = applier.apply(
             SetEditDelta(
                 dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
@@ -843,14 +843,13 @@ class SetEditApplierTest {
     }
 
     /**
-     * The interleaving that used to lose logged work. Two things seed now — the day
-     * ViewModel lazily, and this applier eagerly after a watch swap — and the
-     * ViewModel's plan is decided from a read it may act on much later. Here it reads
-     * an empty track, the swap seeds it, the lifter logs a set against the *new*
-     * exercise, and only then does the stale plan try to write. It must no-op:
-     * `seedIfEmpty` re-checks inside its own transaction, so whoever seeds first wins
-     * and a tick landed since can never be overwritten by a decision taken before it
-     * existed.
+     * Two things seed — the day ViewModel lazily, and this applier eagerly after a
+     * watch swap — and the ViewModel's plan is decided from a read it may act on much
+     * later. Here it reads an empty track, the swap seeds it, the lifter logs a set
+     * against the *new* exercise, and only then does the stale plan try to write. It
+     * must no-op: `seedIfEmpty` re-checks inside its own transaction, so whoever
+     * seeds first wins and a later tick can never be overwritten by a decision taken
+     * before it existed.
      */
     @Test
     fun a_stale_seed_plan_cannot_overwrite_work_logged_since_it_was_decided() = runTest {

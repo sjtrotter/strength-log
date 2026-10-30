@@ -46,23 +46,21 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Pins the A6 persistence guarantee (PLAN.md, issue #7): every mutation made
- * through [TrackerRepository] is committed to Room/DataStore immediately, so
- * nothing the user entered exists only in memory. Mutations are written through
- * a repository backed by a real on-disk Room database and a real DataStore
- * file; both are then closed and reopened as *fresh instances over the same
- * files*, and every mutated field must still be there. If the app ever
- * regressed to holding unsaved truth in a ViewModel field (the React-prototype
- * bug this hardening exists to prevent), the reopened instances would come up
- * empty.
+ * Pins the A6 persistence guarantee (PLAN.md): every mutation made through
+ * [TrackerRepository] is committed to Room/DataStore immediately, so nothing
+ * the user entered exists only in memory. Mutations are written through a
+ * repository backed by a real on-disk Room database and a real DataStore file;
+ * both are then closed and reopened as *fresh instances over the same files*,
+ * and every mutated field must still be there. If the app ever regressed to
+ * holding unsaved truth in a ViewModel field (the React-prototype bug this
+ * hardening exists to prevent), the reopened instances would come up empty.
  *
- * Honesty note on fidelity: `db.close()` is a *clean* shutdown (WAL
- * checkpointed, files flushed) — strictly cleaner than a real process kill, so
- * this test does not exercise the crash path where SQLite replays an
- * uncheckpointed `-wal` file on next open. For *committed* transactions the
- * durability guarantee is the same either way (that replay is SQLite's job,
- * not ours); what this test rules out is the application-level bug of never
- * committing at all.
+ * Fidelity: `db.close()` is a *clean* shutdown (WAL checkpointed, files
+ * flushed) — strictly cleaner than a real process kill, so this test does not
+ * exercise the crash path where SQLite replays an uncheckpointed `-wal` file
+ * on next open. For *committed* transactions the durability guarantee is the
+ * same either way (that replay is SQLite's job, not ours); what this test
+ * rules out is the application-level bug of never committing at all.
  */
 @RunWith(AndroidJUnit4::class)
 class PersistenceProcessDeathTest {

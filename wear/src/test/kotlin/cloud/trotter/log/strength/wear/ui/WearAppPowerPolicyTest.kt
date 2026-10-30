@@ -5,8 +5,8 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 /**
- * Guards the whole module against reintroducing a screen lock (#161). Scanning
- * every source catches routes to the flag beyond any single composable or View,
+ * Guards the whole module against reintroducing a screen lock. Scanning every
+ * source catches routes to the flag beyond any single composable or View,
  * including active cardio and rep windows.
  */
 class WearAppPowerPolicyTest {
@@ -30,10 +30,9 @@ class WearAppPowerPolicyTest {
 
     @Test
     fun `no wear code acquires a wake lock`() {
-        // Kotlin sources only, deliberately: the MANIFEST must keep declaring
-        // WAKE_LOCK — AmbientLifecycleObserver holds a lock internally and
-        // ambient mode never arms without the permission. What #164 forbids is
-        // app code holding one.
+        // Kotlin sources only: the MANIFEST must keep declaring WAKE_LOCK —
+        // AmbientLifecycleObserver holds a lock internally and ambient mode
+        // never arms without the permission. App code must not hold one.
         val forbiddenWakeLock = listOf("PowerManager", "WakeLock", "newWakeLock")
         val mainSources = sequenceOf(File("src/main"), File("wear/src/main"))
             .first(File::isDirectory)

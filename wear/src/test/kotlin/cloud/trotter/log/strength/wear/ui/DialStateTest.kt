@@ -75,8 +75,8 @@ class DialStateTest {
         day = WatchDay(
             dayId = "A",
             title = "Lower",
-            // Realistically long on purpose: the band must never show this —
-            // an arc reading "FLAT PRE…" was the on-wrist bug this pins.
+            // Realistically long on purpose: the band must never show this,
+            // or the arc reads a truncated "FLAT PRE…".
             emphasisLine = "flat press · vertical pull · hinge · quad",
             accentIndex = 0,
             exercises = exercises.toList(),
@@ -160,7 +160,7 @@ class DialStateTest {
         assertEquals(0f, state.dayProgress)
         assertEquals(2, state.rounds.size) // exercises, not sets
         assertEquals(1, state.rounds.count { it == RoundState.CURRENT })
-        // The day's identity is on the ring now, so the band is the title alone.
+        // The day's identity is on the ring, so the band is the title alone.
         assertEquals("LOWER", state.topBand?.text)
         assertNull(state.bottomBand)
         assertTrue(state.showsTimePill)
@@ -312,8 +312,7 @@ class DialStateTest {
         assertEquals("0:47", state.topBand?.text)
         assertNotNull(state.topBand?.dotTone)
         assertEquals(listOf("235 ×5", "TAP TO LOG"), state.discText())
-        // The band says which set is under way. It used to say HOLD TO UNDO, on a
-        // screen that offers no hold (#151).
+        // The band says which set is under way; this screen offers no hold.
         assertEquals("SET 1 OF 3", state.bottomBand?.text)
         assertEquals(DialTap.TICK, state.tap)
         // The elapsed timer is never near the disc numeral (§5.3).
@@ -865,18 +864,17 @@ class DialStateTest {
         val lifting = dialUiState(inputs(snapshot = logged, phase = SetPhase.LIFTING))
         assertNull(lifting.hold)
         // …and with a day's worth of logged sets behind it, it still doesn't say
-        // otherwise: the hint follows the offer, not the other way round (#151).
+        // otherwise: the hint follows the offer, not the other way round.
         assertEquals("SET 2 OF 3", lifting.bottomBand?.text)
     }
 
     @Test
     fun `the undo is offered on exactly three screens, and no screen claims otherwise`() {
-        // #151, wrist-confirmed: HOLD TO UNDO rendered on LIFTING while the hold was
-        // only ever offered between efforts. Both halves are pinned here, because
-        // either one alone is worthless. "Nothing advertises a hold it doesn't
-        // offer" is vacuously true the moment no band says UNDO — READY could quietly
-        // lose its offer and that assertion would still pass. So the offer map is
-        // pinned outright, over every screen the dial builds.
+        // HOLD TO UNDO must appear exactly where a hold is offered. Both halves are
+        // pinned here, because either one alone is worthless. "Nothing advertises a
+        // hold it doesn't offer" is vacuously true the moment no band says UNDO —
+        // READY could quietly lose its offer and that assertion would still pass. So
+        // the offer map is pinned outright, over every screen the dial builds.
         val logged = snapshot(squat.copy(sets = listOf(set(done = true), set(), set())), press)
         val plank = exercise(
             id = 4L,

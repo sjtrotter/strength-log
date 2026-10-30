@@ -615,10 +615,10 @@ class WizardViewModelWiringTest {
 
     @Test
     fun finish_stepsAsideWhenARestoreLandedUnderTheFirstRunWizard() = runVmTest {
-        // #172: the app opens on the wizard whenever wizardComplete reads false,
-        // so an interrupted restore whose settings half is still pending puts the
-        // wizard in front of a *restored* program. Generating over it would delete
-        // the restored program and keep the history — the worst of both.
+        // The app opens on the wizard whenever wizardComplete reads false, so an
+        // interrupted restore whose settings half is still pending puts the wizard
+        // in front of a *restored* program. Generating over it would delete the
+        // restored program and keep the history — the worst of both.
         val recording = newRecordingRepo()
         val vm = newViewModel(repository = recording)
         advanceUntilIdle()

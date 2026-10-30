@@ -128,9 +128,9 @@ class WatchUiModelsTest {
 
     @Test
     fun `a REPS-tracked partner renders its own summary, not the WEIGHTED main's`() {
-        // #74: the partner used to format with the main's tracking, so a REPS
-        // partner (e.g. Bench Dip under a WEIGHTED main) read like a weighted
-        // set ("0×12") instead of its own "×12" shape.
+        // The partner formats with its own tracking: a REPS partner (e.g.
+        // Bench Dip under a WEIGHTED main) must read "×12", not a weighted
+        // "0×12".
         val stream = benchDip.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
         val partner = stream.rounds.single().partner
         assertEquals("×12", partner?.summaryDisplay)
@@ -228,8 +228,8 @@ class WatchUiModelsTest {
 
     @Test
     fun `a weighted exercise still falls back to the weight numeral when goalLabel is blank`() {
-        // squat's fixture leaves goalLabel default "" (a pre-P1.5 wire) — the goal
-        // display must degrade to the converted weight, not go blank.
+        // squat's fixture leaves goalLabel default "" (an older snapshot) — the
+        // goal display must degrade to the converted weight, not go blank.
         val stream = squat.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
         assertEquals(TrackingType.WEIGHTED, stream.tracking)
         assertEquals("235", stream.goalDisplay)

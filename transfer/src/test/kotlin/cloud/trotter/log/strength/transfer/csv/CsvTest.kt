@@ -4,7 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-/** RFC 4180 quoting/parsing edge cases (#16): the primitives everything else
+/** RFC 4180 quoting/parsing edge cases: the primitives everything else
  *  in this package is built on. */
 class CsvTest {
 

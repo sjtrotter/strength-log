@@ -31,7 +31,7 @@ class SessionChipTest {
     }
 
     @Test
-    fun `no honest anchor means no stopwatch, never a fabricated one`() {
+    fun `no known start means no stopwatch, never an invented one`() {
         // Unknown start (process restored into an active session).
         assertNull(OngoingWorkoutChip.elapsedRealtimeAnchor(0L, 1_060_000L, 100_000L))
         // Start in the wall clock's future (clock stepped backward past it).

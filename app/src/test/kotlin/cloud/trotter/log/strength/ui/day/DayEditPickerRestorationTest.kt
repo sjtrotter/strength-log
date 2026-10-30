@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The picker's search/filter draft survives recreation (#178). Pinned on
+ * The picker's search/filter draft survives recreation. Pinned on
  * [ExercisePickerScreen] directly rather than through [DayEditSheet]: the M3
  * sheet hosts its content in a dialog WINDOW, whose saveable registry
  * [StateRestorationTester] cannot reach — testing through it exercises the

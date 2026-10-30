@@ -10,9 +10,8 @@ import kotlin.test.assertTrue
 /**
  * A v4 backup — written while a session's bodyweight was still a required number
  * — must still restore, and the CSV-imported sessions it carries as `0` must come
- * back as "none recorded" (#171). Those files are in the wild: any user who
- * imported a CSV before v5 has a backup full of zeroes, and the pre-fix validator
- * rejected the whole file on sight.
+ * back as "none recorded". Those files are in the wild: any user who imported a
+ * CSV before v5 has a backup full of zeroes.
  */
 class BackupV4RestoreTest {
 
@@ -54,8 +53,7 @@ class BackupV4RestoreTest {
             plans = listOf(PlanEntity(PlanEntity.LEGACY_ID, PlanEntity.LEGACY_NAME, "GENERATED", 0, 0)),
         )
         val reEncoded = codec.encode(snapshot.toDocument())
-        // The unknown bodyweight survives a current write/read; before #171 this file
-        // could not be restored at all.
+        // The unknown bodyweight survives a current write/read.
         assertNull(codec.decode(reEncoded).sessions.first { it.id == 2L }.bodyweightLb)
     }
 

@@ -15,10 +15,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The pure session → [ExerciseSessionRecord] mapping (#17). Runs under
- * Robolectric only because the androidx.health record types are Android
- * artifacts — there is no provider and no emulator involved (D10). Everything
- * asserted here is deterministic from the input session/sets.
+ * The pure session → [ExerciseSessionRecord] mapping. Runs under Robolectric
+ * only because the androidx.health record types are Android artifacts — there
+ * is no provider and no emulator involved (D10). Everything asserted here is
+ * deterministic from the input session/sets.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])

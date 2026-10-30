@@ -68,7 +68,7 @@ class BackupV8Test {
         ),
     )
 
-    // Keep #267's fixture at v8 even though production exports now write v9.
+    // Keep the fixture at v8 even though production exports write v9.
     private fun FullSnapshot.toV8Document(): BackupDocument = toDocument().let { document ->
         document.copy(
             schemaVersion = 8,

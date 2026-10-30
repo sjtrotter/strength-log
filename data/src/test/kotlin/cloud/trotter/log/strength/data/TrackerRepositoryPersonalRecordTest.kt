@@ -26,8 +26,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [TrackerRepository.personalRecords] (docs/briefs/performance-profile.md
- * Phase 1, the day-card "Best" chip): the SQL added to [SessionDao] alongside
+ * [TrackerRepository.personalRecords] (docs/briefs/performance-profile.md,
+ * the day-card "Best" chip): the SQL in [SessionDao] alongside
  * [SessionDao.lastPerformedRows]. Robolectric + in-memory Room, same pattern
  * as [TrackerRepositoryHistoryReadTest] — the query is the thing under test,
  * not the reduction (that's [PersonalRecordTest]).

@@ -126,8 +126,8 @@ object Routes {
  * Every way into the app — launcher, a day-specific launcher alias, the
  * home-screen widget's tap target — is a plain ACTION_MAIN launch of
  * [cloud.trotter.log.strength.MainActivity] with no route extra, so they all
- * land wherever this resolves. That landing is Today: orientation first, the
- * editor a tap away.
+ * land wherever this resolves. After setup, that landing is Today: orientation
+ * first, the editor a tap away.
  *
  * [take] latches the *first* resolved value: this is only the initial
  * screen, and after that explicit navigation drives every transition. Without

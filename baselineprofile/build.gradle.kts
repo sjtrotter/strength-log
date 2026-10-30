@@ -28,8 +28,8 @@ kotlin {
 }
 
 baselineProfile {
-    // An emulator or attached device. CI uses the AOSP API 34 image in
-    // .github/workflows/baseline-profile.yml, since collection needs `adb root`.
+    // An emulator or attached device; CI collects on the AOSP API 34 emulator
+    // in .github/workflows/baseline-profile.yml.
     useConnectedDevices = true
 }
 

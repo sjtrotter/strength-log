@@ -103,7 +103,7 @@ fun systemBackTarget(face: DialFace, screen: DialScreen): DialFace? =
  * where you're looking never overwrites where you are.
  *
  * A snapshot from a phone that doesn't publish a cycle yet — or one whose cycle
- * has lost today — falls back to a single full-circle segment for today.
+ * has lost today — falls back to a single segment for today.
  */
 fun cycleSegments(snapshot: WatchSnapshot, browseDayIndex: Int? = null): List<CycleSegment> {
     val day = snapshot.day

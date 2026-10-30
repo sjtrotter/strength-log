@@ -10,13 +10,15 @@ supply convention so the files are readable by other tools too:
     play/listing/en-US/full_description.txt
     play/listing/en-US/images/icon.png
     play/listing/en-US/images/featureGraphic.png
-    play/listing/en-US/images/phoneScreenshots/*.png
-    play/listing/en-US/images/wearScreenshots/*.png
 
-Usage: play_listing.py inspect|upload
+Screenshots are rendered in CI and no longer committed, so upload carries
+text, icon and feature graphic only. The screenshots mode replaces phone
+and Wear screenshots from the supplied directory without changing other assets.
+
+Usage: play_listing.py inspect|upload|screenshots [--images <dir>]
 """
+import argparse
 import json
-import sys
 from pathlib import Path
 
 import google.auth
@@ -69,28 +71,55 @@ def upload(api, edit_id):
         for name, image_type in IMAGE_TYPES.items():
             source = images_dir / name
             files = sorted(source.glob("*.png")) if source.is_dir() else ([source] if source.exists() else [])
-            if not files:
-                continue
-            edits.images().deleteall(
-                packageName=PACKAGE, editId=edit_id, language=locale, imageType=image_type,
-            ).execute()
-            for file in files:
-                edits.images().upload(
-                    packageName=PACKAGE, editId=edit_id, language=locale, imageType=image_type,
-                    media_body=MediaFileUpload(str(file), mimetype="image/png"),
-                ).execute()
-                print(f"{locale}: {image_type} <- {file.name}")
+            upload_images(edits, edit_id, locale, image_type, files)
     # Never cancel a release that is sitting in review to get a listing out.
     edits.commit(packageName=PACKAGE, editId=edit_id, changesInReviewBehavior="ERROR_IF_IN_REVIEW").execute()
     print("committed")
 
 
+def upload_images(edits, edit_id, locale, image_type, files):
+    if not files:
+        return
+    edits.images().deleteall(
+        packageName=PACKAGE, editId=edit_id, language=locale, imageType=image_type,
+    ).execute()
+    for file in files:
+        edits.images().upload(
+            packageName=PACKAGE, editId=edit_id, language=locale, imageType=image_type,
+            media_body=MediaFileUpload(str(file), mimetype="image/png"),
+        ).execute()
+        print(f"{locale}: {image_type} <- {file.name}")
+
+
+def screenshots(api, edit_id, images):
+    edits = api.edits()
+    for locale in LOCALES:
+        for image_type, files in images.items():
+            upload_images(edits, edit_id, locale, image_type, files)
+    edits.commit(packageName=PACKAGE, editId=edit_id, changesInReviewBehavior="ERROR_IF_IN_REVIEW").execute()
+    print("committed")
+
+
 def main():
-    mode = sys.argv[1] if len(sys.argv) > 1 else "inspect"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mode", nargs="?", default="inspect", choices=("inspect", "upload", "screenshots"))
+    parser.add_argument("--images", type=Path)
+    args = parser.parse_args()
+    if args.mode == "screenshots":
+        if args.images is None:
+            raise SystemExit("screenshots requires --images <dir>")
+        images = {
+            image_type: sorted((args.images / image_type).glob("*.png"))
+            for image_type in ("phoneScreenshots", "wearScreenshots")
+        }
+        if not any(images.values()):
+            raise SystemExit("no PNGs found in phoneScreenshots or wearScreenshots")
     api = service()
     edit_id = api.edits().insert(packageName=PACKAGE, body={}).execute()["id"]
-    if mode == "upload":
+    if args.mode == "upload":
         upload(api, edit_id)
+    elif args.mode == "screenshots":
+        screenshots(api, edit_id, images)
     else:
         try:
             inspect(api, edit_id)

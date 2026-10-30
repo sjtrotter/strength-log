@@ -133,11 +133,12 @@ around it.
 - (Historical: `:wear` used to be unminified and unsigned. It now shrinks
   with R8 and signs with the same four properties as `:app`, and §6's
   pipeline publishes it to its own Wear form-factor track.)
-- Listing text and images live in `play/listing/en-US/` and are pushed by the
-  manual "Play store listing" workflow (`.github/workflows/play-listing.yml`,
+- Listing text, icon and feature graphic live in `play/listing/en-US/` and are
+  pushed by the manual "Play store listing" workflow (`.github/workflows/play-listing.yml`,
   modes `inspect` and `upload`; the service account needs View app information
   (read-only) for inspect and Manage store presence for upload). The answers
-  for the Console forms are in `docs/play-console-checklist.md`.
+  for the Console forms are in `docs/play-console-checklist.md`. Screenshots
+  are rendered and published by the release workflow (§6).
 
 ## 5. Play Console: one-time setup (owner-only)
 
@@ -238,6 +239,27 @@ After both uploads succeed, the release job creates the GitHub Release
 with generated notes. A Release created by hand in the web UI keeps its
 notes; the release job publishes it if it is still a draft and sets its prerelease status. Versions with
 major 0 are marked as prereleases.
+
+Each release also renders the store screenshots and attaches
+`store-screenshots.zip` to the GitHub Release. While the repository variable
+`PLAY_LISTING_AUTO_UPLOAD` is `true`, it replaces the phone and Wear screenshots
+on the Play listing. The listing is public and shared by all tracks, so delete
+the variable at launch. After that, run the "Play store listing" workflow in
+`screenshots` mode with the release tag after promoting it to production.
+If an upload fails because an update is in review, re-run the `listing` job later.
+
+Enable automatic uploads before launch:
+
+```sh
+gh variable set PLAY_LISTING_AUTO_UPLOAD --body true
+```
+
+At launch, disable them:
+
+```sh
+gh variable delete PLAY_LISTING_AUTO_UPLOAD
+```
+
 Promote to production by hand in the Play Console; the service account
 cannot release to production.
 

@@ -54,7 +54,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], qualifiers = "w360dp-h640dp-xxhdpi")
+@Config(sdk = [35], qualifiers = "w360dp-h720dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class StoreScreenshotsTest {
 

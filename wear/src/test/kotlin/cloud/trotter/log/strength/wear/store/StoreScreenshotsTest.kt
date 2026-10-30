@@ -87,6 +87,7 @@ class StoreScreenshotsTest {
         val seed = FakeWatchClient().snapshotFlow().value
         val snapshot = seed.copy(
             day = seed.day.copy(
+                title = "Squat focus",
                 exercises = seed.day.exercises.mapIndexed { index, exercise ->
                     if (index != 0) exercise else exercise.copy(
                         sets = exercise.sets.mapIndexed { setIndex, set ->
@@ -98,10 +99,10 @@ class StoreScreenshotsTest {
             cycle = listOf(
                 WatchCycleDay(
                     dayId = seed.day.dayId,
-                    title = seed.day.title,
+                    title = "Squat focus",
                     exercises = seed.day.exercises.map { WatchCycleExercise(it.name, it.sets.size) },
                 ),
-                WatchCycleDay("B", "Upper body"),
+                WatchCycleDay("B", "Upper"),
                 WatchCycleDay("C", "Hinge focus"),
                 WatchCycleDay("D", "Press focus"),
             ),

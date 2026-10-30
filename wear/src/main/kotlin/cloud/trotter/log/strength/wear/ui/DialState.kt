@@ -60,7 +60,7 @@ data class DialInputs(
     val browseDayIndex: Int? = null,
     /** The round the crown is peeking at (§6), or null when nobody is browsing. */
     val peekRoundIndex: Int? = null,
-    /** The prescribed alternate the crown is proposing (§6 Swap, #90), or null when
+    /** The prescribed alternate the crown is proposing (§6 Swap), or null when
      *  the lifter is keeping the lift they were given. Like the peek, a glance —
      *  never restored. */
     val swapAlternateIndex: Int? = null,
@@ -278,8 +278,7 @@ private class ScreenContext(
     /**
      * The face the app opens on (v3 §3): the cycle on the rim, the day's lifts on
      * the exercise ring, and one way in. The disc says what the tap does and the
-     * ring says where the day is — the old "begin" gate is gone, because tapping
-     * the disc no longer changes the copy, it changes the face.
+     * ring says where the day is. Tapping the disc changes the face.
      */
     fun overview(rest: RestState?, browseDayIndex: Int?): DialUiState {
         if (browseDayIndex != null) browse(browseDayIndex)?.let { return it }
@@ -294,7 +293,7 @@ private class ScreenContext(
             arc = rest?.let {
                 RestTimer.remainingFraction(it.deadlineElapsedMillis, inputs.nowElapsedMillis, it.totalSeconds)
             },
-            // The title alone: which day this is now lives on the ring, and the
+            // The title alone: which day this is lives on the ring, and the
             // emphasis line is a five-clause sentence an arc can only truncate.
             topBand = dayTitleBand(day.title),
             bottomBand = null,
@@ -410,9 +409,9 @@ private class ScreenContext(
     }
 
     /**
-     * The lift is waiting on the phone's answer to a swap (#90). The name is already
-     * the one the lifter asked for — the client echoes that much — but the rows under
-     * it still describe the exercise being replaced, and the replacement's are seeded
+     * The lift is waiting on the phone's answer to a swap. The name is already the
+     * one the lifter asked for — the client echoes that much — but the rows under it
+     * still describe the exercise being replaced, and the replacement's are seeded
      * phone-side from its own GOAL. So the disc goes read-only: DIMMED already means
      * "nothing here to act on", and the alternative is drawing 235 × 5 under a lift
      * nobody prescribed 235 for.
@@ -774,13 +773,11 @@ private class ScreenContext(
      * the set position — the line READY and the timed hold already carry, and the
      * only thing on this screen that says which set is under way.
      *
-     * What it no longer carries is `HOLD TO UNDO`. A set in progress hasn't been
-     * locked in, so there is nothing here to take back: [undoHold] is offered on
-     * READY, REST_OVER and DAY_DONE and nowhere else, and this band was
-     * advertising a gesture that did nothing where it was written (#151, from the
-     * v1 brief's §5.3 screen list). The offer is the honest half and it stays put;
-     * the hint goes, because an undo is deliberate by design and the three screens
-     * that do offer it announce it with nothing at all.
+     * A set in progress hasn't been locked in, so there is nothing here to take
+     * back: [undoHold] is offered on READY, REST_OVER and DAY_DONE and nowhere
+     * else. This band carries no `HOLD TO UNDO` hint because an undo is deliberate
+     * by design and the three screens that do offer it announce it with nothing at
+     * all.
      */
     private fun liftingBottomBand(): BandContent {
         val partner = round?.partner

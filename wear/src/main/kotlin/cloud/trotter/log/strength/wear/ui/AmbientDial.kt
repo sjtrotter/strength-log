@@ -135,7 +135,7 @@ fun AmbientDial(
 /**
  * Ambient with no snapshot yet: the wall clock alone on the static black
  * field, palette- and burn-in-aware. The lit LoadingDial animates its sweep
- * every 1.2s — motion and accent that ambient must not show (issue #161's
+ * every 1.2s — motion and accent that ambient must not show (the
  * relaunch-into-ambient path).
  */
 @Composable

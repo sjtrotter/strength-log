@@ -22,9 +22,10 @@ class StrengthLogApp : Application() {
 
     /**
      * The wear-sync publisher observes state for the whole process lifetime (D6,
-     * m5-wear.md #20) — an app-scope observer, not a foreground service. Started
-     * here from the singleton graph; it stays a cheap idle observer on devices with
-     * no watch paired (Data Layer writes just go unheard).
+     * docs/briefs/m5-wear.md, "#20 Wearable Data Layer sync") — an app-scope
+     * observer, not a foreground service. Started here from the singleton graph; it
+     * stays a cheap idle observer on devices with no watch paired (Data Layer
+     * writes just go unheard).
      */
     @EntryPoint
     @InstallIn(SingletonComponent::class)

@@ -434,9 +434,9 @@ private fun roundColor(round: RoundState, accent: Color): Color = when (round) {
  * (or to colour alone) without anyone tuning a breakpoint per day count.
  *
  * Labels render at CYCLE_LABEL, 9sp on the reference face — below the v2 12sp
- * floor by deliberate owner waiver, not an oversight (on-wrist verdict, issue
- * #152): the segment's colour is the identification, the word only names it,
- * and 18 reference px is what actually fits inside the ring's 22px stroke.
+ * floor by deliberate owner waiver, not an oversight: the segment's colour is
+ * the identification, the word only names it, and 18 reference px is what
+ * actually fits inside the ring's 22px stroke.
  */
 @Composable
 private fun CycleLabels(cycle: List<CycleSegment>, type: DialTypography, diameterPx: Float) {

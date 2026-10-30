@@ -15,12 +15,13 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import javax.inject.Singleton
 
 /**
- * The Health Connect object graph (#17, brief D5 — `:transfer` stays
- * framework-free, so the Hilt wiring lives here). The client provider is the
- * one availability seam; the publisher (write, D7 trigger) and reader (Log
- * screen) are plain constructors over it. Binding [SessionPublisher] to the
- * real [HealthConnectPublisher] is safe on any device: it self-checks
- * availability and permission and no-ops when Health Connect is absent (A3).
+ * The Health Connect object graph (docs/briefs/m4-transfer.md, "#17 Health
+ * Connect", D5 — `:transfer` stays framework-free, so the Hilt wiring lives
+ * here). The client provider is the one availability seam; the publisher
+ * (write, D7 trigger) and reader (Log screen) are plain constructors over
+ * it. Binding [SessionPublisher] to the real [HealthConnectPublisher] is
+ * safe on any device: it self-checks availability and permission and no-ops
+ * when Health Connect is absent (A3).
  */
 @Module
 @InstallIn(SingletonComponent::class)

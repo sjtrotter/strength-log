@@ -48,10 +48,10 @@ fun accentSoft(accentIndex: Int): Color = dayAccent(accentIndex).copy(alpha = 0.
  * The text-on-dark variant of the day accent (dial brief §3 "accent bright") —
  * most of the dial's text, so the day is legible as a mark on near-black.
  *
- * Read from `:domain`, same as the hexes and same as the phone. The watch used to
- * lift HSL lightness by a flat 0.15 of its own invention, which left day D at
- * 3.68:1 on [Background] — under AA, and visibly not the phone's colour for the
- * same day (#150). One brightening rule, both surfaces.
+ * Read from `:domain`, same as the hexes and same as the phone. Lifting HSL
+ * lightness by a flat 0.15 leaves day D at 3.68:1 on [Background] — under AA, and
+ * visibly not the phone's colour for the same day. One brightening rule, both
+ * surfaces.
  */
 fun accentBright(accentIndex: Int): Color = Color(DayAccentColors.brightHex(accentIndex))
 

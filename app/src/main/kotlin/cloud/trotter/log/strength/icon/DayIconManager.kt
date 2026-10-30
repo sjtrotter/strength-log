@@ -66,7 +66,7 @@ fun applicationOrderFor(dayIndex: Int): List<AliasState> =
     aliasStatesFor(dayIndex).sortedByDescending { it.enabled }
 
 /**
- * Swaps the home-screen launcher icon to match the current rotation day (#22) by
+ * Swaps the home-screen launcher icon to match the current rotation day by
  * enabling exactly one `Launcher_Day*` activity-alias and disabling the rest.
  * `DONT_KILL_APP` keeps this invisible to the running process.
  */

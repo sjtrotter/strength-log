@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-      Health Connect permissions (#17, PLAN.md A3). These are on-device IPC
+      Health Connect permissions (PLAN.md A3). These are on-device IPC
       permissions granted through the Health Connect provider — NOT INTERNET
       (the app still declares no android.permission.INTERNET, so the local-first
       promise holds). All four are requested together, from the Log screen's
@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
 
-    <!-- Cardio step boundaries buzz (#154 C1b); install-time, not runtime. -->
+    <!-- Cardio step boundaries buzz (C1b); install-time, not runtime. -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
@@ -29,11 +29,11 @@
       Auto Backup (allowBackup): opts into Google One cloud backup and
       device-to-device transfer for the Room DB + DataStore prefs, at no
       engineering cost. It's a free ride on top of, not a replacement for,
-      the versioned JSON full backup (PLAN.md A2, #15/PR #42) — that JSON
-      export is the user-visible, guaranteed way to move data on purpose;
-      Auto Backup is opaque, best-effort, and skipped if the OEM transfer
-      tool doesn't invoke it. dataExtractionRules covers API 31+; the
-      identical fullBackupContent rules back-fill the API 26-30 floor.
+      the versioned JSON full backup (PLAN.md A2) — that JSON export is
+      the user-visible, guaranteed way to move data on purpose; Auto
+      Backup is opaque, best-effort, and skipped if the OEM transfer tool
+      doesn't invoke it. dataExtractionRules covers API 31+; the identical
+      fullBackupContent rules back-fill the API 26-30 floor.
 
       Predictive back opts every BackHandler and PredictiveBackHandler into the
       platform back-invoked API. The system can preview back to home, and app
@@ -62,13 +62,13 @@
             android:exported="false" />
 
         <!--
-          Health Connect's mandatory permissions-rationale target (#17). The
-          provider launches this to explain why the app requests health
-          permissions. Exported (it has to be launchable by the Health Connect
-          provider) but inert: it shows a static, on-device rationale screen and
-          reads no data. Two filters cover both eras — the pre-14 provider APK
-          fires SHOW_PERMISSIONS_RATIONALE; platform Health Connect (API 34+)
-          fires VIEW_PERMISSION_USAGE with the HEALTH_PERMISSIONS category.
+          Health Connect's mandatory permissions-rationale target. The provider
+          launches this to explain why the app requests health permissions.
+          Exported (it has to be launchable by the Health Connect provider) but
+          inert: it shows a static, on-device rationale screen and reads no
+          data. Two filters cover both eras — the pre-14 provider APK fires
+          SHOW_PERMISSIONS_RATIONALE; platform Health Connect (API 34+) fires
+          VIEW_PERMISSION_USAGE with the HEALTH_PERMISSIONS category.
         -->
         <activity
             android:name=".health.HealthRationaleActivity"
@@ -89,7 +89,7 @@
         </activity-alias>
 
         <!--
-          Session share card provider (#103, docs/briefs/session-share.md §3).
+          Session share card provider (docs/briefs/session-share.md §3).
           Unexported and grants read access only to the render it just wrote —
           @xml/file_paths scopes the exposed tree to cache/shares/ alone, so
           this can never serve any other file in the app's cache or storage.
@@ -107,9 +107,9 @@
         </provider>
 
         <!--
-          Wear Data Layer receiver (#20). Google Play Services binds this service
-          to deliver watch->phone set-edit messages, waking the app process if it
-          was dead so an edit made while the phone app wasn't running still lands.
+          Wear Data Layer receiver. Google Play Services binds this service to
+          deliver watch->phone set-edit messages, waking the app process if it was
+          dead so an edit made while the phone app wasn't running still lands.
 
           exported="true" is required and safe: only Google Play Services binds a
           WearableListenerService (the bind is gated by that trusted process), and
@@ -149,11 +149,11 @@
         </receiver>
 
         <!--
-          Day-swapping launcher icon (#22): one alias per rotation day, one
-          icon each. DayIconManager enables the alias for the current
-          suggested day and disables the rest via PackageManager component
-          toggling — no new permission, no network. Day A ships enabled so a
-          fresh install always shows exactly one icon.
+          Day-swapping launcher icon: one alias per rotation day, one icon
+          each. DayIconManager enables the alias for the current suggested
+          day and disables the rest via PackageManager component toggling —
+          no new permission, no network. Day A ships enabled so a fresh
+          install always shows exactly one icon.
         -->
         <activity-alias
             android:name=".Launcher_DayA"

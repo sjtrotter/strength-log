@@ -11,10 +11,8 @@ import kotlinx.coroutines.flow.Flow
  *
  * The three travel together because they have to agree. A screen that takes
  * "now" from one place and the zone from another can render a date that belongs
- * to neither — which is exactly what the singleton `Clock.systemDefaultZone()`
- * did (#176): `Clock.SystemClock` captures `ZoneId.systemDefault()` once, at
- * construction, and never re-reads it, so after a timezone change every week and
- * month boundary kept being computed in the old zone.
+ * to neither. `Clock.systemDefaultZone()` captures the zone once, so after a
+ * timezone change, boundaries are computed in the old zone.
  */
 data class CivilTime(val instant: Instant, val zone: ZoneId, val date: LocalDate) {
 
@@ -40,7 +38,7 @@ data class CivilTime(val instant: Instant, val zone: ZoneId, val date: LocalDate
 }
 
 /**
- * Where a screen gets "what day is it here, right now" (#176).
+ * Where a screen gets "what day is it here, right now".
  *
  * [civilTime] is the whole point: an injected `Clock` answers the question once
  * and can only be re-asked when some *other* flow happens to emit, so a screen

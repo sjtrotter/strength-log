@@ -23,7 +23,7 @@ enum class DialScreen { OVERVIEW, READY, LIFTING, REST, REST_OVER, TIMED_HOLD, C
 enum class DiscStyle { FILLED, OUTLINED, FLAT, DASHED, DIMMED, FILLED_GREEN }
 
 /** The type scale (§3), three sizes with two steps each, plus the cycle ring's own
- *  smaller step (#152). Nothing in between. */
+ *  smaller step. Nothing in between. */
 enum class DialTextRole {
     NUMERAL_LARGE, NUMERAL, DISC_LABEL, DISC_LABEL_SMALL, BAND, BAND_SECONDARY, CYCLE_LABEL
 }

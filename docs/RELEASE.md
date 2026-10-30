@@ -61,8 +61,7 @@ in step 4, instead of the debug-keystore build you've been using for day-to-
 day testing).
 
 Both tasks run R8 (`isMinifyEnabled = true`, `isShrinkResources = true`,
-`app/proguard-rules.pro`). That's new as of M6 (#23) — earlier milestones
-shipped release builds unminified. R8's runtime behavior (as opposed to
+`app/proguard-rules.pro`). R8's runtime behavior (as opposed to
 "did it build") can only be verified on a device, which is why step 4 below
 exists.
 

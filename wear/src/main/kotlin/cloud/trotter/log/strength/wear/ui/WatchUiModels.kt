@@ -29,7 +29,7 @@ data class ExerciseStreamUiState(
     val hasAddedLoad: Boolean,
     /** The read-only added-load caption ("+25") for a loaded TIMED hold; blank otherwise.
      *  Added load is a phone-side setup value — the watch never edits it (the phone drops
-     *  weight deltas on TIMED tracks, design risk #2), so it is displayed, not stepped. */
+     *  weight deltas on TIMED tracks), so it is displayed, not stepped. */
     val addedLoadDisplay: String,
     val perHand: Boolean,
     val partnerName: String?,
@@ -89,7 +89,7 @@ fun WatchExercise.toStreamUiState(
         accentIndex = accentIndex,
         name = name,
         // Use the phone's pre-formatted, per-type GOAL label; fall back to the weight
-        // numeral only for a pre-P1.5 snapshot that never set it (keeps old wires safe).
+        // numeral only for an older snapshot that never set it (keeps old wires safe).
         goalDisplay = goalLabel.ifBlank { WeightStepper.format(unit.fromLb(goal)) },
         tracking = track,
         hasAddedLoad = loaded,

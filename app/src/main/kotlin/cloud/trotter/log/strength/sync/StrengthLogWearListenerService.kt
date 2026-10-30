@@ -10,11 +10,11 @@ import javax.inject.Inject
 import kotlinx.coroutines.runBlocking
 
 /**
- * Receives watch->phone set-edit deltas over the MessageClient (D6, m5-wear.md
- * #20). Google Play Services starts this service (waking the app process if needed)
- * whenever a message lands on [WearSyncPaths.SET_EDIT]; it decodes the delta
- * leniently and applies it through [SetEditApplier], which validates, dedupes and
- * cascades on the phone.
+ * Receives watch->phone set-edit deltas over the MessageClient (D6,
+ * docs/briefs/m5-wear.md, "#20 Wearable Data Layer sync"). Google Play Services
+ * starts this service (waking the app process if needed) whenever a message lands
+ * on [WearSyncPaths.SET_EDIT]; it decodes the delta leniently and applies it
+ * through [SetEditApplier], which validates, dedupes and cascades on the phone.
  *
  * Robustness contract: a malformed, foreign or unknown-path payload is logged and
  * dropped — it must never crash the service (an exported component processing bytes
@@ -36,7 +36,7 @@ class StrengthLogWearListenerService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
         when (event.path) {
             WearSyncPaths.SET_EDIT -> receiveSetEdit(event.data)
-            // Swaps ride their own path (#90) so an older phone drops them by filter
+            // Swaps ride their own path so an older phone drops them by filter
             // rather than failing to decode them as a set edit.
             WearSyncPaths.EXERCISE_SWAP ->
                 receive("exercise-swap", { SyncCodec.decodeSwap(event.data) }) { applier.apply(it) }

@@ -81,13 +81,13 @@ object DataModule {
     /** One device clock for the whole process: every write stamp and the daily
      *  checkmark reset read the same wall clock, and tests can substitute a fixed
      *  one. Not for "what day is it *now*" on a screen — this clock's zone is
-     *  frozen at construction; that question goes to [CivilTimeSource] (#176). */
+     *  frozen at construction; that question goes to [CivilTimeSource]. */
     @Provides
     @Singleton
     fun clock(): Clock = Clock.systemDefaultZone()
 
     /** The read-path counterpart to [clock]: a civil day that re-reads the zone
-     *  and re-emits when the day turns (#176). */
+     *  and re-emits when the day turns. */
     @Provides
     @Singleton
     fun civilTimeSource(source: SystemCivilTimeSource): CivilTimeSource = source

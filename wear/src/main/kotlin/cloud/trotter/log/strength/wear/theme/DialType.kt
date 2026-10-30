@@ -30,9 +30,9 @@ import cloud.trotter.log.strength.wear.ui.DialTextRole
  * reference landed at 6.5sp on the wrist. Every step below is chosen so that face
  * lands on the sp column, and the smallest of them is 12sp: nothing the lifter
  * *reads* may render below that (dial v2 §1). [cycleLabel] is the one deliberate
- * exception, an owner-waived verdict from the on-wrist round (issue #152): the
- * cycle ring's colour is the identification, the word only names it, and 18px is
- * the size whose line box actually fits the ring's 22px stroke.
+ * exception, an owner-waived verdict: the cycle ring's colour is the
+ * identification, the word only names it, and 18px is the size whose line box
+ * actually fits the ring's 22px stroke.
  */
 @Immutable
 data class DialTypography(
@@ -106,10 +106,10 @@ fun dialTypography(scale: Float, density: Density): DialTypography {
         discLabelSmall = numeral(30f),
         band = band(26f, tracking = 4f),
         bandSecondary = band(24f, tracking = 3f),
-        // Waived below the 12sp floor by owner verdict (issue #152): the cycle
-        // ring's stroke is 22 reference px and the band styles carry a 1.2em line
-        // height, so 22 / 1.2 = 18.33 — 18 is the largest whole step whose line
-        // box still fits inside the ring it rides.
+        // Waived below the 12sp floor by owner verdict: the cycle ring's stroke
+        // is 22 reference px and the band styles carry a 1.2em line height, so 22
+        // / 1.2 = 18.33 — 18 is the largest whole step whose line box still fits
+        // inside the ring it rides.
         cycleLabel = band(18f, tracking = 2f),
     )
 }

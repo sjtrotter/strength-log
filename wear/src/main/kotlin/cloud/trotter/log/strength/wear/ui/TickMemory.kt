@@ -4,7 +4,7 @@ package cloud.trotter.log.strength.wear.ui
  * The ticks **this watch** made today, in the order it made them, and how long each
  * one took where it saw a start (brief §6's `TOOK 0:52` line).
  *
- * The wire deliberately never echoes the per-set stamps back (#85: the snapshot has
+ * The wire deliberately never echoes the per-set stamps back (the snapshot has
  * nowhere to show them and nobody reads them), so the watch keeps its own note. Two
  * things read it: the peek's `TOOK` line, and the undo, which needs to know which
  * round was ticked *last* — a question the snapshot cannot answer, because done
@@ -48,12 +48,12 @@ class TickMemory private constructor(private val ticks: Map<String, Tick>) {
     }
 
     /**
-     * Forgets every tick against one slot — what a swap does to this ledger (#90).
-     * The phone's swap clears the slot's live log (§8.3), so rounds this watch
-     * remembers ticking there are rounds that no longer exist; keeping them would
-     * leave the undo pointing at work the lifter cannot see. [UndoTarget] would skip
-     * them anyway (a remembered tick is only trusted while the snapshot still calls
-     * it logged), but agreeing with the phone outright beats relying on that.
+     * Forgets every tick against one slot — what a swap does to this ledger. The
+     * phone's swap clears the slot's live log (§8.3), so rounds this watch remembers
+     * ticking there are rounds that no longer exist; keeping them would leave the
+     * undo pointing at work the lifter cannot see. [UndoTarget] would skip them
+     * anyway (a remembered tick is only trusted while the snapshot still calls it
+     * logged), but agreeing with the phone outright beats relying on that.
      */
     fun forgetExercise(programExerciseId: Long): TickMemory {
         val prefix = "$programExerciseId$KEY_SEPARATOR"

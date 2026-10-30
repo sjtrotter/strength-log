@@ -71,7 +71,7 @@ object PendingEdits {
         }
 
     /**
-     * The swaps still worth re-sending after reconciling against [snapshot] (#90).
+     * The swaps still worth re-sending after reconciling against [snapshot].
      *
      * Besides a removed slot (above), a swap leaves the queue on any of four terminal conditions:
      *  - **Landed** — the snapshot's slot now *is* the exercise it asked for. Judged

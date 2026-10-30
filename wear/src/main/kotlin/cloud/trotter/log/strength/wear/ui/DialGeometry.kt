@@ -184,8 +184,8 @@ object DialGeometry {
      * Where a cycle label lives: the cycle ring's own annulus, so the label rides
      * the colour it belongs to. The row is centred on the ring's centreline, and
      * at CYCLE_LABEL its whole line box fits the stroke — 18 reference px × 1.2em
-     * is 21.6px inside a 22px ring. The old BAND_SECONDARY row overhung it and got
-     * away with it only because caps are shorter than their line box (issue #152).
+     * is 21.6px inside a 22px ring. A BAND_SECONDARY row overhangs it even though
+     * its caps are shorter than their line box.
      */
     fun cycleLabelBand(diameterPx: Float): DialBand {
         val ring = cycleRing(diameterPx)

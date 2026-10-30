@@ -200,7 +200,8 @@ object WatchSnapshotBuilder {
             repAim = repWindow?.repAim,
             prescribed = pe.prescription != null,
             // Enum name lowercased; the watch parses it back to pick a per-type control.
-            // Unknown/missing entry falls back to "weighted" — the only pre-P5 behavior.
+            // Unknown/missing entry falls back to "weighted" — only an older watch's
+            // behaviour.
             tracking = tracking.name.lowercase(),
             // Same encoding, for the superset partner (meaningless without one).
             ssTracking = (partnerEntry?.tracking ?: TrackingType.WEIGHTED).name.lowercase(),
@@ -218,9 +219,9 @@ object WatchSnapshotBuilder {
     }
 
     /**
-     * The replacements the watch may offer for a slot (#90): the same ranked,
-     * equipment-filtered list the phone's own swap sheet shows, capped at
-     * [MAX_ALTERNATES].
+     * The replacements the watch may offer for a slot
+     * (docs/briefs/wear-dial-v3.md §5): the same ranked, equipment-filtered
+     * list the phone's own swap sheet shows, capped at [MAX_ALTERNATES].
      *
      * Public because [SetEditApplier] re-derives it to *check* an incoming swap
      * against what this phone would have prescribed. Prescribing the list and

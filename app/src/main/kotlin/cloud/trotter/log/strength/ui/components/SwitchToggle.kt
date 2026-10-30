@@ -36,7 +36,7 @@ import cloud.trotter.log.strength.ui.theme.onDayAccent
 
 /**
  * A labeled on/off switch (wizard's "keep me 5k-ready" toggle, spec §6.1, and
- * later Setup's unit/prefs toggles). Same track-and-thumb look the day screen
+ * Setup's unit/prefs toggles). Same track-and-thumb look the day screen
  * already uses for keep-screen-on, pulled out here so a second screen doesn't
  * have to re-draw it.
  *

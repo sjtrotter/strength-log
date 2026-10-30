@@ -74,7 +74,7 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
 import cloud.trotter.log.strength.ui.text.resolve
 
 /**
- * The Data/Backup screen (PLAN.md A2, brief D9's `:app`-side UI PR): full
+ * The Data/Backup screen (PLAN.md A2, D9): full
  * JSON backup export/restore and Strong-compatible CSV history export/import,
  * reachable from Setup. Stateless like the rest of the app's screens — the
  * route (`AppNavHost`) owns the SAF [androidx.activity.result.ActivityResultLauncher]s

@@ -32,8 +32,7 @@ internal val DarkFocusRing = DarkTextSecondary
 // Faint text: remove-set glyph, superset "↳" marker, footer blurb (design-pass).
 internal val DarkTextFaint = Color(0xFF6B6B73)
 
-// Design-pass recolor: was M3-default 0xFFB3261E, which read too close to Day
-// A's terracotta. Cooler crimson so an error never looks like a Day-A accent;
+// Cooler crimson so an error never looks like Day A's terracotta accent;
 // white text stays >= 4.5:1 (measured 4.84:1 — see DayAccentTest).
 internal val DarkError = Color(0xFFC2334D)
 

@@ -5,7 +5,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.text.UiText
 
-/** Immutable render model for the Log screen (PLAN.md A1; Health Connect read path and
+/** Immutable render model for the Log screen (PLAN.md A1; Health Connect read path;
  *  journal sections per docs/briefs/journal.md). */
 data class LogUiState(
     val sessions: List<SessionListItem> = emptyList(),

@@ -498,7 +498,7 @@ private fun CreateCustomExerciseButton(accent: Color, onClick: () -> Unit) {
     SetupOutlineAction(stringResource(R.string.setup_create_custom_exercise_button), accent, 52, 8, onClick)
 }
 
-// --- data / backup (PLAN.md A2, brief D9's :app-side UI PR) ------------------
+// --- data / backup (PLAN.md A2, D9) ------------------------------------------
 
 @Composable
 private fun DataBackupButton(accent: Color, onClick: () -> Unit) {

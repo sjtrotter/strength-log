@@ -260,7 +260,7 @@ object ExerciseLibrary {
     )
 
     /** Ids reclassified from a bodyweight-fake [GoalSource.Flat] to
-     *  [GoalSource.Time] in the tracking-types catalog pass. The P3 one-shot
+     *  [GoalSource.Time] in the tracking-types catalog pass. The one-shot
      *  legacy-data fixup (reps→seconds carry) operates on exactly this set —
      *  declared once here, next to the catalog it describes, so the migration
      *  and its tests share a single source of truth. */

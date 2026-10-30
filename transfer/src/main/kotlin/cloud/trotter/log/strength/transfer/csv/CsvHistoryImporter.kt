@@ -17,8 +17,8 @@ import java.util.UUID
 /**
  * Turns a confirmed [CsvImportPreview] into the entities
  * [cloud.trotter.log.strength.data.TrackerRepository.importSessionHistory]
- * writes (issue #16). Pure: no repository, no suspend — [CsvHistoryService]
- * calls this and then hands the result to the repository in one transaction.
+ * writes. Pure: no repository, no suspend — [CsvHistoryService] calls this
+ * and then hands the result to the repository in one transaction.
  */
 object CsvHistoryImporter {
 
@@ -84,8 +84,8 @@ object CsvHistoryImporter {
                         exerciseName = set.exerciseName,
                         slot = Slot.MAIN,
                         setIndex = set.setIndex,
-                        // CSV has no per-set kind (ramp/top/backoff); imported sets
-                        // are logged, completed performance, so WORK is the honest
+                        // CSV has no per-set kind (ramp/top/backoff); imported
+                        // sets are logged, completed performance, so WORK is the
                         // default.
                         kind = SetKind.WORK.name,
                         weightLb = set.weightLb,
@@ -158,11 +158,11 @@ object CsvHistoryImporter {
 
     /**
      * Normalizes both native and imported history to exactly what CSV preserves:
-     * title, whole-second completion time, and ordered performed exercise/value tuples.
-     * Existing history supplies only done sets in id order, matching the writer.
-     * Row ids and native-only set metadata are deliberately absent. Consequently,
-     * two truly identical sessions completed within one second collide; that is
-     * an acceptable limitation of the interchange format's second precision.
+     * title, whole-second completion time, and ordered performed exercise/value
+     * tuples. Existing history supplies only done sets in id order, matching the
+     * writer. Row ids and native-only set metadata are absent. Consequently, two
+     * truly identical sessions completed within one second collide; that is an
+     * acceptable limitation of the interchange format's second precision.
      */
     private fun normalizedSessionFingerprint(
         session: WorkoutSessionEntity,

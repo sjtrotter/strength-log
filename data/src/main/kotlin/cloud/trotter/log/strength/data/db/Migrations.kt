@@ -4,16 +4,16 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * v1 → v2 (tracking types, P3): purely additive columns for the new REPS/TIMED
+ * v1 → v2 (tracking types): purely additive columns for the new REPS/TIMED
  * exercise tracking. Every column carries a DEFAULT so existing rows keep their
  * exact meaning — a pre-v2 `session_set` reads back as weight×reps with
  * `seconds = 0`, and a pre-v2 `custom_exercise` stays WEIGHTED. No row is
  * rewritten or dropped, so there is nothing to lose.
  *
  * The reinterpretation of *legacy live logs* for entries that were reclassified
- * to TIMED (reps→seconds) is deliberately NOT done here: it is a one-shot,
- * DataStore-flagged data fixup (see `LegacyTimedFixup`), not a schema change, so
- * it can be reasoned about and tested on its own and never runs twice.
+ * to TIMED (reps→seconds) is NOT done here: it is a one-shot, DataStore-flagged
+ * data fixup (see `LegacyTimedFixup`), not a schema change, so it can be
+ * reasoned about and tested on its own and never runs twice.
  */
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -25,13 +25,13 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
 }
 
 /**
- * v2 → v3 (per-set timing, #85): two nullable columns on archived sets holding the
+ * v2 → v3 (per-set timing): two nullable columns on archived sets holding the
  * wall-clock millis the watch observed for a set's start and its tick. Nullable
- * with no DEFAULT deliberately — every already-archived set genuinely has no
- * observed timing, and NULL ("not observed") must stay distinguishable from 0
- * ("started at the epoch"), which any downstream active-time math would swallow.
- * The live log needs no migration: it is JSON in `exercise_log.setsJson` and the
- * two `SetDto` fields default to null there.
+ * with no DEFAULT — every already-archived set genuinely has no observed timing,
+ * and NULL ("not observed") must stay distinguishable from 0 ("started at the
+ * epoch"), which any downstream active-time math would swallow. The live log needs
+ * no migration: it is JSON in `exercise_log.setsJson` and the two `SetDto` fields
+ * default to null there.
  */
 val MIGRATION_2_3 = object : Migration(2, 3) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -41,16 +41,16 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
 }
 
 /**
- * v3 → v4 (unknown bodyweight, #171): `workout_session.bodyweightLb` becomes
+ * v3 → v4 (unknown bodyweight): `workout_session.bodyweightLb` becomes
  * nullable. SQLite can't relax NOT NULL in place, so the table is rebuilt and
  * copied — it carries no index and nothing references it by foreign key, so the
  * rebuild is a straight copy.
  *
  * The copy also rewrites `0` to NULL. A session written by the app always
- * recorded the configured (positive) bodyweight; a 0 could only come from a CSV
- * import, which has no bodyweight column and used to fabricate one. Those rows
- * are exactly the unknown ones, and leaving them at 0 would keep poisoning the
- * calorie estimate and every full backup.
+ * recorded the configured (positive) bodyweight; a 0 identifies a legacy CSV
+ * import, which has no bodyweight column. Those rows are exactly the unknown
+ * ones, and leaving them at 0 would keep poisoning the calorie estimate and
+ * every full backup.
  */
 val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -66,8 +66,9 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         )
         // The copy seeds the new table's sqlite_sequence with the highest
         // SURVIVING id, but AUTOINCREMENT promises no reuse of any id ever
-        // issued — carry the old high-water mark forward when it's higher
-        // (sessions may have been deleted above the survivors).
+        // issued — carry the source table's high-water mark forward when
+        // it's higher (sessions may have been deleted above the
+        // survivors).
         db.execSQL(
             "INSERT INTO sqlite_sequence(name, seq) " +
                 "SELECT 'workout_session_new', old.seq FROM sqlite_sequence AS old " +
@@ -86,16 +87,16 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
 }
 
 /**
- * v4 → v5 (restore commit marker, #172): one new single-row table, purely
- * additive. No existing table is touched, and an empty `restore_marker` is
- * exactly what "no restore is outstanding" means, so a device arriving here has
- * nothing to backfill.
+ * v4 → v5 (restore commit marker): one new single-row table, purely additive.
+ * No existing table is touched, and an empty `restore_marker` is exactly what
+ * "no restore is outstanding" means, so a device arriving here has nothing to
+ * backfill.
  *
  * The table exists so a full restore's destructive transaction can record
  * *itself* — the one fact Room and DataStore can agree on afterwards; see
  * [cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity]. It is
- * deliberately absent from the full backup: it is recovery bookkeeping about
- * this device mid-restore, not something a user owns.
+ * absent from the full backup: it is recovery bookkeeping about this device
+ * mid-restore, not something a user owns.
  */
 val MIGRATION_4_5 = object : Migration(4, 5) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -106,7 +107,7 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
-/** v5 → v6 (cardio history, #154): additive append-only cardio sessions. */
+/** v5 → v6 (cardio history): additive append-only cardio sessions. */
 val MIGRATION_5_6 = object : Migration(5, 6) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(
@@ -126,7 +127,7 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
-/** v7 → v8 (saved plans, #266): the existing program becomes plan 1. */
+/** v7 → v8 (saved plans): the existing program becomes plan 1. */
 val MIGRATION_7_8 = object : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(
@@ -218,7 +219,7 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
-/** v8 → v9 (#268): plan-owned generator inputs and rotation position. */
+/** v8 → v9: plan-owned generator inputs and rotation position. */
 val MIGRATION_8_9 = object : Migration(8, 9) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE plan ADD COLUMN recipeJson TEXT")
@@ -233,14 +234,14 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
     }
 }
 
-/** v10 → v11 (#279): authored cardio blocks; legacy suggestions remain unchanged. */
+/** v10 → v11: authored cardio blocks; legacy suggestions remain unchanged. */
 val MIGRATION_10_11 = object : Migration(10, 11) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE program_day ADD COLUMN cardioBlockJson TEXT")
     }
 }
 
-/** v11 → v12 (#279): per-set cardio history; legacy sessions remain summaries. */
+/** v11 → v12: per-set cardio history; legacy sessions remain summaries. */
 val MIGRATION_11_12 = object : Migration(11, 12) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE cardio_session ADD COLUMN activity TEXT")

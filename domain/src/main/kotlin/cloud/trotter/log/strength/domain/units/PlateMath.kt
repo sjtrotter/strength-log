@@ -7,8 +7,8 @@ package cloud.trotter.log.strength.domain.units
  */
 object PlateMath {
 
-    // 35 lb is deliberately absent: including it in the greedy pass breaks
-    // the spec-pinned 130 -> 25/10/5/2.5 and 210 -> 45/25/10/2.5 vectors
+    // 35 lb is absent: including it in the greedy pass breaks the
+    // spec-pinned 130 -> 25/10/5/2.5 and 210 -> 45/25/10/2.5 vectors
     // (greedy would reach for 35 before those), and it's the least commonly
     // stocked plate at a gym anyway.
     private val LB_PLATES = listOf(45.0, 25.0, 10.0, 5.0, 2.5)

@@ -27,8 +27,8 @@ data class SetEditDelta(
     val reps: Int? = null,
     val done: Boolean? = null,
     /** A TIMED hold edit in seconds; null when the touched field wasn't seconds.
-     *  Additive/backward-compatible: an older phone ignores the unknown key, a
-     *  pre-P5 watch simply never sets it. The phone applies it only on TIMED tracks
+     *  Additive/backward-compatible: an older phone ignores the unknown key, an
+     *  older watch simply never sets it. The phone applies it only on TIMED tracks
      *  (see SetEditApplier's delta guard). */
     val seconds: Int? = null,
     /** Last-write-wins tiebreaker and dedupe key on the phone side. */

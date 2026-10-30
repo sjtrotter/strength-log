@@ -5,8 +5,8 @@ import kotlinx.serialization.json.Json
 
 /**
  * The one place the wear-sync DTOs are turned into (and read back from) their
- * on-the-wire bytes (m5-wear.md #20 "Serialization" requirement). Both transports
- * — the phone's DataClient publish and its MessageClient receive, plus the watch's
+ * on-the-wire bytes (docs/briefs/m5-wear.md, "Serialization"). Both transports —
+ * the phone's DataClient publish and its MessageClient receive, plus the watch's
  * mirror of each — go through here so the leniency lives in exactly one decoder:
  *
  * `ignoreUnknownKeys = true` is the load-bearing setting. The DTOs carry a

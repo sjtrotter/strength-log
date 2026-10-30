@@ -1,8 +1,8 @@
 package cloud.trotter.log.strength.transfer.health
 
 /**
- * Plain, androidx.health-free intermediates for the Health Connect read path
- * (#17). [HealthConnectReader] extracts these from the provider's records so the
+ * Plain, androidx.health-free intermediates for the Health Connect read path.
+ * [HealthConnectReader] extracts these from the provider's records so the
  * formatting/decision logic ([ExternalSessionFormatter], [BodyweightPrompt])
  * stays pure and unit-testable, and so no androidx.health type crosses into
  * `:app`.

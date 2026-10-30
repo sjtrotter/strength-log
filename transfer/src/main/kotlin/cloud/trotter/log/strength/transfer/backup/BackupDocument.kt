@@ -89,10 +89,10 @@ data class CardioSetResultBackup(
  * v1–v8 carry the one program's recipe here; v9 leaves those fields null and
  * carries each plan's recipe and rotation in [PlanBackup].
  *
- * Two stored keys are deliberately absent, and both are settings the user never
- * chose: the session-start stamp (transient — a restore can't be mid-workout)
- * and the one-shot legacy-TIMED fixup flag (the fixup only moves an unfixed set,
- * so re-running it after a restore is a no-op).
+ * Two stored keys are absent, and both are settings the user never chose: the
+ * session-start stamp (transient — a restore can't be mid-workout) and the
+ * one-shot legacy-TIMED fixup flag (the fixup only moves an unfixed set, so
+ * re-running it after a restore is a no-op).
  */
 @Serializable
 data class SettingsBackup(
@@ -226,8 +226,8 @@ data class SessionBackup(
     val startedAt: Long? = null,
     val completedAt: Long,
     /** The bodyweight the session recorded, or null when it recorded none —
-     *  CSV-imported history (v5, #171). A pre-v5 document says the same thing
-     *  with a 0, which [BackupCodec.decode] maps to null on the way in. */
+     *  CSV-imported history (v5). A pre-v5 document says the same thing with
+     *  a 0, which [BackupCodec.decode] maps to null on the way in. */
     val bodyweightLb: Int? = null,
     val sets: List<SessionSetBackup> = emptyList(),
     /** The plan this session ran under, or null for pre-plans history and CSV imports. */
@@ -250,9 +250,9 @@ data class SessionSetBackup(
     /** Defaulted so a v1 document (no `seconds` key) restores each set at 0 —
      *  its exact v1 meaning of weight×reps. */
     val seconds: Int = 0,
-    /** The set's wrist-observed start/complete millis (#85). Null-defaulted so an
-     *  older document restores them as "not observed" — which is what those sets
-     *  are. The live logs need no counterpart: they carry `setsJson` verbatim. */
+    /** The set's wrist-observed start/complete millis. Null-defaulted so an older
+     *  document restores them as "not observed" — which is what those sets are.
+     *  The live logs need no counterpart: they carry `setsJson` verbatim. */
     val startedAtMillis: Long? = null,
     val completedAtMillis: Long? = null,
 )

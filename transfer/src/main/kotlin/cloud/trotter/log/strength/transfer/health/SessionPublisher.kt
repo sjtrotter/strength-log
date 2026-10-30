@@ -27,7 +27,7 @@ interface SessionPublisher {
     suspend fun delete(sessionId: Long) = Unit
 
     /**
-     * Publishes [sessionIds] — the backfill a late grant needs (#159), since
+     * Publishes [sessionIds] — the backfill a late grant needs, since
      * [publish] only ever fires at completion time and history written before
      * the grant would otherwise never reach Health Connect.
      *

@@ -36,10 +36,7 @@ android {
 
     buildTypes {
         release {
-            // R8 on (ledger item ":wear R8"): the unminified wear APK weighed
-            // 25 MB, which made every wireless-adb deploy to the watch a
-            // multi-minute affair; shrunk it is a few MB. Rules mirror :app's
-            // (kotlinx.serialization only — see wear/proguard-rules.pro).
+            // R8 on; rules mirror :app's (see wear/proguard-rules.pro).
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -107,9 +104,9 @@ dependencies {
     // The two glance surfaces (glance-surfaces brief §2/§3): a tile rendered with
     // ProtoLayout and a watch-face complication. Both read the snapshot DataItem the
     // Data Layer already persists here, so neither adds state or a permission.
-    // protolayout-material is deliberately absent — the tile is one hand-built layout
-    // in this app's own vocabulary, and the Material component set would only drag in
-    // a look we don't use.
+    // protolayout-material is absent — the tile is one hand-built layout in this
+    // app's own vocabulary, and the Material component set would only drag in a look
+    // we don't use.
     implementation(libs.androidx.wear.tiles)
     implementation(libs.androidx.wear.protolayout)
     implementation(libs.androidx.wear.watchface.complications.data.source.ktx)
@@ -117,7 +114,7 @@ dependencies {
     // snapshot read is a suspend function. Already a transitive runtime dep of
     // tiles; declared so it's on the compile classpath too.
     implementation(libs.androidx.concurrent.futures.ktx)
-    // Wear Data Layer client (#20): read snapshots, send set-edit deltas; the
+    // Wear Data Layer client: read snapshots, send set-edit deltas; the
     // play-services adapter gives Task.await(). The pending-edit queue persists to
     // a Preferences DataStore.
     implementation(libs.play.services.wearable)

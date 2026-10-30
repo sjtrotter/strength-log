@@ -39,28 +39,19 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val BODYWEIGHT = intPreferencesKey("bodyweight")
         val AGE = intPreferencesKey("age")
         val LEVEL = stringPreferencesKey("level")
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
+        // Pre-plan storage, read only by the plan-settings fixup.
         val EMPHASIS = stringPreferencesKey("emphasis")
 
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val CARDIO_MODE = stringPreferencesKey("cardio_mode")
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val CARDIO_PLACEMENT = stringPreferencesKey("cardio_placement")
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val FIVE_K = booleanPreferencesKey("five_k")
 
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val DAYS_PER_WEEK = intPreferencesKey("days_per_week")
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val SPLIT = stringPreferencesKey("split")
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val ANCHOR_SCHEME = stringPreferencesKey("anchor_scheme")
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val DEADLIFT_VARIANT = stringPreferencesKey("deadlift_variant")
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val EQUIPMENT = stringSetPreferencesKey("equipment")
 
-        /** pre-#268 storage; read only by the plan-settings migration gate. */
         val SUGGESTED_DAY = stringPreferencesKey("suggested_day")
         val PLAN_SETTINGS_FIXUP_DONE = booleanPreferencesKey("plan_settings_fixup_done")
         val SELECTED_PLAN_ID = longPreferencesKey("selected_plan_id")
@@ -71,15 +62,15 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val SESSION_STARTED_PLAN_ID = longPreferencesKey("session_started_plan_id")
 
         /** Set once the one-shot reps→seconds fixup for entries reclassified TIMED
-         *  has run (tracking-types P3, Decision 5). Its presence is what makes the
-         *  fixup one-shot — it never runs a second time. */
+         *  has run. Its presence is what makes the fixup one-shot — it never runs
+         *  a second time. */
         val LEGACY_TIMED_FIXUP_DONE = booleanPreferencesKey("legacy_timed_fixup_done")
 
-        /** Rest-timer prefs (W2a). The master gate defaults ON when absent; each
-         *  per-category override is absent-means-default (RestPolicy owns the
-         *  numbers, so we never pre-write a default and can't drift from it).
-         *  Carried by the backup since schema v3, absences and all (see
-         *  [restore]). */
+        /** Rest-timer prefs. The master gate defaults ON when absent;
+         *  each per-category override is absent-means-default (RestPolicy
+         *  owns the numbers, so we never pre-write a default and can't drift
+         *  from it). Carried by backup schema v3 and later, absences and all
+         *  (see [restore]). */
         val REST_TIMER_ENABLED = booleanPreferencesKey("rest_timer_enabled")
         val REST_RAMP_SECONDS = intPreferencesKey("rest_ramp_seconds")
         val REST_TOP_SECONDS = intPreferencesKey("rest_top_seconds")
@@ -92,14 +83,14 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val PHONE_REST_NEXT = stringPreferencesKey("phone_rest_next")
         val PHONE_REST_NOTIFICATION_ASKED = booleanPreferencesKey("phone_rest_notification_asked")
 
-        /** Set once the one-shot Health Connect backfill (#159) has published the
+        /** Set once the one-shot Health Connect backfill has published the
          *  history that predates the grant. Its presence is what makes the offer
          *  one-shot — it never shows again. */
         val HEALTH_BACKFILL_DONE = booleanPreferencesKey("health_backfill_done")
 
-        /** Whether the phone screen stays awake while the app is in front (#125).
-         *  Absent means off: a screen that never sleeps is a battery decision, so
-         *  the user has to ask for it, and having asked once they keep it. */
+        /** Whether the phone screen stays awake while the app is in front. Absent
+         *  means off: a screen that never sleeps is a battery decision, so the
+         *  user has to ask for it, and having asked once they keep it. */
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
 
         val TOP_SET_HELPER_SEEN = booleanPreferencesKey("top_set_helper_seen")
@@ -109,9 +100,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         // coordinated Room schema version is available.
         val SESSION_NOTES = stringPreferencesKey("session_notes")
 
-        // Device-local SAF automation state. These keys are deliberately not
-        // part of the versioned backup document: a persisted grant belongs to
-        // this Android install and cannot be restored on another device.
+        // Device-local SAF automation state. These keys are not part of the
+        // versioned backup document: a persisted grant belongs to this
+        // Android install and cannot be restored on another device.
         val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
         val AUTO_BACKUP_TREE_URI = stringPreferencesKey("auto_backup_tree_uri")
         val AUTO_BACKUP_FOLDER_NAME = stringPreferencesKey("auto_backup_folder_name")
@@ -174,8 +165,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         SessionStartStamp(startedAt, date, prefs[Keys.SESSION_STARTED_PLAN_ID])
     }
 
-    /** Whether the one-shot reps→seconds fixup for reclassified-TIMED live logs
-     *  has already run (tracking-types P3, Decision 5). */
+    /** Whether the one-shot reps→seconds fixup for reclassified-TIMED live
+     *  logs has already run. */
     val legacyTimedFixupDoneFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.LEGACY_TIMED_FIXUP_DONE] ?: false }
 
@@ -201,7 +192,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val phoneRestNotificationAskedFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.PHONE_REST_NOTIFICATION_ASKED] ?: false }
 
-    /** Whether the screen is held awake while the app is in front (#125).
+    /** Whether the screen is held awake while the app is in front.
      *  Defaults off — the wake costs battery, so it is opt-in. */
     val keepScreenOnFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.KEEP_SCREEN_ON] ?: false }
@@ -221,7 +212,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val themePreferenceFlow: Flow<ThemePreference> =
         dataStore.data.map { it.enum(Keys.THEME, ThemePreference.SYSTEM) }
 
-    /** Whether the one-shot Health Connect backfill has already run (#159). Not
+    /** Whether the one-shot Health Connect backfill has already run. Not
      *  carried by the backup: [restore] clears it, so restored history — which
      *  this device has never published — gets offered again. */
     val healthBackfillDoneFlow: Flow<Boolean> =

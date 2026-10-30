@@ -31,9 +31,9 @@ import java.time.ZoneId
  *    ticked yesterday and finished today (see
  *    [cloud.trotter.log.strength.data.TrackerRepository.advanceDay]'s
  *    crash-ordering note) rather than one continuous session.
- *  - **A recorded bodyweight.** CSV-imported history carries none (#171), and
- *    kcal is directly proportional to it — substituting today's configured
- *    weight would publish a number that session never supported.
+ *  - **A recorded bodyweight.** CSV-imported history carries none, and kcal
+ *    is directly proportional to it — substituting today's configured weight
+ *    would publish a number that session never supported.
  */
 object CaloriesRecordMapper {
 

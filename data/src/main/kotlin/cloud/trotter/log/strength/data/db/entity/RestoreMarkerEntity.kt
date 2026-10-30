@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * The one durable fact a full restore's two stores can agree on (#172).
+ * The one durable fact a full restore's two stores can agree on.
  *
  * A restore replaces Room and then rewrites the settings DataStore, and no
  * transaction spans the two. The recovery journal carries the settings half, but

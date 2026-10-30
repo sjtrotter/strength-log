@@ -9,7 +9,7 @@ import java.time.Instant
 import java.time.ZoneId
 
 /**
- * The pure session → [ExerciseSessionRecord] mapping (#17). Deterministic and
+ * The pure session → [ExerciseSessionRecord] mapping. Deterministic and
  * side-effect free: the same completed session always produces the same record,
  * so the whole write contract is unit-testable without a Health Connect provider
  * (the publisher is just the thin availability/permission/degrade wrapper around
@@ -32,20 +32,20 @@ object SessionRecordMapper {
 
     /**
      * A stable client record id so a retry/re-publish — including the one-shot
-     * backfill (#159) — deduplicates against the Health Connect entry. Edited
-     * sessions are deleted by this id before the corrected record is inserted,
-     * because equal-version inserts are not required to replace existing data.
-     * Every write of a session keeps [Metadata]'s default client record version
-     * (0): the record a session produces is deterministic, so a second write
-     * carries nothing newer, and the provider's same-id resolution leaves the
-     * user with exactly one entry either way.
+     * backfill — deduplicates against the Health Connect entry. Edited sessions
+     * are deleted by this id before the corrected record is inserted, because
+     * equal-version inserts are not required to replace existing data. Every
+     * write of a session keeps [Metadata]'s default client record version (0):
+     * the record a session produces is deterministic, so a second write carries
+     * nothing newer, and the provider's same-id resolution leaves the user with
+     * exactly one entry either way.
      *
      * The id is the local Room row id, not a content hash, because changing the
      * scheme would remint every record already published by the app. CSV import
      * therefore deduplicates identical history before inserting it. One narrow
      * case remains: if an imported, already-published local session is deleted
      * and then re-imported, the lost row id cannot be recovered from CSV and
-     * Health Connect receives a new client id for the same workout (#196).
+     * Health Connect receives a new client id for the same workout.
      */
     fun clientRecordId(sessionId: Long): String = "strengthlog-session-$sessionId"
 

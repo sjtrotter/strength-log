@@ -18,8 +18,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
 /**
- * Parses a Strong/Hevy-shaped CSV into the pure [CsvImportPreview] (issue
- * #16). Validation order mirrors [BackupCodec]: size cap, then CSV
+ * Parses a Strong/Hevy-shaped CSV into the pure [CsvImportPreview].
+ * Validation order mirrors [BackupCodec]: size cap, then CSV
  * well-formedness, then common headers, row routing, conditional strength
  * columns/unit resolution, then each row and exercise-name matching —
  * checks first, so a bad file fails fast and *before* anything is grouped
@@ -496,11 +496,11 @@ object HistoryCsvReader {
 
     private fun groupIntoSessions(rows: List<ParsedRow>): List<PreviewSession> {
         // Rows group by (completedAt, workout name). The date carries only
-        // second precision (Strong's "yyyy-MM-dd HH:mm:ss") — deliberately, to
-        // stay byte-compatible with Strong on re-export. The only ambiguity that
-        // buys is two *distinct* workouts with the same title starting in the
-        // same second, which merges them; that's negligible in practice and a
-        // fair trade for interchange fidelity.
+        // second precision (Strong's "yyyy-MM-dd HH:mm:ss") — to stay
+        // byte-compatible with Strong on re-export. The only ambiguity that buys
+        // is two *distinct* workouts with the same title starting in the same
+        // second, which merges them; that's negligible in practice and a fair
+        // trade for interchange fidelity.
         val groups = LinkedHashMap<Pair<Long, String>, MutableList<ParsedRow>>()
         for (row in rows) {
             groups.getOrPut(row.completedAt to row.dayTitle) { mutableListOf() }.add(row)

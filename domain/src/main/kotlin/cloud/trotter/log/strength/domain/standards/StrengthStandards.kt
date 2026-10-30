@@ -36,8 +36,8 @@ object StrengthStandards {
         StandardLift.INCLINE to 0.9, StandardLift.ROW to 1.0,
     )
 
-    // Maintenance factor = working top set as a fraction of estimated 1RM.
-    // Sits deliberately BELOW rep-max tables (5RM is ~87% 1RM; we want comfort).
+    // Maintenance factor = working top set as a fraction of estimated 1RM. Sits
+    // BELOW rep-max tables (5RM is ~87% 1RM; we want comfort).
     fun maintenanceFactor(e: GoalEmphasis) = when (e) {
         GoalEmphasis.STRENGTH -> 0.75 // top set of 3
         GoalEmphasis.BALANCED -> 0.68 // top set of 5  (prototype default)

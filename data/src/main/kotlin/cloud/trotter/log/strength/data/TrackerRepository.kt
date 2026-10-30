@@ -105,8 +105,8 @@ open class TrackerRepository(
     fun currentDate(): LocalDate = LocalDate.now(clock)
 
     /** Taken off [db] rather than injected like the other DAOs on purpose: the
-     *  restore marker is this class's own crash bookkeeping (#172) — never data
-     *  a caller supplies, reads, or would substitute — and threading it through
+     *  restore marker is this class's own crash bookkeeping — never data a
+     *  caller supplies, reads, or would substitute — and threading it through
      *  every construction site would claim otherwise. */
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
@@ -197,7 +197,7 @@ open class TrackerRepository(
     val phoneRestTimerEnabledFlow = settings.phoneRestTimerEnabledFlow
     val phoneRestFlow = settings.phoneRestFlow
     val phoneRestNotificationAskedFlow = settings.phoneRestNotificationAskedFlow
-    /** The keep-screen-on preference (#125). Collected once, by the activity, so
+    /** The keep-screen-on preference. Collected once, by the activity, so
      *  the wake follows the app rather than whichever screen happens to be
      *  composed — see `MainActivity`. */
     val keepScreenOnFlow: Flow<Boolean> = settings.keepScreenOnFlow
@@ -206,7 +206,7 @@ open class TrackerRepository(
     val themePreferenceFlow = settings.themePreferenceFlow
     val wizardCompleteFlow: Flow<Boolean> = settings.wizardCompleteFlow
 
-    /** Whether the one-shot Health Connect backfill has run (#159) — the Log
+    /** Whether the one-shot Health Connect backfill has run — the Log
      *  screen's offer hides itself once it has. */
     val healthBackfillDoneFlow: Flow<Boolean> = settings.healthBackfillDoneFlow
 
@@ -280,7 +280,7 @@ open class TrackerRepository(
     }
 
     /** Records that the one-shot Health Connect backfill published the history
-     *  that predated the grant (#159). Only ever written after a backfill that
+     *  that predated the grant. Only ever written after a backfill that
      *  reported every session published. */
     suspend fun setHealthBackfillDone() {
         settings.setHealthBackfillDone()
@@ -547,7 +547,7 @@ open class TrackerRepository(
         }
     }
 
-    /** Slot-owned ordering, independent of whichever plan is selected now. */
+    /** Slot-owned ordering, independent of whichever plan is selected. */
     suspend fun moveExercise(programExerciseId: Long, up: Boolean) {
         db.withTransaction {
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction
@@ -726,14 +726,14 @@ open class TrackerRepository(
 
     /**
      * Attaches [partnerExerciseId] to the slot at [position] as its superset
-     * partner (#93) — the same call covers adding a partner to a plain slot and
+     * partner — the same call covers adding a partner to a plain slot and
      * swapping an existing one. Prescribed slots refuse either change.
      *
      * Only the SS track is cleared, so the new partner reseeds from its own GOAL
      * on the next observation while the slot's MAIN track — the lifter's living
      * record, possibly with weeks of edits and extra sets on it — survives
-     * untouched. Deliberately NOT [ProgramDao.deleteLogsForExercise], which would
-     * nuke both tracks.
+     * untouched. NOT [ProgramDao.deleteLogsForExercise], which would nuke both
+     * tracks.
      */
     suspend fun setSupersetPartner(dayId: String, position: Int, partnerExerciseId: String) {
         val planId = selectedPlanId() ?: return
@@ -745,7 +745,7 @@ open class TrackerRepository(
         }
     }
 
-    /** Drops the slot's superset partner and its SS track (#93), leaving the MAIN
+    /** Drops the slot's superset partner and its SS track, leaving the MAIN
      *  track alone for the same reason [setSupersetPartner] does. */
     suspend fun removeSupersetPartner(dayId: String, position: Int) {
         val planId = selectedPlanId() ?: return
@@ -779,13 +779,12 @@ open class TrackerRepository(
     // --- one-shot legacy fixups ----------------------------------------------
 
     /**
-     * One-shot reps→seconds carry for live logs of entries reclassified to TIMED
-     * (tracking-types P3, Decision 5). Before the update those exercises (plank,
-     * hollow hold, weighted plank, suitcase carry) were tracked with the only
-     * field the UI offered — reps — so a timed hold was recorded there; this moves
-     * it into `seconds` and zeroes reps for exactly those slots. It never touches
-     * any other exercise and never deletes a row. Prescribed main tracks keep
-     * their authored meaning even when the catalog classifies them as TIMED.
+     * One-shot reps→seconds carry for legacy live logs of entries reclassified to
+     * TIMED (plank, hollow hold, weighted plank, suitcase carry). Legacy timed
+     * holds store their duration in reps; this moves it into `seconds` and zeroes
+     * reps for exactly those slots. It never touches any other exercise and never
+     * deletes a row. Prescribed main tracks keep their authored meaning even when
+     * the catalog classifies them as TIMED.
      *
      * One-shot on two fronts: a DataStore flag short-circuits it after the first
      * run, and the underlying [reinterpretRepsAsSeconds] only moves an *unfixed*
@@ -813,7 +812,7 @@ open class TrackerRepository(
         settings.setLegacyTimedFixupDone()
     }
 
-    /** Moves pre-#268 plan preferences to Room before atomically retiring their keys.
+    /** Moves pre-plan preferences to Room before atomically retiring their keys.
      *  Recipe-less generated plans make a retry after the Room commit harmless. */
     suspend fun runPlanSettingsFixupIfNeeded() {
         ensurePlanSettingsMigrated()
@@ -849,7 +848,7 @@ open class TrackerRepository(
     /**
      * The day's exercise slots with their stable row ids, in program order. The UI
      * needs the id to key and seed each slot's log ([logFlow]/[updateSets]); the
-     * pure-domain [Program] from [programFlow] deliberately doesn't carry it.
+     * pure-domain [Program] from [programFlow] doesn't carry it.
      */
     fun daySlotsFlow(dayId: String): Flow<List<ProgramSlot>> =
         selectedPlanIdFlow.flatMapLatest { planId ->
@@ -906,7 +905,7 @@ open class TrackerRepository(
      * The slot names its plan, and a missing slot or mismatched day returns false.
      *
      * Seeding is decided from a read ("this slot has no track") and acted on later,
-     * and there are now two seeders — the day ViewModel's lazy pass and the watch
+     * and there are two seeders — the day ViewModel's lazy pass and the watch
      * applier's eager one after a swap. Between one of them reading an empty track
      * and writing to it, the other can seed *and the lifter can log a set against
      * the result*; an unconditional upsert would then overwrite real logged work
@@ -1042,13 +1041,13 @@ open class TrackerRepository(
             (sessionPlanId == planId || (planId == PlanEntity.LEGACY_ID && sessionPlanId == null))
 
     /**
-     * Commits one completed cardio mutation immediately. The transaction is
-     * deliberately explicit even though C1 writes one row: this is the single
-     * write boundary future paired effects must join, never a UI-held staging
-     * value. Labels are non-blank and capped at 80 characters; modes are stored
-     * by enum name and decoded with [decodedCardioMode] on read. An explicit
-     * plan id is preserved and its current name copied when the plan exists;
-     * only a session without a plan uses the selected plan.
+     * Commits the cardio session, its set results and any rotation advance in
+     * one transaction. Paired effects must share this boundary; no mutation is
+     * staged in UI state. Labels
+     * are non-blank and capped at 80 characters; modes are stored by enum name
+     * and decoded with [decodedCardioMode] on read. An explicit plan id is
+     * preserved and its current name copied when the plan exists; only a
+     * session without a plan uses the selected plan.
      */
     suspend fun logCardioSession(
         session: CardioSessionEntity,
@@ -1137,7 +1136,7 @@ open class TrackerRepository(
         }
     }
 
-    /** The Log screen's list (#14): every session newest-first, with its total
+    /** The Log screen's list: every session newest-first, with its total
      *  set count pre-aggregated (no per-row query as history grows). */
     val sessionSummariesFlow: Flow<List<SessionSummaryRow>> = sessionDao.observeSessionSummaries()
 
@@ -1160,11 +1159,11 @@ open class TrackerRepository(
     /** Completed tonnage per session, oldest first — the journal's weekly bars. */
     val sessionTonnageFlow: Flow<List<SessionTonnageRow>> = sessionDao.observeSessionTonnage()
 
-    /** One session's sets, fetched on demand when the Log screen expands a row
-     *  (#14) — not part of [sessionSummariesFlow] because most rows stay collapsed. */
+    /** One session's sets, fetched on demand when the Log screen expands a row — not
+     *  part of [sessionSummariesFlow] because most rows stay collapsed. */
     suspend fun sessionSets(sessionId: Long): List<SessionSetEntity> = sessionDao.setsForSession(sessionId)
 
-    /** One session header by id (#17): the Health Connect publish path pairs this
+    /** One session header by id: the Health Connect publish path pairs this
      *  with [sessionSets] to build the exported record. */
     suspend fun session(sessionId: Long): WorkoutSessionEntity? = sessionDao.sessionById(sessionId)
 
@@ -1201,12 +1200,12 @@ open class TrackerRepository(
     }
 
     /**
-     * Batches the A1 "last time" chip for a whole day into one query (#14):
+     * Batches the A1 "last time" chip for a whole day into one query:
      * [exerciseIds]' most recent completed performance, keyed by exercise id. An
      * id with no history is simply absent from the result.
      *
      * `open` for the same reason the wizard writes are: a test double slows this
-     * read down to pin what the day screen shows while it waits (#127).
+     * read down to pin what the day screen shows while it waits.
      */
     open suspend fun lastPerformed(exerciseIds: List<String>): Map<String, LastPerformed> {
         if (exerciseIds.isEmpty()) return emptyMap()
@@ -1238,8 +1237,8 @@ open class TrackerRepository(
      * express that.
      *
      * Returns the id of the session row it just appended, so the caller can hand
-     * it to a [SessionPublisher] (#17, D7 trigger point) without re-querying for
-     * "the latest session" and racing a second completion.
+     * it to a [SessionPublisher] (D7 trigger point) without re-querying for "the
+     * latest session" and racing a second completion.
      *
      * Session-start stamp: the in-progress-session start lives in DataStore, not
      * Room ([stampSessionStartIfUnset]), so consuming it here spans two stores
@@ -1327,8 +1326,8 @@ open class TrackerRepository(
     /**
      * Reads everything the user owns into one [FullSnapshot] for the A2 backup.
      * Every list comes from a query with an explicit `ORDER BY`, so the output is
-     * deterministic — two exports of the same state are byte-identical, keeping
-     * diffs and round-trip tests honest.
+     * deterministic — two exports of the same state are byte-identical, making
+     * diffs and round-trip tests reliable.
      */
     suspend fun exportSnapshot(): FullSnapshot {
         ensurePlanSettingsMigrated()
@@ -1383,7 +1382,7 @@ open class TrackerRepository(
      *
      * Two independent stores, no shared transaction. Room and DataStore each
      * commit atomically on their own; nothing spans both. So rather than claim an
-     * atomicity it can't have, this method makes the pair *recoverable* (#172):
+     * atomicity it can't have, this method makes the pair *recoverable*:
      *
      *  1. [journal] stages the settings half under a fresh nonce, before
      *     anything is destroyed.
@@ -1397,15 +1396,14 @@ open class TrackerRepository(
      *
      * Interrupted anywhere, the next launch reads the marker, matches it against
      * the staged nonce, and either finishes the settings half or discards a
-     * payload whose transaction never committed ([reconcilePendingRestore]).
-     * The interim state is not benign and is not treated as such — restored
-     * training data paired with the old device's config means every derived GOAL
+     * payload whose transaction never committed ([reconcilePendingRestore]). The
+     * interim state is not benign and is not treated as such — restored training
+     * data paired with the device's pre-restore config means every derived GOAL
      * is wrong until the replay happens.
      *
-     * Room goes before the settings write for the reason it always did: the
-     * only cross-store pointer left is `selectedPlanId` pointing at a plan,
-     * and the reverse order could publish a pointer into a program that does
-     * not exist yet. The tail is [NonCancellable]
+     * Room goes before the settings write because the only cross-store pointer is
+     * `selectedPlanId` pointing at a plan, and the reverse order could publish a
+     * pointer into a program that does not exist yet. The tail is [NonCancellable]
      * so a cancelled caller still *finishes* here instead of deferring to the next
      * launch — belt to the marker's braces, not the correctness argument. The
      * transaction itself stays cancellable: rolling it back leaves the device
@@ -1551,12 +1549,12 @@ open class TrackerRepository(
         }
     }
 
-    // --- CSV history export/import (#16) --------------------------------------
+    // --- CSV history export/import --------------------------------------------
 
     /**
-     * Every session + set for CSV history export (#16), in the same
-     * deterministic order as [exportSnapshot]'s equivalent fields. Read-only —
-     * `:transfer` builds the CSV text from this instead of touching Room.
+     * Every session + set for CSV history export, in the same deterministic
+     * order as [exportSnapshot]'s equivalent fields. Read-only — `:transfer`
+     * builds the CSV text from this instead of touching Room.
      */
     suspend fun exportSessionHistory(): SessionHistorySnapshot = SessionHistorySnapshot(
         unit = settings.unitFlow.first(),
@@ -1570,8 +1568,9 @@ open class TrackerRepository(
     )
 
     /**
-     * Appends CSV-imported history in one transaction (#16, D9's one staging
-     * transaction rule). Additive only: unlike [importSnapshot]'s full
+     * Appends CSV-imported history in one transaction
+     * (docs/briefs/m4-transfer.md, "#16 CSV"), per D9's one staging
+     * transaction rule. Additive only: unlike [importSnapshot]'s full
      * destructive replace, the program and live logs are untouched.
      * [newCustomExercises] are upserted first so every imported set's
      * `exerciseId` already resolves by the time its row lands; each
@@ -1580,12 +1579,12 @@ open class TrackerRepository(
      * completed day's sets to the session it just created.
      *
      * The caller has already validated the file and the user has already
-     * confirmed the exercise-name matches (`:transfer`'s preview/confirm
-     * model) — this method performs no validation of its own and always
-     * commits what it's given. That includes a null
-     * [WorkoutSessionEntity.bodyweightLb]: a CSV has no bodyweight column, so an
-     * imported session legitimately records none, and every reader downstream
-     * (backup, Health Connect, the Log screen) is required to handle it (#171).
+     * confirmed the exercise-name matches (`:transfer`'s preview/confirm model)
+     * — this method performs no validation of its own and always commits what
+     * it's given. That includes a null [WorkoutSessionEntity.bodyweightLb]: a
+     * CSV has no bodyweight column, so an imported session legitimately records
+     * none, and every reader downstream (backup, Health Connect, the Log screen)
+     * is required to handle it.
      */
     suspend fun importSessionHistory(
         sessions: List<ImportedSession>,

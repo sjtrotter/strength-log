@@ -37,8 +37,8 @@ data class FullSnapshot(
     val suggestedDay: String?,
     val selectedPlanId: Long? = null,
     val restSettings: RestSettings,
-    /** The keep-screen-on preference (#125). Defaulted off so the many fixtures
-     *  that predate it still read as the setting's absent-means-off meaning. */
+    /** The keep-screen-on preference. Defaulted off so the many fixtures that
+     *  predate it still read as the setting's absent-means-off meaning. */
     val keepScreenOn: Boolean = false,
     val topSetHelperSeen: Boolean = false,
     val supersetHelperSeen: Boolean = false,

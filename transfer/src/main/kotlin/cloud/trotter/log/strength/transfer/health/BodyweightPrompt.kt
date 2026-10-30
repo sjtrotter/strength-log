@@ -3,12 +3,12 @@ package cloud.trotter.log.strength.transfer.health
 import kotlin.math.abs
 
 /**
- * The GOAL-vs-ACTUAL decision for the bodyweight prompt (#17, A3). Pure and
+ * The GOAL-vs-ACTUAL decision for the bodyweight prompt (A3). Pure and
  * unit-testable: given the latest Health Connect bodyweight and the app's
- * configured bodyweight, it only decides *whether* to offer the
- * "bodyweight changed — update your GOALs?" prompt. It never applies anything —
- * per the GOAL-vs-ACTUAL principle the user always decides, and applying is a
- * separate, explicit config write in the ViewModel.
+ * configured bodyweight, it only decides *whether* to offer the "bodyweight
+ * changed — update your GOALs?" prompt. It never applies anything — per the
+ * GOAL-vs-ACTUAL principle the user always decides, and applying is a separate,
+ * explicit config write in the ViewModel.
  */
 object BodyweightPrompt {
 

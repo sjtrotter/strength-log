@@ -10,9 +10,9 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 /**
- * The Health Connect read path (#17): other apps' strength sessions for the Log
+ * The Health Connect read path: other apps' strength sessions for the Log
  * screen, the latest bodyweight for the "update your GOALs?" prompt, and the
- * Log section's connection status (#158). Reads are permission-gated and every
+ * Log section's connection status. Reads are permission-gated and every
  * provider call is wrapped so a denial or a provider error degrades to "nothing
  * to show" rather than an error — the app stays fully functional when Health
  * Connect is absent or its permissions are denied (A3).
@@ -53,8 +53,8 @@ open class HealthConnectReader(
 
     /**
      * Whether the workout-write permission is granted — the single grant that
-     * decides whether [SessionPublisher] exports anything at all (#158). The Log
-     * screen asks on every refresh and never caches the answer: the grant is
+     * decides whether [SessionPublisher] exports anything at all. The Log screen
+     * asks on every refresh and never caches the answer: the grant is
      * per-package, an applicationId change resets it, and the user can revoke it
      * in the Health Connect app while this process is alive.
      */

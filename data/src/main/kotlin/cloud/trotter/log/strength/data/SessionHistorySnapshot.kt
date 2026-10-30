@@ -7,13 +7,12 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 
 /**
- * The read surface for CSV history export (PLAN.md A2, issue #16): every
- * completed session and its sets, plus the user's current display unit. Like
- * [FullSnapshot], all rows come from queries with an explicit `ORDER BY`, so
- * exporting the same state twice produces byte-identical CSV. Cardio sets keep
- * position order; a session with any undecodable set is omitted from [cardioSets]
- * so it exports as a legacy summary. `:transfer` consumes this instead of
- * touching Room directly (D9).
+ * The read surface for CSV history export (PLAN.md A2): every completed session
+ * and its sets, plus the user's current display unit. Like [FullSnapshot], all
+ * rows come from queries with an explicit `ORDER BY`, so exporting the same state
+ * twice produces byte-identical CSV. Cardio sets keep position order; a session
+ * with any undecodable set is omitted from [cardioSets] so it exports as a legacy
+ * summary. `:transfer` consumes this instead of touching Room directly (D9).
  */
 data class SessionHistorySnapshot(
     val unit: WeightUnit,

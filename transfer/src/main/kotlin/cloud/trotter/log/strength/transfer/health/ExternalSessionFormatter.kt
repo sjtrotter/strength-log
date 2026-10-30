@@ -6,9 +6,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Pure formatting for the external-session list (#17 read path). Sorts other
- * apps' strength sessions newest-first and gives each a clear "external" label
- * so the Log never blurs them with the user's own logged history. Android-free
+ * Pure formatting for the external-session list (read path). Sorts other apps'
+ * strength sessions newest-first and gives each a clear "external" label so
+ * the Log never blurs them with the user's own logged history. Android-free
  * (java.time is plain JDK), so the whole contract is JVM-unit-testable — the
  * device-only bit is [HealthConnectReader] pulling the raw [ExternalWorkout]s.
  */

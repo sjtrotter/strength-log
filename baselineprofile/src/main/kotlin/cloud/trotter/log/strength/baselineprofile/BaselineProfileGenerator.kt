@@ -12,7 +12,7 @@ import org.junit.runner.RunWith
 
 /**
  * Walks the app the way a lifter does and records what the JIT would otherwise
- * have to learn on every cold start (#156).
+ * have to learn on every cold start.
  *
  * The output is `app/src/release/generated/baselineProfiles/baseline-prof.txt`,
  * which AGP compiles AOT into the release APK — the day screen's scroll path is

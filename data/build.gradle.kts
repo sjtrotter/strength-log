@@ -56,7 +56,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testRuntimeOnly(libs.junit.vintage.engine)
 
-    // Instrumented persistence-hardening tests (PLAN.md A6, issue #7): a real
+    // Instrumented persistence-hardening tests (PLAN.md A6): a real
     // on-disk Room DB and DataStore file exercised across close/reopen.
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)

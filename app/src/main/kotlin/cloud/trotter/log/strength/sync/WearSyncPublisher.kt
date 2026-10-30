@@ -19,9 +19,10 @@ import kotlinx.coroutines.tasks.await
 /**
  * Mirrors [TodaySnapshotSource] — the shared projection of the *suggested* day —
  * onto the Wearable Data Layer as one always-current [WatchSnapshot] item (D6,
- * m5-wear.md #20). Runs for the whole app-process lifetime — [start] is called
- * once from [cloud.trotter.log.strength.StrengthLogApp]; no foreground
- * service, no lifecycle of its own.
+ * docs/briefs/m5-wear.md, "#20 Wearable Data Layer sync"). Runs for the whole
+ * app-process lifetime — [start] is called once from
+ * [cloud.trotter.log.strength.StrengthLogApp]; no foreground service, no
+ * lifecycle of its own.
  *
  * Conflation: identical content is published at most once ([distinctUntilChanged]
  * on the unstamped snapshot), and only a real content change spends a new

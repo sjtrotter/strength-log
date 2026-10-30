@@ -25,30 +25,30 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * The real [WatchTrackerClient] over the Wearable Data Layer (#20), replacing
- * [FakeWatchClient] in the running app. Reads the phone's snapshot — which the Data
- * Layer persists on this node, so the last snapshot survives a phone-app (and
- * watch-app) restart — and sends edits as messages, both through [PhoneLink].
+ * The real [WatchTrackerClient] over the Wearable Data Layer in the running app.
+ * Reads the phone's snapshot — which the Data Layer persists on this node, so the
+ * last snapshot survives a phone-app (and watch-app) restart — and sends edits as
+ * messages, both through [PhoneLink].
  *
  * The §11.4 mechanism lives here: messaging is fire-and-forget, so every edit is also
  * queued in [PendingEditStore] and re-sent until a later snapshot reflects it. Three
  * signals drain the queue: the first prime on start, every inbound snapshot, and every
  * report that a phone is reachable ([PhoneLink.phoneReachability]; the flow conflates,
- * so rapid flaps may collapse — the LATEST state always lands, which is all the
- * drain needs) — the last of these
- * is what makes "deltas flush on reconnect" true rather than "flush next time the
- * lifter opens the app" (#173). The phone dedupes replays, so blind re-sends are safe.
+ * so rapid flaps may collapse — the LATEST state always lands, which is all the drain
+ * needs) — the last of these is what makes "deltas flush on reconnect" true rather
+ * than "flush next time the lifter opens the app". The phone dedupes replays, so blind
+ * re-sends are safe.
  *
  * Everything here runs on the application [scope], which has no
  * `CoroutineExceptionHandler`: anything that escapes takes the whole watch app down.
  * That is the constraint behind [guarded] and [retryingRegistration], and the reason
- * [sendEdit] launches its own work instead of borrowing the caller's scope (#174 — a
+ * [sendEdit] launches its own work instead of borrowing the caller's scope (a
  * composition scope dies with the Activity, mid-enqueue).
  *
  * @param onWarning where this client's warnings go. Injectable because `:wear`'s tests
  *   are plain JVM, where `android.util.Log` is a stub that throws — a seam here is
- *   cheaper and more honest than making the whole module return default values for
- *   every unmocked Android call.
+ *   simpler than making the whole module return default values for every unmocked
+ *   Android call.
  * @param retryJitter the only randomness in the retry cadence, injectable so the
  *   schedule can be asserted exactly.
  * @param afterEnqueueBeforeEcho test seam at the race boundary; it runs while
@@ -158,8 +158,8 @@ class DataLayerWatchClient(
      * The lifter felt the CONFIRM buzz before this call returned, so from here on the
      * tick must reach the durable queue no matter what happens to the caller. Running
      * on the application scope is what makes that true: the dial calls this from a
-     * composition scope that the app's own dismiss path cancels, and it used to do so
-     * with two DataStore writes still ahead of the edit (#174).
+     * composition scope that the app's own dismiss path can cancel with two DataStore
+     * writes still ahead of the edit.
      */
     private fun launchSend(what: String, block: suspend () -> Unit) {
         scope.launch { guarded(what) { block() } }
@@ -222,7 +222,7 @@ class DataLayerWatchClient(
      * the wedge impossible.
      *
      * Two same-package handheld nodes publishing under different epochs at once would
-     * flap between them — the parked two-phone topology (#173), not a shape a
+     * flap between them — the unsupported two-phone topology, not a shape a
      * one-phone-one-watch lifter reaches.
      */
     private fun supersedes(incoming: WatchSnapshot, held: WatchSnapshot): Boolean =
@@ -251,14 +251,14 @@ class DataLayerWatchClient(
 
     /**
      * Registering a Data Layer listener can fail transiently — Play services updating,
-     * a cold GMS process — and the failure surfaces when the flow is collected. It used
-     * to throw straight into the handler-less application scope and take the app down
-     * (#173).
+     * a cold GMS process — and the failure surfaces when the flow is collected. An
+     * unhandled failure would throw into the handler-less application scope and take
+     * the app down.
      *
      * Retried for as long as the process lives, never abandoned. This client is a
      * process singleton built once from the Application, so "give up and let the next
-     * app open try again" would have been a lie: giving up means no reconnect flush and
-     * no inbound snapshot for the rest of the process's life. The cadence pays for that
+     * app open try again" would be a lie: giving up means no reconnect flush and no
+     * inbound snapshot for the rest of the process's life. The cadence pays for that
      * promise — see [retryDelayMillis].
      */
     private fun <T> Flow<T>.retryingRegistration(what: String): Flow<T> =

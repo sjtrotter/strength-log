@@ -10,8 +10,8 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * The one place the watch turns the phone's snapshot DataItem into a
- * [WatchSnapshot]. Three readers share it now — the app's [DataLayerWatchClient],
- * the tile and the watch-face complication — and only the first of them has an
+ * [WatchSnapshot]. Three readers share it — the app's [DataLayerWatchClient], the
+ * tile and the watch-face complication — and only the first of them has an
  * Activity, so the read has to work from a bare Service with no app state.
  *
  * The Data Layer persists the item on this node, which is what makes the glance

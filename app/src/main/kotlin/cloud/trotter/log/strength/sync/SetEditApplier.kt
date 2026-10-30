@@ -33,12 +33,12 @@ import kotlinx.coroutines.sync.withLock
  * workouts exist, so the same first-tick-starts-the-clock rule the day screen
  * applies must hold here too (session-start capture).
  *
- * A delta may also carry the wrist-observed start/complete millis for its round
- * (#85). Those are persisted verbatim onto the row (and onto the aligned partner
- * row when the tick pairs) — the phone stores the facts and derives active time and
- * actual rest from them later; neither side computes a duration to store. A
- * `done = false` delta (the watch's long-press undo, #88) clears them again: an
- * untick retracts the tick's facts along with the tick.
+ * A delta may also carry the wrist-observed start/complete millis for its round.
+ * Those are persisted verbatim onto the row (and onto the aligned partner row when
+ * the tick pairs) — the phone stores the facts and derives active time and actual
+ * rest from them later; neither side computes a duration to store. A `done = false`
+ * delta (the watch's long-press undo) clears them again: an untick retracts the
+ * tick's facts along with the tick.
  *
  * Validation and reads follow the slot's plan, even when another plan is selected
  * on the phone.
@@ -53,12 +53,12 @@ import kotlinx.coroutines.sync.withLock
  *  - **Dedupe** — a delta whose `editedAtMillis` is not newer than the last one
  *    applied to that row is [Outcome.STALE] and dropped, which is what makes the
  *    watch's re-sends idempotent.
- *  - **Tracking guard** ([guardedFor], design risk #2) — the target exercise's
- *    [TrackingType] strips any field it doesn't track (a weight edit on a REPS/TIMED
- *    hold, a reps edit on a TIMED hold, a seconds edit on a weighted lift) so a
- *    stale/old watch that still draws the wrong control can never write a dead field.
- *    The MAIN track resolves against the slot's exercise, an SS track against its
- *    superset partner — each has its own type.
+ *  - **Tracking guard** ([guardedFor]) — the target exercise's [TrackingType]
+ *    strips any field it doesn't track (a weight edit on a REPS/TIMED hold, a reps
+ *    edit on a TIMED hold, a seconds edit on a weighted lift) so a stale/old watch
+ *    that still draws the wrong control can never write a dead field. The MAIN track
+ *    resolves against the slot's exercise, an SS track against its superset partner —
+ *    each has its own type.
  *
  * Read-modify-write over a whole track, so it holds [mutationLock] for the same
  * lost-update reason the day ViewModel serializes its own edits. That lock is
@@ -126,8 +126,9 @@ class SetEditApplier(
 
     /**
      * Applies a watch [ExerciseSwapDelta] — "use one of the alternates you prescribed
-     * for this slot" (#90). Runs under the same [mutationLock] as a set edit: a swap
-     * clears the slot's log, and it must not interleave with a delta writing to it.
+     * for this slot" (docs/briefs/wear-dial-v3.md §5). Runs under the same
+     * [mutationLock] as a set edit: a swap clears the slot's log, and it must not
+     * interleave with a delta writing to it.
      *
      * The application itself is the phone's existing §8.3 swap and nothing else
      * ([TrackerRepository.swapExerciseById] — the slot keeps its `programExerciseId`,

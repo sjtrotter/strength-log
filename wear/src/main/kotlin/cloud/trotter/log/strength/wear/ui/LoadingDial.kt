@@ -41,7 +41,7 @@ import kotlin.math.min
  * dial doesn't already have — the loading state is the dial with nothing in it yet.
  *
  * There is no day to take an accent from at this point, so day A's accent stands in
- * as the brand colour, exactly as the old loading screen's wordmark did.
+ * as the brand colour.
  */
 @Composable
 internal fun LoadingDial(

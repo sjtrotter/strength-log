@@ -8,9 +8,9 @@ import kotlinx.coroutines.flow.Flow
  * Play-services types.
  *
  * The seam is here because everything the client has to get *right* — retrying a
- * failed listener registration instead of crashing (#173), draining the queue when
- * the phone comes back, refusing a stale revision — is logic that has to be provable
- * in a plain JVM test, and a `DataClient`/`CapabilityClient` cannot be constructed
+ * failed listener registration instead of crashing, draining the queue when the
+ * phone comes back, refusing a stale revision — is logic that has to be provable in
+ * a plain JVM test, and a `DataClient`/`CapabilityClient` cannot be constructed
  * off-device. [DataLayerPhoneLink] is the only production implementation; the fakes
  * live in the tests.
  */
@@ -22,7 +22,7 @@ interface PhoneLink {
     /**
      * Snapshots as the phone publishes them. Collecting *registers a listener*, so
      * this flow can fail at collection time and the caller is expected to retry it —
-     * an unhandled registration failure used to take the watch app down (#173).
+     * an unhandled registration failure would take the watch app down.
      */
     fun snapshotChanges(): Flow<WatchSnapshot>
 
@@ -32,8 +32,8 @@ interface PhoneLink {
      *
      * This is the watch's only reconnect signal. The phone republishes its snapshot
      * only on a content change, so coming back into range on its own produces no data
-     * event, and offline edits used to sit queued until the lifter opened the app
-     * (#173). Same registration-failure contract as [snapshotChanges].
+     * event to drain offline edits. Same registration-failure contract as
+     * [snapshotChanges].
      *
      * Repeats are allowed and expected: the initial query and the change callbacks are
      * independent sources with no ordering between them, so this promises the

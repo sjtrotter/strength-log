@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 
 /**
- * Standalone stand-in for the real Data Layer client (#20). It seeds one
- * canned day — Squat's pinned seeded ramp (spec §11.1) plus a superset pair —
- * and applies edits in memory the same shape the phone will: a delta touches
- * one round of one track, a `done` on the "main" track also flips the aligned
+ * Standalone stand-in for the real Data Layer client. It seeds one canned day
+ * — Squat's pinned seeded ramp (spec §11.1) plus a superset pair — and
+ * applies edits in memory the same shape the phone will: a delta touches one
+ * round of one track, a `done` on the "main" track also flips the aligned
  * "ss" round (one-tick-per-round, spec §8.2), and every applied edit bumps
  * `revision` so the screens' reconcile-on-next-snapshot logic has something
  * real to reconcile against even with no phone attached.

@@ -48,7 +48,7 @@ class DataLayerPhoneLink(
         }
         // Deliberately host-less: the filter is a match-all on the path, which is what
         // the whole settle/ack flow already runs on. A `wear://*/...` authority would
-        // be the same match-all wearing a disguise (#173 refutes pinning it here).
+        // be the same match-all wearing a disguise.
         dataClient.addListener(listener, SnapshotItem.uri, DataClient.FILTER_LITERAL).await()
         awaitClose { dataClient.removeListener(listener) }
     }.conflate()

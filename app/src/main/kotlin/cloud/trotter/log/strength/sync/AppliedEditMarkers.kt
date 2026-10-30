@@ -1,10 +1,11 @@
 package cloud.trotter.log.strength.sync
 
 /**
- * The per-row last-write-wins dedupe marker (m5-wear.md #20). [SetEditApplier]
- * drops any delta whose `editedAtMillis` is not newer than what was last applied
- * to the same row (day|exercise|track|setIndex), which is exactly what makes the
- * watch's fire-and-forget re-sends idempotent: a replayed delta carries the same
+ * The per-row last-write-wins dedupe marker (docs/briefs/m5-wear.md, "#20
+ * Wearable Data Layer sync"). [SetEditApplier] drops any delta whose
+ * `editedAtMillis` is not newer than what was last applied to the same row
+ * (day|exercise|track|setIndex), which is exactly what makes the watch's
+ * fire-and-forget re-sends idempotent: a replayed delta carries the same
  * timestamp and is dropped. Per-row, not per-track, so a failed send of a row-0
  * edit can't be permanently starved by a later edit to row 1 of the same track.
  *

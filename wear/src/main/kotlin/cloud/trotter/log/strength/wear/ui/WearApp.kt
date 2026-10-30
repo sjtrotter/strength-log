@@ -100,7 +100,7 @@ fun WearApp(
     val restController = remember(context) { restTimerController(context.applicationContext) }
     val rootScope = rememberCoroutineScope()
     // Cardio anchors are ROOT state: ambient removes WorkoutDial from the
-    // composition, and a running block must survive that swap (review H1).
+    // composition, and a running block must survive that swap.
     val cardioDayId = snapshot?.day?.dayId
     var cardioStartedAtWall by rememberSaveable(cardioDayId) { mutableLongStateOf(0L) }
     var cardioStartedAtElapsed by rememberSaveable(cardioDayId) { mutableLongStateOf(0L) }
@@ -253,7 +253,7 @@ fun WearApp(
 
     // Boundary buzzes are armed at the ROOT so ambient keeps them, and the
     // finally-disarm covers every vanish path — day change, dismiss, restore
-    // past the end — not just the explicit stop (review M3).
+    // past the end — not just the explicit stop.
     val cardioPlanRoot = snapshot?.cardio?.let { CardioIntervals.plan(it, it.fiveK ?: false) }
     LaunchedEffect(snapshot?.planId, cardioAnchors, cardioPlanRoot) {
         if (cardioAnchors == null || cardioPlanRoot == null) return@LaunchedEffect
@@ -347,7 +347,7 @@ fun WearApp(
             val snap = snapshot
             when {
                 // Ambient outranks loading: a relaunch straight into ambient must
-                // not show LoadingDial's animated accent sweep (#161).
+                // not show LoadingDial's animated accent sweep.
                 isAmbient && snap == null -> AmbientLoadingDial(
                     ambientTick = ambientTick,
                     burnInProtectionRequired = burnInProtectionRequired,
@@ -416,7 +416,7 @@ fun WearApp(
                     // Straight through, no composition scope in the middle: the client
                     // owns the coroutine, on a scope that outlives this Activity. A
                     // tick the lifter already felt must not be abortable by the
-                    // Activity going away mid-enqueue (#174).
+                    // Activity going away mid-enqueue.
                     sendEdit = client::sendEdit,
                     sendSwap = client::sendSwap,
                     sendCardio = client::sendCardio,
@@ -670,11 +670,11 @@ private fun WorkoutDial(
     }
 
     /**
-     * Sends the swap and lets the phone answer (#90). The optimistic half is the
-     * client's (the name changes at once); everything the *phone* is about to clear
-     * is dropped here: this watch's recollection of ticks against the slot, because
-     * the phone's §8.3 swap clears the slot's log and a memory of work that no longer
-     * exists is a memory the undo must not be offered.
+     * Sends the swap and lets the phone answer. The optimistic half is the client's
+     * (the name changes at once); everything the *phone* is about to clear is dropped
+     * here: this watch's recollection of ticks against the slot, because the phone's
+     * §8.3 swap clears the slot's log and a memory of work that no longer exists is a
+     * memory the undo must not be offered.
      *
      * The dial only reaches this on a lift with nothing logged, so there is normally
      * nothing to forget — the call is here for the one case there can be: a round

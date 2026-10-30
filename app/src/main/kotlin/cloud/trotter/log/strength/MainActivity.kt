@@ -36,12 +36,12 @@ class MainActivity : ComponentActivity() {
     lateinit var dayIconManager: DayIconManager
     @Inject lateinit var phoneRestRuntime: PhoneRestRuntime
 
-    // Keeps the home-screen launcher icon in sync with the rotation day
-    // (#22). Only recorded here, not applied — swapping the enabled
+    // Keeps the home-screen launcher icon in sync with the rotation
+    // day. Only recorded here, not applied — swapping the enabled
     // activity-alias while this activity is resumed can tear down the
     // running task on some launchers, making the app vanish the moment
-    // DONE is pressed (#96). The icon is invisible while the user is
-    // inside the app anyway, so the swap happens in onStop instead.
+    // DONE is pressed. The icon is invisible while the user is inside
+    // the app anyway, so the swap happens in onStop instead.
     private var iconDayId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,20 +63,9 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Keep-screen-on (#125) is held here, on the window, and not by a
-        // DisposableEffect on the day screen. A per-screen effect releases the
-        // wake the moment that screen leaves the composition, which is exactly
-        // what happened walking Day → Log mid-workout: the phone went dark
-        // between sets because the user had *navigated*, which is not a reason
-        // to stop waiting for them.
-        //
-        // Scope is the whole app while the preference is on, not "workout
-        // surfaces only". Two reasons: any list of workout surfaces has to be
-        // maintained forever and re-introduces the same seam at its edges; and
-        // the wake is now something the user asked for out loud, so honouring it
-        // everywhere is the honest reading of the switch. It costs nothing when
-        // they are elsewhere — FLAG_KEEP_SCREEN_ON only applies while this
-        // window is visible, so backgrounding the app releases it for free.
+        // Held on the window, not per screen: a per-screen effect drops the
+        // wake when the user navigates mid-workout. FLAG_KEEP_SCREEN_ON only
+        // applies while this window is visible.
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 repository.keepScreenOnFlow.collect { on ->
@@ -96,9 +85,9 @@ class MainActivity : ComponentActivity() {
             lifecycleScope.launch { phoneRestRuntime.setForeground(false, repository.phoneRestFlow.first()) }
         }
         // Rotation also passes through onStop but recreates into the same task,
-        // which would reopen the #96 teardown window while the user is still
-        // looking at the app — apply only on a genuine exit (a skipped apply
-        // self-heals on the next one). applyDayIcon(null) is a no-op
+        // which would reopen the launcher teardown window while the user is
+        // still looking at the app — apply only on a genuine exit (a skipped
+        // apply self-heals on the next one). applyDayIcon(null) is a no-op
         // (dayIndexForIcon null-guards) and an unchanged day is a no-op
         // (shouldReapplyIcon), so calling this on every real stop is safe.
         if (!isChangingConfigurations) dayIconManager.applyDayIcon(iconDayId)

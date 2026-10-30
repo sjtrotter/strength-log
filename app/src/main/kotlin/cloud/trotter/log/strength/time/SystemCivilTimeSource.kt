@@ -20,7 +20,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The device's civil day, off the real system clock and the *current* system
- * zone (#176).
+ * zone.
  *
  * Three things can end a civil day, and this listens for all three:
  *  - it simply ends — a delay to the next local midnight, recomputed from every

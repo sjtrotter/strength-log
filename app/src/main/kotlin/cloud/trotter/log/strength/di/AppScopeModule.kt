@@ -23,9 +23,8 @@ annotation class CivilDay
 /**
  * The one scope that outlives every screen. Work belongs here when finishing it
  * matters more than the UI that started it: a backup restore writes Room and
- * DataStore in sequence, and a back press that cancelled it halfway used to
- * leave the two disagreeing (#172). `:wear` has had the same single app scope
- * since its Data Layer client needed one.
+ * DataStore in sequence, and cancelling it halfway can leave the two
+ * disagreeing.
  *
  * A [SupervisorJob] so one failed job doesn't take the others down, and never
  * cancelled — it lives as long as the process.

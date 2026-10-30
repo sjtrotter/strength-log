@@ -36,7 +36,7 @@ interface WatchTrackerClient {
     fun pendingExercisesFlow(): Flow<Set<Long>>
 
     /**
-     * The `programExerciseId`s with a **swap** still unacked (#90). Narrower than
+     * The `programExerciseId`s with a **swap** still unacked. Narrower than
      * [pendingExercisesFlow] because it drives a different decision: a lift whose
      * replacement the phone hasn't confirmed can't be logged against — the rows on
      * screen still belong to the exercise being replaced — whereas a lift with a
@@ -54,14 +54,14 @@ interface WatchTrackerClient {
      * dial acknowledges a tick with a haptic the instant it is tapped, and the Activity
      * it was tapped in can be destroyed a millisecond later (the day-done disc's own
      * dismiss does exactly that) — a tick the lifter felt must not be able to die with
-     * the composition that sent it (#174).
+     * the composition that sent it.
      */
     fun sendEdit(delta: SetEditDelta)
 
     /**
-     * Asks the phone to use one of the alternates it prescribed for a slot (#90).
-     * Same fire-and-forget-plus-queue contract as [sendEdit], and the same ack: the
-     * next snapshot, carrying the new name and the sets the phone reseeded. The watch
+     * Asks the phone to use one of the alternates it prescribed for a slot. Same
+     * fire-and-forget-plus-queue contract as [sendEdit], and the same ack: the next
+     * snapshot, carrying the new name and the sets the phone reseeded. The watch
      * echoes the name and nothing else — it cannot seed.
      */
     fun sendSwap(swap: ExerciseSwapDelta)

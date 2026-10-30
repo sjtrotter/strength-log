@@ -29,7 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
- * Handles Health Connect's mandatory permissions-rationale intents (#17): the
+ * Handles Health Connect's mandatory permissions-rationale intents: the
  * provider launches this to explain why the app wants health permissions,
  * before the user grants them. It's a plain screen with no workout data or
  * network access, stating exactly what each permission is for and that

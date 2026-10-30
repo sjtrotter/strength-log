@@ -25,11 +25,11 @@ object RestTimer {
         advance is StreamAdvance.NextRound && restAfterSeconds > 0
 
     /**
-     * A between-exercise rest — the day-list countdown pill (issue #81) — runs after
-     * a done-tick finishes an exercise's last set with other exercises still to go
+     * A between-exercise rest — the day-list countdown pill — runs after a done-tick
+     * finishes an exercise's last set with other exercises still to go
      * ([StreamAdvance.BackToList]) and that set carries a rest. [StreamAdvance.DayDone]
-     * is the only transition that never rests, by design (issue #81 / design Decision 3);
-     * the within-exercise next-round path is [shouldRest]'s job, not this one.
+     * is the only transition that never rests, by design; the within-exercise next-round
+     * path is [shouldRest]'s job, not this one.
      */
     fun shouldRestAfterExercise(advance: StreamAdvance, restAfterSeconds: Int): Boolean =
         advance is StreamAdvance.BackToList && restAfterSeconds > 0

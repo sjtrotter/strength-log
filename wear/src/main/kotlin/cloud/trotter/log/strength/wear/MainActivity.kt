@@ -13,7 +13,7 @@ import cloud.trotter.log.strength.wear.ui.WearApp
 /**
  * Single-activity Compose-for-Wear host (spec §9). Reads the one process-wide
  * [cloud.trotter.log.strength.wear.data.WatchTrackerClient] from
- * [StrengthLogWearApp] — the real Data Layer client (#20) — so Activity recreation
+ * [StrengthLogWearApp] — the real Data Layer client — so Activity recreation
  * (rotation, ambient exit) never re-registers listeners or drops the edit queue.
  */
 class MainActivity : ComponentActivity() {

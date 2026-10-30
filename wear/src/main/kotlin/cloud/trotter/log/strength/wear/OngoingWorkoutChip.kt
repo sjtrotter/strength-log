@@ -22,9 +22,9 @@ import androidx.wear.ongoing.Status
  * Deliberately **no foreground service**: a posted ongoing notification already
  * survives process death, and an FGS would drag in `FOREGROUND_SERVICE` +
  * API-34 service-type policy for no added user value. Whether the chip actually
- * renders/survives is best-effort by design (R8 risk #1) — logging never
- * depends on it, so a missing [Manifest.permission.POST_NOTIFICATIONS] grant is
- * a silent no-op here, not an error.
+ * renders/survives is best-effort by design — logging never depends on it, so a
+ * missing [Manifest.permission.POST_NOTIFICATIONS] grant is a silent no-op
+ * here, not an error.
  */
 class OngoingWorkoutChip(context: Context) {
 

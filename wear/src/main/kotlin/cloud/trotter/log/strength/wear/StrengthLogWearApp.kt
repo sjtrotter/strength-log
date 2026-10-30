@@ -39,7 +39,7 @@ class StrengthLogWearApp : Application() {
      * The scope every outbound edit runs on. It has no `CoroutineExceptionHandler` on
      * purpose — there is nothing sensible to do with a failure here beyond logging it,
      * and [DataLayerWatchClient] does that itself rather than letting anything reach
-     * the default handler, which would kill the app mid-workout (#173).
+     * the default handler, which would kill the app mid-workout.
      */
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

@@ -68,8 +68,7 @@
           provider) but inert: it shows a static, on-device rationale screen and
           reads no data. Two filters cover both eras — the pre-14 provider APK
           fires SHOW_PERMISSIONS_RATIONALE; platform Health Connect (API 34+)
-          fires VIEW_PERMISSION_USAGE with the HEALTH_PERMISSIONS category. The
-          full privacy-policy page is #23's job.
+          fires VIEW_PERMISSION_USAGE with the HEALTH_PERMISSIONS category.
         -->
         <activity
             android:name=".health.HealthRationaleActivity"

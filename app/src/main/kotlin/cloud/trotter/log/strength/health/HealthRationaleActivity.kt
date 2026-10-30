@@ -35,9 +35,8 @@ import javax.inject.Inject
  * network access, stating exactly what each permission is for and that
  * everything stays on-device.
  *
- * The full privacy-policy page (Play requirement for health permissions) is
- * #23's job; this activity only satisfies the manifest rationale contract that
- * has to ship with the permission declarations.
+ * This activity is the manifest's rationale contract for the health permission
+ * declarations; the privacy policy itself is docs/privacy.md.
  */
 @AndroidEntryPoint
 class HealthRationaleActivity : ComponentActivity() {

@@ -7,11 +7,11 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import kotlinx.coroutines.flow.Flow
 
 /**
- * The module seam PLAN prescribes (m5-wear.md #19): the two screens code
- * against this interface only, never against a transport. [FakeWatchClient]
- * satisfies it here so `:wear` runs standalone; #20 swaps in the real
- * implementation over the Wearable Data Layer (`DataClient` for
- * [snapshotFlow], `MessageClient` for [sendEdit]) without the UI changing.
+ * The seam the watch UI codes against, never a transport.
+ * [DataLayerWatchClient] implements it over the Wearable Data Layer
+ * (`DataClient` for [snapshotFlow], `MessageClient` for [sendEdit]);
+ * [FakeWatchClient] implements it for standalone runs and the store
+ * screenshots.
  */
 interface WatchTrackerClient {
 

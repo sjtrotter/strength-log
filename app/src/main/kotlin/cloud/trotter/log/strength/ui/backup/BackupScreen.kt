@@ -86,11 +86,11 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions) {
     val accent = dayAccent(0)
 
     // A restore writes Room and then DataStore with no transaction spanning the
-    // two, so walking out mid-write is how they end up disagreeing (#172). The
-    // write itself is app-scoped now and survives, but the screen still refuses
-    // to leave while it runs rather than reporting to nobody. Restore only:
-    // an export or a CSV import has nothing to tear, and gating back on every
-    // operation would just make the screen feel stuck.
+    // two, so walking out mid-write is how they end up disagreeing. The write
+    // itself is app-scoped and survives, but the screen still refuses to leave
+    // while it runs rather than reporting to nobody. Restore only: an export or
+    // a CSV import has nothing to tear, and gating back on every operation
+    // would just make the screen feel stuck.
     BackHandler(enabled = state.restoreInFlight) {}
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {

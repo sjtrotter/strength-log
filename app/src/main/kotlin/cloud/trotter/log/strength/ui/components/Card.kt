@@ -25,10 +25,9 @@ import cloud.trotter.log.strength.ui.theme.Surface3
 
 /**
  * The standard app card: flat surface + hairline border, no Material tonal
- * elevation or shadow. One delta from the pre-M3 Box implementation, accepted
- * with the migration: OutlinedCard's Surface clips children to the card shape
- * (the old Column did not). Caller-side draw modifiers — the done edge — sit
- * outside that clip and are unaffected; content must stay in bounds.
+ * elevation or shadow. OutlinedCard clips children to the card shape;
+ * caller-side draw modifiers (the done edge) sit outside the clip; content
+ * must stay in bounds.
  *
  * The look is the prototype's utilitarian near-black, not a floating M3 card.
  */

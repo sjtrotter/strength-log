@@ -43,14 +43,14 @@ object DayEditRules {
         slotCount > (if (origin == PlanOrigin.AUTHORED && hasCardio) 0 else minExercisesPerDay(origin))
 }
 
-/** A page of the day-edit sheet above its root slot list (issue #122). */
+/** A page of the day-edit sheet above its root slot list. */
 enum class DayEditPage { CARDIO, CARDIO_SET, PRESCRIPTION, SWAP, SUPERSET_PATTERN, SUPERSET_EXERCISE, ADD_PATTERN, ADD_EXERCISE, OPTIONS }
 
 /**
  * Which page a back press pops, given which of the sheet's page states are
  * live — deepest first, the same order `DayEditSheet` picks what to show. Null
  * means the sheet is on its root slot list, where back dismisses the sheet
- * rather than stepping (issue #122).
+ * rather than stepping.
  *
  * Both the ← chip and the system back button route through this, so they can't
  * drift apart.

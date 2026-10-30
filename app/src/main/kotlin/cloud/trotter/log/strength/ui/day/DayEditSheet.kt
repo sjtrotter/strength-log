@@ -120,7 +120,7 @@ fun DayEditSheet(
     var ssSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     var ssPatternName by rememberSaveable { mutableStateOf<String?>(null) }
 
-    // One back action for the ← chip and the system back button (#122): pop the
+    // One back action for the ← chip and the system back button: pop the
     // deepest open page, and only let a back press through to dismiss the sheet
     // once we're on the root slot list.
     val backTarget = dayEditBackTarget(
@@ -360,7 +360,7 @@ private fun DaySlotRow(
     }
 }
 
-// --- page: per-slot options (#93) ----------------------------------------------
+// --- page: per-slot options ----------------------------------------------
 
 @Composable
 private fun SlotOptionsScreen(
@@ -703,7 +703,7 @@ private fun PatternPickerScreen(
     }
 }
 
-// --- the swap page, wherever it is reached from (#122) ------------------------
+// --- the swap page, wherever it is reached from ------------------------
 
 /**
  * The ranked same-pattern substitution picker for one slot — the page the
@@ -736,9 +736,9 @@ private fun SwapPickerPage(
 
 /**
  * The swap picker on its own sheet, opened from an exercise card's ⇄ chip
- * (issue #122) instead of walking the slot list and options pages. It has no
- * parent page, so ← and system back both just close it — no [BackHandler]
- * needed, the sheet dialog's own dismiss-on-back is exactly right.
+ * instead of walking the slot list and options pages. It has no parent page,
+ * so ← and system back both just close it — no [BackHandler] needed, the
+ * sheet dialog's own dismiss-on-back is exactly right.
  *
  * [onSwap] is the same [DayEditActions.onSwap] the sheet's swap page calls, so
  * the mutation (log kept keyed by programExerciseId, new exercise reseeded from
@@ -772,7 +772,7 @@ fun SlotSwapSheet(
 // --- page 3: substitution / add candidate picker (spec §8.3, PLAN.md A4) -----
 
 @Composable
-internal fun ExercisePickerScreen( // internal: restoration pinned directly (#178) — the sheet's dialog window is invisible to StateRestorationTester
+internal fun ExercisePickerScreen( // internal: restoration pinned directly — the sheet's dialog window is invisible to StateRestorationTester
     key: String,
     title: String,
     pattern: MovementPattern,
@@ -894,9 +894,9 @@ internal fun EquipmentFilterRow(
     accent: Color,
     onToggle: (Equipment) -> Unit,
 ) {
-    // Intentionally bespoke after the Phase 5 FilterChip audit. Material 3
-    // exposes a height override, but not its 16 dp-per-side label padding; this
-    // row uses 12 dp and widening every pill would change its compact geometry.
+    // Material 3 exposes a height override, but not its 16 dp-per-side label
+    // padding; this row uses 12 dp and widening every pill would change its
+    // compact geometry.
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

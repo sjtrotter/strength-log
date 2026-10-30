@@ -61,11 +61,11 @@ import cloud.trotter.log.strength.ui.theme.onDayAccent
 import cloud.trotter.log.strength.ui.theme.readableWidth
 
 /**
- * Custom-exercise creation form (PLAN.md A4, brief #13). Stateless: renders
- * [state] and forwards every intent to [CustomExerciseActions], same shape as
- * [cloud.trotter.log.strength.ui.wizard.WizardScreen]. Day index 0's
- * accent stands in as the app's one "primary" highlight here too — this
- * screen isn't day-scoped either.
+ * Custom-exercise creation form (PLAN.md A4). Stateless: renders [state] and
+ * forwards every intent to [CustomExerciseActions], same shape as
+ * [cloud.trotter.log.strength.ui.wizard.WizardScreen]. Day index 0's accent
+ * stands in as the app's one "primary" highlight here too — this screen isn't
+ * day-scoped either.
  */
 @Composable
 fun CustomExerciseScreen(state: CustomExerciseUiState, actions: CustomExerciseActions) {

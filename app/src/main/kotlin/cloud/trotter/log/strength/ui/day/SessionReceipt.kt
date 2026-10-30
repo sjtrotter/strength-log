@@ -8,10 +8,9 @@ import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /**
- * The session's receipt (#126): what the lifter just did, read back to them
- * once DONE has already committed it. It sits between the advance and landing
- * on Today — the workout used to end with nothing but the rotation quietly
- * moving on.
+ * The session's receipt: what the lifter just did, read back to them once
+ * DONE has already committed it. It sits between the advance and landing on
+ * Today.
  *
  * Everything here is a read of the session row that [cloud.trotter.log.strength
  * .data.TrackerRepository.advanceDay] has already written, so the receipt is

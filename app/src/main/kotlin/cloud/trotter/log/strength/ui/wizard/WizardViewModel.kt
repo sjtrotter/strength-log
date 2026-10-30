@@ -130,8 +130,8 @@ class WizardViewModel @Inject constructor(
     /** In-flight/failed state of a restore. Not in [SavedStateHandle] on purpose:
      *  it is progress, not truth. The import outlives this ViewModel (it runs on
      *  the app scope) and any half of it that survives process death is finished
-     *  by the startup reconciliation (#172), so nothing here is worth persisting
-     *  — a user who comes back to a blank wizard just picks the file again. */
+     *  by the startup reconciliation, so nothing here is worth persisting — a
+     *  user who comes back to a blank wizard just picks the file again. */
     private val restoreProgress = MutableStateFlow(RestoreProgress())
 
     private data class RestoreProgress(val inFlight: Boolean = false, val error: cloud.trotter.log.strength.ui.text.UiText? = null)
@@ -323,16 +323,13 @@ class WizardViewModel @Inject constructor(
      * Write order is crash-safety, not cosmetics. `wizardComplete=true` is what
      * routes the app to the day screen (D1); if it were set before
      * [TrackerRepository.createGeneratedPlan], a process death in the gap would
-     * strand the app on an empty program — the day screen would show
-     * "Preparing your program…" forever, and with the #10 bootstrap deleted
-     * (D3) and Setup (#12) not yet built there is no in-app recovery. Setting
-     * it last means a crash before it simply re-runs the wizard (the draft
-     * survives in [SavedStateHandle]). Mirrors [TrackerRepository.importSnapshot]'s
-     * own write-before-flag ordering.
+     * strand the app on an empty program. Setting it last means a crash before it
+     * simply re-runs the wizard (the draft survives in [SavedStateHandle]). Mirrors
+     * [TrackerRepository.importSnapshot]'s own write-before-flag ordering.
      *
      * A first-run wizard that finds `wizardComplete` already true steps aside
-     * instead of generating (#172). The app opens on the wizard whenever that
-     * flag reads false, so an interrupted restore whose settings half is still
+     * instead of generating. The app opens on the wizard whenever that flag
+     * reads false, so an interrupted restore whose settings half is still
      * pending lands us here over a *restored* program — and generating would
      * select a different plan. [firstRun] is latched at entry, so this can only
      * fire when the flag flipped underneath us; a new-plan wizard on a complete
@@ -427,8 +424,8 @@ class WizardViewModel @Inject constructor(
                 var note: cloud.trotter.log.strength.ui.text.UiText? = null
                 try {
                     // App-scoped for the same reason the Data/Backup screen's
-                    // restore is (#172): this ViewModel dies with the wizard, and
-                    // the import must not be cut between its two halves.
+                    // restore is: this ViewModel dies with the wizard, and the
+                    // import must not be cut between its two halves.
                     appScope.async(Dispatchers.IO) {
                         context.contentResolver.openInputStream(uri)?.use { backupService.importFrom(it) }
                             ?: throw IOException("no input stream for $uri")

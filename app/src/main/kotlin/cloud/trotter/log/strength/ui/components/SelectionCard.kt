@@ -33,8 +33,8 @@ import cloud.trotter.log.strength.ui.theme.onDayAccent
 enum class SelectionMode { Radio, Check, Action }
 
 /**
- * A tappable choice row for single-select questions (wizard, and later Setup
- * #12): filled/bordered like [AppCard], but tints to the accent and shows a
+ * A tappable choice row for single-select questions (wizard and Setup):
+ * filled/bordered like [AppCard], but tints to the accent and shows a
  * checkmark when [selected]. Screens that aren't day-scoped (the wizard has no
  * day of its own yet) use day index 0's accent as the app's one "primary"
  * highlight color — this reuses the existing per-day palette (SSOT) rather
@@ -88,9 +88,9 @@ fun SelectionCard(
             .fillMaxWidth()
             // A row shorter than the 48dp minimum gets its TOUCH bounds grown
             // past its layout — at a list viewport's bottom edge that growth
-            // bleeds into whatever sits below (#210). A layout floor keeps the
-            // target on the row's own ground; on-device text already renders
-            // rows at or above it, so nothing visible changes.
+            // bleeds into whatever sits below. A layout floor keeps the target
+            // on the row's own ground; on-device text already renders rows at
+            // or above it, so nothing visible changes.
             .heightIn(min = 48.dp)
             .then(interaction),
         shape = shape,

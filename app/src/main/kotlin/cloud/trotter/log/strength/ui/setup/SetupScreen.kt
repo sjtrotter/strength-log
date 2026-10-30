@@ -491,7 +491,7 @@ private fun ResetRestDefaultsRow(onClick: () -> Unit) {
     SetupOutlineAction(stringResource(R.string.setup_reset_defaults_button), TextSecondary, 48, 6, onClick)
 }
 
-// --- create custom exercise (route #13, D1: reachable from Setup and the day-edit picker) ---
+// --- create custom exercise (D1: reachable from Setup and the day-edit picker) ---
 
 @Composable
 private fun CreateCustomExerciseButton(accent: Color, onClick: () -> Unit) {
@@ -505,7 +505,7 @@ private fun DataBackupButton(accent: Color, onClick: () -> Unit) {
     SetupOutlineAction(stringResource(R.string.setup_data_backup_button), accent, 52, 8, onClick)
 }
 
-// --- OSS licenses (M6 #23: Barlow Condensed OFL + third-party notices) -------
+// --- OSS licenses (Barlow Condensed OFL + third-party notices) -------
 
 @Composable
 private fun LicensesButton(onClick: () -> Unit) {

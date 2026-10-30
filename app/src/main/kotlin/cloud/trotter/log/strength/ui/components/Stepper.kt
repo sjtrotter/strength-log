@@ -270,10 +270,9 @@ fun Stepper(
 }
 
 /**
- * One 32dp-wide capsule segment (`.sb` in the reference); the clickable area
- * expands to Material's >= 48dp touch minimum via [minimumInteractiveComponentSize],
- * overlapping into the neighboring segment/value the same way the old
- * per-button implementation did. Press flashes [Surface3] for 120ms
+ * One 32dp-wide capsule segment (`.sb` in the reference); the clickable area expands
+ * to Material's >= 48dp touch minimum via [minimumInteractiveComponentSize],
+ * overlapping into the neighboring segment/value. Press flashes [Surface3] for 120ms
  * (design tokens: `--dur-fast`), matching `.sb:active`.
  *
  * [contentDescription] is the accessible name (TalkBack never reads the raw

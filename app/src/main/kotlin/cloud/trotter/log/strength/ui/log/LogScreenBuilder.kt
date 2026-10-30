@@ -16,10 +16,10 @@ import java.util.Locale
 import cloud.trotter.log.strength.ui.text.UiText
 
 /**
- * The pure History Log (#14) decision logic: list-row and expanded-session
- * formatting. Kept Android-free (java.time is plain JDK) so the whole
- * contract is unit-testable on the JVM, mirroring [DayScreenBuilder] — this
- * screen deliberately reuses [DayScreenBuilder.kindLabelsForKinds] rather than
+ * The pure History Log decision logic: list-row and expanded-session
+ * formatting. Kept Android-free (java.time is plain JDK) so the whole contract
+ * is unit-testable on the JVM, mirroring [DayScreenBuilder] — this screen
+ * deliberately reuses [DayScreenBuilder.kindLabelsForKinds] rather than
  * re-deriving the R1/TOP/B/O labeling rule (SSOT).
  */
 object LogScreenBuilder {
@@ -42,16 +42,16 @@ object LogScreenBuilder {
     }
 
     /**
-     * The backfill offer's line (#159): "Publish 12 past workouts" over the
-     * history Health Connect has never seen, or "Publishing…" while the run is
-     * in flight. [sessionCount] is the history the Log screen is showing, so the
+     * The backfill offer's line: "Publish 12 past workouts" over the history
+     * Health Connect has never seen, or "Publishing…" while the run is in
+     * flight. [sessionCount] is the history the Log screen is showing, so the
      * number the user reads is the number of sessions they can see.
      */
     fun backfillLabel(sessionCount: Int, running: Boolean): UiText.LogBackfill = UiText.LogBackfill(running, sessionCount)
 
     /** Bodyweight display in [unit], matching the day screen's own convention, or
-     *  null for a session that recorded none (imported history — #171): the row
-     *  drops the line rather than printing a placeholder. */
+     *  null for a session that recorded none (imported history): the row drops
+     *  the line rather than printing a placeholder. */
     fun bodyweightDisplay(bodyweightLb: Int?, unit: WeightUnit): String? =
         bodyweightLb?.let { WeightStepper.format(unit.fromLb(it.toDouble())) }
 
@@ -103,8 +103,8 @@ object LogScreenBuilder {
      *
      * Each row formats by its logged VALUE ([SetFormatter.summaryOfValues]),
      * not by looking the exercise back up in the catalog: a `session_set` row
-     * can predate a reclassification (design risk #3 — the P3 fixup only ever
-     * touched live `exercise_log` rows, never history), so a legacy plank
+     * can predate a reclassification (the legacy reps→seconds fixup only
+     * touches live `exercise_log` rows, never history), so a legacy plank
      * logged as reps must still read as reps, never a manufactured "0s".
      */
     fun groupByExercise(sets: List<SessionSetEntity>, unit: WeightUnit): List<SessionExerciseGroup> {

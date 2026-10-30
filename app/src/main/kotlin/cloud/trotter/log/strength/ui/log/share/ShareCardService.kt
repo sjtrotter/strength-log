@@ -19,10 +19,10 @@ import kotlinx.coroutines.withContext
  * reads the session off [TrackerRepository], renders it with
  * [ShareCardPainter], writes the PNG under `cache/shares/`, and wraps it in an
  * `ACTION_SEND` chooser intent. This is the *only* place a share [Intent] gets
- * built (§4 acceptance #1) — [cloud.trotter.log.strength.ui.log
- * .LogViewModel] calls [buildShareIntent] on a SHARE tap and nothing else
- * triggers it. Everything here runs off the caller's thread ([Dispatchers.IO]):
- * a DB read, a Canvas render and a file write, none of which belong on main.
+ * built (§4) — [cloud.trotter.log.strength.ui.log.LogViewModel] calls
+ * [buildShareIntent] on a SHARE tap and nothing else triggers it. Everything
+ * here runs off the caller's thread ([Dispatchers.IO]): a DB read, a Canvas
+ * render and a file write, none of which belong on main.
  */
 class ShareCardService @Inject constructor(
     @ApplicationContext private val context: Context,

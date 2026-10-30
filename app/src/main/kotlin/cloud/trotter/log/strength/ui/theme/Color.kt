@@ -138,10 +138,9 @@ fun accentBorder(dayIndex: Int): Color {
  * goldenrod, is legible unlifted, and the rest are unreadable as a hairline
  * mark.
  *
- * The lift itself is `DayAccentColors.brightHex`, same as the watch's: the phone
- * used to derive it here and the watch derived a different one of its own, so a
- * day read one way in the pocket and another on the wrist (#150). [DayAccentTest]
- * still pins the contrast floor from this side of the fence.
+ * The lift itself is `DayAccentColors.brightHex`, same as the watch's, so a day
+ * has the same colour in the pocket and on the wrist. [DayAccentTest] pins the
+ * contrast floor from this side of the fence.
  */
 fun accentBright(dayIndex: Int): Color = Color(DayAccentColors.brightHex(dayIndex))
 

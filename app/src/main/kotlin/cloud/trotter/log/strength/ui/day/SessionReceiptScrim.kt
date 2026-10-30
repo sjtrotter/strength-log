@@ -57,12 +57,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * The session receipt (#126): the last thing a finished workout says. A ledger,
- * not a trophy — the day's own accent on the headline, hairlines between three
- * facts (what was done, the heaviest thing in it, where the rotation now
- * stands), and two ways out. No confetti, no streaks, no medal; the app spends
- * its one celebration on [CascadeScrim], and that scrim renders *above* this
- * one when a lift actually moved.
+ * The session receipt: the last thing a finished workout says. A ledger, not a
+ * trophy — the day's own accent on the headline, hairlines between three facts
+ * (what was done, the heaviest thing in it, where the rotation now stands), and
+ * two ways out. No confetti, no streaks, no medal; the app spends its one
+ * celebration on [CascadeScrim], and that scrim renders *above* this one when a
+ * lift actually moved.
  *
  * Modal on purpose: the day screen underneath has already advanced to the next
  * day, so nothing behind this surface is still the workout that just ended and

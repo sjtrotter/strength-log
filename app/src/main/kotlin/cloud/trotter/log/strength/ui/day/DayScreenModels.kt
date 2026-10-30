@@ -15,20 +15,20 @@ import cloud.trotter.log.strength.sync.RemoteTick
 /**
  * Immutable render model for the whole day screen (UDF: the ViewModel's single output).
  *
- * [Immutable] is load-bearing, not decoration (#156). Without it the Compose
- * compiler reads `List<ExerciseCardState>` and a `:domain` value type it can't
- * see the stability of, calls the whole class unstable, and falls back to
- * *identity* comparison — so a rebuilt state that differs in one set's tick
- * recomposes every card on screen. Every model in this file is built once by
+ * [Immutable] is load-bearing, not decoration. Without it the Compose compiler
+ * reads `List<ExerciseCardState>` and a `:domain` value type it can't see the
+ * stability of, calls the whole class unstable, and falls back to *identity*
+ * comparison — so a rebuilt state that differs in one set's tick recomposes
+ * every card on screen. Every model in this file is built once by
  * [DayScreenBuilder]/[DayViewModel] and never mutated, which is exactly what the
  * annotation promises; keep it that way (no `MutableList` here, ever).
  */
 @Immutable
 data class DayUiState(
     val hasProgram: Boolean = false,
-    /** True only while the program is still being read (#127). `hasProgram =
-     *  false` with this false is the *answer* "there is no program" — a state
-     *  the lifter has to act on — and the screen says so instead of preparing
+    /** True only while the program is still being read. `hasProgram = false`
+     *  with this false is the *answer* "there is no program" — a state the
+     *  lifter has to act on — and the screen says so instead of preparing
      *  forever. */
     val loading: Boolean = false,
     val isProgramDay: Boolean = true,
@@ -189,13 +189,14 @@ data class ExerciseCardState(
      *  1); null when there is no record, or when it equals [lastTimeDisplay] —
      *  showing the same number twice is noise, not signal. */
     val personalRecordDisplay: String? = null,
-    /** "+5 LB FROM LAST" / "MATCHED" / "FIRST LOG" over the TOP row (issue
-     *  #127); null when the card has no TOP set to compare — see
+    /** "+5 LB FROM LAST" / "MATCHED" / "FIRST LOG" over the TOP row; null
+     *  when the card has no TOP set to compare — see
      *  [DayScreenBuilder.topSetComparison]. */
     val topSetComparison: String? = null,
-    /** Per-side plate values, e.g. "45 + 25 + 2.5" (issue #101), keyed to the
-     *  first undone MAIN-slot set's weight; null for non-barbell exercises,
-     *  finished cards, or an unloadable weight — see [DayScreenBuilder.plateLine]. */
+    /** Per-side plate values, e.g. "45 + 25 + 2.5" (docs/briefs/plate-math.md),
+     *  keyed to the first undone MAIN-slot set's weight; null for non-barbell
+     *  exercises, finished cards, or an unloadable weight — see
+     *  [DayScreenBuilder.plateLine]. */
     val plateLine: String? = null,
     val allDone: Boolean,
     val rows: List<SetRowState>,

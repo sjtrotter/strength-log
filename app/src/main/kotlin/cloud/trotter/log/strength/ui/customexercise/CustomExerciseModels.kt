@@ -6,10 +6,10 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
 /**
- * Everything [CustomExerciseScreen] renders (brief #13, extended by tracking
- * types P4). [weightDisplay]/[addedWeightDisplay] are already converted to
- * [unit] so the screen never touches [WeightUnit] conversion itself (SSOT
- * lives in `:domain`, mirrors [cloud.trotter.log.strength.ui.day.DayViewModel]).
+ * Everything [CustomExerciseScreen] renders.
+ * [weightDisplay]/[addedWeightDisplay] are already converted to [unit] so the
+ * screen never touches [WeightUnit] conversion itself (SSOT lives in `:domain`,
+ * mirrors [cloud.trotter.log.strength.ui.day.DayViewModel]).
  *
  * [tracking] picks which target input the form shows (§2.1): WEIGHTED reads
  * [weightDisplay] as the starting GOAL weight; REPS reads [targetReps];

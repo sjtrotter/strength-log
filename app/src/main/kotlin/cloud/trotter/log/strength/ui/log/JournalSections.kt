@@ -344,7 +344,7 @@ private fun MonthChevron(glyph: String, label: String, enabled: Boolean, onClick
         modifier = Modifier
             // 28dp of chevron, 48dp of reserved target — the 6dp between the two
             // chevrons survives, because the reservation grows the header row
-            // rather than letting ‹ and › expand into each other (#123).
+            // rather than letting ‹ and › expand into each other.
             .minimumInteractiveComponentSize()
             .defaultMinSize(28.dp, 28.dp)
             .background(Surface2, RoundedCornerShape(8.dp))
@@ -372,9 +372,9 @@ private fun MonthChevron(glyph: String, label: String, enabled: Boolean, onClick
  * A trained day is an accent pill carrying its day *letter* — the letter is the
  * identity, the accent only the flavor (§0: color is never the only carrier).
  *
- * The one interactive element in the app that does not reach 48dp (#123): seven
- * columns inside a card leave ~42dp per cell on a 360dp screen, so a 48dp target
- * would have to overlap its neighbours — which is worse than a small one, and is
+ * The one interactive element in the app that does not reach 48dp: seven columns
+ * inside a card leave ~42dp per cell on a 360dp screen, so a 48dp target would
+ * have to overlap its neighbours — which is worse than a small one, and is
  * exactly why WCAG 2.2's target-size rule exempts cells in a grid. The cells sit
  * flush with no dead space between them, so nothing is unreachable.
  */

@@ -21,15 +21,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * Custom-exercise creation form (PLAN.md A4, brief #13). Every draft field
- * lives in [SavedStateHandle] — same reasoning as [cloud.trotter.log.strength.ui.wizard.WizardViewModel]:
- * a route this reachable (from a sheet or Setup) can lose focus/rotate before
- * the user finishes typing a name, and that draft must survive it.
+ * Custom-exercise creation form (PLAN.md A4). Every draft field lives in [SavedStateHandle] — same
+ * reasoning as [cloud.trotter.log.strength.ui.wizard.WizardViewModel]: a route this reachable (from a
+ * sheet or Setup) can lose focus/rotate before the user finishes typing a name, and that draft must
+ * survive it.
  *
  * [Routes.CUSTOM_EXERCISE_PATTERN_ARG] pre-selects [MovementPattern] when the
- * #11 picker's "＋ Create exercise" launched this route; Setup (#12) launches
- * with no arg and the default (first enum entry) is just a starting point the
- * user can change.
+ * picker's "＋ Create exercise" launched this route; Setup launches with no
+ * arg and the default (first enum entry) is just a starting point the user
+ * can change.
  *
  * [save] is the one write path, and it is the existing `:data` surface
  * ([TrackerRepository.addCustomExercise]) — no new persistence semantics.

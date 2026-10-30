@@ -73,7 +73,7 @@ class WindowSizeTest {
     /**
      * The two post-DONE surfaces cover the whole window on purpose — they are
      * hiding one — but their content is a column of text like any other, so it
-     * is capped like the day screen behind it, even on a tablet.
+     * is capped at [ReadableWidth], even on a tablet.
      *
      * Coverage is asserted alongside the cap, so the cap can't be met by
      * shrinking the scrim.

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.TrackerRepository
@@ -102,8 +103,8 @@ class SetEditApplier(
      *
      * The application itself is the phone's existing §8.3 swap and nothing else
      * ([TrackerRepository.swapExerciseById] — the slot keeps its `programExerciseId`,
-     * its live log is cleared, the new exercise reseeds from its own GOAL on the next
-     * observation). The watch contributes a choice, never a consequence.
+     * its working values are cleared). A swap during a run retires the old track
+     * when it holds done work and seeds the new exercise into the run.
      *
      * Validation and reseeding follow the slot's plan, independent of selection.
      *
@@ -149,33 +150,21 @@ class SetEditApplier(
         return Outcome.APPLIED
     }
 
-    /**
-     * Seeds the slot the swap just emptied, here and now.
-     *
-     * Everywhere else in the app seeding is the day ViewModel's job, done lazily on
-     * the next observation — which works because a phone-driven swap happens with the
-     * day screen open. A watch-driven one doesn't: it can land in a service that woke
-     * a process with no screen in it, and the slot would sit with an empty track
-     * until the lifter next opened the phone. The wrist would show a lift with no
-     * sets in it, which is a worse answer than the swap they asked for.
-     *
-     * So it runs through the exact same [DayScreenBuilder.seedPlan] the day screen
-     * uses, over the whole day's slots with the existing tracks passed in — the plan
-     * only writes tracks that have none, so the emptied slot is the only thing it can
-     * touch and every other lift's living record is left alone.
-     *
-     * The write goes through [TrackerRepository.seedIfEmpty], the same conditional
-     * mutation the day screen's lazy pass uses, so the two seeders can't race: a plan
-     * decided from a read the other one has already acted on becomes a no-op rather
-     * than an overwrite of work logged in between.
-     */
+    /** Seeds the swapped slot from its current prescription or goal, aligned to existing tracks.
+     * A swap during a run retires the old track with done work and seeds the new one into the run. */
     private suspend fun seedSwappedSlot(planId: Long, dayId: String, programExerciseId: Long, catalog: ExerciseCatalog) {
         val slots = repo.slotsFor(planId, dayId).first()
-        val existing = emptyMap<Pair<Long, String>, Int>()
+        val tracks = repo.dayTracksFlow(planId, dayId).first()
+        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
         val cfg = repo.wizardAnswersFor(planId).first().config
-        DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
+        val seeds = DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
             .filter { it.programExerciseId == programExerciseId }
-            .forEach { write -> repo.seedIfEmpty(dayId, write.programExerciseId, write.slot, write.sets) }
+        val runId = tracks.runId
+        if (tracks.runOpen && runId != null) {
+            repo.seedRunTracksIfMissing(runId, seeds.map { RunSeed(it.programExerciseId, it.slot, it.sets) })
+        } else {
+            seeds.forEach { repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets) }
+        }
     }
 
     /** Writes the watch-observed start/complete millis onto the delta's row. They are

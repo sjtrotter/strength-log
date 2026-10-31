@@ -40,6 +40,8 @@ import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.domain.seeding.RunReplan
+import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
@@ -47,6 +49,7 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -534,14 +537,30 @@ open class TrackerRepository(
             true
         }
 
-    /** Sets belong to the slot, never the prescription JSON. Null keeps its current count. */
+    /** Sets belong to the slot, never the prescription JSON. Null keeps its current count.
+     * A tracking-type change applies to future runs only. */
     suspend fun setPrescription(programExerciseId: Long, prescription: Prescription, sets: Int? = null) {
         db.withTransaction {
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction
             if (planDao.plan(row.planId)?.origin != PlanOrigin.AUTHORED.name) return@withTransaction
             val count = sets ?: row.targetSets
             require(count in 1..20)
+            val old = PrescriptionJson.decode(row.prescriptionJson)
             programDao.setPrescription(row.id, PrescriptionJson.encode(prescription), count)
+            val run = runDao.openRun()
+            if (run?.planId == row.planId && run.dayId == row.dayId && old?.tracking == prescription.tracking) {
+                val track = runDao.tracks(run.id).firstOrNull {
+                    it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired
+                }
+                if (track != null) {
+                    runDao.updateTrack(track.copy(
+                        setsJson = SetJson.encodeSets(RunReplan.represcribe(
+                            SetJson.decodeSets(track.setsJson), SetSeeder.seedPrescribed(count, prescription),
+                        )),
+                        updatedAt = clock.millis(),
+                    ))
+                }
+            }
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
         }
     }
@@ -667,8 +686,22 @@ open class TrackerRepository(
         programExerciseId: Long,
         newExerciseId: String,
     ) {
+        retireActiveTrack(planId, dayId, programExerciseId, Slot.MAIN)
         programDao.setExerciseId(programExerciseId, newExerciseId)
         programDao.deleteLogsForExercise(planId, dayId, programExerciseId)
+    }
+
+    /** The open run's active track for this slot: retired when it holds done work, dropped otherwise. */
+    private suspend fun retireActiveTrack(planId: Long, dayId: String, programExerciseId: Long, slot: String) {
+        val run = runDao.openRun()?.takeIf { it.planId == planId && it.dayId == dayId } ?: return
+        val track = runDao.tracks(run.id).firstOrNull {
+            it.programExerciseId == programExerciseId && it.slot == slot && !it.retired
+        } ?: return
+        if (SetJson.decodeSets(track.setsJson).any { it.done }) {
+            runDao.updateTrack(track.copy(retired = true, updatedAt = clock.millis()))
+        } else {
+            runDao.deleteTrack(track.id)
+        }
     }
 
     /** Appends an exercise to the end of a day (spec §8.3). */
@@ -708,6 +741,8 @@ open class TrackerRepository(
             val floor = if (hasCardio) 0 else minExercisesPerDay(origin)
             if (count <= floor) return@withTransaction false
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
+            retireActiveTrack(row.planId, row.dayId, row.id, Slot.MAIN)
+            retireActiveTrack(row.planId, row.dayId, row.id, Slot.SS)
             programDao.deleteExercise(row.id)
             true
         }
@@ -742,6 +777,7 @@ open class TrackerRepository(
         db.withTransaction {
             val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
             if (row.toDomain().prescription != null) return@withTransaction
+            retireActiveTrack(planId, dayId, row.id, Slot.SS)
             programDao.setSupersetExerciseId(row.id, partnerExerciseId)
             programDao.deleteLogForSlot(planId, dayId, row.id, Slot.SS)
         }
@@ -753,6 +789,7 @@ open class TrackerRepository(
         val planId = targetPlanId ?: selectedPlanId() ?: return
         db.withTransaction {
             val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
+            retireActiveTrack(planId, dayId, row.id, Slot.SS)
             programDao.setSupersetExerciseId(row.id, null)
             programDao.deleteLogForSlot(planId, dayId, row.id, Slot.SS)
         }
@@ -769,6 +806,10 @@ open class TrackerRepository(
         db.withTransaction {
             val existing = programDao.day(planId, dayId)
             val position = existing?.position ?: regenerated.days.indexOfFirst { it.id == dayId }
+            for (slot in programDao.exercisesForDay(planId, dayId)) {
+                retireActiveTrack(planId, dayId, slot.id, Slot.MAIN)
+                retireActiveTrack(planId, dayId, slot.id, Slot.SS)
+            }
             programDao.deleteLogsForDay(planId, dayId)
             programDao.deleteExercisesForDay(planId, dayId)
             val replacement = newDay.toEntity(planId).copy(position = position)
@@ -876,7 +917,7 @@ open class TrackerRepository(
         if (open?.planId == planId && open.dayId == dayId) {
             DayTracks(open.id, true, open.tracks.filter { !it.retired }.mapNotNull { track ->
                 track.programExerciseId?.let { LoggedSlot(it, track.slot, track.sets) }
-            })
+            }, retired = open.tracks.filter { it.retired })
         } else {
             DayTracks(days.firstOrNull { it.dayId == dayId }?.nextRunId?.takeIf(String::isNotBlank),
                 false, logs.map { it.toLoggedSlot() })
@@ -1381,7 +1422,8 @@ open class TrackerRepository(
         runDao.insertTracks(tracks)
     }
 
-    /** Adds available seeds to the open run without replacing captured tracks. */
+    /** Adds available seeds to the open run without replacing captured tracks.
+     * Swapping back reopens the earlier track with its rows. */
     suspend fun seedRunTracksIfMissing(runId: String, seeds: List<RunSeed>) {
         db.withTransaction {
             val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction
@@ -1394,9 +1436,15 @@ open class TrackerRepository(
                     ?.takeIf { it.planId == planId && it.dayId == dayId } ?: continue
                 val exerciseId = slot.exerciseIdFor(seed.slot) ?: continue
                 val track = runTrack(runId, slot, seed.slot, exerciseId, CarryForward.cleared(seed.sets))
-                if (existing.any { it.sameKey(track) }) continue
-                runDao.insertTrack(track)
-                existing.add(track)
+                val retiredIndex = existing.indexOfFirst { it.retired && it.sameKey(track) }
+                if (retiredIndex >= 0) {
+                    val reopened = existing[retiredIndex].copy(retired = false, updatedAt = clock.millis())
+                    runDao.updateTrack(reopened)
+                    existing[retiredIndex] = reopened
+                } else {
+                    runDao.insertTrack(track)
+                    existing.add(track)
+                }
             }
         }
     }

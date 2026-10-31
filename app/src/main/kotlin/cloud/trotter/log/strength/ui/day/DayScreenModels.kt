@@ -16,6 +16,10 @@ import cloud.trotter.log.strength.sync.RemoteTick
 @Immutable
 data class DaySelection(val planId: Long?, val dayId: String) : Parcelable
 
+/** Completed work kept after a run track leaves the plan. */
+@Immutable
+data class RetiredTrackLine(val name: String, val doneCount: Int)
+
 /**
  * Immutable render model for the whole day screen (UDF: the ViewModel's single output).
  *
@@ -43,6 +47,10 @@ data class DayUiState(
     val runId: String? = null,
     val runOpen: Boolean = false,
     val openRunElsewhere: String? = null,
+    /** Completed tracks displaced by plan edits during this run. */
+    val retiredTracks: List<RetiredTrackLine> = emptyList(),
+    /** Done rounds on retired MAIN tracks, excluding superset partner duplicates. */
+    val retiredRoundDoneCount: Int = 0,
     val dayIndex: Int = 0,
     val dayTitle: String = "",
     val emphasisLine: String = "",
@@ -62,12 +70,12 @@ data class DayUiState(
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
     val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning
 
-    /** Rounds ticked across MAIN tracks, matching Today and the widget. A
+    /** Rounds ticked across active and retired MAIN tracks. A
      *  superset partner shares its round. Recomputed once per state, including copy(). */
-    val doneSets: Int = exercises.sumOf { card -> card.rows.count { it.done } }
+    val doneSets: Int = exercises.sumOf { card -> card.rows.count { it.done } } + retiredRoundDoneCount
 
     /** Rounds this day holds in total, counted the same way as [doneSets]. */
-    val totalSets: Int = exercises.sumOf { it.rows.size }
+    val totalSets: Int = exercises.sumOf { it.rows.size } + retiredRoundDoneCount
 
     val pages: List<WorkoutPage> = exercises.map { card ->
         WorkoutPage(card.programExerciseId, card.title, card.rows.count { it.done }, card.rows.size, card.allDone)

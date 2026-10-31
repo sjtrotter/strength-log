@@ -877,25 +877,30 @@ class SetEditApplierTest {
         assertEquals(1_042L, archived.completedAtMillis)
     }
 
-    /** The pinned §8.3 contract: the slot keeps its id, the exercise changes, and the
-     *  old log does not survive into it. Reseeding is part of the same application
-     *  here (a watch swap can land with no phone screen open to do it lazily), so the
-     *  track that comes out is the *new* exercise's fresh seed — nothing logged, and
-     *  not the squat ramp that was there. */
-    @Test fun `mid-run watch swap changes only the plan and keeps the captured track until PR 3`() = runTest {
+    /** [F] */
+    @Test fun `old-watch swap retires done work and seeds the alternate into the run`() = runTest {
         seedOpenProgram()
         val id = squatId()
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 1L,
+        )))
         val before = repo.openRunFlow.first()!!
+        val old = before.tracks.single { it.programExerciseId == id }
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
         assertEquals(SetEditApplier.Outcome.APPLIED,
             applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 100)))
         assertEquals(target.id, repo.daySlotsFlow("A").first().first { it.programExerciseId == id }.exercise.exerciseId)
-        assertEquals(before, repo.openRunFlow.first())
-        val working = db.programDao().logForSlot(before.planId!!, "A", id, Slot.MAIN)!!
-        val seeded = cloud.trotter.log.strength.data.serialization.SetJson.decodeSets(working.setsJson)
-        assertTrue(seeded.isNotEmpty())
-        assertTrue(seeded.none { it.done })
-        assertEquals("bb_back_squat", repo.openRunFlow.first()!!.tracks.first { it.programExerciseId == id }.exerciseId)
+        val run = repo.openRunFlow.first()!!
+        assertEquals(before.id, run.id)
+        assertEquals(old.copy(retired = true), run.tracks.single { it.programExerciseId == id && it.retired })
+        val active = run.tracks.single { it.programExerciseId == id && !it.retired }
+        assertEquals(target.id, active.exerciseId)
+        assertTrue(active.sets.isNotEmpty())
+        assertTrue(active.sets.none { it.done })
+        val planId = before.planId!!
+        assertEquals(1, repo.dayTracksFlow(planId, "A").first().retired.size)
+        assertEquals(null, db.programDao().logForSlot(planId, "A", id, Slot.MAIN))
     }
 
     @Test

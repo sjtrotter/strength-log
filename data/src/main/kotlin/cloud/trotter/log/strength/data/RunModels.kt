@@ -50,6 +50,13 @@ data class OpenRun(
     val tracks: List<RunTrack>,
 )
 
-data class DayTracks(val runId: String?, val runOpen: Boolean, val tracks: List<LoggedSlot>)
+/** Active rows and retired work for a day's open run or working values. */
+data class DayTracks(
+    val runId: String?,
+    val runOpen: Boolean,
+    val tracks: List<LoggedSlot>,
+    /** Tracks displaced by plan edits that still hold done work. */
+    val retired: List<RunTrack> = emptyList(),
+)
 
 data class TodayTarget(val plan: PlanEntity, val dayId: String?)

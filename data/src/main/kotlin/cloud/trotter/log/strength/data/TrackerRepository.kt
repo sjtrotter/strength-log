@@ -1858,8 +1858,8 @@ open class TrackerRepository(
             } catch (e: IOException) {
                 throw RestoreInterruption.SettingsPending(e)
             }
-            clearRestoreBookkeeping(journal)
             planSettingsMigrationMutex.withLock { legacyCardioConverted = false }
+            clearRestoreBookkeeping(journal)
             try {
                 ensurePlanSettingsMigrated()
             } catch (e: IOException) {

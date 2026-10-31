@@ -603,6 +603,21 @@ class DialStateTest {
         }
     }
 
+    /** [F] */
+    @Test
+    fun `an empty active list with retired work shows completed progress on either face`() {
+        val retired = snapshot().copy(runId = "r-1", retiredRoundsDone = 2)
+        DialFace.entries.forEach { face ->
+            val state = dialUiState(inputs(snapshot = retired, face = face))
+            assertEquals(DialScreen.DAY_DONE, state.screen)
+            assertEquals(1f, state.dayProgress)
+            assertEquals(listOf("DONE", "2 SETS"), state.discText())
+            assertEquals(DialTap.DISMISS, state.tap)
+            assertNull(state.hold)
+            assertTrue(state.rounds.isEmpty())
+        }
+    }
+
     @Test
     fun `a snapshot without a day shows no program with nothing to act on`() {
         val state = dialUiState(inputs(snapshot = noProgramSnapshot()))

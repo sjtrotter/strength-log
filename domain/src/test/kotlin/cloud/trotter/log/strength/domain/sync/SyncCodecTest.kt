@@ -353,9 +353,15 @@ class SyncCodecTest {
     fun `real old snapshot decodes with null run fields`() {
         val old = """
             {"schemaVersion":1,"revision":2,"suggestedDayId":"A","unit":"lb",
-             "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[]}}
+             "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[
+               {"programExerciseId":1,"slot":"main","name":"Squat","goal":235.0,"perHand":false,
+                "supersetPartnerName":null,
+                "sets":[{"weightLb":235.0,"reps":5,"kind":"TOP","done":false}],"ssSets":[]}
+             ]}}
         """.trimIndent()
         val decoded = SyncCodec.decodeSnapshot(old.encodeToByteArray())
+        assertEquals("Squat", decoded.day.exercises.single().name)
+        assertEquals(false, decoded.day.exercises.single().sets.single().done)
         assertNull(decoded.runId)
         assertNull(decoded.runStartedAt)
         assertNull(decoded.retiredRoundsDone)

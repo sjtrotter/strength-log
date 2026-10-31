@@ -884,7 +884,22 @@ private fun emptyDay(snapshot: WatchSnapshot, copy: DialCopy) = DialUiState(
     ),
     bloom = false,
     tap = DialTap.NONE,
-)
+).let { state ->
+    val progress = DayProgress.of(snapshot)
+    if (progress.done == 0) state else state.copy(
+        screen = DialScreen.DAY_DONE,
+        dayProgress = progress.done.toFloat() / progress.total,
+        topBand = null,
+        disc = DiscContent(
+            DiscStyle.FILLED_GREEN,
+            listOf(
+                DiscLine(copy.done.uppercase(), DialTextRole.NUMERAL, DialTone.ON_DISC),
+                DiscLine(copy.sets(progress.done).uppercase(), DialTextRole.BAND, DialTone.ON_DISC),
+            ),
+        ),
+        tap = DialTap.DISMISS,
+    )
+}
 
 /** The phone has no suggested day (§7): a dashed disc and nothing to act on. */
 private fun noProgram(snapshot: WatchSnapshot, copy: DialCopy) = DialUiState(

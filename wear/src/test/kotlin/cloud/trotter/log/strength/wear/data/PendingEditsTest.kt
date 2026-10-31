@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.data
 
+import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
@@ -8,6 +9,7 @@ import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.sync.applyDelta
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -496,5 +498,76 @@ class PendingEditsTest {
         val current = snapshot().copy(planId = 2, runId = "r-2")
         assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
         assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current))
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current, setOf(edit.editedAtMillis)))
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current, setOf(replacement.editedAtMillis)))
+    }
+
+    /** [F] */
+    @Test
+    fun `an undelivered tick for a replaced exercise stays queued without projection or extra progress`() {
+        val edit = delta(done = true).copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        for (replacementDone in listOf(false, true)) {
+            val current = snapshot(exerciseId = "hack_squat", sets = listOf(
+                WatchSet(100.0, 5, "WORK", done = replacementDone),
+            )).copy(planId = 1, runId = "r-1", retiredRoundsDone = 2)
+            assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+            val displayed = applyDelta(current, edit)
+            assertEquals(current, displayed)
+            assertEquals(DayProgress(if (replacementDone) 3 else 2, 3), DayProgress.of(displayed))
+            assertTrue(PendingEdits.reconcile(listOf(edit), current, setOf(edit.editedAtMillis)).isEmpty())
+        }
+    }
+
+    /** [F] */
+    @Test
+    fun `a swap back to matching identity uses per-field settling even after delivery`() {
+        val edit = delta(weightLb = 245.0, done = true)
+            .copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        val current = snapshot(sets = listOf(WatchSet(235.0, 5, "TOP", done = true)))
+            .copy(planId = 1, runId = "r-1")
+        val delivered = setOf(edit.editedAtMillis)
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current, delivered))
+        assertEquals(245.0, applyDelta(current, edit).day.exercises.single().sets.single().weightLb)
+        val reflected = current.copy(day = current.day.copy(exercises = current.day.exercises.map {
+            it.copy(sets = listOf(WatchSet(245.0, 5, "TOP", done = true)))
+        }))
+        assertTrue(PendingEdits.reconcile(listOf(edit), reflected, delivered).isEmpty())
+    }
+
+    /** [F] */
+    @Test
+    fun `a newer edit for another exercise cannot supersede the original after a swap back`() {
+        val squat = delta(reps = 6).copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        val hack = squat.copy(exerciseId = "hack_squat", reps = 8, editedAtMillis = 2)
+        val current = snapshot().copy(planId = 1, runId = "r-1")
+        assertEquals(listOf(squat, hack), PendingEdits.reconcile(listOf(squat, hack), current))
+        assertEquals(listOf(squat), PendingEdits.reconcile(listOf(squat, hack), current, setOf(hack.editedAtMillis)))
+    }
+
+    /** [F] */
+    @Test
+    fun `another day preserves run-aware edits until their own run changes`() {
+        val edit = delta(done = true).copy(planId = 1, runId = "r-a")
+        val anotherDay = snapshot(dayId = "B").copy(planId = 1, runId = "r-b")
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), anotherDay))
+        assertTrue(PendingEdits.reconcile(listOf(edit), anotherDay, setOf(edit.editedAtMillis)).isEmpty())
+        assertEquals(anotherDay, applyDelta(anotherDay, edit))
+        val ownDay = snapshot().copy(planId = 1, runId = "r-a")
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), ownDay))
+        assertTrue(PendingEdits.reconcile(listOf(edit), ownDay.copy(runId = "r-next")).isEmpty())
+        assertTrue(PendingEdits.reconcile(listOf(edit.copy(runId = null)), anotherDay).isEmpty())
+    }
+
+    /** [F] */
+    @Test
+    fun `another day preserves run-aware swaps until their own run changes`() {
+        val replacement = swap().copy(planId = 1, runId = "r-a")
+        val anotherDay = snapshot(dayId = "B").copy(planId = 1, runId = "r-b")
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), anotherDay))
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), anotherDay, setOf(replacement.editedAtMillis)).isEmpty())
+        val ownDay = snapshot().copy(planId = 1, runId = "r-a")
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), ownDay))
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), ownDay.copy(runId = "r-next")).isEmpty())
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement.copy(runId = null)), anotherDay).isEmpty())
     }
 }

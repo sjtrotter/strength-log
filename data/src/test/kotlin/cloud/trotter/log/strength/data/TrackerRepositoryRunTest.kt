@@ -235,6 +235,37 @@ class TrackerRepositoryRunTest {
         assertEquals(RunWriteResult.InRun(id, true), repo.applyToRun(id, plan, dayId, listOf(tick(slot)), listOf(RunSeed(slot, Slot.MAIN, work()))))
         return id
     }
+
+    /** [F] */
+    @Test fun `swap rejects a mismatched expected run without writing`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        for (open in listOf(false, true)) {
+            if (open) start(plan)
+            val beforeSlot = db.programDao().exercise(id)
+            val beforeLogs = db.programDao().logsForDay(plan, "A")
+            val beforeRun = repo.openRunFlow.first()
+            assertFalse(repo.swapExerciseById("A", id, "hack_squat", expectedRunId = day(plan, "B").nextRunId))
+            assertEquals(beforeSlot, db.programDao().exercise(id))
+            assertEquals(beforeLogs, db.programDao().logsForDay(plan, "A"))
+            assertEquals(beforeRun, repo.openRunFlow.first())
+        }
+    }
+
+    /** [F] */
+    @Test fun `swap accepts the open or next run and rejects a finished run`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        val preview = day(plan).nextRunId
+        assertTrue(repo.swapExerciseById("A", id, "hack_squat", expectedRunId = preview))
+        val runId = start(plan)
+        assertEquals(preview, runId)
+        assertTrue(repo.swapExerciseById("A", id, "bb_back_squat", expectedRunId = runId))
+        repo.finishRun(runId)
+        assertFalse(repo.swapExerciseById("A", id, "hack_squat", expectedRunId = runId))
+        assertEquals("bb_back_squat", db.programDao().exercise(id)!!.exerciseId)
+    }
+
     private fun generated() = Program(listOf(
         ProgramDay("A", "Day A", "", listOf(
             ProgramExercise("bb_back_squat", isMain = true, superset = SupersetPartner("ez_curl")),

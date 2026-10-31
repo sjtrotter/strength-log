@@ -47,7 +47,7 @@ sealed interface WidgetStatLine {
  * widget row.
  */
 fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
-    if (snapshot == null || snapshot.day.exercises.isEmpty()) {
+    if (snapshot == null || (snapshot.day.exercises.isEmpty() && (snapshot.retiredRoundsDone ?: 0) == 0)) {
         return TodayWidgetContent(
             dayLine = null,
             statLine = WidgetStatLine.SetUpProgram,

@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.ui.day.CardioBlockDraft
 import cloud.trotter.log.strength.ui.day.CardioTemplate
@@ -148,10 +149,12 @@ class PlanViewModelTest {
         val plan = repo.selectedPlanIdFlow.first()!!
         val vm = viewModel()
         advanceUntilIdle()
-        assertEquals(6, vm.uiState.value.days.size)
+        assertEquals(8, vm.uiState.value.days.size)
         vm.addDay()
         advanceUntilIdle()
-        assertEquals(('A'..'G').map { it.toString() }, vm.uiState.value.days.map { it.dayId })
+        assertEquals(('A'..'G').map { it.toString() },
+            vm.uiState.value.days.filter { it.kind == ProgramDayKind.STRENGTH }.map { it.dayId })
+        assertEquals(9, vm.uiState.value.days.size)
         assertEquals(listOf("C1", "C2"), repo.programFor(plan).first().cardioDays.map { it.id })
         vm.addDay()
         advanceUntilIdle()

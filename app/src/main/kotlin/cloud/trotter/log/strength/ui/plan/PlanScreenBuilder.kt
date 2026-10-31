@@ -13,10 +13,10 @@ object PlanScreenBuilder {
         config: LifterConfig,
         catalog: ExerciseCatalog,
     ): List<PlanDay> =
-        program.strengthDays.mapIndexed { index, day ->
+        program.days.mapIndexed { index, day ->
             PlanDay(
                 dayId = day.id,
-                dayIndex = index,
+                dayIndex = program.strengthDays.indexOf(day).takeIf { it >= 0 } ?: index,
                 title = day.title,
                 liftCount = day.exercises.size,
                 setCount = day.exercises.mapIndexed { position, exercise ->
@@ -27,6 +27,7 @@ object PlanScreenBuilder {
                     ).size
                 }.sum(),
                 isNext = day.id == nextDayId,
+                kind = day.kind,
                 cardioActivity = day.cardioBlock?.activity,
                 cardioSetCount = day.cardioBlock?.sets?.size ?: 0,
             )

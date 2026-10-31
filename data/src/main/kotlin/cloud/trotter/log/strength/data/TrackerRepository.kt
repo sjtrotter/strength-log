@@ -540,17 +540,17 @@ open class TrackerRepository(
                     val mainRows = if (partner == null) RunReplan.represcribe(current, seeded) else {
                         val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
                         val entry = catalog.find(partner.exerciseId)
-                        val config = answersForPlan(planDao.plan(row.planId), global).config
-                        val partnerSeed = if (entry == null) {
-                            List(count) { LoggedSet(0.0, 0, SetKind.WORK) }
-                        } else SetSeeder.seedPartner(count, GoalCalculator.targetFor(entry, config))
-                        val paired = RunReplan.represcribePaired(
-                            current, SetJson.decodeSets(partner.setsJson), seeded, partnerSeed,
-                        )
-                        runDao.updateTrack(partner.copy(
-                            setsJson = SetJson.encodeSets(paired.second), updatedAt = clock.millis(),
-                        ))
-                        paired.first
+                        if (entry == null) RunReplan.represcribe(current, seeded) else {
+                            val config = answersForPlan(planDao.plan(row.planId), global).config
+                            val partnerSeed = SetSeeder.seedPartner(count, GoalCalculator.targetFor(entry, config))
+                            val paired = RunReplan.represcribePaired(
+                                current, SetJson.decodeSets(partner.setsJson), seeded, partnerSeed,
+                            )
+                            runDao.updateTrack(partner.copy(
+                                setsJson = SetJson.encodeSets(paired.second), updatedAt = clock.millis(),
+                            ))
+                            paired.first
+                        }
                     }
                     runDao.updateTrack(main.copy(
                         setsJson = SetJson.encodeSets(mainRows), updatedAt = clock.millis(),
@@ -775,7 +775,7 @@ open class TrackerRepository(
     }
 
     /**
-     * Attaches [partnerExerciseId] to the slot at [position] as its superset
+     * Attaches [partnerExerciseId] to [programExerciseId] as its superset
      * partner — the same call covers adding a partner to a plain slot and
      * swapping an existing one.
      *
@@ -785,10 +785,11 @@ open class TrackerRepository(
      * untouched. NOT [ProgramDao.deleteLogsForExercise], which would nuke both
      * tracks.
      */
-    suspend fun setSupersetPartner(dayId: String, position: Int, partnerExerciseId: String, targetPlanId: Long? = null) {
-        val planId = targetPlanId ?: selectedPlanId() ?: return
+    suspend fun setSupersetPartner(dayId: String, programExerciseId: Long, partnerExerciseId: String) {
         db.withTransaction {
-            val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            if (row.dayId != dayId) return@withTransaction
+            val planId = row.planId
             retireActiveTrack(planId, dayId, row.id, Slot.SS)
             programDao.setSupersetExerciseId(row.id, partnerExerciseId)
             programDao.deleteLogForSlot(planId, dayId, row.id, Slot.SS)
@@ -797,10 +798,11 @@ open class TrackerRepository(
 
     /** Drops the slot's superset partner and its SS track, leaving the MAIN
      *  track alone for the same reason [setSupersetPartner] does. */
-    suspend fun removeSupersetPartner(dayId: String, position: Int, targetPlanId: Long? = null) {
-        val planId = targetPlanId ?: selectedPlanId() ?: return
+    suspend fun removeSupersetPartner(dayId: String, programExerciseId: Long) {
         db.withTransaction {
-            val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            if (row.dayId != dayId) return@withTransaction
+            val planId = row.planId
             retireActiveTrack(planId, dayId, row.id, Slot.SS)
             programDao.setSupersetExerciseId(row.id, null)
             programDao.deleteLogForSlot(planId, dayId, row.id, Slot.SS)

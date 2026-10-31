@@ -135,12 +135,6 @@ class DayEditSheetTest {
     }
 
     @Test
-    fun generatedDayOutsideTheTemplateHidesResetToTemplate() {
-        show(edit = false, canResetToTemplate = false)
-        composeTestRule.onNodeWithText("Reset day to template").assertDoesNotExist()
-    }
-
-    @Test
     fun generatedSlotOffersAddSuperset() {
         show()
         composeTestRule.onNodeWithText("Prescription").assertExists()

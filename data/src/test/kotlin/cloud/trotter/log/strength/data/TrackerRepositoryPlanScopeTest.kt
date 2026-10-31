@@ -830,15 +830,45 @@ class TrackerRepositoryPlanScopeTest {
         db.programDao().upsertLog(log(slot.planId, slot.id, listOf(LoggedSet(0.0, 12, SetKind.WORK))))
         val mainOnly = db.programDao().allLogs()
 
-        repo.setSupersetPartner("A", 0, "rope_pushdown")
+        repo.setSupersetPartner("A", slot.id, "rope_pushdown")
 
         assertEquals(slot.copy(supersetExerciseId = "rope_pushdown"), db.programDao().exercise(slot.id))
         assertEquals(mainOnly, db.programDao().allLogs())
         db.programDao().setSupersetExerciseId(slot.id, "plank")
         db.programDao().upsertLog(log(slot.planId, slot.id, sets(25.0)).copy(slot = Slot.SS))
-        repo.setSupersetPartner("A", 0, "rope_pushdown")
+        repo.setSupersetPartner("A", slot.id, "rope_pushdown")
         assertEquals("rope_pushdown", db.programDao().exercise(slot.id)!!.supersetExerciseId)
         assertEquals(mainOnly, db.programDao().allLogs())
+    }
+
+    @Test
+    fun `superset edits use slot identity after deletion in generated and authored plans`() = runTest {
+        for (origin in PlanOrigin.entries) {
+            val day = program("Day", "bb_back_squat").days.single().copy(exercises = listOf(
+                ProgramExercise("bb_back_squat"), ProgramExercise("bb_bench"), ProgramExercise("ez_curl"),
+            ))
+            repo.replaceProgram(Program(listOf(day)))
+            val planId = repo.selectedPlanIdFlow.first()!!
+            val plan = db.planDao().plan(planId)!!
+            db.planDao().updatePlan(plan.copy(origin = origin.name))
+            val slots = db.programDao().exercisesForDay(planId, "A")
+            assertTrue(repo.removeExercise(slots[0].id))
+            assertEquals(listOf(1, 2), db.programDao().exercisesForDay(planId, "A").map { it.position })
+            db.programDao().upsertLog(log(planId, slots[1].id, sets(135.0)))
+            val main = db.programDao().allLogs()
+
+            repo.setSupersetPartner("A", slots[1].id, "rope_pushdown")
+
+            assertEquals(slots[1].copy(supersetExerciseId = "rope_pushdown"), db.programDao().exercise(slots[1].id))
+            assertEquals(slots[2], db.programDao().exercise(slots[2].id))
+            assertEquals(main, db.programDao().allLogs())
+            db.programDao().upsertLog(log(planId, slots[1].id, sets(45.0)).copy(slot = Slot.SS))
+
+            repo.removeSupersetPartner("A", slots[1].id)
+
+            assertEquals(slots.drop(1), db.programDao().exercisesForDay(planId, "A"))
+            assertEquals(main, db.programDao().allLogs())
+        }
     }
 
     @Test

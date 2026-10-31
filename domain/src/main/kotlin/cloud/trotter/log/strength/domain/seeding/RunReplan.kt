@@ -26,15 +26,15 @@ object RunReplan {
         val kept = (0 until maxOf(main.size, partner.size, seededMain.size)).filter { index ->
             index < seededMain.size || main.getOrNull(index)?.done == true || partner.getOrNull(index)?.done == true
         }
-        fun replan(current: List<LoggedSet>, seeded: List<LoggedSet>): List<LoggedSet> = kept.map { index ->
+        fun replan(current: List<LoggedSet>, seeded: List<LoggedSet>, keepExisting: Boolean = false): List<LoggedSet> = kept.map { index ->
             val c = current.getOrNull(index)
             val s = seeded.getOrNull(index)
             when {
-                c?.done == true -> c
+                c != null && (keepExisting || c.done) -> c
                 s != null -> s.copy(plannedIndex = c?.plannedIndex, watchEditedAt = c?.watchEditedAt)
                 else -> c ?: seeded.last().copy(plannedIndex = null, watchEditedAt = null)
             }
         }
-        return replan(main, seededMain) to replan(partner, seededPartner)
+        return replan(main, seededMain) to replan(partner, seededPartner, keepExisting = true)
     }
 }

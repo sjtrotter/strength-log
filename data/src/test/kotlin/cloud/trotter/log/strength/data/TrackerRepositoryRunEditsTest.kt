@@ -215,9 +215,9 @@ class TrackerRepositoryRunEditsTest {
     @Test fun `authored prescribed pair shrink keeps both rows when only SS is done past the new count`() = runTest {
         val plan = authored()
         val slot = slot(plan)
-        repo.setSupersetPartner("A", 0, "ez_curl")
+        repo.setSupersetPartner("A", slot, "ez_curl")
         assertEquals("ez_curl", db.programDao().exercise(slot)!!.supersetExerciseId)
-        val partner = SetSeeder.seedPartner(3, 35.0)
+        val partner = SetSeeder.seedPartner(3, 45.0)
         repo.seedIfEmpty("A", slot, Slot.MAIN, work())
         repo.seedIfEmpty("A", slot, Slot.SS, partner)
         val runId = db.programDao().day(plan, "A")!!.nextRunId
@@ -236,7 +236,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(main.none { it.done })
         assertEquals(listOf(false, false, true), ss.map { it.done })
         assertEquals(SetJson.decodeSets(before.getValue(Slot.MAIN).setsJson)[2], main[2])
-        assertEquals(SetJson.decodeSets(before.getValue(Slot.SS).setsJson)[2], ss[2])
+        assertEquals(SetJson.decodeSets(before.getValue(Slot.SS).setsJson), ss)
         assertEquals(listOf(0, 1, 2), main.map { it.plannedIndex })
         assertEquals(listOf(0, 1, 2), ss.map { it.plannedIndex })
         assertEquals(SetSeeder.seedPrescribed(2, changed).map { it.weightLb to it.reps }, main.take(2).map { it.weightLb to it.reps })
@@ -247,8 +247,8 @@ class TrackerRepositoryRunEditsTest {
     @Test fun `authored prescribed pair growth seeds new SS rows from the partners goal`() = runTest {
         val plan = authored()
         val slot = slot(plan)
-        repo.setSupersetPartner("A", 0, "ez_curl")
-        val partner = SetSeeder.seedPartner(3, 35.0)
+        repo.setSupersetPartner("A", slot, "ez_curl")
+        val partner = SetSeeder.seedPartner(3, 45.0)
         repo.seedIfEmpty("A", slot, Slot.MAIN, work())
         repo.seedIfEmpty("A", slot, Slot.SS, partner)
         val runId = start(plan, sets = work())
@@ -266,17 +266,39 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(4, ss.size)
         assertEquals(SetJson.decodeSets(before.getValue(Slot.MAIN).setsJson)[0], main[0])
         assertEquals(SetSeeder.seedPrescribed(4, changed).last(), main.last())
+        assertEquals(SetJson.decodeSets(before.getValue(Slot.SS).setsJson), ss.take(3))
         assertEquals(SetSeeder.seedPartner(4, goal).last(), ss.last())
+        assertTrue(ss.last().weightLb != partner.first().weightLb)
         assertEquals(listOf(0, 1, 2, null), main.map { it.plannedIndex })
         assertEquals(listOf(0, 1, 2, null), ss.map { it.plannedIndex })
         assertEquals(before.mapValues { it.value.plannedJson }, after.mapValues { it.value.plannedJson })
         assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
     }
 
+    @Test fun `prescription edit leaves a missing catalog partners run track unchanged`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setSupersetPartner("A", slot, "missing_partner")
+        val partner = SetSeeder.seedPartner(3, 45.0)
+        repo.seedIfEmpty("A", slot, Slot.MAIN, work())
+        repo.seedIfEmpty("A", slot, Slot.SS, partner)
+        val runId = start(plan, sets = work())
+        val before = db.runDao().tracks(runId).single { it.slot == Slot.SS }
+        val changed = Prescription(PrescribedTarget.LoadReps(60.0, 8))
+
+        repo.setPrescription(slot, changed, sets = 4)
+
+        assertEquals(before, db.runDao().tracks(runId).single { it.slot == Slot.SS })
+        val main = SetJson.decodeSets(db.runDao().tracks(runId).single { it.slot == Slot.MAIN }.setsJson)
+        assertEquals(4, main.size)
+        assertEquals(SetSeeder.seedPrescribed(4, changed).last(), main.last())
+        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+    }
+
     @Test fun `paired tracking type change leaves both run tracks byte identical and clears working values`() = runTest {
         val plan = authored()
         val slot = slot(plan)
-        repo.setSupersetPartner("A", 0, "ez_curl")
+        repo.setSupersetPartner("A", slot, "ez_curl")
         repo.seedIfEmpty("A", slot, Slot.MAIN, work())
         repo.seedIfEmpty("A", slot, Slot.SS, SetSeeder.seedPartner(3, 35.0))
         val runId = start(plan, sets = work())
@@ -469,12 +491,12 @@ class TrackerRepositoryRunEditsTest {
     @Test fun `partner change retires done SS work and seeds aligned to six main rows`() = runTest {
         val plan = generated()
         val slot = slot(plan)
-        repo.setSupersetPartner("A", 0, "ez_curl")
+        repo.setSupersetPartner("A", slot, "ez_curl")
         val runId = start(plan)
         seed(runId, slot, work(), Slot.SS)
         repo.updateSets(runId, "A", slot, Slot.SS, work().mapIndexed { i, row -> row.copy(done = i == 0) })
         val before = db.runDao().tracks(runId).single { it.slot == Slot.SS }
-        repo.setSupersetPartner("A", 0, "rope_pushdown")
+        repo.setSupersetPartner("A", slot, "rope_pushdown")
         assertEquals(before.copy(retired = true), db.runDao().tracks(runId).single { it.slot == Slot.SS })
         val existing = repo.dayTracksFlow(plan, "A").first().tracks
             .associate { (it.programExerciseId to it.slot) to it.sets.size }
@@ -489,7 +511,7 @@ class TrackerRepositoryRunEditsTest {
     @Test fun `reset retires done work drops undone tracks and preserves run identity through finish`() = runTest {
         val plan = generated()
         val slot = slot(plan)
-        repo.setSupersetPartner("A", 0, "ez_curl")
+        repo.setSupersetPartner("A", slot, "ez_curl")
         val runId = start(plan)
         seed(runId, slot, work(), Slot.SS)
         val beforeDay = db.programDao().day(plan, "A")!!

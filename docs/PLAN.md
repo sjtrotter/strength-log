@@ -225,8 +225,9 @@ strength day; the shipped cardio vectors stay pinned.
 - **Authored prescriptions.** A plan's exercises are generated (spec §4 math,
   seeding and cascade, unchanged) or authored: load × reps, reps, hold,
   reps-in-time, each side, a band described in text, a note. Authored slots
-  have no GOAL and never cascade. Authored days may hold one exercise and may
-  repeat in place instead of rotating.
+  have no GOAL and never cascade. Every day keeps at least one exercise
+  unless it has a cardio block, and rotation visits strength days (all days
+  when none are strength).
 - **Timed rep events.** The clock runs with the screen kept on (no dimming,
   no lock), and when time ends the count entry (a stepper) comes up by
   itself. The lifter records the count.

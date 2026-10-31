@@ -328,7 +328,7 @@ class DayViewModel @Inject constructor(
         ) { slots, answers, run ->
             val block = ctx.program.days.firstOrNull { it.id == dayId }?.cardioBlock
             buildEditState(slots, ctx.catalog, answers.equipment).copy(
-                planId = plan.id, dayId = dayId, cardioBlock = block,
+                planId = plan.id, dayId = dayId, cardioBlock = block, config = answers.config,
                 runOpen = run == (plan.id to dayId),
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
                 canResetToTemplate = plan.origin == PlanOrigin.GENERATED.name &&
@@ -1283,7 +1283,7 @@ class DayViewModel @Inject constructor(
     fun openPrescription(slotId: Long) {
         val state = dayEditState.value
         val slot = state.slots.firstOrNull { it.programExerciseId == slotId } ?: return
-        savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.from(slot)
+        savedState[KEY_PRESCRIPTION_DRAFT] = PrescriptionDraft.from(slot, state.catalog, state.config)
     }
 
     fun changePrescriptionDraft(draft: PrescriptionDraft) {
@@ -1340,7 +1340,10 @@ class DayViewModel @Inject constructor(
     fun setDaySlotSuperset(position: Int, partnerExerciseId: String) {
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
-        mutate { repo.setSupersetPartner(day, position, partnerExerciseId, targetPlanId = planId) }
+        mutate {
+            val slot = repo.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
+            repo.setSupersetPartner(day, slot.programExerciseId, partnerExerciseId)
+        }
     }
 
     fun setDaySlotKeepToPlan(slotId: Long, keep: Boolean) {
@@ -1367,7 +1370,10 @@ class DayViewModel @Inject constructor(
     fun removeDaySlotSuperset(position: Int) {
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
-        mutate { repo.removeSupersetPartner(day, position, targetPlanId = planId) }
+        mutate {
+            val slot = repo.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
+            repo.removeSupersetPartner(day, slot.programExerciseId)
+        }
     }
 
     /** The reset-day-to-template escape hatch (spec §8.3): regenerates this one

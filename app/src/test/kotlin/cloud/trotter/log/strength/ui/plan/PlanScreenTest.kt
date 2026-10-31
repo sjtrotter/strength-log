@@ -1,11 +1,19 @@
 package cloud.trotter.log.strength.ui.plan
 
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.day.DaySelection
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -87,6 +95,51 @@ class PlanScreenTest {
         } }
         rule.onNodeWithText("Remove").performClick()
         assertEquals(listOf("A"), removed)
+    }
+
+    private fun mixedState(strengthCount: Int = 1, menu: String? = null): PlanUiState {
+        val strength = (0 until strengthCount).map { index ->
+            val id = ('A' + index).toString()
+            ProgramDay(id, "Day $id", "", emptyList())
+        }
+        val cardio = listOf("C1", "C2").map { id ->
+            ProgramDay(id, "Day $id", "", emptyList(), kind = ProgramDayKind.CARDIO)
+        }
+        return state(menu = menu).copy(days = PlanScreenBuilder.days(
+            Program(strength + cardio), "A", LifterConfig(), ExerciseCatalog.CODE_ONLY,
+        ))
+    }
+
+    @Test
+    fun strengthDayOffersRemoveWhenOnlyCardioDaysRemain() {
+        val removed = mutableListOf<String>()
+        rule.setContent { AppTheme {
+            PlanScreen(mixedState(menu = "A"), actions().copy(onRemoveDay = { removed += it }))
+        } }
+        rule.onNodeWithText("Remove").performClick()
+        assertEquals(listOf("A"), removed)
+    }
+
+    @Test
+    fun standaloneCardioDayOffersRenameAndRemove() {
+        val renamed = mutableListOf<String>()
+        val removed = mutableListOf<String>()
+        rule.setContent { AppTheme {
+            PlanScreen(mixedState(menu = "C1"), actions().copy(
+                onRenameDay = { renamed += it }, onRemoveDay = { removed += it },
+            ))
+        } }
+        rule.onNodeWithText("Rename").performClick()
+        rule.onNodeWithText("Remove").performClick()
+        assertEquals(listOf("C1"), renamed)
+        assertEquals(listOf("C1"), removed)
+    }
+
+    @Test
+    fun sixStrengthDaysAndTwoCardioDaysStillOfferAddDay() {
+        rule.setContent { AppTheme { PlanScreen(mixedState(strengthCount = 6), actions()) } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Add day"))
+        rule.onNodeWithText("Add day").assertExists()
     }
 
     @Test

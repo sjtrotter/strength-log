@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.ui.day.DaySelection
 
 import androidx.compose.foundation.layout.Row
@@ -68,7 +69,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                     PlanDayItem(day, state, actions)
                     if (index != state.days.lastIndex) HorizontalDivider()
                 }
-                if (state.days.size < 7) {
+                if (state.days.count { it.kind == ProgramDayKind.STRENGTH } < 7) {
                     item(key = "add_day") {
                         TextButton(onClick = actions.onAddDay) { Text(stringResource(R.string.plan_add_day)) }
                     }

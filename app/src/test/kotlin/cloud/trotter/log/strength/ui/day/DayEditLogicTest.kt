@@ -13,6 +13,7 @@ class DayEditLogicTest {
 
     @Test
     fun every_day_without_cardio_keeps_one_exercise() {
+        assertFalse(DayEditRules.canRemove(0))
         assertFalse(DayEditRules.canRemove(1))
         assertTrue(DayEditRules.canRemove(2))
         assertTrue(DayEditRules.canRemove(3))
@@ -121,12 +122,6 @@ class DayEditLogicTest {
             cardio = true, cardioSet = true))
         assertEquals(DayEditPage.CARDIO, dayEditBackTarget(false, false, false, false, false, false,
             cardio = true))
-    }
-
-    @Test
-    fun canRemove_is_false_at_or_below_the_minimum() {
-        assertFalse(DayEditRules.canRemove(0))
-        assertFalse(DayEditRules.canRemove(1))
     }
 
     @Test

@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -20,6 +21,7 @@ data class DayEditUiState(
      *  wizard's equipment profile"); the user can still widen/narrow it live. */
     val defaultEquipmentFilter: Set<Equipment> = Equipment.entries.toSet(),
     val catalog: ExerciseCatalog = ExerciseCatalog.CODE_ONLY,
+    val config: LifterConfig = LifterConfig(),
     val canResetToTemplate: Boolean = false,
     val unit: WeightUnit = WeightUnit.LB,
     val prescriptionDraft: PrescriptionDraft? = null,
@@ -46,7 +48,6 @@ data class DayEditSlotState(
     /** The partner's catalog name, falling back to its raw id when the id
      *  doesn't resolve — same rule as [title]. */
     val partnerTitle: String? = null,
-    val canSetSuperset: Boolean = true,
     val prescription: Prescription? = null,
     val targetSets: Int = 3,
     val canMoveUp: Boolean = false,

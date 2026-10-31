@@ -32,6 +32,9 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
+import cloud.trotter.log.strength.widget.TodayWidgetState
+import cloud.trotter.log.strength.widget.WidgetStatLine
+import cloud.trotter.log.strength.widget.todayWidgetContent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -120,6 +123,31 @@ class WatchSnapshotBuilderTest {
             ))!!
         assertEquals(null, snapshot.cardio)
         assertEquals(null, snapshot.cardioBlock)
+    }
+
+    @Test
+    fun `cardio day with core and no block stays in the cycle and builds the target snapshot`() {
+        val core = ProgramExercise("plank", targetSets = 2)
+        val day = ProgramDay("C1", "Cardio + Core", "", listOf(core), kind = ProgramDayKind.CARDIO)
+        val withCoreDay = program.copy(days = program.days + day)
+        val fromStrength = WatchSnapshotBuilder.build(withCoreDay, "A", emptyList(), emptyList(), cfg,
+            catalog, WeightUnit.LB, revision = 1L)!!
+        assertEquals(listOf("A", "B", "C1"), fromStrength.cycle.map { it.dayId })
+        assertEquals(2, fromStrength.cycle.last().exercises.single().setCount)
+
+        val snapshot = WatchSnapshotBuilder.build(withCoreDay, "C1", listOf(ProgramSlot(10L, 0, core)),
+            emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L)!!
+        assertEquals("C1", snapshot.suggestedDayId)
+        assertEquals("Cardio + Core", snapshot.day.title)
+        assertEquals(2, snapshot.day.accentIndex)
+        assertEquals(10L, snapshot.day.exercises.single().programExerciseId)
+        assertNull(snapshot.cardio)
+        assertNull(snapshot.cardioBlock)
+
+        val widget = todayWidgetContent(snapshot)
+        assertEquals("DAY C1 · CARDIO + CORE", widget.dayLine)
+        assertEquals(TodayWidgetState.BEFORE, widget.state)
+        assertEquals(WidgetStatLine.Data("1 LIFT · 2 SETS"), widget.statLine)
     }
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =

@@ -437,7 +437,6 @@ class PlanSettingsTest {
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertLegacyKeysGone()
         assertEquals(strengthAnswers(), repo.wizardAnswersFlow.first())
-        assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertEquals(snapshot.plans, db.planDao().allPlans())
     }
 

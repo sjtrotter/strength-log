@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import android.database.sqlite.SQLiteException
 import androidx.room.withTransaction
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.run.LegacyLiveLogSplit
@@ -123,6 +124,7 @@ open class TrackerRepository(
     private val planDao = db.planDao()
     private val runDao = db.runDao()
     private val planSettingsMigrationMutex = Mutex()
+    private var legacyCardioConverted = false
     private val sessionNotesMigrationMutex = Mutex()
 
     /** Serializes plan selection and archive changes across Room and DataStore. */
@@ -893,12 +895,14 @@ open class TrackerRepository(
     }
 
     /** Moves pre-plan preferences to Room before atomically retiring their keys.
+     *  Also converts legacy cardio to typed blocks.
      *  Recipe-less generated plans make a retry after the Room commit harmless. */
     suspend fun runPlanSettingsFixupIfNeeded() {
         ensurePlanSettingsMigrated()
     }
 
-    /** A half-done restore's settings are not this device's to copy; reconcile owns them. */
+    /** A half-done restore's settings are not this device's to copy; reconcile owns them.
+     *  Also converts legacy cardio to typed blocks. */
     private suspend fun ensurePlanSettingsMigrated() {
         planSettingsMigrationMutex.withLock {
             if (restoreMarkerDao.nonce() != null) return@withLock
@@ -921,8 +925,10 @@ open class TrackerRepository(
                 }
                 settings.removeLegacyPlanKeys()
             }
+            if (legacyCardioConverted) return@withLock
             val global = settings.globalLifterFlow.first()
-            db.withTransaction {
+            legacyCardioConverted = db.withTransaction {
+                if (restoreMarkerDao.nonce() != null) return@withTransaction false
                 val plans = planDao.allPlans().associateBy { it.id }
                 for (day in programDao.daysWithLegacyCardio()) {
                     val blockJson = day.cardioBlockJson ?: LegacyCardio.toBlock(
@@ -930,6 +936,7 @@ open class TrackerRepository(
                     )?.let(CardioBlockJson::encode)
                     programDao.upsertDay(day.copy(cardioBlockJson = blockJson, cardioJson = null))
                 }
+                true
             }
         }
     }
@@ -1852,7 +1859,14 @@ open class TrackerRepository(
                 throw RestoreInterruption.SettingsPending(e)
             }
             clearRestoreBookkeeping(journal)
-            ensurePlanSettingsMigrated()
+            planSettingsMigrationMutex.withLock { legacyCardioConverted = false }
+            try {
+                ensurePlanSettingsMigrated()
+            } catch (e: IOException) {
+                throw RestoreInterruption.CleanupPending(e)
+            } catch (e: SQLiteException) {
+                throw RestoreInterruption.CleanupPending(e)
+            }
         }
     }
 
@@ -1898,6 +1912,7 @@ open class TrackerRepository(
             }
         }
         if (committed != null) restoreMarkerDao.clear()
+        planSettingsMigrationMutex.withLock { legacyCardioConverted = false }
         ensurePlanSettingsMigrated()
         return replayed
     }

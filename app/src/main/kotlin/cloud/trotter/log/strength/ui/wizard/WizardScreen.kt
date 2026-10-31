@@ -35,7 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import cloud.trotter.log.strength.ui.day.cardioActivityName
+import cloud.trotter.log.strength.ui.day.activityLabel
 import cloud.trotter.log.strength.ui.day.plannedTimeDetail
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
@@ -528,7 +528,7 @@ private fun RotationStep(state: WizardUiState) {
             Text(day.title.uppercase(), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
             day.cardioBlock?.let { block ->
                 Spacer(Modifier.size(4.dp))
-                Text(listOf(cardioActivityName(block.activity), block.plannedTimeDetail())
+                Text(listOf(activityLabel(block.activity), block.plannedTimeDetail())
                     .filter { it.isNotEmpty() }.joinToString(" · "),
                     color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }

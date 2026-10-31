@@ -1,17 +1,22 @@
 package cloud.trotter.log.strength.data
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.prefs.RestoreInterruption
+import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
@@ -24,11 +29,13 @@ import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -46,6 +53,7 @@ import org.robolectric.annotation.Config
 class TypedCardioMigrationTest {
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
+    private lateinit var store: DataStore<Preferences>
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private val suggestion = CardioSuggestion("Intervals", "Run hard, recover easy.", true)
@@ -56,9 +64,10 @@ class TypedCardioMigrationTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         storeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+        store = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio", ".preferences_pb")
-        })
+        }
+        settings = SettingsStore(store)
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
     }
 
@@ -194,6 +203,90 @@ class TypedCardioMigrationTest {
         assertNull(snapshot.days.single().cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, true, CardioActivity.ROAD_RUN),
             CardioBlockJson.decode(snapshot.days.single().cardioBlockJson))
+    }
+
+    @Test
+    fun `restore converts prose again after the cardio gate was already completed`() = runTest {
+        val answers = WizardAnswers(cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false))
+        seed(answers)
+        val legacyDay = requireNotNull(db.programDao().day(1, "A"))
+        val snapshot = repo.exportSnapshot().copy(days = listOf(legacyDay))
+        val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("typed-cardio-journal", ".preferences_pb")
+        }, settings)
+
+        repo.importSnapshot(snapshot, journal)
+
+        assertNull(db.programDao().day(1, "A")!!.cardioJson)
+        assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
+            repo.programFor(1).first().days.single().cardioBlock)
+    }
+
+    @Test
+    fun `reconcile converts restored prose after the cardio gate was already completed`() = runTest {
+        seed()
+        val legacyDay = requireNotNull(db.programDao().day(1, "A"))
+        val snapshot = repo.exportSnapshot().copy(days = listOf(legacyDay))
+        val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("typed-cardio-reconcile-journal", ".preferences_pb")
+        }, settings)
+        journal.stage(snapshot, "restored-prose")
+        db.withTransaction {
+            db.programDao().upsertDay(legacyDay)
+            db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = "restored-prose"))
+        }
+
+        assertTrue(repo.reconcilePendingRestore(journal))
+
+        assertNull(db.programDao().day(1, "A")!!.cardioJson)
+        assertEquals(CardioBlocks.fromLegacy(suggestion, true, CardioActivity.ROAD_RUN),
+            repo.programFor(1).first().days.single().cardioBlock)
+    }
+
+    @Test
+    fun `post restore conversion settings read failure reports cleanup pending and next reader retries`() = runTest {
+        seed(WizardAnswers(cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false)))
+        val legacyDay = requireNotNull(db.programDao().day(1, "A"))
+        var armOnRestore = false
+        var failConversionRead = false
+        val readFailure = IOException("conversion settings read failed")
+        val failingSettings = SettingsStore(object : DataStore<Preferences> {
+            override val data = store.data.map { prefs ->
+                if (failConversionRead && prefs[booleanPreferencesKey("plan_settings_fixup_done")] == true) {
+                    failConversionRead = false
+                    throw readFailure
+                }
+                prefs
+            }
+
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+                store.updateData(transform).also {
+                    if (armOnRestore) {
+                        armOnRestore = false
+                        failConversionRead = true
+                    }
+                }
+        })
+        val failingRepo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), failingSettings)
+        val exported = failingRepo.exportSnapshot()
+        val snapshot = exported.copy(days = listOf(legacyDay), answers = exported.answers.copy(
+            config = exported.answers.config.copy(bodyweightLb = 190, age = 28),
+        ))
+        val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("typed-cardio-failure-journal", ".preferences_pb")
+        }, failingSettings)
+        armOnRestore = true
+
+        val failure = runCatching { failingRepo.importSnapshot(snapshot, journal) }.exceptionOrNull()
+
+        assertTrue(failure is RestoreInterruption.CleanupPending)
+        assertEquals(readFailure, failure?.cause)
+        assertNull(db.restoreMarkerDao().nonce())
+        assertEquals(GlobalLifter.of(snapshot.answers.config), settings.globalLifterFlow.first())
+        assertEquals(prose, db.programDao().day(1, "A")!!.cardioJson)
+        assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
+            failingRepo.programFor(1).first().days.single().cardioBlock)
+        assertNull(db.programDao().day(1, "A")!!.cardioJson)
     }
 
     @Test

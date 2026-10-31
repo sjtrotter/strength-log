@@ -81,7 +81,7 @@ object WatchSnapshotBuilder {
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val watchDays = program.days.filter {
-            it.kind == ProgramDayKind.STRENGTH || it.cardioBlock != null
+            it.kind == ProgramDayKind.STRENGTH || it.cardioBlock != null || it.exercises.isNotEmpty()
         }
         val dayIndex = watchDays.indexOfFirst { it.id == dayId }
         if (dayIndex < 0) return null

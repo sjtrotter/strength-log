@@ -90,6 +90,17 @@ class TodayWidgetContentTest {
         assertEquals(WidgetStatLine.SetUpProgram, content.statLine)
     }
 
+    /** [F] */
+    @Test
+    fun `an empty active list with retired work keeps the run progress`() {
+        val content = todayWidgetContent(snapshot().copy(runId = "r-1", retiredRoundsDone = 2))
+        assertEquals("DAY A · LOWER", content.dayLine)
+        assertEquals(TodayWidgetState.DONE, content.state)
+        assertEquals(WidgetStatLine.Data("DONE · 2 SETS"), content.statLine)
+        assertEquals(2, content.setsDone)
+        assertEquals(2, content.totalSets)
+    }
+
     @Test
     fun `the accent index rides through untouched, so the tint stays DayAccentColors'`() {
         assertEquals(3, todayWidgetContent(snapshot(0, accentIndex = 3)).accentIndex)

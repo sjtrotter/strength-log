@@ -13,8 +13,8 @@ import kotlinx.serialization.Serializable
  * snapshot is the watch's ack — it reconciles optimistic local state against
  * that, never against this delta echoing back.
  *
- * Forward-compat: [SyncCodec] decodes with `ignoreUnknownKeys`, so a newer
- * [schemaVersion] can add fields without breaking an older reader.
+ * Forward compatibility: [SyncCodec] decodes with `ignoreUnknownKeys`.
+ * [schemaVersion] stays 1; a field's presence is the capability.
  */
 @Serializable
 data class SetEditDelta(
@@ -48,4 +48,6 @@ data class SetEditDelta(
     /** The snapshot's plan; null means sent by a watch that predates plans.
      *  Additive with a default so older readers and senders keep working. */
     val planId: Long? = null,
+    val runId: String? = null,
+    val exerciseId: String? = null,
 )

@@ -94,7 +94,7 @@ fun WearApp(
     val pendingExercises by client.pendingExercisesFlow().collectAsState(initial = emptySet())
     val pendingSwaps by client.pendingSwapsFlow().collectAsState(initial = emptySet())
     val dayId = snapshot?.day?.dayId
-    var localSessionStartedAtMillis by rememberSaveable(snapshot?.planId, dayId) { mutableLongStateOf(0L) }
+    var localSessionStartedAtMillis by rememberSaveable(snapshot?.planId, dayId, snapshot?.runId) { mutableLongStateOf(0L) }
     val context = LocalContext.current
     // The exact-alarm listener lives at the root so it outlives the ambient swap.
     val restController = remember(context) { restTimerController(context.applicationContext) }
@@ -484,8 +484,8 @@ private fun WorkoutDial(
 ) {
     val view = LocalView.current
     val dayId = snap.day.dayId
-    val saved = rememberSaveable(snap.planId, dayId, saver = workoutDialStateSaver(snap.planId, dayId)) {
-        WorkoutDialState(snap.planId, dayId, impliedFace(snap))
+    val saved = rememberSaveable(snap.planId, dayId, snap.runId, saver = workoutDialStateSaver(snap.planId, dayId, snap.runId)) {
+        WorkoutDialState(snap.planId, dayId, snap.runId, impliedFace(snap))
     }
     var face by saved::face
     var lifting by saved::lifting
@@ -499,8 +499,8 @@ private fun WorkoutDial(
     var sessionEndedAtMillis by saved::sessionEndedAtMillis
     var selectedExercise by saved::selectedExercise
     var tickMemory by saved::tickMemory
-    var peek by remember(snap.planId, dayId) { mutableStateOf<PeekState?>(null) }
-    var browseDay by remember(snap.planId, dayId) { mutableStateOf<Int?>(null) }
+    var peek by remember(snap.planId, dayId, snap.runId) { mutableStateOf<PeekState?>(null) }
+    var browseDay by remember(snap.planId, dayId, snap.runId) { mutableStateOf<Int?>(null) }
     var nowElapsedMillis by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
 
     val exerciseIndex = timedRep?.owner?.programExerciseId?.let { id ->
@@ -513,7 +513,7 @@ private fun WorkoutDial(
     // A swap being considered is a glance like the peek — never restored through a
     // process death, and keyed on the lift as well as the day so that leaving the
     // lift forgets the half-made decision rather than carrying it onto the next one.
-    var swapPreview by remember(snap.planId, dayId, exerciseIndex) { mutableStateOf<SwapPreview?>(null) }
+    var swapPreview by remember(snap.planId, dayId, snap.runId, exerciseIndex) { mutableStateOf<SwapPreview?>(null) }
 
     fun startRest(seconds: Int, betweenExercises: Boolean) {
         restTotalSeconds = seconds
@@ -946,7 +946,7 @@ private fun WorkoutDial(
 }
 
 /** Local dial state and its owner travel together through process death. */
-internal class WorkoutDialState(val planId: Long?, val dayId: String, face: DialFace) {
+internal class WorkoutDialState(val planId: Long?, val dayId: String, val runId: String?, face: DialFace) {
     var face by mutableStateOf(face)
     var lifting by mutableStateOf(false)
     var startedAtWallMillis by mutableLongStateOf(0L)
@@ -961,13 +961,14 @@ internal class WorkoutDialState(val planId: Long?, val dayId: String, face: Dial
     var tickMemory by mutableStateOf(TickMemory.EMPTY)
 }
 
-// rememberSaveable inputs reset a live plan/day switch, but do not validate a
+// rememberSaveable inputs reset a live plan/day/run switch, but do not validate a
 // restored bundle. The first available snapshot must own the saved state too.
-internal fun workoutDialStateSaver(planId: Long?, dayId: String) = mapSaver(
+internal fun workoutDialStateSaver(planId: Long?, dayId: String, runId: String?) = mapSaver(
     save = { state: WorkoutDialState ->
         mapOf(
             "planId" to state.planId,
             "dayId" to state.dayId,
+            "runId" to state.runId,
             "face" to state.face.name,
             "lifting" to state.lifting,
             "startedAtWallMillis" to state.startedAtWallMillis,
@@ -983,10 +984,10 @@ internal fun workoutDialStateSaver(planId: Long?, dayId: String) = mapSaver(
         )
     },
     restore = { saved ->
-        if (saved["planId"] != planId || saved["dayId"] != dayId) {
+        if (saved["planId"] != planId || saved["dayId"] != dayId || saved["runId"] != runId) {
             null
         } else {
-            WorkoutDialState(planId, dayId, DialFace.valueOf(saved["face"] as String)).apply {
+            WorkoutDialState(planId, dayId, runId, DialFace.valueOf(saved["face"] as String)).apply {
                 lifting = saved["lifting"] as Boolean
                 startedAtWallMillis = saved["startedAtWallMillis"] as Long
                 startedAtElapsedMillis = saved["startedAtElapsedMillis"] as Long

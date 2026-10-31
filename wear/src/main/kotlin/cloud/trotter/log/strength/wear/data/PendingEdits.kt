@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
+import cloud.trotter.log.strength.domain.sync.hasExerciseMismatch
 import kotlin.math.abs
 
 /**
@@ -15,8 +16,12 @@ import kotlin.math.abs
  *
  * MessageClient is fire-and-forget, so [cloud.trotter.log.strength.wear.data.DataLayerWatchClient]
  * queues every edit and re-sends it until the phone's next snapshot *reflects* it —
- * the round-trip snapshot is the only ack (spec §9, last-write-wins). Because the
- * phone dedupes replays by `editedAtMillis`, re-sending an already-applied delta is
+ * the round-trip snapshot acknowledges visible rows. A replaced exercise cannot
+ * echo its retired rows, so its edits require an explicit processed stamp from the
+ * phone. Run-aware edits and swaps hidden by another day require the same ack.
+ * Run-aware edits require a snapshot with a runId, which old phones do not send,
+ * so a null processed-stamp list needs no legacy fallback. The phone dedupes
+ * replays by `editedAtMillis`, so re-sending an already-applied delta is
  * harmless, so the queue can safely resend everything still pending on any signal.
  *
  * Settling is decided **per field**, not per delta: the dial sends one tick delta
@@ -28,12 +33,13 @@ import kotlin.math.abs
  *    confirmed and would re-send forever (the phone drops it as stale anyway).
  *
  * A delta drops out of the queue when every field it carries is accounted for, or
- * when the snapshot is for a *different* suggested day — the phone has moved on (the
- * day was completed/advanced), so an old-day edit can neither be confirmed nor is
- * worth resending; last-write-wins lets it go.
+ * when a legacy edit's day changes. Run-aware edits survive another day's snapshot
+ * because their day's next run ID can still be valid.
  *
  * A snapshot for the same non-null plan and day also settles edits and swaps whose
  * slot no longer exists; another known plan leaves them queued.
+ * A day's run ID changes only when its run closes, so a queued edit for another
+ * run of the same day can never land; it settles.
  *
  * [SetEditDelta.startedAtMillis]/[SetEditDelta.completedAtMillis] impose no condition
  * of their own: the snapshot has no place to echo them (the watch never displays
@@ -60,11 +66,18 @@ object PendingEdits {
         pending.filter { delta -> !snapshot.acknowledgesCardio(delta.stamp) }
 
     /** The deltas still worth re-sending after reconciling against [snapshot]. */
-    fun reconcile(pending: List<SetEditDelta>, snapshot: WatchSnapshot): List<SetEditDelta> =
+    fun reconcile(
+        pending: List<SetEditDelta>,
+        snapshot: WatchSnapshot,
+    ): List<SetEditDelta> =
         pending.filter { delta ->
             when {
+                delta.runId != null && delta.editedAtMillis in snapshot.processedEditStamps.orEmpty() -> false
                 delta.planId != null && snapshot.planId != null && delta.planId != snapshot.planId -> true
-                delta.dayId != snapshot.day.dayId -> false
+                delta.runId != null && snapshot.runId != null && delta.planId == snapshot.planId &&
+                    delta.dayId == snapshot.day.dayId && delta.runId != snapshot.runId -> false
+                delta.dayId != snapshot.day.dayId ->
+                    delta.runId != null && delta.editedAtMillis !in snapshot.processedEditStamps.orEmpty()
                 snapshot.hasRemovedSlot(delta.planId, delta.programExerciseId) -> false
                 else -> !delta.isSettled(pending, snapshot)
             }
@@ -84,13 +97,20 @@ object PendingEdits {
      *  - **Refused by drift** — see [isRefusedByDrift].
      *  - **Superseded** — a strictly newer swap for the same slot is still queued; the
      *    snapshot will answer that one instead.
-     *  - **Day changed** — the phone has moved on, same rule as a set edit.
+     *  - **Day changed** — legacy swaps settle; run-aware swaps remain valid.
      */
-    fun reconcileSwaps(pending: List<ExerciseSwapDelta>, snapshot: WatchSnapshot): List<ExerciseSwapDelta> =
+    fun reconcileSwaps(
+        pending: List<ExerciseSwapDelta>,
+        snapshot: WatchSnapshot,
+    ): List<ExerciseSwapDelta> =
         pending.filter { swap ->
             when {
+                swap.runId != null && swap.editedAtMillis in snapshot.processedEditStamps.orEmpty() -> false
                 swap.planId != null && snapshot.planId != null && swap.planId != snapshot.planId -> true
-                swap.dayId != snapshot.day.dayId -> false
+                swap.runId != null && snapshot.runId != null && swap.planId == snapshot.planId &&
+                    swap.dayId == snapshot.day.dayId && swap.runId != snapshot.runId -> false
+                swap.dayId != snapshot.day.dayId ->
+                    swap.runId != null && swap.editedAtMillis !in snapshot.processedEditStamps.orEmpty()
                 snapshot.hasRemovedSlot(swap.planId, swap.programExerciseId) -> false
                 else -> !swap.isSettled(pending, snapshot)
             }
@@ -165,7 +185,11 @@ object PendingEdits {
      * purpose — a newer reps-only edit must not swallow a pending weight edit, and a
      * multi-field tick must not settle on one of its fields alone.
      */
-    private fun SetEditDelta.isSettled(pending: List<SetEditDelta>, snapshot: WatchSnapshot): Boolean {
+    private fun SetEditDelta.isSettled(
+        pending: List<SetEditDelta>,
+        snapshot: WatchSnapshot,
+    ): Boolean {
+        if (snapshot.hasExerciseMismatch(this)) return editedAtMillis in snapshot.processedEditStamps.orEmpty()
         val row = rowIn(snapshot)
         val newer = pending.filter { it.isNewerEditToSameRowAs(this) }
         fun overwritten(carries: (SetEditDelta) -> Boolean): Boolean = newer.any(carries)
@@ -187,6 +211,7 @@ object PendingEdits {
      *  carry it (unknown exercise, missing partner track, index out of range) —
      *  nothing about the delta can be confirmed against a row that isn't there. */
     private fun SetEditDelta.rowIn(snapshot: WatchSnapshot): WatchSet? {
+        if (snapshot.hasExerciseMismatch(this)) return null
         val exercise = snapshot.day.exercises
             .firstOrNull { it.programExerciseId == programExerciseId } ?: return null
         val track = if (slot == SLOT_SS) exercise.ssSets else exercise.sets
@@ -195,6 +220,7 @@ object PendingEdits {
 
     private fun SetEditDelta.isNewerEditToSameRowAs(other: SetEditDelta): Boolean =
         editedAtMillis > other.editedAtMillis &&
+            (exerciseId == null || other.exerciseId == null || exerciseId == other.exerciseId) &&
             dayId == other.dayId &&
             programExerciseId == other.programExerciseId &&
             slot == other.slot &&

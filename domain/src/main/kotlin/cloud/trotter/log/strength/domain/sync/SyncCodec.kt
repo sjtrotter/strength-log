@@ -60,6 +60,12 @@ object SyncCodec {
     fun decodeCardioSetResults(text: String): List<WatchCardioSetResult> =
         json.decodeFromString(cardioSetListSerializer, text)
 
+    fun encodeRunFinish(delta: RunFinishDelta): ByteArray =
+        json.encodeToString(RunFinishDelta.serializer(), delta).encodeToByteArray()
+
+    fun decodeRunFinish(bytes: ByteArray): RunFinishDelta =
+        json.decodeFromString(RunFinishDelta.serializer(), bytes.decodeToString())
+
     fun encodeCardio(delta: CardioDelta): ByteArray =
         json.encodeToString(CardioDelta.serializer(), delta).encodeToByteArray()
 

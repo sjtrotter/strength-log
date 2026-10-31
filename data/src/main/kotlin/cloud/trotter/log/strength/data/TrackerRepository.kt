@@ -670,13 +670,24 @@ open class TrackerRepository(
     /** The same §8.3 swap, naming the slot by its stable row id instead of its
      *  position — which is how the watch knows it (`programExerciseId` is the only
      *  slot identity on the wire). One mutation body, two ways to address it.
-     *  The slot names its plan, and a missing slot or mismatched day is a no-op. */
-    suspend fun swapExerciseById(dayId: String, programExerciseId: Long, newExerciseId: String) {
-        db.withTransaction {
-            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
-            if (row.dayId != dayId) return@withTransaction
-            swapInPlan(row.planId, row.dayId, row.id, newExerciseId)
+     *  The slot names its plan; a missing slot, mismatched day or unexpected run
+     *  returns false without writing. The run check and swap must be atomic. */
+    suspend fun swapExerciseById(
+        dayId: String,
+        programExerciseId: Long,
+        newExerciseId: String,
+        expectedRunId: String? = null,
+    ): Boolean = db.withTransaction {
+        val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
+        if (row.dayId != dayId) return@withTransaction false
+        if (expectedRunId != null) {
+            val open = runDao.openRun()
+            val day = programDao.day(row.planId, dayId)
+            if (!((open?.id == expectedRunId && open.planId == row.planId && open.dayId == dayId) ||
+                    day?.nextRunId == expectedRunId)) return@withTransaction false
         }
+        swapInPlan(row.planId, row.dayId, row.id, newExerciseId)
+        true
     }
 
     private suspend fun swapInPlan(
@@ -1245,7 +1256,10 @@ open class TrackerRepository(
         SetJson.decodeSets(plannedJson), SetJson.decodeSets(setsJson),
     )
 
-    /** Atomically edits working values or starts and edits the addressed run. */
+    /**
+     * Atomically edits working values or starts and edits the addressed run.
+     * A preview edit naming another exercise was made before a swap.
+     */
     suspend fun applyToRun(
         runId: String,
         planId: Long,
@@ -1270,6 +1284,7 @@ open class TrackerRepository(
         for (edit in edits) {
             val slot = slots[edit.programExerciseId] ?: return@withTransaction RunWriteResult.Rejected
             if (slot.exerciseIdFor(edit.slot) == null) return@withTransaction RunWriteResult.Rejected
+            if (edit.exerciseId != null && edit.exerciseId != slot.exerciseIdFor(edit.slot)) return@withTransaction RunWriteResult.Rejected
             val key = edit.programExerciseId to edit.slot
             val base = working[key] ?: workingBase(day, slot, edit.slot, seeds)
                 ?: return@withTransaction RunWriteResult.Rejected
@@ -1437,7 +1452,9 @@ open class TrackerRepository(
         val stored = programDao.logForSlot(day.planId, day.dayId, slot.id, slotName)
         val sets = stored?.let { SetJson.decodeSets(it.setsJson) }
             ?: seeds.firstOrNull { it.programExerciseId == slot.id && it.slot == slotName }?.sets
-        return sets?.let(CarryForward::cleared)
+        return sets?.map {
+            it.copy(done = false, startedAtMillis = null, completedAtMillis = null, plannedIndex = null)
+        }
     }
 
     private fun runTrack(
@@ -1569,6 +1586,9 @@ open class TrackerRepository(
         val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction false
         val day = run.planId?.let { planId -> run.dayId?.let { programDao.day(planId, it) } }
         if (day != null && day.nextRunId == run.id) {
+            for (log in programDao.logsForDay(day.planId, day.dayId)) {
+                programDao.upsertLog(log.copy(setsJson = SetJson.encodeSets(CarryForward.cleared(SetJson.decodeSets(log.setsJson)))))
+            }
             programDao.closeDay(day.planId, day.dayId, mintRunId(), clock.millis())
         }
         runDao.deleteTracks(runId)

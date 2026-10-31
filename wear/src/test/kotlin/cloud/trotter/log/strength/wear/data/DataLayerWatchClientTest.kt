@@ -76,6 +76,108 @@ class DataLayerWatchClientTest {
             beforeInstallLock = beforeInstallLock,
         )
 
+    /** [F] */
+    @Test
+    fun `an undelivered mismatched tick stays queued and a successful send still requires its processed stamp`() = runBlocking {
+        val queue = store()
+        val edit = tickDelta().copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        queue.enqueue(edit)
+        val replaced = phoneSnapshot(revision = 1).let { snapshot ->
+            snapshot.copy(planId = 1, runId = "r-1", retiredRoundsDone = 2, day = snapshot.day.copy(
+                exercises = snapshot.day.exercises.map { it.copy(exerciseId = "hack_squat") },
+            ))
+        }
+        val link = FakePhoneLink().apply {
+            cached = replaced
+            sendSucceeds = false
+        }
+        val client = watchClient(link, queue)
+        eventually("replacement snapshot") { client.snapshotFlow().first().revision == 1L }
+        eventually("reconnect listener") { link.reachability.subscriptionCount.value > 0 }
+        eventually("failed offline send") { link.failedSendCount > 0 }
+        assertEquals(replaced, client.snapshotFlow().first())
+        assertEquals(listOf(edit), queue.all())
+        assertTrue(link.sentDeltas.isEmpty())
+        link.sendSucceeds = true
+        link.reachability.emit(true)
+        eventually("retired edit sent") { link.sentDeltas.isNotEmpty() }
+        assertEquals(listOf(edit), queue.all())
+        assertEquals(listOf(edit), link.sentDeltas)
+        assertEquals(replaced, client.snapshotFlow().first())
+        eventually("snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        link.snapshotEvents.emit(replaced.copy(revision = 2, processedEditStamps = listOf(edit.editedAtMillis + 1)))
+        eventually("unacknowledged snapshot installed") { client.snapshotFlow().first().revision == 2L }
+        assertEquals(listOf(edit), queue.all())
+        link.snapshotEvents.emit(replaced.copy(revision = 3, processedEditStamps = listOf(edit.editedAtMillis)))
+        eventually("processed retired edit settles") { client.snapshotFlow().first().revision == 3L }
+        assertTrue(queue.all().isEmpty())
+        assertEquals(replaced.copy(revision = 3, processedEditStamps = listOf(edit.editedAtMillis)), client.snapshotFlow().first())
+        assertTrue(warnings.isEmpty(), "unexpected warnings: $warnings")
+    }
+
+    @Test
+    fun `a tick sent before a swap snapshot stays queued until the phone publishes its processed stamp`() = runBlocking {
+        val queue = store()
+        val edit = tickDelta().copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        queue.enqueue(edit)
+        val original = phoneSnapshot(revision = 1).copy(planId = 1, runId = "r-1")
+        val link = FakePhoneLink().apply { cached = original }
+        val client = watchClient(link, queue)
+        eventually("edit sent") { link.sentDeltas.isNotEmpty() }
+        eventually("snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        assertEquals(listOf(edit), queue.all())
+        val replaced = original.copy(revision = 2, retiredRoundsDone = 1, day = original.day.copy(
+            exercises = original.day.exercises.map { it.copy(exerciseId = "hack_squat") },
+        ))
+        link.snapshotEvents.emit(replaced)
+        eventually("swap snapshot installed") { client.snapshotFlow().first().revision == 2L }
+        assertEquals(listOf(edit), queue.all())
+        assertEquals(replaced, client.snapshotFlow().first())
+        link.snapshotEvents.emit(replaced.copy(revision = 3, processedEditStamps = listOf(edit.editedAtMillis)))
+        eventually("processed edit settled") { queue.all().isEmpty() }
+        assertTrue(warnings.isEmpty(), "unexpected warnings: $warnings")
+    }
+
+    @Test
+    fun `sent hidden-day edits and swaps stay queued until their individual processed stamps arrive`() = runBlocking {
+        val queue = store()
+        val edit = tickDelta(stamp = 10).copy(planId = 1, runId = "r-a")
+        val swap = swapRequest(stamp = 11).copy(planId = 1, runId = "r-a")
+        queue.enqueue(edit)
+        queue.enqueueSwap(swap)
+        val otherDay = phoneSnapshot(revision = 1).let {
+            it.copy(planId = 1, runId = "r-b", day = it.day.copy(dayId = "B"))
+        }
+        val link = FakePhoneLink().apply {
+            cached = otherDay
+            sendSucceeds = false
+        }
+        val client = watchClient(link, queue)
+        eventually("hidden day installed") { client.snapshotFlow().first().revision == 1L }
+        eventually("offline sends attempted") { link.failedSendCount >= 2 }
+        assertEquals(listOf(edit), queue.all())
+        assertEquals(listOf(swap), queue.allSwaps())
+        eventually("reconnect listener") { link.reachability.subscriptionCount.value > 0 }
+        link.sendSucceeds = true
+        link.reachability.emit(true)
+        eventually("hidden-day entries sent") { link.sentDeltas.isNotEmpty() && link.sentSwaps.isNotEmpty() }
+        assertEquals(listOf(edit), queue.all())
+        assertEquals(listOf(swap), queue.allSwaps())
+        eventually("snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        link.snapshotEvents.emit(otherDay.copy(revision = 2, processedEditStamps = listOf(12L)))
+        eventually("unrelated stamp installed") { client.snapshotFlow().first().revision == 2L }
+        assertEquals(listOf(edit), queue.all())
+        assertEquals(listOf(swap), queue.allSwaps())
+        link.snapshotEvents.emit(otherDay.copy(revision = 3, processedEditStamps = listOf(edit.editedAtMillis)))
+        eventually("hidden-day tick settled") { client.snapshotFlow().first().revision == 3L }
+        assertTrue(queue.all().isEmpty())
+        assertEquals(listOf(swap), queue.allSwaps())
+        link.snapshotEvents.emit(otherDay.copy(revision = 4, processedEditStamps = listOf(swap.editedAtMillis)))
+        eventually("hidden-day swap settled") { client.snapshotFlow().first().revision == 4L }
+        assertTrue(queue.allSwaps().isEmpty())
+        assertTrue(warnings.isEmpty(), "unexpected warnings: $warnings")
+    }
+
     @Test
     fun `structured cardio receipt receives durable issued stamp and settles only on cardio ack`() = runBlocking {
         val queue = store()

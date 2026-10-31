@@ -31,11 +31,10 @@ import kotlin.test.assertEquals
 class PendingEditStoreTest {
 
     private val scope = CoroutineScope(Dispatchers.IO + Job())
-    private val store = PendingEditStore(
-        PreferenceDataStoreFactory.create(scope = scope) {
-            File.createTempFile("pending-edits", ".preferences_pb").also { it.delete() }
-        },
-    )
+    private val dataStore = PreferenceDataStoreFactory.create(scope = scope) {
+        File.createTempFile("pending-edits", ".preferences_pb").also { it.delete() }
+    }
+    private val store = PendingEditStore(dataStore)
 
     @AfterTest
     fun tearDown() = scope.cancel()
@@ -185,5 +184,73 @@ class PendingEditStoreTest {
         assertEquals(1_000L, store.issueStamp(1_000L))
         assertEquals(1_001L, store.issueStamp(1_000L)) // same wall-clock ms
         assertEquals(1_002L, store.issueStamp(900L)) // clock went backwards
+    }
+
+    /** [F] */
+    @Test
+    fun `a mismatched tick survives store recreation until its processed stamp arrives`() = runTest {
+        val edit = delta(setIndex = 1, done = true, stamp = 10)
+            .copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        val replaced = snapshot.copy(planId = 1, runId = "r-1", day = snapshot.day.copy(
+            exercises = snapshot.day.exercises.map { it.copy(exerciseId = "hack_squat") },
+        ))
+        store.enqueue(edit)
+        store.reconcileAgainst(replaced)
+        assertEquals(listOf(edit), store.all())
+        val restored = PendingEditStore(dataStore)
+        assertEquals(listOf(edit), restored.all())
+        restored.reconcileAgainst(replaced.copy(processedEditStamps = listOf(edit.editedAtMillis + 1)))
+        assertEquals(listOf(edit), restored.all())
+        restored.reconcileAgainst(replaced.copy(processedEditStamps = listOf(edit.editedAtMillis)))
+        assertEquals(emptyList(), restored.all())
+    }
+
+    /** [F] */
+    @Test
+    fun `a processed stamp for a replaced exercise settles only that edit`() = runTest {
+        val edit = delta(setIndex = 1, done = true, stamp = 10)
+            .copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        val other = delta(setIndex = 0, done = true, stamp = 11).copy(programExerciseId = 9)
+        val replaced = snapshot.copy(planId = 1, runId = "r-1", day = snapshot.day.copy(
+            exercises = snapshot.day.exercises.map { it.copy(exerciseId = "hack_squat") },
+        ))
+        store.enqueue(edit)
+        store.enqueue(other)
+        store.reconcileAgainst(replaced.copy(processedEditStamps = listOf(edit.editedAtMillis)))
+        assertEquals(listOf(other), store.all())
+    }
+
+    /** [F] */
+    @Test
+    fun `both run-aware queues survive another day and settle on their own closed run`() = runTest {
+        val edit = delta(setIndex = 1, done = true, stamp = 10).copy(planId = 1, runId = "r-a")
+        val replacement = swap(stamp = 11).copy(planId = 1, runId = "r-a")
+        store.enqueue(edit)
+        store.enqueueSwap(replacement)
+        store.reconcileAgainst(snapshot.copy(planId = 1, runId = "r-b", day = snapshot.day.copy(dayId = "B")))
+        assertEquals(listOf(edit), store.all())
+        assertEquals(listOf(replacement), store.allSwaps())
+        store.reconcileAgainst(snapshot.copy(planId = 1, runId = "r-next"))
+        assertEquals(emptyList(), store.all())
+        assertEquals(emptyList(), store.allSwaps())
+    }
+
+    @Test
+    fun `hidden-day edits and swaps survive store recreation and settle on individual processed stamps`() = runTest {
+        val otherDay = snapshot.copy(planId = 1, runId = "r-b", day = snapshot.day.copy(dayId = "B"))
+        val edit = delta(setIndex = 1, done = true, stamp = 10).copy(planId = 1, runId = "r-a")
+        val replacement = swap(stamp = 11).copy(planId = 1, runId = "r-a")
+        store.enqueue(edit)
+        store.enqueueSwap(replacement)
+        store.reconcileAgainst(otherDay)
+        val restored = PendingEditStore(dataStore)
+        restored.reconcileAgainst(otherDay.copy(processedEditStamps = listOf(12L)))
+        assertEquals(listOf(edit), restored.all())
+        assertEquals(listOf(replacement), restored.allSwaps())
+        restored.reconcileAgainst(otherDay.copy(processedEditStamps = listOf(edit.editedAtMillis)))
+        assertEquals(emptyList(), restored.all())
+        assertEquals(listOf(replacement), restored.allSwaps())
+        restored.reconcileAgainst(otherDay.copy(processedEditStamps = listOf(replacement.editedAtMillis)))
+        assertEquals(emptyList(), restored.allSwaps())
     }
 }

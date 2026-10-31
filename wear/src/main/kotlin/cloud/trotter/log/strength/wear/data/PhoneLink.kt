@@ -42,10 +42,7 @@ interface PhoneLink {
      */
     fun phoneReachability(): Flow<Boolean>
 
-    /**
-     * Fires one message at the phone. Never throws: an unreachable phone is the normal
-     * case on a wrist, and the delta stays queued for the next drain (§11.4).
-     */
+    /** Transport acceptance cannot settle an edit; only the phone's snapshot can. */
     suspend fun send(path: String, bytes: ByteArray)
 }
 

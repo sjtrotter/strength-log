@@ -12,6 +12,7 @@ data class TimedRepOwner(
     val exerciseId: String,
     val slot: String,
     val setIndex: Int,
+    val runId: String? = null,
 )
 
 enum class TimedRepPhase { RUNNING, COUNT }
@@ -57,7 +58,8 @@ data class TimedRepState(
 
     /** Validate before rendering, arming, or logging, including after a saved-state restore. */
     fun reconcile(snapshot: WatchSnapshot): TimedRepState? {
-        if (owner.planId != snapshot.planId || owner.dayId != snapshot.day.dayId) return null
+        if (owner.planId != snapshot.planId || owner.dayId != snapshot.day.dayId ||
+            owner.runId != snapshot.runId) return null
         val exercise = snapshot.day.exercises.find { it.programExerciseId == owner.programExerciseId }
             ?: return null
         if (exercise.exerciseId != owner.exerciseId || exercise.slot != owner.slot ||
@@ -83,7 +85,7 @@ fun startTimedRep(
     if (exercise.repWindowSeconds <= 0 || exercise.sets.getOrNull(index)?.done != false) return null
     return TimedRepState(
         TimedRepOwner(snapshot.planId, snapshot.day.dayId, exercise.programExerciseId,
-            exercise.exerciseId, exercise.slot, index),
+            exercise.exerciseId, exercise.slot, index, snapshot.runId),
         exercise.repWindowSeconds, nowWallMillis, nowElapsedMillis, bootCount,
     )
 }
@@ -110,6 +112,7 @@ internal val timedRepStateSaver = mapSaver<TimedRepState?>(
             "setIndex" to state.owner.setIndex, "seconds" to state.totalSeconds,
             "wall" to state.startedAtWallMillis, "elapsed" to state.startedAtElapsedMillis,
             "boot" to state.bootCount, "phase" to state.phase.name, "count" to state.count,
+            "runId" to state.owner.runId,
         )
     },
     restore = { saved ->
@@ -117,7 +120,7 @@ internal val timedRepStateSaver = mapSaver<TimedRepState?>(
         if (saved["slotExerciseId"] !is String) null else TimedRepState(
             TimedRepOwner(saved["planId"] as Long?, saved["dayId"] as String,
                 saved["exerciseId"] as Long, saved["slotExerciseId"] as String,
-                saved["slot"] as String, saved["setIndex"] as Int),
+                saved["slot"] as String, saved["setIndex"] as Int, saved["runId"] as String?),
             saved["seconds"] as Int, saved["wall"] as Long, saved["elapsed"] as Long,
             saved["boot"] as Int, TimedRepPhase.valueOf(saved["phase"] as String),
             (saved["count"] as Int).coerceIn(0, 999),

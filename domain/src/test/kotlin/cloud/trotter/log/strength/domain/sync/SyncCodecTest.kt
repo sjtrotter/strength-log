@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.domain.sync
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -337,4 +340,116 @@ class SyncCodecTest {
         val cardio = SyncCodec.decodeCardio(oldCardio.encodeToByteArray())
         assertNull(cardio.planId)
     }
+
+    @Test
+    fun `real old delta decodes with null run and exercise`() {
+        val old = """{"dayId":"A","programExerciseId":7,"slot":"main","setIndex":0,"done":true,"editedAtMillis":10,"planId":1}"""
+        val decoded = SyncCodec.decodeDelta(old.encodeToByteArray())
+        assertNull(decoded.runId)
+        assertNull(decoded.exerciseId)
+    }
+
+    @Test
+    fun `real old snapshot decodes with null run fields`() {
+        val old = """
+            {"schemaVersion":1,"revision":2,"suggestedDayId":"A","unit":"lb",
+             "day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[
+               {"programExerciseId":1,"slot":"main","name":"Squat","goal":235.0,"perHand":false,
+                "supersetPartnerName":null,
+                "sets":[{"weightLb":235.0,"reps":5,"kind":"TOP","done":false}],"ssSets":[]}
+             ]}}
+        """.trimIndent()
+        val decoded = SyncCodec.decodeSnapshot(old.encodeToByteArray())
+        assertEquals("Squat", decoded.day.exercises.single().name)
+        assertEquals(false, decoded.day.exercises.single().sets.single().done)
+        assertNull(decoded.runId)
+        assertNull(decoded.runStartedAt)
+        assertNull(decoded.retiredRoundsDone)
+    }
+
+    /** [F] */
+    @Test
+    fun `null run fields encode to the exact old delta bytes`() {
+        val expected = """{"dayId":"A","programExerciseId":7,"slot":"main","setIndex":0,"done":true,"editedAtMillis":10,"planId":1}"""
+        val legacy = SetEditDelta(
+            dayId = "A", programExerciseId = 7, slot = "main", setIndex = 0,
+            done = true, editedAtMillis = 10, planId = 1, runId = null, exerciseId = null,
+        )
+        assertEquals(expected, SyncCodec.encodeDelta(legacy).decodeToString())
+    }
+
+    /** [F] */
+    @Test
+    fun `old reader ignores run identity and preserves every shared delta field`() {
+        val updated = delta.copy(
+            schemaVersion = 1, reps = 8, done = true, seconds = 30,
+            startedAtMillis = 5, completedAtMillis = 35, planId = 1,
+            runId = "r-1", exerciseId = "trap_bar_dl",
+        )
+        val decoded = Json { ignoreUnknownKeys = true }.decodeFromString(
+            OldSetEditDelta.serializer(), SyncCodec.encodeDelta(updated).decodeToString(),
+        )
+        assertEquals(updated.schemaVersion, decoded.schemaVersion)
+        assertEquals(updated.dayId, decoded.dayId)
+        assertEquals(updated.programExerciseId, decoded.programExerciseId)
+        assertEquals(updated.slot, decoded.slot)
+        assertEquals(updated.setIndex, decoded.setIndex)
+        assertEquals(updated.weightLb, decoded.weightLb)
+        assertEquals(updated.reps, decoded.reps)
+        assertEquals(updated.done, decoded.done)
+        assertEquals(updated.seconds, decoded.seconds)
+        assertEquals(updated.editedAtMillis, decoded.editedAtMillis)
+        assertEquals(updated.startedAtMillis, decoded.startedAtMillis)
+        assertEquals(updated.completedAtMillis, decoded.completedAtMillis)
+        assertEquals(updated.planId, decoded.planId)
+    }
+
+    /** [F] */
+    @Test
+    fun `snapshot run identity is strictly additive`() {
+        val json = Json
+        val withRun = snapshot.copy(runId = "r-1", runStartedAt = 5)
+        val wire = json.parseToJsonElement(SyncCodec.encodeSnapshot(withRun).decodeToString()).jsonObject
+        val old = json.parseToJsonElement(SyncCodec.encodeSnapshot(snapshot).decodeToString()).jsonObject
+        assertEquals(old, wire.filterKeys { it != "runId" && it != "runStartedAt" })
+        assertEquals(withRun, SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(withRun)))
+        val legacy = WatchSnapshot(revision = 2, day = WatchDay("A", "A", 0, emptyList()), suggestedDayId = "A", unit = "lb")
+        assertEquals(
+            """{"revision":2,"suggestedDayId":"A","day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[]},"unit":"lb"}""",
+            SyncCodec.encodeSnapshot(legacy).decodeToString(),
+        )
+    }
+
+    /** [F] */
+    @Test
+    fun `offline finish shape round trips on its reserved path`() {
+        val finish = RunFinishDelta(
+            runId = "r-1", planId = 1, dayId = "A", startedAtMillis = 5,
+            finishedAtMillis = 50, editedAtMillis = 51,
+            tracks = listOf(RunFinishTrack(7, "main", "bb_back_squat", listOf(
+                RunFinishSet(235.0, 5, done = true, startedAtMillis = 10, completedAtMillis = 20, watchEditedAt = 21),
+                RunFinishSet(0.0, 0, seconds = 30, done = false),
+            ))),
+        )
+        assertEquals(finish, SyncCodec.decodeRunFinish(SyncCodec.encodeRunFinish(finish)))
+        assertEquals(1, finish.schemaVersion)
+        assertEquals("/strengthlog/run-finish", WearSyncPaths.RUN_FINISH)
+    }
+
+    @Serializable
+    private data class OldSetEditDelta(
+        val schemaVersion: Int = 1,
+        val dayId: String,
+        val programExerciseId: Long,
+        val slot: String,
+        val setIndex: Int,
+        val weightLb: Double? = null,
+        val reps: Int? = null,
+        val done: Boolean? = null,
+        val seconds: Int? = null,
+        val editedAtMillis: Long,
+        val startedAtMillis: Long? = null,
+        val completedAtMillis: Long? = null,
+        val planId: Long? = null,
+    )
 }

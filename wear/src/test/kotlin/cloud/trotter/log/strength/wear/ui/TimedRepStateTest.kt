@@ -154,6 +154,22 @@ class TimedRepStateTest {
         assertEquals(38, assertNotNull(timedRepStateSaver.restore(countSaved)).count)
     }
 
+    /** [F] */
+    @Test
+    fun `saved timed rep belongs to its run across Finish`() {
+        val first = snapshot.copy(runId = "r-1")
+        val attempt = assertNotNull(startTimedRep(first, 0, false, null, 100_000L, 10_000L, 4))
+        val saved = with(timedRepStateSaver) { assertNotNull(scope.save(attempt)) }
+        val restored = assertNotNull(timedRepStateSaver.restore(saved))
+        assertEquals("r-1", restored.owner.runId)
+        assertEquals(attempt, restored.reconcile(first))
+        assertNull(restored.reconcile(first.copy(runId = "r-2")))
+        assertNull(restored.resume(first.copy(runId = "r-2"), 130_000L, 220_000L, 4))
+        val count = restored.timeUp().turn(38)
+        assertEquals("r-1", assertNotNull(buildTimedRepDelta(count, first, 240_000L)).runId)
+        assertNull(buildTimedRepDelta(count, first.copy(runId = "r-2"), 240_000L))
+    }
+
     @Test
     fun `restore discards any owner mismatch or completed set`() {
         val saved = with(timedRepStateSaver) { assertNotNull(scope.save(assertNotNull(start()))) }

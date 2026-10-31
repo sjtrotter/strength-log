@@ -603,6 +603,21 @@ class DialStateTest {
         }
     }
 
+    /** [F] */
+    @Test
+    fun `an empty active list with retired work shows completed progress on either face`() {
+        val retired = snapshot().copy(runId = "r-1", retiredRoundsDone = 2)
+        DialFace.entries.forEach { face ->
+            val state = dialUiState(inputs(snapshot = retired, face = face))
+            assertEquals(DialScreen.DAY_DONE, state.screen)
+            assertEquals(1f, state.dayProgress)
+            assertEquals(listOf("DONE", "2 SETS"), state.discText())
+            assertEquals(DialTap.DISMISS, state.tap)
+            assertNull(state.hold)
+            assertTrue(state.rounds.isEmpty())
+        }
+    }
+
     @Test
     fun `a snapshot without a day shows no program with nothing to act on`() {
         val state = dialUiState(inputs(snapshot = noProgramSnapshot()))
@@ -1020,5 +1035,18 @@ class DialStateTest {
         assertEquals("12,450", DialFormat.grouped(12_450L))
         assertEquals("945", DialFormat.grouped(945L))
         assertEquals("1,000,000", DialFormat.grouped(1_000_000L))
+    }
+
+    /** [F] */
+    @Test
+    fun `retired rounds count toward dial progress and the day-done total`() {
+        val swapped = snapshot(squat).copy(retiredRoundsDone = 2)
+        assertEquals(2f / 5f, dialUiState(inputs(snapshot = swapped)).dayProgress)
+        assertEquals(2f / 5f, overview(swapped).dayProgress)
+        assertTrue(isSessionActive(swapped))
+        val done = swapped.copy(day = swapped.day.copy(exercises = listOf(squat.copy(sets = List(3) { set(weight = 0.0, done = true) }))))
+        val state = dialUiState(inputs(snapshot = done))
+        assertEquals(1f, state.dayProgress)
+        assertTrue(state.discText().any { it.contains("5 SETS") })
     }
 }

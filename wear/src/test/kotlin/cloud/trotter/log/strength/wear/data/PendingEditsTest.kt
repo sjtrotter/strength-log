@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.data
 
+import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
@@ -8,6 +9,7 @@ import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
+import cloud.trotter.log.strength.domain.sync.applyDelta
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -448,5 +450,140 @@ class PendingEditsTest {
     @Test
     fun `a clock that goes backwards still issues a strictly newer stamp`() {
         assertEquals(1_001L, PendingEdits.nextStamp(nowMillis = 900L, lastIssuedMillis = 1_000L))
+    }
+
+    /** [F] */
+    @Test
+    fun `another run on the same plan and day settles edits and swaps`() {
+        val edit = delta(done = true).copy(planId = 1, runId = "r-1")
+        val replacement = swap().copy(planId = 1, runId = "r-1")
+        val current = snapshot().copy(planId = 1, runId = "r-2")
+        assertTrue(PendingEdits.reconcile(listOf(edit), current).isEmpty())
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), current).isEmpty())
+    }
+
+    /** [F] */
+    @Test
+    fun `same run and legacy edits keep per-field settling`() {
+        for (runId in listOf("r-1", null)) {
+            val edit = delta(weightLb = 235.0, done = true).copy(planId = 1, runId = runId)
+            val current = snapshot().copy(planId = 1, runId = "r-1")
+            assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+            val reflected = current.copy(day = current.day.copy(exercises = current.day.exercises.map {
+                it.copy(sets = it.sets.map { row -> row.copy(done = true) })
+            }))
+            assertTrue(PendingEdits.reconcile(listOf(edit), reflected).isEmpty())
+        }
+    }
+
+    /** [F] */
+    @Test
+    fun `same run and legacy swaps require their own acknowledgment`() {
+        for (runId in listOf("r-1", null)) {
+            val replacement = swap().copy(planId = 1, runId = runId)
+            val current = snapshot().copy(planId = 1, runId = "r-1")
+            assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current))
+            val reflected = current.copy(day = current.day.copy(exercises = current.day.exercises.map {
+                it.copy(exerciseId = replacement.exerciseId)
+            }))
+            assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), reflected).isEmpty())
+        }
+    }
+
+    /** [F] */
+    @Test
+    fun `another plan leaves another run's edits and swaps queued until the phone has processed them`() {
+        val edit = delta(done = true).copy(planId = 1, runId = "r-1")
+        val replacement = swap().copy(planId = 1, runId = "r-1")
+        val current = snapshot().copy(planId = 2, runId = "r-2")
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current))
+        // Processed means committed or refused for good: the phone is finished with it on any plan.
+        assertTrue(PendingEdits.reconcile(listOf(edit), current.copy(processedEditStamps = listOf(edit.editedAtMillis))).isEmpty())
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), current.copy(processedEditStamps = listOf(replacement.editedAtMillis))).isEmpty())
+    }
+
+    /** [F] */
+    @Test
+    fun `an undelivered tick for a replaced exercise stays queued without projection or extra progress`() {
+        val edit = delta(done = true).copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        for (replacementDone in listOf(false, true)) {
+            val current = snapshot(exerciseId = "hack_squat", sets = listOf(
+                WatchSet(100.0, 5, "WORK", done = replacementDone),
+            )).copy(planId = 1, runId = "r-1", retiredRoundsDone = 2)
+            assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+            assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit),
+                current.copy(processedEditStamps = listOf(edit.editedAtMillis + 1))))
+            val displayed = applyDelta(current, edit)
+            assertEquals(current, displayed)
+            assertEquals(DayProgress(if (replacementDone) 3 else 2, 3), DayProgress.of(displayed))
+            assertTrue(PendingEdits.reconcile(listOf(edit), current.copy(processedEditStamps = listOf(edit.editedAtMillis))).isEmpty())
+        }
+    }
+
+    /** [F] */
+    @Test
+    fun `a swap back to matching identity uses per-field settling until the phone has processed it`() {
+        val edit = delta(weightLb = 245.0, done = true)
+            .copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        val current = snapshot(sets = listOf(WatchSet(235.0, 5, "TOP", done = true)))
+            .copy(planId = 1, runId = "r-1")
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+        assertEquals(245.0, applyDelta(current, edit).day.exercises.single().sets.single().weightLb)
+        val reflected = current.copy(day = current.day.copy(exercises = current.day.exercises.map {
+            it.copy(sets = listOf(WatchSet(245.0, 5, "TOP", done = true)))
+        }))
+        assertTrue(PendingEdits.reconcile(listOf(edit), reflected).isEmpty())
+        // Processed but refused (the phone kept 235): settle anyway, or it would resend forever.
+        assertTrue(PendingEdits.reconcile(listOf(edit), current.copy(processedEditStamps = listOf(edit.editedAtMillis))).isEmpty())
+    }
+
+    @Test
+    fun `a run-less edit is never judged by exercise identity`() {
+        val edit = delta(done = true).copy(planId = 1, runId = null, exerciseId = "bb_back_squat")
+        val current = snapshot(exerciseId = "hack_squat", sets = listOf(WatchSet(100.0, 5, "WORK", done = true)))
+            .copy(planId = 1, runId = null)
+        // An old phone applies it to the slot's current lift and publishes no processed stamps.
+        assertTrue(PendingEdits.reconcile(listOf(edit), current).isEmpty())
+    }
+
+    /** [F] */
+    @Test
+    fun `a newer edit for another exercise cannot supersede the original after a swap back`() {
+        val squat = delta(reps = 6).copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        val hack = squat.copy(exerciseId = "hack_squat", reps = 8, editedAtMillis = 2)
+        val current = snapshot().copy(planId = 1, runId = "r-1")
+        assertEquals(listOf(squat, hack), PendingEdits.reconcile(listOf(squat, hack), current))
+        assertEquals(listOf(squat), PendingEdits.reconcile(listOf(squat, hack), current.copy(processedEditStamps = listOf(hack.editedAtMillis))))
+    }
+
+    /** [F] */
+    @Test
+    fun `another day preserves run-aware edits until their own run changes`() {
+        val edit = delta(done = true).copy(planId = 1, runId = "r-a")
+        val anotherDay = snapshot(dayId = "B").copy(planId = 1, runId = "r-b")
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), anotherDay))
+        assertTrue(PendingEdits.reconcile(listOf(edit), anotherDay.copy(processedEditStamps = listOf(edit.editedAtMillis))).isEmpty())
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), anotherDay.copy(processedEditStamps = emptyList())))
+        assertEquals(anotherDay, applyDelta(anotherDay, edit))
+        val ownDay = snapshot().copy(planId = 1, runId = "r-a")
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), ownDay))
+        assertTrue(PendingEdits.reconcile(listOf(edit), ownDay.copy(runId = "r-next")).isEmpty())
+        assertTrue(PendingEdits.reconcile(listOf(edit.copy(runId = null)), anotherDay).isEmpty())
+    }
+
+    /** [F] */
+    @Test
+    fun `another day preserves run-aware swaps until their own run changes`() {
+        val replacement = swap().copy(planId = 1, runId = "r-a")
+        val anotherDay = snapshot(dayId = "B").copy(planId = 1, runId = "r-b")
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), anotherDay))
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), anotherDay.copy(processedEditStamps = listOf(replacement.editedAtMillis))).isEmpty())
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement),
+            anotherDay.copy(processedEditStamps = listOf(replacement.editedAtMillis + 1))))
+        val ownDay = snapshot().copy(planId = 1, runId = "r-a")
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), ownDay))
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), ownDay.copy(runId = "r-next")).isEmpty())
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement.copy(runId = null)), anotherDay).isEmpty())
     }
 }

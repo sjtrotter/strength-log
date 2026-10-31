@@ -83,6 +83,19 @@ data class WatchSnapshot(
      * most 32. Empty from an older phone.
      */
     val cardioAckedStamps: List<Long> = emptyList(),
+    /** The open run, or the shown day's next run; null from an old phone. */
+    val runId: String? = null,
+    /** Null while previewing the next run. */
+    val runStartedAt: Long? = null,
+    /** Done rounds on retired tracks; null from an old phone or when none exist. */
+    val retiredRoundsDone: Int? = null,
+    /**
+     * Recent wrist set-edit and swap stamps the phone committed or permanently
+     * refused, newest last, at most 32. Null from an old phone. Run-aware edits
+     * require a snapshot with [runId], which old phones do not send, so no legacy
+     * fallback is needed.
+     */
+    val processedEditStamps: List<Long>? = null,
 )
 
 /** Explicit processed stamps settle cardio; older phones retain the legacy max rule. */

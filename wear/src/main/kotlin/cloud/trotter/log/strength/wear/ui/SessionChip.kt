@@ -16,14 +16,14 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
  * those snapshot guards.
  */
 fun isSessionActive(snapshot: WatchSnapshot?): Boolean {
-    val day = snapshot?.day ?: return false
-    val progress = DayProgress.of(day)
+    if (snapshot == null) return false
+    val progress = DayProgress.of(snapshot)
     return progress.done > 0 && progress.done < progress.total
 }
 
 /** True while the snapshot is active or a locally started day still has work. */
 fun isSessionUnderway(snapshot: WatchSnapshot?, localSessionStarted: Boolean): Boolean {
-    val day = snapshot?.day ?: return false
-    val progress = DayProgress.of(day)
+    if (snapshot == null) return false
+    val progress = DayProgress.of(snapshot)
     return (progress.done > 0 || localSessionStarted) && progress.done < progress.total
 }

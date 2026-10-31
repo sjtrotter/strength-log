@@ -13,6 +13,11 @@ last-write-wins, `:wear` shares `:domain` only.
 
 ## Wire protocol (decision — see ARCHITECTURE-DECISIONS D6)
 
+Snapshots carry the run: the open run, or the day's next run ID. Deltas carry the run and the exercise. A delta for a finished or unknown run is rejected. A delta with no run (an old watch) only edits a run the phone opened after that day's last close. `schemaVersion` stays 1; a field's presence is the capability.
+
+`/strengthlog/run-finish` is reserved for step 6 offline Finish (`RunFinishDelta`);
+this phone has no handler and drops the unknown path.
+
 `@Serializable` DTOs in `:domain` under `sync/` (pure Kotlin):
 
 ```

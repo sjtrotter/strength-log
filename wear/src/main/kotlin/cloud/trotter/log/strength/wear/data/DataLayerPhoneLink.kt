@@ -73,7 +73,9 @@ class DataLayerPhoneLink(
     override suspend fun send(path: String, bytes: ByteArray) {
         val targets = phoneNodeIds().ifEmpty { connectedNodeIds() }
         targets.forEach { id ->
-            quietly("sending $path to $id", Unit) { messageClient.sendMessage(id, path, bytes).await() }
+            quietly<Unit>("sending $path to $id", Unit) {
+                messageClient.sendMessage(id, path, bytes).await()
+            }
         }
     }
 

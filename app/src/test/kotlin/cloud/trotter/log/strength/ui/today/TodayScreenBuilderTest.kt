@@ -158,6 +158,14 @@ class TodayScreenBuilderTest {
     }
 
     @Test
+    fun actionLabel_continues_started_work_with_no_main_rounds_done() {
+        val label = TodayScreenBuilder.actionLabel("B", 0, 18, started = true)
+        assertEquals(TodayActionKind.CONTINUE, label.kind)
+        assertEquals(0, label.done)
+        assertEquals(18, label.total)
+    }
+
+    @Test
     fun actionLabel_finishes_a_complete_day() {
         assertEquals(TodayActionKind.FINISH, TodayScreenBuilder.actionLabel("B", 18, 18).kind)
     }

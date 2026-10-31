@@ -178,7 +178,11 @@ class TodayViewModel @Inject constructor(
             standaloneCardio = standalone?.let {
                 StandaloneCardio(it.id, TodayScreenBuilder.standaloneCardioLine())
             },
-            actionLabel = TodayScreenBuilder.actionLabel(dayId, doneSets, totalSets),
+            actionLabel = TodayScreenBuilder.actionLabel(
+                dayId, doneSets, totalSets,
+                started = tracks.tracks.any { track -> track.sets.any { it.done } } ||
+                    tracks.retired.any { track -> track.sets.any { it.done } },
+            ),
             lifeLine = TodayScreenBuilder.lifeLine(
                 mains = JournalBuilder.mainLifts(ctx.program, ctx.catalog, ctx.cfg),
                 sessions = sessions,

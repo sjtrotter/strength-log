@@ -50,6 +50,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -89,8 +90,15 @@ internal fun ExercisePage(
     }
     val focusIndex = event?.event?.setIndex ?: card.focusIndex
     val focus = card.rows.getOrNull(focusIndex)
-    val showingClock = card.timedRepDurationSeconds != null && !card.allDone
+    val loggingPartner = focus?.nextSlot == Slot.SS
+    val showingClock = card.timedRepDurationSeconds != null && !card.allDone && !loggingPartner
     val shown = if (card.allDone) card.rows.firstOrNull { it.isTop } ?: card.rows.lastOrNull() else focus
+    val shownPartner = shown?.partner?.takeIf { loggingPartner && !card.allDone }
+    val shownWeight = shownPartner?.weightDisplay ?: shown?.weightDisplay ?: 0.0
+    val shownReps = shownPartner?.reps ?: shown?.reps ?: 0
+    val shownSeconds = shownPartner?.seconds ?: shown?.seconds ?: 0
+    val shownTracking = if (shownPartner != null) card.partnerTracking ?: TrackingType.WEIGHTED else card.tracking
+    val shownTimedWeight = if (shownPartner != null) card.partnerTimedShowsWeight else card.timedShowsWeight
     Card(
         modifier = Modifier.testTag("exercise-page:${card.programExerciseId}"),
         shape = MaterialTheme.shapes.medium,
@@ -200,28 +208,28 @@ internal fun ExercisePage(
                 )
                 val repsUnit = stringResource(R.string.unit_reps)
                 val secondsUnit = stringResource(R.string.unit_seconds)
-                val atWeight = stringResource(R.string.unit_at, WeightStepper.format(shown.weightDisplay))
+                val atWeight = stringResource(R.string.unit_at, WeightStepper.format(shownWeight))
                 val editLabel = stringResource(R.string.set_edit_open)
                 Text(
                     text = buildAnnotatedString {
                         if (showingClock) {
                             val seconds = event?.remainingSeconds ?: card.timedRepDurationSeconds
                             append("%d:%02d".format(seconds / 60, seconds % 60))
-                        } else when (card.tracking) {
+                        } else when (shownTracking) {
                             TrackingType.WEIGHTED -> {
-                                append(WeightStepper.format(shown.weightDisplay))
+                                append(WeightStepper.format(shownWeight))
                                 withStyle(SpanStyle(fontSize = 44.sp, color = variant)) { append(" × ") }
-                                append(shown.reps.toString())
+                                append(shownReps.toString())
                             }
                             TrackingType.REPS -> {
-                                append(shown.reps.toString())
+                                append(shownReps.toString())
                                 withStyle(SpanStyle(fontSize = 32.sp, color = variant)) { append(" $repsUnit") }
                             }
                             TrackingType.TIMED -> {
-                                append(shown.seconds.toString())
+                                append(shownSeconds.toString())
                                 withStyle(SpanStyle(fontSize = 32.sp, color = variant)) {
                                     append(" $secondsUnit")
-                                    if (card.timedShowsWeight && shown.weightDisplay > 0) append(" $atWeight")
+                                    if (shownTimedWeight && shownWeight > 0) append(" $atWeight")
                                 }
                             }
                         }
@@ -237,7 +245,7 @@ internal fun ExercisePage(
                         color = variant,
                     )
                 }
-                shown.partner?.let { partner ->
+                shown.partner?.takeUnless { shown.done }?.let { partner ->
                     val partnerValue = setValue(
                         weight = partner.weightDisplay,
                         reps = partner.reps,
@@ -255,7 +263,7 @@ internal fun ExercisePage(
                 card.rows.forEach { row ->
                     val label = setLabel(row).resolve()
                     val status = stringResource(
-                        if (row.done) R.string.day_segment_done else R.string.day_segment_not_started,
+                        if (row.complete) R.string.day_segment_done else R.string.day_segment_not_started,
                     )
                     Box(
                         modifier = Modifier.weight(1f).height(48.dp)
@@ -265,7 +273,7 @@ internal fun ExercisePage(
                         Box(
                             Modifier.fillMaxWidth().height(6.dp).background(
                                 color = when {
-                                    row.done -> LocalAppPalette.current.done
+                                    row.complete -> LocalAppPalette.current.done
                                     row.index == focusIndex -> accent
                                     else -> MaterialTheme.colorScheme.outlineVariant
                                 },
@@ -282,7 +290,7 @@ internal fun ExercisePage(
                     style = MaterialTheme.typography.bodyMedium,
                     color = variant,
                 )
-                card.nextSetDisplay?.takeUnless { card.allDone || focusIndex != card.focusIndex }?.let {
+                card.nextSetDisplay?.takeUnless { card.allDone || loggingPartner || focusIndex != card.focusIndex }?.let {
                     Text(
                         text = stringResource(R.string.day_next_set, it),
                         style = MaterialTheme.typography.bodyMedium,
@@ -325,15 +333,18 @@ internal fun ExercisePage(
                     }
                 }
             } else if (focus != null) {
-                val log = stringResource(
-                    R.string.day_log_set,
-                    setValue(focus.weightDisplay, focus.reps, focus.seconds, card.tracking, card.timedShowsWeight),
-                )
-                val onLog = { actions.onToggleDone(card.programExerciseId, focus.index, true, card.isSuperset) }
+                val value = setValue(shownWeight, shownReps, shownSeconds, shownTracking, shownTimedWeight)
+                val exerciseName = if (loggingPartner) card.partnerTitle.orEmpty() else card.title
+                val log = if (card.isSuperset) {
+                    stringResource(R.string.day_log_exercise_set, exerciseName, value)
+                } else stringResource(R.string.day_log_set, value)
+                val logModifier = Modifier.fillMaxWidth().height(56.dp)
+                    .semantics { if (card.isSuperset) contentDescription = log }
+                val onLog = { actions.onToggleDone(card.programExerciseId, focus.index, true, focus.nextSlot) }
                 if (resting) {
-                    FilledTonalButton(onClick = onLog, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text(log) }
+                    FilledTonalButton(onClick = onLog, modifier = logModifier) { Text(log) }
                 } else {
-                    Button(onClick = onLog, colors = colors, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                    Button(onClick = onLog, colors = colors, modifier = logModifier) {
                         Text(log)
                     }
                 }

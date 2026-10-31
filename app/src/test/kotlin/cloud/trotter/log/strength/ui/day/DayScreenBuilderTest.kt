@@ -339,25 +339,22 @@ class DayScreenBuilderTest {
 
     // --- collapse resolution -------------------------------------------------
 
-    // --- one tick per round --------------------------------------------------
-
     @Test
-    fun round_tick_flips_both_superset_tracks_at_the_same_index() {
-        val main = listOf(work(60.0, 12), work(60.0, 11))
-        val partner = listOf(work(50.0, 15), work(50.0, 14))
-        val (newMain, newPartner) = DayScreenBuilder.applyRoundTick(main, partner, index = 0, checked = true)
-        assertTrue(newMain[0].done)
-        assertTrue(newPartner!![0].done)
-        assertEquals(false, newMain[1].done)
-        assertEquals(false, newPartner[1].done)
+    fun supersetFocusAndCompletionRequireBothTracks() {
+        val row = SetRowState(0, "1", false, 60.0, 12, false, PartnerRowState(50.0, 15))
+        for ((mainDone, partnerDone) in listOf(false to false, true to false, false to true, true to true)) {
+            val rows = listOf(row.copy(done = mainDone, partner = row.partner!!.copy(done = partnerDone)))
+            assertEquals(if (mainDone && partnerDone) -1 else 0, DayScreenBuilder.focusIndex(rows))
+            assertEquals(mainDone && partnerDone, rows.single().complete)
+            assertEquals(if (mainDone && !partnerDone) Slot.SS else Slot.MAIN, rows.single().nextSlot)
+        }
     }
 
     @Test
-    fun round_tick_on_a_plain_exercise_leaves_partner_null() {
-        val main = listOf(work(100.0, 10), work(100.0, 10))
-        val (newMain, newPartner) = DayScreenBuilder.applyRoundTick(main, partner = null, index = 1, checked = true)
-        assertTrue(newMain[1].done)
-        assertEquals(null, newPartner)
+    fun plainExerciseCompletionStillFollowsItsOwnTick() {
+        val row = SetRowState(0, "1", false, 100.0, 10, false)
+        assertEquals(false, row.complete)
+        assertTrue(row.copy(done = true).complete)
     }
 
     // --- kind labels from raw kinds (Log screen reuse) -----------------------

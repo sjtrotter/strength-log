@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.today
 
+import cloud.trotter.log.strength.domain.glance.DayProgress
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -500,6 +503,53 @@ class TodayViewModelWiringTest {
         assertEquals("B", day.uiState.value.viewDayId)
     }
 
+    @Test
+    fun partialAndLegacySupersetRowsKeepTodayWidgetAndReceiptCountsMainBased() = runVmTest {
+        for ((mainDone, partnerDone) in listOf(true to false, false to true, true to true)) {
+            repo.replaceProgram(Program(listOf(ProgramDay("A", "Arms", "", listOf(
+                ProgramExercise("ez_curl", targetSets = 1, superset = SupersetPartner("rope_pushdown")),
+            )))))
+            val today = newTodayViewModel()
+            val day = newDayViewModel()
+            advanceUntilIdle()
+            val id = slotId("A", "ez_curl")
+            if (mainDone) day.toggleDone(id, 0, true, Slot.MAIN)
+            if (partnerDone) day.toggleDone(id, 0, true, Slot.SS)
+            advanceUntilIdle()
+            val expectedDone = if (mainDone) 1 else 0
+            val planId = requireNotNull(repo.selectedPlanIdFlow.first())
+            val tracks = repo.dayTracksFlow(planId, "A").first()
+            assertEquals(mainDone, tracks.tracks.first { it.slot == Slot.MAIN }.sets.single().done)
+            assertEquals(partnerDone, tracks.tracks.first { it.slot == Slot.SS }.sets.single().done)
+            assertEquals(expectedDone, today.uiState.value.actionLabel.done)
+            assertEquals(1, today.uiState.value.actionLabel.total)
+            assertEquals(
+                if (mainDone) cloud.trotter.log.strength.ui.text.TodayActionKind.FINISH
+                else cloud.trotter.log.strength.ui.text.TodayActionKind.CONTINUE,
+                today.uiState.value.actionLabel.kind,
+            )
+            if (mainDone) assertEquals(UiText.TodayProgress(1, 1), today.uiState.value.coachLine)
+            assertEquals(expectedDone, day.uiState.value.doneSets)
+            assertEquals(1, day.uiState.value.totalSets)
+            assertEquals(0, tracks.retiredRoundsDone)
+            val snapshot = requireNotNull(WatchSnapshotBuilder.build(
+                program = repo.programFor(planId).first(), suggestedDayId = "A",
+                slots = repo.slotsFor(planId, "A").first(), logs = tracks.tracks,
+                cfg = repo.wizardAnswersFor(planId).first().config, catalog = repo.catalogFlow.first(),
+                unit = WeightUnit.LB, revision = 1, retiredRoundsDone = tracks.retiredRoundsDone,
+            ))
+            assertEquals(DayProgress(expectedDone, 1), DayProgress.of(snapshot))
+            day.completeDay()
+            advanceUntilIdle()
+            val receipt = requireNotNull(day.sessionReceipt.value)
+            assertEquals(expectedDone, receipt.completedSetCount)
+            assertEquals(expectedDone, receipt.setCount)
+            assertEquals(1, receipt.totalSetCount)
+            today.viewModelScope.cancel()
+            day.viewModelScope.cancel()
+        }
+    }
+
     // --- ticked sets on the suggested day -----------------------------------------
 
     @Test
@@ -510,7 +560,7 @@ class TodayViewModelWiringTest {
         advanceUntilIdle() // DayViewModel's own seed pass fills day A's log rows
 
         val squatId = slotId("A", "bb_back_squat")
-        repeat(3) { i -> dayVm.toggleDone(squatId, index = i, checked = true, isSuperset = false) }
+        repeat(3) { i -> dayVm.toggleDone(squatId, index = i, checked = true, slot = Slot.MAIN) }
         advanceUntilIdle()
 
         val state = today.uiState.value
@@ -531,8 +581,8 @@ class TodayViewModelWiringTest {
         val day = newDayViewModel()
         advanceUntilIdle()
         val id = slotId("A", "bb_bench")
-        day.toggleDone(id, index = 0, checked = true, isSuperset = false)
-        day.toggleDone(id, index = 1, checked = true, isSuperset = false)
+        day.toggleDone(id, index = 0, checked = true, slot = Slot.MAIN)
+        day.toggleDone(id, index = 1, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         day.swapDaySlot(0, "db_bench")
         advanceUntilIdle()
@@ -666,7 +716,7 @@ class TodayViewModelWiringTest {
         val dayVm = newDayViewModel()
         advanceUntilIdle()
         val curlId = slotId("B", "ez_curl")
-        dayVm.toggleDone(curlId, index = 0, checked = true, isSuperset = true)
+        dayVm.toggleDone(curlId, index = 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
 
         assertEquals(UiText.TodayProgress(1, 2), today.uiState.value.coachLine)

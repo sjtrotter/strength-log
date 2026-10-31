@@ -97,6 +97,32 @@ class SetEditSheetTest {
         assertEquals(Triple(2L, 1, true), removed)
     }
 
+    @Test fun doneTrackCorrectionsUseTheirOwnSlots() {
+        val card = pagerFixture().exercises[1].copy(
+            tracking = TrackingType.TIMED, timedShowsWeight = false, isSuperset = true,
+            partnerTitle = "Pull-up", partnerTracking = TrackingType.REPS,
+        )
+        val row = card.rows[1].copy(done = true, seconds = 45, partner = PartnerRowState(0.0, 6, done = true))
+        val changes = mutableListOf<Pair<String, Int>>()
+        rule.setContent { AppTheme {
+            SetEditSheet(card, row, WeightUnit.LB, 3, pagerActions().copy(
+                onSecondsChange = { id, slot, index, seconds ->
+                    assertEquals(card.programExerciseId, id)
+                    assertEquals(row.index, index)
+                    changes += slot to seconds
+                },
+                onRepsChange = { id, slot, index, reps ->
+                    assertEquals(card.programExerciseId, id)
+                    assertEquals(row.index, index)
+                    changes += slot to reps
+                },
+            ), onDismiss = {})
+        } }
+        rule.onNodeWithContentDescription("Seconds, 5 more").performClick()
+        rule.onNodeWithContentDescription("Pull-up, Reps, one more").performClick()
+        assertEquals(listOf(Slot.MAIN to 50, Slot.SS to 7), changes)
+    }
+
     @Test fun timedFieldsOnlyOfferWeightWhenThePrescriptionCarriesIt() {
         val card = pagerFixture().exercises[1].copy(tracking = TrackingType.TIMED, timedShowsWeight = false)
         rule.setContent { AppTheme { SetEditSheet(card, card.rows[1].copy(seconds = 45), WeightUnit.LB, 3, pagerActions(), {}) } }

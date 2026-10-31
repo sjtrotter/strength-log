@@ -120,7 +120,7 @@ class DayViewModelCascadeTest {
     private suspend fun tickWholeTrack(vm: DayViewModel) {
         val id = slotId()
         val rows = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets.size
-        repeat(rows) { index -> vm.toggleDone(id, index, checked = true, isSuperset = false) }
+        repeat(rows) { index -> vm.toggleDone(id, index, checked = true, slot = Slot.MAIN) }
     }
 
     /** One full session at the current prescription, from a seeded program. */
@@ -240,7 +240,7 @@ class DayViewModelCascadeTest {
         val id = slotId()
         val top = topIndex()
         val rows = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets.size
-        repeat(rows) { index -> if (index != top) vm.toggleDone(id, index, checked = true, isSuperset = false) }
+        repeat(rows) { index -> if (index != top) vm.toggleDone(id, index, checked = true, slot = Slot.MAIN) }
         advanceUntilIdle()
         vm.completeDay()
         advanceUntilIdle()

@@ -143,6 +143,34 @@ class DayViewModelTimedRepExecutionTest {
         SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
 
     @Test
+    fun timedRepCountLogsOnlyMainAndPartnerTickStartsRest() = test {
+        prepare()
+        val id = repo.daySlotsFlow("A").first().single().programExerciseId
+        repo.setSupersetPartner("A", id, "rope_pushdown")
+        repo.setPhoneRestTimerEnabled(true)
+        val vm = readyVm()
+        vm.start()
+        runCurrent()
+        tick(120_000)
+        vm.changeTimedRepDraft("37")
+        vm.logTimedRepCount()
+        runCurrent()
+        val half = vm.uiState.value.exercises.single()
+        assertTrue(half.rows[0].done)
+        assertEquals(37, half.rows[0].reps)
+        assertEquals(0, half.rows[0].seconds)
+        assertFalse(half.rows[0].partner!!.done)
+        assertEquals(0, half.focusIndex)
+        assertNull(vm.uiState.value.timedRep)
+        assertNull(repo.phoneRestFlow.first())
+        assertTrue(rest.armed.isEmpty())
+        vm.toggleDone(id, 0, true, Slot.SS)
+        runCurrent()
+        assertTrue(vm.uiState.value.exercises.single().rows[0].complete)
+        assertEquals(60, rest.armed.single().totalSeconds)
+    }
+
+    @Test
     fun countsDownThenRequestsEntryOnceAndBuzzesOnce() = test {
         prepare()
         val vm = readyVm()
@@ -192,7 +220,7 @@ class DayViewModelTimedRepExecutionTest {
         prepare()
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.toggleDone(id, 0, true, false)
+        vm.toggleDone(id, 0, true, Slot.MAIN)
         runCurrent()
         vm.start()
         runCurrent()
@@ -359,11 +387,11 @@ class DayViewModelTimedRepExecutionTest {
         prepare()
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.toggleDone(id, 0, true, false)
+        vm.toggleDone(id, 0, true, Slot.MAIN)
         runCurrent()
         vm.start()
         runCurrent()
-        vm.toggleDone(id, 0, false, false)
+        vm.toggleDone(id, 0, false, Slot.MAIN)
         runCurrent()
         assertEquals(0, vm.uiState.value.exercises.single().focusIndex)
         assertEquals(1, vm.uiState.value.timedRep?.event?.setIndex)

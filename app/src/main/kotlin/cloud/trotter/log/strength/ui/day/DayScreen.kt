@@ -345,10 +345,10 @@ fun DayScreen(
                             state.rest?.let { RestPill(it, actions.onAdjustRest, actions.onSkipRest) }
                             Button(
                                 modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-                                enabled = state.doneSets > 0,
+                                enabled = state.canFinish,
                                 colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
                                 onClick = {
-                                    if (state.doneSets < state.totalSets) {
+                                    if (state.exercises.any { card -> card.rows.any { !it.complete } }) {
                                         confirmingPartialFinish = true
                                     } else {
                                         AppHaptics.perform(view, AppHaptics.Cue.FINISH)
@@ -643,7 +643,12 @@ private fun FinishDayConfirmDialog(
 ) {
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets)) },
+        title = {
+            Text(
+                if (doneSets == totalSets) stringResource(R.string.day_finish_partner_open_confirm_title)
+                else stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets),
+            )
+        },
         text = { Text(stringResource(R.string.day_finish_partial_confirm_body)) },
         confirmButton = {
             DialogAction(
@@ -691,7 +696,7 @@ data class DayActions(
     val onWeightChange: (Long, String, Int, Double) -> Unit,
     val onRepsChange: (Long, String, Int, Int) -> Unit,
     val onSecondsChange: (Long, String, Int, Int) -> Unit,
-    val onToggleDone: (Long, Int, Boolean, Boolean) -> Unit,
+    val onToggleDone: (Long, Int, Boolean, String) -> Unit,
     val onAddSet: (Long, Boolean) -> Unit,
     val onRemoveSet: (Long, Int, Boolean) -> Unit,
     val onSelectPage: (String) -> Unit,

@@ -833,7 +833,7 @@ class DayViewModel @Inject constructor(
 
     fun logTimedRepCount() {
         val event = timedRepEvent.value?.takeIf { it.awaitingCount && it.count != null } ?: return
-        tickSet(event.programExerciseId, event.setIndex, true, false, event)
+        tickSet(event.programExerciseId, event.setIndex, true, Slot.MAIN, event)
     }
 
     override fun onCleared() {
@@ -879,15 +879,15 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    fun toggleDone(programExerciseId: Long, index: Int, checked: Boolean, isSuperset: Boolean) {
-        tickSet(programExerciseId, index, checked, isSuperset)
+    fun toggleDone(programExerciseId: Long, index: Int, checked: Boolean, slot: String) {
+        tickSet(programExerciseId, index, checked, slot)
     }
 
     private fun tickSet(
         programExerciseId: Long,
         index: Int,
         checked: Boolean,
-        isSuperset: Boolean,
+        slot: String,
         countEvent: TimedRepEvent? = null,
     ) {
         val day = currentDay() ?: return
@@ -898,45 +898,59 @@ class DayViewModel @Inject constructor(
                     !timedRepMatches(dayState.value, countEvent)
                 ) return@mutate
                 val planId = repo.planIdOfSlot(programExerciseId) ?: return@mutate
-                val slot = repo.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
+                val programSlot = repo.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
                     ?: return@mutate
-                val target = slot.exercise.prescription?.target as? PrescribedTarget.RepsInTime
-                if (slot.exercise.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return@mutate
+                val target = programSlot.exercise.prescription?.target as? PrescribedTarget.RepsInTime
+                if (programSlot.exercise.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return@mutate
             }
-            val storedMain = trackFor(day, programExerciseId, Slot.MAIN)
-            if (countEvent != null && storedMain.getOrNull(index)?.done != false) return@mutate
-            val main = if (countEvent == null) storedMain else storedMain.mapIndexed { i, set ->
-                if (i == index) set.copy(reps = countEvent.count ?: return@mutate, seconds = 0) else set
+            if (slot != Slot.MAIN && slot != Slot.SS) return@mutate
+            val stored = trackFor(day, programExerciseId, slot)
+            val row = stored.getOrNull(index) ?: return@mutate
+            if (countEvent != null && row.done) return@mutate
+            val updated = stored.mapIndexed { i, set ->
+                if (i != index) set else set.copy(
+                    done = checked,
+                    reps = countEvent?.count ?: set.reps,
+                    seconds = if (countEvent != null) 0 else set.seconds,
+                )
             }
-            // A missing partner track (never seeded) must stay missing — writing an
-            // empty SS row would mark it as seeded forever. Same rule as addSet.
-            val partner = if (isSuperset) {
-                trackFor(day, programExerciseId, Slot.SS).takeIf { it.isNotEmpty() }
-            } else {
-                null
-            }
-            val (newMain, newPartner) = DayScreenBuilder.applyRoundTick(main, partner, index, checked)
-            val result = if (newPartner != null) {
-                repo.updateSetsPaired(runId, day, programExerciseId, newMain, newPartner)
-            } else {
-                repo.updateSets(runId, day, programExerciseId, Slot.MAIN, newMain)
-            }
+            val result = repo.updateSets(runId, day, programExerciseId, slot, updated)
             if (result == RunWriteResult.Rejected) return@mutate
             if (countEvent != null) clearTimedRep()
-            if (checked && isSuperset && newMain != main) repo.markSupersetHelperSeen()
-            if (checked && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
-                val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
+            val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
+            val planId = repo.planIdOfSlot(programExerciseId) ?: return@mutate
+            val isSuperset = repo.slotsFor(planId, day).first()
+                .firstOrNull { it.programExerciseId == programExerciseId }?.exercise?.superset != null
+            if (checked && isSuperset && !row.done) repo.markSupersetHelperSeen()
+            val main = trackFor(day, programExerciseId, Slot.MAIN)
+            val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS).takeIf { it.isNotEmpty() } else null
+            val roundComplete = main.getOrNull(index)?.done == true &&
+                partner?.getOrNull(index)?.done != false
+            if (checked && roundComplete && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
                 val set = main.getOrNull(index)
                 if (card != null && set != null) {
                     val settings = repo.restSettingsFlow.first()
                     val seconds = RestPolicy.effectiveRestSeconds(set.kind, card.tracking, settings.overrides)
+                    val latest = repo.dayTracksFlow(planId, day).first().tracks
+                        .associateBy { it.programExerciseId to it.slot }
                     val projected = uiState.value.exercises.map { current ->
-                        if (current.programExerciseId != programExerciseId) current
-                        else current.copy(rows = current.rows.map { row -> if (row.index == index) row.copy(done = true) else row })
+                        current.copy(rows = current.rows.map { currentRow ->
+                            currentRow.copy(
+                                done = latest[current.programExerciseId to Slot.MAIN]?.sets
+                                    ?.getOrNull(currentRow.index)?.done == true,
+                                partner = currentRow.partner?.copy(
+                                    done = latest[current.programExerciseId to Slot.SS]?.sets
+                                        ?.getOrNull(currentRow.index)?.done == true,
+                                ),
+                            )
+                        })
                     }
-                    val nextCard = projected.firstOrNull { it.rows.any { row -> !row.done } }
-                    val nextRow = nextCard?.rows?.firstOrNull { !it.done }
-                    val next = if (nextCard != null && nextRow != null) "${nextCard.title} ${nextRow.kindLabel}" else ""
+                    val nextCard = projected.firstOrNull { it.rows.any { nextRow -> !nextRow.complete } }
+                    val nextRow = nextCard?.rows?.firstOrNull { !it.complete }
+                    val next = if (nextCard != null && nextRow != null) {
+                        val title = if (nextRow.nextSlot == Slot.SS) nextCard.partnerTitle.orEmpty() else nextCard.title
+                        "$title ${nextRow.kindLabel}"
+                    } else ""
                     PhoneRestTimer.start(clock.millis(), seconds, next)?.let { rest ->
                         repo.setPhoneRest(rest)
                         phoneRestRuntime.arm(rest)
@@ -1164,7 +1178,9 @@ class DayViewModel @Inject constructor(
             val rounds = tracks.tracks.filter { Slot.isRound(it.slot) }
             val completedSetCount = rounds.sumOf { track -> track.sets.count { it.done } } + tracks.retiredRoundsDone
             val totalSetCount = rounds.sumOf { it.sets.size } + tracks.retiredRoundsDone
-            if (completedSetCount == 0) return@mutate
+            if (tracks.tracks.none { track -> track.sets.any { it.done } } &&
+                tracks.retired.none { track -> track.sets.any { it.done } }
+            ) return@mutate
             val program = repo.programFor(planId).first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
             val dayIndex = program.days.indexOfFirst { it.id == day }
@@ -1707,7 +1723,7 @@ class DayViewModel @Inject constructor(
                 seconds = s.seconds,
                 done = s.done,
                 partner = partnerSets?.getOrNull(i)?.let {
-                    PartnerRowState(weightDisplay = unit.fromLb(it.weightLb), reps = it.reps, seconds = it.seconds)
+                    PartnerRowState(weightDisplay = unit.fromLb(it.weightLb), reps = it.reps, done = it.done, seconds = it.seconds)
                 },
             )
         }
@@ -1735,7 +1751,7 @@ class DayViewModel @Inject constructor(
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[pe.exerciseId], lastPerformed, unit),
             topSetComparison = DayScreenBuilder.topSetComparison(main, lastPerformed, unit),
             plateLine = DayScreenBuilder.plateLine(main, entry?.equipment.orEmpty(), unit),
-            allDone = DayScreenBuilder.allDone(main),
+            allDone = DayScreenBuilder.allDone(rows),
             focusIndex = DayScreenBuilder.focusIndex(rows),
             focusLabel = DayScreenBuilder.focusLabel(main.map { it.kind }, DayScreenBuilder.focusIndex(rows)),
             summaryLine = DayScreenBuilder.summaryLine(main, partnerSets, tracking, partnerTracking ?: TrackingType.WEIGHTED, unit),

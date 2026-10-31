@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.day
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
 import kotlinx.parcelize.Parcelize
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -73,6 +74,10 @@ data class DayUiState(
     /** Rounds ticked across active and retired MAIN tracks must match Today and the widget.
      *  A superset partner shares its round. Recomputed once per state, including copy(). */
     val doneSets: Int = exercises.sumOf { card -> card.rows.count { it.done } } + retiredRoundDoneCount
+
+    val canFinish: Boolean = exercises.any { card ->
+        card.rows.any { it.done || it.partner?.done == true }
+    } || retiredTracks.any { it.doneCount > 0 }
 
     /** Rounds this day holds in total, counted the same way as [doneSets]. */
     val totalSets: Int = exercises.sumOf { it.rows.size } + retiredRoundDoneCount
@@ -228,8 +233,7 @@ data class ExerciseCardState(
 
 /**
  * One logged round. For a plain exercise [partner] is null. For a superset the
- * partner sub-row is aligned at the same index and there is a single done tick per
- * round (checking the round dims both rows) — spec §8.2.
+ * partner sub-row is aligned at the same index; each track has its own done tick.
  */
 data class SetRowState(
     val index: Int,
@@ -246,7 +250,10 @@ data class SetRowState(
     val kind: SetKind = SetKind.WORK,
     /** One-based among RAMP sets; zero for every other kind. */
     val rampIndex: Int = 0,
-)
+) {
+    val complete: Boolean get() = done && partner?.done != false
+    val nextSlot: String get() = if (done && partner?.done == false) Slot.SS else Slot.MAIN
+}
 
 /**
  * The removed round retained while the Snackbar offers Undo. [DayViewModel]
@@ -269,10 +276,11 @@ data class RemovedSet(
     val partner: LoggedSet? = null,
 )
 
-/** The superset partner's independent weight/reps for one round (no own tick). */
+/** The superset partner's values and done tick for one round. */
 data class PartnerRowState(
     val weightDisplay: Double,
     val reps: Int,
+    val done: Boolean = false,
     /** TIMED tracks only; 0 (ignored) for WEIGHTED/REPS (§2.2). */
     val seconds: Int = 0,
 )

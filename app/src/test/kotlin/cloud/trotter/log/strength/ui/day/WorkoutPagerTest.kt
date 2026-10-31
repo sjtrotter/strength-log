@@ -202,6 +202,7 @@ class WorkoutPagerTest {
             }), nextTitle = null, onNext = {}, onEdit = {}, onAllSets = {}, canSwap = false,
                 onSwap = {}, onSwapWeight = { _, _ -> }, onNote = {})
         } }
+        rule.onNodeWithText("Incline DB Press").assertExists()
         rule.onNodeWithText("then Seated Cable Row 90 × 12").assertExists()
         rule.onNodeWithText("60 × 8 next").assertExists()
         rule.onNodeWithText("Log Incline DB Press 50 × 10").assertExists()
@@ -213,6 +214,8 @@ class WorkoutPagerTest {
         rule.onNodeWithText("then Seated Cable Row 90 × 12").assertDoesNotExist()
         rule.onNodeWithText("60 × 8 next").assertDoesNotExist()
         rule.onNodeWithText("Log Seated Cable Row 90 × 12").assertExists()
+        rule.onNodeWithText("Seated Cable Row").assertExists()
+        rule.onNodeWithText("Incline DB Press").assertDoesNotExist()
         rule.onNodeWithContentDescription("Log Seated Cable Row 90 × 12").performClick()
         rule.runOnIdle {
             assertTrue(row.complete)

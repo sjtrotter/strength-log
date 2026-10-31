@@ -106,10 +106,15 @@ internal fun ExercisePage(
     ) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(card.title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                // While the partner is logged, the header is the partner's; the goal and last time are the main lift's.
+                Text(
+                    if (shownPartner != null) card.partnerTitle ?: card.title else card.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f),
+                )
                 if (card.allDone) {
                     Checkbox(checked = true, onCheckedChange = null)
-                } else {
+                } else if (shownPartner == null) {
                     val target = card.headerTarget
                     Column(
                         // Share the space left after the menu with the title; generated headers keep their layout.

@@ -29,6 +29,8 @@ data class SetDto(
     // to a log without timing fields, so existing stored logs need no rewrite.
     val startedAtMillis: Long? = null,
     val completedAtMillis: Long? = null,
+    val plannedIndex: Int? = null,
+    val watchEditedAt: Long? = null,
 ) {
     fun toDomain(): LoggedSet =
         LoggedSet(
@@ -39,6 +41,8 @@ data class SetDto(
             seconds = seconds,
             startedAtMillis = startedAtMillis,
             completedAtMillis = completedAtMillis,
+            plannedIndex = plannedIndex,
+            watchEditedAt = watchEditedAt,
         )
 
     companion object {
@@ -51,6 +55,8 @@ data class SetDto(
                 seconds = set.seconds,
                 startedAtMillis = set.startedAtMillis,
                 completedAtMillis = set.completedAtMillis,
+                plannedIndex = set.plannedIndex,
+                watchEditedAt = set.watchEditedAt,
             )
     }
 }

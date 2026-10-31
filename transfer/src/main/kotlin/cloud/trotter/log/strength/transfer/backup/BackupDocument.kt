@@ -14,8 +14,9 @@ import kotlinx.serialization.Serializable
  * v8 nests the program under plans; v9 carries each plan's recipe and rotation;
  * v10 carries authored prescriptions; v11 carries authored cardio blocks;
  * v12 carries cardio activity and per-set results.
+ * v13 carries workout runs, each day's run identity, and archived prescriptions.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 12
+const val CURRENT_SCHEMA_VERSION: Int = 13
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -48,6 +49,7 @@ data class BackupDocument(
     val liveLogs: List<LiveLogBackup> = emptyList(),
     val sessions: List<SessionBackup> = emptyList(),
     val cardioSessions: List<CardioSessionBackup> = emptyList(),
+    val runs: List<RunBackup> = emptyList(),
 )
 
 @Serializable
@@ -182,6 +184,8 @@ data class ProgramDayBackup(
     val kind: String = "STRENGTH",
     val exercises: List<ProgramExerciseBackup> = emptyList(),
     val cardioBlockJson: String? = null,
+    val nextRunId: String = "",
+    val closedAt: Long? = null,
 )
 
 @Serializable
@@ -234,6 +238,8 @@ data class SessionBackup(
     val planId: Long? = null,
     /** Plan name copied at completion, so history survives a rename or archive. */
     val planName: String? = null,
+    val runId: String? = null,
+    val plannedJson: String? = null,
 )
 
 @Serializable
@@ -255,4 +261,32 @@ data class SessionSetBackup(
      *  The live logs need no counterpart: they carry `setsJson` verbatim. */
     val startedAtMillis: Long? = null,
     val completedAtMillis: Long? = null,
+    val trackPosition: Int? = null,
+    val plannedIndex: Int? = null,
+)
+
+/** An open workout and its ordered captured tracks. */
+@Serializable
+data class RunBackup(
+    val id: String,
+    val planId: Long?,
+    val dayId: String?,
+    val dayTitle: String,
+    val planName: String?,
+    val startedAt: Long,
+    val tracks: List<RunTrackBackup> = emptyList(),
+)
+
+/** A run track's prescription, actuals, and persistent identity. */
+@Serializable
+data class RunTrackBackup(
+    val id: Long,
+    val position: Int,
+    val programExerciseId: Long?,
+    val slot: String,
+    val exerciseId: String,
+    val retired: Boolean = false,
+    val plannedJson: String,
+    val setsJson: String,
+    val updatedAt: Long,
 )

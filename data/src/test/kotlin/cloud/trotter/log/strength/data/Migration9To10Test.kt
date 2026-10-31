@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_9_10
 import cloud.trotter.log.strength.data.db.MIGRATION_10_11
 import cloud.trotter.log.strength.data.db.MIGRATION_11_12
+import cloud.trotter.log.strength.data.db.MIGRATION_12_13
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
@@ -38,7 +39,7 @@ class Migration9To10Test {
             helper.close()
         }
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+            .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
             .allowMainThreadQueries()
             .build()
         try {

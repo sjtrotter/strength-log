@@ -21,6 +21,8 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
+import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toDomainOrNull
@@ -33,7 +35,11 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.serialization.PlannedTrackDto
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
+import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -99,6 +105,7 @@ open class TrackerRepository(
     private val customExerciseDao: CustomExerciseDao,
     private val settings: SettingsStore,
     private val clock: Clock = Clock.systemDefaultZone(),
+    private val mintRunId: () -> String = { UUID.randomUUID().toString() },
 ) {
 
     /** Clock-backed compatibility reading for non-app composition and tests. */
@@ -112,6 +119,7 @@ open class TrackerRepository(
     private val cardioSessionDao = db.cardioSessionDao()
     private val cardioSetResultDao = db.cardioSetResultDao()
     private val planDao = db.planDao()
+    private val runDao = db.runDao()
     private val planSettingsMigrationMutex = Mutex()
 
     /** Serializes plan selection and archive changes across Room and DataStore. */
@@ -410,7 +418,8 @@ open class TrackerRepository(
     }
 
     /** Commits a generated plan or fills the selected settings-only plan,
-     * returning its id without writing DataStore. */
+     * returning its id without writing DataStore.
+     * Removes no day: the rewrite branch fills only a plan with no days, so no run can be open on it. */
     open suspend fun createGeneratedPlan(name: String, answers: WizardAnswers, program: Program): Long {
         return planSelectionLock.withLock {
             val storedId = settings.selectedPlanIdFlow.first()
@@ -440,7 +449,7 @@ open class TrackerRepository(
                     ))
                 }
                 program.days.forEachIndexed { index, day ->
-                    programDao.upsertDay(day.toEntity(planId).copy(position = index))
+                    programDao.upsertDay(day.toEntity(planId).copy(position = index).freshRunId())
                     day.exercises.forEachIndexed { position, exercise ->
                         programDao.insertExercise(exercise.toEntity(planId, day.id, position))
                     }
@@ -471,7 +480,7 @@ open class TrackerRepository(
             createdAt = clock.millis(),
             suggestedDayId = "A",
         ))
-        programDao.upsertDay(ProgramDayEntity(id, "A", 0, dayTitle.trim(), "", null))
+        programDao.upsertDay(ProgramDayEntity(id, "A", 0, dayTitle.trim(), "", null).freshRunId())
         id
     }
 
@@ -492,7 +501,7 @@ open class TrackerRepository(
             ?.toString() ?: return@withTransaction null
         programDao.upsertDay(ProgramDayEntity(
             planId, letter, (days.maxOfOrNull { it.position } ?: -1) + 1, trimmed, "", null,
-        ))
+        ).freshRunId())
         letter
     }
 
@@ -506,21 +515,26 @@ open class TrackerRepository(
         }
     }
 
-    suspend fun removeDay(planId: Long, dayId: String): Boolean = db.withTransaction {
-        val plan = planDao.plan(planId) ?: return@withTransaction false
-        if (plan.origin != PlanOrigin.AUTHORED.name) return@withTransaction false
-        val days = programDao.daysForPlan(planId)
-        val removed = days.firstOrNull { it.dayId == dayId } ?: return@withTransaction false
-        if (days.size <= 1) return@withTransaction false
-        programDao.deleteLogsForDay(planId, dayId)
-        programDao.deleteExercisesForDay(planId, dayId)
-        programDao.deleteDay(planId, dayId)
-        if (plan.suggestedDayId == dayId) {
-            val remaining = days.filter { it.dayId != dayId }
-            val next = remaining.firstOrNull { it.position > removed.position } ?: remaining.first()
-            planDao.updateSuggestedDay(planId, next.dayId)
+    suspend fun removeDay(planId: Long, dayId: String): Boolean {
+        val bodyweight = configFlow.first().bodyweightLb
+        val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
+        return db.withTransaction {
+            val plan = planDao.plan(planId) ?: return@withTransaction false
+            if (plan.origin != PlanOrigin.AUTHORED.name) return@withTransaction false
+            val days = programDao.daysForPlan(planId)
+            val removed = days.firstOrNull { it.dayId == dayId } ?: return@withTransaction false
+            if (days.size <= 1) return@withTransaction false
+            closeRemovedRun(planId, setOf(dayId), bodyweight, catalog)
+            programDao.deleteLogsForDay(planId, dayId)
+            programDao.deleteExercisesForDay(planId, dayId)
+            programDao.deleteDay(planId, dayId)
+            if (plan.suggestedDayId == dayId) {
+                val remaining = days.filter { it.dayId != dayId }
+                val next = remaining.firstOrNull { it.position > removed.position } ?: remaining.first()
+                planDao.updateSuggestedDay(planId, next.dayId)
+            }
+            true
         }
-        true
     }
 
     /** Authored cardio is stored on its owning day; null removes it if an exercise remains. */
@@ -582,7 +596,7 @@ open class TrackerRepository(
             position = source.position + 1,
             createdAt = clock.millis(),
         ))
-        programDao.upsertDays(programDao.daysForPlan(id).map { it.copy(planId = copyId) })
+        programDao.upsertDays(programDao.daysForPlan(id).map { it.copy(planId = copyId).freshRunId() })
         val newIds = programDao.exercisesForPlan(id).associate { exercise ->
             exercise.id to programDao.insertExercise(exercise.copy(id = 0, planId = copyId))
         }
@@ -621,12 +635,15 @@ open class TrackerRepository(
     open suspend fun replaceProgram(program: Program) {
         ensurePlanSettingsMigrated()
         val planId = ensureSelectedPlan()
+        val bodyweight = configFlow.first().bodyweightLb
+        val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
         db.withTransaction {
+            closeRemovedRun(planId, programDao.daysForPlan(planId).map { it.dayId }.toSet(), bodyweight, catalog)
             programDao.deleteLogsForPlan(planId)
             programDao.deleteExercisesForPlan(planId)
             programDao.deleteDaysForPlan(planId)
             program.days.forEachIndexed { index, day ->
-                programDao.upsertDay(day.toEntity(planId).copy(position = index))
+                programDao.upsertDay(day.toEntity(planId).copy(position = index).freshRunId())
                 day.exercises.forEachIndexed { pos, pe ->
                     programDao.insertExercise(pe.toEntity(planId, day.id, pos))
                 }
@@ -764,12 +781,15 @@ open class TrackerRepository(
         val answers = wizardAnswersFlow.first()
         val regenerated = ProgramGenerator.generate(answers).program
         val newDay = regenerated.days.firstOrNull { it.id == dayId } ?: return
-        val position = programDao.day(planId, dayId)?.position
-            ?: regenerated.days.indexOfFirst { it.id == dayId }
         db.withTransaction {
+            val existing = programDao.day(planId, dayId)
+            val position = existing?.position ?: regenerated.days.indexOfFirst { it.id == dayId }
             programDao.deleteLogsForDay(planId, dayId)
             programDao.deleteExercisesForDay(planId, dayId)
-            programDao.upsertDay(newDay.toEntity(planId).copy(position = position))
+            val replacement = newDay.toEntity(planId).copy(position = position)
+            programDao.upsertDay(if (existing == null) replacement.freshRunId() else replacement.copy(
+                nextRunId = existing.nextRunId, closedAt = existing.closedAt,
+            ))
             newDay.exercises.forEachIndexed { pos, pe ->
                 programDao.insertExercise(pe.toEntity(planId, dayId, pos))
             }
@@ -1323,6 +1343,278 @@ open class TrackerRepository(
         return newSessionId
     }
 
+    private fun ProgramDayEntity.freshRunId(): ProgramDayEntity = copy(nextRunId = mintRunId(), closedAt = null)
+
+    /** The open workout and its tracks, independent of plan selection. */
+    val openRunFlow: Flow<OpenRun?> = runDao.observeOpenRun().flatMapLatest { run ->
+        if (run == null) flowOf(null) else runDao.observeTracks(run.id).map { tracks ->
+            OpenRun(run.id, run.planId, run.dayId, run.dayTitle, run.planName, run.startedAt, tracks.map { it.toRunTrack() })
+        }
+    }
+
+    private fun RunTrackEntity.toRunTrack(): RunTrack = RunTrack(
+        id, position, programExerciseId, slot, exerciseId, retired,
+        SetJson.decodeSets(plannedJson), SetJson.decodeSets(setsJson),
+    )
+
+    /** Atomically edits working values or starts and edits the addressed run. */
+    suspend fun applyToRun(
+        runId: String,
+        planId: Long,
+        dayId: String,
+        edits: List<TrackEdit>,
+        seeds: List<RunSeed> = emptyList(),
+    ): RunWriteResult = db.withTransaction {
+        if (runId.isBlank() || edits.isEmpty()) return@withTransaction RunWriteResult.Rejected
+        val day = programDao.day(planId, dayId) ?: return@withTransaction RunWriteResult.Rejected
+        val open = runDao.openRun()
+        if (open?.id == runId) {
+            if (open.planId != planId || open.dayId != dayId) return@withTransaction RunWriteResult.Rejected
+            val resolved = resolveRunEdits(runId, day, runDao.tracks(runId), edits, seeds)
+            if (resolved.failure != null) return@withTransaction resolved.failure
+            writeRunTracks(resolved.tracks)
+            return@withTransaction RunWriteResult.InRun(runId, false)
+        }
+        if (day.nextRunId != runId) return@withTransaction RunWriteResult.Rejected
+        val slots = programDao.exercisesForDay(planId, dayId).associateBy { it.id }
+        val working = linkedMapOf<Pair<Long, String>, List<LoggedSet>>()
+        var doneTick = false
+        for (edit in edits) {
+            val slot = slots[edit.programExerciseId] ?: return@withTransaction RunWriteResult.Rejected
+            if (slot.exerciseIdFor(edit.slot) == null) return@withTransaction RunWriteResult.Rejected
+            val key = edit.programExerciseId to edit.slot
+            val base = working[key] ?: workingBase(day, slot, edit.slot, seeds)
+                ?: return@withTransaction RunWriteResult.Rejected
+            val result = edit.transform(base) ?: return@withTransaction RunWriteResult.Unchanged
+            if (result.count { it.done } > base.count { it.done }) doneTick = true
+            working[key] = result
+        }
+        if (!doneTick) {
+            working.forEach { (key, result) ->
+                programDao.upsertLog(logEntity(planId, dayId, key.first, key.second, result))
+            }
+            return@withTransaction RunWriteResult.WorkingValues
+        }
+        if (open != null) return@withTransaction RunWriteResult.Rejected
+        val initial = initialRunTracks(day, seeds)
+        val resolved = resolveRunEdits(runId, day, initial, edits, seeds)
+        if (resolved.failure != null) return@withTransaction resolved.failure
+        startRun(day, initial)
+        val inserted = runDao.tracks(runId)
+        writeRunTracks(resolved.tracks.map { edited ->
+            edited.copy(id = inserted.first { it.sameKey(edited) }.id)
+        })
+        RunWriteResult.InRun(runId, true)
+    }
+
+    private data class ResolvedRunEdits(
+        val tracks: List<RunTrackEntity> = emptyList(),
+        val failure: RunWriteResult? = null,
+    )
+
+    private suspend fun resolveRunEdits(
+        runId: String,
+        day: ProgramDayEntity,
+        tracks: List<RunTrackEntity>,
+        edits: List<TrackEdit>,
+        seeds: List<RunSeed>,
+    ): ResolvedRunEdits {
+        val resolved = tracks.toMutableList()
+        val changed = linkedSetOf<Int>()
+        for (edit in edits) {
+            var index = resolved.indexOfFirst {
+                it.programExerciseId == edit.programExerciseId && it.slot == edit.slot &&
+                    (if (edit.exerciseId != null) it.exerciseId == edit.exerciseId else !it.retired)
+            }
+            if (index < 0) {
+                val seed = seeds.firstOrNull { it.programExerciseId == edit.programExerciseId && it.slot == edit.slot }
+                    ?: return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+                val slot = programDao.exercise(seed.programExerciseId)
+                    ?.takeIf { it.planId == day.planId && it.dayId == day.dayId }
+                    ?: return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+                val exerciseId = slot.exerciseIdFor(seed.slot)
+                    ?: return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+                if (edit.exerciseId != null && edit.exerciseId != exerciseId) {
+                    return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+                }
+                val candidate = runTrack(runId, slot, seed.slot, exerciseId, CarryForward.cleared(seed.sets))
+                if (resolved.any { it.sameKey(candidate) }) return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+                resolved.add(candidate)
+                index = resolved.lastIndex
+            }
+            val track = resolved[index]
+            val result = edit.transform(SetJson.decodeSets(track.setsJson))
+                ?: return ResolvedRunEdits(failure = RunWriteResult.Unchanged)
+            resolved[index] = track.copy(setsJson = SetJson.encodeSets(result), updatedAt = clock.millis())
+            changed.add(index)
+        }
+        return ResolvedRunEdits(changed.map { resolved[it] })
+    }
+
+    private fun RunTrackEntity.sameKey(other: RunTrackEntity): Boolean =
+        runId == other.runId && programExerciseId == other.programExerciseId && slot == other.slot && exerciseId == other.exerciseId
+
+    private suspend fun writeRunTracks(tracks: List<RunTrackEntity>) {
+        tracks.forEach { if (it.id == 0L) runDao.insertTrack(it) else runDao.updateTrack(it) }
+    }
+
+    private fun ProgramExerciseEntity.exerciseIdFor(slot: String): String? = when (slot) {
+        Slot.MAIN -> exerciseId
+        Slot.SS -> supersetExerciseId
+        else -> null
+    }
+
+    private suspend fun workingBase(
+        day: ProgramDayEntity,
+        slot: ProgramExerciseEntity,
+        slotName: String,
+        seeds: List<RunSeed>,
+    ): List<LoggedSet>? {
+        val stored = programDao.logForSlot(day.planId, day.dayId, slot.id, slotName)
+        val sets = stored?.let { SetJson.decodeSets(it.setsJson) }
+            ?: seeds.firstOrNull { it.programExerciseId == slot.id && it.slot == slotName }?.sets
+        return sets?.let(CarryForward::cleared)
+    }
+
+    private fun runTrack(
+        runId: String,
+        slot: ProgramExerciseEntity,
+        slotName: String,
+        exerciseId: String,
+        base: List<LoggedSet>,
+    ): RunTrackEntity = RunTrackEntity(
+        0, runId, slot.position, slot.id, slotName, exerciseId, false,
+        SetJson.encodeSets(base), SetJson.encodeSets(base.mapIndexed { i, s -> s.copy(plannedIndex = i) }), clock.millis(),
+    )
+
+    private suspend fun initialRunTracks(day: ProgramDayEntity, seeds: List<RunSeed>): List<RunTrackEntity> {
+        val tracks = mutableListOf<RunTrackEntity>()
+        for (slot in programDao.exercisesForDay(day.planId, day.dayId)) {
+            for (slotName in listOf(Slot.MAIN, Slot.SS)) {
+                val exerciseId = slot.exerciseIdFor(slotName) ?: continue
+                val base = workingBase(day, slot, slotName, seeds) ?: continue
+                tracks.add(runTrack(day.nextRunId, slot, slotName, exerciseId, base))
+            }
+        }
+        return tracks
+    }
+
+    private suspend fun startRun(day: ProgramDayEntity, tracks: List<RunTrackEntity>) {
+        runDao.insertRun(WorkoutRunEntity(
+            day.nextRunId, day.planId, day.dayId, day.title, planDao.plan(day.planId)?.name, clock.millis(),
+        ))
+        runDao.insertTracks(tracks)
+    }
+
+    /** Adds available seeds to the open run without replacing captured tracks. */
+    suspend fun seedRunTracksIfMissing(runId: String, seeds: List<RunSeed>) {
+        db.withTransaction {
+            val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction
+            val planId = run.planId ?: return@withTransaction
+            val dayId = run.dayId ?: return@withTransaction
+            val existing = runDao.tracks(runId).toMutableList()
+            for (seed in seeds) {
+                if (existing.any { it.programExerciseId == seed.programExerciseId && it.slot == seed.slot && !it.retired }) continue
+                val slot = programDao.exercise(seed.programExerciseId)
+                    ?.takeIf { it.planId == planId && it.dayId == dayId } ?: continue
+                val exerciseId = slot.exerciseIdFor(seed.slot) ?: continue
+                val track = runTrack(runId, slot, seed.slot, exerciseId, CarryForward.cleared(seed.sets))
+                if (existing.any { it.sameKey(track) }) continue
+                runDao.insertTrack(track)
+                existing.add(track)
+            }
+        }
+    }
+
+    /** Archives a run once, carries forward its working values, and advances its day. */
+    suspend fun finishRun(runId: String): Long? {
+        val bodyweight = configFlow.first().bodyweightLb
+        val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
+        return db.withTransaction {
+            sessionDao.sessionByRunId(runId)?.let { return@withTransaction it.id }
+            val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction null
+            val tracks = runDao.tracks(runId)
+            val now = clock.millis()
+            val sessionId = archiveRun(run, tracks, bodyweight, catalog, now)
+            val day = run.planId?.let { planId -> run.dayId?.let { programDao.day(planId, it) } }
+            if (day != null && day.nextRunId == run.id) {
+                carryForward(day, tracks)
+                planDao.plan(day.planId)?.let { advanceRotation(it, day.dayId) }
+                programDao.closeDay(day.planId, day.dayId, mintRunId(), now)
+            }
+            runDao.deleteTracks(runId)
+            runDao.deleteRun(runId)
+            sessionId
+        }
+    }
+
+    private suspend fun archiveRun(
+        run: WorkoutRunEntity,
+        tracks: List<RunTrackEntity>,
+        bodyweight: Int,
+        catalog: ExerciseCatalog,
+        now: Long,
+    ): Long {
+        val sessionId = sessionDao.insertSession(WorkoutSessionEntity(
+            id = 0, dayId = run.dayId ?: "", dayTitle = run.dayTitle, startedAt = run.startedAt,
+            completedAt = now, bodyweightLb = bodyweight, planId = run.planId,
+            planName = run.planId?.let { planDao.plan(it)?.name } ?: run.planName, runId = run.id,
+            plannedJson = SessionPlanJson.encode(tracks.map {
+                PlannedTrackDto(it.position, it.exerciseId, it.slot, it.retired, SetJson.decodeSets(it.plannedJson).map(SetDto::of))
+            }),
+        ))
+        sessionDao.insertSets(tracks.flatMap { track ->
+            SetJson.decodeSets(track.setsJson).mapIndexedNotNull { index, set ->
+                if (track.retired && !set.done) null else SessionSetEntity(
+                    id = 0, sessionId = sessionId, exerciseId = track.exerciseId,
+                    exerciseName = catalog.find(track.exerciseId)?.name ?: track.exerciseId,
+                    slot = track.slot, setIndex = index, kind = set.kind.name, weightLb = set.weightLb,
+                    reps = set.reps, done = set.done, seconds = set.seconds, startedAtMillis = set.startedAtMillis,
+                    completedAtMillis = set.completedAtMillis, trackPosition = track.position, plannedIndex = set.plannedIndex,
+                )
+            }
+        })
+        return sessionId
+    }
+
+    private suspend fun carryForward(day: ProgramDayEntity, tracks: List<RunTrackEntity>) {
+        val slots = programDao.exercisesForDay(day.planId, day.dayId).associateBy { it.id }
+        for (track in tracks) {
+            if (track.retired) continue
+            val slot = slots[track.programExerciseId] ?: continue
+            if (slot.exerciseIdFor(track.slot) != track.exerciseId) continue
+            if (slot.prescriptionJson != null) {
+                programDao.deleteLogForSlot(day.planId, day.dayId, slot.id, track.slot)
+            } else {
+                programDao.upsertLog(logEntity(day.planId, day.dayId, slot.id, track.slot, CarryForward.next(
+                    SetJson.decodeSets(track.plannedJson), SetJson.decodeSets(track.setsJson),
+                )))
+            }
+        }
+    }
+
+    /** Drops actuals, preserving working values and plan edits, and closes the day's identity. */
+    suspend fun discardRun(runId: String): Boolean = db.withTransaction {
+        val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction false
+        val day = run.planId?.let { planId -> run.dayId?.let { programDao.day(planId, it) } }
+        if (day != null && day.nextRunId == run.id) {
+            programDao.closeDay(day.planId, day.dayId, mintRunId(), clock.millis())
+        }
+        runDao.deleteTracks(runId)
+        runDao.deleteRun(runId)
+        true
+    }
+
+    private suspend fun closeRemovedRun(planId: Long, dayIds: Set<String>, bodyweight: Int, catalog: ExerciseCatalog) {
+        val run = runDao.openRun()?.takeIf { it.planId == planId && it.dayId in dayIds } ?: return
+        val tracks = runDao.tracks(run.id)
+        if (tracks.any { track -> SetJson.decodeSets(track.setsJson).any { it.done } }) {
+            archiveRun(run, tracks, bodyweight, catalog, clock.millis())
+        }
+        runDao.deleteTracks(run.id)
+        runDao.deleteRun(run.id)
+    }
+
     // --- full backup (A2) ----------------------------------------------------
 
     /**
@@ -1373,6 +1665,8 @@ open class TrackerRepository(
                 sessionSets = sessionDao.allSessionSets(),
                 cardioSessions = cardioSessionDao.all(),
                 cardioSetResults = cardioSetResultDao.all(),
+                runs = runDao.allRuns(),
+                runTracks = runDao.allTracks(),
             )
         }
     }
@@ -1426,6 +1720,8 @@ open class TrackerRepository(
             throw RestoreInterruption.NotStarted(e)
         }
         db.withTransaction {
+            runDao.deleteAllTracks()
+            runDao.deleteAllRuns()
             programDao.deleteAllLogs()
             programDao.deleteAllExercises()
             programDao.deleteAllDays()
@@ -1461,13 +1757,15 @@ open class TrackerRepository(
                 }
             }
             customExerciseDao.upsertAll(snapshot.customExercises)
-            programDao.upsertDays(snapshot.days)
+            programDao.upsertDays(snapshot.days.map { if (it.nextRunId.isBlank()) it.freshRunId() else it })
             programDao.insertExercises(snapshot.exercises)
             programDao.insertLogs(snapshot.logs)
             sessionDao.insertSessions(snapshot.sessions)
             sessionDao.insertSets(snapshot.sessionSets)
             cardioSessionDao.insertAll(snapshot.cardioSessions)
             cardioSetResultDao.insertAll(snapshot.cardioSetResults)
+            runDao.insertRuns(snapshot.runs)
+            runDao.insertTracks(snapshot.runTracks)
             restoreMarkerDao.put(RestoreMarkerEntity(nonce = nonce))
         }
         withContext(NonCancellable) {

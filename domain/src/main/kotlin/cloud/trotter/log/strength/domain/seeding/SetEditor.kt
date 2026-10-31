@@ -16,20 +16,21 @@ object SetEditor {
      * RAMP row (from [StrengthStandards.RAMP_PCTS], in order) and the BACKOFF
      * row (× [StrengthStandards.BACKOFF]) off the new top weight, rounded to 5.
      * Reps, WORK/EXTRA rows, and every non-TOP edit are left untouched.
+     * Rows already done keep their weight.
      */
     fun editWeight(sets: List<LoggedSet>, index: Int, newWeightLb: Double): List<LoggedSet> {
         if (sets[index].kind != SetKind.TOP) {
             return sets.mapIndexed { i, s -> if (i == index) s.copy(weightLb = newWeightLb) else s }
         }
         var rampSeen = 0
-        return sets.map { s ->
+        return sets.mapIndexed { i, s ->
             when (s.kind) {
                 SetKind.RAMP -> {
                     val pct = StrengthStandards.RAMP_PCTS[rampSeen++]
-                    s.copy(weightLb = GoalCalculator.round5(newWeightLb * pct))
+                    if (s.done) s else s.copy(weightLb = GoalCalculator.round5(newWeightLb * pct))
                 }
-                SetKind.TOP -> s.copy(weightLb = newWeightLb)
-                SetKind.BACKOFF -> s.copy(weightLb = GoalCalculator.round5(newWeightLb * StrengthStandards.BACKOFF))
+                SetKind.TOP -> if (s.done && i != index) s else s.copy(weightLb = newWeightLb)
+                SetKind.BACKOFF -> if (s.done) s else s.copy(weightLb = GoalCalculator.round5(newWeightLb * StrengthStandards.BACKOFF))
                 SetKind.WORK, SetKind.EXTRA -> s
             }
         }
@@ -46,7 +47,7 @@ object SetEditor {
     /** "+ add set" appends a copy of the last row as an EXTRA. */
     fun addSet(sets: List<LoggedSet>): List<LoggedSet> {
         val last = sets.last()
-        return sets + last.copy(kind = SetKind.EXTRA, done = false)
+        return sets + last.copy(kind = SetKind.EXTRA, done = false, plannedIndex = null, watchEditedAt = null)
     }
 
     /** Remove a row; never drop below one set. */

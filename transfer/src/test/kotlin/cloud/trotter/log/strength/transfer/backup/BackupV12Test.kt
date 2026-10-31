@@ -46,7 +46,7 @@ class BackupV12Test {
         val before = document()
         val text = codec.encode(before)
         val decoded = codec.decode(text)
-        assertEquals(12, decoded.schemaVersion)
+        assertEquals(CURRENT_SCHEMA_VERSION, decoded.schemaVersion)
         assertEquals(before, decoded)
         val snapshot = decoded.toSnapshot()
         assertEquals("TRACK_RUN", snapshot.cardioSessions.single().activity)

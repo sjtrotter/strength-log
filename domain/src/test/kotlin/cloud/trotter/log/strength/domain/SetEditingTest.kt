@@ -70,6 +70,34 @@ class SetEditingTest {
         assertEquals(3, s3.size)
     }
 
+    /** [F] */
+    @Test
+    fun `top cascade keeps completed ramps and their percentage positions`() {
+        val actual = squat().mapIndexed { i, set -> set.copy(done = i < 2) }
+        val result = SetEditor.editWeight(actual, 4, 245.0)
+        assertEquals(listOf(130.0, 165.0, 195.0, 220.0, 245.0, 185.0), result.map { it.weightLb })
+        assertTrue(result.take(2).all { it.done })
+    }
+
+    /** The directly edited TOP remains editable after completion. */
+    @Test
+    fun `an edited completed top still takes its new weight`() {
+        val actual = squat().mapIndexed { i, set -> set.copy(done = i == 4) }
+        val result = SetEditor.editWeight(actual, 4, 245.0)
+        assertEquals(listOf(135.0, 170.0, 195.0, 220.0, 245.0, 185.0), result.map { it.weightLb })
+        assertTrue(result[4].done)
+    }
+
+    /** [F] */
+    @Test
+    fun `extra row drops planned identity and watch stamp`() {
+        val actual = listOf(LoggedSet(100.0, 5, SetKind.WORK, plannedIndex = 2, watchEditedAt = 123))
+        val extra = SetEditor.addSet(actual).last()
+        assertEquals(SetKind.EXTRA, extra.kind)
+        assertEquals(null, extra.plannedIndex)
+        assertEquals(null, extra.watchEditedAt)
+    }
+
     // --- undo of a remove ----------------------------------------------------
 
     @Test

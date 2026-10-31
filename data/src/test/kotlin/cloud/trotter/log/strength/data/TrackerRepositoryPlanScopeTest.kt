@@ -584,7 +584,10 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(source.recipeJson, copiedPlan.recipeJson)
         assertEquals(source.suggestedDayId, copiedPlan.suggestedDayId)
         assertEquals(source.origin, copiedPlan.origin)
-        assertEquals(db.programDao().daysForPlan(1).map { it.copy(planId = copy) }, db.programDao().daysForPlan(copy))
+        assertEquals(
+            db.programDao().daysForPlan(1).map { it.copy(planId = copy, nextRunId = "", closedAt = null) },
+            db.programDao().daysForPlan(copy).map { it.copy(nextRunId = "", closedAt = null) },
+        )
         val copiedCardioDay = db.programDao().daysForPlan(copy).single { it.dayId == "C" }
         assertEquals(ProgramDayKind.CARDIO.name, copiedCardioDay.kind)
         assertTrue(copiedCardioDay.cardioJson != null)
@@ -918,7 +921,10 @@ class TrackerRepositoryPlanScopeTest {
 
         val original = db.programDao().daysForPlan(sourceId).single()
         val copied = db.programDao().daysForPlan(copyId).single()
-        assertEquals(original.copy(planId = copyId), copied)
+        assertEquals(
+            original.copy(planId = copyId, nextRunId = "", closedAt = null),
+            copied.copy(nextRunId = "", closedAt = null),
+        )
         assertEquals(CardioBlockJson.encode(block), copied.cardioBlockJson)
         assertEquals(day, copied.toDomain(emptyList()))
         assertTrue(db.programDao().exercisesForPlan(copyId).isEmpty())

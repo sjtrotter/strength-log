@@ -43,6 +43,10 @@ data class ProgramDayEntity(
     /** [ProgramDayKind.name]; pre-v7 rows migrate to STRENGTH. */
     val kind: String = "STRENGTH",
     val cardioBlockJson: String? = null,
+    /** This day's next run identity, minted when the day is created and at every close. Blank only before minting; `copy()` keeps it, so a copied day must mint again. */
+    val nextRunId: String = "",
+    /** When this day's last run finished or was discarded. */
+    val closedAt: Long? = null,
 )
 
 /** One exercise slot inside a plan day, ordered by [position] within its [dayId] (spec §7). */

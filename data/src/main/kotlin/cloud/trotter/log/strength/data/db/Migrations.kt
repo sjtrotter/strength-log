@@ -257,3 +257,39 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
         )
     }
 }
+
+/** v12 → v13: workout runs. Additive; existing rows keep their meaning, and each day gets its run identity. */
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE program_day ADD COLUMN nextRunId TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE program_day ADD COLUMN closedAt INTEGER")
+        db.execSQL("ALTER TABLE workout_session ADD COLUMN runId TEXT")
+        db.execSQL("ALTER TABLE workout_session ADD COLUMN plannedJson TEXT")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_workout_session_runId` ON `workout_session` (`runId`)")
+        db.execSQL("ALTER TABLE session_set ADD COLUMN trackPosition INTEGER")
+        db.execSQL("ALTER TABLE session_set ADD COLUMN plannedIndex INTEGER")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `workout_run` (`id` TEXT NOT NULL, `planId` INTEGER, `dayId` TEXT, " +
+                "`dayTitle` TEXT NOT NULL, `planName` TEXT, `startedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `run_track` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`runId` TEXT NOT NULL, `position` INTEGER NOT NULL, `programExerciseId` INTEGER, " +
+                "`slot` TEXT NOT NULL, `exerciseId` TEXT NOT NULL, `retired` INTEGER NOT NULL DEFAULT 0, " +
+                "`plannedJson` TEXT NOT NULL, `setsJson` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_run_track_runId` ON `run_track` (`runId`)")
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_run_track_runId_programExerciseId_slot_exerciseId` " +
+                "ON `run_track` (`runId`, `programExerciseId`, `slot`, `exerciseId`)",
+        )
+        db.query("SELECT planId, dayId FROM program_day").use { cursor ->
+            while (cursor.moveToNext()) {
+                db.execSQL(
+                    "UPDATE program_day SET nextRunId = ? WHERE planId = ? AND dayId = ?",
+                    arrayOf(java.util.UUID.randomUUID().toString(), cursor.getLong(0), cursor.getString(1)),
+                )
+            }
+        }
+    }
+}

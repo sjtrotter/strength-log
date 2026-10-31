@@ -73,6 +73,10 @@ data class PlanLastSessionRow(val planId: Long, val completedAt: Long)
 /** Workout history (PLAN.md A1), editable in the single-user on-device store. */
 @Dao
 interface SessionDao {
+    /** Finds a completed run so Finish can safely be replayed. */
+    @Query("SELECT * FROM workout_session WHERE runId = :runId")
+    suspend fun sessionByRunId(runId: String): WorkoutSessionEntity?
+
 
     @Query(
         """

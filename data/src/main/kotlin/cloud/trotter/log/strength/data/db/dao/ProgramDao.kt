@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.Flow
 /** Program (days + exercise slots) and the live per-slot logs. */
 @Dao
 interface ProgramDao {
+    /** Closes a day's run and assigns the identity for its next preview. */
+    @Query("UPDATE program_day SET nextRunId = :nextRunId, closedAt = :closedAt WHERE planId = :planId AND dayId = :dayId")
+    suspend fun closeDay(planId: Long, dayId: String, nextRunId: String, closedAt: Long)
+
 
     // --- reads (Flow) --------------------------------------------------------
 

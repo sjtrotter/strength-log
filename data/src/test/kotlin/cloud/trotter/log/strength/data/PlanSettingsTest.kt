@@ -352,7 +352,10 @@ class PlanSettingsTest {
         val one = strengthAnswers()
         val two = physiqueAnswers()
         db.planDao().insertPlans(listOf(plan(1, one, "B"), plan(2, two, "D")))
-        db.programDao().upsertDays(listOf(day(1, "B", 0), day(2, "D", 0)))
+        db.programDao().upsertDays(listOf(
+            day(1, "B", 0).copy(nextRunId = "plan-1-B"),
+            day(2, "D", 0).copy(nextRunId = "plan-2-D"),
+        ))
         settings.setSelectedPlanId(2)
         val snapshot = repo.exportSnapshot()
         assertEquals(two, snapshot.answers)

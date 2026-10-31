@@ -8,6 +8,7 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_10_11
 import cloud.trotter.log.strength.data.db.MIGRATION_11_12
+import cloud.trotter.log.strength.data.db.MIGRATION_12_13
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.mapping.toDomain
@@ -53,7 +54,7 @@ class Migration10To11Test {
             kind = "CARDIO", cardioBlockJson = CardioBlockJson.encode(block))
         val db = open()
         try {
-            assertEquals(listOf(original), db.programDao().allDays())
+            assertEquals(listOf(original), db.programDao().allDays().withoutRunIdentity())
             assertNull(db.programDao().allDays().single().cardioBlockJson)
             assertEquals(legacy, db.programDao().allDays().single().toDomain(emptyList()).cardio)
             assertEquals("[]", db.programDao().allLogs().single().setsJson)
@@ -69,15 +70,18 @@ class Migration10To11Test {
         }
         val reopened = open()
         try {
-            assertEquals(listOf(original, authored), reopened.programDao().allDays())
+            assertEquals(listOf(original, authored), reopened.programDao().allDays().withoutRunIdentity())
             assertEquals(block, CardioBlockJson.decode(reopened.programDao().day(1, "B")!!.cardioBlockJson))
         } finally {
             reopened.close()
         }
     }
 
+    // v13 mints each day's run identity; this test pins the v10 to v11 fields.
+    private fun List<ProgramDayEntity>.withoutRunIdentity() = map { it.copy(nextRunId = "", closedAt = null) }
+
     private fun open(): StrengthDatabase = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-        .addMigrations(MIGRATION_10_11, MIGRATION_11_12)
+        .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
         .allowMainThreadQueries()
         .build()
 

@@ -112,9 +112,9 @@ class BackupRoundTripTest : BackupTestHarness() {
             recipeJson = PlanRecipeJson.encode(secondAnswers), suggestedDayId = "C",
         ))
         db.programDao().upsertDays(listOf(
-            ProgramDayEntity(2, "A", 0, "Test A", "Bench-focused", null),
-            ProgramDayEntity(2, "B", 1, "Test B", "Squat-focused", null),
-            ProgramDayEntity(2, "C", 2, "Test C", "Row-focused", null),
+            ProgramDayEntity(2, "A", 0, "Test A", "Bench-focused", null, nextRunId = "run-2A"),
+            ProgramDayEntity(2, "B", 1, "Test B", "Squat-focused", null, nextRunId = "run-2B"),
+            ProgramDayEntity(2, "C", 2, "Test C", "Row-focused", null, nextRunId = "run-2C"),
         ))
         val benchId = db.programDao().insertExercise(
             ProgramExerciseEntity(21, 2, "A", 0, "bb_bench", true, 3, "8", false, null, "pause"),

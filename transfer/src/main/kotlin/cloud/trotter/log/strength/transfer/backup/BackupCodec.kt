@@ -99,7 +99,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, 12, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -140,12 +140,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
         val withDayFields = if (version < 11) withoutFutureDayFields(shaped, version) else shaped
+        val withRunFields = if (version < 13) withoutRunFields(withDayFields) else withDayFields
         val versioned = if (version < 12) {
-            val sessions = withDayFields["cardioSessions"] as? JsonArray
-            if (sessions == null) withDayFields else JsonObject(withDayFields + ("cardioSessions" to JsonArray(
+            val sessions = withRunFields["cardioSessions"] as? JsonArray
+            if (sessions == null) withRunFields else JsonObject(withRunFields + ("cardioSessions" to JsonArray(
                 sessions.map { if (it is JsonObject) JsonObject(it - "activity" - "sets") else it },
             )))
-        } else withDayFields
+        } else withRunFields
         val document = try {
             json.decodeFromJsonElement(BackupDocument.serializer(), versioned)
         } catch (e: SerializationException) {
@@ -155,6 +156,35 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             throw BackupError.Malformed("program must be empty in schema v$version")
         }
         return document
+    }
+
+    private fun withoutRunFields(root: JsonObject): JsonObject {
+        fun stripDays(value: JsonElement?): JsonElement? = (value as? JsonArray)?.let { days ->
+            JsonArray(days.map { if (it is JsonObject) JsonObject(it - "nextRunId" - "closedAt") else it })
+        } ?: value
+        return JsonObject(root.toMutableMap().apply {
+            remove("runs")
+            stripDays(get("program"))?.let { put("program", it) }
+            (get("plans") as? JsonArray)?.let { plans ->
+                put("plans", JsonArray(plans.map { plan ->
+                    if (plan !is JsonObject) plan else {
+                        val days = stripDays(plan["days"])
+                        if (days == null) plan else JsonObject(plan + ("days" to days))
+                    }
+                }))
+            }
+            (get("sessions") as? JsonArray)?.let { sessions ->
+                put("sessions", JsonArray(sessions.map { session ->
+                    if (session !is JsonObject) session else {
+                        val row = JsonObject(session - "runId" - "plannedJson")
+                        val sets = row["sets"] as? JsonArray
+                        if (sets == null) row else JsonObject(row + ("sets" to JsonArray(sets.map {
+                            if (it is JsonObject) JsonObject(it - "trackPosition" - "plannedIndex") else it
+                        })))
+                    }
+                }))
+            }
+        })
     }
 
     private fun withoutFutureDayFields(root: JsonObject, version: Int): JsonObject {
@@ -302,6 +332,49 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         validateSessions(doc.sessions)
         validateCardioSessions(doc.cardioSessions)
         if (doc.schemaVersion >= 12) validateCardioSets(doc.cardioSessions)
+        if (doc.schemaVersion >= 13) validateRuns(doc)
+    }
+
+    private fun validateRuns(doc: BackupDocument) {
+        val days = doc.plans.flatMap { plan -> plan.days.map { (plan.id to it.dayId) to it } }
+        val identities = HashSet<String>()
+        for ((_, day) in days) {
+            if (day.nextRunId.isNotBlank() && !identities.add(day.nextRunId)) {
+                throw BackupError.Inconsistent("duplicate nextRunId on day '${day.dayId}'")
+            }
+        }
+        if (doc.runs.size > 1) throw BackupError.Inconsistent("at most one workout run may be open")
+        val trackIds = HashSet<Long>()
+        for (run in doc.runs) {
+            val day = days.firstOrNull { it.first == (run.planId to run.dayId) }?.second
+            if (run.id.isBlank() || day == null || day.nextRunId != run.id) {
+                throw BackupError.Inconsistent("run '${run.id}' must match its day's nextRunId")
+            }
+            val trackKeys = HashSet<Triple<Long?, String, String>>()
+            for (track in run.tracks) {
+                if (!trackIds.add(track.id)) {
+                    throw BackupError.Inconsistent("duplicate run-track id ${track.id}")
+                }
+                if (!trackKeys.add(Triple(track.programExerciseId, track.slot, track.exerciseId))) {
+                    throw BackupError.Inconsistent("duplicate track key in run '${run.id}'")
+                }
+                if (track.slot != Slot.MAIN && track.slot != Slot.SS) {
+                    throw BackupError.Inconsistent("unknown run-track slot '${track.slot}'")
+                }
+                decodePayload("plannedJson of run track ${track.id}", malformed = true) { SetJson.decodeSets(track.plannedJson) }
+                decodePayload("setsJson of run track ${track.id}", malformed = true) { SetJson.decodeSets(track.setsJson) }
+            }
+        }
+        val sessionRunIds = HashSet<String>()
+        for (session in doc.sessions) {
+            val runId = session.runId ?: continue
+            if (runId.isBlank() || !sessionRunIds.add(runId)) {
+                throw BackupError.Inconsistent("blank or duplicate session runId '$runId'")
+            }
+            if (runId in identities) {
+                throw BackupError.Inconsistent("session runId '$runId' is a day's nextRunId")
+            }
+        }
     }
 
     private fun validateSuggestedDay(suggestedDay: String?, days: List<ProgramDayBackup>) {
@@ -497,10 +570,11 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
 
     /** Runs one of `:data`'s own payload codecs (SSOT — the exact decoders the app
      *  uses at read time) and converts any failure to the typed error. */
-    private fun <T> decodePayload(what: String, decode: () -> T): T =
+    private fun <T> decodePayload(what: String, malformed: Boolean = false, decode: () -> T): T =
         try {
             decode()
         } catch (e: Exception) {
+            if (malformed) throw BackupError.Malformed("$what: ${e.message}", e)
             throw BackupError.InvalidPayload("$what: ${e.message}", e)
         }
 

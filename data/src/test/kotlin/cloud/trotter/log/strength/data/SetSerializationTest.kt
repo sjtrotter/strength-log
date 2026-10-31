@@ -13,6 +13,22 @@ import kotlin.test.assertTrue
 /** Round-trip tests for everything `:data` stores in a text column (spec §11.2). */
 class SetSerializationTest {
 
+    /** Null run metadata must preserve the legacy encoding byte for byte. */
+    @Test
+    fun `a legacy work row encodes byte identically`() {
+        assertEquals(
+            """[{"weightLb":100.0,"reps":5,"kind":"WORK","done":false}]""",
+            SetJson.encodeSets(listOf(LoggedSet(100.0, 5, SetKind.WORK))),
+        )
+    }
+
+    /** [F] */
+    @Test
+    fun `run row identity and watch stamp round trip`() {
+        val sets = listOf(LoggedSet(100.0, 5, SetKind.WORK, plannedIndex = 2, watchEditedAt = 123))
+        assertEquals(sets, SetJson.decodeSets(SetJson.encodeSets(sets)))
+    }
+
     @Test
     fun `a seeded main-lift sequence round-trips exactly`() {
         // The pinned squat sequence (spec §11): ramps, top, back-off, mixed reps.

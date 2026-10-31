@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.db.dao.CardioSetResultDao
 import cloud.trotter.log.strength.data.db.dao.PlanDao
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.dao.RestoreMarkerDao
+import cloud.trotter.log.strength.data.db.dao.RunDao
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -19,7 +20,9 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
+import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 
 @Database(
@@ -34,11 +37,16 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
         CardioSessionEntity::class,
         CardioSetResultEntity::class,
         PlanEntity::class,
+        WorkoutRunEntity::class,
+        RunTrackEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class StrengthDatabase : RoomDatabase() {
+    /** Open workout persistence. */
+    abstract fun runDao(): RunDao
+
     abstract fun programDao(): ProgramDao
     abstract fun sessionDao(): SessionDao
     abstract fun customExerciseDao(): CustomExerciseDao
@@ -71,6 +79,7 @@ abstract class StrengthDatabase : RoomDatabase() {
                     MIGRATION_9_10,
                     MIGRATION_10_11,
                     MIGRATION_11_12,
+                    MIGRATION_12_13,
                 )
                 .build()
     }

@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
  * A record of one completed workout, appended when the user taps
  * "DONE — advance" (PLAN.md A1) and later editable in the history log.
  */
-@Entity(tableName = "workout_session")
+@Entity(tableName = "workout_session", indices = [Index(value = ["runId"], unique = true)])
 data class WorkoutSessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long,
     val dayId: String,
@@ -29,6 +29,8 @@ data class WorkoutSessionEntity(
     /** [PlanEntity.name] copied at completion, so history survives a rename or
      *  archive — the same rule as `exerciseName` on set rows. */
     val planName: String? = null,
+    val runId: String? = null,
+    val plannedJson: String? = null,
 )
 
 /**
@@ -63,4 +65,6 @@ data class SessionSetEntity(
      *  derived from these on read; nothing derived is stored. */
     val startedAtMillis: Long? = null,
     val completedAtMillis: Long? = null,
+    val trackPosition: Int? = null,
+    val plannedIndex: Int? = null,
 )

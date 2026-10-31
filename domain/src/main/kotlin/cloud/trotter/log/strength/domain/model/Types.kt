@@ -36,6 +36,10 @@ data class LoggedSet(
     // Active time and actual rest are *derived* from these, never stored.
     val startedAtMillis: Long? = null,
     val completedAtMillis: Long? = null,
+    /** The planned row this actual answers; run tracks only. */
+    val plannedIndex: Int? = null,
+    /** The newest watch stamp applied to this row. */
+    val watchEditedAt: Long? = null,
 )
 
 data class SupersetPartner(val exerciseId: String) // refers into ExerciseLibrary

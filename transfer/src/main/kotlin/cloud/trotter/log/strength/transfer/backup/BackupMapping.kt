@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.transfer.backup
 
 import cloud.trotter.log.strength.data.FullSnapshot
+import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
+import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
@@ -95,6 +97,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         cardioJson = day.cardioJson,
                         kind = day.kind,
                         cardioBlockJson = day.cardioBlockJson,
+                        nextRunId = day.nextRunId,
+                        closedAt = day.closedAt,
                         exercises = exercisesByDay[plan.id to day.dayId].orEmpty().sortedBy { it.position }.map { ex ->
                             ProgramExerciseBackup(
                                 id = ex.id,
@@ -109,6 +113,14 @@ fun FullSnapshot.toDocument(): BackupDocument {
                             )
                         },
                     )
+                },
+            )
+        },
+        runs = runs.map { run ->
+            RunBackup(run.id, run.planId, run.dayId, run.dayTitle, run.planName, run.startedAt,
+                runTracks.filter { it.runId == run.id }.sortedWith(compareBy({ it.position }, { it.slot }, { it.id })).map {
+                    RunTrackBackup(it.id, it.position, it.programExerciseId, it.slot, it.exerciseId,
+                        it.retired, it.plannedJson, it.setsJson, it.updatedAt)
                 },
             )
         },
@@ -146,10 +158,14 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         seconds = set.seconds,
                         startedAtMillis = set.startedAtMillis,
                         completedAtMillis = set.completedAtMillis,
+                        trackPosition = set.trackPosition,
+                        plannedIndex = set.plannedIndex,
                     )
                 },
                 planId = s.planId,
                 planName = s.planName,
+                runId = s.runId,
+                plannedJson = s.plannedJson,
             )
         },
         cardioSessions = cardioSessions.map {
@@ -217,6 +233,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 cardioJson = day.cardioJson,
                 kind = day.kind,
                 cardioBlockJson = if (schemaVersion >= 11) day.cardioBlockJson else null,
+                nextRunId = if (schemaVersion >= 13) day.nextRunId else "",
+                closedAt = if (schemaVersion >= 13) day.closedAt else null,
             )
         }
     }
@@ -261,6 +279,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             bodyweightLb = it.bodyweightLb,
             planId = it.planId,
             planName = it.planName,
+            runId = if (schemaVersion >= 13) it.runId else null,
+            plannedJson = if (schemaVersion >= 13) it.plannedJson else null,
         )
     }
     val sessionSetEntities = sessions.flatMap { s ->
@@ -279,6 +299,8 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 seconds = set.seconds,
                 startedAtMillis = set.startedAtMillis,
                 completedAtMillis = set.completedAtMillis,
+                trackPosition = if (schemaVersion >= 13) set.trackPosition else null,
+                plannedIndex = if (schemaVersion >= 13) set.plannedIndex else null,
             )
         }
     }
@@ -323,6 +345,15 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 recipeJson = if (schemaVersion >= 9) plan.recipeJson else null,
                 suggestedDayId = if (schemaVersion >= 9) plan.suggestedDay else null,
             )
+        } else emptyList(),
+        runs = if (schemaVersion >= 13) runs.map {
+            WorkoutRunEntity(it.id, it.planId, it.dayId, it.dayTitle, it.planName, it.startedAt)
+        } else emptyList(),
+        runTracks = if (schemaVersion >= 13) runs.flatMap { run ->
+            run.tracks.map {
+                RunTrackEntity(it.id, run.id, it.position, it.programExerciseId, it.slot, it.exerciseId,
+                    it.retired, it.plannedJson, it.setsJson, it.updatedAt)
+            }
         } else emptyList(),
         days = dayEntities,
         exercises = exerciseEntities,

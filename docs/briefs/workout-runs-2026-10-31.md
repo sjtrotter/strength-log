@@ -287,6 +287,8 @@ gives an open run; on a later day, cleared values.
 
 ## 6. PR breakdown
 
+PR 2 builds as 2a (data, Room v13) and 2b (app, Room v14 split).
+
 ### PR 1. Archive what the screen shows
 
 - **Change:** `:1291` archives rows with `checkDate == ''` with their done flags and timestamps

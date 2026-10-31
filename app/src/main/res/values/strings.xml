@@ -692,7 +692,7 @@
 <string name="cardio_edit_hard_summary">%1$s · Hard</string>
 <string name="plan_cardio_summary">%1$s · %2$s</string>
     <string name="day_run_open_elsewhere">%1$s is still open.</string>
-    <string name="day_retired_tracks">Swapped out: %1$s</string>
+    <string name="day_retired_tracks">Set aside: %1$s</string>
     <plurals name="day_retired_track">
         <item quantity="one">%1$s · %2$d set done</item>
         <item quantity="other">%1$s · %2$d sets done</item>

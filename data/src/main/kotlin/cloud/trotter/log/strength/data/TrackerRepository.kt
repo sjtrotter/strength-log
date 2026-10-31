@@ -538,7 +538,7 @@ open class TrackerRepository(
         }
 
     /** Sets belong to the slot, never the prescription JSON. Null keeps its current count.
-     * A tracking-type change applies to future runs only. */
+     * A change between timed and rep-shaped rows applies to future runs only. */
     suspend fun setPrescription(programExerciseId: Long, prescription: Prescription, sets: Int? = null) {
         db.withTransaction {
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction
@@ -551,14 +551,7 @@ open class TrackerRepository(
                 val track = runDao.tracks(run.id).firstOrNull {
                     it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired
                 }
-                val capturedTracking = track?.let { SetJson.decodeSets(it.plannedJson).firstOrNull() }?.let {
-                    when {
-                        it.seconds > 0 -> TrackingType.TIMED
-                        it.weightLb > 0.0 || it.kind != SetKind.WORK -> TrackingType.WEIGHTED
-                        else -> TrackingType.REPS
-                    }
-                }
-                if (track != null && capturedTracking == prescription.tracking) {
+                if (track != null && track.canReplan(prescription.tracking == TrackingType.TIMED)) {
                     runDao.updateTrack(track.copy(
                         setsJson = SetJson.encodeSets(RunReplan.represcribe(
                             SetJson.decodeSets(track.setsJson), SetSeeder.seedPrescribed(count, prescription),
@@ -1346,6 +1339,7 @@ open class TrackerRepository(
         val changed = linkedSetOf<Int>()
         for (edit in edits) {
             val seed = seeds.firstOrNull { it.programExerciseId == edit.programExerciseId && it.slot == edit.slot }
+            var reopened = false
             var index = resolved.indexOfFirst {
                 it.programExerciseId == edit.programExerciseId && it.slot == edit.slot &&
                     (if (edit.exerciseId != null) it.exerciseId == edit.exerciseId else !it.retired)
@@ -1364,6 +1358,7 @@ open class TrackerRepository(
                     if (retiredIndex >= 0) {
                         resolved[retiredIndex] = reopenTrack(resolved[retiredIndex], seed)
                         index = retiredIndex
+                        reopened = true
                     }
                 }
             }
@@ -1383,8 +1378,12 @@ open class TrackerRepository(
                 index = resolved.lastIndex
             }
             val track = resolved[index]
-            val result = edit.transform(SetJson.decodeSets(track.setsJson))
+            val current = SetJson.decodeSets(track.setsJson)
+            val result = edit.transform(current)
                 ?: return ResolvedRunEdits(failure = RunWriteResult.Unchanged)
+            if (reopened && result.count { it.done } < current.count { it.done }) {
+                return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+            }
             resolved[index] = track.copy(setsJson = SetJson.encodeSets(result), updatedAt = clock.millis())
             changed.add(index)
         }
@@ -1394,9 +1393,14 @@ open class TrackerRepository(
     private fun RunTrackEntity.sameKey(other: RunTrackEntity): Boolean =
         runId == other.runId && programExerciseId == other.programExerciseId && slot == other.slot && exerciseId == other.exerciseId
 
+    private fun RunTrackEntity.canReplan(isTimed: Boolean): Boolean {
+        val captured = SetJson.decodeSets(plannedJson).firstOrNull() ?: return false
+        return (captured.seconds > 0) == isTimed
+    }
+
     private fun reopenTrack(track: RunTrackEntity, seed: RunSeed?): RunTrackEntity = track.copy(
         retired = false,
-        setsJson = seed?.let {
+        setsJson = seed?.takeIf { track.canReplan((it.sets.firstOrNull()?.seconds ?: 0) > 0) }?.let {
             SetJson.encodeSets(RunReplan.represcribe(SetJson.decodeSets(track.setsJson), it.sets))
         } ?: track.setsJson,
         updatedAt = clock.millis(),

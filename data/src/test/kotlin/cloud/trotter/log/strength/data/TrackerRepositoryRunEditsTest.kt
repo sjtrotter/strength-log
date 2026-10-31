@@ -191,13 +191,16 @@ class TrackerRepositoryRunEditsTest {
     }
 
     /** [F] */
-    @Test fun `prescription edit reseeds undone rows without changing captured prescription`() = runTest {
+    @Test fun `zero load prescription edit replans undone rows without changing captured prescription`() = runTest {
         val plan = authored()
         val slot = slot(plan)
-        repo.seedIfEmpty("A", slot, Slot.MAIN, work())
-        val runId = start(plan, sets = work())
+        val zeroLoad = Prescription(PrescribedTarget.LoadReps(0.0, 10))
+        repo.setPrescription(slot, zeroLoad, sets = 3)
+        val seeded = SetSeeder.seedPrescribed(3, zeroLoad)
+        repo.seedIfEmpty("A", slot, Slot.MAIN, seeded)
+        val runId = start(plan, sets = seeded)
         val before = db.runDao().tracks(runId).single()
-        val changed = Prescription(PrescribedTarget.LoadReps(55.0, 8))
+        val changed = Prescription(PrescribedTarget.LoadReps(135.0, 8))
         repo.setPrescription(slot, changed, sets = 4)
         val after = db.runDao().tracks(runId).single()
         val expected = listOf(SetJson.decodeSets(before.setsJson)[0]) +
@@ -244,6 +247,58 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(SetJson.decodeSets(original.setsJson).mapIndexed { i, row ->
             if (i == 1) row.copy(done = true) else row
         }, SetJson.decodeSets(reopened.setsJson))
+    }
+
+    @Test fun `whole list writes before lazy seed cannot drop reopened done rows`() = runTest {
+        val plan = generated()
+        val slot = slot(plan)
+        val runId = start(plan, doneCount = 2)
+        val original = db.runDao().tracks(runId).single()
+        repo.swapExercise("A", 0, "hack_squat")
+        seed(runId, slot)
+        repo.swapExercise("A", 0, "bb_back_squat")
+        val retired = db.runDao().tracks(runId)
+        assertEquals(listOf(original.copy(retired = true)), retired)
+        val originalRows = SetJson.decodeSets(original.setsJson)
+        assertEquals(2, originalRows.count { it.done })
+        for (replacement in listOf(emptyList(), originalRows.take(1))) {
+            assertEquals(RunWriteResult.Rejected, repo.updateSets(runId, "A", slot, Slot.MAIN, replacement))
+            assertEquals(retired, db.runDao().tracks(runId))
+        }
+        seed(runId, slot, squat())
+        val ticked = SetJson.decodeSets(db.runDao().tracks(runId).single().setsJson).mapIndexed { i, row ->
+            if (i == 2) row.copy(done = true) else row
+        }
+        assertEquals(RunWriteResult.InRun(runId, false), repo.updateSets(runId, "A", slot, Slot.MAIN, ticked))
+        val after = db.runDao().tracks(runId).single()
+        assertFalse(after.retired)
+        assertEquals(ticked, SetJson.decodeSets(after.setsJson))
+        assertEquals(originalRows.take(2), ticked.take(2))
+        assertEquals(3, ticked.count { it.done })
+    }
+
+    @Test fun `reopening after a timed prescription edit preserves rep shaped rows`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        val runId = start(plan, sets = work())
+        val original = db.runDao().tracks(runId).single()
+        repo.swapExercise("A", 0, "hack_squat")
+        seed(runId, slot)
+        val hold = Prescription(PrescribedTarget.Hold(45))
+        repo.setPrescription(slot, hold)
+        assertEquals(hold, PrescriptionJson.decode(db.programDao().exercise(slot)!!.prescriptionJson))
+        repo.swapExercise("A", 0, "bb_back_squat")
+        val holds = SetSeeder.seedPrescribed(3, hold)
+        seed(runId, slot, holds)
+        assertEquals(listOf(original), db.runDao().tracks(runId))
+        repo.swapExercise("A", 0, "hack_squat")
+        seed(runId, slot, holds)
+        repo.swapExercise("A", 0, "bb_back_squat")
+        assertEquals(RunWriteResult.InRun(runId, false), repo.applyToRun(
+            runId, plan, "A", listOf(TrackEdit(slot, Slot.MAIN) { it }),
+            seeds = listOf(RunSeed(slot, Slot.MAIN, holds)),
+        ))
+        assertEquals(listOf(original), db.runDao().tracks(runId))
     }
 
     /** [F] */

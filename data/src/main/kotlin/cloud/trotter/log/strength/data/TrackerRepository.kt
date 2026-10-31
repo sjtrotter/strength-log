@@ -1750,7 +1750,11 @@ open class TrackerRepository(
      * raw [IOException] the UI would report as a problem reading the file.
      */
     suspend fun importSnapshot(snapshot: FullSnapshot, journal: RestoreJournal) {
-        ensureSessionNotesMoved()
+        try {
+            ensureSessionNotesMoved()
+        } catch (e: IOException) {
+            throw RestoreInterruption.NotStarted(e)
+        }
         val days = snapshot.days.map { if (it.nextRunId.isBlank()) it.freshRunId() else it }
         val split = snapshot.legacyLogs.takeIf { it.isNotEmpty() }?.let { legacy ->
             val customNames = snapshot.customExercises.associate { it.id to it.name }

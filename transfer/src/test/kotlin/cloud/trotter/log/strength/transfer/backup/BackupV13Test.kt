@@ -37,7 +37,7 @@ class BackupV13Test {
         settings = SettingsBackup(200, 30, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
         plans = listOf(PlanBackup(1, "Plan", "GENERATED", 1000, days = listOf(
             ProgramDayBackup("A", "Day A", "", nextRunId = run.id, closedAt = 500,
-                exercises = listOf(ProgramExerciseBackup(7, "bb_back_squat", false, 3, "10", false, "ez_curl", "", keepToPlan = false))),
+                exercises = listOf(ProgramExerciseBackup(7, "bb_back_squat", false, 3, "10", false, "ez_curl", ""))),
             ProgramDayBackup("B", "Day B", "", nextRunId = "preview-B"),
         ))),
         runs = listOf(run), sessions = listOf(session),
@@ -62,8 +62,8 @@ class BackupV13Test {
         assertEquals(session.plannedJson, snapshot.sessions.single().plannedJson)
         assertEquals(0, snapshot.sessionSets.single().trackPosition)
         assertEquals(0, snapshot.sessionSets.single().plannedIndex)
-        assertEquals(before, snapshot.toDocument().copy(schemaVersion = 13))
-        assertEquals(codec.encode(before), codec.encode(snapshot.toDocument().copy(schemaVersion = 13)))
+        assertEquals(before, snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13))
+        assertEquals(codec.encode(before), codec.encode(snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13)))
     }
 
     /** [F] */
@@ -185,3 +185,11 @@ class BackupV13Test {
         }
     }
 }
+
+/** What a writer before format 14 produced: no next-time choice, no session note. */
+internal fun BackupDocument.withoutV14Fields() = copy(
+    plans = plans.map { plan ->
+        plan.copy(days = plan.days.map { day -> day.copy(exercises = day.exercises.map { it.copy(keepToPlan = null) }) })
+    },
+    sessions = sessions.map { it.copy(note = "") },
+)

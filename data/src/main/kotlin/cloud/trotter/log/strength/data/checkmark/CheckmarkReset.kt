@@ -32,12 +32,16 @@ object CheckmarkReset {
      */
     fun applyResetIfStale(sets: List<LoggedSet>, checkDate: String, today: String): List<LoggedSet> {
         if (checkDate == today) return sets
-        return sets.map {
+        return cleared(sets)
+    }
+
+    /** Clears checkmarks and timing while preserving all other set values. */
+    fun cleared(sets: List<LoggedSet>): List<LoggedSet> =
+        sets.map {
             if (it.done || it.startedAtMillis != null || it.completedAtMillis != null) {
                 it.copy(done = false, startedAtMillis = null, completedAtMillis = null)
             } else {
                 it
             }
         }
-    }
 }

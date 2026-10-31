@@ -188,10 +188,13 @@ fun LogScreen(state: LogUiState, actions: LogActions) {
                 title = { Text(stringResource(R.string.log_delete_dialog_title)) },
                 text = { Text(stringResource(R.string.log_delete_dialog_body)) },
                 confirmButton = {
-                    TextButton(onClick = {
-                        deleteConfirmation = null
-                        actions.onDeleteSession(sessionId)
-                    }) { Text(stringResource(R.string.log_delete_confirm)) }
+                    TextButton(
+                        onClick = {
+                            deleteConfirmation = null
+                            actions.onDeleteSession(sessionId)
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    ) { Text(stringResource(R.string.log_delete_confirm)) }
                 },
                 dismissButton = {
                     TextButton(onClick = { deleteConfirmation = null }) { Text(stringResource(R.string.log_delete_keep)) }

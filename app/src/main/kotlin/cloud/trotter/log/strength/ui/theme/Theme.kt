@@ -24,11 +24,11 @@ internal data class AppPalette(
     val textFaint: Color,
     val done: Color,
     val focusRing: Color,
-    val borderStrong: Color,
+    val border: Color,
 )
 
-internal val DarkAppPalette = AppPalette(true, DarkTextFaint, DarkDone, DarkFocusRing, DarkBorderStrong)
-internal val LightAppPalette = AppPalette(false, LightTextFaint, LightDone, LightFocusRing, LightBorderStrong)
+internal val DarkAppPalette = AppPalette(true, DarkTextFaint, DarkDone, DarkFocusRing, DarkBorder)
+internal val LightAppPalette = AppPalette(false, LightTextFaint, LightDone, LightFocusRing, LightBorder)
 internal val LocalAppPalette = staticCompositionLocalOf { DarkAppPalette }
 
 /** Container roles are their accent sunk into the scheme's card surface. */
@@ -80,7 +80,7 @@ internal val DarkAppColorScheme = darkColorScheme(
     errorContainer = DarkErrorContainer,
     onErrorContainer = DarkTextPrimary,
     outline = DarkOutline,
-    outlineVariant = DarkBorder,
+    outlineVariant = DarkBorderStrong,
     inverseSurface = DarkTextPrimary,
     inverseOnSurface = DarkBackground,
     // Sheets and dialogs dim toward the app's own black, not the pure #000 the
@@ -134,7 +134,7 @@ internal val LightAppColorScheme = lightColorScheme(
     errorContainer = LightErrorContainer,
     onErrorContainer = LightOnErrorContainer,
     outline = LightOutline,
-    outlineVariant = LightBorder,
+    outlineVariant = LightBorderStrong,
     inverseSurface = LightTextPrimary,
     inverseOnSurface = LightSurface,
     scrim = DarkBackground,

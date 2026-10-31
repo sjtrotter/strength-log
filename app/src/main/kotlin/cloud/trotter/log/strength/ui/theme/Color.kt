@@ -63,8 +63,9 @@ val Background: Color @Composable get() = MaterialTheme.colorScheme.background
 val Surface: Color @Composable get() = MaterialTheme.colorScheme.surface
 val Surface2: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh
 val Surface3: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHighest
-val Border: Color @Composable get() = MaterialTheme.colorScheme.outlineVariant
-val BorderStrong: Color @Composable get() = LocalAppPalette.current.borderStrong
+// The hairline is fainter than outlineVariant, which stock dividers and set segments read.
+val Border: Color @Composable get() = LocalAppPalette.current.border
+val BorderStrong: Color @Composable get() = MaterialTheme.colorScheme.outlineVariant
 val TextPrimary: Color @Composable get() = MaterialTheme.colorScheme.onBackground
 val TextSecondary: Color @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
 val TextFaint: Color @Composable get() = LocalAppPalette.current.textFaint

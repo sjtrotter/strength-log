@@ -89,7 +89,6 @@ class TrackerRepositoryFinishArchiveTest {
                             ProgramExercise("bb_back_squat", isMain = true, targetSets = 2),
                             ProgramExercise("bb_bench", isMain = true, targetSets = 2),
                         ),
-                        cardio = null,
                     ),
                 ),
             ),

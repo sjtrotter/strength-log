@@ -73,7 +73,7 @@ class CardioDeltaApplierTest {
         val spec = WatchCardioSetSpec("WORK", "TIME", 60)
         val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
-            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
         val other = repo.createAuthoredPlan("Other", "Other day")
         repo.publishCreatedAuthoredPlan(other)
@@ -101,7 +101,7 @@ class CardioDeltaApplierTest {
         repo.publishCreatedAuthoredPlan(planId)
         val block = WatchCardioBlock("TRACK_RUN", listOf(WatchCardioSetSpec("WORK", "TIME", 60))).toDomain()
         repo.replaceProgram(Program(listOf("A", "B").map {
-            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
         val applier = CardioDeltaApplier(repo, ackLog, publisher)
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta()))
@@ -119,7 +119,7 @@ class CardioDeltaApplierTest {
         val spec = WatchCardioSetSpec("WORK", "TIME", 60)
         val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
         val cardioOnly = Program(listOf("A", "B").map {
-            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         })
         val mixed = Program(cardioOnly.days.map {
             it.copy(exercises = listOf(ProgramExercise("bb_back_squat")))
@@ -144,7 +144,7 @@ class CardioDeltaApplierTest {
         val spec = WatchCardioSetSpec("WORK", "TIME", 60)
         val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
         repo.replaceProgram(Program(listOf("A", "B").map {
-            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
         val result = WatchCardioSetResult(spec, "FINISHED", 60)
         val event = delta().copy(planId = planId, sets = listOf(result))
@@ -160,7 +160,7 @@ class CardioDeltaApplierTest {
         val spec = WatchCardioSetSpec("WORK", "TIME", 60)
         val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
-            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
         val result = WatchCardioSetResult(spec, "FINISHED", 60)
         val offline = delta().copy(planId = planId, activity = "TRACK_RUN", finishesDay = true, sets = listOf(result))
@@ -238,7 +238,7 @@ class CardioDeltaApplierTest {
     }
 
     @Test fun `explicit-plan cardio stays with its plan and old-watch cardio uses selection`() = runTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", emptyList(), cardio = null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", emptyList()))))
         val planP = repo.selectedPlanIdFlow.first()!!
         repo.renamePlan(planP, "Strength")
         val planQ = repo.duplicatePlan(planP, "Running")

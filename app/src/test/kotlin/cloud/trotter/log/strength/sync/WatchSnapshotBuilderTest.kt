@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.data.LoggedSlot
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -30,6 +32,9 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
+import cloud.trotter.log.strength.widget.TodayWidgetState
+import cloud.trotter.log.strength.widget.WidgetStatLine
+import cloud.trotter.log.strength.widget.todayWidgetContent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -46,8 +51,8 @@ class WatchSnapshotBuilderTest {
 
     private val program = Program(
         listOf(
-            ProgramDay("A", "Day A — Squat", "quads", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null),
-            ProgramDay("B", "Day B — Bench", "chest", listOf(ProgramExercise("bb_bench", isMain = true)), cardio = null),
+            ProgramDay("A", "Day A — Squat", "quads", listOf(ProgramExercise("bb_back_squat", isMain = true))),
+            ProgramDay("B", "Day B — Bench", "chest", listOf(ProgramExercise("bb_bench", isMain = true))),
         ),
     )
 
@@ -73,7 +78,7 @@ class WatchSnapshotBuilderTest {
                 Measure.Time(105), hard = true,
             )),
         )
-        val running = Program(listOf(ProgramDay("R", "Track day", "", emptyList(), null,
+        val running = Program(listOf(ProgramDay("R", "Track day", "", emptyList(),
             kind = ProgramDayKind.CARDIO, cardioBlock = block)))
         val snapshot = WatchSnapshotBuilder.build(running, "R", emptyList(), emptyList(), cfg,
             catalog, WeightUnit.LB, revision = 1L, planId = 42L, planName = "Running")!!
@@ -86,14 +91,63 @@ class WatchSnapshotBuilderTest {
     }
 
     @Test
-    fun `generated finisher publishes structured sets alongside unchanged legacy facts`() {
-        val suggestion = CardioSuggestion("Intervals", "", true)
-        val generated = program.copy(days = listOf(program.days.first().copy(cardio = suggestion)))
+    fun `typed finisher publishes sets and logged facts without a legacy timer offer`() {
+        val block = CardioBlocks.fromLegacy(
+            CardioSuggestion("Intervals", "", true), true, CardioActivity.ROAD_RUN,
+        )
+        val generated = program.copy(days = listOf(program.days.first().copy(cardioBlock = block)))
+        val logged = CardioSessionEntity(
+            dayId = "A", mode = "OUTDOOR_RUN", hard = true, label = "Intervals",
+            startedAt = 1_000, completedAt = 91_000, seconds = 90, stepsCompleted = 1,
+        )
         val snapshot = WatchSnapshotBuilder.build(generated, "A", emptyList(), emptyList(), cfg,
-            catalog, WeightUnit.LB, revision = 1L, cardioMode = "OUTDOOR_RUN", cardioFiveK = true)!!
-        assertEquals(suggestion.copy(mode = "OUTDOOR_RUN", fiveK = true), snapshot.cardio)
+            catalog, WeightUnit.LB, revision = 1L, loggedCardio = logged)!!
+        assertEquals(CardioSuggestion("Road run", "", true, loggedStartedAt = 1_000, loggedSeconds = 90), snapshot.cardio)
+        assertEquals(null, snapshot.cardio?.mode)
+        assertEquals(null, snapshot.cardio?.fiveK)
         assertEquals(11, snapshot.cardioBlock?.sets?.size)
         assertEquals("RECOVERY", snapshot.cardioBlock?.sets?.last()?.role)
+        val otherDay = WatchSnapshotBuilder.build(generated, "A", emptyList(), emptyList(), cfg,
+            catalog, WeightUnit.LB, revision = 1L, loggedCardio = logged.copy(dayId = "B"))!!
+        assertEquals(null, otherDay.cardio?.loggedStartedAt)
+        assertEquals(null, otherDay.cardio?.loggedSeconds)
+    }
+
+    @Test
+    fun `day without a block has no cardio carrier even with logged history`() {
+        val snapshot = WatchSnapshotBuilder.build(program, "A", emptyList(), emptyList(), cfg,
+            catalog, WeightUnit.LB, revision = 1L,
+            loggedCardio = CardioSessionEntity(
+                dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Easy",
+                startedAt = 1_000, completedAt = 91_000, seconds = 90, stepsCompleted = 1,
+            ))!!
+        assertEquals(null, snapshot.cardio)
+        assertEquals(null, snapshot.cardioBlock)
+    }
+
+    @Test
+    fun `cardio day with core and no block stays in the cycle and builds the target snapshot`() {
+        val core = ProgramExercise("plank", targetSets = 2)
+        val day = ProgramDay("C1", "Cardio + Core", "", listOf(core), kind = ProgramDayKind.CARDIO)
+        val withCoreDay = program.copy(days = program.days + day)
+        val fromStrength = WatchSnapshotBuilder.build(withCoreDay, "A", emptyList(), emptyList(), cfg,
+            catalog, WeightUnit.LB, revision = 1L)!!
+        assertEquals(listOf("A", "B", "C1"), fromStrength.cycle.map { it.dayId })
+        assertEquals(2, fromStrength.cycle.last().exercises.single().setCount)
+
+        val snapshot = WatchSnapshotBuilder.build(withCoreDay, "C1", listOf(ProgramSlot(10L, 0, core)),
+            emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L)!!
+        assertEquals("C1", snapshot.suggestedDayId)
+        assertEquals("Cardio + Core", snapshot.day.title)
+        assertEquals(2, snapshot.day.accentIndex)
+        assertEquals(10L, snapshot.day.exercises.single().programExerciseId)
+        assertNull(snapshot.cardio)
+        assertNull(snapshot.cardioBlock)
+
+        val widget = todayWidgetContent(snapshot)
+        assertEquals("DAY C1 · CARDIO + CORE", widget.dayLine)
+        assertEquals(TodayWidgetState.BEFORE, widget.state)
+        assertEquals(WidgetStatLine.Data("1 LIFT · 2 SETS"), widget.statLine)
     }
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
@@ -135,7 +189,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `an empty next day retains plan identity title and its index in the rotation`() {
-        val authored = program.copy(days = program.days + ProgramDay("C", "Daily rehab", "", emptyList(), null))
+        val authored = program.copy(days = program.days + ProgramDay("C", "Daily rehab", "", emptyList()))
         val snapshot = WatchSnapshotBuilder.build(
             authored, "C", emptyList(), emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
             planId = 42L, planName = "Rehab",
@@ -153,7 +207,7 @@ class WatchSnapshotBuilderTest {
     @Test
     fun `snapshot tracking and unopened rows follow the prescription over the catalog`() {
         val exercise = ProgramExercise("bb_back_squat", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 50)))
-        val authored = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise), null)))
+        val authored = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise))))
         val projected = WatchSnapshotBuilder.build(
             authored, "A", listOf(ProgramSlot(10L, 0, exercise)), emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
@@ -166,7 +220,7 @@ class WatchSnapshotBuilderTest {
     @Test
     fun `a prescribed loaded hold sends its added load over the catalog goal`() {
         val exercise = ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Hold(45, 25.0)))
-        val authored = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise), null)))
+        val authored = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise))))
         val projected = WatchSnapshotBuilder.build(
             authored, "A", listOf(ProgramSlot(10L, 0, exercise)), emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
@@ -203,7 +257,7 @@ class WatchSnapshotBuilderTest {
         val exercise = ProgramExercise("deleted_custom_id", targetSets = 3)
         val slot = ProgramSlot(99L, 0, exercise)
         val unresolvedProgram = Program(
-            listOf(ProgramDay("A", "Custom", "", listOf(exercise), cardio = null)),
+            listOf(ProgramDay("A", "Custom", "", listOf(exercise))),
         )
 
         // Today counts this shared preview policy; the snapshot must carry it verbatim.
@@ -298,7 +352,6 @@ class WatchSnapshotBuilderTest {
                 ProgramDay(
                     "A", "Core", "",
                     listOf(ProgramExercise("custom_pullup"), ProgramExercise("custom_plank")),
-                    cardio = null,
                 ),
             ),
         )
@@ -332,7 +385,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `a TIMED slot's logged seconds ride the wire`() {
-        val program = Program(listOf(ProgramDay("A", "Core", "", listOf(ProgramExercise("custom_plank")), cardio = null)))
+        val program = Program(listOf(ProgramDay("A", "Core", "", listOf(ProgramExercise("custom_plank")))))
         val slots = listOf(ProgramSlot(2L, 0, ProgramExercise("custom_plank")))
         val logs = listOf(loggedSlot(2L, Slot.MAIN, listOf(LoggedSet(25.0, 0, SetKind.WORK, seconds = 45))))
         val timed = WatchSnapshotBuilder.build(
@@ -388,7 +441,7 @@ class WatchSnapshotBuilderTest {
             loggedSlot(30L, Slot.MAIN, listOf(LoggedSet(60.0, 12, SetKind.WORK), LoggedSet(60.0, 11, SetKind.WORK))),
             loggedSlot(30L, Slot.SS, listOf(LoggedSet(50.0, 15, SetKind.WORK), LoggedSet(50.0, 14, SetKind.WORK))),
         )
-        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe), cardio = null)))
+        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe))))
 
         val ex = WatchSnapshotBuilder.build(
             program, "A", slots, logs, cfg, catalog, WeightUnit.LB, revision = 1L,
@@ -405,7 +458,7 @@ class WatchSnapshotBuilderTest {
     fun `an entry with a colloquial name sends it, and the phone keeps the full one`() {
         val pe = ProgramExercise("conv_dl", isMain = true)
         val slots = listOf(ProgramSlot(40L, 0, pe))
-        val program = Program(listOf(ProgramDay("A", "Pull", "", listOf(pe), cardio = null)))
+        val program = Program(listOf(ProgramDay("A", "Pull", "", listOf(pe))))
 
         val ex = WatchSnapshotBuilder.build(
             program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog,
@@ -421,7 +474,7 @@ class WatchSnapshotBuilderTest {
         val pe = ProgramExercise("hack_squat", isMain = true)
         val custom = ProgramExercise("custom_pullup", isMain = true)
         val slots = listOf(ProgramSlot(41L, 0, pe), ProgramSlot(42L, 1, custom))
-        val program = Program(listOf(ProgramDay("A", "Legs", "", listOf(pe, custom), cardio = null)))
+        val program = Program(listOf(ProgramDay("A", "Legs", "", listOf(pe, custom))))
 
         val exercises = WatchSnapshotBuilder.build(
             program, "A", slots, logs = emptyList(), cfg = cfg, catalog = trackingCatalog,
@@ -436,7 +489,7 @@ class WatchSnapshotBuilderTest {
     fun `the superset partner is shortened at the same stamp point`() {
         val pe = ProgramExercise("ez_curl", superset = SupersetPartner("oh_tri_ext"))
         val slots = listOf(ProgramSlot(43L, 0, pe))
-        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe), cardio = null)))
+        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe))))
 
         val ex = WatchSnapshotBuilder.build(
             program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog,
@@ -451,7 +504,7 @@ class WatchSnapshotBuilderTest {
     fun `stamps ssTracking from the superset partner's own entry`() {
         val pe = ProgramExercise("ez_curl", superset = SupersetPartner("custom_pullup"))
         val slots = listOf(ProgramSlot(30L, 0, pe))
-        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe), cardio = null)))
+        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe))))
 
         val ex = WatchSnapshotBuilder.build(
             program, "A", slots, logs = emptyList(), cfg, catalog = trackingCatalog, unit = WeightUnit.LB, revision = 1L,
@@ -522,7 +575,7 @@ class WatchSnapshotBuilderTest {
             loggedSlot(30L, Slot.MAIN, listOf(LoggedSet(60.0, 12, SetKind.WORK))),
             loggedSlot(30L, Slot.SS, listOf(LoggedSet(50.0, 15, SetKind.WORK))),
         )
-        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe), cardio = null)))
+        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe))))
         val ex = WatchSnapshotBuilder.build(
             program, "A", slots, logs, cfg, catalog, WeightUnit.LB, revision = 1L,
             restSettings = RestSettings(enabled = true),
@@ -572,7 +625,7 @@ class WatchSnapshotBuilderTest {
     @Test
     fun an_unknown_exercise_has_no_alternates_and_does_not_throw() {
         val pe = ProgramExercise("custom_nonexistent")
-        val customProgram = Program(listOf(ProgramDay("A", "Custom", "", listOf(pe), cardio = null)))
+        val customProgram = Program(listOf(ProgramDay("A", "Custom", "", listOf(pe))))
         val slots = listOf(ProgramSlot(50L, 0, pe))
 
         val exercise = WatchSnapshotBuilder.build(
@@ -585,7 +638,7 @@ class WatchSnapshotBuilderTest {
     @Test
     fun superset_partner_rows_do_not_contribute_alternates() {
         val pe = ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown"))
-        val armsProgram = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe), cardio = null)))
+        val armsProgram = Program(listOf(ProgramDay("A", "Arms", "", listOf(pe))))
         val slots = listOf(ProgramSlot(30L, 0, pe))
 
         val exercise = WatchSnapshotBuilder.build(

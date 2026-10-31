@@ -8,8 +8,6 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
@@ -44,7 +42,7 @@ import org.robolectric.annotation.Config
  * Wiring tests for [SetupViewModel]: every setter commits straight through
  * [TrackerRepository] (no draft, unlike the wizard — spec §8.4/A6), the
  * bodyweight setter converts through the *current* display unit before
- * storing (A5, [SetupStateBuilder.bodyweightLb]), and config/cardio writes
+ * storing (A5, [SetupStateBuilder.bodyweightLb]), and configuration writes
  * never touch the program (GOAL-vs-ACTUAL, spec §8.4).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -123,9 +121,7 @@ class SetupViewModelWiringTest {
         vm.setAge(28)
         vm.setLevel(ExperienceLevel.ADVANCED)
         vm.setEmphasis(GoalEmphasis.PHYSIQUE)
-        vm.setCardioMode(CardioMode.TREADMILL)
-        vm.setCardioPlacement(CardioPlacement.SEPARATE_DAYS)
-        vm.setFiveK(false)
+
         vm.setUnit(WeightUnit.KG)
         vm.setThemePreference(ThemePreference.LIGHT)
         advanceUntilIdle()
@@ -134,11 +130,6 @@ class SetupViewModelWiringTest {
         assertEquals(28, cfg.age)
         assertEquals(ExperienceLevel.ADVANCED, cfg.level)
         assertEquals(GoalEmphasis.PHYSIQUE, cfg.emphasis)
-
-        val cardio = repo.cardioPrefsFlow.first()
-        assertEquals(CardioMode.TREADMILL, cardio.mode)
-        assertEquals(CardioPlacement.SEPARATE_DAYS, cardio.placement)
-        assertEquals(false, cardio.fiveKGoal)
 
         assertEquals(WeightUnit.KG, repo.unitFlow.first())
         assertEquals(ThemePreference.LIGHT, repo.themePreferenceFlow.first())

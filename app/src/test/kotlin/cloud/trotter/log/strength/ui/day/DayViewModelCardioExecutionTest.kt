@@ -115,7 +115,7 @@ class DayViewModelCardioExecutionTest {
         repo.replaceProgram(
             Program(listOf(ProgramDay(
                 "A", "Intervals", "", listOf(ProgramExercise("bb_back_squat")),
-                CardioSuggestion("Hard cardio — intervals", "Run hard, recover easy.", hard = true),
+                cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Hard cardio — intervals", "Run hard, recover easy.", hard = true), fiveK, CardioActivity.ROAD_RUN),
             ))),
         )
     }
@@ -137,7 +137,7 @@ class DayViewModelCardioExecutionTest {
 
     private suspend fun prepareBlock(vararg sets: CardioSetSpec) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Running", "",
-            listOf(ProgramExercise("bb_back_squat")), null,
+            listOf(ProgramExercise("bb_back_squat")),
             cardioBlock = CardioBlock(CardioActivity.TRACK_RUN, sets.toList())))))
     }
 
@@ -209,7 +209,7 @@ class DayViewModelCardioExecutionTest {
         repo.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, sets.toList())
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
-            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
     }
 
@@ -1316,9 +1316,9 @@ class DayViewModelCardioExecutionTest {
         repo.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(time(CardioRole.WORK, aim = 400)))
         repo.replaceProgram(Program(listOf(
-            ProgramDay("A", "Running", "", emptyList(), null, cardioBlock = block),
-            ProgramDay("B", "Next run", "", emptyList(), null, cardioBlock = block),
-            ProgramDay("C", "Third run", "", emptyList(), null, cardioBlock = block),
+            ProgramDay("A", "Running", "", emptyList(), cardioBlock = block),
+            ProgramDay("B", "Next run", "", emptyList(), cardioBlock = block),
+            ProgramDay("C", "Third run", "", emptyList(), cardioBlock = block),
         )))
         val handle = SavedStateHandle()
         val vm = readyVm(handle)
@@ -1350,7 +1350,7 @@ class DayViewModelCardioExecutionTest {
         repo.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(time(CardioRole.WORK, aim = 400)))
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
-            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
         val handle = SavedStateHandle()
         val first = readyVm(handle)
@@ -1383,7 +1383,7 @@ class DayViewModelCardioExecutionTest {
         prepare()
         val source = repo.programFlow.first().days.single()
         repo.replaceProgram(Program(listOf(source, source.copy(id = "B"),
-            ProgramDay("C", "Running", "", emptyList(), CardioSuggestion("Easy", "", false), ProgramDayKind.CARDIO))))
+            ProgramDay("C", "Running", "", emptyList(), cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Easy", "", false), true, CardioActivity.ROAD_RUN), kind = ProgramDayKind.CARDIO))))
         val vm = readyVm()
         vm.selectDay("C")
         runCurrent()

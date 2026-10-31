@@ -5,14 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.ProgramSlot
+import cloud.trotter.log.strength.ui.day.plannedTimeDetail
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LifterConfig
-import cloud.trotter.log.strength.domain.model.CardioPrefs
-import cloud.trotter.log.strength.domain.model.effectiveCardio
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
@@ -60,7 +59,7 @@ class TodayViewModel @Inject constructor(
         ) { program, catalog, answers ->
             val dayId = target.dayId?.takeIf { id -> program.days.any { it.id == id } }
                 ?: program.strengthDays.firstOrNull()?.id ?: program.days.firstOrNull()?.id
-            TodayContext(target.plan.id, program, dayId, catalog, answers.config, answers.cardio)
+            TodayContext(target.plan.id, program, dayId, catalog, answers.config)
         }
     }
 
@@ -173,8 +172,8 @@ class TodayViewModel @Inject constructor(
                     setCount = countBySlot.getValue(slot.programExerciseId),
                 )
             },
-            cardio = day.effectiveCardio(ctx.cardioPrefs)?.let {
-                TodayCardio(cloud.trotter.log.strength.ui.day.activityLabel(it.activity), day.cardio?.detail.orEmpty(), it.activity)
+            cardio = day.cardioBlock?.let {
+                TodayCardio(cloud.trotter.log.strength.ui.day.activityLabel(it.activity), it.plannedTimeDetail(), it.activity)
             },
             standaloneCardio = standalone?.let {
                 StandaloneCardio(it.id, TodayScreenBuilder.standaloneCardioLine())
@@ -210,7 +209,6 @@ class TodayViewModel @Inject constructor(
         val dayId: String?,
         val catalog: ExerciseCatalog,
         val cfg: LifterConfig,
-        val cardioPrefs: CardioPrefs,
     )
 
     private companion object {

@@ -270,8 +270,8 @@ class TrackerRepositoryRunTest {
         ProgramDay("A", "Day A", "", listOf(
             ProgramExercise("bb_back_squat", isMain = true, superset = SupersetPartner("ez_curl")),
             ProgramExercise("bb_bench", prescription = Prescription(PrescribedTarget.LoadReps(50.0, 10)), keepToPlan = true),
-        ), null),
-        ProgramDay("B", "Day B", "", listOf(ProgramExercise("bb_bench")), null),
+        )),
+        ProgramDay("B", "Day B", "", listOf(ProgramExercise("bb_bench"))),
     ))
 
     /** [F] */

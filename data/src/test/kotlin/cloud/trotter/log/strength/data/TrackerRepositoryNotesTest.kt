@@ -53,7 +53,7 @@ class TrackerRepositoryNotesTest {
     @After fun tearDown() { db.close(); scope.cancel() }
 
     @Test fun exerciseNoteRoundTripsThroughRoom() = runTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "LOWER", "", listOf(ProgramExercise("bb_back_squat", true, 4, "5/5/5/3", true)), cardio = null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "LOWER", "", listOf(ProgramExercise("bb_back_squat", true, 4, "5/5/5/3", true))))))
         val slot = repo.daySlotsFlow("A").first().single()
         repo.setExerciseNote(slot.programExerciseId, "Belt on top")
         assertEquals("Belt on top", repo.daySlotsFlow("A").first().single().exercise.note)

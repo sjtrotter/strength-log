@@ -7,7 +7,8 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.model.CardioSuggestion
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.MovementPattern.BICEPS
@@ -32,23 +33,6 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 
-/** A standalone "Cardio + Core" card that lives outside the strength rotation
- *  (spec §6.4). It never consumes a rotation advance, so it is kept off
- *  [Program.days] and in its own list. */
-data class CardioDay(
-    val id: String,
-    val title: String,
-    val cardio: CardioSuggestion,
-    val core: ProgramExercise,
-)
-
-/** The generator's full output: the editable strength [program] plus any
- *  standalone cardio cards the placement asked for. */
-data class GeneratedProgram(
-    val program: Program,
-    val cardioDays: List<CardioDay>,
-)
-
 /**
  * Turns [WizardAnswers] into a concrete, editable [Program] (spec §6.3). Each
  * day is a fixed skeleton of pattern slots. Anchor mains come from the wizard's
@@ -64,7 +48,7 @@ object ProgramGenerator {
     private val LEG_MAIN_PATTERNS = setOf(SQUAT_BILATERAL, HINGE, SINGLE_LEG)
     private val INCLINE_CHEST_IDS = setOf("incline_db", "incline_bb")
 
-    fun generate(answers: WizardAnswers): GeneratedProgram {
+    fun generate(answers: WizardAnswers): Program {
         val kinds = SplitDefaults.dayKinds(answers.split, answers.daysPerWeek)
         val anchors = anchorIds(answers)
         val occurrences = mutableMapOf<DayKind, Int>()
@@ -74,7 +58,7 @@ object ProgramGenerator {
             occurrences[kind] = occ + 1
             buildDay(DAY_IDS[i], i, occ, kind, anchors, answers)
         }
-        return GeneratedProgram(Program(days), standaloneCardio(answers))
+        return Program(days + standaloneCardio(answers))
     }
 
     // --- anchors -------------------------------------------------------------
@@ -190,7 +174,7 @@ object ProgramGenerator {
             title = "Full Body",
             emphasisLine = fullBodyEmphasis(incline, vertPull, kneeFlex, soleus, singleLeg),
             exercises = withWarmupHint(slots, mainPattern),
-            cardio = finisher(answers, legHeavy = lowerMain),
+            cardioBlock = finisher(answers, legHeavy = lowerMain),
         )
     }
 
@@ -241,7 +225,7 @@ object ProgramGenerator {
             id, "Upper",
             "horizontal + vertical push and pull · arms superset",
             withWarmupHint(slots, H_PUSH),
-            finisher(answers, legHeavy = false),
+            cardioBlock = finisher(answers, legHeavy = false),
         )
     }
 
@@ -271,7 +255,7 @@ object ProgramGenerator {
             id, "Lower",
             "squat + hinge · single-leg · knee-flexion hamstrings",
             withWarmupHint(slots, mainPattern),
-            finisher(answers, legHeavy = true),
+            cardioBlock = finisher(answers, legHeavy = true),
         )
     }
 
@@ -290,7 +274,7 @@ object ProgramGenerator {
             id, "Push",
             "flat + incline press · vertical press · side delts · triceps",
             withWarmupHint(slots, H_PUSH),
-            finisher(answers, legHeavy = false),
+            cardioBlock = finisher(answers, legHeavy = false),
         )
     }
 
@@ -313,7 +297,7 @@ object ProgramGenerator {
             id, "Pull",
             "horizontal row · vertical pull · rear delts · biceps",
             withWarmupHint(slots, H_PULL),
-            finisher(answers, legHeavy = false),
+            cardioBlock = finisher(answers, legHeavy = false),
         )
     }
 
@@ -339,7 +323,7 @@ object ProgramGenerator {
             id, "Legs",
             "${if (mainPattern == HINGE) "hinge" else "squat"} main · single-leg · knee-flexion hamstrings",
             withWarmupHint(slots, mainPattern),
-            finisher(answers, legHeavy = true),
+            cardioBlock = finisher(answers, legHeavy = true),
         )
     }
 
@@ -419,24 +403,26 @@ object ProgramGenerator {
 
     // --- cardio --------------------------------------------------------------
 
-    private fun finisher(answers: WizardAnswers, legHeavy: Boolean): CardioSuggestion? =
+    private fun finisher(answers: WizardAnswers, legHeavy: Boolean): CardioBlock? =
         CardioPlanner.finisher(answers.cardio, legHeavy)
 
     /** Standalone Cardio + Core cards for SEPARATE_DAYS / BOTH placements. */
-    private fun standaloneCardio(answers: WizardAnswers): List<CardioDay> {
+    private fun standaloneCardio(answers: WizardAnswers): List<ProgramDay> {
         val prefs = answers.cardio
         if (prefs.mode == CardioMode.NONE) return emptyList()
         val wantsStandalone =
             prefs.placement == CardioPlacement.SEPARATE_DAYS || prefs.placement == CardioPlacement.BOTH
         if (!wantsStandalone) return emptyList()
-        val cardio = CardioPlanner.standalone(prefs)
+        val cardio = CardioPlanner.standalone(prefs) ?: return emptyList()
         // Two easy Zone-2 + core sessions a week is a sane maintenance default.
         return (0 until STANDALONE_CARDIO_DAYS).map { k ->
-            CardioDay(
+            ProgramDay(
                 id = "C${k + 1}",
                 title = "Cardio + Core",
-                cardio = cardio,
-                core = accessory(pickAccessory(CORE_ROTATION[k % CORE_ROTATION.size], answers.equipment)),
+                emphasisLine = CardioPlanner.standaloneDetail(prefs),
+                exercises = listOf(accessory(pickAccessory(CORE_ROTATION[k % CORE_ROTATION.size], answers.equipment))),
+                cardioBlock = cardio,
+                kind = ProgramDayKind.CARDIO,
             )
         }
     }

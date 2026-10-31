@@ -1,11 +1,12 @@
 package cloud.trotter.log.strength.domain
 
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DayKind
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.Rotation
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.generator.SplitDefaults
 import cloud.trotter.log.strength.domain.generator.SplitTemplate
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
@@ -31,8 +32,10 @@ import kotlin.test.assertTrue
 class ProgramGeneratorTest {
     @Test fun `rotation ignores standalone cardio days`() {
         val generated = ProgramGenerator.generate(WizardAnswers())
-        val strength = generated.program.days.take(2)
-        val cardio = strength.first().copy(id = "C1", kind = ProgramDayKind.CARDIO)
+        val strength = generated.days.take(2)
+        val cardio = ProgramGenerator.generate(WizardAnswers(
+            cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
+        )).cardioDays.first()
         assertEquals(strength[1].id, Rotation.next(cloud.trotter.log.strength.domain.model.Program(strength + cardio), strength[0].id))
         assertEquals(strength[0].id, Rotation.next(cloud.trotter.log.strength.domain.model.Program(strength + cardio), strength[1].id))
     }
@@ -68,7 +71,7 @@ class ProgramGeneratorTest {
             val split = SplitDefaults.defaultFor(days)
             val program = ProgramGenerator.generate(
                 WizardAnswers(daysPerWeek = days, split = split),
-            ).program
+            )
             assertEquals(kinds.map(::titleOf), titles(program), "default split for $days days")
         }
     }
@@ -88,7 +91,7 @@ class ProgramGeneratorTest {
             val split = SplitDefaults.alternativeFor(days)!!
             val program = ProgramGenerator.generate(
                 WizardAnswers(daysPerWeek = days, split = split),
-            ).program
+            )
             assertEquals(kinds.map(::titleOf), titles(program), "alternative split for $days days")
         }
     }
@@ -97,7 +100,7 @@ class ProgramGeneratorTest {
 
     @Test
     fun `next-next-next reproduces the prototype 4-day full-body A B C D`() {
-        val program = ProgramGenerator.generate(WizardAnswers()).program
+        val program = ProgramGenerator.generate(WizardAnswers())
         assertEquals(listOf("A", "B", "C", "D"), program.days.map { it.id })
         assertTrue(program.days.all { it.title == "Full Body" })
 
@@ -127,7 +130,7 @@ class ProgramGeneratorTest {
             for (split in listOfNotNull(SplitDefaults.defaultFor(days), SplitDefaults.alternativeFor(days))) {
                 val program = ProgramGenerator.generate(
                     WizardAnswers(daysPerWeek = days, split = split),
-                ).program
+                )
                 for (day in program.days) {
                     for (pe in day.exercises.filterNot { it.isMain }) {
                         for (id in listOfNotNull(pe.exerciseId, pe.superset?.exerciseId)) {
@@ -144,14 +147,14 @@ class ProgramGeneratorTest {
 
     @Test
     fun `default day A uses fraction-sourced accessories, not main-capable lifts`() {
-        val dayA = ProgramGenerator.generate(WizardAnswers()).program.days[0]
+        val dayA = ProgramGenerator.generate(WizardAnswers()).days[0]
         assertTrue("rdl" in ids(dayA), "hinge complement is the RDL, not a deadlift at main GOAL")
         assertTrue("db_bench" in ids(dayA), "opposing compound is the DB bench, not the barbell main")
     }
 
     @Test
     fun `default 4-day cycle trains arms as a superset with both biceps and triceps`() {
-        val program = ProgramGenerator.generate(WizardAnswers()).program
+        val program = ProgramGenerator.generate(WizardAnswers())
         val supersets = program.days.flatMap { d -> d.exercises.filter { it.superset != null } }
         assertTrue(supersets.isNotEmpty(), "cycle contains at least one superset slot")
         val patterns = program.days.flatMap { d ->
@@ -166,7 +169,7 @@ class ProgramGeneratorTest {
 
     @Test
     fun `every full-body day has exactly one main anchor`() {
-        val program = ProgramGenerator.generate(WizardAnswers()).program
+        val program = ProgramGenerator.generate(WizardAnswers())
         for (day in program.days) {
             assertEquals(1, day.exercises.count { it.isMain }, "one main on day ${day.id}")
             assertTrue(day.exercises.first().isMain, "main leads day ${day.id}")
@@ -175,7 +178,7 @@ class ProgramGeneratorTest {
 
     @Test
     fun `full-body core pattern rotates anti-ext to anti-rot to flex across days`() {
-        val program = ProgramGenerator.generate(WizardAnswers()).program
+        val program = ProgramGenerator.generate(WizardAnswers())
         val corePatterns = program.days.map { day ->
             day.exercises.map { ExerciseLibrary.get(it.exerciseId).pattern }
                 .first { it.name.startsWith("CORE_") }
@@ -195,7 +198,7 @@ class ProgramGeneratorTest {
 
     @Test
     fun `rotation advances and wraps`() {
-        val program = ProgramGenerator.generate(WizardAnswers()).program
+        val program = ProgramGenerator.generate(WizardAnswers())
         assertEquals("B", Rotation.next(program, "A"))
         assertEquals("C", Rotation.next(program, "B"))
         assertEquals("D", Rotation.next(program, "C"))
@@ -209,24 +212,24 @@ class ProgramGeneratorTest {
 
     @Test
     fun `anchor schemes map to the right main lifts`() {
-        val prototype = ProgramGenerator.generate(WizardAnswers()).program
+        val prototype = ProgramGenerator.generate(WizardAnswers())
         assertEquals(listOf("bb_back_squat", "bb_bench", "trap_dl", "incline_db"), mainIds(prototype))
 
         val big4 = ProgramGenerator.generate(
             WizardAnswers(anchorScheme = AnchorScheme.BIG_4),
-        ).program
+        )
         assertTrue("bb_row" in mainIds(big4), "big-4 anchors a barbell row main")
 
         val fiveThreeOne = ProgramGenerator.generate(
             WizardAnswers(anchorScheme = AnchorScheme.FIVE_THREE_ONE),
-        ).program
+        )
         assertTrue("ohp" in mainIds(fiveThreeOne), "5/3/1 anchors an OHP main")
     }
 
     @Test
     fun `deadlift variant swaps the hinge anchor`() {
         fun hingeMain(variant: DeadliftVariant): String =
-            ProgramGenerator.generate(WizardAnswers(deadliftVariant = variant)).program
+            ProgramGenerator.generate(WizardAnswers(deadliftVariant = variant))
                 .let { mainIds(it) }
                 .first { ExerciseLibrary.get(it).pattern == MovementPattern.HINGE }
 
@@ -242,18 +245,18 @@ class ProgramGeneratorTest {
         val out = ProgramGenerator.generate(
             WizardAnswers(cardio = CardioPrefs(mode = CardioMode.NONE)),
         )
-        assertTrue(out.program.days.all { it.cardio == null })
+        assertTrue(out.days.all { it.cardioBlock == null })
         assertTrue(out.cardioDays.isEmpty())
     }
 
     @Test
     fun `hard cardio only on press-main and leg-light days`() {
-        val program = ProgramGenerator.generate(WizardAnswers()).program
+        val program = ProgramGenerator.generate(WizardAnswers())
         // A squat, C hinge → leg-heavy → easy; B bench, D incline press → hard.
-        assertEquals(false, program.days[0].cardio?.hard)
-        assertEquals(true, program.days[1].cardio?.hard)
-        assertEquals(false, program.days[2].cardio?.hard)
-        assertEquals(true, program.days[3].cardio?.hard)
+        assertEquals(false, program.days[0].cardioBlock?.sets?.any { it.hard })
+        assertEquals(true, program.days[1].cardioBlock?.sets?.any { it.hard })
+        assertEquals(false, program.days[2].cardioBlock?.sets?.any { it.hard })
+        assertEquals(true, program.days[3].cardioBlock?.sets?.any { it.hard })
     }
 
     @Test
@@ -261,16 +264,46 @@ class ProgramGeneratorTest {
         val out = ProgramGenerator.generate(
             WizardAnswers(cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS)),
         )
-        assertTrue(out.program.days.all { it.cardio == null }, "no finishers on strength days")
+        assertTrue(out.strengthDays.all { it.cardioBlock == null }, "no finishers on strength days")
         assertTrue(out.cardioDays.isNotEmpty(), "standalone cardio cards present")
-        assertTrue(out.cardioDays.all { !it.cardio.hard }, "standalone cardio is easy Zone 2")
-        // Standalone cards live outside the rotation.
-        assertTrue(out.cardioDays.none { card -> card.id in out.program.days.map { it.id } })
+        assertEquals(listOf("C1", "C2"), out.cardioDays.map { it.id })
+        assertTrue(out.cardioDays.all { day -> day.cardioBlock!!.sets.none { it.hard } }, "standalone cardio is easy Zone 2")
+        assertEquals(listOf("plank", "pallof"), out.cardioDays.map { it.exercises.single().exerciseId })
+        assertTrue(out.cardioDays.all { it.emphasisLine == "Lift first, then run. 20–30 min easy, conversational pace." })
+        // Standalone cards stay outside the strength rotation.
+        assertTrue(out.cardioDays.none { card -> card.id in out.strengthDays.map { it.id } })
+    }
+
+    @Test
+    fun `typed generated cardio matches shipped finishers and standalone sets for every mode and fiveK flag`() {
+        for (mode in CardioMode.entries) {
+            for (fiveK in listOf(false, true)) {
+                val program = ProgramGenerator.generate(WizardAnswers(cardio = CardioPrefs(
+                    mode = mode, placement = CardioPlacement.BOTH, fiveKGoal = fiveK,
+                )))
+                val activity = CardioBlocks.activityOf(mode)
+                if (activity == null) {
+                    assertTrue(program.days.all { it.cardioBlock == null })
+                    assertTrue(program.cardioDays.isEmpty())
+                    continue
+                }
+                program.strengthDays.forEachIndexed { index, day ->
+                    val hard = index % 2 == 1 && mode != CardioMode.LOW_IMPACT
+                    val suggestion = CardioSuggestion("", "", hard)
+                    assertEquals(CardioBlocks.fromLegacy(suggestion, fiveK, activity), day.cardioBlock)
+                }
+                assertEquals(listOf("C1", "C2"), program.cardioDays.map { it.id })
+                program.cardioDays.forEach { day ->
+                    assertEquals(CardioBlocks.fromLegacy(CardioSuggestion("", "", false), fiveK, activity), day.cardioBlock)
+                }
+                assertEquals("A", Rotation.next(program, "D"))
+            }
+        }
     }
 
     @Test
     fun `every leg day carries a hinge or knee-flexion and the cycle contains both`() {
-        val program = ProgramGenerator.generate(WizardAnswers()).program
+        val program = ProgramGenerator.generate(WizardAnswers())
         val hinge = MovementPattern.HINGE
         val kneeFlex = MovementPattern.KNEE_FLEXION
         for (day in program.days) {
@@ -286,13 +319,13 @@ class ProgramGeneratorTest {
 
     @Test
     fun `excluding machines swaps a machine rank-1 pick for the best non-machine one`() {
-        val all = ProgramGenerator.generate(WizardAnswers()).program
+        val all = ProgramGenerator.generate(WizardAnswers())
         // Day B's knee-flexion slot is the machine seated leg curl by default.
         assertEquals("seated_curl", ids(all.days[1])[2])
 
         val noMachine = ProgramGenerator.generate(
             WizardAnswers(equipment = Equipment.entries.toSet() - Equipment.MACHINE),
-        ).program
+        )
         // With machines gone it falls down subRank to the bodyweight ball curl.
         assertEquals("ball_curl", ids(noMachine.days[1])[2])
     }
@@ -302,13 +335,13 @@ class ProgramGeneratorTest {
     @Test
     fun `exactly one warm-up hint per generated day`() {
         val programs = listOf(
-            ProgramGenerator.generate(WizardAnswers()).program,
+            ProgramGenerator.generate(WizardAnswers()),
             ProgramGenerator.generate(
                 WizardAnswers(daysPerWeek = 5, split = SplitTemplate.PPLUL),
-            ).program,
+            ),
             ProgramGenerator.generate(
                 WizardAnswers(daysPerWeek = 6, split = SplitTemplate.PPL),
-            ).program,
+            ),
         )
         for (program in programs) {
             for (day in program.days) {
@@ -321,7 +354,7 @@ class ProgramGeneratorTest {
     fun `arms superset pairs biceps and triceps on upper days`() {
         val program = ProgramGenerator.generate(
             WizardAnswers(daysPerWeek = 5, split = SplitTemplate.PPLUL),
-        ).program
+        )
         val upper = program.days.first { it.title == "Upper" }
         val superset = upper.exercises.first { it.superset != null }
         assertEquals(MovementPattern.BICEPS, ExerciseLibrary.get(superset.exerciseId).pattern)
@@ -335,7 +368,7 @@ class ProgramGeneratorTest {
     fun `push day gets triceps only and pull day biceps only, no supersets`() {
         val program = ProgramGenerator.generate(
             WizardAnswers(daysPerWeek = 6, split = SplitTemplate.PPL),
-        ).program
+        )
         for (day in program.days.filter { it.title == "Push" || it.title == "Pull" }) {
             assertTrue(day.exercises.none { it.superset != null }, "no superset on ${day.title} day")
             val pats = patternsIn(day)

@@ -123,8 +123,8 @@ class DayRouteNavigationTest {
     fun todayCardioLinkOpensItsPlanWhileAnotherPlanIsSelected() {
         val displayedPlan = runBlocking {
             repo.replaceProgram(Program(listOf(
-                ProgramDay("A", "Strength", "", listOf(ProgramExercise("bb_back_squat")), null),
-                ProgramDay("C1", "Cardio", "", emptyList(), null, kind = ProgramDayKind.CARDIO,
+                ProgramDay("A", "Strength", "", listOf(ProgramExercise("bb_back_squat"))),
+                ProgramDay("C1", "Cardio", "", emptyList(), kind = ProgramDayKind.CARDIO,
                     cardioBlock = CardioBlock(CardioActivity.TRACK_RUN, listOf(
                         CardioSetSpec(CardioRole.WORK, Measure.Time(120)),
                     ))),
@@ -209,7 +209,6 @@ class DayRouteNavigationTest {
                 exercises = if (timedReps) listOf(ProgramExercise(
                     "pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)),
                 )) else emptyList(),
-                cardio = null,
                 cardioBlock = if (timedReps) null else CardioBlock(CardioActivity.TRACK_RUN, listOf(
                     CardioSetSpec(CardioRole.WORK, Measure.Time(120)),
                 )),

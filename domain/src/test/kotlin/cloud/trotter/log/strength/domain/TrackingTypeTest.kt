@@ -78,7 +78,7 @@ class TrackingTypeTest {
     @Test
     fun `generator never marks a non-WEIGHTED slot as main`() {
         for (days in 2..6) {
-            val program = ProgramGenerator.generate(WizardAnswers(daysPerWeek = days)).program
+            val program = ProgramGenerator.generate(WizardAnswers(daysPerWeek = days))
             val badMains = program.days
                 .flatMap { it.exercises }
                 .filter { it.isMain && ExerciseLibrary.get(it.exerciseId).tracking != TrackingType.WEIGHTED }

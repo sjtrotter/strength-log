@@ -40,9 +40,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
@@ -73,7 +70,7 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
 
 /**
  * The setup screen (spec §8.4): steppers/selectors for the GOAL inputs, a live
- * preview of the four main-lift GOALs those inputs drive, cardio prefs,
+ * preview of the four main-lift GOALs those inputs drive,
  * and the lb/kg display toggle.
  * Stateless: renders [state] and forwards every intent to [SetupActions] —
  * every field commits immediately (no draft, unlike the wizard), so leaving
@@ -85,7 +82,7 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions, openRestTimer: Boole
     val accent = accentEmphasis(0)
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
-        if (openRestTimer) listState.scrollToItem(12)
+        if (openRestTimer) listState.scrollToItem(11)
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
@@ -110,7 +107,6 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions, openRestTimer: Boole
                 item { AgeCard(state.config.age, actions.onAgeChange) }
                 item { LevelSection(state.config.level, actions.onLevelChange) }
                 item { EmphasisSection(state.config.emphasis, actions.onEmphasisChange) }
-                item { CardioSection(state.cardio, actions) }
                 item { SectionHeader(stringResource(R.string.setup_display_section)) }
                 item { UnitCard(state.unit, actions.onUnitToggle) }
                 item { ThemeSection(state.themePreference, actions.onThemePreferenceChange) }
@@ -308,59 +304,6 @@ private fun EmphasisSection(emphasis: GoalEmphasis, onChange: (GoalEmphasis) -> 
             )
         }
     }
-}
-
-// --- cardio prefs (same shape as the wizard's Cardio step) --------------------
-
-@Composable
-private fun CardioSection(cardio: CardioPrefs, actions: SetupActions) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(stringResource(R.string.setup_cardio_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        Column(
-            modifier = Modifier.selectableGroup(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            CardioMode.entries.forEach { mode ->
-                SelectionCard(title = cardioModeLabel(mode), selected = cardio.mode == mode, onClick = { actions.onCardioModeChange(mode) })
-            }
-        }
-        if (cardio.mode != CardioMode.NONE) {
-            Spacer(Modifier.size(2.dp))
-            Text(stringResource(R.string.setup_cardio_placement_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-            Column(
-                modifier = Modifier.selectableGroup(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                CardioPlacement.entries.filter { it != CardioPlacement.NONE }.forEach { placement ->
-                    SelectionCard(
-                        title = cardioPlacementLabel(placement),
-                        selected = cardio.placement == placement,
-                        onClick = { actions.onCardioPlacementChange(placement) },
-                    )
-                }
-            }
-            Spacer(Modifier.size(2.dp))
-            RuledGroup {
-                SwitchToggle(label = stringResource(R.string.setup_cardio_five_k_toggle), checked = cardio.fiveKGoal, onCheckedChange = actions.onFiveKChange)
-            }
-        }
-    }
-}
-
-@Composable
-private fun cardioModeLabel(mode: CardioMode): String = when (mode) {
-    CardioMode.OUTDOOR_RUN -> stringResource(R.string.setup_cardio_mode_outdoor_run)
-    CardioMode.TREADMILL -> stringResource(R.string.setup_cardio_mode_treadmill)
-    CardioMode.LOW_IMPACT -> stringResource(R.string.setup_cardio_mode_low_impact)
-    CardioMode.NONE -> stringResource(R.string.setup_cardio_mode_none)
-}
-
-@Composable
-private fun cardioPlacementLabel(placement: CardioPlacement): String = when (placement) {
-    CardioPlacement.FINISHERS -> stringResource(R.string.setup_cardio_placement_finishers)
-    CardioPlacement.SEPARATE_DAYS -> stringResource(R.string.setup_cardio_placement_separate_days)
-    CardioPlacement.BOTH -> stringResource(R.string.setup_cardio_placement_both)
-    CardioPlacement.NONE -> stringResource(R.string.setup_cardio_placement_none)
 }
 
 // --- unit toggle (A5) ---------------------------------------------------------
@@ -561,13 +504,11 @@ private fun SetupScreenPreviewContent(theme: ThemePreference) {
         SetupScreen(
             state = SetupStateBuilder.buildUiState(
                 cfg = LifterConfig(),
-                cardio = CardioPrefs(),
                 unit = WeightUnit.LB,
                 answers = WizardAnswers(),
             ),
             actions = SetupActions(
                 onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEmphasisChange = {},
-                onCardioModeChange = {}, onCardioPlacementChange = {}, onFiveKChange = {},
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
                 onThemePreferenceChange = {},
                 onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {},

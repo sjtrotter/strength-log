@@ -76,8 +76,8 @@ class TrackerRepositoryRunEditsTest {
                 ProgramExercise("bb_back_squat", isMain = true),
                 ProgramExercise("bb_bench"), ProgramExercise("ez_curl"), ProgramExercise("face_pull"),
                 ProgramExercise("db_lateral"),
-            ), null),
-            ProgramDay("B", "Day B", "", listOf(ProgramExercise("bb_bench")), null),
+            )),
+            ProgramDay("B", "Day B", "", listOf(ProgramExercise("bb_bench"))),
         )))
         return repo.selectedPlanIdFlow.first()!!
     }

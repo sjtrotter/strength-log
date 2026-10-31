@@ -3,19 +3,14 @@ package cloud.trotter.log.strength.domain.generator
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Measure
-import cloud.trotter.log.strength.domain.model.ProgramDay
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
-import cloud.trotter.log.strength.domain.model.effectiveCardio
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
-import kotlin.test.assertSame
 
 class CardioBlocksTest {
     private val easy = CardioSuggestion("Zone 2", "easy", hard = false)
@@ -120,37 +115,4 @@ class CardioBlocksTest {
         }
         assertFailsWith<IllegalArgumentException> { CardioBlock(activity, emptyList()) }
     }
-
-    @Test
-    fun `stored block wins with or without legacy suggestion or recipe`() {
-        val stored = CardioBlock(CardioActivity.ROWER, listOf(CardioSetSpec(CardioRole.COOLDOWN, Measure.Distance(500))))
-        val authored = day(hard).copy(cardioBlock = stored, kind = ProgramDayKind.CARDIO)
-        assertSame(stored, authored.effectiveCardio(CardioPrefs()))
-        assertSame(stored, authored.effectiveCardio(null))
-        assertSame(stored, authored.effectiveCardio(CardioPrefs(mode = CardioMode.NONE)))
-        assertSame(stored, authored.copy(cardio = null).effectiveCardio(null))
-    }
-
-    @Test
-    fun `legacy uses owning recipe fiveK and activity rather than snapshot facts`() {
-        val suggestion = hard.copy(mode = CardioMode.OUTDOOR_RUN.name, fiveK = true)
-        val prefs = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false)
-        assertEquals(
-            CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
-            day(suggestion).effectiveCardio(prefs),
-        )
-        assertEquals(
-            CardioBlocks.fromLegacy(hard, true, CardioActivity.STATIONARY_BIKE),
-            day(hard).effectiveCardio(CardioPrefs(mode = CardioMode.LOW_IMPACT, fiveKGoal = true)),
-        )
-    }
-
-    @Test
-    fun `absent cardio or missing or disabled recipe has no effective legacy block`() {
-        assertNull(day(null).effectiveCardio(CardioPrefs()))
-        assertNull(day(hard).effectiveCardio(null))
-        assertNull(day(hard).effectiveCardio(CardioPrefs(mode = CardioMode.NONE)))
-    }
-
-    private fun day(cardio: CardioSuggestion?) = ProgramDay("A", "Run", "", emptyList(), cardio)
 }

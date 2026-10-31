@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.flow.map
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
@@ -166,14 +168,13 @@ class PersistenceProcessDeathTest {
             title = "Day A",
             emphasisLine = "Squat-focused lower",
             exercises = listOf(squat, row, bench),
-            cardio = CardioSuggestion("Intervals", "5 min easy, then 4x2min hard/easy", hard = true),
+            cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Intervals", "5 min easy, then 4x2min hard/easy", hard = true), false, CardioActivity.TREADMILL_RUN),
         )
         val dayB = ProgramDay(
             id = "B",
             title = "Day B",
             emphasisLine = "Bench-focused upper",
             exercises = listOf(ProgramExercise(exerciseId = "bb_bench", isMain = true, targetSets = 4)),
-            cardio = null,
         )
         repository.replaceProgram(Program(listOf(dayA, dayB)))
 
@@ -209,7 +210,7 @@ class PersistenceProcessDeathTest {
         val reopenedA = program.days.first()
         assertEquals("Day A", reopenedA.title)
         assertEquals("Squat-focused lower", reopenedA.emphasisLine)
-        assertEquals(CardioSuggestion("Intervals", "5 min easy, then 4x2min hard/easy", hard = true), reopenedA.cardio)
+        assertEquals(dayA.cardioBlock, reopenedA.cardioBlock)
         assertEquals(listOf(squat, row, bench.copy(exerciseId = "db_bench")), reopenedA.exercises)
         assertEquals(dayB, program.days.last())
 

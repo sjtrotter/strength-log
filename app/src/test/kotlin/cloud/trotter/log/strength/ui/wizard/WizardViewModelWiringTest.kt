@@ -178,7 +178,6 @@ class WizardViewModelWiringTest {
                 title = "Restored",
                 emphasisLine = "from a backup",
                 exercises = listOf(ProgramExercise(exerciseId = "bb_back_squat", isMain = true)),
-                cardio = null,
             ),
         ),
     )
@@ -261,7 +260,7 @@ class WizardViewModelWiringTest {
         repeat(WizardStep.ROTATION.ordinal) { vm.onNext() }
         advanceUntilIdle()
 
-        val expected = ProgramGenerator.generate(vm.uiState.value.answers).program
+        val expected = ProgramGenerator.generate(vm.uiState.value.answers)
         assertEquals(
             expected.days.map { it.exercises.first { exercise -> exercise.isMain }.exerciseId },
             vm.uiState.value.previewProgram!!.days.map { it.exercises.first { exercise -> exercise.isMain }.exerciseId },
@@ -280,7 +279,7 @@ class WizardViewModelWiringTest {
         vm.onNext()
         advanceUntilIdle()
 
-        assertEquals(ProgramGenerator.generate(vm.uiState.value.answers).program, vm.uiState.value.previewProgram)
+        assertEquals(ProgramGenerator.generate(vm.uiState.value.answers), vm.uiState.value.previewProgram)
         assertEquals(3, vm.uiState.value.previewProgram!!.days.size)
     }
 
@@ -611,7 +610,7 @@ class WizardViewModelWiringTest {
 
         val program = repo.programFlow.first()
         assertEquals(2, program.cardioDays.size)
-        assertTrue(program.cardioDays.all { it.exercises.size == 1 && it.cardio != null })
+        assertTrue(program.cardioDays.all { it.exercises.size == 1 && it.cardioBlock != null })
     }
 
     @Test

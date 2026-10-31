@@ -86,14 +86,14 @@ class TrackerRepositoryAuthoredPlanTest {
     }
 
     @Test
-    fun `generated cardio block cannot be edited or removed`() = runTest {
+    fun `generated cardio block can be edited and removed when an exercise remains`() = runTest {
         val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500))))
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList(), null, cardioBlock = block))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", listOf(ProgramExercise("plank")), cardioBlock = block))))
         val plan = repo.selectedPlanIdFlow.first()!!
-        assertFalse(repo.setCardioBlock(plan, "A", block.copy(activity = CardioActivity.ROWER)))
-        assertEquals(block, repo.programFor(plan).first().days.single().cardioBlock)
-        assertFalse(repo.setCardioBlock(plan, "A", null))
-        assertEquals(block, repo.programFor(plan).first().days.single().cardioBlock)
+        assertTrue(repo.setCardioBlock(plan, "A", block.copy(activity = CardioActivity.ROWER)))
+        assertEquals(block.copy(activity = CardioActivity.ROWER), repo.programFor(plan).first().days.single().cardioBlock)
+        assertTrue(repo.setCardioBlock(plan, "A", null))
+        assertNull(repo.programFor(plan).first().days.single().cardioBlock)
     }
 
     @Test
@@ -139,7 +139,7 @@ class TrackerRepositoryAuthoredPlanTest {
 
     @Test
     fun `create and publish an empty authored plan preserve the global lifter and existing selection`() = runTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList(), null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList()))))
         repo.setConfig(LifterConfig(bodyweightLb = 193, age = 47))
         val global = settings.globalLifterFlow.first()
         val selected = settings.selectedPlanIdFlow.first()
@@ -238,7 +238,7 @@ class TrackerRepositoryAuthoredPlanTest {
 
     @Test
     fun `generated plan refuses authored day mutations and prescriptions`() = runTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", listOf(ProgramExercise("plank")), null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", listOf(ProgramExercise("plank"))))))
         val id = settings.selectedPlanIdFlow.first()!!
         val slot = repo.daySlotsFlow("A").first().single().programExerciseId
         repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
@@ -255,7 +255,7 @@ class TrackerRepositoryAuthoredPlanTest {
 
     @Test
     fun `move swaps neighbours in either origin and stops at ends without changing logs`() = runTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", List(3) { ProgramExercise("plank") }, null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", List(3) { ProgramExercise("plank") }))))
         val generated = settings.selectedPlanIdFlow.first()!!
         val authored = repo.createAuthoredPlan("Physio", "Day A")
         repo.publishCreatedAuthoredPlan(authored)

@@ -65,9 +65,7 @@ data class ProgramDay(
     val title: String,
     val emphasisLine: String, // muscle-angle emphasis, shown under title
     val exercises: List<ProgramExercise>,
-    val cardio: CardioSuggestion?, // null if user opted out of finishers
     val kind: ProgramDayKind = ProgramDayKind.STRENGTH,
-    /** Stored only for authored days; generated cardio comes from CardioPlanner. */
     val cardioBlock: CardioBlock? = null,
 )
 

@@ -7,7 +7,6 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -33,11 +32,11 @@ class CardioBlockJsonTest {
             CardioBlockJson.validate(json)
             assertEquals(block, CardioBlockJson.decode(json))
             assertEquals(json, CardioBlockJson.encode(block))
-            val day = ProgramDay("A", "Running", "", emptyList(), CardioSuggestion("Easy", "", false),
+            val day = ProgramDay("A", "Running", "", emptyList(),
                 kind = ProgramDayKind.CARDIO, cardioBlock = block)
             assertEquals(day, day.toEntity(1).toDomain(emptyList()))
         }
-        val day = ProgramDay("A", "Strength", "", emptyList(), null)
+        val day = ProgramDay("A", "Strength", "", emptyList())
         assertNull(day.toEntity(1).cardioBlockJson)
         assertEquals(day, day.toEntity(1).toDomain(emptyList()))
         assertNull(CardioBlockJson.decode(null))

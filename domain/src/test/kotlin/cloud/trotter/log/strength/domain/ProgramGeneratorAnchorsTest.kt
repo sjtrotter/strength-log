@@ -53,7 +53,7 @@ class ProgramGeneratorAnchorsTest {
         // The preview promise: activeAnchorIds are exactly the anchor mains the
         // generator actually places, so preview and program can't drift.
         val answers = WizardAnswers(daysPerWeek = 3, split = SplitTemplate.FULL_BODY)
-        val program = ProgramGenerator.generate(answers).program
+        val program = ProgramGenerator.generate(answers)
         val mainIdsInOrder = program.days.map { day -> day.exercises.first { it.isMain }.exerciseId }
         assertEquals(ProgramGenerator.activeAnchorIds(answers), mainIdsInOrder)
         // Sanity: every active anchor resolves to a real catalog entry.

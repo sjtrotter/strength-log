@@ -1,8 +1,5 @@
 package cloud.trotter.log.strength.ui.setup
 
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPlacement
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
@@ -30,7 +27,6 @@ data class RestCategoryUiState(val category: RestCategory, val seconds: Int)
  */
 data class SetupUiState(
     val config: LifterConfig = LifterConfig(),
-    val cardio: CardioPrefs = CardioPrefs(),
     val unit: WeightUnit = WeightUnit.LB,
     val bodyweightDisplay: Double = LifterConfig().bodyweightLb.toDouble(),
     val goalPreview: List<GoalPreviewItem> = emptyList(),
@@ -47,9 +43,6 @@ data class SetupActions(
     val onAgeChange: (Int) -> Unit,
     val onLevelChange: (ExperienceLevel) -> Unit,
     val onEmphasisChange: (GoalEmphasis) -> Unit,
-    val onCardioModeChange: (CardioMode) -> Unit,
-    val onCardioPlacementChange: (CardioPlacement) -> Unit,
-    val onFiveKChange: (Boolean) -> Unit,
     val onUnitToggle: (WeightUnit) -> Unit,
     val onThemePreferenceChange: (ThemePreference) -> Unit = {},
     val onRestTimerEnabledChange: (Boolean) -> Unit,

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
@@ -234,15 +235,26 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun generatedDayCannotOpenAnAuthoredCardioDraft() = runVmTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList(), null))))
-        val vm = newViewModel()
+    fun generatedDayCanOpenAndRestoreACardioDraft() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", listOf(ProgramExercise("plank"))))))
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
         val collectEdit = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
         vm.openCardioBlock()
-        vm.removeCardioBlock()
         advanceUntilIdle()
-        assertNull(vm.dayEditState.value.cardioDraft)
+        val draft = requireNotNull(vm.dayEditState.value.cardioDraft)
+        val restored = newViewModel(SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) }))
+        val collectRestored = launch { restored.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertEquals(draft, restored.dayEditState.value.cardioDraft)
+        restored.saveCardioBlock()
+        advanceUntilIdle()
+        assertEquals(draft.block(), repo.programFlow.first().days.single().cardioBlock)
+        restored.removeCardioBlock()
+        advanceUntilIdle()
+        assertNull(repo.programFlow.first().days.single().cardioBlock)
+        collectRestored.cancel()
         collectEdit.cancel()
     }
 
@@ -351,7 +363,7 @@ class DayViewModelWiringTest {
                 prescription = Prescription(it, eachSide = true, resistance = "Red band"),
             )
         }
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Targets", "", exercises, null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Targets", "", exercises))))
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -381,7 +393,7 @@ class DayViewModelWiringTest {
             ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Hold(45, 25.0))),
             ProgramExercise("weighted_plank", prescription = Prescription(PrescribedTarget.Hold(45))),
         )
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Holds", "", exercises, null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Holds", "", exercises))))
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
         val collectEdit = launch { vm.dayEditState.collect {} }
@@ -405,7 +417,7 @@ class DayViewModelWiringTest {
             ProgramExercise("weighted_plank", prescription = Prescription(PrescribedTarget.LoadReps(25.0, 12))),
             ProgramExercise("weighted_plank"),
         )
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Planks", "", exercises, null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Planks", "", exercises))))
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
         advanceUntilIdle()
@@ -616,7 +628,7 @@ class DayViewModelWiringTest {
     @Test
     fun completingASingleDayRotationPinsItsPageAgain() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Day A", "", listOf(ProgramExercise("ez_curl")), cardio = null,
+            "A", "Day A", "", listOf(ProgramExercise("ez_curl")),
         ))))
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
@@ -653,7 +665,7 @@ class DayViewModelWiringTest {
         vm.completeDay()
         finishReadReady!!.await()
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Day A", "", listOf(ProgramExercise("ez_curl")), cardio = null,
+            "A", "Day A", "", listOf(ProgramExercise("ez_curl")),
         ))))
         finishReadGate!!.complete(Unit)
         advanceUntilIdle()
@@ -732,7 +744,7 @@ class DayViewModelWiringTest {
         // Unknown catalog entries leave real pages available before any rows exist.
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Day A", "", listOf(ProgramExercise("ghost_unknown")),
-            cloud.trotter.log.strength.domain.model.CardioSuggestion("Run", "20 minutes", false),
+            cardioBlock = CardioBlocks.fromLegacy(cloud.trotter.log.strength.domain.model.CardioSuggestion("Run", "20 minutes", false), true, CardioActivity.ROAD_RUN),
         ))))
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
@@ -874,7 +886,7 @@ class DayViewModelWiringTest {
                             ProgramExercise("ghost_unknown"),
                             ProgramExercise("db_lateral", targetSets = 2, superset = SupersetPartner("nope_unknown")),
                         ),
-                        cardio = cardio,
+                        cardioBlock = cardio?.let { CardioBlocks.fromLegacy(it, true, CardioActivity.ROAD_RUN) },
                     ),
                 ),
             ),
@@ -893,7 +905,7 @@ class DayViewModelWiringTest {
     fun resetRememberedSlotToPlanReseedsScreenRowsWithoutAnOpenRun() = runVmTest {
         val prescription = Prescription(PrescribedTarget.LoadReps(100.0, 5))
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3, prescription = prescription)), null,
+            "A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3, prescription = prescription)),
         ))))
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
@@ -920,7 +932,7 @@ class DayViewModelWiringTest {
     fun switchingSlotToPlanReseedsScreenRowsWithoutAnOpenRun() = runVmTest {
         val prescription = Prescription(PrescribedTarget.LoadReps(100.0, 5))
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3, prescription = prescription)), null,
+            "A", "Day A", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3, prescription = prescription)),
         ))))
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
@@ -1014,9 +1026,9 @@ class DayViewModelWiringTest {
         repo.replaceProgram(
             Program(
                 listOf(
-                    ProgramDay("A", "Day A", "", listOf(ProgramExercise("ez_curl")), cardio = null),
-                    ProgramDay("B", "Day B", "", listOf(ProgramExercise("rope_pushdown")), cardio = null),
-                    ProgramDay("C", "Day C", "", listOf(ProgramExercise("face_pull")), cardio = null),
+                    ProgramDay("A", "Day A", "", listOf(ProgramExercise("ez_curl"))),
+                    ProgramDay("B", "Day B", "", listOf(ProgramExercise("rope_pushdown"))),
+                    ProgramDay("C", "Day C", "", listOf(ProgramExercise("face_pull"))),
                 ),
             ),
         )
@@ -1149,7 +1161,6 @@ class DayViewModelWiringTest {
                     ProgramDay(
                         id = "A", title = "Test", emphasisLine = "",
                         exercises = listOf(ProgramExercise("plank", targetSets = 3)),
-                        cardio = null,
                     ),
                 ),
             ),
@@ -1178,7 +1189,6 @@ class DayViewModelWiringTest {
                     ProgramDay(
                         id = "A", title = "Test", emphasisLine = "",
                         exercises = listOf(ProgramExercise("plank", targetSets = 3)),
-                        cardio = null,
                     ),
                 ),
             ),
@@ -1215,7 +1225,6 @@ class DayViewModelWiringTest {
                     ProgramDay(
                         id = "A", title = "Test", emphasisLine = "",
                         exercises = listOf(ProgramExercise("weighted_plank", targetSets = 3)),
-                        cardio = null,
                     ),
                 ),
             ),
@@ -1855,7 +1864,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val answers = repo.wizardAnswersFlow.first()
         val selectedPlan = repo.createGeneratedPlan("Other", answers, Program(listOf(
-            ProgramDay("A", "Other A", "", listOf(ProgramExercise("plank")), null),
+            ProgramDay("A", "Other A", "", listOf(ProgramExercise("plank"))),
         )))
         repo.publishCreatedPlan(selectedPlan, answers)
         advanceUntilIdle()
@@ -2057,7 +2066,7 @@ class DayViewModelWiringTest {
 
     private suspend fun insertBenchProgram() {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)), null,
+            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)),
         ))))
     }
 

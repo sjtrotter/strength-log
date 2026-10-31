@@ -205,17 +205,17 @@ class PlanSettingsTest {
     }
 
     @Test
-    fun `first cardio write seeds a generated recipe but leaves authored recipes absent`() = runTest {
+    fun `first wizard write seeds a generated recipe but leaves authored recipes absent`() = runTest {
         db.planDao().insertPlans(listOf(plan(1), plan(2).copy(origin = PlanOrigin.AUTHORED.name)))
         val global = GlobalLifter(bodyweightLb = 205, age = 41, level = ExperienceLevel.ADVANCED)
         settings.setGlobalLifter(global)
         val prefs = CardioPrefs(CardioMode.LOW_IMPACT, CardioPlacement.BOTH, false)
 
-        repo.setCardioPrefs(prefs)
+        repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
 
         assertEquals(WizardAnswers(config = global.toConfig(), cardio = prefs), answersFor(1))
         settings.setSelectedPlanId(2)
-        repo.setCardioPrefs(prefs)
+        repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
         assertNull(db.planDao().plan(2)!!.recipeJson)
         assertEquals(WizardAnswers(config = global.toConfig()), repo.wizardAnswersFlow.first())
     }
@@ -257,19 +257,19 @@ class PlanSettingsTest {
     }
 
     @Test
-    fun `cardio and wizard writes update selected recipe while authored config has only global parts`() = runTest {
+    fun `wizard writes update selected recipe while authored config has only global parts`() = runTest {
         val one = strengthAnswers()
         val two = physiqueAnswers()
         db.planDao().insertPlans(listOf(plan(1, one), plan(2, two), plan(3).copy(origin = PlanOrigin.AUTHORED.name)))
         val prefs = CardioPrefs(CardioMode.LOW_IMPACT, CardioPlacement.BOTH, false)
 
-        repo.setCardioPrefs(prefs)
+        repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
 
         assertEquals(one.copy(cardio = prefs), repo.wizardAnswersFlow.first())
         assertEquals(PlanRecipeJson.encode(two), db.planDao().plan(2)!!.recipeJson)
         settings.setSelectedPlanId(3)
         repo.setConfig(one.config.copy(bodyweightLb = 205))
-        repo.setCardioPrefs(prefs)
+        repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
         assertNull(db.planDao().plan(3)!!.recipeJson)
         assertEquals(LifterConfig(bodyweightLb = 205), repo.configFlow.first())
         repo.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
@@ -418,7 +418,7 @@ class PlanSettingsTest {
         assertEquals(answers, repo.wizardAnswersFlow.first())
         assertTrue(repo.programFlow.first().days.isEmpty())
         assertFalse(repo.wizardCompleteFlow.first())
-        val generated = ProgramGenerator.generate(answers).program
+        val generated = ProgramGenerator.generate(answers)
         repo.replaceProgram(generated)
         assertEquals(1, db.planDao().allPlans().size)
         assertEquals(generated, repo.programFlow.first())
@@ -426,7 +426,7 @@ class PlanSettingsTest {
     }
 
     @Test
-    fun `restore clears the migration flag and the next gate retires an empty legacy store`() = runTest {
+    fun `restore retires the legacy store before returning`() = runTest {
         db.planDao().insertPlan(plan(1, strengthAnswers(), "B"))
         repo.runPlanSettingsFixupIfNeeded()
         val snapshot = repo.exportSnapshot()
@@ -434,16 +434,15 @@ class PlanSettingsTest {
 
         repo.importSnapshot(snapshot, journal)
 
-        assertFalse(settings.planSettingsFixupDoneFlow.first())
+        assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertLegacyKeysGone()
         assertEquals(strengthAnswers(), repo.wizardAnswersFlow.first())
-        assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertEquals(snapshot.plans, db.planDao().allPlans())
     }
 
     private suspend fun assertSelected(answers: WizardAnswers, suggestedDay: String) {
         assertEquals(answers.config, repo.configFlow.first())
-        assertEquals(answers.cardio, repo.cardioPrefsFlow.first())
+        assertEquals(answers.cardio, repo.wizardAnswersFlow.first().cardio)
         assertEquals(answers, repo.wizardAnswersFlow.first())
         assertEquals(suggestedDay, repo.suggestedDayFlow.first())
     }

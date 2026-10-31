@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.flow.map
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import cloud.trotter.log.strength.data.FullSnapshot
@@ -85,14 +87,13 @@ class BackupRoundTripTest : BackupTestHarness() {
                 ProgramExercise("bb_row", targetSets = 3, repSchemeLabel = "8-12"),
                 ProgramExercise("bb_bench", targetSets = 3, repSchemeLabel = "6-10"),
             ),
-            cardio = CardioSuggestion("Intervals", "5 min easy, then 4x2min hard/easy", hard = true),
+            cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Intervals", "5 min easy, then 4x2min hard/easy", hard = true), false, CardioActivity.TREADMILL_RUN),
         )
         val dayB = ProgramDay(
             id = "B",
             title = "Day B",
             emphasisLine = "Bench-focused upper",
             exercises = listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 4)),
-            cardio = null,
         )
         repository.replaceProgram(Program(listOf(dayA, dayB)))
 

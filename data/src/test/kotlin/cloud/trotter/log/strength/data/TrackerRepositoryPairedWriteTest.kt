@@ -71,7 +71,7 @@ class TrackerRepositoryPairedWriteTest {
     /** Day A with one superset slot; writes are addressed by the slot's own row. */
     private suspend fun supersetSlot(): Long {
         val slot = ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown"))
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(slot), cardio = null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(slot)))))
         return repo.daySlotsFlow("A").first().single().programExerciseId
     }
 

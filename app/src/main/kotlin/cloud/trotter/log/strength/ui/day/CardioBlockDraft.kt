@@ -55,7 +55,7 @@ data class CardioBlockDraft(
     fun startFrom(template: CardioTemplate): CardioBlockDraft = from(
         planId, dayId, CardioBlocks.fromLegacy(
             CardioSuggestion("", "", hard = template != CardioTemplate.EASY),
-            fiveK = template == CardioTemplate.INTERVALS, activity = activity,
+            template == CardioTemplate.INTERVALS, activity,
         ),
     )
 

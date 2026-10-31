@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import android.database.sqlite.SQLiteException
 import androidx.room.withTransaction
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.run.LegacyLiveLogSplit
@@ -33,6 +34,7 @@ import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.LegacyCardio
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
@@ -53,7 +55,6 @@ import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSetResult
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
@@ -123,6 +124,7 @@ open class TrackerRepository(
     private val planDao = db.planDao()
     private val runDao = db.runDao()
     private val planSettingsMigrationMutex = Mutex()
+    private var legacyCardioConverted = false
     private val sessionNotesMigrationMutex = Mutex()
 
     /** Serializes plan selection and archive changes across Room and DataStore. */
@@ -199,10 +201,6 @@ open class TrackerRepository(
         ensurePlanSettingsMigrated()
         emitAll(planAnswersFlow.map { it.config }.distinctUntilChanged())
     }
-    val cardioPrefsFlow: Flow<CardioPrefs> = flow {
-        ensurePlanSettingsMigrated()
-        emitAll(planAnswersFlow.map { it.cardio }.distinctUntilChanged())
-    }
     val unitFlow: Flow<WeightUnit> = settings.unitFlow
     val restSettingsFlow: Flow<RestSettings> = settings.restSettingsFlow
     val phoneRestTimerEnabledFlow = settings.phoneRestTimerEnabledFlow
@@ -239,19 +237,6 @@ open class TrackerRepository(
             val answers = plan.recipeJson?.let { PlanRecipeJson.decode(it, GlobalLifter.of(config)) }
                 ?: WizardAnswers(config = GlobalLifter.of(config).toConfig())
             planDao.updateRecipe(planId, PlanRecipeJson.encode(answers.copy(config = config)))
-        }
-    }
-
-    suspend fun setCardioPrefs(prefs: CardioPrefs) {
-        ensurePlanSettingsMigrated()
-        val planId = selectedPlanId() ?: return
-        val global = settings.globalLifterFlow.first()
-        db.withTransaction {
-            val plan = planDao.plan(planId) ?: return@withTransaction
-            if (plan.origin != PlanOrigin.GENERATED.name) return@withTransaction
-            val answers = plan.recipeJson?.let { PlanRecipeJson.decode(it, global) }
-                ?: WizardAnswers(config = global.toConfig())
-            planDao.updateRecipe(planId, PlanRecipeJson.encode(answers.copy(cardio = prefs)))
         }
     }
 
@@ -383,21 +368,26 @@ open class TrackerRepository(
         id
     }
 
-    val programFlow: Flow<Program> =
-        selectedPlanIdFlow.flatMapLatest { planId ->
+    val programFlow: Flow<Program> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(selectedPlanIdFlow.flatMapLatest { planId ->
             if (planId == null) {
                 flowOf(Program(emptyList()))
             } else {
                 programFor(planId)
             }
-        }
+        })
+    }
 
     /** A plan's program, independent of selection. */
-    fun programFor(planId: Long): Flow<Program> = combine(
-        programDao.observeDays(planId),
-        programDao.observeExercises(planId),
-        ::assemble,
-    )
+    fun programFor(planId: Long): Flow<Program> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(combine(
+            programDao.observeDays(planId),
+            programDao.observeExercises(planId),
+            ::assemble,
+        ))
+    }
 
     /** Selects an existing active plan without changing any plan's contents. */
     suspend fun selectPlan(id: Long) {
@@ -526,15 +516,14 @@ open class TrackerRepository(
         }
     }
 
-    /** Authored cardio is stored on its owning day; null removes it if an exercise remains. */
+    /** Cardio is stored on its owning day; null removes it if an exercise remains. */
     suspend fun setCardioBlock(planId: Long, dayId: String, block: CardioBlock?): Boolean =
         db.withTransaction {
-            if (planDao.plan(planId)?.origin != PlanOrigin.AUTHORED.name) return@withTransaction false
             val day = programDao.day(planId, dayId) ?: return@withTransaction false
             if (block == null && programDao.exercisesForDay(planId, dayId).isEmpty()) return@withTransaction false
             // encode reconstructs the domain objects, enforcing all their requires.
             val json = block?.let(CardioBlockJson::encode)
-            programDao.upsertDay(day.copy(cardioBlockJson = json))
+            programDao.upsertDay(day.copy(cardioBlockJson = json, cardioJson = null))
             true
         }
 
@@ -848,7 +837,7 @@ open class TrackerRepository(
         ensurePlanSettingsMigrated()
         val planId = targetPlanId ?: selectedPlanId() ?: return
         val answers = wizardAnswersFor(planId).first()
-        val regenerated = ProgramGenerator.generate(answers).program
+        val regenerated = ProgramGenerator.generate(answers)
         val newDay = regenerated.days.firstOrNull { it.id == dayId } ?: return
         db.withTransaction {
             val existing = programDao.day(planId, dayId)
@@ -906,33 +895,49 @@ open class TrackerRepository(
     }
 
     /** Moves pre-plan preferences to Room before atomically retiring their keys.
+     *  Also converts legacy cardio to typed blocks.
      *  Recipe-less generated plans make a retry after the Room commit harmless. */
     suspend fun runPlanSettingsFixupIfNeeded() {
         ensurePlanSettingsMigrated()
     }
 
-    /** A half-done restore's settings are not this device's to copy; reconcile owns them. */
+    /** A half-done restore's settings are not this device's to copy; reconcile owns them.
+     *  Also converts legacy cardio to typed blocks. */
     private suspend fun ensurePlanSettingsMigrated() {
         planSettingsMigrationMutex.withLock {
             if (restoreMarkerDao.nonce() != null) return@withLock
-            if (settings.planSettingsFixupDoneFlow.first()) return@withLock
-            val legacy = settings.legacyAnswersFlow.first()
-            val suggestedDay = settings.legacySuggestedDayFlow.first()
-            if (legacy != null) {
-                val storedId = settings.selectedPlanIdFlow.first()
-                db.withTransaction {
-                    val recipe = PlanRecipeJson.encode(legacy)
-                    val plans = planDao.allPlans()
-                    plans.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }
-                        .forEach { planDao.updateRecipe(it.id, recipe) }
-                    val selected = plans.firstOrNull { it.id == storedId && !it.archived }
-                        ?: plans.firstOrNull { !it.archived }
-                    if (selected != null && selected.suggestedDayId == null) {
-                        planDao.updateSuggestedDay(selected.id, suggestedDay)
+            if (!settings.planSettingsFixupDoneFlow.first()) {
+                val legacy = settings.legacyAnswersFlow.first()
+                val suggestedDay = settings.legacySuggestedDayFlow.first()
+                if (legacy != null) {
+                    val storedId = settings.selectedPlanIdFlow.first()
+                    db.withTransaction {
+                        val recipe = PlanRecipeJson.encode(legacy)
+                        val plans = planDao.allPlans()
+                        plans.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }
+                            .forEach { planDao.updateRecipe(it.id, recipe) }
+                        val selected = plans.firstOrNull { it.id == storedId && !it.archived }
+                            ?: plans.firstOrNull { !it.archived }
+                        if (selected != null && selected.suggestedDayId == null) {
+                            planDao.updateSuggestedDay(selected.id, suggestedDay)
+                        }
                     }
                 }
+                settings.removeLegacyPlanKeys()
             }
-            settings.removeLegacyPlanKeys()
+            if (legacyCardioConverted) return@withLock
+            val global = settings.globalLifterFlow.first()
+            legacyCardioConverted = db.withTransaction {
+                if (restoreMarkerDao.nonce() != null) return@withTransaction false
+                val plans = planDao.allPlans().associateBy { it.id }
+                for (day in programDao.daysWithLegacyCardio()) {
+                    val blockJson = day.cardioBlockJson ?: LegacyCardio.toBlock(
+                        requireNotNull(day.cardioJson), answersForPlan(plans[day.planId], global),
+                    )?.let(CardioBlockJson::encode)
+                    programDao.upsertDay(day.copy(cardioBlockJson = blockJson, cardioJson = null))
+                }
+                true
+            }
         }
     }
 
@@ -1853,7 +1858,15 @@ open class TrackerRepository(
             } catch (e: IOException) {
                 throw RestoreInterruption.SettingsPending(e)
             }
+            planSettingsMigrationMutex.withLock { legacyCardioConverted = false }
             clearRestoreBookkeeping(journal)
+            try {
+                ensurePlanSettingsMigrated()
+            } catch (e: IOException) {
+                throw RestoreInterruption.CleanupPending(e)
+            } catch (e: SQLiteException) {
+                throw RestoreInterruption.CleanupPending(e)
+            }
         }
     }
 
@@ -1898,6 +1911,7 @@ open class TrackerRepository(
                 selected?.id
             }
         }
+        planSettingsMigrationMutex.withLock { legacyCardioConverted = false }
         if (committed != null) restoreMarkerDao.clear()
         ensurePlanSettingsMigrated()
         return replayed

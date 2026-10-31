@@ -5,7 +5,6 @@ import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
-import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
@@ -56,7 +55,6 @@ fun ProgramDayEntity.toDomain(exercises: List<ProgramExerciseEntity>): ProgramDa
         title = title,
         emphasisLine = emphasisLine,
         exercises = exercises.sortedBy { it.position }.map { it.toDomain() },
-        cardio = CardioDto.decode(cardioJson),
         kind = ProgramDayKind.entries.firstOrNull { it.name == kind } ?: ProgramDayKind.STRENGTH,
         cardioBlock = CardioBlockJson.decode(cardioBlockJson),
     )
@@ -68,7 +66,7 @@ fun ProgramDay.toEntity(planId: Long): ProgramDayEntity =
         position = 0, // caller overwrites with the day's index
         title = title,
         emphasisLine = emphasisLine,
-        cardioJson = CardioDto.encode(cardio),
+        cardioJson = null,
         kind = kind.name,
         cardioBlockJson = cardioBlock?.let(CardioBlockJson::encode),
     )

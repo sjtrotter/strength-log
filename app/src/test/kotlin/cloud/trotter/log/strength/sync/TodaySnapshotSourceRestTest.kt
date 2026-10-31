@@ -1,5 +1,10 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.serialization.CardioDto
+import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -98,9 +103,30 @@ class TodaySnapshotSourceRestTest {
     }
 
     @Test
+    fun `snapshot collected first waits for stored prose conversion`() = runTest(dispatcher) {
+        db.planDao().insertPlan(PlanEntity(
+            1, "Running", "GENERATED", 0, 1_000, suggestedDayId = "C1",
+        ))
+        db.programDao().upsertDay(ProgramDayEntity(
+            1, "C1", 0, "Running", "", CardioDto.encode(
+                CardioSuggestion("Intervals", "", true),
+            ), kind = "CARDIO", nextRunId = "preview-C1",
+        ))
+        settings.setSelectedPlanId(1)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore, syncStore)
+
+        val snapshot = source.snapshots.publishableSnapshots().first()
+
+        assertEquals(11, snapshot.cardioBlock?.sets?.size)
+        assertEquals(null, snapshot.cardio?.mode)
+        assertEquals("", snapshot.cardio?.detail)
+        assertEquals(null, db.programDao().day(1, "C1")!!.cardioJson)
+    }
+
+    @Test
     fun `a throwing set transaction publishes no stamp and a committed retry publishes its stamp`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
         ))))
         val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore, syncStore)
         val preview = source.snapshots.publishableSnapshots().first()
@@ -130,7 +156,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `a throwing swap transaction publishes no stamp and a committed retry publishes its stamp`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
         ))))
         val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore, syncStore)
         val preview = source.snapshots.publishableSnapshots().first()
@@ -165,7 +191,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `rejected and invalid edits and swaps publish their processed stamps`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
         ))))
         val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore, syncStore)
         val preview = source.snapshots.publishableSnapshots().first()
@@ -235,7 +261,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `recorded cardio stamps republish even when a late stamp leaves the max unchanged`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
         ))))
         val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore, syncStore)
         val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
@@ -303,13 +329,13 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `switching plans changes the live widget and watch day`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
         ))))
         val firstPlan = repo.selectedPlanIdFlow.first()!!
         val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
         repo.selectPlan(secondPlan)
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "B", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)), cardio = null,
+            "B", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)),
         ))))
         repo.selectPlan(firstPlan)
         val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore, syncStore)
@@ -333,7 +359,7 @@ class TodaySnapshotSourceRestTest {
     fun `same day ids do not share cardio completion across plans`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
-            cardio = CardioSuggestion("Zone 2", "20 minutes", hard = false),
+            cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Zone 2", "20 minutes", hard = false), true, CardioActivity.ROAD_RUN),
         ))))
         val firstPlan = repo.selectedPlanIdFlow.first()!!
         val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
@@ -359,7 +385,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `live snapshots carry the selected plan and name across same-day plan switches`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
         ))))
         val planP = repo.selectedPlanIdFlow.first()!!
         repo.renamePlan(planP, "Strength")
@@ -390,7 +416,7 @@ class TodaySnapshotSourceRestTest {
     /** [F] */
     @Test fun `an open run supplies the watch and widget even when another plan is selected`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
         ))))
         val plan = repo.selectedPlanIdFlow.first()!!
         repo.renamePlan(plan, "Strength")
@@ -412,7 +438,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `a rest-settings edit changes the projected snapshot content`() = runTest(dispatcher) {
         repo.replaceProgram(
-            Program(listOf(ProgramDay("A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null))),
+            Program(listOf(ProgramDay("A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true))))),
         )
         db.planDao().updateSuggestedDay(repo.selectedPlanIdFlow.first()!!, "A")
         val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
@@ -439,7 +465,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `a preview publishes the next run and an open run publishes its start`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
         ))))
         val planId = repo.selectedPlanIdFlow.first()!!
         val runId = db.programDao().day(planId, "A")!!.nextRunId
@@ -460,7 +486,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `a mid-run bench swap publishes two retired rounds for watch and widget progress`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 3)), cardio = null,
+            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 3)),
         ))))
         val planId = repo.selectedPlanIdFlow.first()!!
         val slot = repo.slotsFor(planId, "A").first().single().programExerciseId

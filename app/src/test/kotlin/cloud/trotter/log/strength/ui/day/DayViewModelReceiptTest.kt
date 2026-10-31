@@ -105,8 +105,7 @@ class DayViewModelReceiptTest {
         insertProgram()
         val cardio = ProgramDay(
             id = "C", title = "Cardio + Core", emphasisLine = "",
-            exercises = listOf(ProgramExercise("plank", targetSets = 2)),
-            cardio = null, kind = ProgramDayKind.CARDIO,
+            exercises = listOf(ProgramExercise("plank", targetSets = 2)), kind = ProgramDayKind.CARDIO,
         )
         repo.replaceProgram(Program(repo.programFlow.first().days + cardio))
         db.planDao().updateSuggestedDay(repo.selectedPlanIdFlow.first()!!, "B")
@@ -140,7 +139,7 @@ class DayViewModelReceiptTest {
         val days = repo.programFlow.first().days
         repo.replaceProgram(Program(listOf(
             days[0],
-            ProgramDay("B", "Cardio", "", emptyList(), null, kind = ProgramDayKind.CARDIO),
+            ProgramDay("B", "Cardio", "", emptyList(), kind = ProgramDayKind.CARDIO),
             days[1].copy(id = "C"),
         )))
         val vm = newViewModel()
@@ -344,14 +343,12 @@ class DayViewModelReceiptTest {
                         title = "Lower",
                         emphasisLine = "",
                         exercises = listOf(ProgramExercise("bb_back_squat", isMain = true, targetSets = 6)),
-                        cardio = null,
                     ),
                     ProgramDay(
                         id = "B",
                         title = "Upper",
                         emphasisLine = "",
                         exercises = listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 6)),
-                        cardio = null,
                     ),
                 ),
             ),
@@ -370,14 +367,12 @@ class DayViewModelReceiptTest {
                         exercises = listOf(
                             ProgramExercise("ez_curl", targetSets = 3, superset = SupersetPartner("rope_pushdown")),
                         ),
-                        cardio = null,
                     ),
                     ProgramDay(
                         id = "B",
                         title = "Upper",
                         emphasisLine = "",
                         exercises = listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 6)),
-                        cardio = null,
                     ),
                 ),
             ),

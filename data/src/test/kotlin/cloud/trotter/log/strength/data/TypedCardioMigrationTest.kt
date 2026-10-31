@@ -280,7 +280,8 @@ class TypedCardioMigrationTest {
         val failure = runCatching { failingRepo.importSnapshot(snapshot, journal) }.exceptionOrNull()
 
         assertTrue(failure is RestoreInterruption.CleanupPending)
-        assertEquals(readFailure, failure?.cause)
+        // Coroutine stack-trace recovery may copy the exception, nesting the original under it.
+        assertTrue(generateSequence(failure) { it.cause }.any { it === readFailure })
         assertNull(db.restoreMarkerDao().nonce())
         assertEquals(GlobalLifter.of(snapshot.answers.config), settings.globalLifterFlow.first())
         assertEquals(prose, db.programDao().day(1, "A")!!.cardioJson)

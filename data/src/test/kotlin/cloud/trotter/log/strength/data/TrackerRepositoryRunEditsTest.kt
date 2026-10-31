@@ -261,7 +261,10 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(listOf(original.copy(retired = true)), retired)
         val originalRows = SetJson.decodeSets(original.setsJson)
         assertEquals(2, originalRows.count { it.done })
-        for (replacement in listOf(emptyList(), originalRows.take(1))) {
+        // The last replacement keeps the done count but swaps which row is done (an Undo of
+        // another removed row): it must be refused too.
+        val shuffled = originalRows.mapIndexed { i, row -> if (i == 0) row.copy(done = false) else if (i == 2) row.copy(done = true) else row }
+        for (replacement in listOf(emptyList(), originalRows.take(1), shuffled)) {
             assertEquals(RunWriteResult.Rejected, repo.updateSets(runId, "A", slot, Slot.MAIN, replacement))
             assertEquals(retired, db.runDao().tracks(runId))
         }

@@ -1381,7 +1381,7 @@ open class TrackerRepository(
             val current = SetJson.decodeSets(track.setsJson)
             val result = edit.transform(current)
                 ?: return ResolvedRunEdits(failure = RunWriteResult.Unchanged)
-            if (reopened && result.count { it.done } < current.count { it.done }) {
+            if (reopened && !result.keepsDoneRowsOf(current)) {
                 return ResolvedRunEdits(failure = RunWriteResult.Rejected)
             }
             resolved[index] = track.copy(setsJson = SetJson.encodeSets(result), updatedAt = clock.millis())
@@ -1389,6 +1389,18 @@ open class TrackerRepository(
         }
         return ResolvedRunEdits(changed.map { resolved[it] })
     }
+
+    /**
+     * A write that reopens a retired track was built from the screen's empty or stale rows,
+     * so it may only add to the reopened rows: every done row stays done, at its index, with
+     * its values.
+     */
+    private fun List<LoggedSet>.keepsDoneRowsOf(reopened: List<LoggedSet>): Boolean =
+        reopened.withIndex().filter { it.value.done }.all { (i, row) ->
+            val kept = getOrNull(i) ?: return@all false
+            kept.done && kept.kind == row.kind && kept.weightLb == row.weightLb &&
+                kept.reps == row.reps && kept.seconds == row.seconds
+        }
 
     private fun RunTrackEntity.sameKey(other: RunTrackEntity): Boolean =
         runId == other.runId && programExerciseId == other.programExerciseId && slot == other.slot && exerciseId == other.exerciseId

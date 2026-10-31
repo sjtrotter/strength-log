@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -66,20 +67,20 @@ internal fun TimedRepCountSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            val exerciseLog = stringResource(
-                R.string.day_log_exercise_set, card.title,
-                "${event.count ?: 0} ${stringResource(R.string.unit_reps)}",
-            )
+            val reps = pluralStringResource(R.plurals.timed_rep_count, count ?: 0, count ?: 0)
+            val log = if (card.isSuperset) {
+                stringResource(R.string.day_log_exercise_set, card.title, reps)
+            } else stringResource(R.string.day_log_set, reps)
             Button(
                 onClick = actions.onLogTimedRepCount,
                 enabled = event.count != null,
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = exerciseLog },
+                modifier = Modifier.fillMaxWidth().semantics { if (card.isSuperset) contentDescription = log },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = dayAccent(dayIndex),
                     contentColor = onDayAccent(dayIndex),
                 ),
             ) {
-                Text(if (card.isSuperset) exerciseLog else stringResource(R.string.timed_rep_log_reps, event.count ?: 0))
+                Text(log)
             }
         }
     }

@@ -345,17 +345,16 @@ class DayScreenBuilderTest {
         for ((mainDone, partnerDone) in listOf(false to false, true to false, false to true, true to true)) {
             val rows = listOf(row.copy(done = mainDone, partner = row.partner!!.copy(done = partnerDone)))
             assertEquals(if (mainDone && partnerDone) -1 else 0, DayScreenBuilder.focusIndex(rows))
-            assertEquals(mainDone && partnerDone, DayScreenBuilder.allDone(
-                listOf(work(60.0, 12, mainDone)), listOf(work(50.0, 15, partnerDone)),
-            ))
+            assertEquals(mainDone && partnerDone, rows.single().complete)
             assertEquals(if (mainDone && !partnerDone) Slot.SS else Slot.MAIN, rows.single().nextSlot)
         }
     }
 
     @Test
     fun plainExerciseCompletionStillFollowsItsOwnTick() {
-        assertEquals(false, DayScreenBuilder.allDone(listOf(work(100.0, 10))))
-        assertTrue(DayScreenBuilder.allDone(listOf(work(100.0, 10, done = true))))
+        val row = SetRowState(0, "1", false, 100.0, 10, false)
+        assertEquals(false, row.complete)
+        assertTrue(row.copy(done = true).complete)
     }
 
     // --- kind labels from raw kinds (Log screen reuse) -----------------------

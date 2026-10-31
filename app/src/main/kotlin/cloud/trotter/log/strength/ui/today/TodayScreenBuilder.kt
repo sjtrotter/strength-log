@@ -84,10 +84,15 @@ object TodayScreenBuilder {
         UiText.TodayProgress(doneSets, totalSets)
 
     /** The one dominant action's label. */
-    fun actionLabel(dayId: String, doneSets: Int, totalSets: Int): UiText.TodayAction = UiText.TodayAction(
+    fun actionLabel(
+        dayId: String,
+        doneSets: Int,
+        totalSets: Int,
+        started: Boolean = doneSets > 0,
+    ): UiText.TodayAction = UiText.TodayAction(
         kind = when {
             totalSets > 0 && doneSets >= totalSets -> TodayActionKind.FINISH
-            doneSets > 0 -> TodayActionKind.CONTINUE
+            started -> TodayActionKind.CONTINUE
             else -> TodayActionKind.START
         }, dayId = dayId, done = doneSets, total = totalSets,
     )

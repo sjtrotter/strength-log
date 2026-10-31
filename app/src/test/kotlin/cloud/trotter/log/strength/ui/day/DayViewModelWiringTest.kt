@@ -1376,18 +1376,62 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun supersetTickWithMissingPartnerTrackWritesMainOnly() = runVmTest {
+    fun supersetTickWithMissingPartnerTrackWritesMainOnlyAndStartsRest() = runVmTest {
         insertProgram()
-        val vm = newViewModel()
+        repo.setPhoneRestTimerEnabled(true)
+        val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
+        val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
+            override val available = true
+            override fun arm(rest: cloud.trotter.log.strength.domain.standards.PhoneRest) { armed += rest }
+            override fun cancel() = Unit
+            override fun complete() = false
+        }
+        val vm = newViewModel(restRuntime = runtime)
+        val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val lateralId = slotId("db_lateral")
 
         vm.toggleDone(lateralId, index = 0, checked = true, slot = Slot.MAIN)
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue(track(lateralId, Slot.MAIN)!![0].done)
         // No junk empty SS row: the partner side must stay unseeded.
         assertNull(track(lateralId, Slot.SS))
+        assertEquals(90, armed.single().totalSeconds)
+        assertEquals(armed.single(), repo.phoneRestFlow.first())
+        repo.setPhoneRest(null)
+        advanceUntilIdle()
+        collect.cancel()
+    }
+
+    @Test
+    fun shorterPartnerTrackFocusesFirstIncompleteRoundAndEventuallyCompletes() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Arms", "", listOf(
+            ProgramExercise("ez_curl", targetSets = 2, superset = SupersetPartner("rope_pushdown")),
+        )))))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        val runId = requireNotNull(vm.uiState.value.runId)
+        repo.updateSets(runId, "A", id, Slot.SS, track(id, Slot.SS)!!.take(1))
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        vm.toggleDone(id, 1, true, Slot.MAIN)
+        advanceUntilIdle()
+
+        val half = vm.uiState.value.exercises.single()
+        assertFalse(half.allDone)
+        assertEquals(0, half.focusIndex)
+        assertEquals(Slot.SS, half.rows[half.focusIndex].nextSlot)
+        assertNull(half.rows[1].partner)
+        assertTrue(half.rows[1].complete)
+
+        vm.toggleDone(id, 0, true, Slot.SS)
+        advanceUntilIdle()
+        val completed = vm.uiState.value.exercises.single()
+        assertTrue(completed.allDone)
+        assertEquals(-1, completed.focusIndex)
+        collect.cancel()
     }
 
     @Test

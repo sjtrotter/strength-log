@@ -6,6 +6,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
@@ -197,7 +200,12 @@ class TimedRepScreenTest {
         rule.onNodeWithText("Push-ups · Set 1").assertExists()
         rule.onNodeWithText("Reps").assertIsNotFocused()
         rule.onNodeWithText("0 / 40 reps").assertExists()
-        rule.onNodeWithText("Log 0 reps").assertIsEnabled().performClick()
+        rule.onNodeWithText("Log 0 reps").assertIsEnabled()
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription)).performClick()
+        rule.onNodeWithText("Reps").performTextReplacement("1")
+        rule.onNodeWithText("Log 1 rep").assertIsEnabled()
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+        rule.onNodeWithText("Log 1 reps").assertDoesNotExist()
         rule.onNodeWithText("Reps").performTextReplacement("")
         rule.onNodeWithText("Log 0 reps").assertIsNotEnabled()
         rule.onNodeWithText("Reps").performTextReplacement("38")
@@ -212,10 +220,14 @@ class TimedRepScreenTest {
 
     @Test fun supersetCountConfirmationNamesTheMainExercise() {
         var logged = 0
+        var countEvent by mutableStateOf(event(awaiting = true).copy(draft = "1"))
         rule.setContent { AppTheme {
-            TimedRepCountSheet(card().copy(isSuperset = true), event(awaiting = true).copy(draft = "38"), 3,
+            TimedRepCountSheet(card().copy(isSuperset = true), countEvent, 3,
                 pagerActions().copy(onLogTimedRepCount = { logged++ }))
         } }
+        rule.onNodeWithText("Log Push-ups 1 rep").assertIsEnabled()
+        rule.onNodeWithContentDescription("Log Push-ups 1 rep").assertExists()
+        rule.runOnIdle { countEvent = countEvent.copy(draft = "38") }
         rule.onNodeWithText("Log Push-ups 38 reps").assertIsEnabled()
         rule.onNodeWithContentDescription("Log Push-ups 38 reps").performClick()
         assertEquals(1, logged)

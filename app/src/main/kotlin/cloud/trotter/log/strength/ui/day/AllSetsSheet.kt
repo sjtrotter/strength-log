@@ -54,8 +54,8 @@ internal fun AllSetsSheet(
                 val value = setValue(row.weightDisplay, row.reps, row.seconds, card.tracking, card.timedShowsWeight)
                 Column {
                     SetTrackRow(
-                        name = card.title, kindLabel = row.kindLabel, value = value,
-                        description = stringResource(R.string.set_done_description, "${card.title} ${setLabel(row).resolve()}", value),
+                        name = card.title.takeIf { row.partner != null }, kindLabel = row.kindLabel, value = value,
+                        description = stringResource(R.string.set_done_description, card.title, setLabel(row).resolve(), value),
                         done = row.done,
                         aim = if (row.done) card.timedRepAim?.let { stringResource(R.string.timed_rep_aim, row.reps, it) } else null,
                         onEdit = { onEdit(row.index) },
@@ -67,9 +67,9 @@ internal fun AllSetsSheet(
                             card.partnerTracking ?: TrackingType.WEIGHTED, card.partnerTimedShowsWeight,
                         )
                         SetTrackRow(
-                            name = card.partnerTitle.orEmpty(), kindLabel = row.kindLabel, value = partnerValue,
+                            name = card.partnerTitle.orEmpty(), kindLabel = null, value = partnerValue,
                             description = stringResource(R.string.set_done_description,
-                                "${card.partnerTitle.orEmpty()} ${setLabel(row).resolve()}", partnerValue),
+                                card.partnerTitle.orEmpty(), setLabel(row).resolve(), partnerValue),
                             done = partner.done, aim = null,
                             onEdit = { onEdit(row.index) },
                             onToggle = { actions.onToggleDone(card.programExerciseId, row.index, it, Slot.SS) },
@@ -91,8 +91,8 @@ internal fun AllSetsSheet(
 
 @Composable
 private fun SetTrackRow(
-    name: String,
-    kindLabel: String,
+    name: String?,
+    kindLabel: String?,
     value: String,
     description: String,
     done: Boolean,
@@ -105,12 +105,12 @@ private fun SetTrackRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(kindLabel, style = SetKindLabel)
+        kindLabel?.let { Text(it, style = SetKindLabel) }
         Column(
             modifier = Modifier.weight(1f).clickable(onClick = onEdit).heightIn(min = 48.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(name, style = MaterialTheme.typography.bodyMedium)
+            name?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             Text(value, style = DisplayXl.copy(fontSize = 30.sp, fontFeatureSettings = "tnum"))
             aim?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }

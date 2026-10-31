@@ -348,7 +348,7 @@ fun DayScreen(
                                 enabled = state.canFinish,
                                 colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
                                 onClick = {
-                                    if (state.doneSets < state.totalSets) {
+                                    if (state.exercises.any { card -> card.rows.any { !it.complete } }) {
                                         confirmingPartialFinish = true
                                     } else {
                                         AppHaptics.perform(view, AppHaptics.Cue.FINISH)

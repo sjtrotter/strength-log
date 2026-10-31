@@ -101,6 +101,18 @@ class A11ySemanticsTest {
 
     @Test
     @Config(qualifiers = "w411dp-h891dp")
+    fun plainLogButtonUsesItsVisibleLabelAsItsAccessibleName() {
+        composeTestRule.setContent {
+            AppTheme { DayScreen(pagerFixture(), pagerActions(), DayEditUiState(), pagerEditActions()) }
+        }
+        composeTestRule.onNodeWithText("Log 95 × 5")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+        composeTestRule.onNodeWithContentDescription("Log Lift 2 95 × 5").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
     fun editSteppersNameTheirFieldAndPartnerTrack() {
         val card = pagerFixture().exercises[1].copy(
             isSuperset = true,

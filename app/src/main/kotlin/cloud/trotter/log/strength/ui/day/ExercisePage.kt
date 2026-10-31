@@ -290,7 +290,7 @@ internal fun ExercisePage(
                     style = MaterialTheme.typography.bodyMedium,
                     color = variant,
                 )
-                card.nextSetDisplay?.takeUnless { card.allDone || focusIndex != card.focusIndex }?.let {
+                card.nextSetDisplay?.takeUnless { card.allDone || loggingPartner || focusIndex != card.focusIndex }?.let {
                     Text(
                         text = stringResource(R.string.day_next_set, it),
                         style = MaterialTheme.typography.bodyMedium,
@@ -338,9 +338,8 @@ internal fun ExercisePage(
                 val log = if (card.isSuperset) {
                     stringResource(R.string.day_log_exercise_set, exerciseName, value)
                 } else stringResource(R.string.day_log_set, value)
-                val description = stringResource(R.string.day_log_exercise_set, exerciseName, value)
                 val logModifier = Modifier.fillMaxWidth().height(56.dp)
-                    .semantics { contentDescription = description }
+                    .semantics { if (card.isSuperset) contentDescription = log }
                 val onLog = { actions.onToggleDone(card.programExerciseId, focus.index, true, focus.nextSlot) }
                 if (resting) {
                     FilledTonalButton(onClick = onLog, modifier = logModifier) { Text(log) }

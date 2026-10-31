@@ -523,6 +523,11 @@ class TodayViewModelWiringTest {
             assertEquals(partnerDone, tracks.tracks.first { it.slot == Slot.SS }.sets.single().done)
             assertEquals(expectedDone, today.uiState.value.actionLabel.done)
             assertEquals(1, today.uiState.value.actionLabel.total)
+            assertEquals(
+                if (mainDone) cloud.trotter.log.strength.ui.text.TodayActionKind.FINISH
+                else cloud.trotter.log.strength.ui.text.TodayActionKind.CONTINUE,
+                today.uiState.value.actionLabel.kind,
+            )
             if (mainDone) assertEquals(UiText.TodayProgress(1, 1), today.uiState.value.coachLine)
             assertEquals(expectedDone, day.uiState.value.doneSets)
             assertEquals(1, day.uiState.value.totalSets)

@@ -537,7 +537,10 @@
     <string name="timed_rep_enter_reps">Enter reps</string>
     <string name="timed_rep_set_identity">%1$s · Set %2$d</string>
     <string name="timed_rep_aim">%1$d / %2$d reps</string>
-    <string name="timed_rep_log_reps">Log %1$d reps</string>
+    <plurals name="timed_rep_count">
+        <item quantity="one">%1$d rep</item>
+        <item quantity="other">%1$d reps</item>
+    </plurals>
     <string name="day_all_sets">All sets</string>
     <string name="day_finish_button">Finish day %1$s</string>
     <string name="day_menu_edit_day">Edit day</string>
@@ -579,7 +582,7 @@
     <string name="set_edit_more">%1$s, %2$s more</string>
     <string name="set_edit_one">one</string>
     <string name="set_edit_partner_field">%1$s, %2$s</string>
-    <string name="set_done_description">%1$s, %2$s</string>
+    <string name="set_done_description">%1$s %2$s, %3$s</string>
     <string name="plans_generate">Generate with the wizard</string>
     <string name="plans_start_empty">Start empty</string>
     <string name="plans_create">Create</string>

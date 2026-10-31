@@ -923,9 +923,9 @@ class DayViewModel @Inject constructor(
                 .firstOrNull { it.programExerciseId == programExerciseId }?.exercise?.superset != null
             if (checked && isSuperset && !row.done) repo.markSupersetHelperSeen()
             val main = trackFor(day, programExerciseId, Slot.MAIN)
-            val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else null
+            val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS).takeIf { it.isNotEmpty() } else null
             val roundComplete = main.getOrNull(index)?.done == true &&
-                (partner == null || partner.getOrNull(index)?.done == true)
+                partner?.getOrNull(index)?.done != false
             if (checked && roundComplete && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
                 val set = main.getOrNull(index)
                 if (card != null && set != null) {
@@ -1751,7 +1751,7 @@ class DayViewModel @Inject constructor(
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[pe.exerciseId], lastPerformed, unit),
             topSetComparison = DayScreenBuilder.topSetComparison(main, lastPerformed, unit),
             plateLine = DayScreenBuilder.plateLine(main, entry?.equipment.orEmpty(), unit),
-            allDone = DayScreenBuilder.allDone(main, partnerSets),
+            allDone = rows.isNotEmpty() && rows.all { it.complete },
             focusIndex = DayScreenBuilder.focusIndex(rows),
             focusLabel = DayScreenBuilder.focusLabel(main.map { it.kind }, DayScreenBuilder.focusIndex(rows)),
             summaryLine = DayScreenBuilder.summaryLine(main, partnerSets, tracking, partnerTracking ?: TrackingType.WEIGHTED, unit),

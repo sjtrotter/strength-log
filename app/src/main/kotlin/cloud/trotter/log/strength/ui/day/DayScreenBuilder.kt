@@ -323,12 +323,6 @@ object DayScreenBuilder {
         return perSide.joinToString(" + ") { WeightStepper.format(it) }.ifEmpty { "0" }
     }
 
-    /** Card completion requires both tracks at each index; round counts still read MAIN alone. */
-    fun allDone(main: List<LoggedSet>, partner: List<LoggedSet>? = null): Boolean =
-        main.isNotEmpty() && main.withIndex().all { (index, set) ->
-            set.done && (partner == null || partner.getOrNull(index)?.done == true)
-        }
-
     private fun setSummary(set: LoggedSet, tracking: TrackingType, unit: WeightUnit): String =
         SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, unit)
 

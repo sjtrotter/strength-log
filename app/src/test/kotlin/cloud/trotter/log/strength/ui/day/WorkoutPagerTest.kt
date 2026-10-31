@@ -187,7 +187,7 @@ class WorkoutPagerTest {
         var row by mutableStateOf(SetRowState(0, "1", false, 50.0, 10, false, PartnerRowState(90.0, 12)))
         val base = pagerFixture().exercises[1].copy(
             title = "Incline DB Press", partnerTitle = "Seated Cable Row", isSuperset = true,
-            partnerTracking = TrackingType.WEIGHTED,
+            partnerTracking = TrackingType.WEIGHTED, nextSetDisplay = "60 × 8",
         )
         val logged = mutableListOf<String>()
         rule.setContent { AppTheme {
@@ -203,6 +203,7 @@ class WorkoutPagerTest {
                 onSwap = {}, onSwapWeight = { _, _ -> }, onNote = {})
         } }
         rule.onNodeWithText("then Seated Cable Row 90 × 12").assertExists()
+        rule.onNodeWithText("60 × 8 next").assertExists()
         rule.onNodeWithText("Log Incline DB Press 50 × 10").assertExists()
         rule.onNodeWithContentDescription("Log Incline DB Press 50 × 10").performClick()
         rule.runOnIdle {
@@ -210,12 +211,44 @@ class WorkoutPagerTest {
             assertEquals(listOf(Slot.MAIN), logged)
         }
         rule.onNodeWithText("then Seated Cable Row 90 × 12").assertDoesNotExist()
+        rule.onNodeWithText("60 × 8 next").assertDoesNotExist()
         rule.onNodeWithText("Log Seated Cable Row 90 × 12").assertExists()
         rule.onNodeWithContentDescription("Log Seated Cable Row 90 × 12").performClick()
         rule.runOnIdle {
             assertTrue(row.complete)
             assertEquals(listOf(Slot.MAIN, Slot.SS), logged)
         }
+    }
+
+    @Test fun shorterPartnerTrackStillShowsTheFocusedRoundsLogButton() {
+        val rows = listOf(
+            SetRowState(0, "1", false, 50.0, 10, true, PartnerRowState(90.0, 12)),
+            SetRowState(1, "2", false, 50.0, 10, true),
+        )
+        val card = pagerFixture().exercises[1].copy(
+            title = "Incline DB Press", partnerTitle = "Seated Cable Row", isSuperset = true,
+            partnerTracking = TrackingType.WEIGHTED, rows = rows,
+            allDone = rows.isNotEmpty() && rows.all { it.complete }, focusIndex = DayScreenBuilder.focusIndex(rows),
+        )
+        val writes = mutableListOf<Pair<Int, String>>()
+        show(pagerFixture().copy(exercises = listOf(card)), pagerActions().copy(onToggleDone = { _, index, _, slot ->
+            writes += index to slot
+        }))
+        rule.onNodeWithText("Set 1 of 2").assertExists()
+        rule.onNodeWithText("Log Seated Cable Row 90 × 12").assertIsEnabled().performClick()
+        assertEquals(listOf(0 to Slot.SS), writes)
+    }
+
+    @Test fun plainAllSetsRowsShowTheExerciseNameOnlyInTheHeader() {
+        val card = pagerFixture().exercises[1]
+        rule.setContent { AppTheme {
+            AllSetsSheet(card.copy(rows = card.rows.take(2)), pagerActions(), onEdit = {}, onDismiss = {})
+        } }
+        rule.onAllNodesWithText(card.title, useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithText("R1").assertExists()
+        rule.onNodeWithText("R2").assertExists()
+        rule.onNodeWithText("85 × 5").assertExists()
+        rule.onNodeWithText("95 × 5").assertExists()
     }
 
     @Test fun allSetsTicksAndUnticksHaveIndependentExerciseTargets() {
@@ -231,6 +264,9 @@ class WorkoutPagerTest {
                 row = if (slot == Slot.MAIN) row.copy(done = checked) else row.copy(partner = row.partner!!.copy(done = checked))
             }), onEdit = {}, onDismiss = {})
         } }
+        rule.onAllNodesWithText("Incline DB Press", useUnmergedTree = true).assertCountEquals(2)
+        rule.onAllNodesWithText("Seated Cable Row", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithText("1", useUnmergedTree = true).assertCountEquals(1)
         val main = rule.onNodeWithContentDescription("Incline DB Press Set 1, 50 × 10")
         val partner = rule.onNodeWithContentDescription("Seated Cable Row Set 1, 90 × 12")
         main.assertIsOn().performClick()
@@ -241,6 +277,22 @@ class WorkoutPagerTest {
         main.assertIsOn()
         partner.assertIsOff()
         rule.runOnIdle { assertEquals(listOf(Slot.MAIN to false, Slot.SS to false, Slot.MAIN to true), writes) }
+    }
+
+    @Test fun mainDoneWithPartnerOpenRequiresFinishConfirmation() {
+        val row = SetRowState(0, "1", false, 50.0, 10, true, PartnerRowState(90.0, 12))
+        val card = pagerFixture().exercises[1].copy(
+            isSuperset = true, rows = listOf(row), allDone = false, focusIndex = 0,
+        )
+        val state = pagerFixture().copy(exercises = listOf(card))
+        assertEquals(state.totalSets, state.doneSets)
+        var finishes = 0
+        show(state, pagerActions().copy(onDone = { finishes++ }))
+        rule.onNodeWithText("Finish day D").performClick()
+        rule.onNodeWithText("Finish with 1 of 1 sets?").assertExists()
+        rule.runOnIdle { assertEquals(0, finishes) }
+        rule.onNodeWithText("Finish").performClick()
+        rule.runOnIdle { assertEquals(1, finishes) }
     }
 
     @Test fun finishButtonAcceptsOnlyPartnerWorkIncludingRetiredWork() {

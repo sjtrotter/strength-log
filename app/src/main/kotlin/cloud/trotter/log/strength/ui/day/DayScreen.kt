@@ -61,6 +61,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -268,6 +269,20 @@ fun DayScreen(
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                if (state.retiredTracks.isNotEmpty()) {
+                                    val description = state.retiredTracks.map { line ->
+                                        pluralStringResource(R.plurals.day_retired_track, line.doneCount, line.name, line.doneCount)
+                                    }.joinToString(", ")
+                                    val accessibleDescription = stringResource(R.string.day_retired_tracks, description)
+                                    Text(
+                                        text = stringResource(R.string.day_retired_tracks, state.retiredTracks.joinToString(", ") { it.name }),
+                                        modifier = Modifier.semantics { contentDescription = accessibleDescription },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }

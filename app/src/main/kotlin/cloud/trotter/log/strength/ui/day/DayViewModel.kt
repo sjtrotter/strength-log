@@ -206,7 +206,14 @@ class DayViewModel @Inject constructor(
                 combine(repo.dayTracksFlow(planId, dayId), repo.openRunFlow) { tracks, open ->
                     buildState(ctx, dayId, slots, tracks.tracks.associateBy { it.programExerciseId to it.slot }, history)
                         .copy(runId = tracks.runId, runOpen = tracks.runOpen,
-                            openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle)
+                            openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle,
+                            retiredRoundDoneCount = tracks.retiredRoundsDone,
+                            retiredTracks = tracks.retired.mapNotNull { track ->
+                                val doneCount = track.sets.count { it.done }
+                                if (doneCount == 0) null else RetiredTrackLine(
+                                    ctx.catalog.find(track.exerciseId)?.name ?: track.exerciseId, doneCount,
+                                )
+                            })
                 }
             }
                 // flatMapLatest cancels the day the lifter just left, but nothing
@@ -1153,8 +1160,8 @@ class DayViewModel @Inject constructor(
             if (!tracks.runOpen || tracks.runId != runId) return@mutate
             closeUndoWindow()
             val rounds = tracks.tracks.filter { Slot.isRound(it.slot) }
-            val completedSetCount = rounds.sumOf { track -> track.sets.count { it.done } }
-            val totalSetCount = rounds.sumOf { it.sets.size }
+            val completedSetCount = rounds.sumOf { track -> track.sets.count { it.done } } + tracks.retiredRoundsDone
+            val totalSetCount = rounds.sumOf { it.sets.size } + tracks.retiredRoundsDone
             if (completedSetCount == 0) return@mutate
             val program = repo.programFor(planId).first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
@@ -1298,10 +1305,8 @@ class DayViewModel @Inject constructor(
 
     fun moveDaySlot(slotId: Long, up: Boolean) { mutate { repo.moveExercise(slotId, up) } }
 
-    /** Confirming a swap in the substitution picker. The old log stays keyed to
-     *  the slot's [position]; the repository clears it so the new exercise
-     *  seeds fresh from its own GOAL (D4 — seeding happens on next observation,
-     *  never here). */
+    /** Swaps the slot's exercise while the run keeps done work.
+     * The new exercise seeds from its own goal on the next observation. */
     fun swapDaySlot(position: Int, newExerciseId: String) {
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
@@ -1336,10 +1341,8 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    /** Picking a superset partner for a slot — the same intent whether the slot
-     *  had no partner or is swapping the one it had. The repository clears only
-     *  the SS track so the new partner seeds fresh from its own GOAL on the next
-     *  observation while the main track's history stays put. */
+    /** Changes the superset partner while the run keeps done work and the main track.
+     * The new partner seeds on the next observation, aligned to the main track. */
     fun setDaySlotSuperset(position: Int, partnerExerciseId: String) {
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return

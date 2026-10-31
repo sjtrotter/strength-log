@@ -181,6 +181,8 @@ Each edit changes the plan, and the run as follows:
 - **Remove an exercise:** the track is retired if it has done rows, and deleted otherwise.
 - **Partner change:** the same rules, applied to the superset track.
 
+A swapped track with no done rows is dropped rather than retired, the same rule as removing an exercise.
+
 `resetDayToTemplate` keeps the day's `nextRunId` and `closedAt`, and applies the remove and add
 rules above to the run, slot by slot. `duplicatePlan` (`:585`) mints new IDs.
 

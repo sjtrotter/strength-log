@@ -39,6 +39,10 @@ interface RunDao {
     @Update
     suspend fun updateTrack(track: RunTrackEntity)
 
+    /** Deletes one run track. */
+    @Query("DELETE FROM run_track WHERE id = :id")
+    suspend fun deleteTrack(id: Long)
+
     /** Deletes a run's tracks. */
     @Query("DELETE FROM run_track WHERE runId = :runId")
     suspend fun deleteTracks(runId: String)

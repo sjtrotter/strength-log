@@ -1894,10 +1894,96 @@ class DayViewModelWiringTest {
         assertEquals("hack_squat", db.programDao().exercisesForDay(plan, "A").first().exerciseId)
         assertEquals("face_pull", db.programDao().exercisesForDay(plan, "A").last().exerciseId)
         assertEquals(otherBefore, db.programDao().exercisesForDay(other, "A"))
-        assertEquals(beforeRun!!.tracks.first { it.programExerciseId == id },
-            repo.openRunFlow.first()!!.tracks.first { it.programExerciseId == id })
+        assertEquals(beforeRun!!.tracks.first { it.programExerciseId == id }.copy(retired = true),
+            repo.openRunFlow.first()!!.tracks.first { it.programExerciseId == id && it.retired })
+        assertEquals("hack_squat", repo.openRunFlow.first()!!.tracks
+            .single { it.programExerciseId == id && !it.retired }.exerciseId)
         collect.cancel()
         editCollect.cancel()
+    }
+
+    /** [F] */
+    @Test fun swapShowsRetiredBenchWorkAndFreshDumbbellRows() = runVmTest {
+        insertBenchProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_bench")
+        vm.toggleDone(id, 0, true, false)
+        vm.toggleDone(id, 1, true, false)
+        advanceUntilIdle()
+        vm.swapDaySlot(0, "db_bench")
+        advanceUntilIdle()
+        assertEquals(listOf(RetiredTrackLine("Barbell Bench Press", 2)), vm.uiState.value.retiredTracks)
+        assertEquals(2, vm.uiState.value.doneSets)
+        val card = vm.uiState.value.exercises.single()
+        assertEquals(card.rows.size + 2, vm.uiState.value.totalSets)
+        assertEquals("DB Bench Press", card.title)
+        assertTrue(card.rows.isNotEmpty())
+        assertTrue(card.rows.none { it.done })
+        val run = repo.openRunFlow.first()!!
+        assertEquals("db_bench", run.tracks.single { !it.retired }.exerciseId)
+        collect.cancel()
+    }
+
+    /** [F] */
+    @Test fun finishWithOnlyRetiredWorkShowsReceiptAndArchivesDoneBenchRows() = runVmTest {
+        insertBenchProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_bench")
+        vm.toggleDone(id, 0, true, false)
+        vm.toggleDone(id, 1, true, false)
+        advanceUntilIdle()
+        vm.swapDaySlot(0, "db_bench")
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.exercises.flatMap { it.rows }.none { it.done })
+        val total = vm.uiState.value.totalSets
+        vm.completeDay()
+        advanceUntilIdle()
+        val receipt = vm.sessionReceipt.value!!
+        assertEquals(2, receipt.completedSetCount)
+        assertEquals(total, receipt.totalSetCount)
+        assertEquals(2, receipt.setCount)
+        val archived = repo.sessionSets(receipt.sessionId)
+        val completed = archived.filter { it.done }
+        assertEquals(2, completed.size)
+        assertTrue(completed.all { it.exerciseId == "bb_bench" })
+        assertEquals(2, archived.count { it.exerciseId == "bb_bench" })
+        assertNull(repo.openRunFlow.first())
+        collect.cancel()
+    }
+
+    /** [F] */
+    @Test fun retiredPartnerWorkDoesNotDoubleCountRounds() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("ez_curl")
+        vm.toggleDone(id, 0, true, true)
+        advanceUntilIdle()
+        val total = vm.uiState.value.totalSets
+        val position = vm.uiState.value.exercises.first { it.programExerciseId == id }.position
+        vm.setDaySlotSuperset(position, "face_pull")
+        advanceUntilIdle()
+        assertEquals(1, vm.uiState.value.retiredTracks.single().doneCount)
+        assertEquals(0, vm.uiState.value.retiredRoundDoneCount)
+        assertEquals(1, vm.uiState.value.doneSets)
+        assertEquals(total, vm.uiState.value.totalSets)
+        vm.completeDay()
+        advanceUntilIdle()
+        assertEquals(1, vm.sessionReceipt.value!!.completedSetCount)
+        assertEquals(total, vm.sessionReceipt.value!!.totalSetCount)
+        assertEquals(1, vm.sessionReceipt.value!!.setCount)
+        collect.cancel()
+    }
+
+    private suspend fun insertBenchProgram() {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)), null,
+        ))))
     }
 
     // --- the remove-set undo window -------------------------------------------

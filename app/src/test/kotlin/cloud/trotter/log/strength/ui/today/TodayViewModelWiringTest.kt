@@ -523,6 +523,30 @@ class TodayViewModelWiringTest {
         assertEquals(UiText.TodayProgress(3, 10), state.coachLine)
     }
 
+    /** [F] */
+    @Test fun swappingAwayTwoDoneBenchRowsKeepsTodayAndDayCountsInSync() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)), null,
+        ))))
+        val today = newTodayViewModel()
+        val day = newDayViewModel()
+        advanceUntilIdle()
+        val id = slotId("A", "bb_bench")
+        day.toggleDone(id, index = 0, checked = true, isSuperset = false)
+        day.toggleDone(id, index = 1, checked = true, isSuperset = false)
+        advanceUntilIdle()
+        day.swapDaySlot(0, "db_bench")
+        advanceUntilIdle()
+        val dayState = day.uiState.value
+        assertTrue(dayState.exercises.single().rows.none { it.done })
+        assertEquals(2, dayState.doneSets)
+        assertEquals(2, today.uiState.value.actionLabel.done)
+        assertEquals(dayState.totalSets, today.uiState.value.actionLabel.total)
+        assertEquals(UiText.TodayProgress(2, dayState.totalSets), today.uiState.value.coachLine)
+        val tracks = repo.dayTracksFlow(dayState.planId!!, "A").first()
+        assertEquals(2, tracks.retiredRoundsDone)
+    }
+
     // --- coach line ---------------------------------------------------------
 
     @Test

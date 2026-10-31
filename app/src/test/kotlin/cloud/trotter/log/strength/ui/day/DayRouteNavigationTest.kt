@@ -5,43 +5,59 @@ import android.view.View
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.DayRoute
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.ui.today.TodayActions
+import cloud.trotter.log.strength.ui.today.TodayScreen
+import cloud.trotter.log.strength.ui.today.TodayViewModel
+import cloud.trotter.log.strength.time.CivilTime
+import cloud.trotter.log.strength.time.CivilTimeSource
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -65,6 +81,7 @@ class DayRouteNavigationTest {
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private lateinit var viewModel: DayViewModel
+    private lateinit var todayViewModel: TodayViewModel
     private lateinit var navController: NavHostController
     private lateinit var backDispatcher: OnBackPressedDispatcher
     private lateinit var view: View
@@ -85,6 +102,7 @@ class DayRouteNavigationTest {
     @After
     fun tearDown() {
         if (::viewModel.isInitialized) viewModel.viewModelScope.cancel()
+        if (::todayViewModel.isInitialized) todayViewModel.viewModelScope.cancel()
         db.close()
         storeScope.cancel()
     }
@@ -100,6 +118,89 @@ class DayRouteNavigationTest {
 
     @Test
     fun topBarBackPopsDuringTimedReps() = assertBackPops(timedReps = true, systemBack = false)
+
+    @Test
+    fun todayCardioLinkOpensItsPlanWhileAnotherPlanIsSelected() {
+        val displayedPlan = runBlocking {
+            repo.replaceProgram(Program(listOf(
+                ProgramDay("A", "Strength", "", listOf(ProgramExercise("bb_back_squat")), null),
+                ProgramDay("C1", "Cardio", "", emptyList(), null, kind = ProgramDayKind.CARDIO,
+                    cardioBlock = CardioBlock(CardioActivity.TRACK_RUN, listOf(
+                        CardioSetSpec(CardioRole.WORK, Measure.Time(120)),
+                    ))),
+            )))
+            val planId = requireNotNull(repo.selectedPlanIdFlow.first())
+            val slot = repo.slotsFor(planId, "A").first().single().programExerciseId
+            val planned = listOf(LoggedSet(100.0, 5, SetKind.WORK))
+            repo.seedIfEmpty("A", slot, Slot.MAIN, planned)
+            val runId = requireNotNull(repo.dayTracksFlow(planId, "A").first().runId)
+            repo.updateSets(runId, "A", slot, Slot.MAIN, planned.map { it.copy(done = true) })
+            val otherPlan = repo.duplicatePlan(planId, "Other")
+            repo.selectPlan(otherPlan)
+            assertEquals(otherPlan, repo.selectedPlanIdFlow.first())
+            planId
+        }
+        rule.runOnUiThread {
+            todayViewModel = TodayViewModel(repo, object : CivilTimeSource {
+                override val civilTime = flowOf(CivilTime.now())
+                override fun refresh() = Unit
+            }, SavedStateHandle())
+        }
+        rule.setContent { AppTheme {
+            navController = rememberNavController()
+            NavHost(navController, startDestination = Routes.TODAY) {
+                composable(Routes.TODAY) {
+                    val state by todayViewModel.uiState.collectAsStateWithLifecycle()
+                    TodayScreen(state, TodayActions(
+                        onStart = { navController.navigate(Routes.day(it.dayId, it.planId)) },
+                        onOpenCardio = { navController.navigate(Routes.day(it.dayId, it.planId)) },
+                        onOpenSettings = {}, onOpenLog = {}, onSetUpProgram = {},
+                    ))
+                }
+                listOf(Routes.DAY_WITH_ID, Routes.DAY_IN_PLAN).forEach { route ->
+                    composable(route, arguments = listOf(
+                        navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
+                        navArgument(Routes.DAY_PLAN_ID_ARG) {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                    )) { entry ->
+                        val context = ApplicationProvider.getApplicationContext<Context>()
+                        viewModel = remember(entry) {
+                            DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo),
+                                SavedStateHandle(mapOf(
+                                    Routes.DAY_ID_ARG to entry.arguments?.getString(Routes.DAY_ID_ARG),
+                                    Routes.DAY_PLAN_ID_ARG to entry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
+                                )), FixedClock, alarm)
+                        }
+                        DayRoute(
+                            onCreateExercise = {}, onSetUpProgram = {}, onOpenRestTimer = {},
+                            onFinishSession = { navController.popBackStack() },
+                            initialDayId = entry.arguments?.getString(Routes.DAY_ID_ARG), viewModel = viewModel,
+                        )
+                    }
+                }
+            }
+        } }
+        rule.waitUntil(5_000) {
+            rule.runOnIdle { todayViewModel.uiState.value.standaloneCardio != null }
+        }
+        rule.runOnIdle { assertEquals(displayedPlan, todayViewModel.uiState.value.planId) }
+
+        rule.onNodeWithText("Log cardio + core, 25 min").performClick()
+        rule.waitUntil(5_000) {
+            rule.runOnIdle { ::viewModel.isInitialized && !viewModel.uiState.value.loading }
+        }
+
+        rule.runOnIdle {
+            assertEquals(displayedPlan.toString(), navController.currentBackStackEntry?.arguments?.getString(Routes.DAY_PLAN_ID_ARG))
+            assertEquals(displayedPlan, viewModel.uiState.value.planId)
+            assertEquals("C1", viewModel.uiState.value.viewDayId)
+            assertNotNull(viewModel.uiState.value.cardio?.block)
+            assertFalse(viewModel.uiState.value.isProgramDay)
+        }
+    }
 
     private fun assertBackPops(timedReps: Boolean, systemBack: Boolean) {
         runBlocking {
@@ -118,7 +219,7 @@ class DayRouteNavigationTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             viewModel = DayViewModel(
                 repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle(),
-                MutableStateFlow(repo.currentDate()), FixedClock, alarm,
+                FixedClock, alarm,
             )
         }
         rule.setContent {

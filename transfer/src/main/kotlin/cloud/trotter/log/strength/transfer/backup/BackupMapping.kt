@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.run.LegacyLog
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
@@ -132,7 +134,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 programExerciseId = it.programExerciseId,
                 slot = it.slot,
                 setsJson = it.setsJson,
-                checkDate = it.checkDate,
+                checkDate = null,
                 updatedAt = it.updatedAt,
             )
         },
@@ -258,14 +260,13 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             }
         }
     }
-    val logEntities = liveLogs.map {
+    val logEntities = liveLogs.filter { it.checkDate == null }.map {
         ExerciseLogEntity(
             planId = if (schemaVersion >= 8) checkNotNull(it.planId) else PlanEntity.LEGACY_ID,
             dayId = it.dayId,
             programExerciseId = it.programExerciseId,
             slot = it.slot,
             setsJson = it.setsJson,
-            checkDate = it.checkDate,
             updatedAt = it.updatedAt,
         )
     }
@@ -358,6 +359,11 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         days = dayEntities,
         exercises = exerciseEntities,
         logs = logEntities,
+        legacyLogs = liveLogs.mapNotNull { log ->
+            val date = log.checkDate ?: return@mapNotNull null
+            LegacyLog(if (schemaVersion >= 8) checkNotNull(log.planId) else PlanEntity.LEGACY_ID,
+                log.dayId, log.programExerciseId, log.slot, SetJson.decodeSets(log.setsJson), date, log.updatedAt)
+        },
         sessions = sessionEntities,
         sessionSets = sessionSetEntities,
         cardioSessions = cardioSessions.map {

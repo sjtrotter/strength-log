@@ -2,7 +2,7 @@ package cloud.trotter.log.strength.transfer.health
 
 /**
  * The write-side seam for session completion (brief D7). The day flow fires
- * [publish] after `advanceDay` returns; the default binding is [NoOp], so a
+ * [publish] after `finishRun` returns; the default binding is [NoOp], so a
  * device with no Health Connect provider — or a user who never granted the
  * permission — simply gets a no-op and the feature degrades invisibly (PLAN.md
  * A3). [HealthConnectPublisher] is the real implementation.

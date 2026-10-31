@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -28,7 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -94,7 +94,7 @@ class DayViewModelTimedRepExecutionTest {
     private fun test(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
-        repo, SessionPublisher.NoOp, share, handle, MutableStateFlow(repo.currentDate()), clock, alarm, rest,
+        repo, SessionPublisher.NoOp, share, handle, clock, alarm, rest,
     ).also { vms += it }
 
     private suspend fun prepare() {
@@ -185,11 +185,27 @@ class DayViewModelTimedRepExecutionTest {
         assertNull(alarm.deadline)
     }
 
+    /** [F] */
+    @Test fun discardCancelsTheTimedRepAndItsAlarm() = test {
+        prepare()
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.toggleDone(id, 0, true, false)
+        runCurrent()
+        vm.start()
+        runCurrent()
+        assertTrue(vm.uiState.value.timedRepRunning)
+        vm.discardWorkout()
+        runCurrent()
+        assertNull(repo.openRunFlow.first())
+        assertTimedRepCleared(vm)
+    }
+
     @Test
     fun stopRestoresFullDurationWithoutWritingOrStartingRest() = test {
         prepare()
         val vm = readyVm()
-        val seeded = repo.logFlow("A").first()
+        val seeded = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first()
         vm.start()
         runCurrent()
         tick(42_000)
@@ -198,8 +214,8 @@ class DayViewModelTimedRepExecutionTest {
         assertNull(vm.uiState.value.timedRep)
         assertEquals(120, vm.uiState.value.exercises.single().timedRepDurationSeconds)
         assertFalse(vm.uiState.value.executionKeepsScreenOn)
-        assertEquals(seeded, repo.logFlow("A").first())
-        assertNull(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
+        assertEquals(seeded, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first())
+        assertNull(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first())
         assertNull(repo.phoneRestFlow.first())
         assertNull(alarm.deadline)
         assertEquals(0, alarm.buzzes)
@@ -244,7 +260,7 @@ class DayViewModelTimedRepExecutionTest {
         assertTimedRepCleared(vm)
         vm.logTimedRepCount()
         runCurrent()
-        val remaining = repo.logFlow("A").first().single { it.slot == Slot.MAIN }.sets.single()
+        val remaining = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.slot == Slot.MAIN }.sets.single()
         assertFalse(remaining.done)
         assertEquals(0, remaining.reps)
     }
@@ -389,7 +405,7 @@ class DayViewModelTimedRepExecutionTest {
         vm.logTimedRepCount()
         vm.logTimedRepCount()
         runCurrent()
-        val sets = repo.logFlow("A").first().single { it.slot == Slot.MAIN }.sets
+        val sets = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.slot == Slot.MAIN }.sets
         assertEquals(38, sets[0].reps)
         assertTrue(sets[0].done)
         assertEquals(0, sets[0].seconds)
@@ -397,7 +413,7 @@ class DayViewModelTimedRepExecutionTest {
         assertEquals(1, vm.uiState.value.exercises.single().focusIndex)
         assertNull(vm.uiState.value.timedRep)
         assertNull(vm.uiState.value.openSheet)
-        assertTrue(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first() != null)
+        assertTrue(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first() != null)
         assertTrue(repo.phoneRestFlow.first() != null)
         assertEquals(1, rest.armed.size)
     }
@@ -409,11 +425,11 @@ class DayViewModelTimedRepExecutionTest {
         vm.logTimedRepCount()
         runCurrent()
         assertNull(vm.uiState.value.timedRep!!.event.count)
-        assertFalse(repo.logFlow("A").first().single().sets[0].done)
+        assertFalse(repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single().sets[0].done)
         vm.changeTimedRepDraft("0")
         vm.logTimedRepCount()
         runCurrent()
-        val set = repo.logFlow("A").first().single().sets[0]
+        val set = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single().sets[0]
         assertEquals(0, set.reps)
         assertEquals(0, set.seconds)
         assertTrue(set.done)
@@ -428,7 +444,7 @@ class DayViewModelTimedRepExecutionTest {
         runCurrent()
         vm.changeReps(vm.uiState.value.exercises.single().programExerciseId, Slot.MAIN, 0, 0)
         runCurrent()
-        val set = repo.logFlow("A").first().single().sets[0]
+        val set = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single().sets[0]
         assertEquals(0, set.reps)
         assertEquals(0, set.seconds)
         assertTrue(set.done)

@@ -202,12 +202,11 @@ data class ProgramExerciseBackup(
 )
 
 /**
- * A slot's live ACTUAL log. [setsJson] is carried verbatim as the exact string
+ * A slot's working values. [setsJson] is carried verbatim as the exact string
  * `:data` stores in `exercise_log.setsJson`: it is already the canonical encoding
  * (produced by the single `SetJson` codec), so passing it through unchanged makes
  * the backup a faithful copy with no risk of a re-encode drifting from the stored
- * form. [checkDate] rides along so the daily-checkmark reset behaves identically
- * after a restore.
+ * form. A non-null [checkDate] identifies legacy results that need splitting on restore.
  */
 @Serializable
 data class LiveLogBackup(
@@ -217,7 +216,7 @@ data class LiveLogBackup(
     val programExerciseId: Long,
     val slot: String,
     val setsJson: String,
-    val checkDate: String,
+    val checkDate: String? = null,
     val updatedAt: Long,
 )
 

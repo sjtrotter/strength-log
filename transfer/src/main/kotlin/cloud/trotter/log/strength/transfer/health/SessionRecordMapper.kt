@@ -19,7 +19,7 @@ import java.time.ZoneId
  * exercise, in first-performed order, each segment's `repetitions` the sum of
  * that exercise's rep counts across its **done** sets only — this record lands
  * in the user's shared health history, so unchecked seeded sets (which
- * `advanceDay` still persists to local history) must never inflate it. An
+ * `finishRun` still persists to local history) must never inflate it. An
  * exercise with no done sets keeps its segment at 0 reps. We don't record
  * per-set timestamps, so the segments evenly partition the session window; the
  * window itself is the stored `startedAt`..`completedAt`, or a synthesized

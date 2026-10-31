@@ -79,7 +79,7 @@ class LegacyTimedFixupTest {
 
     private suspend fun writeLog(slotId: Long, sets: List<LoggedSet>) =
         db.programDao().upsertLog(
-            ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", slotId, "main", SetJson.encodeSets(sets), "2026-07-11", 1L),
+            ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", slotId, "main", SetJson.encodeSets(sets), 1L),
         )
 
     private suspend fun setsFor(slotId: Long): List<LoggedSet> =
@@ -99,7 +99,7 @@ class LegacyTimedFixupTest {
         val main = listOf(LoggedSet(0.0, 12, SetKind.WORK, done = true))
         writeLog(id, main)
         db.programDao().upsertLog(
-            ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", id, Slot.SS, SetJson.encodeSets(main), "2026-07-11", 1L),
+            ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", id, Slot.SS, SetJson.encodeSets(main), 1L),
         )
 
         // A restore clears the flag, so prescribed rows must be safe on every run.

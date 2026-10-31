@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.ui.day.DaySelection
 
 @Immutable
 data class PlanUiState(
@@ -29,7 +30,7 @@ data class PlanDay(
 )
 
 data class PlanActions(
-    val onOpenDay: (String) -> Unit,
+    val onOpenDay: (DaySelection) -> Unit,
     val onOpenPlans: () -> Unit,
     val onSetUpProgram: () -> Unit,
     val onAddDay: () -> Unit = {},

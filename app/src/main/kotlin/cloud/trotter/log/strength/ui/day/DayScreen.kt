@@ -67,6 +67,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -244,21 +245,32 @@ fun DayScreen(
                             }
                         },
                         title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                DayIndex(state.dayIndex, state.viewDayId.orEmpty(), DayIndexSize.Small)
-                                Text(
-                                    text = state.dayTitle,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(
-                                    text = stringResource(R.string.day_count_of, state.doneSets, state.totalSets),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    DayIndex(state.dayIndex, state.viewDayId.orEmpty(), DayIndexSize.Small)
+                                    Text(
+                                        text = state.dayTitle,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.day_count_of, state.doneSets, state.totalSets),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                state.openRunElsewhere?.let { title ->
+                                    Text(
+                                        text = stringResource(R.string.day_run_open_elsewhere, title),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                         },
                         actions = {
@@ -274,13 +286,15 @@ fun DayScreen(
                                             dayEditActions.onEditorOpen(true)
                                         },
                                     )
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.day_menu_clear_checks)) },
-                                        onClick = {
-                                            menuOpen = false
-                                            confirmingClearChecks = true
-                                        },
-                                    )
+                                    if (state.runOpen) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.day_menu_clear_checks)) },
+                                            onClick = {
+                                                menuOpen = false
+                                                confirmingClearChecks = true
+                                            },
+                                        )
+                                    }
                                 }
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.day_menu_keep_screen_on)) },
@@ -520,11 +534,11 @@ fun DayScreen(
         )
     }
 
-    if (confirmingClearChecks) {
+    if (confirmingClearChecks && state.runOpen) {
         ClearChecksConfirmDialog(
             onConfirm = {
                 confirmingClearChecks = false
-                actions.onClearChecks()
+                actions.onDiscardWorkout()
             },
             onDismiss = { confirmingClearChecks = false },
         )
@@ -658,7 +672,7 @@ private fun ClearChecksConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Uni
 
 /** Callbacks the screen forwards to [DayViewModel] — one place, so previews stay trivial. */
 data class DayActions(
-    val onSelectDay: (String) -> Unit,
+    val onSelectDay: (DaySelection) -> Unit,
     val onWeightChange: (Long, String, Int, Double) -> Unit,
     val onRepsChange: (Long, String, Int, Int) -> Unit,
     val onSecondsChange: (Long, String, Int, Int) -> Unit,
@@ -667,7 +681,7 @@ data class DayActions(
     val onRemoveSet: (Long, Int, Boolean) -> Unit,
     val onSelectPage: (String) -> Unit,
     val onKeepScreenOnChange: (Boolean) -> Unit,
-    val onClearChecks: () -> Unit,
+    val onDiscardWorkout: () -> Unit,
     val onDone: () -> Unit,
     val onCreateExercise: (MovementPattern) -> Unit,
     /** The recovery out of the no-program state: back into the wizard. */

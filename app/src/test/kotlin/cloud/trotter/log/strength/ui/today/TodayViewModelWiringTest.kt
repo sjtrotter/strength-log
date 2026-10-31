@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.today
 
+import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -147,7 +150,7 @@ class TodayViewModelWiringTest {
     }
 
     private fun newDayViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm).also { vm ->
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -172,7 +175,7 @@ class TodayViewModelWiringTest {
         insertProgram()
         val strength = checkNotNull(repo.selectedPlanIdFlow.first())
         repo.renamePlan(strength, "Strength")
-        repo.advanceDay("A")
+        finishSuggestedDay()
         val running = repo.createAuthoredPlan("Running", "Easy run")
         repo.addDay(running, "Intervals")
         val archived = repo.duplicatePlan(strength, "Archived")
@@ -195,7 +198,8 @@ class TodayViewModelWiringTest {
         assertEquals("Easy run", today.uiState.value.dayTitle)
         assertFalse(today.uiState.value.planPickerOpen)
 
-        repo.advanceDay("A")
+        repo.addExercise("A", ProgramExercise("plank"))
+        finishSuggestedDay()
         advanceUntilIdle()
         assertEquals("Intervals", today.uiState.value.dayTitle)
         today.showPlanPicker()
@@ -400,6 +404,17 @@ class TodayViewModelWiringTest {
         )
     }
 
+    private suspend fun finishSuggestedDay() {
+        val plan = repo.selectedPlanFlow.first()!!
+        val day = plan.suggestedDayId!!
+        val id = repo.slotsFor(plan.id, day).first().first().programExerciseId
+        repo.seedIfEmpty(day, id, Slot.MAIN, listOf(LoggedSet(0.0, 1, SetKind.WORK)))
+        val preview = repo.dayTracksFlow(plan.id, day).first()
+        val track = preview.tracks.first { it.programExerciseId == id && it.slot == Slot.MAIN }
+        repo.updateSets(preview.runId!!, day, id, Slot.MAIN, track.sets.mapIndexed { i, set -> set.copy(done = i == 0) })
+        repo.finishRun(preview.runId!!)!!
+    }
+
     private suspend fun slotId(dayId: String, exerciseId: String): Long =
         repo.daySlotsFlow(dayId).first().first { it.exercise.exerciseId == exerciseId }.programExerciseId
 
@@ -457,6 +472,33 @@ class TodayViewModelWiringTest {
         assertEquals("Today promised a different workout than the day screen opens", onFirstOpen, previewed)
         // And it keeps agreeing once the rows are real.
         assertEquals(onFirstOpen, today.uiState.value.lifts.sumOf { it.setCount })
+    }
+
+    /** [F] */
+    @Test fun anOpenRunOnBOverridesSuggestedAAndShowsItsProgress() = runVmTest {
+        insertProgram()
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val id = slotId("B", "ez_curl")
+        val preview = repo.dayTracksFlow(plan, "B").first()
+        repo.updateSets(preview.runId!!, "B", id, Slot.MAIN, listOf(
+            LoggedSet(60.0, 12, SetKind.WORK, done = true), LoggedSet(60.0, 12, SetKind.WORK),
+        ))
+        assertEquals("A", repo.suggestedDayFlow.first())
+        val today = newTodayViewModel()
+        val day = newDayViewModel()
+        advanceUntilIdle()
+        assertEquals("B", today.uiState.value.dayId)
+        assertEquals(UiText.TodayProgress(1, 2), today.uiState.value.coachLine)
+        assertEquals(cloud.trotter.log.strength.ui.text.TodayActionKind.CONTINUE, today.uiState.value.actionLabel.kind)
+        assertEquals("B", day.uiState.value.viewDayId)
+        val other = repo.duplicatePlan(plan, "Other")
+        today.selectPlan(other)
+        advanceUntilIdle()
+        assertEquals(plan, today.uiState.value.planId)
+        assertEquals("B", today.uiState.value.dayId)
+        assertEquals(UiText.TodayProgress(1, 2), today.uiState.value.coachLine)
+        assertEquals(plan, day.uiState.value.planId)
+        assertEquals("B", day.uiState.value.viewDayId)
     }
 
     // --- ticked sets on the suggested day -----------------------------------------
@@ -592,7 +634,7 @@ class TodayViewModelWiringTest {
         newDayViewModel() // triggers day A's seed pass
         advanceUntilIdle()
 
-        repo.advanceDay("A")
+        finishSuggestedDay()
         advanceUntilIdle()
 
         val history = today.uiState.value.coachLine

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -52,7 +53,7 @@ import org.robolectric.annotation.Config
  * dispatcher cannot observe, and
  * [cloud.trotter.log.strength.ui.log.share.ShareCardServiceTest] already pins
  * that end of the path for a session id. What matters here is the handle: the
- * receipt names the id of the row [TrackerRepository.advanceDay] wrote, and
+ * receipt names the id of the row [TrackerRepository.finishRun] wrote, and
  * that is the only thing this screen ever hands the share service.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -113,7 +114,7 @@ class DayViewModelReceiptTest {
         vm.selectDay("C")
         advanceUntilIdle()
         val slot = repo.daySlotsFlow("C").first().single()
-        val rows = repo.logFlow("C").first().single().sets
+        val rows = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets
         rows.indices.forEach { vm.toggleDone(slot.programExerciseId, it, checked = true, isSuperset = false) }
         advanceUntilIdle()
         val completedSetCount = vm.uiState.value.doneSets
@@ -128,7 +129,7 @@ class DayViewModelReceiptTest {
         assertEquals("DAY B · UPPER", receipt.nextDayLine)
         assertEquals("B", repo.suggestedDayFlow.first())
         assertEquals("C", repo.session(receipt.sessionId)?.dayId)
-        assertEquals(false, repo.logFlow("C").first().single().sets.any { it.done })
+        assertEquals(false, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets.any { it.done })
     }
 
     @Test
@@ -218,7 +219,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
 
         val headerCount = vm.uiState.value.doneSets
-        val partnerRows = repo.logFlow("A").first().first { it.slot == Slot.SS }.sets.size
+        val partnerRows = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.SS }.sets.size
         vm.completeDay()
         advanceUntilIdle()
 
@@ -326,7 +327,7 @@ class DayViewModelReceiptTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm).also { vms += it }
 
     /** [DayViewModel.uiState] is `WhileSubscribed`: without a live collector its
      *  `.value` never leaves the initial state, and the header count would read
@@ -385,7 +386,7 @@ class DayViewModelReceiptTest {
 
     private suspend fun slotId(): Long = repo.daySlotsFlow("A").first().first().programExerciseId
 
-    private suspend fun mainTrack() = repo.logFlow("A").first().first { it.slot == Slot.MAIN }.sets
+    private suspend fun mainTrack() = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets
 
     private suspend fun mainTrackRowCount(): Int = mainTrack().size
 
@@ -394,7 +395,7 @@ class DayViewModelReceiptTest {
         // Derived, not passed in: a tick on a superset slot has to flip both
         // tracks, and a fixture that forgot would silently under-write the SS
         // rows the count test exists to catch.
-        val isSuperset = repo.logFlow("A").first().any { it.slot == Slot.SS }
+        val isSuperset = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().any { it.slot == Slot.SS }
         repeat(mainTrackRowCount()) { index -> vm.toggleDone(id, index, checked = true, isSuperset = isSuperset) }
     }
 

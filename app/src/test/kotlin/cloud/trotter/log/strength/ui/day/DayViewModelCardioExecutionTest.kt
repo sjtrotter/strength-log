@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -10,12 +11,14 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
@@ -36,7 +39,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -105,7 +107,7 @@ class DayViewModelCardioExecutionTest {
     private fun test(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
-        repo, publisher, share, handle, MutableStateFlow(repo.currentDate()), clock, alarm,
+        repo, publisher, share, handle, clock, alarm,
     ).also { vms += it }
 
     private suspend fun prepare(fiveK: Boolean = true) {
@@ -143,6 +145,56 @@ class DayViewModelCardioExecutionTest {
         CardioSetSpec(role, Measure.Time(seconds), aim?.let { Measure.Distance(it) }, hard = role == CardioRole.WORK)
 
     private fun distance() = CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true)
+
+    @Test
+    fun cardioLoggedOnAnotherPlansSameDayDoesNotMarkTheDisplayedDayLogged() = test {
+        val prescription = time(CardioRole.WORK, seconds = 10)
+        prepareBlock(prescription)
+        val loggedPlan = repo.selectedPlanIdFlow.first()!!
+        val otherPlan = repo.duplicatePlan(loggedPlan, "Other")
+        val loggedSpec = time(CardioRole.WORK, seconds = 30)
+        val sessionId = repo.logCardioSession(
+            CardioSessionEntity(
+                dayId = "A", mode = CardioMode.OUTDOOR_RUN.name, hard = true, label = "Track run",
+                startedAt = clock.wall - 30_000, completedAt = clock.wall,
+                seconds = 30, stepsCompleted = 1, planId = loggedPlan,
+            ),
+            listOf(CardioSetResult(loggedSpec, CardioSetStatus.FINISHED, elapsedSeconds = 30)),
+        )
+        val vm = readyVm()
+        assertEquals(sessionId, vm.uiState.value.cardio?.loggedSessionId)
+        assertEquals(30, vm.uiState.value.cardio?.loggedSeconds)
+
+        repo.selectPlan(otherPlan)
+        runCurrent()
+
+        assertEquals(otherPlan, vm.uiState.value.planId)
+        assertEquals("A", vm.uiState.value.viewDayId)
+        val cardio = requireNotNull(vm.uiState.value.cardio)
+        assertNull(cardio.loggedSessionId)
+        assertNull(cardio.loggedSeconds)
+        assertTrue(cardio.loggedSets.isEmpty())
+        assertEquals(listOf(prescription), cardio.block?.sets)
+    }
+
+    @Test
+    fun legacyCardioWithNullOrZeroPlanIdStaysOutsidePlanScopedLoggedState() = test {
+        prepareBlock(time(CardioRole.WORK))
+        for (planId in listOf(null, 0L)) {
+            db.cardioSessionDao().insert(CardioSessionEntity(
+                dayId = "A", mode = CardioMode.OUTDOOR_RUN.name, hard = true, label = "Track run",
+                startedAt = clock.wall - 30_000, completedAt = clock.wall,
+                seconds = 30, stepsCompleted = 1, planId = planId,
+            ))
+        }
+        val vm = readyVm()
+
+        assertTrue(repo.selectedPlanCardioSessionsFlow.first().isEmpty())
+        val cardio = requireNotNull(vm.uiState.value.cardio)
+        assertNull(cardio.loggedSessionId)
+        assertNull(cardio.loggedSeconds)
+        assertTrue(cardio.loggedSets.isEmpty())
+    }
 
     private fun DayViewModel.distanceAction(): CardioSetAction {
         val sheet = requireNotNull(uiState.value.openSheet)
@@ -409,7 +461,7 @@ class DayViewModelCardioExecutionTest {
 
         assertNull(vm.uiState.value.timedRep)
         assertEquals(first.sessionId, vm.sessionReceipt.value?.sessionId)
-        assertEquals(12, repo.logFlow("A").first().single().sets.first().reps)
+        assertEquals(12, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single().sets.first().reps)
     }
 
     @Test
@@ -1074,7 +1126,7 @@ class DayViewModelCardioExecutionTest {
         // Rebuilding this day's logs with the same DayContext must not retry.
         vm.changeSeconds(vm.uiState.value.exercises.single().programExerciseId, Slot.MAIN, 0, 42)
         runCurrent()
-        assertEquals(42, repo.logFlow("B").first().single().sets.first().seconds)
+        assertEquals(42, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().single().sets.first().seconds)
         assertAutoEndedSaveFailed(vm, run)
         assertTrue(repo.cardioSessionsFlow.first().isEmpty())
         vm.retryCardioSave()

@@ -112,6 +112,8 @@ class StrengthLogApp : Application() {
             // retries next launch.
             runCatching { repository.runLegacyTimedFixupIfNeeded() }
                 .onFailure { Log.e(TAG, "Legacy TIMED fixup failed; will retry next launch", it) }
+            runCatching { repository.adoptLegacySessionStartIfNeeded() }
+                .onFailure { Log.e(TAG, "Legacy session start adoption failed", it) }
             runCatching { repository.runPlanSettingsFixupIfNeeded() }
                 .onFailure { Log.e(TAG, "Plan settings fixup failed; will retry next launch", it) }
         }

@@ -43,6 +43,9 @@ interface RunDao {
     @Query("DELETE FROM run_track WHERE runId = :runId")
     suspend fun deleteTracks(runId: String)
 
+    @Query("UPDATE workout_run SET startedAt = :startedAt WHERE id = :id")
+    suspend fun updateStartedAt(id: String, startedAt: Long)
+
     /** Deletes an open run. */
     @Query("DELETE FROM workout_run WHERE id = :id")
     suspend fun deleteRun(id: String)

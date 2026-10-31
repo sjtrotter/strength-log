@@ -13,6 +13,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.data.PlanSummary
+import cloud.trotter.log.strength.ui.day.DaySelection
+import cloud.trotter.log.strength.ui.text.TodayActionKind
+import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -46,6 +49,25 @@ class TodayPlanPickerTest {
     private fun actions() = TodayActions(
         onStart = {}, onOpenSettings = {}, onOpenLog = {}, onSetUpProgram = {},
     )
+
+    @Test
+    fun startAndCardioLinksCarryTheDisplayedPlanWhileAnotherPlanIsSelected() {
+        val starts = mutableListOf<DaySelection>()
+        val cardioLinks = mutableListOf<DaySelection>()
+        val state = state(plans.map { it.copy(selected = it.id == 2L) }).copy(
+            standaloneCardio = StandaloneCardio("C1", "Log cardio + core, 25 min"),
+            actionLabel = UiText.TodayAction(TodayActionKind.START, "B", 0, 1),
+        )
+        rule.setContent { AppTheme {
+            TodayScreen(state, actions().copy(onStart = { starts += it }, onOpenCardio = { cardioLinks += it }))
+        } }
+
+        rule.onNodeWithText("Start day B").performClick()
+        rule.onNodeWithText("Log cardio + core, 25 min").performClick()
+
+        assertEquals(listOf(DaySelection(1L, "B")), starts)
+        assertEquals(listOf(DaySelection(1L, "C1")), cardioLinks)
+    }
 
     @Test
     fun onePlanShowsNeitherItsNameNorTheSheet() {

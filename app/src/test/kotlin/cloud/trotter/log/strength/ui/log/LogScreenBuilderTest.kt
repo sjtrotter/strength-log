@@ -115,7 +115,7 @@ class LogScreenBuilderTest {
     @Test
     fun groupByExercise_separates_a_supersets_partner_into_its_own_group() {
         // Same slot/session, but the main lift and its superset partner carry
-        // different exerciseIds (TrackerRepository.advanceDay's convention) —
+        // different exerciseIds (TrackerRepository.finishRun's convention) —
         // "grouped by exercise" means they must not merge into one group.
         val sets = listOf(
             set("ez_curl", "EZ-Bar Curl", SetKind.WORK, 60.0, 12),

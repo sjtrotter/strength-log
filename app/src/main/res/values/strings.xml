@@ -416,9 +416,9 @@
 <string name="day_finish_partial_confirm_button">Finish</string>
 <string name="day_finish_partial_dismiss_button">Keep going</string>
 <string name="day_rotation_footer">Rotation, not calendar — days advance when you finish them, not on a schedule. The weights you log are your living record; GOALs are a reference, not a rule.</string>
-<string name="day_clear_checks_confirm_title">Clear today\'s checkmarks?</string>
-<string name="day_clear_checks_confirm_body">Every ✓ on this day comes off. The weights and reps you logged stay where they are.</string>
-<string name="day_clear_checks_confirm_button">Clear</string>
+<string name="day_clear_checks_confirm_title">Discard this workout?</string>
+<string name="day_clear_checks_confirm_body">Everything you logged in this workout is dropped, including weight and rep changes.</string>
+<string name="day_clear_checks_confirm_button">Discard</string>
 
 <!-- Day edit -->
 <string name="day_edit_superset_pattern_title">Superset — pick a pattern</string>
@@ -551,7 +551,7 @@
     <string name="day_all_sets">All sets</string>
     <string name="day_finish_button">Finish day %1$s</string>
     <string name="day_menu_edit_day">Edit day</string>
-    <string name="day_menu_clear_checks">Clear checks</string>
+    <string name="day_menu_clear_checks">Discard workout</string>
     <string name="day_menu_keep_screen_on">Keep screen on</string>
     <string name="day_menu_rest_timer">Rest timer</string>
     <string name="day_menu_swap">Swap exercise</string>
@@ -691,4 +691,5 @@
 <string name="cardio_edit_hard">Hard</string>
 <string name="cardio_edit_hard_summary">%1$s · Hard</string>
 <string name="plan_cardio_summary">%1$s · %2$s</string>
+    <string name="day_run_open_elsewhere">%1$s is still open.</string>
 </resources>

@@ -2,7 +2,8 @@ package cloud.trotter.log.strength.data
 
 import androidx.room.withTransaction
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.data.checkmark.CheckmarkReset
+import cloud.trotter.log.strength.data.run.LegacyLiveLogSplit
+import cloud.trotter.log.strength.data.run.SplitInput
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
@@ -65,6 +66,7 @@ import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.IOException
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.NonCancellable
@@ -89,9 +91,6 @@ import kotlinx.coroutines.withContext
  * memory. Cross-table mutations run in one Room transaction.
  * Program and live-log reads and day/position writes act on the selected plan;
  * writes addressed by slot id act on the slot's own plan.
- *
- * "Today" for the daily checkmark reset is the device-local date via [clock]
- * (injectable for tests).
  *
  * `open` only to allow a recording subclass in tests to assert the ordering of
  * cross-store mutations (e.g. wizard finish writes the program before the
@@ -217,20 +216,6 @@ open class TrackerRepository(
     /** Whether the one-shot Health Connect backfill has run — the Log
      *  screen's offer hides itself once it has. */
     val healthBackfillDoneFlow: Flow<Boolean> = settings.healthBackfillDoneFlow
-
-    /** The in-progress start for [planId], or `null` after advance/clear or when
-     *  the stored date or plan differs. Legacy stamps without a plan serve the
-     *  selected plan. One slot is shared: ticking Q replaces P's stamp, so P
-     *  finished later records no start unless P is ticked again. */
-    fun sessionStartedAtFlow(planId: Long): Flow<Long?> =
-        combine(settings.sessionStartRawFlow, selectedPlanIdFlow) { stamp, selectedId ->
-            stamp?.takeIf { it.date == CheckmarkReset.today(clock) && it.belongsTo(planId, selectedId) }?.startedAtMillis
-        }
-
-    fun sessionStartedAtFlow(planId: Long, today: Flow<LocalDate>): Flow<Long?> =
-        combine(settings.sessionStartRawFlow, selectedPlanIdFlow, today) { stamp, selectedId, date ->
-            stamp?.takeIf { it.date == date.toString() && it.belongsTo(planId, selectedId) }?.startedAtMillis
-        }
 
     // Block bodies, not expression form: DataStore's Preferences (SettingsStore's
     // setter return type) must not leak into this public surface via inference —
@@ -655,9 +640,9 @@ open class TrackerRepository(
     /** Swaps the exercise in a slot (spec §8.3). Keeps the slot's stable id but
      *  clears its live log so the new exercise reseeds from its own GOAL; prior
      *  performance survives in `workout_session` history.
-     *  The selected plan locates the slot, and the slot names its plan. */
-    suspend fun swapExercise(dayId: String, position: Int, newExerciseId: String) {
-        val planId = selectedPlanId() ?: return
+     *  The target plan defaults to the selected plan. */
+    suspend fun swapExercise(dayId: String, position: Int, newExerciseId: String, targetPlanId: Long? = null) {
+        val planId = targetPlanId ?: selectedPlanId() ?: return
         db.withTransaction {
             val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
             swapInPlan(row.planId, row.dayId, row.id, newExerciseId)
@@ -687,8 +672,8 @@ open class TrackerRepository(
     }
 
     /** Appends an exercise to the end of a day (spec §8.3). */
-    suspend fun addExercise(dayId: String, exercise: ProgramExercise) {
-        val planId = selectedPlanId() ?: return
+    suspend fun addExercise(dayId: String, exercise: ProgramExercise, targetPlanId: Long? = null) {
+        val planId = targetPlanId ?: selectedPlanId() ?: return
         db.withTransaction {
             val position = programDao.maxPosition(planId, dayId) + 1
             val authored = planDao.plan(planId)?.origin == PlanOrigin.AUTHORED.name
@@ -752,8 +737,8 @@ open class TrackerRepository(
      * untouched. NOT [ProgramDao.deleteLogsForExercise], which would nuke both
      * tracks.
      */
-    suspend fun setSupersetPartner(dayId: String, position: Int, partnerExerciseId: String) {
-        val planId = selectedPlanId() ?: return
+    suspend fun setSupersetPartner(dayId: String, position: Int, partnerExerciseId: String, targetPlanId: Long? = null) {
+        val planId = targetPlanId ?: selectedPlanId() ?: return
         db.withTransaction {
             val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
             if (row.toDomain().prescription != null) return@withTransaction
@@ -764,8 +749,8 @@ open class TrackerRepository(
 
     /** Drops the slot's superset partner and its SS track, leaving the MAIN
      *  track alone for the same reason [setSupersetPartner] does. */
-    suspend fun removeSupersetPartner(dayId: String, position: Int) {
-        val planId = selectedPlanId() ?: return
+    suspend fun removeSupersetPartner(dayId: String, position: Int, targetPlanId: Long? = null) {
+        val planId = targetPlanId ?: selectedPlanId() ?: return
         db.withTransaction {
             val row = programDao.exerciseAt(planId, dayId, position) ?: return@withTransaction
             programDao.setSupersetExerciseId(row.id, null)
@@ -775,10 +760,10 @@ open class TrackerRepository(
 
     /** Regenerates one day from the stored wizard answers (spec §8.3), leaving the
      *  other days untouched. No-op if answers regenerate no such day. */
-    suspend fun resetDayToTemplate(dayId: String) {
+    suspend fun resetDayToTemplate(dayId: String, targetPlanId: Long? = null) {
         ensurePlanSettingsMigrated()
-        val planId = selectedPlanId() ?: return
-        val answers = wizardAnswersFlow.first()
+        val planId = targetPlanId ?: selectedPlanId() ?: return
+        val answers = wizardAnswersFor(planId).first()
         val regenerated = ProgramGenerator.generate(answers).program
         val newDay = regenerated.days.firstOrNull { it.id == dayId } ?: return
         db.withTransaction {
@@ -867,7 +852,7 @@ open class TrackerRepository(
 
     /**
      * The day's exercise slots with their stable row ids, in program order. The UI
-     * needs the id to key and seed each slot's log ([logFlow]/[updateSets]); the
+     * needs the id to key and seed each slot's log ([dayTracksFlow]/[updateSets]); the
      * pure-domain [Program] from [programFlow] doesn't carry it.
      */
     fun daySlotsFlow(dayId: String): Flow<List<ProgramSlot>> =
@@ -885,38 +870,25 @@ open class TrackerRepository(
     /** Resolves legacy watch messages whose slot is their only plan identity. */
     suspend fun planIdOfSlot(programExerciseId: Long): Long? = programDao.exercise(programExerciseId)?.planId
 
-    /** The day's live logs with the daily checkmark reset applied (spec §7). */
-    fun logFlow(dayId: String): Flow<List<LoggedSlot>> =
-        selectedPlanIdFlow.flatMapLatest { planId ->
-            if (planId == null) flowOf(emptyList())
-            else programDao.observeLogs(planId, dayId).map { rows ->
-                val today = CheckmarkReset.today(clock)
-                rows.map { it.toLoggedSlot(today) }
-            }
+    fun dayTracksFlow(planId: Long, dayId: String): Flow<DayTracks> = combine(
+        openRunFlow, programDao.observeDays(planId), programDao.observeLogs(planId, dayId),
+    ) { open, days, logs ->
+        if (open?.planId == planId && open.dayId == dayId) {
+            DayTracks(open.id, true, open.tracks.filter { !it.retired }.mapNotNull { track ->
+                track.programExerciseId?.let { LoggedSlot(it, track.slot, track.sets) }
+            })
+        } else {
+            DayTracks(days.firstOrNull { it.dayId == dayId }?.nextRunId?.takeIf(String::isNotBlank),
+                false, logs.map { it.toLoggedSlot() })
         }
+    }
 
-    /** Reprojects on a civil-day tick even when Room has not emitted. */
-    fun logFlow(dayId: String, today: Flow<LocalDate>): Flow<List<LoggedSlot>> =
-        selectedPlanIdFlow.flatMapLatest { planId ->
-            if (planId == null) flowOf(emptyList())
-            else logsFor(planId, dayId, today)
-        }
-
-    /** A plan's live logs with the same civil-day reset as [logFlow]. */
-    fun logsFor(planId: Long, dayId: String, today: Flow<LocalDate>): Flow<List<LoggedSlot>> =
-        combine(programDao.observeLogs(planId, dayId), today) { rows, date ->
-            rows.map { it.toLoggedSlot(date.toString()) }
-        }
-
-    /** Persists a slot's set track immediately (spec §7). The write stamps today's
-     *  date, so the `done` flags it carries are "today's" checks.
-     *  The slot names its plan, and a missing slot or mismatched day is a no-op. */
-    suspend fun updateSets(dayId: String, programExerciseId: Long, slot: String, sets: List<LoggedSet>) {
-        db.withTransaction {
-            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
-            if (row.dayId != dayId) return@withTransaction
-            programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, slot, sets))
-        }
+    suspend fun updateSets(
+        runId: String, dayId: String, programExerciseId: Long, slot: String, sets: List<LoggedSet>,
+    ): RunWriteResult {
+        val planId = planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
+        return applyToRun(runId, planId, dayId, listOf(TrackEdit(programExerciseId, slot) { current -> sets.keepingWatchStamps(current) }),
+            seeds = listOf(RunSeed(programExerciseId, slot, CarryForward.cleared(sets))))
     }
 
     /**
@@ -951,26 +923,26 @@ open class TrackerRepository(
         }
     }
 
-    /**
-     * Persists a superset slot's two tracks in one transaction (spec §4/§8.2:
-     * rounds stay aligned row-for-row). Paired mutations must never be two
-     * separate writes — process death between them would misalign the tracks
-     * permanently, and the misalignment would flow into A1 session history.
-     * The slot names its plan, and a missing slot or mismatched day is a no-op.
-     */
     suspend fun updateSetsPaired(
+        runId: String,
         dayId: String,
         programExerciseId: Long,
-        mainSets: List<LoggedSet>,
-        ssSets: List<LoggedSet>,
-    ) {
-        db.withTransaction {
-            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
-            if (row.dayId != dayId) return@withTransaction
-            programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, Slot.MAIN, mainSets))
-            programDao.upsertLog(logEntity(row.planId, row.dayId, row.id, Slot.SS, ssSets))
-        }
+        main: List<LoggedSet>,
+        ss: List<LoggedSet>,
+    ): RunWriteResult {
+        val planId = planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
+        return applyToRun(runId, planId, dayId, listOf(
+            TrackEdit(programExerciseId, Slot.MAIN) { current -> main.keepingWatchStamps(current) },
+            TrackEdit(programExerciseId, Slot.SS) { current -> ss.keepingWatchStamps(current) },
+        ), seeds = listOf(RunSeed(programExerciseId, Slot.MAIN, CarryForward.cleared(main)),
+            RunSeed(programExerciseId, Slot.SS, CarryForward.cleared(ss))))
     }
+
+    private fun List<LoggedSet>.keepingWatchStamps(current: List<LoggedSet>): List<LoggedSet> =
+        mapIndexed { index, set ->
+            val stamp = listOfNotNull(set.watchEditedAt, current.getOrNull(index)?.watchEditedAt).maxOrNull()
+            set.copy(watchEditedAt = stamp)
+        }
 
     private fun logEntity(
         planId: Long,
@@ -985,38 +957,8 @@ open class TrackerRepository(
             programExerciseId = programExerciseId,
             slot = slot,
             setsJson = SetJson.encodeSets(sets),
-            checkDate = CheckmarkReset.today(clock),
             updatedAt = clock.millis(),
         )
-
-    /**
-     * Clears today's checkmarks for one day without advancing the rotation (spec
-     * §8.2 footer "clear today's checkmarks"). Invalidates each log's checkDate so
-     * the daily-reset rule surfaces every set as unchecked; weights and reps stay.
-     * Also clears this plan's session-start stamp (restart semantics): the next
-     * tick starts timing a fresh session. Another plan's stamp is left intact.
-     */
-    suspend fun clearChecks(dayId: String) {
-        val planId = selectedPlanId() ?: return
-        programDao.clearChecksForDay(planId, dayId)
-        settings.clearSessionStartedAt(planId, selectedPlanId())
-    }
-
-    /**
-     * Stamps "now" as the in-progress session's start — a no-op if already
-     * stamped *today* for [planId] since the last advance/clear; a stamp from
-     * another calendar day or plan is overwritten. There is one slot, so ticking
-     * Q replaces P's start; P finished later has no start unless ticked again.
-     * Ticking a set is performing, not planning, so this is called from the day
-     * screen's first done=true tick and from the watch delta applier's first
-     * done=true apply; both go through this one helper so "session start" means
-     * the same thing regardless of which device performed the first set. "Today"
-     * is [CheckmarkReset]'s device-local date off [clock] — the one date basis
-     * the daily reset already uses.
-     */
-    suspend fun stampSessionStartIfUnset(planId: Long) {
-        settings.stampSessionStartIfUnset(clock.millis(), CheckmarkReset.today(clock), planId, selectedPlanId())
-    }
 
     // --- rotation & session history ------------------------------------------
 
@@ -1244,105 +1186,6 @@ open class TrackerRepository(
         return sessionDao.personalRecordRows(exerciseIds).toPersonalRecordsByExercise()
     }
 
-    /**
-     * "DONE — advance" (spec §7, PLAN.md A1): appends a session record
-     * for the completed day (denormalizing exercise names so history survives
-     * later edits/deletions), clears that day's checkmarks, and advances the
-     * rotation pointer through authored days, or strength days for generated plans (§6.4).
-     *
-     * Authored live logs are deleted after archiving so the next run reseeds from its prescription.
-     *
-     * Takes the completed day id because the user may have completed a manually
-     * overridden day, not the suggested one; the spec's bare `advanceDay()` can't
-     * express that.
-     *
-     * Returns the id of the session row it just appended, so the caller can hand
-     * it to a [SessionPublisher] (D7 trigger point) without re-querying for "the
-     * latest session" and racing a second completion.
-     *
-     * Session-start stamp: the in-progress-session start lives in DataStore, not
-     * Room ([stampSessionStartIfUnset]), so consuming it here spans two stores
-     * with no shared transaction. The stamp is read *before* the Room write and
-     * cleared *after* it commits — a crash before the read changes nothing; a
-     * crash between the read and the commit leaves the stamp for a retry to
-     * consume; a crash after commit but before the clear leaves a stale stamp
-     * behind. None of those tears the just-written session or set rows. A stale
-     * stamp is contained on two fronts: the date-scoped read ([sessionStartedAtFlow])
-     * drops it outright once the calendar day turns over, and even within the
-     * same day both `:transfer` exports (HC calories, CSV Duration) refuse a
-     * span outside a sane 5 min–6 h window — so the worst case is a session
-     * whose `startedAt` is simply absent, never a garbage duration.
-     */
-    suspend fun advanceDay(completedDayId: String, today: LocalDate? = null): Long {
-        ensurePlanSettingsMigrated()
-        val planId = selectedPlanId() ?: return 0
-        val plan = planDao.plan(planId) ?: return 0
-        val bodyweight = configFlow.first().bodyweightLb
-        // Read before Room: only this plan's stamp for the completion date can
-        // supply the start. Another plan's or an abandoned day's stamp is absent.
-        val sessionStartedAt = sessionStartedAtFlow(planId, flowOf(today ?: currentDate())).first()
-        val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
-        var newSessionId = 0L
-        db.withTransaction {
-            val days = programDao.daysForPlan(plan.id)
-            val exercises = programDao.exercisesForPlan(plan.id)
-            val dayTitle = days.firstOrNull { it.dayId == completedDayId }?.title ?: completedDayId
-            val slotsById = exercises.filter { it.dayId == completedDayId }.associateBy { it.id }
-            val logs = programDao.logsForDay(plan.id, completedDayId)
-
-            val sessionId = sessionDao.insertSession(
-                WorkoutSessionEntity(
-                    id = 0,
-                    dayId = completedDayId,
-                    dayTitle = dayTitle,
-                    startedAt = sessionStartedAt,
-                    completedAt = clock.millis(),
-                    bodyweightLb = bodyweight,
-                    planId = plan.id,
-                    planName = plan.name,
-                ),
-            )
-            newSessionId = sessionId
-            val sessionSets = logs.flatMap { log ->
-                val pe = slotsById[log.programExerciseId] ?: return@flatMap emptyList()
-                val exerciseId = if (log.slot == Slot.SS) pe.supersetExerciseId else pe.exerciseId
-                if (exerciseId == null) return@flatMap emptyList()
-                val name = catalog.find(exerciseId)?.name ?: exerciseId
-                // An empty checkDate marks a row closed by Finish or Clear; its stored flags belong to an earlier run.
-                val sets = SetJson.decodeSets(log.setsJson).let { if (log.checkDate.isEmpty()) CheckmarkReset.cleared(it) else it }
-                sets.mapIndexed { index, s ->
-                    SessionSetEntity(
-                        id = 0,
-                        sessionId = sessionId,
-                        exerciseId = exerciseId,
-                        exerciseName = name,
-                        slot = log.slot,
-                        setIndex = index,
-                        kind = s.kind.name,
-                        weightLb = s.weightLb,
-                        reps = s.reps,
-                        done = s.done,
-                        seconds = s.seconds,
-                        startedAtMillis = s.startedAtMillis,
-                        completedAtMillis = s.completedAtMillis,
-                    )
-                }
-            }
-            if (sessionSets.isNotEmpty()) sessionDao.insertSets(sessionSets)
-
-            programDao.clearChecksForDay(plan.id, completedDayId)
-            slotsById.values.filter { it.toDomain().prescription != null }.forEach {
-                programDao.deleteLogsForExercise(plan.id, completedDayId, it.id)
-            }
-
-            advanceRotation(plan, completedDayId)
-        }
-        // Consumed: cleared only once the session row above is durably committed
-        // (see the crash-ordering note on this method).
-        settings.clearSessionStartedAt(planId, selectedPlanId())
-        return newSessionId
-    }
-
     private fun ProgramDayEntity.freshRunId(): ProgramDayEntity = copy(nextRunId = mintRunId(), closedAt = null)
 
     /** The open workout and its tracks, independent of plan selection. */
@@ -1351,6 +1194,11 @@ open class TrackerRepository(
             OpenRun(run.id, run.planId, run.dayId, run.dayTitle, run.planName, run.startedAt, tracks.map { it.toRunTrack() })
         }
     }
+
+    val todayTargetFlow: Flow<TodayTarget?> = combine(selectedPlanFlow, openRunFlow, plansFlow) { selected, open, plans ->
+        val plan = if (open == null) selected else plans.firstOrNull { it.id == open.planId }
+        plan?.let { TodayTarget(it, if (open == null) it.suggestedDayId else open.dayId) }
+    }.distinctUntilChanged()
 
     private fun RunTrackEntity.toRunTrack(): RunTrack = RunTrack(
         id, position, programExerciseId, slot, exerciseId, retired,
@@ -1402,9 +1250,36 @@ open class TrackerRepository(
         startRun(day, initial)
         val inserted = runDao.tracks(runId)
         writeRunTracks(resolved.tracks.map { edited ->
-            edited.copy(id = inserted.first { it.sameKey(edited) }.id)
+            edited.copy(id = inserted.first { it.sameKey(edited) }.id,
+                setsJson = SetJson.encodeSets(SetJson.decodeSets(edited.setsJson).mapIndexed { i, set -> set.copy(plannedIndex = i) }))
         })
         RunWriteResult.InRun(runId, true)
+    }
+
+    /** The bounded path for a delta that carries no run: an old watch. */
+    suspend fun applyToOpenRun(
+        planId: Long, dayId: String, editedAtMillis: Long, edits: List<TrackEdit>,
+    ): RunWriteResult = db.withTransaction {
+        val open = runDao.openRun() ?: return@withTransaction RunWriteResult.Rejected
+        val day = programDao.day(planId, dayId) ?: return@withTransaction RunWriteResult.Rejected
+        if (open.planId != planId || open.dayId != dayId || edits.isEmpty() ||
+            editedAtMillis <= (day.closedAt ?: Long.MIN_VALUE)) return@withTransaction RunWriteResult.Rejected
+        val resolved = resolveRunEdits(open.id, day, runDao.tracks(open.id), edits, emptyList())
+        if (resolved.failure != null) return@withTransaction resolved.failure
+        writeRunTracks(resolved.tracks)
+        RunWriteResult.InRun(open.id, false)
+    }
+
+    suspend fun adoptLegacySessionStartIfNeeded() {
+        val stamp = settings.takeLegacySessionStart() ?: return
+        db.withTransaction {
+            val run = runDao.openRun() ?: return@withTransaction
+            if ((stamp.planId == null || stamp.planId == run.planId) &&
+                stamp.date == Instant.ofEpochMilli(run.startedAt).atZone(clock.zone).toLocalDate().toString() &&
+                stamp.startedAtMillis < run.startedAt) {
+                runDao.updateStartedAt(run.id, stamp.startedAtMillis)
+            }
+        }
     }
 
     private data class ResolvedRunEdits(
@@ -1709,6 +1584,19 @@ open class TrackerRepository(
      * raw [IOException] the UI would report as a problem reading the file.
      */
     suspend fun importSnapshot(snapshot: FullSnapshot, journal: RestoreJournal) {
+        val days = snapshot.days.map { if (it.nextRunId.isBlank()) it.freshRunId() else it }
+        val split = snapshot.legacyLogs.takeIf { it.isNotEmpty() }?.let { legacy ->
+            val customNames = snapshot.customExercises.associate { it.id to it.name }
+            LegacyLiveLogSplit.split(SplitInput(
+                logs = legacy, slots = snapshot.exercises, days = days,
+                planNames = snapshot.plans.associate { it.id to it.name }.ifEmpty {
+                    mapOf(PlanEntity.LEGACY_ID to PlanEntity.LEGACY_NAME)
+                },
+                exerciseName = { ExerciseLibrary.find(it)?.name ?: customNames[it] ?: it },
+                today = LocalDate.now(clock).toString(), now = clock.millis(),
+                openRun = snapshot.runs.firstOrNull()?.let { it.planId to it.dayId }, mint = mintRunId,
+            ))
+        }
         val nonce = UUID.randomUUID().toString()
         val legacyPlanCreated = snapshot.plans.isEmpty() && snapshot.answersCarryRecipe
         val restoredSelectedPlanId = snapshot.selectedPlanId
@@ -1757,15 +1645,25 @@ open class TrackerRepository(
                 }
             }
             customExerciseDao.upsertAll(snapshot.customExercises)
-            programDao.upsertDays(snapshot.days.map { if (it.nextRunId.isBlank()) it.freshRunId() else it })
+            programDao.upsertDays(days)
             programDao.insertExercises(snapshot.exercises)
-            programDao.insertLogs(snapshot.logs)
+            programDao.insertLogs(snapshot.logs + split?.logs.orEmpty())
             sessionDao.insertSessions(snapshot.sessions)
             sessionDao.insertSets(snapshot.sessionSets)
             cardioSessionDao.insertAll(snapshot.cardioSessions)
             cardioSetResultDao.insertAll(snapshot.cardioSetResults)
             runDao.insertRuns(snapshot.runs)
             runDao.insertTracks(snapshot.runTracks)
+            split?.run?.let { runDao.insertRun(it) }
+            split?.tracks?.let { runDao.insertTracks(it) }
+            split?.archived?.forEach { archived ->
+                val id = sessionDao.insertSession(archived.session)
+                sessionDao.insertSets(archived.sets.map { it.copy(sessionId = id) })
+            }
+            split?.closes?.forEach { close ->
+                val day = programDao.day(close.planId, close.dayId) ?: return@forEach
+                programDao.upsertDay(day.copy(nextRunId = close.nextRunId, closedAt = close.closedAt))
+            }
             restoreMarkerDao.put(RestoreMarkerEntity(nonce = nonce))
         }
         withContext(NonCancellable) {
@@ -1875,7 +1773,7 @@ open class TrackerRepository(
      * [newCustomExercises] are upserted first so every imported set's
      * `exerciseId` already resolves by the time its row lands; each
      * [ImportedSession] then gets a freshly generated session id stamped onto
-     * its own sets before they're inserted, exactly as [advanceDay] links a
+     * its own sets before they're inserted, exactly as [finishRun] links a
      * completed day's sets to the session it just created.
      *
      * The caller has already validated the file and the user has already
@@ -1922,15 +1820,8 @@ open class TrackerRepository(
         )
     }
 
-    private fun ExerciseLogEntity.toLoggedSlot(today: String): LoggedSlot {
-        val stored = SetJson.decodeSets(setsJson)
-        return LoggedSlot(
-            programExerciseId = programExerciseId,
-            slot = slot,
-            sets = CheckmarkReset.applyResetIfStale(stored, checkDate, today),
-            checkDate = checkDate,
-        )
-    }
+    private fun ExerciseLogEntity.toLoggedSlot(): LoggedSlot =
+        LoggedSlot(programExerciseId, slot, SetJson.decodeSets(setsJson))
 
     companion object {
         const val CARDIO_LABEL_MAX_LENGTH = 80

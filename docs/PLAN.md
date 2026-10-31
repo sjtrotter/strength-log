@@ -31,9 +31,8 @@ Spec §10 excludes history. But CSV export, Health Connect writes, and honest
 schema (`exercise_log` keyed by program slot) only holds the *latest* state and
 is silently overwritten every session.
 
-**Change:** keep `exercise_log` exactly as specced (it's the live working state
-and the GOAL/ACTUAL seed), and additionally append an immutable session record
-when the user taps **DONE — advance**:
+**Change:** `exercise_log` holds the plan's working values. A workout run holds
+today's sets and is archived to `workout_session` at Finish:
 
 ```
 workout_session(id, dayId, dayTitle, startedAt?, completedAt, bodyweightLb?)
@@ -121,8 +120,8 @@ Spec is lb-only; kettlebells and non-US users are kg-native.
   `SavedStateHandle` so rotation/process death can't lose anything.
 - `:data` gets an instrumented **process-death test** (kill mid-edit, relaunch,
   assert state) and serialization round-trip tests, per spec §11.
-- "Today" for checkmark reset = device-local calendar date (document the
-  midnight/DST edge in a test).
+- A workout run has no date. It survives midnight and process death, and it ends
+  only by Finish or Discard.
 
 ### A7. Gym-floor usability (small, high-value)
 

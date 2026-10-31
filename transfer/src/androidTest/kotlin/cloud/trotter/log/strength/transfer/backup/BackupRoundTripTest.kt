@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import kotlinx.coroutines.flow.map
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
@@ -97,11 +98,11 @@ class BackupRoundTripTest : BackupTestHarness() {
 
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
         val rowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id
-        repository.updateSets("A", squatId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
-        repository.updateSets("A", rowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
-        repository.advanceDay("A") // history + rotation A -> B + clears A's checks
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), "A", squatId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowId) ?: -1, "A").first().runId.orEmpty(), "A", rowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
+        repository.finishRun(repository.openRunFlow.first()!!.id)!! // history + rotation A -> B + clears A's checks
         // A fresh post-advance edit, so the exported live logs carry current work.
-        repository.updateSets("A", squatId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), "A", squatId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
 
         val secondAnswers = wizardAnswers.copy(
             daysPerWeek = 5,
@@ -121,8 +122,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         )
         db.programDao().insertLogs(listOf(
             ExerciseLogEntity(
-                2, "A", benchId, Slot.MAIN, SetJson.encodeSets(listOf(LoggedSet(135.0, 8, SetKind.WORK))),
-                "2026-10-20", 3_000,
+                2, "A", benchId, Slot.MAIN, SetJson.encodeSets(listOf(LoggedSet(135.0, 8, SetKind.WORK))), 3_000,
             ),
         ))
         settings.setSelectedPlanId(2)
@@ -184,8 +184,8 @@ class BackupRoundTripTest : BackupTestHarness() {
         return State(
             snapshot = repository.exportSnapshot(),
             program = repository.programFlow.first(),
-            logsA = repository.logFlow("A").first().sortedBy { it.programExerciseId },
-            logsB = repository.logFlow("B").first().sortedBy { it.programExerciseId },
+            logsA = repository.dayTracksFlow(repository.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId },
+            logsB = repository.dayTracksFlow(repository.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().sortedBy { it.programExerciseId },
             sessions = sessions,
             sessionSets = sessions.associate { it.id to db.sessionDao().setsForSession(it.id) },
             catalog = repository.catalogFlow.first().entries,

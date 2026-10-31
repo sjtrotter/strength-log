@@ -5,6 +5,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import cloud.trotter.log.strength.data.TodayTarget
+import cloud.trotter.log.strength.data.RunSeed
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.ProgramSlot
@@ -13,7 +16,6 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
-import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -45,7 +47,6 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import cloud.trotter.log.strength.sync.WatchContinuitySource
-import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
@@ -98,12 +99,6 @@ import kotlinx.coroutines.sync.withLock
  * flow/write wiring around it. All cascade/edit math comes from `:domain`
  * ([SetEditor]) — never reimplemented here.
  *
- * [toggleDone] also stamps the session-start time on the first done=true tick
- * (session-start capture) via [TrackerRepository.stampSessionStartIfUnset] —
- * ticking is performing, not planning, so weight/rep edits never stamp. The
- * watch delta path ([cloud.trotter.log.strength.sync.SetEditApplier])
- * shares the same repository helper so a watch-first workout stamps too.
- *
  * Cardio runs persist their frozen prescriptions, per-set outcomes and clock anchors
  * as one saved value. Logged distance drafts have separate saved state and never
  * retain execution ownership. Foreground alarms are shared with timed reps.
@@ -115,7 +110,6 @@ class DayViewModel @Inject constructor(
     private val sessionPublisher: SessionPublisher,
     private val shareCardService: ShareCardService,
     private val savedState: SavedStateHandle,
-    @CivilDay private val today: Flow<LocalDate>,
     private val cardioClock: CardioClock,
     private val cardioAlarm: CardioAlarm,
     private val phoneRestRuntime: RestRuntime = NoOpRestRuntime,
@@ -123,7 +117,13 @@ class DayViewModel @Inject constructor(
     private val watchContinuity: WatchContinuitySource = WatchContinuitySource.None,
 ) : ViewModel() {
 
-    private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
+    private val viewDayOverride = savedState.getStateFlow<DaySelection?>(
+        KEY_VIEW_SELECTION,
+        savedState.get<String>(KEY_VIEW_DAY)?.let { DaySelection(null, it) }
+            ?: savedState.get<String>(Routes.DAY_ID_ARG)?.let {
+                DaySelection(savedState.get<String>(Routes.DAY_PLAN_ID_ARG)?.toLongOrNull(), it)
+            },
+    )
     private val selectedPage = savedState.getStateFlow<String?>(KEY_SELECTED_PAGE, null)
     /** The finished day whose page must not be re-pinned while the real advance reaches [effectiveDayId]. */
     private var pinHeldFor: String? = null
@@ -146,27 +146,39 @@ class DayViewModel @Inject constructor(
     /** Serializes all read-modify-write log mutations (see class doc). */
     private val mutationLock = Mutex()
 
-    /** The day actually shown: a valid override, else the suggested day, else the first. */
-    private val effectiveDayId: StateFlow<String?> =
-        combine(repo.programFlow, repo.suggestedDayFlow, viewDayOverride) { program, suggested, override ->
-            resolveDay(program, suggested, override)
-        }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
-    private val contextFlow =
-        combine(
-            repo.programFlow,
-            repo.suggestedDayFlow,
-            effectiveDayId,
-            ::PartialContext,
-        ).let { partial ->
-            combine(partial, repo.configFlow, repo.unitFlow, repo.catalogFlow) { p, cfg, unit, catalog ->
-                DayContext(p.program, p.suggested, p.dayId, cfg, unit, catalog)
-            }
-        }.let { source ->
-            combine(source, repo.selectedPlanFlow, repo.wizardAnswersFlow) { ctx, plan, answers ->
-                ctx.copy(plan = plan, cardioPrefs = answers.cardio)
-            }
+    private val displayTargetFlow = combine(
+        repo.todayTargetFlow, repo.selectedPlanFlow, repo.plansFlow, viewDayOverride,
+    ) { target, selected, plans, override ->
+        val candidates = if (override?.planId != null) plans.filter { it.id == override.planId }
+            else listOfNotNull(target?.plan, selected).distinctBy { it.id }
+        Triple(target, candidates, override)
+    }.flatMapLatest { (target, candidates, override) ->
+        if (override == null || candidates.isEmpty()) flowOf(target) else combine(
+            candidates.map { plan -> repo.programFor(plan.id).map { plan to it } },
+        ) { programs ->
+            programs.firstOrNull { (_, program) -> program.days.any { it.id == override.dayId } }
+                ?.let { (plan, _) -> TodayTarget(plan, override.dayId) } ?: target
         }
+    }.distinctUntilChanged()
+
+    private val effectiveDayId: StateFlow<String?> = displayTargetFlow.flatMapLatest { target ->
+        if (target == null) flowOf(null) else repo.programFor(target.plan.id).map { program ->
+            resolveDay(program, target.dayId)
+        }
+    }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val contextFlow = displayTargetFlow.flatMapLatest { target ->
+        if (target == null) combine(repo.programFlow, repo.configFlow, repo.unitFlow, repo.catalogFlow) {
+                program, cfg, unit, catalog -> DayContext(program, null, null, cfg, unit, catalog)
+        }
+        else combine(repo.programFor(target.plan.id), repo.wizardAnswersFor(target.plan.id), repo.unitFlow, repo.catalogFlow) {
+                program, answers, unit, catalog ->
+            DayContext(program, target.plan.suggestedDayId, resolveDay(program, target.dayId),
+                answers.config, unit, catalog, plan = target.plan, cardioPrefs = answers.cardio)
+        }
+    }.combine(effectiveDayId) { ctx, dayId ->
+        ctx.copy(dayId = ctx.dayId?.takeIf { it == dayId })
+    }
             // Every DataStore-backed flow above re-emits on *any* preferences
             // write, so without this an identical context would re-run the
             // day pipeline and blank the day the lifter is on.
@@ -182,16 +194,19 @@ class DayViewModel @Inject constructor(
             // Re-fetched when the day's exercise ids or archived history change.
             // Live-set keystrokes still do not touch this path, while a Log edit
             // immediately corrects both "last time" and "Best" on an open day.
-            val historyKeys = combine(repo.daySlotsFlow(dayId), repo.sessionSummariesFlow) { slots, _ -> slots }
+            val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(noDayState(ctx))
+            val historyKeys = combine(repo.slotsFor(planId, dayId), repo.sessionSummariesFor(planId)) { slots, _ -> slots }
             val slotsWithHistory = historyKeys.flatMapLatest { slots ->
                 flow {
-                    ensureSeeded(dayId, slots)
+                    ensureSeeded(planId, dayId, slots)
                     emit(slots to fetchDayHistory(slots))
                 }
             }
             slotsWithHistory.flatMapLatest { (slots, history) ->
-                repo.logFlow(dayId, today).map { logs ->
-                    buildState(ctx, dayId, slots, logs.associateBy { it.programExerciseId to it.slot }, history)
+                combine(repo.dayTracksFlow(planId, dayId), repo.openRunFlow) { tracks, open ->
+                    buildState(ctx, dayId, slots, tracks.tracks.associateBy { it.programExerciseId to it.slot }, history)
+                        .copy(runId = tracks.runId, runOpen = tracks.runOpen,
+                            openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle)
                 }
             }
                 // flatMapLatest cancels the day the lifter just left, but nothing
@@ -250,7 +265,7 @@ class DayViewModel @Inject constructor(
         cardioRun, cardioTick, cardioSecondTicker, timedRepEvent,
     ) { run, _, _, reps -> run to reps }.combine(pendingCardioDistances) { execution, _ -> execution }
 
-    private val cardioHistory = combine(repo.selectedPlanCardioSessionsFlow, repo.cardioSetResultsFlow) { sessions, sets ->
+    private val cardioHistory = combine(repo.cardioSessionsFlow, repo.cardioSetResultsFlow) { sessions, sets ->
         sessions to sets
     }
 
@@ -298,18 +313,18 @@ class DayViewModel @Inject constructor(
     /** Render model for the day-edit sheet (spec §8.3) — a second view over the
      *  same day, kept out of [uiState] so the sheet never touches the
      *  exercise-card render path (see [DayEditUiState] doc). */
-    private val editProgramState = effectiveDayId.flatMapLatest { dayId ->
-        if (dayId == null) {
-            flowOf(DayEditUiState())
-        } else {
-            combine(repo.daySlotsFlow(dayId), repo.catalogFlow, repo.wizardAnswersFlow, repo.selectedPlanFlow, repo.programFlow) { slots, catalog, answers, plan, program ->
-                val origin = PlanOrigin.entries.firstOrNull { it.name == plan?.origin } ?: PlanOrigin.GENERATED
-                val block = program.days.firstOrNull { it.id == dayId }?.cardioBlock
-                buildEditState(slots, catalog, answers.equipment, origin).copy(
-                    planId = plan?.id, dayId = dayId, cardioBlock = block,
-                    canRemove = DayEditRules.canRemove(slots.size, origin, block != null),
-                )
-            }
+    private val editProgramState = contextFlow.flatMapLatest { ctx ->
+        val dayId = ctx.dayId
+        val plan = ctx.plan
+        if (dayId == null || plan == null) flowOf(DayEditUiState()) else combine(
+            repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id),
+        ) { slots, answers ->
+            val origin = PlanOrigin.entries.firstOrNull { it.name == plan.origin } ?: PlanOrigin.GENERATED
+            val block = ctx.program.days.firstOrNull { it.id == dayId }?.cardioBlock
+            buildEditState(slots, ctx.catalog, answers.equipment, origin).copy(
+                planId = plan.id, dayId = dayId, cardioBlock = block,
+                canRemove = DayEditRules.canRemove(slots.size, origin, block != null),
+            )
         }
     }
     private val prescriptionDraft = savedState.getStateFlow<PrescriptionDraft?>(KEY_PRESCRIPTION_DRAFT, null)
@@ -387,9 +402,6 @@ class DayViewModel @Inject constructor(
     private var undoWindowJob: Job? = null
 
     init {
-        if (savedState.get<String>(KEY_VIEW_DAY) == null) {
-            savedState.get<String>(Routes.DAY_ID_ARG)?.let { savedState[KEY_VIEW_DAY] = it }
-        }
         viewModelScope.launch {
             dayState.collect { state ->
                 if (!state.loading && state.viewDayId == currentDay() &&
@@ -419,10 +431,14 @@ class DayViewModel @Inject constructor(
     // --- user intents --------------------------------------------------------
 
     fun selectDay(dayId: String) {
+        selectDay(DaySelection(dayState.value.planId, dayId))
+    }
+
+    fun selectDay(selection: DaySelection) {
         pinHeldFor = null
-        val previousDay = currentDay()
-        savedState[KEY_VIEW_DAY] = dayId
-        if (dayId == previousDay) return
+        val previous = DaySelection(dayState.value.planId, currentDay().orEmpty())
+        savedState[KEY_VIEW_SELECTION] = selection
+        if (selection == previous) return
         closeUndoWindow()
         setDayEditorOpen(false)
         savedState[KEY_SELECTED_PAGE] = null
@@ -447,14 +463,15 @@ class DayViewModel @Inject constructor(
 
     private suspend fun newCardioRun(): CardioRun? {
         val dayId = currentDay() ?: return null
-        val plan = repo.selectedPlanFlow.first() ?: return null
+        val planId = dayState.value.takeIf { it.viewDayId == dayId }?.planId ?: return null
+        val plan = repo.plansFlow.first().firstOrNull { it.id == planId } ?: return null
         val program = repo.programFor(plan.id).first()
         val day = program.days.firstOrNull { it.id == dayId } ?: return null
         val block = day.effectiveCardio(repo.wizardAnswersFor(plan.id).first().cardio) ?: return null
         val nextId = Rotation.nextFor(program, dayId, authored = plan.origin == PlanOrigin.AUTHORED.name)
             ?: plan.suggestedDayId
         val next = program.days.firstOrNull { it.id == nextId }
-        if (currentDay() != dayId || repo.selectedPlanIdFlow.first() != plan.id) return null
+        if (currentDay() != dayId || dayState.value.planId != plan.id) return null
         val json = CardioBlockJson.encode(block)
         return CardioRun(plan.id, plan.name, dayId, program.days.indexOf(day), json, json,
             day.exercises.isEmpty(), next?.title)
@@ -647,7 +664,9 @@ class DayViewModel @Inject constructor(
                     val activity = current.block.activity
                     val mode = CardioBlocks.legacyModeOf(activity)
                     // Keep entry on its originating day while the committed rotation moves on.
-                    if (current.finishesDay && current.showReceipt) savedState[KEY_VIEW_DAY] = current.dayId
+                    if (current.finishesDay && current.showReceipt) {
+                        savedState[KEY_VIEW_SELECTION] = DaySelection(current.planId, current.dayId)
+                    }
                     val id = current.sessionId ?: repo.logCardioSession(CardioSessionEntity(
                         dayId = current.dayId, mode = mode.name,
                         hard = current.block.sets.any { it.role == CardioRole.WORK && it.hard },
@@ -741,7 +760,7 @@ class DayViewModel @Inject constructor(
             nextDayLine = run.nextDayTitle, cardio = run,
         )
         if (currentDay() == run.dayId) {
-            savedState[KEY_VIEW_DAY] = null
+            savedState[KEY_VIEW_SELECTION] = null
             pinHeldFor = run.dayId.takeIf { advancedTo != it && effectiveDayId.value == it }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
@@ -815,23 +834,25 @@ class DayViewModel @Inject constructor(
 
     fun changeWeight(programExerciseId: Long, slot: String, index: Int, newDisplayWeight: Double) {
         val day = currentDay() ?: return
+        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
         mutate {
             val unit = repo.unitFlow.first()
             val sets = trackFor(day, programExerciseId, slot)
             if (index !in sets.indices) return@mutate
             val updated = SetEditor.editWeight(sets, index, unit.toLb(newDisplayWeight))
-            repo.updateSets(day, programExerciseId, slot, updated)
+            repo.updateSets(runId, day, programExerciseId, slot, updated)
             if (sets[index].kind == SetKind.TOP && updated != sets) repo.markTopSetHelperSeen()
         }
     }
 
     fun changeReps(programExerciseId: Long, slot: String, index: Int, newReps: Int) {
         val day = currentDay() ?: return
+        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
         mutate {
             val sets = trackFor(day, programExerciseId, slot)
             if (index !in sets.indices) return@mutate
             val updated = SetEditor.editReps(sets, index, newReps)
-            repo.updateSets(day, programExerciseId, slot, updated)
+            repo.updateSets(runId, day, programExerciseId, slot, updated)
             if (sets[index].kind == SetKind.TOP && updated != sets) repo.markTopSetHelperSeen()
         }
     }
@@ -841,10 +862,11 @@ class DayViewModel @Inject constructor(
      *  (never cascades, exactly like reps). */
     fun changeSeconds(programExerciseId: Long, slot: String, index: Int, newSeconds: Int) {
         val day = currentDay() ?: return
+        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
         mutate {
             val sets = trackFor(day, programExerciseId, slot)
             if (index !in sets.indices) return@mutate
-            repo.updateSets(day, programExerciseId, slot, SetEditor.editSeconds(sets, index, newSeconds))
+            repo.updateSets(runId, day, programExerciseId, slot, SetEditor.editSeconds(sets, index, newSeconds))
         }
     }
 
@@ -860,20 +882,18 @@ class DayViewModel @Inject constructor(
         countEvent: TimedRepEvent? = null,
     ) {
         val day = currentDay() ?: return
+        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
         mutate {
             if (countEvent != null) {
                 if (timedRepEvent.value != countEvent || day != countEvent.dayId ||
                     !timedRepMatches(dayState.value, countEvent)
                 ) return@mutate
-                val slot = repo.daySlotsFlow(day).first().firstOrNull { it.programExerciseId == programExerciseId }
+                val planId = repo.planIdOfSlot(programExerciseId) ?: return@mutate
+                val slot = repo.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
                     ?: return@mutate
                 val target = slot.exercise.prescription?.target as? PrescribedTarget.RepsInTime
                 if (slot.exercise.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return@mutate
             }
-            // A tick is performing, not planning (weight/rep edits don't stamp) —
-            // only the FIRST done=true tick since the last advance/clear starts
-            // the session clock (session-start capture).
-            if (checked) repo.planIdOfSlot(programExerciseId)?.let { repo.stampSessionStartIfUnset(it) }
             val storedMain = trackFor(day, programExerciseId, Slot.MAIN)
             if (countEvent != null && storedMain.getOrNull(index)?.done != false) return@mutate
             val main = if (countEvent == null) storedMain else storedMain.mapIndexed { i, set ->
@@ -887,11 +907,12 @@ class DayViewModel @Inject constructor(
                 null
             }
             val (newMain, newPartner) = DayScreenBuilder.applyRoundTick(main, partner, index, checked)
-            if (newPartner != null) {
-                repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
+            val result = if (newPartner != null) {
+                repo.updateSetsPaired(runId, day, programExerciseId, newMain, newPartner)
             } else {
-                repo.updateSets(day, programExerciseId, Slot.MAIN, newMain)
+                repo.updateSets(runId, day, programExerciseId, Slot.MAIN, newMain)
             }
+            if (result == RunWriteResult.Rejected) return@mutate
             if (countEvent != null) clearTimedRep()
             if (checked && isSuperset && newMain != main) repo.markSupersetHelperSeen()
             if (checked && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
@@ -927,6 +948,7 @@ class DayViewModel @Inject constructor(
 
     fun addSet(programExerciseId: Long, isSuperset: Boolean) {
         val day = currentDay() ?: return
+        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
         mutate {
             val main = trackFor(day, programExerciseId, Slot.MAIN)
             // An unseeded track has no last row to copy — nothing to add yet.
@@ -935,11 +957,11 @@ class DayViewModel @Inject constructor(
             cancelTimedRepForSetListChange(day, programExerciseId)
             if (partner.isNotEmpty()) {
                 val (newMain, newPartner) = SetEditor.addSetPaired(main, partner)
-                repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
+                repo.updateSetsPaired(runId, day, programExerciseId, newMain, newPartner)
             } else {
                 // No partner track exists (e.g. its catalog entry is unknown, so it
                 // never seeded) — there is nothing to keep aligned; plain add.
-                repo.updateSets(day, programExerciseId, Slot.MAIN, SetEditor.addSet(main))
+                repo.updateSets(runId, day, programExerciseId, Slot.MAIN, SetEditor.addSet(main))
             }
         }
     }
@@ -949,6 +971,7 @@ class DayViewModel @Inject constructor(
      *  asking first — see [_removedSet]. */
     fun removeSet(programExerciseId: Long, index: Int, isSuperset: Boolean) {
         val day = currentDay() ?: return
+        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
         mutate {
             val main = trackFor(day, programExerciseId, Slot.MAIN)
             if (index !in main.indices) return@mutate
@@ -965,15 +988,16 @@ class DayViewModel @Inject constructor(
                     programExerciseId = programExerciseId,
                     index = index,
                     dayId = day,
+                    runId = runId,
                     main = main[index],
                     partner = partner.getOrNull(index),
                 ),
             )
             if (partner.isNotEmpty()) {
                 val (newMain, newPartner) = SetEditor.removeSetPaired(main, partner, index)
-                repo.updateSetsPaired(day, programExerciseId, newMain, newPartner)
+                repo.updateSetsPaired(runId, day, programExerciseId, newMain, newPartner)
             } else {
-                repo.updateSets(day, programExerciseId, Slot.MAIN, SetEditor.removeSet(main, index))
+                repo.updateSets(runId, day, programExerciseId, Slot.MAIN, SetEditor.removeSet(main, index))
             }
         }
     }
@@ -983,20 +1007,24 @@ class DayViewModel @Inject constructor(
      *  has closed, so a stale tap can't resurrect anything. */
     fun undoRemoveSet() {
         val removed = _removedSets.value.lastOrNull() ?: return
+        val day = currentDay() ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
         popUndo()
         mutate {
-            val day = currentDay() ?: return@mutate
-            if (day != removed.dayId) return@mutate
+            if (day != removed.dayId || runId != removed.runId) return@mutate
+            if (repo.dayTracksFlow(planId, day).first().runId != removed.runId) return@mutate
             val main = trackFor(day, removed.programExerciseId, Slot.MAIN)
             val partner = trackFor(day, removed.programExerciseId, Slot.SS)
             cancelTimedRepForSetListChange(day, removed.programExerciseId)
             if (removed.partner != null && partner.isNotEmpty()) {
                 val (newMain, newPartner) =
                     SetEditor.insertSetPaired(main, partner, removed.index, removed.main, removed.partner)
-                repo.updateSetsPaired(day, removed.programExerciseId, newMain, newPartner)
+                repo.updateSetsPaired(runId, day, removed.programExerciseId, newMain, newPartner)
             } else {
                 val restored = SetEditor.insertSet(main, removed.index, removed.main)
-                repo.updateSets(day, removed.programExerciseId, Slot.MAIN, restored)
+                repo.updateSets(runId, day, removed.programExerciseId, Slot.MAIN, restored)
             }
         }
     }
@@ -1067,11 +1095,18 @@ class DayViewModel @Inject constructor(
         viewModelScope.launch { repo.setKeepScreenOn(on) }
     }
 
-    fun clearChecks() {
+    fun discardWorkout() {
         val day = currentDay() ?: return
-        // Under the lock: a mutation that read its track before the clear must not
-        // write stale done-flags back after it.
-        mutate { repo.clearChecks(day) }
+        val state = dayState.value.takeIf { it.viewDayId == day && it.runOpen } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
+        mutate {
+            closeUndoWindow()
+            if (repo.discardRun(runId)) {
+                clearTimedRep()
+                seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
+            }
+        }
     }
 
     fun setExerciseNote(programExerciseId: Long, text: String) {
@@ -1089,7 +1124,7 @@ class DayViewModel @Inject constructor(
 
     /** DONE — advance: record the session (A1), follow the new suggested day,
      *  then hand the just-written session to Health Connect (D7 trigger
-     *  point). The publish is fired after `advanceDay` returns and never
+     *  point). The publish is fired after `finishRun` returns and never
      *  blocks or fails the completion — [SessionPublisher] swallows every
      *  failure path, and the no-op binding covers devices without HC.
      *
@@ -1102,31 +1137,36 @@ class DayViewModel @Inject constructor(
      *  session's sets: the cascade says what moved, the receipt says what was
      *  done. Reading twice would let them describe different sessions if a watch
      *  delta landed in between. The completed day's id, index and title are all
-     *  captured before [TrackerRepository.advanceDay] moves the pointer, because
+     *  captured before [TrackerRepository.finishRun] moves the pointer, because
      *  from the next line on "the current day" means the next one. */
     fun completeDay() {
         val day = currentDay() ?: return
-        closeUndoWindow()
+        val state = dayState.value.takeIf { it.viewDayId == day && it.runOpen } ?: return
+        val planId = state.planId ?: return
+        val runId = state.runId ?: return
         mutate {
             // Counted from the log itself, under the lock: uiState is either
             // the loading placeholder (nobody collecting) or fed by a flow
             // that seeds under this same lock, so waiting on it here would
             // deadlock. Rounds only — the header counts the same way.
-            val rounds = repo.logFlow(day).first().filter { Slot.isRound(it.slot) }
+            val tracks = repo.dayTracksFlow(planId, day).first()
+            if (!tracks.runOpen || tracks.runId != runId) return@mutate
+            closeUndoWindow()
+            val rounds = tracks.tracks.filter { Slot.isRound(it.slot) }
             val completedSetCount = rounds.sumOf { track -> track.sets.count { it.done } }
             val totalSetCount = rounds.sumOf { it.sets.size }
             if (completedSetCount == 0) return@mutate
-            val program = repo.programFlow.first()
+            val program = repo.programFor(planId).first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
             val dayIndex = program.days.indexOfFirst { it.id == day }
-            val plan = repo.selectedPlanFlow.first()
+            val plan = repo.plansFlow.first().firstOrNull { it.id == planId }
             val nextDayId = if (dayIndex >= 0) {
                 Rotation.nextFor(program, day, authored = plan?.origin == PlanOrigin.AUTHORED.name)
                     ?: repo.suggestedDayFlow.first()
             } else null
-            val sessionId = repo.advanceDay(day, today.first())
+            val sessionId = repo.finishRun(runId) ?: return@mutate
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
-            savedState[KEY_VIEW_DAY] = null
+            savedState[KEY_VIEW_SELECTION] = null
             val advancedTo = repo.suggestedDayFlow.first()
             pinHeldFor = day.takeIf { advancedTo != day && effectiveDayId.value == day }
             savedState[KEY_SELECTED_PAGE] = null
@@ -1264,13 +1304,14 @@ class DayViewModel @Inject constructor(
      *  never here). */
     fun swapDaySlot(position: Int, newExerciseId: String) {
         val day = currentDay() ?: return
+        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
-            if (repo.selectedPlanFlow.first()?.origin == PlanOrigin.AUTHORED.name) {
+            if (repo.plansFlow.first().firstOrNull { it.id == planId }?.origin == PlanOrigin.AUTHORED.name) {
                 // Removal leaves position gaps; the legacy position writer takes an ordinal.
-                val slot = repo.daySlotsFlow(day).first().firstOrNull { it.position == position } ?: return@mutate
+                val slot = repo.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
                 repo.swapExerciseById(day, slot.programExerciseId, newExerciseId)
             } else {
-                repo.swapExercise(day, position, newExerciseId)
+                repo.swapExercise(day, position, newExerciseId, targetPlanId = planId)
             }
         }
     }
@@ -1280,14 +1321,16 @@ class DayViewModel @Inject constructor(
      *  default for a manually added exercise, not a re-seed of pinned math. */
     fun addDaySlot(exerciseId: String) {
         val day = currentDay() ?: return
-        mutate { repo.addExercise(day, ProgramExercise(exerciseId = exerciseId, repSchemeLabel = "8–12")) }
+        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
+        mutate { repo.addExercise(day, ProgramExercise(exerciseId = exerciseId, repSchemeLabel = "8–12"), targetPlanId = planId) }
     }
 
     /** Removes a slot; the repository enforces its owning day's floor atomically. */
     fun removeDaySlot(position: Int) {
         val day = currentDay() ?: return
+        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
-            val slots = repo.daySlotsFlow(day).first()
+            val slots = repo.slotsFor(planId, day).first()
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
             repo.removeExercise(slot.programExerciseId)
         }
@@ -1299,36 +1342,50 @@ class DayViewModel @Inject constructor(
      *  observation while the main track's history stays put. */
     fun setDaySlotSuperset(position: Int, partnerExerciseId: String) {
         val day = currentDay() ?: return
-        mutate { repo.setSupersetPartner(day, position, partnerExerciseId) }
+        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
+        mutate { repo.setSupersetPartner(day, position, partnerExerciseId, targetPlanId = planId) }
     }
 
     /** Breaking a superset back into a plain slot: the partner and its SS track
      *  go, the main track stays. */
     fun removeDaySlotSuperset(position: Int) {
         val day = currentDay() ?: return
-        mutate { repo.removeSupersetPartner(day, position) }
+        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
+        mutate { repo.removeSupersetPartner(day, position, targetPlanId = planId) }
     }
 
     /** The reset-day-to-template escape hatch (spec §8.3): regenerates this one
      *  day from the stored wizard answers; other days are untouched. */
     fun resetDayToTemplate() {
         val day = currentDay() ?: return
-        mutate { repo.resetDayToTemplate(day) }
+        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
+        mutate { repo.resetDayToTemplate(day, targetPlanId = planId) }
     }
 
     // --- seeding & bootstrap -------------------------------------------------
 
     /** Seeds each day's logs before its authoritative rows are observed. */
-    private suspend fun ensureSeeded(dayId: String, slots: List<ProgramSlot>) = mutationLock.withLock {
-        val existing = repo.logFlow(dayId, today).first()
-            .associate { (it.programExerciseId to it.slot) to it.sets.size }
-        val cfg = repo.configFlow.first()
+    private suspend fun ensureSeeded(planId: Long, dayId: String, slots: List<ProgramSlot>) = mutationLock.withLock {
+        val tracks = repo.dayTracksFlow(planId, dayId).first()
+        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
+        val cfg = repo.wizardAnswersFor(planId).first().config
         val catalog = repo.catalogFlow.first()
-        // seedIfEmpty, not updateSets: this plan was decided from a read that the
-        // watch's own post-swap seed (SetEditApplier) — and any set logged against
-        // its result — can have overtaken. A stale plan must no-op, never overwrite.
-        DayScreenBuilder.seedPlan(slots, existing, cfg, catalog).forEach { write ->
-            repo.seedIfEmpty(dayId, write.programExerciseId, write.slot, write.sets)
+        val seeds = DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
+        val runId = tracks.runId
+        if (tracks.runOpen && runId != null) {
+            repo.seedRunTracksIfMissing(runId, seeds.map { RunSeed(it.programExerciseId, it.slot, it.sets) })
+        } else {
+            seeds.forEach { repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets) }
+        }
+    }
+
+    private suspend fun seedWorkingValues(planId: Long, dayId: String, slots: List<ProgramSlot>) {
+        val existing = repo.dayTracksFlow(planId, dayId).first().tracks
+            .associate { (it.programExerciseId to it.slot) to it.sets.size }
+        val cfg = repo.wizardAnswersFor(planId).first().config
+        val catalog = repo.catalogFlow.first()
+        DayScreenBuilder.seedPlan(slots, existing, cfg, catalog).forEach {
+            repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets)
         }
     }
 
@@ -1341,10 +1398,11 @@ class DayViewModel @Inject constructor(
 
     private fun currentDay(): String? = effectiveDayId.value
 
-    private suspend fun trackFor(dayId: String, programExerciseId: Long, slot: String): List<LoggedSet> =
-        repo.logFlow(dayId, today).first()
-            .firstOrNull { it.programExerciseId == programExerciseId && it.slot == slot }
-            ?.sets ?: emptyList()
+    private suspend fun trackFor(dayId: String, programExerciseId: Long, slot: String): List<LoggedSet> {
+        val planId = repo.planIdOfSlot(programExerciseId) ?: return emptyList()
+        return repo.dayTracksFlow(planId, dayId).first().tracks
+            .firstOrNull { it.programExerciseId == programExerciseId && it.slot == slot }?.sets.orEmpty()
+    }
 
     /**
      * The state for a context that resolved to no day. The program itself says
@@ -1357,11 +1415,10 @@ class DayViewModel @Inject constructor(
         return DayUiState(hasProgram = false, loading = ctx.program.days.isNotEmpty())
     }
 
-    private fun resolveDay(program: Program, suggested: String?, override: String?): String? {
+    private fun resolveDay(program: Program, suggested: String?): String? {
         val allIds = program.days.map { it.id }
         val strengthIds = program.strengthDays.map { it.id }
-        return override?.takeIf { it in allIds }
-            ?: suggested?.takeIf { it in allIds }
+        return suggested?.takeIf { it in allIds }
             ?: strengthIds.firstOrNull() ?: allIds.firstOrNull()
     }
 
@@ -1514,7 +1571,7 @@ class DayViewModel @Inject constructor(
         }
         val civilDate = Instant.ofEpochMilli(cardioClock.wallMillis()).atZone(ZoneId.systemDefault()).toLocalDate()
         val logged = history.firstOrNull {
-            it.dayId == state.viewDayId &&
+            it.planId == state.planId && it.dayId == state.viewDayId &&
                 Instant.ofEpochMilli(it.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
         }
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
@@ -1709,12 +1766,6 @@ class DayViewModel @Inject constructor(
         val personalRecords: Map<String, PersonalRecord>,
     )
 
-    private data class PartialContext(
-        val program: Program,
-        val suggested: String?,
-        val dayId: String?,
-    )
-
     private data class DayContext(
         val program: Program,
         val suggested: String?,
@@ -1740,6 +1791,7 @@ class DayViewModel @Inject constructor(
         const val KEY_CARDIO_DRAFT = "day_cardio_block_draft"
         const val KEY_DAY_EDITOR_OPEN = "day_editor_open"
         const val KEY_VIEW_DAY = "day_view_override"
+        const val KEY_VIEW_SELECTION = "day_view_selection"
         const val KEY_OPEN_SHEET = "day_open_sheet"
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"

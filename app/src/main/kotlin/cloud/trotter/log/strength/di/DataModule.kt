@@ -78,10 +78,8 @@ object DataModule {
             settings,
         )
 
-    /** One device clock for the whole process: every write stamp and the daily
-     *  checkmark reset read the same wall clock, and tests can substitute a fixed
-     *  one. Not for "what day is it *now*" on a screen — this clock's zone is
-     *  frozen at construction; that question goes to [CivilTimeSource]. */
+    /** Write stamps and legacy restore dates must use the same clock.
+     *  Its zone is frozen at construction; live screen dates require [CivilTimeSource]. */
     @Provides
     @Singleton
     fun clock(): Clock = Clock.systemDefaultZone()

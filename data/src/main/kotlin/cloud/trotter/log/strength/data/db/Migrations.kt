@@ -1,5 +1,17 @@
 package cloud.trotter.log.strength.data.db
 
+import android.content.ContentValues
+import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
+import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
+import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
+import cloud.trotter.log.strength.data.run.LegacyLiveLogSplit
+import cloud.trotter.log.strength.data.run.LegacyLog
+import cloud.trotter.log.strength.data.run.SplitInput
+import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import java.time.LocalDate
+import java.util.UUID
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
@@ -293,3 +305,101 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
         }
     }
 }
+
+/** v13 → v14: today's in-progress day becomes the open run; other unfinished days with ticks today are archived; working values lose their results and their date. */
+fun migration13To14(today: () -> LocalDate, now: () -> Long, mint: () -> String): Migration = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        fun <T> read(sql: String, row: (Cursor) -> T): List<T> = db.query(sql).use { cursor ->
+            buildList { while (cursor.moveToNext()) add(row(cursor)) }
+        }
+        val logs = read("SELECT * FROM exercise_log") { c ->
+            LegacyLog(c.long("planId"), c.string("dayId"), c.long("programExerciseId"), c.string("slot"),
+                SetJson.decodeSets(c.string("setsJson")), c.string("checkDate"), c.long("updatedAt"))
+        }
+        val slots = read("SELECT * FROM program_exercise") { c ->
+            ProgramExerciseEntity(c.long("id"), c.long("planId"), c.string("dayId"), c.int("position"),
+                c.string("exerciseId"), c.int("isMain") != 0, c.int("targetSets"), c.string("repSchemeLabel"),
+                c.int("hasWarmupHint") != 0, c.nullableString("supersetExerciseId"), c.string("note"),
+                c.nullableString("prescriptionJson"))
+        }
+        val days = read("SELECT * FROM program_day") { c ->
+            ProgramDayEntity(c.long("planId"), c.string("dayId"), c.int("position"), c.string("title"),
+                c.string("emphasisLine"), c.nullableString("cardioJson"), c.string("kind"),
+                c.nullableString("cardioBlockJson"), c.string("nextRunId"), c.nullableLong("closedAt"))
+        }
+        val plans = read("SELECT id, name FROM plan") { it.long("id") to it.string("name") }.toMap()
+        val custom = read("SELECT id, name FROM custom_exercise") { it.string("id") to it.string("name") }.toMap()
+        val open = db.query("SELECT planId, dayId FROM workout_run LIMIT 1").use {
+            if (it.moveToFirst()) it.nullableLong("planId") to it.nullableString("dayId") else null
+        }
+        val result = LegacyLiveLogSplit.split(SplitInput(logs, slots, days, plans,
+            { ExerciseLibrary.find(it)?.name ?: custom[it] ?: it }, today().toString(), now(), open, mint))
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `exercise_log_new` (" +
+                "`planId` INTEGER NOT NULL, `dayId` TEXT NOT NULL, `programExerciseId` INTEGER NOT NULL, " +
+                "`slot` TEXT NOT NULL, `setsJson` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`planId`, `dayId`, `programExerciseId`, `slot`))",
+        )
+        result.logs.forEach { log ->
+            db.execSQL("INSERT INTO exercise_log_new VALUES (?, ?, ?, ?, ?, ?)",
+                arrayOf<Any?>(log.planId, log.dayId, log.programExerciseId, log.slot, log.setsJson, log.updatedAt))
+        }
+        db.execSQL("DROP TABLE exercise_log")
+        db.execSQL("ALTER TABLE exercise_log_new RENAME TO exercise_log")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_exercise_log_planId_dayId` ON `exercise_log` (`planId`, `dayId`)")
+        result.run?.let { run ->
+            db.execSQL("INSERT INTO workout_run (id, planId, dayId, dayTitle, planName, startedAt) VALUES (?, ?, ?, ?, ?, ?)",
+                arrayOf<Any?>(run.id, run.planId, run.dayId, run.dayTitle, run.planName, run.startedAt))
+        }
+        result.tracks.forEach { track ->
+            db.execSQL("INSERT INTO run_track (runId, position, programExerciseId, slot, exerciseId, retired, plannedJson, setsJson, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                arrayOf<Any?>(track.runId, track.position, track.programExerciseId, track.slot, track.exerciseId,
+                    if (track.retired) 1 else 0, track.plannedJson, track.setsJson, track.updatedAt))
+        }
+        result.archived.forEach { archived ->
+            val session = archived.session
+            val values = ContentValues().apply {
+                put("dayId", session.dayId)
+                put("dayTitle", session.dayTitle)
+                put("startedAt", session.startedAt)
+                put("completedAt", session.completedAt)
+                putNull("bodyweightLb")
+                put("planId", session.planId)
+                put("planName", session.planName)
+                putNull("runId")
+                putNull("plannedJson")
+            }
+            val id = db.insert("workout_session", SQLiteDatabase.CONFLICT_ABORT, values)
+            archived.sets.forEach { set ->
+                db.insert("session_set", SQLiteDatabase.CONFLICT_ABORT, ContentValues().apply {
+                    put("sessionId", id)
+                    put("exerciseId", set.exerciseId)
+                    put("exerciseName", set.exerciseName)
+                    put("slot", set.slot)
+                    put("setIndex", set.setIndex)
+                    put("kind", set.kind)
+                    put("weightLb", set.weightLb)
+                    put("reps", set.reps)
+                    put("done", if (set.done) 1 else 0)
+                    put("seconds", set.seconds)
+                    put("startedAtMillis", set.startedAtMillis)
+                    put("completedAtMillis", set.completedAtMillis)
+                    putNull("trackPosition")
+                    putNull("plannedIndex")
+                })
+            }
+        }
+        result.closes.forEach { close ->
+            db.execSQL("UPDATE program_day SET nextRunId = ?, closedAt = ? WHERE planId = ? AND dayId = ?",
+                arrayOf<Any?>(close.nextRunId, close.closedAt, close.planId, close.dayId))
+        }
+    }
+}
+
+val MIGRATION_13_14 = migration13To14({ LocalDate.now() }, System::currentTimeMillis) { UUID.randomUUID().toString() }
+
+private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
+private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
+private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))
+private fun Cursor.nullableString(name: String): String? = getColumnIndexOrThrow(name).let { if (isNull(it)) null else getString(it) }
+private fun Cursor.nullableLong(name: String): Long? = getColumnIndexOrThrow(name).let { if (isNull(it)) null else getLong(it) }

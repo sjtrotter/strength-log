@@ -20,17 +20,15 @@ import java.time.ZoneId
  * sets would manufacture precision the input doesn't support, so the whole
  * session gets one number.
  *
- * Returns `null` — never a fabricated record — when either guard fails:
- *  - **No real start.** `startedAt` must be a recorded session-start stamp,
+ * Returns `null` — never a fabricated record — when any guard fails:
+ *  - **No real start.** `startedAt` must be the recorded run start,
  *    never [SessionRecordMapper]'s synthesized lead-in; a synthesized window
  *    is sized to fit the exercise segments, not to approximate how long the
  *    lifter actually trained, so it is not a defensible calorie duration.
  *  - **Sane duration.** Outside [SessionDurationBounds] (5 min – 6 h):
  *    below the floor is too short to be a real workout (dedupe/roundoff
- *    noise); above the ceiling smells like a stale stamp from a session
- *    ticked yesterday and finished today (see
- *    [cloud.trotter.log.strength.data.TrackerRepository.advanceDay]'s
- *    crash-ordering note) rather than one continuous session.
+ *    noise); above the ceiling may include a long gap in an open run and
+ *    cannot support a continuous-training calorie estimate.
  *  - **A recorded bodyweight.** CSV-imported history carries none, and kcal
  *    is directly proportional to it — substituting today's configured weight
  *    would publish a number that session never supported.

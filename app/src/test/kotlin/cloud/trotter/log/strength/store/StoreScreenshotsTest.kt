@@ -291,7 +291,7 @@ class StoreScreenshotsTest {
         onRemoveSet = { _, _, _ -> },
         onSelectPage = {},
         onKeepScreenOnChange = {},
-        onClearChecks = {},
+        onDiscardWorkout = {},
         onDone = {},
         onCreateExercise = {},
         onSetUpProgram = {},

@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.R
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -56,35 +59,52 @@ class DestructiveActionsTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    // --- Clear checks (day menu) -----------------------
+    private val discardAction: String
+        get() = ApplicationProvider.getApplicationContext<Context>().getString(R.string.day_menu_clear_checks)
+
+    /** [F] */
+    @Test fun discardIsShownWithAnOpenRun() {
+        setDayContent(runOpen = true)
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText(discardAction).assertIsDisplayed()
+    }
+
+    // --- Discard workout (day menu) -----------------------
 
     @Test
-    fun clearingTheDaysChecksAsksFirstAndOnlyFiresOnConfirm() {
+    fun discardingTheWorkoutAsksFirstAndOnlyFiresOnConfirm() {
         var cleared = 0
-        setDayContent(onClearChecks = { cleared++ })
+        setDayContent(onDiscardWorkout = { cleared++ })
 
         composeTestRule.onNodeWithContentDescription("Day menu").performClick()
-        composeTestRule.onNodeWithText("Clear checks").performClick()
+        composeTestRule.onNodeWithText(discardAction).performClick()
         assertEquals("the menu tap must only open the dialog", 0, cleared)
 
-        composeTestRule.onNodeWithText("Clear").performClick()
+        composeTestRule.onNodeWithText("Discard").performClick()
         assertEquals(1, cleared)
     }
 
     @Test
-    fun cancellingTheClearDialogLeavesTheDayAlone() {
+    fun cancellingTheDiscardDialogLeavesTheDayAlone() {
         var cleared = 0
-        setDayContent(onClearChecks = { cleared++ })
+        setDayContent(onDiscardWorkout = { cleared++ })
 
         composeTestRule.onNodeWithContentDescription("Day menu").performClick()
-        composeTestRule.onNodeWithText("Clear checks").performClick()
+        composeTestRule.onNodeWithText(discardAction).performClick()
         composeTestRule.onNodeWithText("Cancel").performClick()
 
         assertEquals(0, cleared)
         // The dialog is gone, so the menu action is reachable again.
         composeTestRule.onNodeWithContentDescription("Day menu").performClick()
-        composeTestRule.onNodeWithText("Clear checks").performClick()
+        composeTestRule.onNodeWithText(discardAction).performClick()
         assertEquals(0, cleared)
+    }
+
+    /** [F] */
+    @Test fun discardIsHiddenWithoutAnOpenRun() {
+        setDayContent(runOpen = false)
+        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithText(discardAction).assertDoesNotExist()
     }
 
     // --- set removal: Snackbar undo --------------------------------
@@ -127,7 +147,7 @@ class DestructiveActionsTest {
             AppTheme {
                 DayScreen(
                     state = state,
-                    actions = noopActions(onClearChecks = {}, onRemoveSet = {}),
+                    actions = noopActions(onDiscardWorkout = {}, onRemoveSet = {}),
                     dayEditState = dayEditState(),
                     dayEditActions = noopEditActions(),
                     removedSets = offers,
@@ -157,18 +177,18 @@ class DestructiveActionsTest {
     // route, so it stays an on-device check rather than a simulated one.
 
     @Test
-    fun systemBackDismissesTheClearDialogWithoutClearingAnything() {
+    fun systemBackDismissesTheDiscardDialogWithoutChangingAnything() {
         var cleared = 0
-        setDayContent(onClearChecks = { cleared++ })
+        setDayContent(onDiscardWorkout = { cleared++ })
 
         composeTestRule.onNodeWithContentDescription("Day menu").performClick()
-        composeTestRule.onNodeWithText("Clear checks").performClick()
-        composeTestRule.onNodeWithText("Clear").assertIsDisplayed()
+        composeTestRule.onNodeWithText(discardAction).performClick()
+        composeTestRule.onNodeWithText("Discard").assertIsDisplayed()
 
         composeTestRule.runOnIdle { (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed() }
 
         assertEquals(0, cleared)
-        composeTestRule.onNodeWithText("Clear").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Discard").assertDoesNotExist()
     }
 
     @Test
@@ -224,16 +244,17 @@ class DestructiveActionsTest {
     // --- fixtures --------------------------------------------------------------
 
     private fun setDayContent(
+        runOpen: Boolean = true,
         removedSets: List<RemovedSet> = emptyList(),
-        onClearChecks: () -> Unit = {},
+        onDiscardWorkout: () -> Unit = {},
         onRemoveSet: () -> Unit = {},
         onUndoRemoveSet: () -> Unit = {},
     ) {
         composeTestRule.setContent {
             AppTheme {
                 DayScreen(
-                    state = dayState(),
-                    actions = noopActions(onClearChecks = onClearChecks, onRemoveSet = onRemoveSet),
+                    state = dayState().copy(runOpen = runOpen),
+                    actions = noopActions(onDiscardWorkout = onDiscardWorkout, onRemoveSet = onRemoveSet),
                     dayEditState = dayEditState(),
                     dayEditActions = noopEditActions(),
                     removedSets = removedSets,
@@ -247,6 +268,7 @@ class DestructiveActionsTest {
         programExerciseId = programExerciseId,
         index = index,
         dayId = "A",
+        runId = "run-A",
         main = LoggedSet(210.0, 5, SetKind.WORK),
     )
 
@@ -259,6 +281,7 @@ class DestructiveActionsTest {
      */
     private fun dayState() = DayUiState(
         hasProgram = true,
+        runOpen = true,
 
         viewDayId = "A",
         dayIndex = 0,
@@ -300,7 +323,7 @@ class DestructiveActionsTest {
         ),
     )
 
-    private fun noopActions(onClearChecks: () -> Unit, onRemoveSet: () -> Unit) = DayActions(
+    private fun noopActions(onDiscardWorkout: () -> Unit, onRemoveSet: () -> Unit) = DayActions(
         onSelectDay = {},
         onWeightChange = { _, _, _, _ -> },
         onRepsChange = { _, _, _, _ -> },
@@ -310,7 +333,7 @@ class DestructiveActionsTest {
         onRemoveSet = { _, _, _ -> onRemoveSet() },
         onSelectPage = {},
         onKeepScreenOnChange = {},
-        onClearChecks = onClearChecks,
+        onDiscardWorkout = onDiscardWorkout,
         onDone = {},
         onCreateExercise = {},
         onSetUpProgram = {},

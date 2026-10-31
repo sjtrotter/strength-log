@@ -13,7 +13,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  * Today.
  *
  * Everything here is a read of the session row that [cloud.trotter.log.strength
- * .data.TrackerRepository.advanceDay] has already written, so the receipt is
+ * .data.TrackerRepository.finishRun] has already written, so the receipt is
  * post-commit UI over persisted data: dismissing it, backing out of it, or
  * losing the process to a kill all leave exactly the same saved session behind.
  * Like [CascadeCeremony] it is therefore a moment and not data — a plain
@@ -55,8 +55,8 @@ data class ReceiptLift(val name: String, val value: String)
 object SessionReceiptBuilder {
 
     /**
-     * Builds the receipt for a session [advanceDay][cloud.trotter.log.strength
-     * .data.TrackerRepository.advanceDay] has just written. [sessionSets] is the
+     * Builds the receipt for a session [finishRun][cloud.trotter.log.strength
+     * .data.TrackerRepository.finishRun] has just written. [sessionSets] is the
      * same list the cascade check reads — one fetch serves both, so the two
      * post-DONE surfaces can never disagree about what the session contained.
      *

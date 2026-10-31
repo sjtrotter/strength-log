@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -26,6 +27,20 @@ class PlanScreenTest {
         },
     )
     private fun actions() = PlanActions(onOpenDay = {}, onOpenPlans = {}, onSetUpProgram = {})
+
+    @Test
+    fun dayRowCarriesTheDisplayedPlanAndDay() {
+        val selected = mutableListOf<DaySelection>()
+        rule.setContent { AppTheme {
+            PlanScreen(state(false).copy(planId = 7L, days = listOf(
+                PlanDay("A", 0, "Squat", 1, 3, true),
+            )), actions().copy(onOpenDay = { selected += it }))
+        } }
+
+        rule.onNodeWithText("Squat").performClick()
+
+        assertEquals(listOf(DaySelection(7L, "A")), selected)
+    }
 
     @Test
     fun cardioOnlyDayShowsTheActivityAndSetCount() {

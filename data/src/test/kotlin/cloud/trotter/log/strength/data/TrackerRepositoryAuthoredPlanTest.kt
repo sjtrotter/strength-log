@@ -194,10 +194,10 @@ class TrackerRepositoryAuthoredPlanTest {
         repo.addExercise("B", ProgramExercise("plank"))
         val slot = repo.daySlotsFlow("B").first().single().programExerciseId
         val sets = listOf(LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 30))
-        repo.updateSets("B", slot, Slot.MAIN, sets)
-        val session = repo.advanceDay("B")
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "B").first().runId.orEmpty(), "B", slot, Slot.MAIN, sets)
+        val session = repo.finishRun(repo.openRunFlow.first()!!.id)!!
         val archivedSets = repo.sessionSets(session)
-        repo.updateSets("B", slot, Slot.MAIN, sets)
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "B").first().runId.orEmpty(), "B", slot, Slot.MAIN, sets)
         db.planDao().updateSuggestedDay(id, "B")
         repo.addExercise("A", ProgramExercise("plank"))
         val otherDay = db.programDao().exercisesForDay(id, "A")
@@ -222,8 +222,8 @@ class TrackerRepositoryAuthoredPlanTest {
         repo.publishCreatedAuthoredPlan(id)
         repeat(2) { repo.addExercise("A", ProgramExercise("plank")) }
         val slots = repo.daySlotsFlow("A").first()
-        for (slot in slots) repo.updateSets("A", slot.programExerciseId, Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
-        repo.updateSets("A", slots.first().programExerciseId, Slot.SS, emptyList())
+        for (slot in slots) repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot.programExerciseId) ?: -1, "A").first().runId.orEmpty(), "A", slot.programExerciseId, Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slots.first().programExerciseId) ?: -1, "A").first().runId.orEmpty(), "A", slots.first().programExerciseId, Slot.SS, emptyList())
         val other = repo.createAuthoredPlan("Other", "Day A")
         repo.publishCreatedAuthoredPlan(other)
         val prescription = Prescription(PrescribedTarget.RepsInTime(120, 40), true, "Red band")
@@ -241,7 +241,7 @@ class TrackerRepositoryAuthoredPlanTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", listOf(ProgramExercise("plank")), null))))
         val id = settings.selectedPlanIdFlow.first()!!
         val slot = repo.daySlotsFlow("A").first().single().programExerciseId
-        repo.updateSets("A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
         val before = db.programDao().exercise(slot)
         val logs = db.programDao().allLogs()
         assertNull(repo.addDay(id, "Day B"))
@@ -262,7 +262,7 @@ class TrackerRepositoryAuthoredPlanTest {
         repeat(3) { repo.addExercise("A", ProgramExercise("plank")) }
         for (id in listOf(generated, authored)) {
             val slots = db.programDao().exercisesForDay(id, "A").map { it.id }
-            repo.updateSets("A", slots[1], Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
+            repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slots[1]) ?: -1, "A").first().runId.orEmpty(), "A", slots[1], Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
             val logs = db.programDao().allLogs()
             repo.moveExercise(slots.first(), up = true)
             repo.moveExercise(slots.last(), up = false)

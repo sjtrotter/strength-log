@@ -261,6 +261,28 @@ class TodaySnapshotSourceRestTest {
         assertEquals("Strength", awaitPlan(planP).planName)
     }
 
+    /** [F] */
+    @Test fun `an open run supplies the watch and widget even when another plan is selected`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+        ))))
+        val plan = repo.selectedPlanIdFlow.first()!!
+        repo.renamePlan(plan, "Strength")
+        val other = repo.duplicatePlan(plan, "Running")
+        val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
+        val preview = repo.dayTracksFlow(plan, "A").first()
+        repo.updateSets(preview.runId!!, "A", slot, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP, true)))
+        repo.selectPlan(other)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore)
+        val snapshot = source.snapshots.first { it != null }!!
+        assertEquals(plan, snapshot.planId)
+        assertEquals("Strength", snapshot.planName)
+        assertEquals("A", snapshot.day.dayId)
+        assertEquals(slot, snapshot.day.exercises.single().programExerciseId)
+        assertTrue(snapshot.day.exercises.single().sets.single().done)
+        assertEquals(1, todayWidgetContent(snapshot).setsDone)
+    }
+
     @Test
     fun `a rest-settings edit changes the projected snapshot content`() = runTest(dispatcher) {
         repo.replaceProgram(
@@ -268,7 +290,7 @@ class TodaySnapshotSourceRestTest {
         )
         db.planDao().updateSuggestedDay(repo.selectedPlanIdFlow.first()!!, "A")
         val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
-        repo.updateSets("A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
 
         val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), syncStore)
 

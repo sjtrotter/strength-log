@@ -568,7 +568,7 @@ class BackupCodecTest {
                 ProgramExerciseEntity(3, PlanEntity.LEGACY_ID, "B", 0, "bb_bench", true, 4, "6-10", false, null, ""),
             ),
             logs = listOf(
-                ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", 1, "main", """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]""", "2026-07-06", 1_000L),
+                ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", 1, "main", """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]""", 1_000L),
             ),
             sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210)),
             sessionSets = listOf(SessionSetEntity(11, 7, "bb_back_squat", "Barbell Back Squat", "main", 0, "TOP", 235.0, 5, true)),

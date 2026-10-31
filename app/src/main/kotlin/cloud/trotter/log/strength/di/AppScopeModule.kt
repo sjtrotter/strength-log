@@ -15,7 +15,7 @@ import kotlinx.coroutines.SupervisorJob
 @Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope
 
-/** The process-wide live device-local date used by daily reset reads. */
+/** The process-wide live device-local date used by cardio snapshots. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class CivilDay

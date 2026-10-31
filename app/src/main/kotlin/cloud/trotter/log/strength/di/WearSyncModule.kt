@@ -61,8 +61,7 @@ object WearSyncModule {
     fun setEditApplier(
         repo: TrackerRepository,
         store: WearSyncStore,
-        @CivilDay today: Flow<LocalDate>,
-    ): SetEditApplier = SetEditApplier(repo, store, today)
+    ): SetEditApplier = SetEditApplier(repo, store)
 
     @Provides
     @Singleton

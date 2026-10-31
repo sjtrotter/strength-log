@@ -16,9 +16,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 /**
- * The one observed projection of *today* — the suggested day, its sets, their
+ * The one observed projection of *today* — the open run or suggested day, its sets, their
  * done flags and the display unit — that every glance surface reads. The watch
  * publisher ([WearSyncPublisher]) mirrors it onto the Data Layer; the
  * home-screen widget ([cloud.trotter.log.strength.widget.TodayWidgetUpdater])
@@ -39,15 +40,16 @@ class TodaySnapshotSource(
 ) {
 
     val snapshots: Flow<WatchSnapshot?> =
-        repo.selectedPlanFlow.flatMapLatest { plan ->
-            val dayId = plan?.suggestedDayId
+        repo.todayTargetFlow.flatMapLatest { target ->
+            val plan = target?.plan
+            val dayId = target?.dayId
             if (plan == null || dayId == null) {
                 flowOf(null)
             } else {
                 val program = combine(
                     repo.programFor(plan.id),
                     repo.slotsFor(plan.id, dayId),
-                    repo.logsFor(plan.id, dayId, today),
+                    repo.dayTracksFlow(plan.id, dayId).map { it.tracks },
                 ) { program, slots, logs -> Triple(program, slots, logs) }
                 // restSettingsFlow rides the context combine so a Setup edit (master
                 // toggle or a duration) republishes immediately — the watch never

@@ -111,27 +111,30 @@ class BackupViewModelRestoreTest {
     fun tearDown() {
         // A restore parked on a gate sits in a NonCancellable section, so a test
         // that fails before opening its gate would leave the joins below waiting
-        // forever (#310). Open every gate first.
+        // forever (#310). Open the stores' gates first.
         settingsStore.gate?.complete(Unit)
         journalStore.gate?.complete(Unit)
         // Joined, not just cancelled: on real dispatchers a bare cancel() returns
         // before the import has let go of Room or DataStore's file.
-        runBlocking {
-            try {
-                withTimeout(TIMEOUT_MS) {
-                    viewModel.viewModelScope.coroutineContext.job.cancelAndJoin()
-                    appScope.coroutineContext.job.cancelAndJoin()
-                    storeScope.coroutineContext.job.cancelAndJoin()
+        try {
+            runBlocking {
+                try {
+                    withTimeout(TIMEOUT_MS) {
+                        viewModel.viewModelScope.coroutineContext.job.cancelAndJoin()
+                        appScope.coroutineContext.job.cancelAndJoin()
+                        storeScope.coroutineContext.job.cancelAndJoin()
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    Thread.getAllStackTraces().forEach { (thread, stack) ->
+                        System.err.println("$thread\n  " + stack.joinToString("\n  "))
+                    }
+                    throw AssertionError("tearDown stuck joining scopes; thread dump above", e)
                 }
-            } catch (e: TimeoutCancellationException) {
-                Thread.getAllStackTraces().forEach { (thread, stack) ->
-                    System.err.println("$thread\n  " + stack.joinToString("\n  "))
-                }
-                throw AssertionError("tearDown stuck joining scopes; thread dump above", e)
             }
+        } finally {
+            db.close()
+            Dispatchers.resetMain()
         }
-        db.close()
-        Dispatchers.resetMain()
     }
 
     /** A minimal but valid backup: one day, one real catalog exercise. */
@@ -168,10 +171,10 @@ class BackupViewModelRestoreTest {
     /** Waits for the whole read job, not just its state: runBusy's `finally`
      *  clears isBusy and restoreInFlight after the dialog flag is set, and on a
      *  slow runner it could otherwise land after the test's confirmRestore. */
-    private suspend fun stageConfirmDialog() {
+    private suspend fun stageConfirmDialog(uri: Uri = pickable(backupJson())) {
         val vm = viewModel.viewModelScope.coroutineContext.job
         val before = vm.children.toSet()
-        viewModel.beginImportBackup(pickable(backupJson()))
+        viewModel.beginImportBackup(uri)
         withTimeout(TIMEOUT_MS) { (vm.children.toSet() - before).forEach { it.join() } }
         assertTrue(viewModel.uiState.value.pendingRestoreConfirm)
     }
@@ -200,8 +203,7 @@ class BackupViewModelRestoreTest {
                 PlanBackup(42, "Test prep", "AUTHORED", 2_000, days = listOf(authoredDay)),
             ),
         )
-        viewModel.beginImportBackup(pickable(codec.encode(document)))
-        withTimeout(TIMEOUT_MS) { viewModel.uiState.first { it.pendingRestoreConfirm } }
+        stageConfirmDialog(pickable(codec.encode(document)))
 
         viewModel.confirmRestore()
 

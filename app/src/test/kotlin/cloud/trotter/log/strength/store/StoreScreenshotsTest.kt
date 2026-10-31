@@ -252,7 +252,7 @@ class StoreScreenshotsTest {
             perHand = entry.perHand,
             tracking = entry.tracking,
             equipment = entry.equipment,
-            allDone = rows.isNotEmpty() && rows.all { it.complete },
+            allDone = DayScreenBuilder.allDone(rows),
             rows = rows,
             focusIndex = focus,
             focusLabel = DayScreenBuilder.focusLabel(sets.map { it.kind }, focus),

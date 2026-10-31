@@ -643,7 +643,12 @@ private fun FinishDayConfirmDialog(
 ) {
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets)) },
+        title = {
+            Text(
+                if (doneSets == totalSets) stringResource(R.string.day_finish_partner_open_confirm_title)
+                else stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets),
+            )
+        },
         text = { Text(stringResource(R.string.day_finish_partial_confirm_body)) },
         confirmButton = {
             DialogAction(

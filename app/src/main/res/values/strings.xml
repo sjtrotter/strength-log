@@ -401,6 +401,7 @@
 <string name="day_cardio_elapsed">Elapsed %1$s</string>
 <string name="day_cardio_logged">Logged %1$s</string>
 <string name="day_finish_partial_confirm_title">Finish with %1$d of %2$d sets?</string>
+<string name="day_finish_partner_open_confirm_title">Finish with partner sets open?</string>
 <string name="day_finish_partial_confirm_body">The day is recorded as it stands and the rotation moves on.</string>
 <string name="day_finish_partial_confirm_button">Finish</string>
 <string name="day_finish_partial_dismiss_button">Keep going</string>

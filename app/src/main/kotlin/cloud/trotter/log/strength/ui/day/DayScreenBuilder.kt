@@ -109,6 +109,8 @@ object DayScreenBuilder {
 
     fun focusIndex(rows: List<SetRowState>): Int = rows.indexOfFirst { !it.complete }
 
+    fun allDone(rows: List<SetRowState>): Boolean = rows.isNotEmpty() && rows.all { it.complete }
+
     fun focusLabel(kinds: List<SetKind>, index: Int): cloud.trotter.log.strength.ui.text.UiText.SetLabel {
         val kind = kinds.getOrElse(index) { SetKind.WORK }
         val number = if (kind == SetKind.RAMP) kinds.take(index + 1).count { it == SetKind.RAMP } else index + 1

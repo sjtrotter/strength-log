@@ -1751,7 +1751,7 @@ class DayViewModel @Inject constructor(
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[pe.exerciseId], lastPerformed, unit),
             topSetComparison = DayScreenBuilder.topSetComparison(main, lastPerformed, unit),
             plateLine = DayScreenBuilder.plateLine(main, entry?.equipment.orEmpty(), unit),
-            allDone = rows.isNotEmpty() && rows.all { it.complete },
+            allDone = DayScreenBuilder.allDone(rows),
             focusIndex = DayScreenBuilder.focusIndex(rows),
             focusLabel = DayScreenBuilder.focusLabel(main.map { it.kind }, DayScreenBuilder.focusIndex(rows)),
             summaryLine = DayScreenBuilder.summaryLine(main, partnerSets, tracking, partnerTracking ?: TrackingType.WEIGHTED, unit),

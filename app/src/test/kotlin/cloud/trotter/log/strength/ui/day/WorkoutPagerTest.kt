@@ -228,7 +228,7 @@ class WorkoutPagerTest {
         val card = pagerFixture().exercises[1].copy(
             title = "Incline DB Press", partnerTitle = "Seated Cable Row", isSuperset = true,
             partnerTracking = TrackingType.WEIGHTED, rows = rows,
-            allDone = rows.isNotEmpty() && rows.all { it.complete }, focusIndex = DayScreenBuilder.focusIndex(rows),
+            allDone = DayScreenBuilder.allDone(rows), focusIndex = DayScreenBuilder.focusIndex(rows),
         )
         val writes = mutableListOf<Pair<Int, String>>()
         show(pagerFixture().copy(exercises = listOf(card)), pagerActions().copy(onToggleDone = { _, index, _, slot ->
@@ -289,7 +289,7 @@ class WorkoutPagerTest {
         var finishes = 0
         show(state, pagerActions().copy(onDone = { finishes++ }))
         rule.onNodeWithText("Finish day D").performClick()
-        rule.onNodeWithText("Finish with 1 of 1 sets?").assertExists()
+        rule.onNodeWithText("Finish with partner sets open?").assertExists()
         rule.runOnIdle { assertEquals(0, finishes) }
         rule.onNodeWithText("Finish").performClick()
         rule.runOnIdle { assertEquals(1, finishes) }

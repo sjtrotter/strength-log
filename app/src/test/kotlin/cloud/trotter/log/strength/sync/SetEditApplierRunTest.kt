@@ -174,6 +174,37 @@ class SetEditApplierRunTest {
         assertTrue(open.tracks.filter { it.programExerciseId == curl }.all { it.sets.first().done })
     }
 
+    @Test
+    fun `queued run ticks keep confirmed timing and unticks clear both tracks`() = runTest {
+        for (doneSlot in listOf(Slot.MAIN, Slot.SS)) {
+            val planId = authored()
+            val runId = phoneStart(planId)
+            val id = repo.slotsFor(planId, "A").first()
+                .first { it.exercise.exerciseId == "ez_curl" }.programExerciseId
+            val initial = repo.dayTracksFlow(planId, "A").first().tracks
+                .first { it.programExerciseId == id && it.slot == doneSlot }.sets
+            repo.updateSets(runId, "A", id, doneSlot, initial.mapIndexed { index, set ->
+                if (index == 0) set.copy(done = true, startedAtMillis = 10L, completedAtMillis = 70L) else set
+            })
+            val edit = delta(planId, runId).copy(programExerciseId = id, exerciseId = "ez_curl",
+                startedAtMillis = 100L, completedAtMillis = 160L)
+            assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit))
+            val pair = repo.dayTracksFlow(planId, "A").first().tracks.filter { it.programExerciseId == id }
+            assertTrue(pair.all { it.sets.first().done })
+            for (track in pair) {
+                val row = track.sets.first()
+                assertEquals(if (track.slot == doneSlot) 10L else 100L, row.startedAtMillis)
+                assertEquals(if (track.slot == doneSlot) 70L else 160L, row.completedAtMillis)
+                assertEquals(if (track.slot == Slot.MAIN) 100L else null, row.watchEditedAt)
+            }
+            assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit.copy(done = false, editedAtMillis = 200)))
+            val cleared = repo.dayTracksFlow(planId, "A").first().tracks.filter { it.programExerciseId == id }
+            assertTrue(cleared.all { !it.sets.first().done })
+            assertTrue(cleared.all { it.sets.first().startedAtMillis == null && it.sets.first().completedAtMillis == null })
+            repo.discardRun(runId)
+        }
+    }
+
     /** [F] */
     @Test
     fun `a preview weight edit changes working values without starting a run`() = runTest {

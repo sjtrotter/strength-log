@@ -210,6 +210,17 @@ class TimedRepScreenTest {
         assertEquals(listOf(0, 38), logged)
     }
 
+    @Test fun supersetCountConfirmationNamesTheMainExercise() {
+        var logged = 0
+        rule.setContent { AppTheme {
+            TimedRepCountSheet(card().copy(isSuperset = true), event(awaiting = true).copy(draft = "38"), 3,
+                pagerActions().copy(onLogTimedRepCount = { logged++ }))
+        } }
+        rule.onNodeWithText("Log Push-ups 38 reps").assertIsEnabled()
+        rule.onNodeWithContentDescription("Log Push-ups 38 reps").performClick()
+        assertEquals(1, logged)
+    }
+
     @Test fun entryWithoutAimOmitsTheComparison() {
         rule.setContent { AppTheme {
             TimedRepCountSheet(card().copy(timedRepAim = null), event(awaiting = true).copy(draft = "38"), 3, pagerActions())

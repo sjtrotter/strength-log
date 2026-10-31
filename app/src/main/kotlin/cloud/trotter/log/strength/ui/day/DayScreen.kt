@@ -345,7 +345,7 @@ fun DayScreen(
                             state.rest?.let { RestPill(it, actions.onAdjustRest, actions.onSkipRest) }
                             Button(
                                 modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-                                enabled = state.doneSets > 0,
+                                enabled = state.canFinish,
                                 colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = onAccent),
                                 onClick = {
                                     if (state.doneSets < state.totalSets) {
@@ -691,7 +691,7 @@ data class DayActions(
     val onWeightChange: (Long, String, Int, Double) -> Unit,
     val onRepsChange: (Long, String, Int, Int) -> Unit,
     val onSecondsChange: (Long, String, Int, Int) -> Unit,
-    val onToggleDone: (Long, Int, Boolean, Boolean) -> Unit,
+    val onToggleDone: (Long, Int, Boolean, String) -> Unit,
     val onAddSet: (Long, Boolean) -> Unit,
     val onRemoveSet: (Long, Int, Boolean) -> Unit,
     val onSelectPage: (String) -> Unit,

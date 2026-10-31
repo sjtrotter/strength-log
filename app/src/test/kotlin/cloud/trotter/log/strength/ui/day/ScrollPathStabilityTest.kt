@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
@@ -169,7 +170,7 @@ class ScrollPathStabilityTest {
 
         val squatId = slotId("bb_back_squat")
         val before = vm.uiState.value.exercises.associateBy { it.programExerciseId }
-        vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
+        vm.toggleDone(squatId, index = 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         val after = vm.uiState.value.exercises.associateBy { it.programExerciseId }
 

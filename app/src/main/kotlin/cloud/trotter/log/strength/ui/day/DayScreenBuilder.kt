@@ -26,7 +26,7 @@ import java.util.Locale
 /**
  * The pure §8.2 decision logic behind the day screen: set-row labels, the
  * pager focus and summary formats, the seeding-once
- * plan, and the one-tick-per-round rule. Kept free of Android and coroutines so
+ * plan, and per-exercise focus. Kept free of Android and coroutines so
  * every behavior in the contract is unit-testable on the JVM; [DayViewModel] only
  * wires these to flows and repository writes.
  *
@@ -107,7 +107,7 @@ object DayScreenBuilder {
         else -> DoneButtonState.PARTIAL
     }
 
-    fun focusIndex(rows: List<SetRowState>): Int = rows.indexOfFirst { !it.done }
+    fun focusIndex(rows: List<SetRowState>): Int = rows.indexOfFirst { !it.complete }
 
     fun focusLabel(kinds: List<SetKind>, index: Int): cloud.trotter.log.strength.ui.text.UiText.SetLabel {
         val kind = kinds.getOrElse(index) { SetKind.WORK }
@@ -117,7 +117,7 @@ object DayScreenBuilder {
 
     fun currentPage(pageKeys: List<String>, selectedKey: String?, exercises: List<ExerciseCardState>): Int {
         if (selectedKey != null) pageKeys.indexOf(selectedKey).takeIf { it >= 0 }?.let { return it }
-        val firstUndone = exercises.firstOrNull { it.rows.any { row -> !row.done } }
+        val firstUndone = exercises.firstOrNull { it.rows.any { row -> !row.complete } }
         if (firstUndone == null && exercises.all { it.rows.isEmpty() }) return 0
         val fallback = firstUndone ?: exercises.lastOrNull()
         return fallback?.let { pageKeys.indexOf("exercise:${it.programExerciseId}").coerceAtLeast(0) } ?: 0
@@ -183,22 +183,6 @@ object DayScreenBuilder {
             }
         }
         return writes
-    }
-
-    /**
-     * Applies a round's done tick. For a superset both tracks flip together (one
-     * tick per round, performed back-to-back); [partner] is null for a plain
-     * exercise (spec §8.2). Returns the updated tracks.
-     */
-    fun applyRoundTick(
-        main: List<LoggedSet>,
-        partner: List<LoggedSet>?,
-        index: Int,
-        checked: Boolean,
-    ): Pair<List<LoggedSet>, List<LoggedSet>?> {
-        val newMain = main.mapIndexed { i, s -> if (i == index) s.copy(done = checked) else s }
-        val newPartner = partner?.mapIndexed { i, s -> if (i == index) s.copy(done = checked) else s }
-        return newMain to newPartner
     }
 
     /** Per-row kind labels: R1…, TOP, B/O, or a plain 1-based number for WORK/EXTRA. */
@@ -339,8 +323,11 @@ object DayScreenBuilder {
         return perSide.joinToString(" + ") { WeightStepper.format(it) }.ifEmpty { "0" }
     }
 
-    /** True once every round is ticked; drives the finished page and green segments. */
-    fun allDone(main: List<LoggedSet>): Boolean = main.isNotEmpty() && main.all { it.done }
+    /** Card completion requires both tracks at each index; round counts still read MAIN alone. */
+    fun allDone(main: List<LoggedSet>, partner: List<LoggedSet>? = null): Boolean =
+        main.isNotEmpty() && main.withIndex().all { (index, set) ->
+            set.done && (partner == null || partner.getOrNull(index)?.done == true)
+        }
 
     private fun setSummary(set: LoggedSet, tracking: TrackingType, unit: WeightUnit): String =
         SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, unit)

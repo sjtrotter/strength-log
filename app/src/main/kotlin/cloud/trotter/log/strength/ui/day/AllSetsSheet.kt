@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.text.resolve
@@ -51,49 +52,29 @@ internal fun AllSetsSheet(
         LazyColumn(Modifier.fillMaxWidth()) {
             items(card.rows, key = { it.index }, contentType = { "set" }) { row ->
                 val value = setValue(row.weightDisplay, row.reps, row.seconds, card.tracking, card.timedShowsWeight)
-                val description = stringResource(R.string.set_done_description, setLabel(row).resolve(), value)
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(row.kindLabel, style = SetKindLabel)
-                    Column(
-                        modifier = Modifier.weight(1f).clickable { onEdit(row.index) }.heightIn(min = 48.dp),
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Text(value, style = DisplayXl.copy(fontSize = 30.sp, fontFeatureSettings = "tnum"))
-                        if (row.done && card.timedRepAim != null) {
-                            Text(
-                                stringResource(R.string.timed_rep_aim, row.reps, card.timedRepAim),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        row.partner?.let { partner ->
-                            val partnerValue = setValue(
-                                weight = partner.weightDisplay,
-                                reps = partner.reps,
-                                seconds = partner.seconds,
-                                tracking = card.partnerTracking ?: TrackingType.WEIGHTED,
-                                timedWeight = card.partnerTimedShowsWeight,
-                            )
-                            Text(
-                                text = stringResource(
-                                    R.string.day_then_partner,
-                                    "${card.partnerTitle.orEmpty()} $partnerValue",
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                    }
-                    Checkbox(
-                        checked = row.done,
-                        onCheckedChange = {
-                            actions.onToggleDone(card.programExerciseId, row.index, it, card.isSuperset)
-                        },
-                        modifier = Modifier.semantics { contentDescription = description },
+                Column {
+                    SetTrackRow(
+                        name = card.title, kindLabel = row.kindLabel, value = value,
+                        description = stringResource(R.string.set_done_description, "${card.title} ${setLabel(row).resolve()}", value),
+                        done = row.done,
+                        aim = if (row.done) card.timedRepAim?.let { stringResource(R.string.timed_rep_aim, row.reps, it) } else null,
+                        onEdit = { onEdit(row.index) },
+                        onToggle = { actions.onToggleDone(card.programExerciseId, row.index, it, Slot.MAIN) },
                     )
+                    row.partner?.let { partner ->
+                        val partnerValue = setValue(
+                            partner.weightDisplay, partner.reps, partner.seconds,
+                            card.partnerTracking ?: TrackingType.WEIGHTED, card.partnerTimedShowsWeight,
+                        )
+                        SetTrackRow(
+                            name = card.partnerTitle.orEmpty(), kindLabel = row.kindLabel, value = partnerValue,
+                            description = stringResource(R.string.set_done_description,
+                                "${card.partnerTitle.orEmpty()} ${setLabel(row).resolve()}", partnerValue),
+                            done = partner.done, aim = null,
+                            onEdit = { onEdit(row.index) },
+                            onToggle = { actions.onToggleDone(card.programExerciseId, row.index, it, Slot.SS) },
+                        )
+                    }
                 }
             }
             item(contentType = "add") {
@@ -105,6 +86,39 @@ internal fun AllSetsSheet(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SetTrackRow(
+    name: String,
+    kindLabel: String,
+    value: String,
+    description: String,
+    done: Boolean,
+    aim: String?,
+    onEdit: () -> Unit,
+    onToggle: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(kindLabel, style = SetKindLabel)
+        Column(
+            modifier = Modifier.weight(1f).clickable(onClick = onEdit).heightIn(min = 48.dp),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(name, style = MaterialTheme.typography.bodyMedium)
+            Text(value, style = DisplayXl.copy(fontSize = 30.sp, fontFeatureSettings = "tnum"))
+            aim?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+        Checkbox(
+            checked = done,
+            onCheckedChange = onToggle,
+            modifier = Modifier.semantics { contentDescription = description },
+        )
     }
 }
 

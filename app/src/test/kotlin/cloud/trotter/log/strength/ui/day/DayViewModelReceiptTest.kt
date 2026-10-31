@@ -114,7 +114,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         val slot = repo.daySlotsFlow("C").first().single()
         val rows = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets
-        rows.indices.forEach { vm.toggleDone(slot.programExerciseId, it, checked = true, isSuperset = false) }
+        rows.indices.forEach { vm.toggleDone(slot.programExerciseId, it, checked = true, slot = Slot.MAIN) }
         advanceUntilIdle()
         val completedSetCount = vm.uiState.value.doneSets
 
@@ -372,7 +372,7 @@ class DayViewModelReceiptTest {
         )
     }
 
-    /** One day, one superset slot: every tick writes a MAIN row and an SS row. */
+    /** One day with one superset slot. */
     private suspend fun insertSupersetProgram() {
         repo.replaceProgram(
             Program(
@@ -404,11 +404,11 @@ class DayViewModelReceiptTest {
 
     private suspend fun tickWholeTrack(vm: DayViewModel) {
         val id = slotId()
-        // Derived, not passed in: a tick on a superset slot has to flip both
-        // tracks, and a fixture that forgot would silently under-write the SS
-        // rows the count test exists to catch.
-        val isSuperset = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().any { it.slot == Slot.SS }
-        repeat(mainTrackRowCount()) { index -> vm.toggleDone(id, index, checked = true, isSuperset = isSuperset) }
+        val hasPartner = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().any { it.slot == Slot.SS }
+        repeat(mainTrackRowCount()) { index ->
+            vm.toggleDone(id, index, checked = true, slot = Slot.MAIN)
+            if (hasPartner) vm.toggleDone(id, index, checked = true, slot = Slot.SS)
+        }
     }
 
     /** Edits the TOP set up a notch so the next advance records a new all-time

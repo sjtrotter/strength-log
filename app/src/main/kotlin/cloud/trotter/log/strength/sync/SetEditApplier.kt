@@ -205,6 +205,8 @@ class SetEditApplier(
      *  tick that produced them. Null keeps the stored value, the same
      *  "null means unchanged" rule every other delta field follows.
      *
+     *  A done tick preserves timing already confirmed on either track.
+     *
      *  An **untick is the exception**: `done = false` retracts the tick, and the
      *  stamps are facts *about that tick*. They clear with it, whether or not the
      *  delta carries any (the watch's undo carries none).
@@ -217,6 +219,7 @@ class SetEditApplier(
             when {
                 i != delta.setIndex -> s
                 unticking -> s.copy(startedAtMillis = null, completedAtMillis = null)
+                delta.done == true && s.done -> s
                 else -> s.copy(
                     startedAtMillis = delta.startedAtMillis ?: s.startedAtMillis,
                     completedAtMillis = delta.completedAtMillis ?: s.completedAtMillis,

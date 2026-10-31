@@ -14,6 +14,9 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -31,6 +34,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -169,14 +173,90 @@ class WorkoutPagerTest {
 
     @Test fun opensOnFirstUnfinishedLiftAndLogsItsFocusedRound() {
         val logged = mutableListOf<Pair<Long, Int>>()
-        show(actions = pagerActions().copy(onToggleDone = { id, index, checked, superset ->
+        show(actions = pagerActions().copy(onToggleDone = { id, index, checked, slot ->
             assertEquals(true, checked)
-            assertEquals(false, superset)
+            assertEquals(Slot.MAIN, slot)
             logged += id to index
         }))
         rule.onNodeWithText("Lift 2 of 3").assertIsDisplayed()
         rule.onNodeWithText("Log 95 × 5").performClick()
         assertEquals(listOf(2L to 1), logged)
+    }
+
+    @Test fun supersetLogNamesEachExerciseAndKeepsFocusUntilBothAreDone() {
+        var row by mutableStateOf(SetRowState(0, "1", false, 50.0, 10, false, PartnerRowState(90.0, 12)))
+        val base = pagerFixture().exercises[1].copy(
+            title = "Incline DB Press", partnerTitle = "Seated Cable Row", isSuperset = true,
+            partnerTracking = TrackingType.WEIGHTED,
+        )
+        val logged = mutableListOf<String>()
+        rule.setContent { AppTheme {
+            val rows = listOf(row)
+            val card = base.copy(rows = rows, allDone = row.complete, focusIndex = DayScreenBuilder.focusIndex(rows))
+            ExercisePage(card, 3, false, pagerActions().copy(onToggleDone = { id, index, checked, slot ->
+                assertEquals(base.programExerciseId, id)
+                assertEquals(0, index)
+                assertTrue(checked)
+                logged += slot
+                row = if (slot == Slot.MAIN) row.copy(done = true) else row.copy(partner = row.partner!!.copy(done = true))
+            }), nextTitle = null, onNext = {}, onEdit = {}, onAllSets = {}, canSwap = false,
+                onSwap = {}, onSwapWeight = { _, _ -> }, onNote = {})
+        } }
+        rule.onNodeWithText("then Seated Cable Row 90 × 12").assertExists()
+        rule.onNodeWithText("Log Incline DB Press 50 × 10").assertExists()
+        rule.onNodeWithContentDescription("Log Incline DB Press 50 × 10").performClick()
+        rule.runOnIdle {
+            assertEquals(0, DayScreenBuilder.focusIndex(listOf(row)))
+            assertEquals(listOf(Slot.MAIN), logged)
+        }
+        rule.onNodeWithText("then Seated Cable Row 90 × 12").assertDoesNotExist()
+        rule.onNodeWithText("Log Seated Cable Row 90 × 12").assertExists()
+        rule.onNodeWithContentDescription("Log Seated Cable Row 90 × 12").performClick()
+        rule.runOnIdle {
+            assertTrue(row.complete)
+            assertEquals(listOf(Slot.MAIN, Slot.SS), logged)
+        }
+    }
+
+    @Test fun allSetsTicksAndUnticksHaveIndependentExerciseTargets() {
+        val base = pagerFixture().exercises[1].copy(
+            title = "Incline DB Press", partnerTitle = "Seated Cable Row", isSuperset = true,
+            partnerTracking = TrackingType.WEIGHTED,
+        )
+        var row by mutableStateOf(SetRowState(0, "1", false, 50.0, 10, true, PartnerRowState(90.0, 12, done = true)))
+        val writes = mutableListOf<Pair<String, Boolean>>()
+        rule.setContent { AppTheme {
+            AllSetsSheet(base.copy(rows = listOf(row)), pagerActions().copy(onToggleDone = { _, _, checked, slot ->
+                writes += slot to checked
+                row = if (slot == Slot.MAIN) row.copy(done = checked) else row.copy(partner = row.partner!!.copy(done = checked))
+            }), onEdit = {}, onDismiss = {})
+        } }
+        val main = rule.onNodeWithContentDescription("Incline DB Press Set 1, 50 × 10")
+        val partner = rule.onNodeWithContentDescription("Seated Cable Row Set 1, 90 × 12")
+        main.assertIsOn().performClick()
+        main.assertIsOff()
+        partner.assertIsOn().performClick()
+        partner.assertIsOff()
+        main.performClick()
+        main.assertIsOn()
+        partner.assertIsOff()
+        rule.runOnIdle { assertEquals(listOf(Slot.MAIN to false, Slot.SS to false, Slot.MAIN to true), writes) }
+    }
+
+    @Test fun finishButtonAcceptsOnlyPartnerWorkIncludingRetiredWork() {
+        var retired by mutableStateOf(false)
+        val base = pagerFixture().exercises[1]
+        rule.setContent { AppTheme {
+            val row = SetRowState(0, "1", false, 50.0, 10, false, PartnerRowState(90.0, 12, done = !retired))
+            val state = pagerFixture().copy(
+                exercises = listOf(base.copy(isSuperset = true, rows = listOf(row), allDone = false, focusIndex = 0)),
+                retiredTracks = if (retired) listOf(RetiredTrackLine("Seated Cable Row", 1)) else emptyList(),
+            )
+            DayScreen(state, pagerActions(), DayEditUiState(), pagerEditActions())
+        } }
+        rule.onNodeWithText("Finish day D").assertIsEnabled()
+        rule.runOnIdle { retired = true }
+        rule.onNodeWithText("Finish day D").assertIsEnabled()
     }
 
     @Test fun dayAndSetSegmentsDescribeProgressWithoutClickActions() {

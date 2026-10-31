@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
@@ -131,7 +132,7 @@ class DayViewModelLastPerformedTest {
 
         // Pinned squat seed: RAMP 130/165/190/210, TOP 235x5, BACKOFF 175 (index 4
         // is TOP) — only the TOP set gets ticked before completing the day.
-        vm.toggleDone(squatId, index = 4, checked = true, isSuperset = false)
+        vm.toggleDone(squatId, index = 4, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         vm.completeDay()
         advanceUntilIdle()
@@ -163,7 +164,7 @@ class DayViewModelLastPerformedTest {
             vm.uiState.value.exercises.first { it.programExerciseId == squatId }.topSetComparison,
         )
 
-        vm.toggleDone(squatId, index = 4, checked = true, isSuperset = false)
+        vm.toggleDone(squatId, index = 4, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
         vm.completeDay()
         advanceUntilIdle()

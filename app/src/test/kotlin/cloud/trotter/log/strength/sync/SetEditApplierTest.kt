@@ -651,7 +651,7 @@ class SetEditApplierTest {
     }
 
     @Test
-    fun `a paired tick stamps the partner round with the same timing`() = runTest {
+    fun `a paired tick stamps both previously undone rows`() = runTest {
         seedOpenProgram()
         val id = curlId()
 
@@ -663,12 +663,36 @@ class SetEditApplierTest {
             ),
         )
 
-        // One round, one pair of facts — written in the same paired transaction.
         assertEquals(500L, track(id, Slot.MAIN)!![1].startedAtMillis)
         assertEquals(560L, track(id, Slot.MAIN)!![1].completedAtMillis)
         assertEquals(500L, track(id, Slot.SS)!![1].startedAtMillis)
         assertEquals(560L, track(id, Slot.SS)!![1].completedAtMillis)
         assertEquals(null, track(id, Slot.SS)!![0].completedAtMillis)
+    }
+
+    @Test
+    fun `old watch ticks preserve timing on either already done track`() = runTest {
+        for (doneSlot in listOf(Slot.MAIN, Slot.SS)) {
+            seedOpenProgram()
+            val id = curlId()
+            val planId = requireNotNull(repo.selectedPlanIdFlow.first())
+            val runId = requireNotNull(repo.dayTracksFlow(planId, "A").first().runId)
+            val before = track(id, doneSlot)!!.mapIndexed { index, set ->
+                if (index == 1) set.copy(done = true, startedAtMillis = 100L, completedAtMillis = 160L) else set
+            }
+            repo.updateSets(runId, "A", id, doneSlot, before)
+            assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
+                done = true, editedAtMillis = 1L, startedAtMillis = 500L, completedAtMillis = 560L,
+            )))
+            assertEquals(before[1], track(id, doneSlot)!![1])
+            val otherSlot = if (doneSlot == Slot.MAIN) Slot.SS else Slot.MAIN
+            val completed = track(id, otherSlot)!![1]
+            assertTrue(completed.done)
+            assertEquals(500L, completed.startedAtMillis)
+            assertEquals(560L, completed.completedAtMillis)
+            repo.discardRun(runId)
+        }
     }
 
     @Test

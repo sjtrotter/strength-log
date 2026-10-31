@@ -88,13 +88,13 @@ class A11ySemanticsTest {
 
     @Test
     @Config(qualifiers = "w411dp-h891dp")
-    fun allSetsCheckboxNamesTheSetAndItsValue() {
+    fun allSetsCheckboxNamesTheExerciseSetAndValue() {
         val card = pagerFixture().exercises[1]
         val row = card.rows[1].copy(kind = SetKind.RAMP, rampIndex = 3)
         composeTestRule.setContent {
             AppTheme { AllSetsSheet(card.copy(rows = listOf(row)), pagerActions(), onEdit = {}, onDismiss = {}) }
         }
-        composeTestRule.onNodeWithContentDescription("Ramp set 3, 95 × 5")
+        composeTestRule.onNodeWithContentDescription("Lift 2 Ramp set 3, 95 × 5")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
             .assertIsOff()
     }

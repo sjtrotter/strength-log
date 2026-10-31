@@ -449,4 +449,52 @@ class PendingEditsTest {
     fun `a clock that goes backwards still issues a strictly newer stamp`() {
         assertEquals(1_001L, PendingEdits.nextStamp(nowMillis = 900L, lastIssuedMillis = 1_000L))
     }
+
+    /** [F] */
+    @Test
+    fun `another run on the same plan and day settles edits and swaps`() {
+        val edit = delta(done = true).copy(planId = 1, runId = "r-1")
+        val replacement = swap().copy(planId = 1, runId = "r-1")
+        val current = snapshot().copy(planId = 1, runId = "r-2")
+        assertTrue(PendingEdits.reconcile(listOf(edit), current).isEmpty())
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), current).isEmpty())
+    }
+
+    /** [F] */
+    @Test
+    fun `same run and legacy edits keep per-field settling`() {
+        for (runId in listOf("r-1", null)) {
+            val edit = delta(weightLb = 235.0, done = true).copy(planId = 1, runId = runId)
+            val current = snapshot().copy(planId = 1, runId = "r-1")
+            assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+            val reflected = current.copy(day = current.day.copy(exercises = current.day.exercises.map {
+                it.copy(sets = it.sets.map { row -> row.copy(done = true) })
+            }))
+            assertTrue(PendingEdits.reconcile(listOf(edit), reflected).isEmpty())
+        }
+    }
+
+    /** [F] */
+    @Test
+    fun `same run and legacy swaps require their own acknowledgment`() {
+        for (runId in listOf("r-1", null)) {
+            val replacement = swap().copy(planId = 1, runId = runId)
+            val current = snapshot().copy(planId = 1, runId = "r-1")
+            assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current))
+            val reflected = current.copy(day = current.day.copy(exercises = current.day.exercises.map {
+                it.copy(exerciseId = replacement.exerciseId)
+            }))
+            assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), reflected).isEmpty())
+        }
+    }
+
+    /** [F] */
+    @Test
+    fun `another plan leaves another run's edits and swaps queued`() {
+        val edit = delta(done = true).copy(planId = 1, runId = "r-1")
+        val replacement = swap().copy(planId = 1, runId = "r-1")
+        val current = snapshot().copy(planId = 2, runId = "r-2")
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current))
+    }
 }

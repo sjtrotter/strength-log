@@ -20,6 +20,7 @@ import kotlinx.coroutines.runBlocking
  * dropped — it must never crash the service (an exported component processing bytes
  * from another app has to assume hostile input). Decoding and application are both
  * wrapped so no exception escapes the callback.
+ * [WearSyncPaths.RUN_FINISH] is reserved and intentionally unhandled.
  *
  * The work runs synchronously ([runBlocking]) inside the callback: the framework
  * keeps the service alive for the duration of [onMessageReceived], so the single

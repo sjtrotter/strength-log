@@ -35,7 +35,7 @@ fun ambientDialState(
     dayProgressText: (String, Int, Int) -> String,
     restingText: String,
 ): AmbientDialState {
-    val progress = DayProgress.of(snapshot.day)
+    val progress = DayProgress.of(snapshot)
     val resting = restRemainingSeconds?.let { it > 0 } == true
     return AmbientDialState(
         dayProgress = if (progress.total == 0) 0f else progress.done.toFloat() / progress.total,

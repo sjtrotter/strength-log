@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 
 /**
  * The one observed projection of *today* — the open run or suggested day, its sets, their
@@ -49,8 +48,11 @@ class TodaySnapshotSource(
                 val program = combine(
                     repo.programFor(plan.id),
                     repo.slotsFor(plan.id, dayId),
-                    repo.dayTracksFlow(plan.id, dayId).map { it.tracks },
-                ) { program, slots, logs -> Triple(program, slots, logs) }
+                    repo.dayTracksFlow(plan.id, dayId),
+                    repo.openRunFlow,
+                ) { program, slots, tracks, open ->
+                    Triple(program, slots, tracks) to open
+                }
                 // restSettingsFlow rides the context combine so a Setup edit (master
                 // toggle or a duration) republishes immediately — the watch never
                 // counts a stale rest for longer than one sync hop.
@@ -65,7 +67,8 @@ class TodaySnapshotSource(
                 combine(
                     program, context, repo.cardioSessionsFlow, today,
                     cardioAckLog.acksFlow,
-                ) { (prog, slots, logs), ctx, cardioHistory, civilDate, cardioAck ->
+                ) { (programState, open), ctx, cardioHistory, civilDate, cardioAck ->
+                    val (prog, slots, tracks) = programState
                     val loggedCardio = cardioHistory.firstOrNull { session ->
                         session.planId == plan.id && session.dayId == dayId &&
                             Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
@@ -74,7 +77,7 @@ class TodaySnapshotSource(
                         program = prog,
                         suggestedDayId = dayId,
                         slots = slots,
-                        logs = logs,
+                        logs = tracks.tracks,
                         cfg = ctx.cfg,
                         catalog = ctx.catalog,
                         unit = ctx.unit,
@@ -88,6 +91,9 @@ class TodaySnapshotSource(
                         cardioFiveK = ctx.cardioFiveK,
                         planId = plan.id,
                         planName = plan.name,
+                        runId = tracks.runId,
+                        runStartedAt = open?.takeIf { tracks.runOpen && it.id == tracks.runId }?.startedAt,
+                        retiredRoundsDone = tracks.retiredRoundsDone.takeIf { it > 0 },
                     )
                 }
             }

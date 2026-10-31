@@ -177,7 +177,7 @@ fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
     val exercise = day.exercises[exerciseIndex]
     val stream = exercise.toStreamUiState(unit, day.dayId, day.accentIndex, copy)
     val roundIndex = currentRoundIndex(exercise)
-    val progress = DayProgress.of(day)
+    val progress = DayProgress.of(inputs.snapshot)
     val dayDone = progress.total > 0 && progress.done == progress.total
     val restRunning = inputs.rest?.takeIf { !RestTimer.isExpired(it.deadlineElapsedMillis, inputs.nowElapsedMillis) }
 

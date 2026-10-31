@@ -1245,7 +1245,17 @@ open class TrackerRepository(
         SetJson.decodeSets(plannedJson), SetJson.decodeSets(setsJson),
     )
 
-    /** Atomically edits working values or starts and edits the addressed run. */
+    /** Whether [runId] is the open run on this plan and day, or that day's next run. */
+    suspend fun isCurrentRun(planId: Long, dayId: String, runId: String): Boolean = db.withTransaction {
+        val open = runDao.openRun()
+        val day = programDao.day(planId, dayId)
+        (open?.id == runId && open.planId == planId && open.dayId == dayId) || day?.nextRunId == runId
+    }
+
+    /**
+     * Atomically edits working values or starts and edits the addressed run.
+     * A preview edit naming another exercise was made before a swap.
+     */
     suspend fun applyToRun(
         runId: String,
         planId: Long,
@@ -1270,6 +1280,7 @@ open class TrackerRepository(
         for (edit in edits) {
             val slot = slots[edit.programExerciseId] ?: return@withTransaction RunWriteResult.Rejected
             if (slot.exerciseIdFor(edit.slot) == null) return@withTransaction RunWriteResult.Rejected
+            if (edit.exerciseId != null && edit.exerciseId != slot.exerciseIdFor(edit.slot)) return@withTransaction RunWriteResult.Rejected
             val key = edit.programExerciseId to edit.slot
             val base = working[key] ?: workingBase(day, slot, edit.slot, seeds)
                 ?: return@withTransaction RunWriteResult.Rejected

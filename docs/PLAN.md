@@ -220,9 +220,7 @@ strength day; the shipped cardio vectors stay pinned.
   Bodyweight, age, level and units stay global. The wizard always creates a
   new plan; nothing deletes another plan's working values. Sessions record
   the plan they ran under; history from before plans has an unknown plan.
-- **Identity on the wire.** Watch snapshots and deltas carry the plan and the
-  run they belong to, so a late tick lands in the run it came from, even
-  after a switch or a second run of the same repeatable day.
+- **Identity on the wire.** Snapshots carry the run: the open run, or the day's next run ID. Deltas carry the run and the exercise. A delta for a finished or unknown run is rejected. A delta with no run (an old watch) only edits a run the phone opened after that day's last close. `schemaVersion` stays 1; a field's presence is the capability.
 - **Authored prescriptions.** A plan's exercises are generated (spec §4 math,
   seeding and cascade, unchanged) or authored: load × reps, reps, hold,
   reps-in-time, each side, a band described in text, a note. Authored slots

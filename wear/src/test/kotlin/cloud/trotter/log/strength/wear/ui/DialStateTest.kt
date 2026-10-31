@@ -1021,4 +1021,17 @@ class DialStateTest {
         assertEquals("945", DialFormat.grouped(945L))
         assertEquals("1,000,000", DialFormat.grouped(1_000_000L))
     }
+
+    /** [F] */
+    @Test
+    fun `retired rounds count toward dial progress and the day-done total`() {
+        val swapped = snapshot(squat).copy(retiredRoundsDone = 2)
+        assertEquals(2f / 5f, dialUiState(inputs(snapshot = swapped)).dayProgress)
+        assertEquals(2f / 5f, overview(swapped).dayProgress)
+        assertTrue(isSessionActive(swapped))
+        val done = swapped.copy(day = swapped.day.copy(exercises = listOf(squat.copy(sets = List(3) { set(weight = 0.0, done = true) }))))
+        val state = dialUiState(inputs(snapshot = done))
+        assertEquals(1f, state.dayProgress)
+        assertTrue(state.discText().any { it.contains("5 SETS") })
+    }
 }

@@ -47,8 +47,7 @@ sealed interface WidgetStatLine {
  * widget row.
  */
 fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
-    val day = snapshot?.day
-    if (day == null || day.exercises.isEmpty()) {
+    if (snapshot == null || snapshot.day.exercises.isEmpty()) {
         return TodayWidgetContent(
             dayLine = null,
             statLine = WidgetStatLine.SetUpProgram,
@@ -59,7 +58,8 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
         )
     }
 
-    val progress = DayProgress.of(day)
+    val day = snapshot.day
+    val progress = DayProgress.of(snapshot)
     val total = progress.total
     val done = progress.done
     val state = when {

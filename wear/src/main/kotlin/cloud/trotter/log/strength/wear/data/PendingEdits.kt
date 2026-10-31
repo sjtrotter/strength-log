@@ -34,6 +34,8 @@ import kotlin.math.abs
  *
  * A snapshot for the same non-null plan and day also settles edits and swaps whose
  * slot no longer exists; another known plan leaves them queued.
+ * A day's run ID changes only when its run closes, so a queued edit for another
+ * run of the same day can never land; it settles.
  *
  * [SetEditDelta.startedAtMillis]/[SetEditDelta.completedAtMillis] impose no condition
  * of their own: the snapshot has no place to echo them (the watch never displays
@@ -64,6 +66,8 @@ object PendingEdits {
         pending.filter { delta ->
             when {
                 delta.planId != null && snapshot.planId != null && delta.planId != snapshot.planId -> true
+                delta.runId != null && snapshot.runId != null && delta.planId == snapshot.planId &&
+                    delta.dayId == snapshot.day.dayId && delta.runId != snapshot.runId -> false
                 delta.dayId != snapshot.day.dayId -> false
                 snapshot.hasRemovedSlot(delta.planId, delta.programExerciseId) -> false
                 else -> !delta.isSettled(pending, snapshot)
@@ -90,6 +94,8 @@ object PendingEdits {
         pending.filter { swap ->
             when {
                 swap.planId != null && snapshot.planId != null && swap.planId != snapshot.planId -> true
+                swap.runId != null && snapshot.runId != null && swap.planId == snapshot.planId &&
+                    swap.dayId == snapshot.day.dayId && swap.runId != snapshot.runId -> false
                 swap.dayId != snapshot.day.dayId -> false
                 snapshot.hasRemovedSlot(swap.planId, swap.programExerciseId) -> false
                 else -> !swap.isSettled(pending, snapshot)

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -19,6 +20,7 @@ import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
+import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.widget.TodayWidgetContent
 import cloud.trotter.log.strength.widget.todayWidgetContent
 import java.io.File
@@ -307,5 +309,52 @@ class TodaySnapshotSourceRestTest {
         settings.setRestTimerEnabled(false)
         val afterOff = source.snapshots.first { it != null }!!
         assertEquals(0, afterOff.day.exercises.single().sets.single().restAfterSeconds)
+    }
+
+    /** [F] */
+    @Test
+    fun `a preview publishes the next run and an open run publishes its start`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)), cardio = null,
+        ))))
+        val planId = repo.selectedPlanIdFlow.first()!!
+        val runId = db.programDao().day(planId, "A")!!.nextRunId
+        val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore)
+        val preview = source.snapshots.publishableSnapshots().first()
+        assertEquals(runId, preview.runId)
+        assertEquals(null, preview.runStartedAt)
+        assertEquals(null, preview.retiredRoundsDone)
+        val slot = repo.slotsFor(planId, "A").first().single().programExerciseId
+        repo.updateSets(runId, "A", slot, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP, true)))
+        val open = repo.openRunFlow.first()!!
+        val started = source.snapshots.publishableSnapshots().first()
+        assertEquals(open.id, started.runId)
+        assertEquals(open.startedAt, started.runStartedAt)
+    }
+
+    /** [F] */
+    @Test
+    fun `a mid-run bench swap publishes two retired rounds for watch and widget progress`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 3)), cardio = null,
+        ))))
+        val planId = repo.selectedPlanIdFlow.first()!!
+        val slot = repo.slotsFor(planId, "A").first().single().programExerciseId
+        val runId = db.programDao().day(planId, "A")!!.nextRunId
+        repo.updateSets(runId, "A", slot, Slot.MAIN, List(3) { index -> LoggedSet(135.0, 5, SetKind.WORK, index < 2) })
+        val alternate = repo.catalogFlow.first().substitutionsFor("bb_bench").first().id
+        repo.swapExerciseById("A", slot, alternate)
+        val seeds = DayScreenBuilder.seedPlan(
+            repo.slotsFor(planId, "A").first(), emptyMap(),
+            repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first(),
+        ).map { RunSeed(it.programExerciseId, it.slot, it.sets) }
+        repo.seedRunTracksIfMissing(runId, seeds)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore)
+        val snapshot = source.snapshots.publishableSnapshots().first()
+        assertEquals(2, snapshot.retiredRoundsDone)
+        assertEquals(2, SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(snapshot)).retiredRoundsDone)
+        val widget = todayWidgetContent(snapshot)
+        assertEquals(2, widget.setsDone)
+        assertEquals(snapshot.day.exercises.single().sets.size + 2, widget.totalSets)
     }
 }

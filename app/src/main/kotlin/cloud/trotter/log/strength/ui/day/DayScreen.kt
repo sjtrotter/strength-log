@@ -672,7 +672,7 @@ private fun ClearChecksConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Uni
 
 /** Callbacks the screen forwards to [DayViewModel] — one place, so previews stay trivial. */
 data class DayActions(
-    val onSelectDay: (String) -> Unit,
+    val onSelectDay: (DaySelection) -> Unit,
     val onWeightChange: (Long, String, Int, Double) -> Unit,
     val onRepsChange: (Long, String, Int, Int) -> Unit,
     val onSecondsChange: (Long, String, Int, Int) -> Unit,

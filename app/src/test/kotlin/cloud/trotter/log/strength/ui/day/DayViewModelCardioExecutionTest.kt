@@ -11,12 +11,14 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
@@ -143,6 +145,56 @@ class DayViewModelCardioExecutionTest {
         CardioSetSpec(role, Measure.Time(seconds), aim?.let { Measure.Distance(it) }, hard = role == CardioRole.WORK)
 
     private fun distance() = CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true)
+
+    @Test
+    fun cardioLoggedOnAnotherPlansSameDayDoesNotMarkTheDisplayedDayLogged() = test {
+        val prescription = time(CardioRole.WORK, seconds = 10)
+        prepareBlock(prescription)
+        val loggedPlan = repo.selectedPlanIdFlow.first()!!
+        val otherPlan = repo.duplicatePlan(loggedPlan, "Other")
+        val loggedSpec = time(CardioRole.WORK, seconds = 30)
+        val sessionId = repo.logCardioSession(
+            CardioSessionEntity(
+                dayId = "A", mode = CardioMode.OUTDOOR_RUN.name, hard = true, label = "Track run",
+                startedAt = clock.wall - 30_000, completedAt = clock.wall,
+                seconds = 30, stepsCompleted = 1, planId = loggedPlan,
+            ),
+            listOf(CardioSetResult(loggedSpec, CardioSetStatus.FINISHED, elapsedSeconds = 30)),
+        )
+        val vm = readyVm()
+        assertEquals(sessionId, vm.uiState.value.cardio?.loggedSessionId)
+        assertEquals(30, vm.uiState.value.cardio?.loggedSeconds)
+
+        repo.selectPlan(otherPlan)
+        runCurrent()
+
+        assertEquals(otherPlan, vm.uiState.value.planId)
+        assertEquals("A", vm.uiState.value.viewDayId)
+        val cardio = requireNotNull(vm.uiState.value.cardio)
+        assertNull(cardio.loggedSessionId)
+        assertNull(cardio.loggedSeconds)
+        assertTrue(cardio.loggedSets.isEmpty())
+        assertEquals(listOf(prescription), cardio.block?.sets)
+    }
+
+    @Test
+    fun legacyCardioWithNullOrZeroPlanIdStaysOutsidePlanScopedLoggedState() = test {
+        prepareBlock(time(CardioRole.WORK))
+        for (planId in listOf(null, 0L)) {
+            db.cardioSessionDao().insert(CardioSessionEntity(
+                dayId = "A", mode = CardioMode.OUTDOOR_RUN.name, hard = true, label = "Track run",
+                startedAt = clock.wall - 30_000, completedAt = clock.wall,
+                seconds = 30, stepsCompleted = 1, planId = planId,
+            ))
+        }
+        val vm = readyVm()
+
+        assertTrue(repo.selectedPlanCardioSessionsFlow.first().isEmpty())
+        val cardio = requireNotNull(vm.uiState.value.cardio)
+        assertNull(cardio.loggedSessionId)
+        assertNull(cardio.loggedSeconds)
+        assertTrue(cardio.loggedSets.isEmpty())
+    }
 
     private fun DayViewModel.distanceAction(): CardioSetAction {
         val sheet = requireNotNull(uiState.value.openSheet)

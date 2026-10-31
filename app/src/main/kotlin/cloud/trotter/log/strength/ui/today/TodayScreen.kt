@@ -68,6 +68,7 @@ import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
+import cloud.trotter.log.strength.ui.day.DaySelection
 
 /**
  * The Today screen from the 2026-10-12 design handoff: a day index, a concise
@@ -197,7 +198,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
 
                     state.standaloneCardio?.let { cardioDay ->
                         TextButton(
-                            onClick = { actions.onOpenCardio(cardioDay.dayId) },
+                            onClick = { actions.onOpenCardio(DaySelection(state.planId, cardioDay.dayId)) },
                             colors = ButtonDefaults.textButtonColors(
                                 contentColor = dayAccent(state.dayIndex),
                             ),
@@ -211,7 +212,7 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                 StartButton(
                     actionLabel = state.actionLabel.resolve(),
                     dayIndex = state.dayIndex,
-                    onClick = actions.onStart,
+                    onClick = { actions.onStart(DaySelection(state.planId, state.dayId)) },
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
             }

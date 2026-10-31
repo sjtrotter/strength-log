@@ -117,7 +117,13 @@ class DayViewModel @Inject constructor(
     private val watchContinuity: WatchContinuitySource = WatchContinuitySource.None,
 ) : ViewModel() {
 
-    private val viewDayOverride: StateFlow<String?> = savedState.getStateFlow(KEY_VIEW_DAY, null)
+    private val viewDayOverride = savedState.getStateFlow<DaySelection?>(
+        KEY_VIEW_SELECTION,
+        savedState.get<String>(KEY_VIEW_DAY)?.let { DaySelection(null, it) }
+            ?: savedState.get<String>(Routes.DAY_ID_ARG)?.let {
+                DaySelection(savedState.get<String>(Routes.DAY_PLAN_ID_ARG)?.toLongOrNull(), it)
+            },
+    )
     private val selectedPage = savedState.getStateFlow<String?>(KEY_SELECTED_PAGE, null)
     /** The finished day whose page must not be re-pinned while the real advance reaches [effectiveDayId]. */
     private var pinHeldFor: String? = null
@@ -140,14 +146,20 @@ class DayViewModel @Inject constructor(
     /** Serializes all read-modify-write log mutations (see class doc). */
     private val mutationLock = Mutex()
 
-    private val displayTargetFlow = combine(repo.todayTargetFlow, repo.selectedPlanFlow, viewDayOverride) {
-            target, selected, override -> Triple(target, selected, override)
-        }.flatMapLatest { (target, selected, override) ->
-            if (selected == null || override == null) flowOf(target) else repo.programFor(selected.id).map { program ->
-                if (program.days.any { it.id == override }) TodayTarget(selected, override)
-                else target
-            }
-        }.distinctUntilChanged()
+    private val displayTargetFlow = combine(
+        repo.todayTargetFlow, repo.selectedPlanFlow, repo.plansFlow, viewDayOverride,
+    ) { target, selected, plans, override ->
+        val candidates = if (override?.planId != null) plans.filter { it.id == override.planId }
+            else listOfNotNull(target?.plan, selected).distinctBy { it.id }
+        Triple(target, candidates, override)
+    }.flatMapLatest { (target, candidates, override) ->
+        if (override == null || candidates.isEmpty()) flowOf(target) else combine(
+            candidates.map { plan -> repo.programFor(plan.id).map { plan to it } },
+        ) { programs ->
+            programs.firstOrNull { (_, program) -> program.days.any { it.id == override.dayId } }
+                ?.let { (plan, _) -> TodayTarget(plan, override.dayId) } ?: target
+        }
+    }.distinctUntilChanged()
 
     private val effectiveDayId: StateFlow<String?> = displayTargetFlow.flatMapLatest { target ->
         if (target == null) flowOf(null) else repo.programFor(target.plan.id).map { program ->
@@ -390,9 +402,6 @@ class DayViewModel @Inject constructor(
     private var undoWindowJob: Job? = null
 
     init {
-        if (savedState.get<String>(KEY_VIEW_DAY) == null) {
-            savedState.get<String>(Routes.DAY_ID_ARG)?.let { savedState[KEY_VIEW_DAY] = it }
-        }
         viewModelScope.launch {
             dayState.collect { state ->
                 if (!state.loading && state.viewDayId == currentDay() &&
@@ -422,10 +431,14 @@ class DayViewModel @Inject constructor(
     // --- user intents --------------------------------------------------------
 
     fun selectDay(dayId: String) {
+        selectDay(DaySelection(dayState.value.planId, dayId))
+    }
+
+    fun selectDay(selection: DaySelection) {
         pinHeldFor = null
-        val previousDay = currentDay()
-        savedState[KEY_VIEW_DAY] = dayId
-        if (dayId == previousDay) return
+        val previous = DaySelection(dayState.value.planId, currentDay().orEmpty())
+        savedState[KEY_VIEW_SELECTION] = selection
+        if (selection == previous) return
         closeUndoWindow()
         setDayEditorOpen(false)
         savedState[KEY_SELECTED_PAGE] = null
@@ -651,7 +664,9 @@ class DayViewModel @Inject constructor(
                     val activity = current.block.activity
                     val mode = CardioBlocks.legacyModeOf(activity)
                     // Keep entry on its originating day while the committed rotation moves on.
-                    if (current.finishesDay && current.showReceipt) savedState[KEY_VIEW_DAY] = current.dayId
+                    if (current.finishesDay && current.showReceipt) {
+                        savedState[KEY_VIEW_SELECTION] = DaySelection(current.planId, current.dayId)
+                    }
                     val id = current.sessionId ?: repo.logCardioSession(CardioSessionEntity(
                         dayId = current.dayId, mode = mode.name,
                         hard = current.block.sets.any { it.role == CardioRole.WORK && it.hard },
@@ -745,7 +760,7 @@ class DayViewModel @Inject constructor(
             nextDayLine = run.nextDayTitle, cardio = run,
         )
         if (currentDay() == run.dayId) {
-            savedState[KEY_VIEW_DAY] = null
+            savedState[KEY_VIEW_SELECTION] = null
             pinHeldFor = run.dayId.takeIf { advancedTo != it && effectiveDayId.value == it }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
@@ -993,12 +1008,13 @@ class DayViewModel @Inject constructor(
     fun undoRemoveSet() {
         val removed = _removedSets.value.lastOrNull() ?: return
         val day = currentDay() ?: return
-        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
         popUndo()
         mutate {
             if (day != removed.dayId || runId != removed.runId) return@mutate
-            val open = repo.openRunFlow.first()
-            if (open?.id != removed.runId) return@mutate
+            if (repo.dayTracksFlow(planId, day).first().runId != removed.runId) return@mutate
             val main = trackFor(day, removed.programExerciseId, Slot.MAIN)
             val partner = trackFor(day, removed.programExerciseId, Slot.SS)
             cancelTimedRepForSetListChange(day, removed.programExerciseId)
@@ -1150,7 +1166,7 @@ class DayViewModel @Inject constructor(
             } else null
             val sessionId = repo.finishRun(runId) ?: return@mutate
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
-            savedState[KEY_VIEW_DAY] = null
+            savedState[KEY_VIEW_SELECTION] = null
             val advancedTo = repo.suggestedDayFlow.first()
             pinHeldFor = day.takeIf { advancedTo != day && effectiveDayId.value == day }
             savedState[KEY_SELECTED_PAGE] = null
@@ -1555,7 +1571,7 @@ class DayViewModel @Inject constructor(
         }
         val civilDate = Instant.ofEpochMilli(cardioClock.wallMillis()).atZone(ZoneId.systemDefault()).toLocalDate()
         val logged = history.firstOrNull {
-            it.dayId == state.viewDayId &&
+            it.planId == state.planId && it.dayId == state.viewDayId &&
                 Instant.ofEpochMilli(it.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
         }
         val loggedSets = logged?.let { sets[it.id] }.orEmpty()
@@ -1775,6 +1791,7 @@ class DayViewModel @Inject constructor(
         const val KEY_CARDIO_DRAFT = "day_cardio_block_draft"
         const val KEY_DAY_EDITOR_OPEN = "day_editor_open"
         const val KEY_VIEW_DAY = "day_view_override"
+        const val KEY_VIEW_SELECTION = "day_view_selection"
         const val KEY_OPEN_SHEET = "day_open_sheet"
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"

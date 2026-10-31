@@ -1742,7 +1742,7 @@ class DayViewModelWiringTest {
     }
 
     /** [F] */
-    @Test fun defaultDayFollowsTheOpenRunsPlanAndExplicitOverrideStillWins() = runVmTest {
+    @Test fun explicitDaySelectionKeepsTheOpenRunsPlanWhenBothPlansContainTheDay() = runVmTest {
         insertSelectionProgram()
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
@@ -1757,11 +1757,117 @@ class DayViewModelWiringTest {
         assertEquals(originalPlan, vm.uiState.value.planId)
         assertEquals("A", vm.uiState.value.viewDayId)
         assertTrue(vm.uiState.value.runOpen)
-        vm.selectDay("B")
+        vm.selectDay(DaySelection(originalPlan, "B"))
+        advanceUntilIdle()
+        assertEquals(originalPlan, vm.uiState.value.planId)
+        assertEquals("B", vm.uiState.value.viewDayId)
+        assertEquals("Day A", vm.uiState.value.openRunElsewhere)
+        vm.selectDay(DaySelection(other, "B"))
         advanceUntilIdle()
         assertEquals(other, vm.uiState.value.planId)
         assertEquals("B", vm.uiState.value.viewDayId)
-        assertEquals("Day A", vm.uiState.value.openRunElsewhere)
+        collect.cancel()
+    }
+
+    @Test
+    fun selectingDayKeepsTheOpenRunsPlanWhenTheSelectedPlanLacksTheDay() = runVmTest {
+        insertSelectionProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val openPlan = vm.uiState.value.planId!!
+        vm.toggleDone(vm.uiState.value.exercises.first().programExerciseId, 0, true, false)
+        advanceUntilIdle()
+        val answers = repo.wizardAnswersFlow.first()
+        val selectedPlan = repo.createGeneratedPlan("Other", answers, Program(listOf(
+            ProgramDay("A", "Other A", "", listOf(ProgramExercise("plank")), null),
+        )))
+        repo.publishCreatedPlan(selectedPlan, answers)
+        advanceUntilIdle()
+        assertEquals(openPlan, vm.uiState.value.planId)
+
+        vm.selectDay("B")
+        advanceUntilIdle()
+
+        assertEquals(openPlan, vm.uiState.value.planId)
+        assertEquals("B", vm.uiState.value.viewDayId)
+        assertEquals("Day B", vm.uiState.value.dayTitle)
+        assertEquals(selectedPlan, repo.selectedPlanIdFlow.first())
+        collect.cancel()
+    }
+
+    @Test
+    fun legacySavedDayUsesTheDisplayedPlanBeforeTheSelectedPlan() = runVmTest {
+        insertSelectionProgram()
+        val first = newViewModel()
+        advanceUntilIdle()
+        val openPlan = repo.selectedPlanIdFlow.first()!!
+        first.toggleDone(slotId("ez_curl"), 0, true, false)
+        advanceUntilIdle()
+        val selectedPlan = repo.duplicatePlan(openPlan, "Other")
+        repo.selectPlan(selectedPlan)
+        first.viewModelScope.cancel()
+        val restored = newViewModel(SavedStateHandle(mapOf("day_view_override" to "B")))
+        val collect = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(openPlan, restored.uiState.value.planId)
+        assertEquals("B", restored.uiState.value.viewDayId)
+        collect.cancel()
+    }
+
+    @Test
+    fun legacySavedDayFallsBackToTheSelectedPlanWhenTheDisplayedPlanLacksIt() = runVmTest {
+        insertProgram()
+        val first = newViewModel()
+        advanceUntilIdle()
+        first.toggleDone(slotId("bb_back_squat"), 0, true, false)
+        advanceUntilIdle()
+        val selectedPlan = repo.createAuthoredPlan("Other", "Other A")
+        repo.addDay(selectedPlan, "Other B")
+        repo.publishCreatedAuthoredPlan(selectedPlan)
+        first.viewModelScope.cancel()
+        val restored = newViewModel(SavedStateHandle(mapOf("day_view_override" to "B")))
+        val collect = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(selectedPlan, restored.uiState.value.planId)
+        assertEquals("B", restored.uiState.value.viewDayId)
+        assertEquals("Other B", restored.uiState.value.dayTitle)
+        collect.cancel()
+    }
+
+    @Test
+    fun daySelectionSurvivesParcelRecreationWithItsPlan() = runVmTest {
+        insertSelectionProgram()
+        val originalPlan = repo.selectedPlanIdFlow.first()!!
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        val firstCollect = launch { first.uiState.collect {} }
+        advanceUntilIdle()
+        first.selectDay(DaySelection(originalPlan, "B"))
+        advanceUntilIdle()
+        val selectedPlan = repo.duplicatePlan(originalPlan, "Other")
+        repo.selectPlan(selectedPlan)
+        advanceUntilIdle()
+
+        val parcel = Parcel.obtain()
+        val restoredHandle = try {
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.setDataPosition(0)
+            SavedStateHandle.createHandle(parcel.readBundle(DaySelection::class.java.classLoader), null)
+        } finally {
+            parcel.recycle()
+        }
+        firstCollect.cancel()
+        first.viewModelScope.cancel()
+        val restored = newViewModel(restoredHandle)
+        val collect = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(originalPlan, restored.uiState.value.planId)
+        assertEquals("B", restored.uiState.value.viewDayId)
+        assertEquals(selectedPlan, repo.selectedPlanIdFlow.first())
         collect.cancel()
     }
 
@@ -1798,6 +1904,33 @@ class DayViewModelWiringTest {
     //
     // Time matters here, so these advance the virtual clock:
     // `advanceUntilIdle` would run past the 5s window and close the offer.
+
+    @Test
+    fun undoRestoresARowRemovedInPreviewBeforeTheFirstTick() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val squatId = slotId("bb_back_squat")
+        val before = track(squatId, Slot.MAIN)!!
+        val runId = vm.uiState.value.runId
+        assertNull(repo.openRunFlow.first())
+
+        vm.removeSet(squatId, index = 1, isSuperset = false)
+        advanceTimeBy(500)
+        assertEquals(before.size - 1, vm.uiState.value.exercises.first().rows.size)
+        assertEquals(runId, vm.removedSets.value.single().runId)
+
+        vm.undoRemoveSet()
+        advanceTimeBy(500)
+
+        assertEquals(before, track(squatId, Slot.MAIN))
+        assertEquals(before.size, vm.uiState.value.exercises.first().rows.size)
+        assertEquals(runId, vm.uiState.value.runId)
+        assertTrue(vm.removedSets.value.isEmpty())
+        assertNull(repo.openRunFlow.first())
+        collect.cancel()
+    }
 
     @Test
     fun undoPutsTheRemovedRowBackExactlyWhereItWas() = runVmTest {

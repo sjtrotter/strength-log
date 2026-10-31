@@ -45,6 +45,7 @@ import cloud.trotter.log.strength.ui.customexercise.CustomExerciseViewModel
 import cloud.trotter.log.strength.ui.day.DayActions
 import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayScreen
+import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.DayViewModel
 import cloud.trotter.log.strength.ui.licenses.LicenseEntry
 import cloud.trotter.log.strength.ui.licenses.LicensesScreen
@@ -90,8 +91,10 @@ object Routes {
     const val TODAY = "today"
     const val DAY = "day"
     const val DAY_ID_ARG = "dayId"
-    const val DAY_WITH_ID = "$DAY/{$DAY_ID_ARG}"
-    fun day(dayId: String) = "$DAY/$dayId"
+    const val DAY_PLAN_ID_ARG = "dayPlanId"
+    const val DAY_WITH_ID = "$DAY/{$DAY_ID_ARG}?$DAY_PLAN_ID_ARG={$DAY_PLAN_ID_ARG}"
+    fun day(dayId: String, planId: Long? = null) =
+        "$DAY/$dayId" + (planId?.let { "?$DAY_PLAN_ID_ARG=$it" } ?: "")
     const val WIZARD = "wizard"
     const val SETUP = "setup"
     const val SETUP_REST = "setup?rest=true"
@@ -184,8 +187,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
             TodayRoute(
                 // launchSingleTop: a double-tap on START is one workout, not two
                 // stacked copies of it to back out of.
-                onStart = { navController.navigate(Routes.DAY) { launchSingleTop = true } },
-                onOpenCardio = { navController.navigate(Routes.day(it)) },
+                onStart = { navController.navigate(Routes.day(it.dayId, it.planId)) { launchSingleTop = true } },
+                onOpenCardio = { navController.navigate(Routes.day(it.dayId, it.planId)) },
                 onOpenSettings = { navController.navigate(Routes.SETUP) },
                 onOpenLog = { navController.navigateToTopLevel(TopLevelDestination.LOG) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
@@ -212,7 +215,14 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         }
         composable(
             route = Routes.DAY_WITH_ID,
-            arguments = listOf(navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
+                navArgument(Routes.DAY_PLAN_ID_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
         ) { entry ->
             val dayId = entry.arguments?.getString(Routes.DAY_ID_ARG).orEmpty()
             DayRoute(
@@ -271,7 +281,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
         }
         composable(Routes.PLAN) {
             PlanRoute(
-                onOpenDay = { navController.navigate(Routes.day(it)) },
+                onOpenDay = { navController.navigate(Routes.day(it.dayId, it.planId)) },
                 onOpenPlans = { navController.navigate(Routes.PLANS) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
@@ -295,8 +305,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
  */
 @Composable
 private fun TodayRoute(
-    onStart: () -> Unit,
-    onOpenCardio: (String) -> Unit,
+    onStart: (DaySelection) -> Unit,
+    onOpenCardio: (DaySelection) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenLog: () -> Unit,
     onSetUpProgram: () -> Unit,
@@ -351,7 +361,7 @@ private fun PlansRoute(
 
 @Composable
 private fun PlanRoute(
-    onOpenDay: (String) -> Unit,
+    onOpenDay: (DaySelection) -> Unit,
     onOpenPlans: () -> Unit,
     onSetUpProgram: () -> Unit,
     viewModel: PlanViewModel = hiltViewModel(),

@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.ui.day.DaySelection
+
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
@@ -112,7 +114,7 @@ private fun PlanDayItem(day: PlanDay, state: PlanUiState, actions: PlanActions) 
     val lifts = pluralStringResource(R.plurals.plan_lifts, day.liftCount, day.liftCount)
     val sets = pluralStringResource(R.plurals.plan_sets, day.setCount, day.setCount)
     ListItem(
-        modifier = Modifier.clickable { actions.onOpenDay(day.dayId) },
+        modifier = Modifier.clickable { actions.onOpenDay(DaySelection(state.planId, day.dayId)) },
         leadingContent = {
             DayIndex(day.dayIndex, day.dayId, DayIndexSize.Medium)
         },

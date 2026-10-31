@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.today
 
 import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.data.PlanSummary
+import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.text.UiText
 
 /** Immutable render model for the Today screen — the ViewModel's single
@@ -48,12 +49,12 @@ data class StandaloneCardio(val dayId: String, val line: String, val loggedSecon
 
 /** Callbacks the screen forwards — one place, so previews stay trivial. */
 data class TodayActions(
-    val onStart: () -> Unit,
+    val onStart: (DaySelection) -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenLog: () -> Unit,
     /** The recovery out of the no-program state: back into the wizard. */
     val onSetUpProgram: () -> Unit,
-    val onOpenCardio: (String) -> Unit = {},
+    val onOpenCardio: (DaySelection) -> Unit = {},
     val onShowPlanPicker: () -> Unit = {},
     val onDismissPlanPicker: () -> Unit = {},
     val onSelectPlan: (Long) -> Unit = {},

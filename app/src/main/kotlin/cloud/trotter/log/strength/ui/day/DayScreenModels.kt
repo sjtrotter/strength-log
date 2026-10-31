@@ -12,6 +12,10 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.sync.RemoteTick
 
+@Parcelize
+@Immutable
+data class DaySelection(val planId: Long?, val dayId: String) : Parcelable
+
 /**
  * Immutable render model for the whole day screen (UDF: the ViewModel's single output).
  *

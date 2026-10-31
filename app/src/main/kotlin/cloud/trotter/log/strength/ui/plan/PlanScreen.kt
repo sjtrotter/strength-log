@@ -20,6 +20,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -91,7 +92,11 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                 }
             },
             confirmButton = {
-                TextButton(onClick = actions.onSaveDayDialog, enabled = !renaming || state.dayTitleDraft.trim().length in 1..30) {
+                TextButton(
+                    onClick = actions.onSaveDayDialog,
+                    enabled = !renaming || state.dayTitleDraft.trim().length in 1..30,
+                    colors = if (renaming) ButtonDefaults.textButtonColors() else ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) {
                     Text(stringResource(if (renaming) R.string.plans_save else R.string.day_edit_remove_button))
                 }
             },

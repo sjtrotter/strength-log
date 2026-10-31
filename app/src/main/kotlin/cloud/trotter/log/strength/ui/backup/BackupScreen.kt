@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,7 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -58,7 +56,6 @@ import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.SelectionMode
 import cloud.trotter.log.strength.ui.components.SwitchToggle
-import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
@@ -163,7 +160,7 @@ private fun AutomaticBackupCard(
         }
         state.resultLine?.let {
             Spacer(Modifier.size(4.dp))
-            Text(it, color = TextFaint, style = MaterialTheme.typography.bodySmall)
+            Text(it, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -367,7 +364,7 @@ private fun CsvPreviewSummary(state: CsvImportUiState) {
                     state.preview.unmatchedNames.size,
                     state.preview.unmatchedNames.size,
                 ),
-                color = TextFaint,
+                color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall,
             )
         }

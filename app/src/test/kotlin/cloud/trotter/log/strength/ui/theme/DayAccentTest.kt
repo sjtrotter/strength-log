@@ -2,9 +2,6 @@ package cloud.trotter.log.strength.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import cloud.trotter.log.strength.domain.theme.DayAccentColors
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.pow
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -70,7 +67,7 @@ class DayAccentTest {
     @Test
     fun `light done and error foregrounds clear AA on warm paper`() {
         assertEquals(Color(0xFF37774E), LightDone)
-        assertEquals(Color(0xFFC2334D), LightError)
+        assertEquals(Color(0xFFB02A43), LightError)
         assertTrue(contrastRatio(LightDone, LightBackground) >= 4.5)
         assertTrue(contrastRatio(LightError, LightBackground) >= 4.5)
     }
@@ -102,7 +99,7 @@ class DayAccentTest {
     }
 
     @Test
-    fun `a bright accent is still its own day's hue, not a shared grey`() {
+    fun `a bright accent is still its own day's hue, not a shared gray`() {
         val bright = (0..6).map { accentBright(it) }
         assertEquals(bright.size, bright.distinct().size)
         for (dayIndex in 0..6) assertNotEquals(dayAccent(dayIndex), accentBright(dayIndex))
@@ -110,28 +107,9 @@ class DayAccentTest {
     }
 
     @Test
-    fun `error and on-error pairing is the recolored crimson and meets WCAG AA`() {
-        // Design-pass recolor (docs/design-handoff/tokens/colors.css): Error moved
-        // off the M3 default 0xFFB3261E to a cooler crimson so it never reads as
-        // Day A's terracotta. TextPrimary on it is ~4.84:1 — pin both the exact
-        // hex and the contrast floor so neither regresses silently.
-        assertEquals(Color(0xFFC2334D), DarkError)
-        val ratio = contrastRatio(DarkError, DarkTextPrimary)
+    fun `error and dark on-error ink meet WCAG AA`() {
+        assertEquals(Color(0xFFE5677D), DarkError)
+        val ratio = contrastRatio(DarkError, DarkBackground)
         assertTrue(ratio >= 4.5, "Error/on-error contrast is $ratio, below WCAG AA's 4.5:1")
-    }
-
-    // WCAG 2.x relative luminance + contrast ratio (w3.org/TR/WCAG21/#dfn-contrast-ratio).
-    private fun contrastRatio(a: Color, b: Color): Double {
-        val la = relativeLuminance(a)
-        val lb = relativeLuminance(b)
-        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
-    }
-
-    private fun relativeLuminance(color: Color): Double {
-        fun linear(channel: Float): Double {
-            val c = channel.toDouble()
-            return if (c <= 0.03928) c / 12.92 else ((c + 0.055) / 1.055).pow(2.4)
-        }
-        return 0.2126 * linear(color.red) + 0.7152 * linear(color.green) + 0.0722 * linear(color.blue)
     }
 }

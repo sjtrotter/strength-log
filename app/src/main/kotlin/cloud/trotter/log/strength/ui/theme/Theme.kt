@@ -24,21 +24,22 @@ internal data class AppPalette(
     val textFaint: Color,
     val done: Color,
     val focusRing: Color,
+    val border: Color,
 )
 
-internal val DarkAppPalette = AppPalette(true, DarkTextFaint, DarkDone, DarkFocusRing)
-internal val LightAppPalette = AppPalette(false, LightTextFaint, LightDone, LightFocusRing)
+internal val DarkAppPalette = AppPalette(true, DarkTextFaint, DarkDone, DarkFocusRing, DarkBorder)
+internal val LightAppPalette = AppPalette(false, LightTextFaint, LightDone, LightFocusRing, LightBorder)
 internal val LocalAppPalette = staticCompositionLocalOf { DarkAppPalette }
 
 /** Container roles are their accent sunk into the scheme's card surface. */
 internal fun containerOf(accent: Color, surface: Color) = accent.copy(alpha = 0.25f).compositeOver(surface)
 
 /**
- * Dark color scheme (spec §8.5). Day A's terracotta stands in for M3's
- * generic `primary` role — the day accents themselves are looked up per-day
- * via [dayAccent], not through the color scheme. All forty-eight roles are
- * given a value here — not just the ones today's screens read — so a stock M3
- * component introduced later cannot fall back to baseline Material lavender.
+ * Dark color scheme (spec §8.5). `primary` is neutral ink; day accents are
+ * applied explicitly via [dayAccent] where a control acts for a day. A
+ * scheme-wide day color shows Day A on every day and fails contrast as text.
+ * All forty-eight roles are given a value here so a stock M3 component
+ * introduced later cannot fall back to baseline Material lavender.
  * `ThemeCompletenessTest` holds that line role by role.
  */
 internal val DarkAppColorScheme = darkColorScheme(
@@ -61,24 +62,24 @@ internal val DarkAppColorScheme = darkColorScheme(
     surfaceContainer = DarkSurface,
     surfaceContainerHigh = DarkSurface2,
     surfaceContainerHighest = DarkSurface3,
-    primary = dayAccent(0),
-    onPrimary = onDayAccent(0, true),
-    primaryContainer = containerOf(dayAccent(0), DarkSurface),
+    primary = DarkTextPrimary,
+    onPrimary = DarkBackground,
+    primaryContainer = DarkSurface3,
     onPrimaryContainer = DarkTextPrimary,
-    inversePrimary = dayAccent(0),
+    inversePrimary = LightTextPrimary,
     secondary = DarkTextSecondary,
     onSecondary = DarkBackground,
     secondaryContainer = containerOf(DarkTextSecondary, DarkSurface),
     onSecondaryContainer = DarkTextPrimary,
-    tertiary = dayAccent(3),
-    onTertiary = onDayAccent(3, true),
-    tertiaryContainer = containerOf(dayAccent(3), DarkSurface),
+    tertiary = DarkTextSecondary,
+    onTertiary = DarkBackground,
+    tertiaryContainer = containerOf(DarkTextSecondary, DarkSurface),
     onTertiaryContainer = DarkTextPrimary,
     error = DarkError,
-    onError = DarkTextPrimary,
-    errorContainer = containerOf(DarkError, DarkSurface),
+    onError = DarkBackground,
+    errorContainer = DarkErrorContainer,
     onErrorContainer = DarkTextPrimary,
-    outline = DarkBorder,
+    outline = DarkOutline,
     outlineVariant = DarkBorderStrong,
     inverseSurface = DarkTextPrimary,
     inverseOnSurface = DarkBackground,
@@ -86,22 +87,17 @@ internal val DarkAppColorScheme = darkColorScheme(
     // baseline hands out — consumers re-alpha this (the modal sheet takes it at
     // 32%), so the role itself stays opaque.
     scrim = DarkBackground,
-    // M3's "fixed" roles are the ones meant to survive a light/dark swap. This
-    // dark expression keeps Fixed at identity strength with its contrast-pinned
-    // on-color (DayAccentTest guards the
-    // ratio), FixedDim is that same accent sunk into the card surface, and its
-    // text is the one this scheme already uses on accent containers.
-    primaryFixed = dayAccent(0),
-    primaryFixedDim = containerOf(dayAccent(0), DarkSurface),
-    onPrimaryFixed = onDayAccent(0, true),
+    primaryFixed = DarkTextPrimary,
+    primaryFixedDim = DarkSurface3,
+    onPrimaryFixed = DarkBackground,
     onPrimaryFixedVariant = DarkTextPrimary,
     secondaryFixed = DarkTextSecondary,
     secondaryFixedDim = containerOf(DarkTextSecondary, DarkSurface),
     onSecondaryFixed = DarkBackground,
     onSecondaryFixedVariant = DarkTextPrimary,
-    tertiaryFixed = dayAccent(3),
-    tertiaryFixedDim = containerOf(dayAccent(3), DarkSurface),
-    onTertiaryFixed = onDayAccent(3, true),
+    tertiaryFixed = DarkTextSecondary,
+    tertiaryFixedDim = containerOf(DarkTextSecondary, DarkSurface),
+    onTertiaryFixed = DarkBackground,
     onTertiaryFixedVariant = DarkTextPrimary,
 )
 
@@ -120,46 +116,46 @@ internal val LightAppColorScheme = lightColorScheme(
     surfaceContainer = LightSurface,
     surfaceContainerHigh = LightSurface2,
     surfaceContainerHighest = LightSurface3,
-    primary = dayAccent(0),
-    onPrimary = onDayAccent(0, false),
-    primaryContainer = containerOf(dayAccent(0), LightSurface),
+    primary = LightTextPrimary,
+    onPrimary = LightSurface,
+    primaryContainer = LightSurface3,
     onPrimaryContainer = LightTextPrimary,
-    inversePrimary = dayAccent(0),
+    inversePrimary = DarkTextPrimary,
     secondary = LightTextSecondary,
     onSecondary = LightSurface,
     secondaryContainer = containerOf(LightTextSecondary, LightSurface),
     onSecondaryContainer = LightTextPrimary,
-    tertiary = dayAccent(3),
-    onTertiary = onDayAccent(3, false),
-    tertiaryContainer = containerOf(dayAccent(3), LightSurface),
+    tertiary = LightTextSecondary,
+    onTertiary = LightSurface,
+    tertiaryContainer = containerOf(LightTextSecondary, LightSurface),
     onTertiaryContainer = LightTextPrimary,
     error = LightError,
     onError = LightSurface,
-    errorContainer = containerOf(LightError, LightSurface),
-    onErrorContainer = LightTextPrimary,
-    outline = LightBorder,
+    errorContainer = LightErrorContainer,
+    onErrorContainer = LightOnErrorContainer,
+    outline = LightOutline,
     outlineVariant = LightBorderStrong,
     inverseSurface = LightTextPrimary,
     inverseOnSurface = LightSurface,
     scrim = DarkBackground,
-    primaryFixed = dayAccent(0),
-    primaryFixedDim = containerOf(dayAccent(0), LightSurface),
-    onPrimaryFixed = onDayAccent(0, false),
+    primaryFixed = LightTextPrimary,
+    primaryFixedDim = LightSurface3,
+    onPrimaryFixed = LightSurface,
     onPrimaryFixedVariant = LightTextPrimary,
     secondaryFixed = LightTextSecondary,
     secondaryFixedDim = containerOf(LightTextSecondary, LightSurface),
     onSecondaryFixed = LightSurface,
     onSecondaryFixedVariant = LightTextPrimary,
-    tertiaryFixed = dayAccent(3),
-    tertiaryFixedDim = containerOf(dayAccent(3), LightSurface),
-    onTertiaryFixed = onDayAccent(3, false),
+    tertiaryFixed = LightTextSecondary,
+    tertiaryFixedDim = containerOf(LightTextSecondary, LightSurface),
+    onTertiaryFixed = LightSurface,
     onTertiaryFixedVariant = LightTextPrimary,
 )
 
 // Ripple drawing replaces the input color's alpha with the configured alpha for
 // each interaction state. AppRippleConfiguration is therefore the single source
-// of the authored pressed, 4% hover/drag, and 0% focus values for both paths: the
-// wrapper ripple() in AppIndication and ripples created by stock M3 components.
+// of the authored pressed, 4% hover/drag, and M3's default 10% focus values for
+// both paths: the wrapper ripple() in AppIndication and stock M3 ripples.
 // Removing that configuration would restore Material's defaults, including a
 // 10% pressed alpha, so the configuration is load-bearing.
 internal const val DarkAppRipplePressedAlpha = 0.10f
@@ -170,7 +166,7 @@ internal fun appRippleConfiguration(color: Color, pressedAlpha: Float) = RippleC
     color = color,
     rippleAlpha = RippleAlpha(
         pressedAlpha = pressedAlpha,
-        focusedAlpha = 0f,
+        focusedAlpha = 0.10f,
         hoveredAlpha = 0.04f,
         draggedAlpha = 0.04f,
     ),
@@ -192,7 +188,7 @@ fun AppTheme(
     val scheme = if (isDark) DarkAppColorScheme else LightAppColorScheme
     val palette = if (isDark) DarkAppPalette else LightAppPalette
     // White-based feedback disappears on paper; use scheme content while
-    // retaining the authored theme-specific pressed and 4/4/0 percent alpha structure.
+    // retaining the authored theme-specific pressed and 4/4/10 percent alpha structure.
     val rippleColor = scheme.onSurfaceVariant
     val indication = appIndication(rippleColor)
     val pressedAlpha = if (isDark) DarkAppRipplePressedAlpha else LightAppRipplePressedAlpha

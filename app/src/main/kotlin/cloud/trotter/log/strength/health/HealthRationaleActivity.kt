@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -62,6 +64,7 @@ private fun RationaleScreen() {
             .fillMaxSize()
             .background(Background)
             .systemBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
     ) {
         Text(stringResource(R.string.health_rationale_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)

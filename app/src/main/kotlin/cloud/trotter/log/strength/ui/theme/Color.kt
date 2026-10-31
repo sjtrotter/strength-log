@@ -9,32 +9,32 @@ import cloud.trotter.log.strength.domain.theme.DayAccentColors
 internal val DarkBackground = Color(0xFF0D0D0F)
 internal val DarkSurface = Color(0xFF16161A)
 internal val DarkBorder = Color(0xFF2A2A30)
+// Visible control boundary (M3 outline).
+internal val DarkOutline = Color(0xFF808086)
 
 // Design-pass derived surfaces (docs/design-handoff/tokens/colors.css) — raised
 // controls (stepper capsule, unchecked tick, gear tab) and their pressed state.
 internal val DarkSurface2 = Color(0xFF1D1D22)
 internal val DarkSurface3 = Color(0xFF26262C)
 
-// Focus/emphasis outline (design-pass; part of the token set, kept for parity
-// with colors.css even though today's restyle has no dedicated focus ring).
+// Decorative emphasis border; insufficient contrast for a focus indicator.
 internal val DarkBorderStrong = Color(0xFF3A3A42)
 
 internal val DarkTextPrimary = Color(0xFFF2F2F0)
 internal val DarkTextSecondary = Color(0xFF9A9AA2)
 
 /**
- * Keyboard/d-pad focus ring ([BorderStrong] is the design-pass token for this,
- * but at 1.7:1 against [Background] it cannot carry a focus indicator on its
- * own — [TextSecondary] measures ~7:1 and is already in the palette).
+ * Keyboard/d-pad focus requires more contrast than decorative [BorderStrong]
+ * provides (1.7:1 against [Background]); [TextSecondary] measures ~7:1.
  */
 internal val DarkFocusRing = DarkTextSecondary
 
-// Faint text: remove-set glyph, superset "↳" marker, footer blurb (design-pass).
+// Disabled content and decorative glyphs only, never readable text.
 internal val DarkTextFaint = Color(0xFF6B6B73)
 
-// Cooler crimson so an error never looks like Day A's terracotta accent;
-// white text stays >= 4.5:1 (measured 4.84:1 — see DayAccentTest).
-internal val DarkError = Color(0xFFC2334D)
+// Error foreground and fill; dark ink on this fill clears AA at 6.07:1.
+internal val DarkError = Color(0xFFE5677D)
+internal val DarkErrorContainer = Color(0xFF3A1A22)
 
 // The "completed" green for spec §8's ✓ semantics (CheckmarkToggle today,
 // any future done-state tinting) — the one accent that isn't day-specific.
@@ -45,11 +45,15 @@ internal val LightSurface = Color(0xFFFAF9F6)
 internal val LightSurface2 = Color(0xFFE9E6E0)
 internal val LightSurface3 = Color(0xFFE1DDD5)
 internal val LightBorder = Color(0xFFD8D4CC)
+// Visible control boundary (M3 outline).
+internal val LightOutline = Color(0xFF7A756C)
 internal val LightBorderStrong = Color(0xFFC4BFB5)
 internal val LightTextPrimary = Color(0xFF1B1B1E)
 internal val LightTextSecondary = Color(0xFF5C5C64)
 internal val LightTextFaint = Color(0xFF8B8B92)
-internal val LightError = Color(0xFFC2334D)
+internal val LightError = Color(0xFFB02A43)
+internal val LightErrorContainer = Color(0xFFF6DADF)
+internal val LightOnErrorContainer = Color(0xFF5E0F1F)
 internal val LightDone = Color(0xFF37774E)
 internal val LightFocusRing = LightTextSecondary
 
@@ -59,7 +63,8 @@ val Background: Color @Composable get() = MaterialTheme.colorScheme.background
 val Surface: Color @Composable get() = MaterialTheme.colorScheme.surface
 val Surface2: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh
 val Surface3: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHighest
-val Border: Color @Composable get() = MaterialTheme.colorScheme.outline
+// The hairline is fainter than outlineVariant, which stock dividers and set segments read.
+val Border: Color @Composable get() = LocalAppPalette.current.border
 val BorderStrong: Color @Composable get() = MaterialTheme.colorScheme.outlineVariant
 val TextPrimary: Color @Composable get() = MaterialTheme.colorScheme.onBackground
 val TextSecondary: Color @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
@@ -138,7 +143,7 @@ fun accentBorder(dayIndex: Int): Color {
  * mark.
  *
  * The lift itself is `DayAccentColors.brightHex`, same as the watch's, so a day
- * has the same colour in the pocket and on the wrist. [DayAccentTest] pins the
+ * has the same color in the pocket and on the wrist. [DayAccentTest] pins the
  * contrast floor from this side of the fence.
  */
 fun accentBright(dayIndex: Int): Color = Color(DayAccentColors.brightHex(dayIndex))

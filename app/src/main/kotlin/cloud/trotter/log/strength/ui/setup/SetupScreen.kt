@@ -35,12 +35,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioMode
@@ -62,7 +59,6 @@ import cloud.trotter.log.strength.ui.components.DialogAction
 import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
-import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.components.pressableSelectable
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -70,7 +66,6 @@ import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
-import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
@@ -106,7 +101,7 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions, openRestTimer: Boole
                 item {
                     Text(
                         stringResource(R.string.day_rotation_footer),
-                        color = TextFaint,
+                        color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
@@ -197,7 +192,7 @@ private fun SetupHeader(onBack: () -> Unit) {
 internal fun SectionHeader(label: String) {
     Column(Modifier.fillMaxWidth()) {
         Spacer(Modifier.size(8.dp))
-        Text(label, color = TextFaint, style = MaterialTheme.typography.labelSmall)
+        Text(label, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.size(6.dp))
         HorizontalDivider(thickness = 1.dp, color = Border)
     }
@@ -435,7 +430,7 @@ private fun RestCategoryRow(row: RestCategoryUiState, onChange: (Int) -> Unit) {
             // every tap's result is coerced into RestPolicy's accepted range.
             round = { it.coerceIn(0.0, RestPolicy.MAX_REST_SECONDS.toDouble()) },
             format = { SetupStateBuilder.restTimerLabel(it.toInt()) },
-            valueColor = if (row.seconds == 0) TextFaint else TextPrimary,
+            valueColor = if (row.seconds == 0) TextSecondary else TextPrimary,
             decreaseDescription = stringResource(R.string.setup_decrease_rest_description, label),
             increaseDescription = stringResource(R.string.setup_increase_rest_description, label),
             inputLabel = stringResource(R.string.stepper_rest_label, label),

@@ -84,10 +84,12 @@ class ThemeCompletenessTest {
         val darkNamed = listOf(
             DarkBackground, DarkSurface, DarkSurface2, DarkSurface3, DarkBorder, DarkBorderStrong,
             DarkTextPrimary, DarkTextSecondary, DarkTextFaint, DarkError, DarkDone, DarkFocusRing,
+            DarkOutline, DarkErrorContainer, LightTextPrimary,
         ) + (0..6).flatMap { listOf(dayAccent(it), onDayAccent(it, true)) }
         val lightNamed = listOf(
             LightBackground, LightSurface, LightSurface2, LightSurface3, LightBorder, LightBorderStrong, DarkBackground,
             LightTextPrimary, LightTextSecondary, LightTextFaint, LightError, LightDone, LightFocusRing,
+            LightOutline, LightErrorContainer, LightOnErrorContainer, DarkTextPrimary,
         ) + (0..6).flatMap { listOf(dayAccent(it), onDayAccent(it, false)) }
         val palettes = listOf(
             "dark" to (DarkAppColorScheme to (darkNamed + darkNamed.map { containerOf(it, DarkSurface) })),

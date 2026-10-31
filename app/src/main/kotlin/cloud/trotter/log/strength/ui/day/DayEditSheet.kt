@@ -57,7 +57,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -79,13 +78,11 @@ import cloud.trotter.log.strength.ui.components.disabledAlpha
 import cloud.trotter.log.strength.ui.components.pressable
 import cloud.trotter.log.strength.ui.components.pressableToggleable
 import cloud.trotter.log.strength.ui.theme.Border
-import cloud.trotter.log.strength.ui.theme.BorderStrong
 import cloud.trotter.log.strength.ui.theme.CardTitle
 import cloud.trotter.log.strength.ui.theme.CardTitleSmall
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.Error
 import cloud.trotter.log.strength.ui.theme.Surface2
-import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import kotlin.math.roundToInt
@@ -815,7 +812,7 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
         }
         Spacer(Modifier.size(10.dp))
         if (results.isEmpty()) {
-            Text(stringResource(R.string.day_edit_no_matches), color = TextFaint, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.day_edit_no_matches), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         } else {
             LazyColumn(
                 modifier = Modifier.heightIn(max = 360.dp),
@@ -873,12 +870,12 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             focusedTextColor = TextPrimary,
             unfocusedTextColor = TextPrimary,
             cursorColor = TextPrimary,
-            focusedBorderColor = BorderStrong,
+            focusedBorderColor = MaterialTheme.colorScheme.outline,
             unfocusedBorderColor = Border,
             focusedContainerColor = Surface2,
             unfocusedContainerColor = Surface2,
-            focusedPlaceholderColor = TextFaint,
-            unfocusedPlaceholderColor = TextFaint,
+            focusedPlaceholderColor = TextSecondary,
+            unfocusedPlaceholderColor = TextSecondary,
         ),
     )
 }

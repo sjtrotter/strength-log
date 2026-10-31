@@ -36,8 +36,8 @@ class ProgramGeneratorTest {
         val cardio = ProgramGenerator.generate(WizardAnswers(
             cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
         )).cardioDays.first()
-        assertEquals(strength[1].id, Rotation.next(cloud.trotter.log.strength.domain.model.Program(strength + cardio), strength[0].id))
-        assertEquals(strength[0].id, Rotation.next(cloud.trotter.log.strength.domain.model.Program(strength + cardio), strength[1].id))
+        assertEquals(strength[1].id, Rotation.nextFor(cloud.trotter.log.strength.domain.model.Program(strength + cardio), strength[0].id))
+        assertEquals(strength[0].id, Rotation.nextFor(cloud.trotter.log.strength.domain.model.Program(strength + cardio), strength[1].id))
     }
 
     private fun ids(day: ProgramDay) = day.exercises.map { it.exerciseId }
@@ -199,10 +199,10 @@ class ProgramGeneratorTest {
     @Test
     fun `rotation advances and wraps`() {
         val program = ProgramGenerator.generate(WizardAnswers())
-        assertEquals("B", Rotation.next(program, "A"))
-        assertEquals("C", Rotation.next(program, "B"))
-        assertEquals("D", Rotation.next(program, "C"))
-        assertEquals("A", Rotation.next(program, "D"))
+        assertEquals("B", Rotation.nextFor(program, "A"))
+        assertEquals("C", Rotation.nextFor(program, "B"))
+        assertEquals("D", Rotation.nextFor(program, "C"))
+        assertEquals("A", Rotation.nextFor(program, "D"))
     }
 
     // --- anchor schemes (spec §6.1 step 4) -----------------------------------
@@ -296,7 +296,7 @@ class ProgramGeneratorTest {
                 program.cardioDays.forEach { day ->
                     assertEquals(CardioBlocks.fromLegacy(CardioSuggestion("", "", false), fiveK, activity), day.cardioBlock)
                 }
-                assertEquals("A", Rotation.next(program, "D"))
+                assertEquals("A", Rotation.nextFor(program, "D"))
             }
         }
     }

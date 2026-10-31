@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.ui.day.DaySelection
 
 import androidx.compose.foundation.layout.Row
@@ -68,7 +69,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                     PlanDayItem(day, state, actions)
                     if (index != state.days.lastIndex) HorizontalDivider()
                 }
-                if (state.authored && state.days.size < 7) {
+                if (state.days.count { it.kind == ProgramDayKind.STRENGTH } < 7) {
                     item(key = "add_day") {
                         TextButton(onClick = actions.onAddDay) { Text(stringResource(R.string.plan_add_day)) }
                     }
@@ -130,22 +131,20 @@ private fun PlanDayItem(day: PlanDay, state: PlanUiState, actions: PlanActions) 
             } else "$lifts, $sets")
         },
         trailingContent = {
-            if (state.authored) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (day.isNext) Text(stringResource(R.string.plan_next))
-                    Box {
-                        IconButton(onClick = { actions.onDayMenu(day.dayId) }) {
-                            Icon(Icons.Default.MoreVert, stringResource(R.string.plan_day_menu))
-                        }
-                        DropdownMenu(expanded = state.menuDayId == day.dayId, onDismissRequest = { actions.onDayMenu(null) }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.plans_rename)) }, onClick = { actions.onRenameDay(day.dayId) })
-                            if (state.days.size > 1) {
-                                DropdownMenuItem(text = { Text(stringResource(R.string.day_edit_remove_button)) }, onClick = { actions.onRemoveDay(day.dayId) })
-                            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (day.isNext) Text(stringResource(R.string.plan_next))
+                Box {
+                    IconButton(onClick = { actions.onDayMenu(day.dayId) }) {
+                        Icon(Icons.Default.MoreVert, stringResource(R.string.plan_day_menu))
+                    }
+                    DropdownMenu(expanded = state.menuDayId == day.dayId, onDismissRequest = { actions.onDayMenu(null) }) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.plans_rename)) }, onClick = { actions.onRenameDay(day.dayId) })
+                        if (state.days.size > 1) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.day_edit_remove_button)) }, onClick = { actions.onRemoveDay(day.dayId) })
                         }
                     }
                 }
-            } else if (day.isNext) Text(stringResource(R.string.plan_next))
+            }
         },
         colors = ListItemDefaults.colors(
             containerColor = MaterialTheme.colorScheme.background,

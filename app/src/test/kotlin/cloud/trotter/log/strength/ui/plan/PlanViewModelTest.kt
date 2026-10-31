@@ -9,7 +9,12 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.ui.day.CardioBlockDraft
 import cloud.trotter.log.strength.ui.day.CardioTemplate
@@ -28,9 +33,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -98,7 +101,6 @@ class PlanViewModelTest {
         repo.publishCreatedAuthoredPlan(plan)
         val vm = viewModel()
         advanceUntilIdle()
-        assertTrue(vm.uiState.value.authored)
         repeat(8) { vm.addDay() }
         advanceUntilIdle()
         assertEquals(('A'..'G').map { it.toString() }, vm.uiState.value.days.map { it.dayId })
@@ -140,17 +142,45 @@ class PlanViewModelTest {
     }
 
     @Test
-    fun `generated plans have no authored actions`() = runTest(dispatcher) {
+    fun `generated plan adds a seventh strength day alongside standalone cardio`() = runTest(dispatcher) {
+        repo.replaceProgram(ProgramGenerator.generate(WizardAnswers(
+            daysPerWeek = 6, cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
+        )))
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertEquals(8, vm.uiState.value.days.size)
+        vm.addDay()
+        advanceUntilIdle()
+        assertEquals(('A'..'G').map { it.toString() },
+            vm.uiState.value.days.filter { it.kind == ProgramDayKind.STRENGTH }.map { it.dayId })
+        assertEquals(9, vm.uiState.value.days.size)
+        assertEquals(listOf("C1", "C2"), repo.programFor(plan).first().cardioDays.map { it.id })
+        vm.addDay()
+        advanceUntilIdle()
+        assertEquals(9, db.programDao().daysForPlan(plan).size)
+    }
+
+    @Test
+    fun `generated days add rename and remove immediately`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList()))))
         val plan = repo.selectedPlanIdFlow.first()!!
         val vm = viewModel()
         advanceUntilIdle()
-        assertFalse(vm.uiState.value.authored)
         vm.addDay()
+        advanceUntilIdle()
+        assertEquals(listOf("A", "B"), vm.uiState.value.days.map { it.dayId })
         vm.renameDay("A")
-        vm.removeDay("A")
+        vm.setDayTitleDraft("Renamed")
+        vm.saveDayDialog()
+        advanceUntilIdle()
+        assertEquals("Renamed", db.programDao().day(plan, "A")!!.title)
+        vm.removeDay("B")
+        advanceUntilIdle()
+        assertEquals("remove", vm.uiState.value.dialog)
+        vm.saveDayDialog()
         advanceUntilIdle()
         assertNull(vm.uiState.value.dialog)
-        assertEquals(listOf("Generated"), db.programDao().daysForPlan(plan).map { it.title })
+        assertEquals(listOf("Renamed"), db.programDao().daysForPlan(plan).map { it.title })
     }
 }

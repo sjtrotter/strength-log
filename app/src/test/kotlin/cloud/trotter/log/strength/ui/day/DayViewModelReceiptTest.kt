@@ -139,7 +139,7 @@ class DayViewModelReceiptTest {
         val days = repo.programFlow.first().days
         repo.replaceProgram(Program(listOf(
             days[0],
-            ProgramDay("B", "Cardio", "", emptyList(), kind = ProgramDayKind.CARDIO),
+            ProgramDay("B", "Cardio", "", emptyList(), cardioBlock = cardioFixture().block),
             days[1].copy(id = "C"),
         )))
         val vm = newViewModel()
@@ -147,6 +147,23 @@ class DayViewModelReceiptTest {
         completeOneSession(vm)
         assertEquals("B", repo.suggestedDayFlow.first())
         assertEquals("DAY B · CARDIO", vm.sessionReceipt.value?.nextDayLine)
+    }
+
+    @Test
+    fun generatedStrengthCompletionAndReceiptSkipTheFollowingStandaloneCardioDay() = runVmTest {
+        insertProgram()
+        val days = repo.programFlow.first().days
+        repo.replaceProgram(Program(listOf(
+            days[0],
+            ProgramDay("C1", "Cardio", "", listOf(ProgramExercise("plank", targetSets = 2)),
+                kind = ProgramDayKind.CARDIO, cardioBlock = cardioFixture().block),
+            days[1],
+        )))
+        val vm = newViewModel()
+        advanceUntilIdle()
+        completeOneSession(vm)
+        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("DAY B · UPPER", vm.sessionReceipt.value?.nextDayLine)
     }
 
     @Test

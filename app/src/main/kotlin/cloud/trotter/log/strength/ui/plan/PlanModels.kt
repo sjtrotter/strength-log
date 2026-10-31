@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.runtime.Immutable
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.ui.day.DaySelection
 
@@ -11,7 +12,6 @@ data class PlanUiState(
     val hasProgram: Boolean = false,
     val days: List<PlanDay> = emptyList(),
     val planId: Long? = null,
-    val authored: Boolean = false,
     val menuDayId: String? = null,
     val dialog: String? = null,
     val dialogDayId: String? = null,
@@ -27,6 +27,7 @@ data class PlanDay(
     val isNext: Boolean,
     val cardioActivity: CardioActivity? = null,
     val cardioSetCount: Int = 0,
+    val kind: ProgramDayKind = ProgramDayKind.STRENGTH,
 )
 
 data class PlanActions(

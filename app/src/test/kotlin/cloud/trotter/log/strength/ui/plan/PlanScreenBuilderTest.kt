@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -75,6 +76,21 @@ class PlanScreenBuilderTest {
 
         assertEquals(10, row.setCount)
         assertTrue(row.setCount > program.strengthDays.single().exercises.sumOf { it.targetSets })
+    }
+
+    @Test
+    fun daysIncludeStandaloneCardioAndPreserveStrengthAccentIndices() {
+        val program = Program(listOf(
+            day("A", "Lower", 3),
+            day("C1", "Cardio", 2).copy(kind = ProgramDayKind.CARDIO),
+            day("B", "Upper", 3),
+            day("C2", "Cardio", 2).copy(kind = ProgramDayKind.CARDIO),
+        ))
+        val rows = PlanScreenBuilder.days(program, "B", config, catalog)
+        assertEquals(listOf("A", "C1", "B", "C2"), rows.map { it.dayId })
+        assertEquals(listOf(0, 1), rows.filter { it.kind == ProgramDayKind.STRENGTH }.map { it.dayIndex })
+        assertEquals(program.days.map { it.kind }, rows.map { it.kind })
+        assertEquals(listOf("B"), rows.filter { it.isNext }.map { it.dayId })
     }
 
     private fun day(id: String, title: String, vararg rounds: Int) = ProgramDay(

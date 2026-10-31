@@ -13,7 +13,7 @@ import cloud.trotter.log.strength.domain.standards.StrengthStandards
 /** Seeds the initial ACTUAL log rows from a GOAL (spec §4). */
 object SetSeeder {
 
-    /** Each authored run starts with WORK rows at the prescribed values.
+    /** Prescribed tracks start with WORK rows at the prescribed values.
      *  For reps in time, the window lives in the prescription; the log holds the count. */
     fun seedPrescribed(sets: Int, p: Prescription): List<LoggedSet> = List(sets) {
         when (val target = p.target) {

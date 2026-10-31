@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -39,7 +38,7 @@ class PlanViewModel @Inject constructor(
         val days = PlanScreenBuilder.days(program, nextDayId, config, catalog)
         PlanUiState(
             name = plan?.name, hasProgram = days.isNotEmpty(), days = days,
-            planId = plan?.id, authored = plan?.origin == PlanOrigin.AUTHORED.name,
+            planId = plan?.id,
         )
     }
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState) { program, draft ->
@@ -52,7 +51,7 @@ class PlanViewModel @Inject constructor(
     fun openDayMenu(dayId: String?) { savedState[MENU] = dayId }
 
     fun addDay() {
-        val id = uiState.value.takeIf { it.authored }?.planId ?: return
+        val id = uiState.value.planId ?: return
         viewModelScope.launch {
             mutationLock.withLock {
                 val days = repo.programFor(id).first().days
@@ -68,7 +67,6 @@ class PlanViewModel @Inject constructor(
 
     private fun openDialog(kind: String, dayId: String) {
         val state = uiState.value
-        if (!state.authored) return
         val day = state.days.firstOrNull { it.dayId == dayId } ?: return
         savedState[PLAN] = state.planId
         savedState[DAY] = dayId

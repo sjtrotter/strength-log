@@ -5,11 +5,13 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -110,6 +112,28 @@ class BackupCodecTest {
     fun `encode then decode round-trips the document`() {
         val doc = document()
         assertEquals(doc, codec.decode(codec.encode(doc)))
+    }
+
+    @Test
+    fun `authored plan with a recipe round-trips`() {
+        val recipe = PlanRecipeJson.encode(WizardAnswers())
+        val base = restSnapshot(RestSettings())
+        val snapshot = base.copy(plans = base.plans.map {
+            it.copy(origin = PlanOrigin.AUTHORED.name, recipeJson = recipe)
+        })
+        val doc = snapshot.toDocument()
+        assertEquals(doc, codec.decode(codec.encode(doc)))
+        val restored = codec.decode(codec.encode(doc)).toSnapshot()
+        assertEquals(snapshot.plans, restored.plans)
+        assertEquals(snapshot.exercises, restored.exercises)
+    }
+
+    @Test
+    fun `unknown plan origin is rejected`() {
+        val doc = restSnapshot(RestSettings()).toDocument()
+        val unknown = doc.copy(plans = doc.plans.map { it.copy(origin = "UNKNOWN") })
+        val error = assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(unknown)) }
+        assertTrue("unknown plan origin 'UNKNOWN'" in error.message.orEmpty())
     }
 
     @Test

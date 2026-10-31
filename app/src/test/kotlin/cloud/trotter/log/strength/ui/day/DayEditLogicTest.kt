@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import kotlin.test.Test
@@ -13,12 +12,12 @@ import kotlin.test.assertTrue
 class DayEditLogicTest {
 
     @Test
-    fun authored_removal_stops_at_one_and_generated_removal_stops_at_three() {
-        assertFalse(DayEditRules.canRemove(1, PlanOrigin.AUTHORED))
-        assertTrue(DayEditRules.canRemove(2, PlanOrigin.AUTHORED))
-        assertTrue(DayEditRules.canRemove(3, PlanOrigin.AUTHORED))
-        assertFalse(DayEditRules.canRemove(3, PlanOrigin.GENERATED))
-        assertTrue(DayEditRules.canRemove(4, PlanOrigin.GENERATED))
+    fun every_day_without_cardio_keeps_one_exercise() {
+        assertFalse(DayEditRules.canRemove(0))
+        assertFalse(DayEditRules.canRemove(1))
+        assertTrue(DayEditRules.canRemove(2))
+        assertTrue(DayEditRules.canRemove(3))
+        assertTrue(DayEditRules.canRemove(4))
     }
 
 
@@ -108,14 +107,13 @@ class DayEditLogicTest {
         assertEquals(listOf("oh_tri_ext"), result.map { it.id })
     }
 
-    // --- min-3-remove enforcement (spec §8.3) -----------------------------------
 
     @Test
-    fun authoredCardioAllowsRemovingTheLastExerciseButGeneratedCardioKeepsItsFloor() {
-        assertTrue(DayEditRules.canRemove(1, PlanOrigin.AUTHORED, hasCardio = true))
-        assertFalse(DayEditRules.canRemove(1, PlanOrigin.AUTHORED))
-        assertFalse(DayEditRules.canRemove(0, PlanOrigin.AUTHORED, hasCardio = true))
-        assertFalse(DayEditRules.canRemove(3, hasCardio = true))
+    fun cardioAllowsRemovingTheLastExerciseInEveryPlan() {
+        assertTrue(DayEditRules.canRemove(1, hasCardio = true))
+        assertFalse(DayEditRules.canRemove(1))
+        assertFalse(DayEditRules.canRemove(0, hasCardio = true))
+        assertTrue(DayEditRules.canRemove(3, hasCardio = true))
     }
 
     @Test
@@ -124,12 +122,6 @@ class DayEditLogicTest {
             cardio = true, cardioSet = true))
         assertEquals(DayEditPage.CARDIO, dayEditBackTarget(false, false, false, false, false, false,
             cardio = true))
-    }
-
-    @Test
-    fun canRemove_is_false_at_or_below_the_minimum() {
-        assertFalse(DayEditRules.canRemove(2))
-        assertFalse(DayEditRules.canRemove(3))
     }
 
     @Test

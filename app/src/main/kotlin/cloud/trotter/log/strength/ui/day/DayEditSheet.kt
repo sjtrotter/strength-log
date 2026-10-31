@@ -252,7 +252,6 @@ fun DayEditSheet(
             }
             optionsSlot != null -> SlotOptionsScreen(
                 slot = optionsSlot,
-                authored = state.authored,
                 onPrescriptionClick = { actions.onOpenPrescription(optionsSlot.programExerciseId) },
                 onMove = { up -> actions.onMove(optionsSlot.programExerciseId, up) },
                 onBack = onBack,
@@ -326,7 +325,7 @@ private fun DaySlotList(
                 Text(stringResource(R.string.day_edit_remove_cardio))
             }
         }
-        if (!state.authored) {
+        if (state.canResetToTemplate) {
             Spacer(Modifier.size(8.dp))
             SheetButton(stringResource(R.string.day_edit_reset_button), onClick = onResetClick, outlined = true, textColor = TextSecondary)
         }
@@ -364,7 +363,6 @@ private fun DaySlotRow(
 @Composable
 private fun SlotOptionsScreen(
     slot: DayEditSlotState,
-    authored: Boolean,
     onPrescriptionClick: () -> Unit,
     onMove: (Boolean) -> Unit,
     onBack: () -> Unit,
@@ -391,7 +389,7 @@ private fun SlotOptionsScreen(
         )
     }
     val title = slot.partnerTitle?.let { stringResource(R.string.day_edit_slot_pair_title, slot.title, it) } ?: slot.title
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+    Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
         PickerHeader(title = title, onBack = onBack)
         Spacer(Modifier.size(12.dp))
         Text(stringResource(R.string.day_edit_next_time), style = MaterialTheme.typography.titleSmall)
@@ -417,22 +415,18 @@ private fun SlotOptionsScreen(
             enabled = slot.pattern != null,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (authored) {
-            Spacer(Modifier.size(8.dp))
-            SheetButton(stringResource(R.string.day_edit_prescription), onClick = onPrescriptionClick, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.size(8.dp))
-            SheetButton(stringResource(R.string.day_edit_move_up), onClick = { onMove(true) }, enabled = slot.canMoveUp, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.size(8.dp))
-            SheetButton(stringResource(R.string.day_edit_move_down), onClick = { onMove(false) }, enabled = slot.canMoveDown, modifier = Modifier.fillMaxWidth())
-        }
-        if (!authored && slot.canSetSuperset) {
-            Spacer(Modifier.size(8.dp))
-            SheetButton(
-                stringResource(if (slot.partnerExerciseId == null) R.string.day_edit_add_superset_button else R.string.day_edit_swap_superset_button),
-                onClick = onSupersetClick,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        Spacer(Modifier.size(8.dp))
+        SheetButton(stringResource(R.string.day_edit_prescription), onClick = onPrescriptionClick, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.size(8.dp))
+        SheetButton(stringResource(R.string.day_edit_move_up), onClick = { onMove(true) }, enabled = slot.canMoveUp, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.size(8.dp))
+        SheetButton(stringResource(R.string.day_edit_move_down), onClick = { onMove(false) }, enabled = slot.canMoveDown, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.size(8.dp))
+        SheetButton(
+            stringResource(if (slot.partnerExerciseId == null) R.string.day_edit_add_superset_button else R.string.day_edit_swap_superset_button),
+            onClick = onSupersetClick,
+            modifier = Modifier.fillMaxWidth(),
+        )
         if (slot.partnerExerciseId != null) {
             Spacer(Modifier.size(8.dp))
             SheetButton(

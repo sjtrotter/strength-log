@@ -26,7 +26,7 @@ class EmptyDayScreenTest {
             DayScreen(
                 state = DayUiState(hasProgram = true, viewDayId = "A", dayTitle = "Daily rehab"),
                 actions = pagerActions(),
-                dayEditState = DayEditUiState(authored = true),
+                dayEditState = DayEditUiState(),
                 dayEditActions = pagerEditActions().copy(onEditorOpen = { opened = it }),
             )
         } }

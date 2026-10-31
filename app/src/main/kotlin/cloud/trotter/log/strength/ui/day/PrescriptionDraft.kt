@@ -1,6 +1,10 @@
 package cloud.trotter.log.strength.ui.day
 
 import android.os.Parcelable
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import kotlinx.parcelize.Parcelize
@@ -33,13 +37,20 @@ data class PrescriptionDraft(
     )
 
     companion object {
-        fun from(slot: DayEditSlotState): PrescriptionDraft {
+        fun from(slot: DayEditSlotState, catalog: ExerciseCatalog, config: LifterConfig): PrescriptionDraft {
             val prescription = slot.prescription
             val draft = PrescriptionDraft(
                 slotId = slot.programExerciseId, sets = slot.targetSets.coerceIn(1, 20),
                 eachSide = prescription?.eachSide ?: false, resistance = prescription?.resistance.orEmpty(),
             )
-            return when (val target = prescription?.target) {
+            val target = prescription?.target ?: catalog.find(slot.exerciseId)?.let { entry ->
+                when (val goal = GoalCalculator.targetFor(entry, config)) {
+                    is GoalTarget.Weight -> PrescribedTarget.LoadReps(goal.lb, 10)
+                    is GoalTarget.Reps -> PrescribedTarget.Reps(goal.reps)
+                    is GoalTarget.Time -> PrescribedTarget.Hold(goal.seconds, goal.addedLb)
+                }
+            }
+            return when (target) {
                 is PrescribedTarget.LoadReps -> draft.copy(loadLb = target.lb, reps = target.reps.coerceAtLeast(1))
                 is PrescribedTarget.Reps -> draft.copy(kind = PrescriptionKind.REPS, reps = target.reps.coerceAtLeast(1))
                 is PrescribedTarget.Hold -> draft.copy(kind = PrescriptionKind.HOLD, seconds = target.seconds.coerceAtLeast(5), loadLb = target.addedLb)

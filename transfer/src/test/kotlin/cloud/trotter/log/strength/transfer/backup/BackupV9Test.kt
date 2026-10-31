@@ -161,14 +161,11 @@ class BackupV9Test {
     }
 
     @Test
-    fun `authored plan must not carry a generator recipe`() {
+    fun `authored plan can carry a recipe`() {
         val document = snapshot().toDocument()
-        decode(document)
         val plan = document.plans.last().copy(recipeJson = PlanRecipeJson.encode(strength))
-        val error = assertFailsWith<BackupError.Inconsistent> {
-            decode(document.copy(plans = document.plans.dropLast(1) + plan))
-        }
-        assertTrue("AUTHORED plan 99 must have a null recipeJson" in error.message.orEmpty())
+        val withRecipe = document.copy(plans = document.plans.dropLast(1) + plan)
+        assertEquals(withRecipe, decode(withRecipe))
     }
 
     @Test

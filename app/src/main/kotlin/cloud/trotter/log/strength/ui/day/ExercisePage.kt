@@ -106,7 +106,8 @@ internal fun ExercisePage(
     ) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // While the partner is logged, the header is the partner's; the goal and last time are the main lift's.
+                // While the partner is logged the header names the partner; the main lift's goal, last time and
+                // menu would read as the partner's, so they wait until the round is done.
                 Text(
                     if (shownPartner != null) card.partnerTitle ?: card.title else card.title,
                     style = MaterialTheme.typography.headlineSmall,
@@ -159,7 +160,7 @@ internal fun ExercisePage(
                         }
                     }
                 }
-                Box {
+                if (shownPartner == null) Box {
                     IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Default.MoreVert, stringResource(R.string.day_exercise_menu, card.title))
                     }

@@ -28,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
@@ -108,15 +109,32 @@ class BackupViewModelRestoreTest {
 
     @After
     fun tearDown() {
+        // A restore parked on a gate sits in a NonCancellable section, so a test
+        // that fails before opening its gate would leave the joins below waiting
+        // forever (#310). Open the stores' gates first.
+        settingsStore.gate?.complete(Unit)
+        journalStore.gate?.complete(Unit)
         // Joined, not just cancelled: on real dispatchers a bare cancel() returns
         // before the import has let go of Room or DataStore's file.
-        runBlocking {
-            viewModel.viewModelScope.coroutineContext.job.cancelAndJoin()
-            appScope.coroutineContext.job.cancelAndJoin()
-            storeScope.coroutineContext.job.cancelAndJoin()
+        try {
+            runBlocking {
+                try {
+                    withTimeout(TIMEOUT_MS) {
+                        viewModel.viewModelScope.coroutineContext.job.cancelAndJoin()
+                        appScope.coroutineContext.job.cancelAndJoin()
+                        storeScope.coroutineContext.job.cancelAndJoin()
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    Thread.getAllStackTraces().forEach { (thread, stack) ->
+                        System.err.println("$thread\n  " + stack.joinToString("\n  "))
+                    }
+                    throw AssertionError("tearDown stuck joining scopes; thread dump above", e)
+                }
+            }
+        } finally {
+            db.close()
+            Dispatchers.resetMain()
         }
-        db.close()
-        Dispatchers.resetMain()
     }
 
     /** A minimal but valid backup: one day, one real catalog exercise. */
@@ -150,9 +168,15 @@ class BackupViewModelRestoreTest {
         return uri
     }
 
-    private suspend fun stageConfirmDialog() {
-        viewModel.beginImportBackup(pickable(backupJson()))
-        withTimeout(TIMEOUT_MS) { viewModel.uiState.first { it.pendingRestoreConfirm } }
+    /** Waits for the whole read job, not just its state: runBusy's `finally`
+     *  clears isBusy and restoreInFlight after the dialog flag is set, and on a
+     *  slow runner it could otherwise land after the test's confirmRestore. */
+    private suspend fun stageConfirmDialog(uri: Uri = pickable(backupJson())) {
+        val vm = viewModel.viewModelScope.coroutineContext.job
+        val before = vm.children.toSet()
+        viewModel.beginImportBackup(uri)
+        withTimeout(TIMEOUT_MS) { (vm.children.toSet() - before).forEach { it.join() } }
+        assertTrue(viewModel.uiState.value.pendingRestoreConfirm)
     }
 
     private suspend fun awaitMessage(): StatusMessage =
@@ -160,7 +184,7 @@ class BackupViewModelRestoreTest {
 
     // --- restore results -------------------------------------------------------
 
-    @Test
+    @Test(timeout = 60_000)
     fun restoringV8WithTwoPlansPreservesTheirDaysAndTheSecondSelectionAndReportsSuccess() = runBlocking {
         val codec = BackupCodec()
         val legacy = codec.decode(backupJson())
@@ -179,8 +203,7 @@ class BackupViewModelRestoreTest {
                 PlanBackup(42, "Test prep", "AUTHORED", 2_000, days = listOf(authoredDay)),
             ),
         )
-        viewModel.beginImportBackup(pickable(codec.encode(document)))
-        withTimeout(TIMEOUT_MS) { viewModel.uiState.first { it.pendingRestoreConfirm } }
+        stageConfirmDialog(pickable(codec.encode(document)))
 
         viewModel.confirmRestore()
 
@@ -196,7 +219,7 @@ class BackupViewModelRestoreTest {
         assertEquals(42L, settings.selectedPlanIdFlow.first())
     }
 
-    @Test
+    @Test(timeout = 60_000)
     fun aSettingsFailureAfterTheDataLandsIsNotReportedAsAFileProblem() = runBlocking {
         stageConfirmDialog()
         settingsStore.failOnUpdate = 1
@@ -211,7 +234,7 @@ class BackupViewModelRestoreTest {
         )
     }
 
-    @Test
+    @Test(timeout = 60_000)
     fun aFailureStagingTheJournalSaysNothingChanged() = runBlocking {
         stageConfirmDialog()
         journalStore.failOnUpdate = 1
@@ -227,7 +250,7 @@ class BackupViewModelRestoreTest {
         assertTrue("nothing was destroyed", db.programDao().allDays().isEmpty())
     }
 
-    @Test
+    @Test(timeout = 60_000)
     fun aFailureClearingTheJournalReadsAsSuccess() = runBlocking {
         stageConfirmDialog()
         // Journal writes in one restore: 1 payload, 2 nonce, 3 the post-success
@@ -247,7 +270,7 @@ class BackupViewModelRestoreTest {
 
     // --- what the exits are gated on -------------------------------------------
 
-    @Test
+    @Test(timeout = 60_000)
     fun aRestoreHoldsTheExitsShutForItsWholeDuration() = runBlocking {
         stageConfirmDialog()
         val open = CompletableDeferred<Unit>()
@@ -269,7 +292,7 @@ class BackupViewModelRestoreTest {
         assertFalse("and the screen lets go again", viewModel.uiState.value.restoreInFlight)
     }
 
-    @Test
+    @Test(timeout = 60_000)
     fun readingABackupFileIsBusyButDoesNotHoldTheExitsShut() = runBlocking {
         // Held open mid-read: reading a file can't leave two stores
         // disagreeing, so the exits must stay open through it.

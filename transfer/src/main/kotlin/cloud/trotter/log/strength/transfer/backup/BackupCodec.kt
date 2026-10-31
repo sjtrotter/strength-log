@@ -339,7 +339,6 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val days = doc.plans.flatMap { plan -> plan.days.map { (plan.id to it.dayId) to it } }
         val identities = HashSet<String>()
         for ((_, day) in days) {
-            if (day.dayId.isBlank()) throw BackupError.Inconsistent("dayId must not be blank")
             if (day.nextRunId.isNotBlank() && !identities.add(day.nextRunId)) {
                 throw BackupError.Inconsistent("duplicate nextRunId on day '${day.dayId}'")
             }

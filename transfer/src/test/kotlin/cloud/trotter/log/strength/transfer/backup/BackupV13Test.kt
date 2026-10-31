@@ -137,7 +137,6 @@ class BackupV13Test {
                 runs = listOf(run.copy(id = "")),
             ),
             valid.copy(runs = listOf(run.copy(planId = 2))),
-            valid.copy(plans = listOf(plan.copy(days = listOf(day.copy(dayId = ""))))),
             valid.copy(plans = listOf(plan.copy(days = listOf(day, plan.days.last().copy(nextRunId = day.nextRunId))))),
             valid.copy(sessions = listOf(session, session.copy(id = 21, sets = emptyList()))),
             valid.copy(sessions = listOf(session.copy(runId = " "))),

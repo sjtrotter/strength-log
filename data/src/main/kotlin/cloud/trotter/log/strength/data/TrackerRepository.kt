@@ -1288,7 +1288,9 @@ open class TrackerRepository(
                 val exerciseId = if (log.slot == Slot.SS) pe.supersetExerciseId else pe.exerciseId
                 if (exerciseId == null) return@flatMap emptyList()
                 val name = catalog.find(exerciseId)?.name ?: exerciseId
-                SetJson.decodeSets(log.setsJson).mapIndexed { index, s ->
+                // An empty checkDate marks a row closed by Finish or Clear; its stored flags belong to an earlier run.
+                val sets = SetJson.decodeSets(log.setsJson).let { if (log.checkDate.isEmpty()) CheckmarkReset.cleared(it) else it }
+                sets.mapIndexed { index, s ->
                     SessionSetEntity(
                         id = 0,
                         sessionId = sessionId,

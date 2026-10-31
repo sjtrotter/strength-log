@@ -9,6 +9,7 @@ import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /** The daily checkmark-reset rule (spec §7 "checkmark semantics", PLAN.md A6). */
@@ -19,6 +20,22 @@ class CheckmarkResetTest {
         LoggedSet(175.0, 8, SetKind.BACKOFF, done = true),
         LoggedSet(190.0, 5, SetKind.RAMP, done = false),
     )
+
+    @Test
+    fun `cleared removes checkmarks and timing while preserving set values`() {
+        val timed = listOf(
+            LoggedSet(235.0, 5, SetKind.TOP, done = true, seconds = 10, startedAtMillis = 1_000L, completedAtMillis = 2_000L),
+            LoggedSet(175.0, 8, SetKind.BACKOFF, done = true, seconds = 20),
+            LoggedSet(190.0, 6, SetKind.RAMP, seconds = 30, startedAtMillis = 3_000L),
+            LoggedSet(150.0, 12, SetKind.WORK, seconds = 40, completedAtMillis = 4_000L),
+            LoggedSet(125.0, 15, SetKind.EXTRA, seconds = 50),
+        )
+
+        val out = CheckmarkReset.cleared(timed)
+
+        assertEquals(timed.map { it.copy(done = false, startedAtMillis = null, completedAtMillis = null) }, out)
+        assertSame(timed.last(), out.last())
+    }
 
     @Test
     fun `checks are kept when the stored date is today`() {

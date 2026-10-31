@@ -703,5 +703,4 @@
     <string name="day_edit_reset_to_plan">Reset to plan</string>
     <string name="day_edit_reset_to_plan_confirm_title">Reset to plan?</string>
     <string name="day_edit_reset_to_plan_confirm_body">Next time starts from the plan instead of your last results.</string>
-    <string name="day_edit_reset_to_plan_confirm">Reset</string>
 </resources>

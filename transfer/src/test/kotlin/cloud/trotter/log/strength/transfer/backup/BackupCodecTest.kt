@@ -759,17 +759,30 @@ class BackupCodecTest {
 
         assertEquals(listOf(true, false), restored.exercises.map { it.keepToPlan })
         assertEquals(listOf(7L, 8L), restored.sessions.map { it.id })
-        assertEquals(listOf("x".repeat(120), "Own note"), restored.sessions.map { it.note })
+        assertEquals(listOf("x".repeat(120), "Legacy"), restored.sessions.map { it.note })
     }
 
     @Test
-    fun `an explicit empty session note wins over a legacy note`() {
+    fun `v13 ignores next time choices and session notes`() {
         val base = restSnapshot(RestSettings()).toDocument()
+        val plan = base.plans.single()
+        val day = plan.days.single()
+        val prescription = PrescriptionJson.encode(Prescription(PrescribedTarget.Reps(12)))
         val document = base.copy(
+            schemaVersion = 13,
             settings = base.settings.copy(sessionNotes = mapOf(7L to "Legacy")),
+            plans = listOf(plan.copy(days = listOf(day.copy(exercises = listOf(
+                day.exercises.single().copy(prescriptionJson = prescription, keepToPlan = false),
+            ))))),
             sessions = listOf(SessionBackup(7, "A", "Day A", completedAt = 5_000, note = "placeholder")),
         )
-        val encoded = codec.encode(document).replace("\"note\":\"placeholder\"", "\"note\":\"\"")
-        assertEquals("", codec.decode(encoded).toSnapshot().sessions.single().note)
+        val encoded = codec.encode(document)
+        val mistyped = encoded.replace("\"keepToPlan\":false", "\"keepToPlan\":\"unknown\"")
+            .replace("\"note\":\"placeholder\"", "\"note\":false")
+        for (text in listOf(encoded, mistyped)) {
+            val restored = codec.decode(text).toSnapshot()
+            assertTrue(restored.exercises.single().keepToPlan)
+            assertEquals("Legacy", restored.sessions.single().note)
+        }
     }
 }

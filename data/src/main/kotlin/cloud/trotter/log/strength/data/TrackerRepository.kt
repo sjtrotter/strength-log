@@ -800,10 +800,9 @@ open class TrackerRepository(
         sessionNotesMigrationMutex.withLock {
             if (restoreMarkerDao.nonce() != null) return@withLock
             val notes = settings.legacySessionNotesFlow.first()
-            if (notes.isNotEmpty()) {
-                db.withTransaction {
-                    notes.forEach { (id, note) -> sessionDao.setNote(id, note.trim().take(120)) }
-                }
+            if (notes.isEmpty()) return@withLock
+            db.withTransaction {
+                notes.forEach { (id, note) -> sessionDao.setNote(id, note.trim().take(120)) }
             }
             settings.removeLegacySessionNotes()
         }
@@ -1751,6 +1750,7 @@ open class TrackerRepository(
      * raw [IOException] the UI would report as a problem reading the file.
      */
     suspend fun importSnapshot(snapshot: FullSnapshot, journal: RestoreJournal) {
+        ensureSessionNotesMoved()
         val days = snapshot.days.map { if (it.nextRunId.isBlank()) it.freshRunId() else it }
         val split = snapshot.legacyLogs.takeIf { it.isNotEmpty() }?.let { legacy ->
             val customNames = snapshot.customExercises.associate { it.id to it.name }

@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -360,6 +361,36 @@ class RestoreCoordinationTest {
 
     private companion object {
         const val TIMEOUT_MS = 10_000L
+    }
+
+    @Test
+    fun v14ImportMovesLegacyNotesBeforeReplacingSessionsWithMatchingIds() = runBlocking {
+        db.sessionDao().insertSessions(listOf(WorkoutSessionEntity(11, "A", "Local", null, 1_000, 190)))
+        val key = stringPreferencesKey("session_notes")
+        settingsStore.edit { it[key] = """{"11":"Local legacy note"}""" }
+        val document = BackupDocument(
+            settings = SettingsBackup(190, 33, "NOVICE", weightUnit = "LB", wizardComplete = true),
+            sessions = listOf(SessionBackup(11, "A", "Restored", completedAt = 2_000, note = "Document note")),
+        )
+        val open = CompletableDeferred<Unit>()
+        settingsStore.gateOnUpdate = 2
+        settingsStore.gate = open
+
+        val restore = storeScope.async { service.import(BackupCodec().encode(document)) }
+        withTimeout(TIMEOUT_MS) { settingsStore.gateReached.await() }
+        try {
+            assertEquals("Local", db.sessionDao().sessionById(11)!!.dayTitle)
+            assertEquals("Local legacy note", db.sessionDao().sessionById(11)!!.note)
+            assertNull(db.restoreMarkerDao().nonce())
+        } finally {
+            open.complete(Unit)
+        }
+        withTimeout(TIMEOUT_MS) { restore.await() }
+
+        assertNull(settingsStore.data.first()[key])
+        repo.ensureSessionNotesMoved()
+        assertEquals("Document note", db.sessionDao().sessionById(11)!!.note)
+        assertEquals(mapOf(11L to "Document note"), repo.sessionNotesFlow.first())
     }
 
     @Test

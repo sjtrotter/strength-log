@@ -324,13 +324,14 @@ class DayViewModel @Inject constructor(
         val dayId = ctx.dayId
         val plan = ctx.plan
         if (dayId == null || plan == null) flowOf(DayEditUiState()) else combine(
-            repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id), repo.openRunFlow,
+            repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id),
+            repo.openRunFlow.map { it?.planId to it?.dayId }.distinctUntilChanged(),
         ) { slots, answers, run ->
             val origin = PlanOrigin.entries.firstOrNull { it.name == plan.origin } ?: PlanOrigin.GENERATED
             val block = ctx.program.days.firstOrNull { it.id == dayId }?.cardioBlock
             buildEditState(slots, ctx.catalog, answers.equipment, origin).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block,
-                runOpen = run?.planId == plan.id && run.dayId == dayId,
+                runOpen = run == (plan.id to dayId),
                 canRemove = DayEditRules.canRemove(slots.size, origin, block != null),
             )
         }
@@ -1351,11 +1352,22 @@ class DayViewModel @Inject constructor(
     }
 
     fun setDaySlotKeepToPlan(slotId: Long, keep: Boolean) {
-        mutate { repo.setKeepToPlan(slotId, keep) }
+        val day = currentDay() ?: return
+        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
+        mutate {
+            repo.setKeepToPlan(slotId, keep)
+            if (keep) seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
+        }
     }
 
     fun resetDaySlotToPlan(slotId: Long) {
-        mutate { repo.resetSlotToPlan(slotId) }
+        val day = currentDay() ?: return
+        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
+        mutate {
+            if (repo.resetSlotToPlan(slotId)) {
+                seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
+            }
+        }
     }
 
     /** Breaking a superset back into a plain slot: the partner and its SS track
@@ -1392,8 +1404,9 @@ class DayViewModel @Inject constructor(
     }
 
     private suspend fun seedWorkingValues(planId: Long, dayId: String, slots: List<ProgramSlot>) {
-        val existing = repo.dayTracksFlow(planId, dayId).first().tracks
-            .associate { (it.programExerciseId to it.slot) to it.sets.size }
+        val tracks = repo.dayTracksFlow(planId, dayId).first()
+        if (tracks.runOpen) return
+        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
         val cfg = repo.wizardAnswersFor(planId).first().config
         val catalog = repo.catalogFlow.first()
         DayScreenBuilder.seedPlan(slots, existing, cfg, catalog).forEach {

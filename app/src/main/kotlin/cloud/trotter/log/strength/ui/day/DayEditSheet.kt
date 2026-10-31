@@ -384,7 +384,7 @@ private fun SlotOptionsScreen(
             title = { Text(stringResource(R.string.day_edit_reset_to_plan_confirm_title)) },
             text = { Text(stringResource(R.string.day_edit_reset_to_plan_confirm_body)) },
             confirmButton = {
-                DialogAction(stringResource(R.string.day_edit_reset_to_plan_confirm), Error) {
+                DialogAction(stringResource(R.string.day_edit_reset_confirm_button), Error) {
                     confirmingReset = false
                     onResetToPlanClick()
                 }

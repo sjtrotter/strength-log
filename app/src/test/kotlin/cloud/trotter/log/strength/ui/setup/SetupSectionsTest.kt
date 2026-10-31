@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.setup
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -7,7 +8,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performScrollBy
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -46,7 +47,7 @@ class SetupSectionsTest {
             val node = list.fetchSemanticsNode()
             val scroll = node.config[SemanticsProperties.VerticalScrollAxisRange]
             if (scroll.value() >= scroll.maxValue()) break
-            list.performScrollBy(0f, node.size.height / 2f)
+            list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, node.size.height / 2f) }
         }
 
         // The list virtualizes, so each header has to be scrolled into range

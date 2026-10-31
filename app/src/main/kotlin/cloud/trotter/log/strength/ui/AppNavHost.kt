@@ -92,9 +92,13 @@ object Routes {
     const val DAY = "day"
     const val DAY_ID_ARG = "dayId"
     const val DAY_PLAN_ID_ARG = "dayPlanId"
-    const val DAY_WITH_ID = "$DAY/{$DAY_ID_ARG}?$DAY_PLAN_ID_ARG={$DAY_PLAN_ID_ARG}"
+    // Kept byte-for-byte: a back stack saved by an older version names this
+    // destination by its route, and restoring it after an update must still
+    // find it. A day that carries its plan uses DAY_IN_PLAN instead.
+    const val DAY_WITH_ID = "$DAY/{$DAY_ID_ARG}"
+    const val DAY_IN_PLAN = "dayplan/{$DAY_PLAN_ID_ARG}/{$DAY_ID_ARG}"
     fun day(dayId: String, planId: Long? = null) =
-        "$DAY/$dayId" + (planId?.let { "?$DAY_PLAN_ID_ARG=$it" } ?: "")
+        if (planId == null) "$DAY/$dayId" else "dayplan/$planId/$dayId"
     const val WIZARD = "wizard"
     const val SETUP = "setup"
     const val SETUP_REST = "setup?rest=true"
@@ -213,25 +217,23 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
             )
         }
-        composable(
-            route = Routes.DAY_WITH_ID,
-            arguments = listOf(
+        listOf(
+            Routes.DAY_WITH_ID to listOf(navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType }),
+            Routes.DAY_IN_PLAN to listOf(
+                navArgument(Routes.DAY_PLAN_ID_ARG) { type = NavType.StringType },
                 navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
-                navArgument(Routes.DAY_PLAN_ID_ARG) {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
             ),
-        ) { entry ->
-            val dayId = entry.arguments?.getString(Routes.DAY_ID_ARG).orEmpty()
-            DayRoute(
-                onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
-                onSetUpProgram = { navController.navigate(Routes.WIZARD) },
-                onFinishSession = { navController.popBackStack() },
-                initialDayId = dayId,
-                onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
-            )
+        ).forEach { (route, arguments) ->
+            composable(route = route, arguments = arguments) { entry ->
+                val dayId = entry.arguments?.getString(Routes.DAY_ID_ARG).orEmpty()
+                DayRoute(
+                    onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
+                    onSetUpProgram = { navController.navigate(Routes.WIZARD) },
+                    onFinishSession = { navController.popBackStack() },
+                    initialDayId = dayId,
+                    onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
+                )
+            }
         }
         composable(Routes.WIZARD) {
             WizardRoute(

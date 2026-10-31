@@ -157,27 +157,29 @@ class DayRouteNavigationTest {
                         onOpenSettings = {}, onOpenLog = {}, onSetUpProgram = {},
                     ))
                 }
-                composable(Routes.DAY_WITH_ID, arguments = listOf(
-                    navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
-                    navArgument(Routes.DAY_PLAN_ID_ARG) {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                )) { entry ->
-                    val context = ApplicationProvider.getApplicationContext<Context>()
-                    viewModel = remember(entry) {
-                        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo),
-                            SavedStateHandle(mapOf(
-                                Routes.DAY_ID_ARG to entry.arguments?.getString(Routes.DAY_ID_ARG),
-                                Routes.DAY_PLAN_ID_ARG to entry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
-                            )), FixedClock, alarm)
+                listOf(Routes.DAY_WITH_ID, Routes.DAY_IN_PLAN).forEach { route ->
+                    composable(route, arguments = listOf(
+                        navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
+                        navArgument(Routes.DAY_PLAN_ID_ARG) {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                    )) { entry ->
+                        val context = ApplicationProvider.getApplicationContext<Context>()
+                        viewModel = remember(entry) {
+                            DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo),
+                                SavedStateHandle(mapOf(
+                                    Routes.DAY_ID_ARG to entry.arguments?.getString(Routes.DAY_ID_ARG),
+                                    Routes.DAY_PLAN_ID_ARG to entry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
+                                )), FixedClock, alarm)
+                        }
+                        DayRoute(
+                            onCreateExercise = {}, onSetUpProgram = {}, onOpenRestTimer = {},
+                            onFinishSession = { navController.popBackStack() },
+                            initialDayId = entry.arguments?.getString(Routes.DAY_ID_ARG), viewModel = viewModel,
+                        )
                     }
-                    DayRoute(
-                        onCreateExercise = {}, onSetUpProgram = {}, onOpenRestTimer = {},
-                        onFinishSession = { navController.popBackStack() },
-                        initialDayId = entry.arguments?.getString(Routes.DAY_ID_ARG), viewModel = viewModel,
-                    )
                 }
             }
         } }

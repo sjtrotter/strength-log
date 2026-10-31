@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_10_11
 import cloud.trotter.log.strength.data.db.MIGRATION_11_12
 import cloud.trotter.log.strength.data.db.MIGRATION_12_13
 import cloud.trotter.log.strength.data.db.MIGRATION_13_14
+import cloud.trotter.log.strength.data.db.MIGRATION_14_15
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import kotlinx.coroutines.test.runTest
@@ -70,7 +71,7 @@ class Migration8To9Test {
         }
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
             .addMigrations(MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
-            .addMigrations(MIGRATION_13_14).allowMainThreadQueries()
+            .addMigrations(MIGRATION_13_14, MIGRATION_14_15).allowMainThreadQueries()
             .build()
         try {
             assertEquals(

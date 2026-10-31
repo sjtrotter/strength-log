@@ -46,7 +46,7 @@ class BackupV13Test {
 
     /** [F] */
     @Test fun `v13 round trip maps runs tracks day identities and archive fields`() {
-        val before = document()
+        val before = document().copy(schemaVersion = 13)
         val decoded = decode(before)
         assertEquals(13, decoded.schemaVersion)
         assertEquals(before, decoded)
@@ -62,8 +62,8 @@ class BackupV13Test {
         assertEquals(session.plannedJson, snapshot.sessions.single().plannedJson)
         assertEquals(0, snapshot.sessionSets.single().trackPosition)
         assertEquals(0, snapshot.sessionSets.single().plannedIndex)
-        assertEquals(before, snapshot.toDocument())
-        assertEquals(codec.encode(before), codec.encode(snapshot.toDocument()))
+        assertEquals(before, snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13))
+        assertEquals(codec.encode(before), codec.encode(snapshot.toDocument().withoutV14Fields().copy(schemaVersion = 13)))
     }
 
     /** [F] */
@@ -185,3 +185,11 @@ class BackupV13Test {
         }
     }
 }
+
+/** What a writer before format 14 produced: no next-time choice, no session note. */
+internal fun BackupDocument.withoutV14Fields() = copy(
+    plans = plans.map { plan ->
+        plan.copy(days = plan.days.map { day -> day.copy(exercises = day.exercises.map { it.copy(keepToPlan = null) }) })
+    },
+    sessions = sessions.map { it.copy(note = "") },
+)

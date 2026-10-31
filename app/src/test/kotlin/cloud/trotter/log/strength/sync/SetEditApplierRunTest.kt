@@ -99,6 +99,7 @@ class SetEditApplierRunTest {
             repo.setPrescription(slot.programExerciseId,
                 Prescription(PrescribedTarget.LoadReps(if (squat) 100.0 else 50.0, if (squat) 5 else 10)),
                 sets = if (squat) 3 else 2)
+            repo.setKeepToPlan(slot.programExerciseId, true)
         }
         return planId
     }

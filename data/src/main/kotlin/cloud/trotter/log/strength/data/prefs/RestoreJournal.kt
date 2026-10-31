@@ -69,7 +69,6 @@ class RestoreJournal(
             topSetHelperSeen = snapshot.topSetHelperSeen,
             supersetHelperSeen = snapshot.supersetHelperSeen,
             themePreference = snapshot.themePreference,
-            sessionNotes = snapshot.sessionNotes,
         )
         dataStore.edit { it[Keys.NONCE] = nonce }
     }
@@ -100,6 +99,7 @@ class RestoreJournal(
      */
     suspend fun reconcile(
         committedNonce: String?,
+        applyLegacySessionNotes: suspend (Map<Long, String>) -> Unit,
         applyLegacyPlanSettings: suspend (WizardAnswers, String?, Long?) -> Long?,
     ): Boolean {
         val prefs = dataStore.data.first()
@@ -115,6 +115,7 @@ class RestoreJournal(
         } else {
             storedId
         }
+        applyLegacySessionNotes(staged.legacySessionNotesFlow.first())
         settings.restore(
             global = staged.globalLifterFlow.first(),
             unit = staged.unitFlow.first(),
@@ -125,7 +126,6 @@ class RestoreJournal(
             topSetHelperSeen = staged.topSetHelperSeenFlow.first(),
             supersetHelperSeen = staged.supersetHelperSeenFlow.first(),
             themePreference = staged.themePreferenceFlow.first(),
-            sessionNotes = staged.sessionNotesFlow.first(),
         )
         clear()
         return true

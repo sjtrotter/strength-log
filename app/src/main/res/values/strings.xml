@@ -697,4 +697,10 @@
         <item quantity="one">%1$s · %2$d set done</item>
         <item quantity="other">%1$s · %2$d sets done</item>
     </plurals>
+    <string name="day_edit_next_time">Next time</string>
+    <string name="day_edit_next_time_last">Last results</string>
+    <string name="day_edit_next_time_plan">Plan</string>
+    <string name="day_edit_reset_to_plan">Reset to plan</string>
+    <string name="day_edit_reset_to_plan_confirm_title">Reset to plan?</string>
+    <string name="day_edit_reset_to_plan_confirm_body">Next time starts from the plan instead of your last results.</string>
 </resources>

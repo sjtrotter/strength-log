@@ -99,7 +99,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, 12, 13, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -141,12 +141,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         // Future fields stay unknown in old versions, even when they have the wrong type.
         val withDayFields = if (version < 11) withoutFutureDayFields(shaped, version) else shaped
         val withRunFields = if (version < 13) withoutRunFields(withDayFields) else withDayFields
+        val withSlotAndNoteFields = if (version < 14) withoutSlotAndNoteFields(withRunFields) else withRunFields
         val versioned = if (version < 12) {
-            val sessions = withRunFields["cardioSessions"] as? JsonArray
-            if (sessions == null) withRunFields else JsonObject(withRunFields + ("cardioSessions" to JsonArray(
+            val sessions = withSlotAndNoteFields["cardioSessions"] as? JsonArray
+            if (sessions == null) withSlotAndNoteFields else JsonObject(withSlotAndNoteFields + ("cardioSessions" to JsonArray(
                 sessions.map { if (it is JsonObject) JsonObject(it - "activity" - "sets") else it },
             )))
-        } else withRunFields
+        } else withSlotAndNoteFields
         val document = try {
             json.decodeFromJsonElement(BackupDocument.serializer(), versioned)
         } catch (e: SerializationException) {
@@ -156,6 +157,33 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             throw BackupError.Malformed("program must be empty in schema v$version")
         }
         return document
+    }
+
+    private fun withoutSlotAndNoteFields(root: JsonObject): JsonObject {
+        fun stripDays(value: JsonElement?): JsonElement? = (value as? JsonArray)?.let { days ->
+            JsonArray(days.map { day ->
+                if (day !is JsonObject) day else {
+                    val exercises = day["exercises"] as? JsonArray
+                    if (exercises == null) day else JsonObject(day + ("exercises" to JsonArray(exercises.map {
+                        if (it is JsonObject) JsonObject(it - "keepToPlan") else it
+                    })))
+                }
+            })
+        } ?: value
+        return JsonObject(root.toMutableMap().apply {
+            stripDays(get("program"))?.let { put("program", it) }
+            (get("plans") as? JsonArray)?.let { plans ->
+                put("plans", JsonArray(plans.map { plan ->
+                    if (plan !is JsonObject) plan else {
+                        val days = stripDays(plan["days"])
+                        if (days == null) plan else JsonObject(plan + ("days" to days))
+                    }
+                }))
+            }
+            (get("sessions") as? JsonArray)?.let { sessions ->
+                put("sessions", JsonArray(sessions.map { if (it is JsonObject) JsonObject(it - "note") else it }))
+            }
+        })
     }
 
     private fun withoutRunFields(root: JsonObject): JsonObject {

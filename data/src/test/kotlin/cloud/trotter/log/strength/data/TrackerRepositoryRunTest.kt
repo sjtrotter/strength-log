@@ -224,9 +224,9 @@ class TrackerRepositoryRunTest {
     private suspend fun authored(): Long {
         val plan = repo.createAuthoredPlan("Authored", "Day A")
         repo.publishCreatedAuthoredPlan(plan)
-        repo.addExercise("A", ProgramExercise("bb_back_squat", prescription = Prescription(PrescribedTarget.LoadReps(50.0, 10))))
+        repo.addExercise("A", ProgramExercise("bb_back_squat", prescription = Prescription(PrescribedTarget.LoadReps(50.0, 10)), keepToPlan = true))
         repo.addDay(plan, "Day B")
-        repo.addExercise("B", ProgramExercise("bb_bench", prescription = Prescription(PrescribedTarget.LoadReps(50.0, 10))))
+        repo.addExercise("B", ProgramExercise("bb_bench", prescription = Prescription(PrescribedTarget.LoadReps(50.0, 10)), keepToPlan = true))
         return plan
     }
     private suspend fun start(plan: Long, dayId: String = "A"): String {
@@ -269,7 +269,7 @@ class TrackerRepositoryRunTest {
     private fun generated() = Program(listOf(
         ProgramDay("A", "Day A", "", listOf(
             ProgramExercise("bb_back_squat", isMain = true, superset = SupersetPartner("ez_curl")),
-            ProgramExercise("bb_bench", prescription = Prescription(PrescribedTarget.LoadReps(50.0, 10))),
+            ProgramExercise("bb_bench", prescription = Prescription(PrescribedTarget.LoadReps(50.0, 10)), keepToPlan = true),
         ), null),
         ProgramDay("B", "Day B", "", listOf(ProgramExercise("bb_bench")), null),
     ))
@@ -402,7 +402,7 @@ class TrackerRepositoryRunTest {
     }
 
     /** [F] */
-    @Test fun `finish archives prescriptions and row identity and carries forward by prescription`() = runTest {
+    @Test fun `finish archives prescriptions and row identity and carries forward by next time choice`() = runTest {
         repo.replaceProgram(generated())
         val plan = repo.plansFlow.first().single().id
         val slots = db.programDao().exercisesForDay(plan, "A")
@@ -604,7 +604,9 @@ class TrackerRepositoryRunTest {
         repo.publishCreatedPlan(plan, answers)
         db.programDao().closeDay(plan, "A", day(plan).nextRunId, 1000)
         val before = day(plan)
+        repo.setKeepToPlan(slot(plan), true)
         repo.resetDayToTemplate("A")
+        assertTrue(db.programDao().exercisesForDay(plan, "A").none { it.keepToPlan })
         assertEquals(before.nextRunId, day(plan).nextRunId)
         assertEquals(before.closedAt, day(plan).closedAt)
     }
@@ -722,5 +724,151 @@ class TrackerRepositoryRunTest {
         db.programDao().deleteExercise(slots.last().id)
         repo.finishRun(id)
         assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+    }
+
+    @Test fun `kept slot without a prescription clears working values and next read seeds goal math`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        repo.setKeepToPlan(slot, true)
+        assertNull(db.programDao().exercise(slot)!!.prescriptionJson)
+        val seed = squat()
+        repo.seedIfEmpty("A", slot, Slot.MAIN, seed)
+        val runId = day(plan).nextRunId
+        repo.applyToRun(runId, plan, "A", listOf(tick(slot), weight(slot, 300.0)))
+
+        repo.finishRun(runId)
+
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+        assertTrue(repo.seedIfEmpty("A", slot, Slot.MAIN, seed))
+        assertEquals(seed, repo.dayTracksFlow(plan, "A").first().tracks.single().sets)
+    }
+
+    @Test fun `remembered prescribed slot carries forward the run track`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setKeepToPlan(slot, false)
+        repo.seedIfEmpty("A", slot, Slot.MAIN, work())
+        val runId = start(plan)
+        repo.applyToRun(runId, plan, "A", listOf(weight(slot, 75.0)))
+        val track = repo.openRunFlow.first()!!.tracks.single()
+
+        repo.finishRun(runId)
+
+        assertEquals(CarryForward.next(track.planned, track.sets),
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+    }
+
+    @Test fun `remembered prescription carries forward until a mid run shape change clears both tracks`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val storedPlan = db.planDao().plan(plan)!!
+        db.planDao().updatePlan(storedPlan.copy(origin = "AUTHORED", recipeJson = null))
+        val slot = slot(plan)
+        val reps = Prescription(PrescribedTarget.Reps(12))
+        repo.setPrescription(slot, reps, 3)
+        val seed = SetSeeder.seedPrescribed(3, reps)
+        repo.seedIfEmpty("A", slot, Slot.MAIN, seed)
+        repo.seedIfEmpty("A", slot, Slot.SS, work())
+        var runId = day(plan).nextRunId
+        repo.applyToRun(runId, plan, "A", listOf(tick(slot)))
+        val firstTrack = repo.openRunFlow.first()!!.tracks.first { it.slot == Slot.MAIN }
+        repo.finishRun(runId)
+        assertEquals(CarryForward.next(firstTrack.planned, firstTrack.sets),
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+
+        runId = day(plan).nextRunId
+        repo.applyToRun(runId, plan, "A", listOf(tick(slot)))
+        val performed = repo.openRunFlow.first()!!.tracks
+        repo.setPrescription(slot, Prescription(PrescribedTarget.Hold(45)), 3)
+        assertEquals(performed, repo.openRunFlow.first()!!.tracks)
+
+        val session = repo.finishRun(runId)!!
+
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
+        assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
+        performed.forEach { track ->
+            val archived = repo.sessionSets(session).filter { it.slot == track.slot }
+            assertEquals(track.sets.map { it.reps }, archived.map { it.reps })
+            assertEquals(track.sets.map { it.done }, archived.map { it.done })
+            assertEquals(track.sets.map { it.seconds }, archived.map { it.seconds })
+        }
+    }
+
+    @Test fun `switching to plan mid run then discarding leaves goal math as the next seed`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        repo.seedIfEmpty("A", slot, Slot.MAIN, squat())
+        repo.seedIfEmpty("A", slot, Slot.SS, work())
+        val runId = day(plan).nextRunId
+        repo.applyToRun(runId, plan, "A", listOf(tick(slot)))
+        val captured = db.runDao().tracks(runId)
+
+        repo.setKeepToPlan(slot, true)
+
+        assertEquals(captured, db.runDao().tracks(runId))
+        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+        assertTrue(repo.discardRun(runId))
+        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+        assertTrue(repo.seedIfEmpty("A", slot, Slot.MAIN, squat()))
+        assertEquals(squat(), repo.dayTracksFlow(plan, "A").first().tracks.single().sets)
+    }
+
+    @Test fun `reset to plan clears both tracks and refuses kept slots and the open day`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        suspend fun seedPair() {
+            repo.seedIfEmpty("A", slot, Slot.MAIN, squat())
+            repo.seedIfEmpty("A", slot, Slot.SS, work())
+        }
+        seedPair()
+        assertEquals(2, db.programDao().logsForDay(plan, "A").size)
+        assertTrue(repo.resetSlotToPlan(slot))
+        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+        seedPair()
+        val runId = day(plan).nextRunId
+        repo.applyToRun(runId, plan, "A", listOf(tick(slot)))
+        val logs = db.programDao().allLogs()
+        val tracks = db.runDao().tracks(runId)
+        assertFalse(repo.resetSlotToPlan(slot))
+        assertEquals(logs, db.programDao().allLogs())
+        assertEquals(tracks, db.runDao().tracks(runId))
+        val other = slot(plan, "B")
+        repo.seedIfEmpty("B", other, Slot.MAIN, work())
+        assertTrue(repo.resetSlotToPlan(other))
+        repo.discardRun(runId)
+        repo.setKeepToPlan(slot, true)
+        seedPair()
+        val keptLogs = db.programDao().allLogs()
+        assertFalse(repo.resetSlotToPlan(slot))
+        assertEquals(keptLogs, db.programDao().allLogs())
+    }
+
+    @Test fun `empty planned main track never triggers the prescription shape check`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        repo.setKeepToPlan(slot, false)
+        val runId = start(plan)
+        val main = db.runDao().tracks(runId).single()
+        db.runDao().updateTrack(main.copy(plannedJson = "[]"))
+        repo.finishRun(runId)
+        assertEquals(CarryForward.next(emptyList(), SetJson.decodeSets(main.setsJson)),
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
+    }
+
+    @Test fun `both swap entry points keep the slots next time choice`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val slot = slot(plan)
+        repo.setKeepToPlan(slot, true)
+        repo.swapExercise("A", 0, "hack_squat")
+        assertTrue(db.programDao().exercise(slot)!!.keepToPlan)
+        assertTrue(repo.swapExerciseById("A", slot, "bb_back_squat"))
+        assertTrue(repo.daySlotsFlow("A").first().first().exercise.keepToPlan)
+        repo.setKeepToPlan(slot, false)
+        repo.swapExercise("A", 0, "hack_squat")
+        assertFalse(repo.daySlotsFlow("A").first().first().exercise.keepToPlan)
     }
 }

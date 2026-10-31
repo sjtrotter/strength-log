@@ -45,7 +45,6 @@ data class FullSnapshot(
     val keepScreenOn: Boolean = false,
     val topSetHelperSeen: Boolean = false,
     val supersetHelperSeen: Boolean = false,
-    val sessionNotes: Map<Long, String> = emptyMap(),
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
     /** Empty legacy snapshots become one plan when [answersCarryRecipe] is true. */
     val plans: List<PlanEntity> = emptyList(),

@@ -44,7 +44,7 @@ class BackupV10Test {
         days = listOf(ProgramDayEntity(1, "A", 0, "Physio day", "", null)),
         exercises = prescriptions.mapIndexed { index, prescription ->
             ProgramExercise("plank", targetSets = 2, note = "physio note", prescription = prescription)
-                .toEntity(1, "A", index).copy(id = index + 1L)
+                .toEntity(1, "A", index).copy(id = index + 1L, keepToPlan = true)
         },
         customExercises = emptyList(),
         logs = emptyList(),
@@ -78,10 +78,10 @@ class BackupV10Test {
 
     @Test
     fun `a v9 file without the prescription field restores its original rows`() {
-        val expected = snapshot().copy(exercises = snapshot().exercises.map { it.copy(prescriptionJson = null) })
+        val expected = snapshot().copy(exercises = snapshot().exercises.map { it.copy(prescriptionJson = null, keepToPlan = false) })
         // A literal v9-shaped file: the additive v10 key is absent entirely.
-        val document = expected.toDocument().copy(schemaVersion = 9)
-        val v9 = codec.encode(document).replace(",\"prescriptionJson\":null", "")
+        val document = expected.toDocument().withoutV14Fields().copy(schemaVersion = 9)
+        val v9 = codec.encode(document).replace(",\"prescriptionJson\":null", "").replace(",\"keepToPlan\":null", "")
         val decoded = codec.decode(v9)
         assertEquals(document, decoded)
         assertEquals(expected.exercises, decoded.toSnapshot().exercises)

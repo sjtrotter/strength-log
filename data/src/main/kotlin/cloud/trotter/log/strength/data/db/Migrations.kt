@@ -398,6 +398,14 @@ fun migration13To14(today: () -> LocalDate, now: () -> Long, mint: () -> String)
 
 val MIGRATION_13_14 = migration13To14({ LocalDate.now() }, System::currentTimeMillis) { UUID.randomUUID().toString() }
 
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE program_exercise ADD COLUMN keepToPlan INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE program_exercise SET keepToPlan = 1 WHERE prescriptionJson IS NOT NULL")
+        db.execSQL("ALTER TABLE workout_session ADD COLUMN note TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 private fun Cursor.string(name: String): String = getString(getColumnIndexOrThrow(name))
 private fun Cursor.long(name: String): Long = getLong(getColumnIndexOrThrow(name))
 private fun Cursor.int(name: String): Int = getInt(getColumnIndexOrThrow(name))

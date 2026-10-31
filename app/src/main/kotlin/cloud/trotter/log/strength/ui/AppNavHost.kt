@@ -472,6 +472,8 @@ internal fun DayRoute(
             onRemove = viewModel::removeDaySlot,
             onSetSuperset = viewModel::setDaySlotSuperset,
             onRemoveSuperset = viewModel::removeDaySlotSuperset,
+            onSetKeepToPlan = viewModel::setDaySlotKeepToPlan,
+            onResetSlotToPlan = viewModel::resetDaySlotToPlan,
             onResetToTemplate = viewModel::resetDayToTemplate,
             onMove = viewModel::moveDaySlot,
             onOpenPrescription = viewModel::openPrescription,

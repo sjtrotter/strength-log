@@ -60,4 +60,15 @@ class DeltaContextTest {
             cardio.planId,
         )
     }
+
+    /** [F] */
+    @Test
+    fun `tick undo and swap echo the installed run`() {
+        val snapshot = oldSnapshot.copy(runId = "r-1")
+        val tick = buildTickDelta("A", 7L, 0, 100L, 200L, snapshot = snapshot)
+        val undo = buildUndoDelta("A", 7L, 0, 300L, snapshot = snapshot)
+        val swap = buildSwapDelta(snapshot, 7L, WatchAlternate("hack_squat", "Hack Squat"), 400L)
+        assertEquals(listOf("r-1", "r-1", "r-1"), listOf(tick.runId, undo.runId, swap.runId))
+        assertEquals(null, buildSwapDelta(oldSnapshot, 7L, WatchAlternate("hack_squat", "Hack Squat"), 500L).runId)
+    }
 }

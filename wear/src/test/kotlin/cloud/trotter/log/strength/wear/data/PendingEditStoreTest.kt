@@ -31,11 +31,10 @@ import kotlin.test.assertEquals
 class PendingEditStoreTest {
 
     private val scope = CoroutineScope(Dispatchers.IO + Job())
-    private val store = PendingEditStore(
-        PreferenceDataStoreFactory.create(scope = scope) {
-            File.createTempFile("pending-edits", ".preferences_pb").also { it.delete() }
-        },
-    )
+    private val dataStore = PreferenceDataStoreFactory.create(scope = scope) {
+        File.createTempFile("pending-edits", ".preferences_pb").also { it.delete() }
+    }
+    private val store = PendingEditStore(dataStore)
 
     @AfterTest
     fun tearDown() = scope.cancel()
@@ -185,5 +184,79 @@ class PendingEditStoreTest {
         assertEquals(1_000L, store.issueStamp(1_000L))
         assertEquals(1_001L, store.issueStamp(1_000L)) // same wall-clock ms
         assertEquals(1_002L, store.issueStamp(900L)) // clock went backwards
+    }
+
+    /** [F] */
+    @Test
+    fun `delivery of a replaced exercise is persisted before snapshot settlement`() = runTest {
+        val edit = delta(setIndex = 1, done = true, stamp = 10)
+            .copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        val replaced = snapshot.copy(planId = 1, runId = "r-1", day = snapshot.day.copy(
+            exercises = snapshot.day.exercises.map { it.copy(exerciseId = "hack_squat") },
+        ))
+        store.enqueue(edit)
+        store.reconcileAgainst(replaced)
+        assertEquals(listOf(edit), store.all())
+        store.markDelivered(edit)
+        val restored = PendingEditStore(dataStore)
+        assertEquals(listOf(edit), restored.all())
+        restored.reconcileAgainst(replaced)
+        assertEquals(emptyList(), restored.all())
+    }
+
+    /** [F] */
+    @Test
+    fun `delivery after a replaced snapshot settles only that edit`() = runTest {
+        val edit = delta(setIndex = 1, done = true, stamp = 10)
+            .copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        val other = delta(setIndex = 0, done = true, stamp = 11).copy(programExerciseId = 9)
+        val replaced = snapshot.copy(planId = 1, runId = "r-1", day = snapshot.day.copy(
+            exercises = snapshot.day.exercises.map { it.copy(exerciseId = "hack_squat") },
+        ))
+        store.enqueue(edit)
+        store.enqueue(other)
+        store.markDelivered(edit, replaced)
+        assertEquals(listOf(other), store.all())
+    }
+
+    /** [F] */
+    @Test
+    fun `both run-aware queues survive another day and settle on their own closed run`() = runTest {
+        val edit = delta(setIndex = 1, done = true, stamp = 10).copy(planId = 1, runId = "r-a")
+        val replacement = swap(stamp = 11).copy(planId = 1, runId = "r-a")
+        store.enqueue(edit)
+        store.enqueueSwap(replacement)
+        store.reconcileAgainst(snapshot.copy(planId = 1, runId = "r-b", day = snapshot.day.copy(dayId = "B")))
+        assertEquals(listOf(edit), store.all())
+        assertEquals(listOf(replacement), store.allSwaps())
+        store.reconcileAgainst(snapshot.copy(planId = 1, runId = "r-next"))
+        assertEquals(emptyList(), store.all())
+        assertEquals(emptyList(), store.allSwaps())
+    }
+
+    /** [F] */
+    @Test
+    fun `both queues settle hidden-day edits only after persisted delivery in either order`() = runTest {
+        val otherDay = snapshot.copy(planId = 1, runId = "r-b", day = snapshot.day.copy(dayId = "B"))
+        for (deliveredFirst in listOf(false, true)) {
+            val stamp = if (deliveredFirst) 20L else 10L
+            val edit = delta(setIndex = 1, done = true, stamp = stamp).copy(planId = 1, runId = "r-a")
+            val replacement = swap(stamp = stamp + 1).copy(planId = 1, runId = "r-a")
+            store.enqueue(edit)
+            store.enqueueSwap(replacement)
+            if (deliveredFirst) {
+                store.markDelivered(edit)
+                store.markDelivered(replacement)
+                PendingEditStore(dataStore).reconcileAgainst(otherDay)
+            } else {
+                store.reconcileAgainst(otherDay)
+                assertEquals(listOf(edit), store.all())
+                assertEquals(listOf(replacement), store.allSwaps())
+                store.markDelivered(edit, otherDay)
+                store.markDelivered(replacement, otherDay)
+            }
+            assertEquals(emptyList(), store.all())
+            assertEquals(emptyList(), store.allSwaps())
+        }
     }
 }

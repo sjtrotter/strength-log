@@ -76,6 +76,58 @@ class DataLayerWatchClientTest {
             beforeInstallLock = beforeInstallLock,
         )
 
+    /** [F] */
+    @Test
+    fun `a replaced exercise stays queued after a failed send and settles after reconnect delivery`() = runBlocking {
+        val queue = store()
+        val edit = tickDelta().copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        queue.enqueue(edit)
+        val replaced = phoneSnapshot(revision = 1).let { snapshot ->
+            snapshot.copy(planId = 1, runId = "r-1", retiredRoundsDone = 2, day = snapshot.day.copy(
+                exercises = snapshot.day.exercises.map { it.copy(exerciseId = "hack_squat") },
+            ))
+        }
+        val link = FakePhoneLink().apply {
+            cached = replaced
+            sendSucceeds = false
+        }
+        val client = watchClient(link, queue)
+        eventually("replacement snapshot") { client.snapshotFlow().first().revision == 1L }
+        eventually("reconnect listener") { link.reachability.subscriptionCount.value > 0 }
+        eventually("failed offline send") { link.failedSendCount > 0 }
+        assertEquals(replaced, client.snapshotFlow().first())
+        assertEquals(listOf(edit), queue.all())
+        assertTrue(link.sentDeltas.isEmpty())
+        link.sendSucceeds = true
+        link.reachability.emit(true)
+        eventually("delivered retired edit settles without another snapshot") { queue.all().isEmpty() }
+        assertEquals(listOf(edit), link.sentDeltas)
+        assertEquals(replaced, client.snapshotFlow().first())
+        assertTrue(warnings.isEmpty(), "unexpected warnings: $warnings")
+    }
+
+    /** [F] */
+    @Test
+    fun `delivery before a swap snapshot settles the retired edit without checking the replacement`() = runBlocking {
+        val queue = store()
+        val edit = tickDelta().copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
+        queue.enqueue(edit)
+        val original = phoneSnapshot(revision = 1).copy(planId = 1, runId = "r-1")
+        val link = FakePhoneLink().apply { cached = original }
+        val client = watchClient(link, queue)
+        eventually("edit sent") { link.sentDeltas.isNotEmpty() }
+        eventually("snapshot listener") { link.snapshotEvents.subscriptionCount.value > 0 }
+        assertEquals(listOf(edit), queue.all())
+        val replaced = original.copy(revision = 2, retiredRoundsDone = 1, day = original.day.copy(
+            exercises = original.day.exercises.map { it.copy(exerciseId = "hack_squat") },
+        ))
+        link.snapshotEvents.emit(replaced)
+        eventually("swap snapshot installed") { client.snapshotFlow().first().revision == 2L }
+        eventually("delivered edit settled") { queue.all().isEmpty() }
+        assertEquals(replaced, client.snapshotFlow().first())
+        assertTrue(warnings.isEmpty(), "unexpected warnings: $warnings")
+    }
+
     @Test
     fun `structured cardio receipt receives durable issued stamp and settles only on cardio ack`() = runBlocking {
         val queue = store()
@@ -141,7 +193,7 @@ class DataLayerWatchClientTest {
         val queue = store()
         val link = FakePhoneLink()
         val offline = object : PhoneLink by link {
-            override suspend fun send(path: String, bytes: ByteArray) { throw IOException("offline") }
+            override suspend fun send(path: String, bytes: ByteArray): Boolean { throw IOException("offline") }
         }
         val client = DataLayerWatchClient(offline, queue, appScope,
             onWarning = { message, cause -> warnings += "$message: $cause" })

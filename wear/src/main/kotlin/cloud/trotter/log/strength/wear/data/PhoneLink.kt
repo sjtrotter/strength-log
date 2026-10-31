@@ -43,10 +43,10 @@ interface PhoneLink {
     fun phoneReachability(): Flow<Boolean>
 
     /**
-     * Fires one message at the phone. Never throws: an unreachable phone is the normal
-     * case on a wrist, and the delta stays queued for the next drain (§11.4).
+     * True only after at least one node accepts the message. An unreachable phone or
+     * failed send returns false so an undelivered retired-track edit stays queued.
      */
-    suspend fun send(path: String, bytes: ByteArray)
+    suspend fun send(path: String, bytes: ByteArray): Boolean
 }
 
 /**

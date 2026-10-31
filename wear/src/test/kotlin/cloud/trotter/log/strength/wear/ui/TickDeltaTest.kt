@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.wear.ui
 
+import cloud.trotter.log.strength.domain.sync.WatchDay
+import cloud.trotter.log.strength.domain.sync.WatchExercise
+import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -76,5 +79,25 @@ class TickDeltaTest {
             assertNull(delta.startedAtMillis)
             assertNull(delta.completedAtMillis)
         }
+    }
+
+    /** [F] */
+    @Test
+    fun `tick and undo carry the main exercise identity and nullable run`() {
+        for (exerciseId in listOf("bb_back_squat", "", "   ")) {
+            val main = WatchExercise(7L, "main", "Squat", 235.0, false, null, emptyList(), emptyList(), exerciseId = exerciseId)
+            val snapshot = WatchSnapshot(
+                revision = 1, suggestedDayId = "A", unit = "lb", runId = "r-1",
+                day = WatchDay("A", "A", 0, listOf(main.copy(slot = "ss", exerciseId = "partner"), main)),
+            )
+            val tick = buildTickDelta("A", 7L, 0, 100L, 200L, snapshot = snapshot)
+            val undo = buildUndoDelta("A", 7L, 0, 300L, snapshot = snapshot)
+            for (delta in listOf(tick, undo)) {
+                assertEquals("r-1", delta.runId)
+                assertEquals(exerciseId.takeIf { it.isNotBlank() }, delta.exerciseId)
+            }
+        }
+        assertNull(buildTickDelta("A", 7L, 0, null, 200L).exerciseId)
+        assertNull(buildUndoDelta("A", 7L, 0, 300L).exerciseId)
     }
 }

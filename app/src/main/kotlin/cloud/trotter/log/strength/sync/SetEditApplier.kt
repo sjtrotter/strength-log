@@ -19,9 +19,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Old-watch deltas edit only an existing run on the addressed plan and day.
- * They never start a run and must be newer than the day's closedAt. Row stamps
- * commit with the edits; paired ticks commit in the same Room transaction.
+ * Deltas with a run go through the gate: a closed or unknown run is rejected,
+ * and a done tick on the day's next run starts it. This closes #296 for updated watches.
+ * Deltas without a run are an old watch: bounded by closedAt, never starting a run.
+ * Row stamps and paired ticks commit with the edits in the same Room transaction.
  */
 class SetEditApplier(
     private val repo: TrackerRepository,
@@ -52,7 +53,10 @@ class SetEditApplier(
         val catalog = repo.catalogFlow.first()
         var declined: Outcome? = null
         val edits = mutableListOf<TrackEdit>()
-        fun edit(trackSlot: String, values: Boolean): TrackEdit = TrackEdit(delta.programExerciseId, trackSlot) { track ->
+        fun edit(trackSlot: String, values: Boolean): TrackEdit = TrackEdit(
+            delta.programExerciseId, trackSlot,
+            exerciseId = delta.exerciseId?.takeIf { delta.runId != null && values && it.isNotBlank() },
+        ) { track ->
             val row = track.getOrNull(delta.setIndex)
             if (row == null) {
                 if (values) {
@@ -79,19 +83,33 @@ class SetEditApplier(
                 }
             }
         }
+        val tracks = repo.dayTracksFlow(planId, delta.dayId).first().tracks
+        val seeds = if (delta.runId == null) emptyList() else {
+            val existing = tracks
+                .associate { (it.programExerciseId to it.slot) to it.sets.size }
+            val cfg = repo.wizardAnswersFor(planId).first().config
+            DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
+                .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
+        }
         edits.add(edit(delta.slot, true))
         if (delta.done != null) {
             val otherSlot = if (delta.slot == Slot.MAIN) Slot.SS else Slot.MAIN
-            val tracks = repo.dayTracksFlow(planId, delta.dayId).first().tracks
-            if (tracks.any { it.programExerciseId == delta.programExerciseId && it.slot == otherSlot && it.sets.isNotEmpty() }) {
+            if (tracks.any { it.programExerciseId == delta.programExerciseId && it.slot == otherSlot && it.sets.isNotEmpty() } ||
+                seeds.any { it.programExerciseId == delta.programExerciseId && it.slot == otherSlot && it.sets.isNotEmpty() }) {
                 edits.add(edit(otherSlot, false))
             }
         }
-        return when (repo.applyToOpenRun(planId, delta.dayId, delta.editedAtMillis, edits)) {
+        val runId = delta.runId
+        val result = if (runId == null) {
+            repo.applyToOpenRun(planId, delta.dayId, delta.editedAtMillis, edits)
+        } else {
+            repo.applyToRun(runId, planId, delta.dayId, edits, seeds)
+        }
+        return when (result) {
             is RunWriteResult.InRun -> Outcome.APPLIED
             RunWriteResult.Rejected -> Outcome.REJECTED
             RunWriteResult.Unchanged -> declined ?: Outcome.INVALID
-            RunWriteResult.WorkingValues -> Outcome.REJECTED
+            RunWriteResult.WorkingValues -> Outcome.APPLIED
         }
     }
 
@@ -108,7 +126,7 @@ class SetEditApplier(
      *
      * Validation and reseeding follow the slot's plan, independent of selection.
      *
-     * Four guards, in this order:
+     * Guards:
      *  - **Validation** — the day must hold a slot with this `programExerciseId`.
      *  - **Already there** — a slot already holding the requested exercise is
      *    [Outcome.APPLIED] with no write, and it is checked before anything that
@@ -127,6 +145,8 @@ class SetEditApplier(
      *    an enforced invariant, not a convention, because this arrives through an
      *    exported service. It also rejects, correctly, a swap chosen against a
      *    snapshot the phone has since moved past.
+     *  - **Run identity** — validated inside the swap transaction so Finish cannot
+     *    retarget a delayed swap to another run.
      */
     suspend fun apply(swap: ExerciseSwapDelta): Outcome = mutationLock.withLock {
         val planId = swap.planId ?: repo.planIdOfSlot(swap.programExerciseId) ?: return Outcome.INVALID
@@ -144,7 +164,9 @@ class SetEditApplier(
         val prescribed = WatchSnapshotBuilder.alternatesFor(slot.exercise.exerciseId, catalog, equipment)
         if (prescribed.none { it.exerciseId == swap.exerciseId }) return Outcome.INVALID
 
-        repo.swapExerciseById(swap.dayId, swap.programExerciseId, swap.exerciseId)
+        if (!repo.swapExerciseById(swap.dayId, swap.programExerciseId, swap.exerciseId, swap.runId)) {
+            return Outcome.REJECTED
+        }
         seedSwappedSlot(planId, swap.dayId, swap.programExerciseId, catalog)
         markers.markApplied(rowKey, swap.editedAtMillis)
         return Outcome.APPLIED

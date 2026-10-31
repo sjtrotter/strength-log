@@ -24,4 +24,7 @@ object WearSyncPaths {
 
     /** MessageClient: one completed cardio session (watch -> phone). */
     const val CARDIO = "$PREFIX/cardio"
+
+    /** Reserved for step 6; this phone has no handler. */
+    const val RUN_FINISH = "$PREFIX/run-finish"
 }

@@ -99,4 +99,13 @@ class AmbientDialStateTest {
         assertEquals(0f, state.dayProgress)
         assertEquals("10:42", state.centerText)
     }
+
+    /** [F] */
+    @Test
+    fun `retired rounds count toward ambient progress`() {
+        val swapped = snapshot(exercise(1L, listOf(false, false, false))).copy(retiredRoundsDone = 2)
+        val state = ambientDialState(swapped, timeText = "10:42")
+        assertEquals("DAY A · 2/5", state.topText)
+        assertEquals(2f / 5f, state.dayProgress)
+    }
 }

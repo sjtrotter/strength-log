@@ -46,10 +46,12 @@ internal class FakePhoneLink(private val clockMillis: () -> Long = { 0L }) : Pho
 
     /** How long a send takes; non-zero makes an overlapping drain observable. */
     var sendDurationMillis = 0L
+    var sendSucceeds = true
 
     private val wire: MutableList<Pair<String, ByteArray>> = Collections.synchronizedList(mutableListOf())
     private val inFlight = AtomicInteger()
     private val peakInFlight = AtomicInteger()
+    private val failedSends = AtomicInteger()
 
     val sentDeltas: List<SetEditDelta>
         get() = bytesOn(WearSyncPaths.SET_EDIT).map(SyncCodec::decodeDelta)
@@ -59,6 +61,7 @@ internal class FakePhoneLink(private val clockMillis: () -> Long = { 0L }) : Pho
 
     /** The most sends ever in flight at once — 1 unless two drains overlapped. */
     val peakConcurrentSends: Int get() = peakInFlight.get()
+    val failedSendCount: Int get() = failedSends.get()
 
     override suspend fun cachedSnapshot(): WatchSnapshot? = cached
 
@@ -78,11 +81,16 @@ internal class FakePhoneLink(private val clockMillis: () -> Long = { 0L }) : Pho
         emitAll(reachability)
     }
 
-    override suspend fun send(path: String, bytes: ByteArray) {
+    override suspend fun send(path: String, bytes: ByteArray): Boolean {
         peakInFlight.accumulateAndGet(inFlight.incrementAndGet()) { a, b -> maxOf(a, b) }
         try {
             if (sendDurationMillis > 0) delay(sendDurationMillis)
+            if (!sendSucceeds) {
+                failedSends.incrementAndGet()
+                return false
+            }
             wire += path to bytes
+            return true
         } finally {
             inFlight.decrementAndGet()
         }

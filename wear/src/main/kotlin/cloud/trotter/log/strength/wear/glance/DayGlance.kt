@@ -93,7 +93,7 @@ data class DayGlance(
 
         fun of(snapshot: WatchSnapshot?): DayGlance {
             val day = snapshot?.day ?: return NONE
-            val progress = DayProgress.of(day)
+            val progress = DayProgress.of(snapshot)
             // A day with no sets is nothing to glance at, but it still has an accent —
             // keep it so the surface doesn't flip to day A's orange mid-rotation.
             if (progress.total == 0) return NONE.copy(accentIndex = day.accentIndex)

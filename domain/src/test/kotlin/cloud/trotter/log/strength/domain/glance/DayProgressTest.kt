@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.glance
 
+import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
@@ -35,4 +36,13 @@ class DayProgressTest {
     )
 
     private fun set(done: Boolean) = WatchSet(0.0, 5, "WORK", done)
+
+    /** [F] */
+    @Test
+    fun `snapshot counts include done rounds from retired main tracks`() {
+        val day = WatchDay("A", "Upper", 0, listOf(exercise(listOf(true, false, false), emptyList())))
+        val snapshot = WatchSnapshot(revision = 1, suggestedDayId = "A", day = day, unit = "lb", retiredRoundsDone = 2)
+        assertEquals(DayProgress(done = 3, total = 5), DayProgress.of(snapshot))
+        assertEquals(DayProgress.of(day), DayProgress.of(snapshot.copy(retiredRoundsDone = null)))
+    }
 }

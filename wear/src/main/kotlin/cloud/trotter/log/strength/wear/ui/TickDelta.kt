@@ -32,6 +32,10 @@ fun buildTickDelta(
     reps = reps,
     editedAtMillis = editedAtMillis,
     planId = snapshot?.planId,
+    runId = snapshot?.runId,
+    exerciseId = snapshot?.day?.exercises?.firstOrNull {
+        it.programExerciseId == programExerciseId && it.slot == SLOT_MAIN
+    }?.exerciseId?.takeIf { it.isNotBlank() },
     startedAtMillis = startedAtMillis?.takeIf { it > 0L },
     completedAtMillis = completedAtMillis,
 )
@@ -57,6 +61,10 @@ fun buildUndoDelta(
     done = false,
     editedAtMillis = editedAtMillis,
     planId = snapshot?.planId,
+    runId = snapshot?.runId,
+    exerciseId = snapshot?.day?.exercises?.firstOrNull {
+        it.programExerciseId == programExerciseId && it.slot == SLOT_MAIN
+    }?.exerciseId?.takeIf { it.isNotBlank() },
 )
 
 /** The watch only ever ticks the main track; a superset partner follows its round. */

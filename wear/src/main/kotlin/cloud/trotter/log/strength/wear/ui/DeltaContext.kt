@@ -17,4 +17,5 @@ fun buildSwapDelta(
     exerciseName = alternate.name,
     editedAtMillis = editedAtMillis,
     planId = snapshot.planId,
+    runId = snapshot.runId,
 )

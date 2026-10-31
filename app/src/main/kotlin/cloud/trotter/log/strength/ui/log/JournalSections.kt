@@ -91,12 +91,12 @@ internal fun TrajectoryCardView(card: TrajectoryCard) {
             // target say everything a line would (§1.1).
             Text(
                 card.goalLabel,
-                color = if (card.goalMet) Done else TextFaint,
+                color = if (card.goalMet) Done else TextSecondary,
                 style = MaterialTheme.typography.labelSmall,
             )
         }
         Spacer(Modifier.size(6.dp))
-        Text(card.caption, color = TextFaint, style = MaterialTheme.typography.labelSmall)
+        Text(card.caption, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -104,9 +104,9 @@ internal fun TrajectoryCardView(card: TrajectoryCard) {
 private fun TrajectoryPlot(card: TrajectoryCard, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val lineColor = accentEmphasis(card.dayIndex)
-    val goalColor = if (card.goalMet) Done else TextFaint
+    val goalColor = if (card.goalMet) Done else TextSecondary
     val faintColor = TextFaint
-    val axisStyle = MaterialTheme.typography.labelSmall.copy(color = TextFaint)
+    val axisStyle = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
     val goalStyle = MaterialTheme.typography.labelSmall.copy(color = goalColor)
     val valueStyle = StepperRepsValue.copy(color = TextPrimary)
     val description = stringResource(
@@ -187,7 +187,7 @@ private fun TrajectoryPlot(card: TrajectoryCard, modifier: Modifier) {
 @Composable
 internal fun VolumeCardView(chart: VolumeChart) {
     val measurer = rememberTextMeasurer()
-    val labelStyle = MaterialTheme.typography.labelSmall.copy(color = TextFaint)
+    val labelStyle = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
     // The ember accent is Day A's hex (spec §8.5) used here as this chart's one
     // hue — a filled bar, not a hairline, so the base accent reads fine.
     val barColor = dayAccent(0)
@@ -212,7 +212,7 @@ internal fun VolumeCardView(chart: VolumeChart) {
         Spacer(Modifier.size(6.dp))
         Text(
             pluralStringResource(R.plurals.log_volume_caption, chart.bars.size, chart.bars.size),
-            color = TextFaint,
+            color = TextSecondary,
             style = MaterialTheme.typography.labelSmall,
         )
     }
@@ -315,7 +315,7 @@ internal fun CalendarCardView(
         Row(Modifier.fillMaxWidth()) {
             WEEKDAY_INITIALS.forEach { initial ->
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Text(stringResource(initial), color = TextFaint, style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(initial), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -406,7 +406,7 @@ private fun CalendarCell(day: CalendarDay, onSelectSession: (Long) -> Unit) {
     ) {
         Text(
             text = if (trained) day.dayLetter.orEmpty() else day.dayOfMonth.toString(),
-            color = if (trained) onDayAccent(day.dayIndex) else TextFaint,
+            color = if (trained) onDayAccent(day.dayIndex) else TextSecondary,
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.clearAndSetSemantics {},
         )
@@ -429,7 +429,7 @@ private fun CalendarCell(day: CalendarDay, onSelectSession: (Long) -> Unit) {
 @Composable
 internal fun LogSectionHeader(title: String) {
     Column(Modifier.padding(top = 8.dp)) {
-        Text(title, color = TextFaint, style = MaterialTheme.typography.labelMedium)
+        Text(title, color = TextSecondary, style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.size(2.dp))
         HorizontalDivider(thickness = 1.dp, color = Border)
     }

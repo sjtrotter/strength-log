@@ -61,7 +61,6 @@ import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
-import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.dayAccent
@@ -321,7 +320,7 @@ private fun AnchorsStep(state: WizardUiState, actions: WizardActions) {
                 state.activeAnchorIds.size,
                 names,
             ),
-            color = TextFaint,
+            color = TextSecondary,
             style = MaterialTheme.typography.bodySmall,
         )
     }
@@ -539,7 +538,7 @@ private fun RotationStep(state: WizardUiState) {
     }
     Text(
         stringResource(R.string.wizard_rotation_continuity),
-        color = TextFaint,
+        color = TextSecondary,
         style = MaterialTheme.typography.bodySmall,
     )
 }

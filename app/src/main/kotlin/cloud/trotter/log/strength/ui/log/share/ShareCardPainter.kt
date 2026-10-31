@@ -13,7 +13,6 @@ import androidx.core.graphics.createBitmap
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.theme.DarkBorder
 import cloud.trotter.log.strength.ui.theme.DarkBackground
-import cloud.trotter.log.strength.ui.theme.DarkTextFaint
 import cloud.trotter.log.strength.ui.theme.DarkTextPrimary
 import cloud.trotter.log.strength.ui.theme.DarkTextSecondary
 import cloud.trotter.log.strength.ui.theme.accentBright
@@ -101,11 +100,11 @@ object ShareCardPainter {
 
         content.overflowLine?.let { overflow ->
             val y = LIFTS_START_Y + content.liftLines.size * LIFT_ROW_PITCH
-            canvas.drawText(overflow, left, y, textPaint(medium, OVERFLOW_SIZE, DarkTextFaint.toArgb()))
+            canvas.drawText(overflow, left, y, textPaint(medium, OVERFLOW_SIZE, DarkTextSecondary.toArgb()))
         }
 
         canvas.drawText(content.footerLine, left, FOOTER_Y, textPaint(semibold, FOOTER_SIZE, DarkTextSecondary.toArgb()))
-        canvas.drawText("strength.log", left, WORDMARK_Y, textPaint(medium, WORDMARK_SIZE, DarkTextFaint.toArgb()))
+        canvas.drawText("strength.log", left, WORDMARK_Y, textPaint(medium, WORDMARK_SIZE, DarkTextSecondary.toArgb()))
 
         return bitmap
     }

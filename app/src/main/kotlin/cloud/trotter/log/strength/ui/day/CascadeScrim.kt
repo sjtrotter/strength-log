@@ -39,7 +39,6 @@ import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.StepperValue
-import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.accentEmphasis
 import kotlinx.coroutines.delay
@@ -84,7 +83,7 @@ internal fun CascadeScrim(
             ceremony.lifts.forEachIndexed { index, lift ->
                 CascadeLiftRow(lift, ceremony.dayIndex, index)
             }
-            Text(stringResource(R.string.cascade_new_ramp_label), color = TextFaint, style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.cascade_new_ramp_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         }
     }
 }

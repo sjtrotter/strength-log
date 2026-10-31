@@ -315,7 +315,7 @@ private fun SessionCard(
                     style = MaterialTheme.typography.bodySmall,
                 )
                 item.bodyweightDisplay?.let {
-                    Text(stringResource(R.string.log_session_bodyweight, it), color = TextFaint, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.log_session_bodyweight, it), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Spacer(Modifier.size(8.dp))
@@ -332,13 +332,13 @@ private fun SessionCard(
                 if (item.note.isNotBlank()) {
                     Text(
                         item.note,
-                        color = TextFaint,
+                        color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
                         maxLines = 1,
                     )
                 }
                 if (item.exerciseGroups == null) {
-                    Text(stringResource(R.string.log_session_loading), color = TextFaint, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.log_session_loading), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 } else {
                     item.exerciseGroups.forEach { group ->
                         if (item.editing) EditableExerciseGroupRow(
@@ -436,7 +436,7 @@ private fun UndoDeletedSessionRow(dayIndex: Int, onUndo: () -> Unit) {
         modifier = Modifier.fillMaxWidth().height(48.dp),
         colors = ButtonDefaults.textButtonColors(contentColor = accentEmphasis(dayIndex)),
     ) {
-        Text(stringResource(R.string.log_session_deleted), color = TextFaint, style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.log_session_deleted), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.weight(1f))
         Text(stringResource(R.string.log_undo), style = MaterialTheme.typography.labelLarge)
     }
@@ -544,7 +544,7 @@ private fun HealthConnectSection(section: HealthSectionUi, onConnect: () -> Unit
         return
     }
     Column {
-        Text(stringResource(R.string.log_health_connected), color = TextFaint, style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.log_health_connected), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         section.backfill?.let { offer ->
             TextButton(
                 onClick = onPublishPast,
@@ -582,7 +582,7 @@ private fun ExternalSessionCard(row: ExternalSessionRow) {
                 Text(row.dateDisplay, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
             // Another app's provenance is body copy; caps overlines mark our sections.
-            Text(row.sourceLabel, color = TextFaint, style = MaterialTheme.typography.bodySmall)
+            Text(row.sourceLabel, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

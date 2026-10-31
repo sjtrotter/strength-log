@@ -48,7 +48,6 @@ import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.StepperValue
 import cloud.trotter.log.strength.ui.theme.SummaryLine
-import cloud.trotter.log.strength.ui.theme.TextFaint
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
 import cloud.trotter.log.strength.ui.theme.dayAccent
@@ -158,7 +157,7 @@ internal fun SessionReceiptScrim(
                         ReceiptRow(label = stringResource(R.string.receipt_strongest_label), value = lift.value)
                         Text(
                             text = lift.name.uppercase(),
-                            color = TextFaint,
+                            color = TextSecondary,
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.End,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
@@ -178,7 +177,7 @@ internal fun SessionReceiptScrim(
             if (receipt.note.isNotBlank()) {
                 Text(
                     receipt.note,
-                    color = TextFaint,
+                    color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
                     maxLines = 1,
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -242,7 +241,7 @@ private fun ReceiptRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = label, color = TextFaint, style = MaterialTheme.typography.labelSmall)
+        Text(text = label, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         Text(
             text = value,
             color = valueColor,

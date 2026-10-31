@@ -76,8 +76,7 @@ class ThemeWiringTest {
         assertEquals(DarkAppRipplePressedAlpha, configuration?.rippleAlpha?.pressedAlpha)
         assertEquals(0.04f, configuration?.rippleAlpha?.hoveredAlpha)
         assertEquals(0.04f, configuration?.rippleAlpha?.draggedAlpha)
-        // The bespoke inset ring remains the only focus treatment.
-        assertEquals(0f, configuration?.rippleAlpha?.focusedAlpha)
+        assertEquals(0.10f, configuration?.rippleAlpha?.focusedAlpha)
     }
 
     @Test
@@ -95,7 +94,7 @@ class ThemeWiringTest {
         assertEquals(LightAppRipplePressedAlpha, configuration?.rippleAlpha?.pressedAlpha)
         assertEquals(0.04f, configuration?.rippleAlpha?.hoveredAlpha)
         assertEquals(0.04f, configuration?.rippleAlpha?.draggedAlpha)
-        assertEquals(0f, configuration?.rippleAlpha?.focusedAlpha)
+        assertEquals(0.10f, configuration?.rippleAlpha?.focusedAlpha)
     }
 
     @Test

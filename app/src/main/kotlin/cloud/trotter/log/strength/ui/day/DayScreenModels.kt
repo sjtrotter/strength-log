@@ -172,10 +172,7 @@ sealed interface HeaderTarget {
 @Immutable
 data class ExerciseCardState(
     val programExerciseId: Long,
-    /** The slot's stable position in the day (spec §8.3) — the key
-     *  [DayEditActions.onSwap]/[TrackerRepository.swapExercise][
-     *  cloud.trotter.log.strength.data.TrackerRepository.swapExercise]
-     *  needs, which the Add/Remove weight menu ([weightSwap]) reuses verbatim. */
+    /** The slot's stored position for UI callbacks; removal can leave gaps. */
     val position: Int,
     val title: String,
     val note: String = "",
@@ -282,7 +279,7 @@ data class PartnerRowState(
 
 /**
  * The Add weight / Remove weight menu affordance (§4.2), backed
- * by the existing slot swap ([cloud.trotter.log.strength.data.TrackerRepository.swapExercise]),
+ * by the existing slot swap ([cloud.trotter.log.strength.data.TrackerRepository.swapExerciseById]),
  * never a new mutation path. [isRemove] picks the pill's label/copy; the
  * affordance itself is exactly "swap this slot to [targetExerciseId]".
  */

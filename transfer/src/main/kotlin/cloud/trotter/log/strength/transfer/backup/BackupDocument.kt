@@ -171,7 +171,7 @@ data class PlanBackup(
     val createdAt: Long,
     val archived: Boolean = false,
     val days: List<ProgramDayBackup> = emptyList(),
-    /** The generator recipe for a generated plan, serialized PlanRecipeDto; null for an authored plan. */
+    /** Plan settings serialized as PlanRecipeDto; also used to regenerate generated templates. */
     val recipeJson: String? = null,
     /** The plan's rotation position. */
     val suggestedDay: String? = null,

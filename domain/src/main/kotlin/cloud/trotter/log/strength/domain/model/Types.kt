@@ -53,7 +53,6 @@ data class ProgramExercise(
     val hasWarmupHint: Boolean = false, // "+1 warm-up set" badge
     val superset: SupersetPartner? = null,
     val note: String = "",
-    /** Authored slots have no superset partner; editors must not offer one. */
     val prescription: Prescription? = null,
     val keepToPlan: Boolean = false,
 )

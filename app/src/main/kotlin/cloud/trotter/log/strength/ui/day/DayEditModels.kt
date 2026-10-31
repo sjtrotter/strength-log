@@ -20,7 +20,7 @@ data class DayEditUiState(
      *  wizard's equipment profile"); the user can still widen/narrow it live. */
     val defaultEquipmentFilter: Set<Equipment> = Equipment.entries.toSet(),
     val catalog: ExerciseCatalog = ExerciseCatalog.CODE_ONLY,
-    val authored: Boolean = false,
+    val canResetToTemplate: Boolean = false,
     val unit: WeightUnit = WeightUnit.LB,
     val prescriptionDraft: PrescriptionDraft? = null,
     val editorOpen: Boolean = false,
@@ -46,7 +46,6 @@ data class DayEditSlotState(
     /** The partner's catalog name, falling back to its raw id when the id
      *  doesn't resolve — same rule as [title]. */
     val partnerTitle: String? = null,
-    /** Authored slots cannot attach or swap a superset partner. */
     val canSetSuperset: Boolean = true,
     val prescription: Prescription? = null,
     val targetSets: Int = 3,

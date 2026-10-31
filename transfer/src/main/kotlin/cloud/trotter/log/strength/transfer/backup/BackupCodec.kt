@@ -322,7 +322,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                         ex.prescriptionJson?.let { prescription ->
                             decodePayload("prescriptionJson of slot ${ex.id}") { PrescriptionJson.validate(prescription) }
                             if (ex.targetSets !in 1..99) {
-                                throw BackupError.Inconsistent("authored targetSets must be 1..99 on slot ${ex.id}")
+                                throw BackupError.Inconsistent("prescribed targetSets must be 1..99 on slot ${ex.id}")
                             }
                         }
                     }
@@ -330,9 +330,6 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                 if (doc.schemaVersion >= 9) {
                     plan.recipeJson?.let { recipe ->
                         decodePayload("recipeJson of plan ${plan.id}") { PlanRecipeJson.validate(recipe) }
-                        if (plan.origin == PlanOrigin.AUTHORED.name) {
-                            throw BackupError.Inconsistent("AUTHORED plan ${plan.id} must have a null recipeJson")
-                        }
                     }
                     validateSuggestedDay(plan.suggestedDay, plan.days)
                 }

@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.minExercisesPerDay
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -37,10 +36,9 @@ object ExercisePicker {
         entry.equipment.all { it in equipment }
 }
 
-/** The selected plan's origin determines the day-edit removal floor. */
 object DayEditRules {
-    fun canRemove(slotCount: Int, origin: PlanOrigin = PlanOrigin.GENERATED, hasCardio: Boolean = false): Boolean =
-        slotCount > (if (origin == PlanOrigin.AUTHORED && hasCardio) 0 else minExercisesPerDay(origin))
+    fun canRemove(slotCount: Int, hasCardio: Boolean = false): Boolean =
+        slotCount > minExercisesPerDay(hasCardio)
 }
 
 /** A page of the day-edit sheet above its root slot list. */

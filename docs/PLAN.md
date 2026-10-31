@@ -221,6 +221,7 @@ strength day; the shipped cardio vectors stay pinned.
   new plan; nothing deletes another plan's working values. Sessions record
   the plan they ran under; history from before plans has an unknown plan.
 - **Identity on the wire.** Snapshots carry the run: the open run, or the day's next run ID. Deltas carry the run and the exercise. A delta for a finished or unknown run is rejected. A delta with no run (an old watch) only edits a run the phone opened after that day's last close. `schemaVersion` stays 1; a field's presence is the capability.
+- **Exercise floor (§8.3 amendment).** Generated days lose the floor of three; every day keeps at least one exercise unless it has a cardio block.
 - **Authored prescriptions.** A plan's exercises are generated (spec §4 math,
   seeding and cascade, unchanged) or authored: load × reps, reps, hold,
   reps-in-time, each side, a band described in text, a note. Authored slots

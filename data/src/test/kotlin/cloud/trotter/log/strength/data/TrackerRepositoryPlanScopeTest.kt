@@ -207,11 +207,6 @@ class TrackerRepositoryPlanScopeTest {
     }
 
     @Test
-    fun `swap by position clears only the selected plan log for that slot`() = runTest {
-        assertSwapClearsOnlySelectedPlanSlot { repo.swapExercise("A", 0, "db_goblet_squat") }
-    }
-
-    @Test
     fun `swap by id clears only the selected plan log for that slot`() = runTest {
         assertSwapClearsOnlySelectedPlanSlot { slotId ->
             repo.swapExerciseById("A", slotId, "db_goblet_squat")
@@ -810,9 +805,11 @@ class TrackerRepositoryPlanScopeTest {
 
         settings.setSelectedPlanId(2)
         assertTrue(repo.removeExercise(generated[0].id))
-        assertFalse(repo.removeExercise(generated[1].id))
-        assertEquals(generated.drop(1), db.programDao().exercisesForDay(1, "A"))
-        assertEquals(1, db.programDao().logsForDay(1, "A").size)
+        assertTrue(repo.removeExercise(generated[1].id))
+        assertTrue(repo.removeExercise(generated[2].id))
+        assertFalse(repo.removeExercise(generated.last().id))
+        assertEquals(listOf(generated.last()), db.programDao().exercisesForDay(1, "A"))
+        assertTrue(db.programDao().logsForDay(1, "A").isEmpty())
         assertEquals(2L, settings.selectedPlanIdFlow.first())
 
         settings.setSelectedPlanId(1)
@@ -825,7 +822,7 @@ class TrackerRepositoryPlanScopeTest {
     }
 
     @Test
-    fun `superset assignment refuses a prescribed slot without touching either track`() = runTest {
+    fun `superset assignment and swap accept prescribed slots and preserve MAIN working values`() = runTest {
         val prescribed = ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Reps(12)))
         val day = program("Authored", "plank").days.single().copy(exercises = listOf(prescribed))
         repo.replaceProgram(Program(listOf(day)))
@@ -835,16 +832,13 @@ class TrackerRepositoryPlanScopeTest {
 
         repo.setSupersetPartner("A", 0, "rope_pushdown")
 
-        assertEquals(slot, db.programDao().exercise(slot.id))
+        assertEquals(slot.copy(supersetExerciseId = "rope_pushdown"), db.programDao().exercise(slot.id))
         assertEquals(mainOnly, db.programDao().allLogs())
-
-        // Restored slots with an existing partner cannot swap it either.
         db.programDao().setSupersetExerciseId(slot.id, "plank")
         db.programDao().upsertLog(log(slot.planId, slot.id, sets(25.0)).copy(slot = Slot.SS))
-        val paired = db.programDao().allLogs()
         repo.setSupersetPartner("A", 0, "rope_pushdown")
-        assertEquals("plank", db.programDao().exercise(slot.id)!!.supersetExerciseId)
-        assertEquals(paired, db.programDao().allLogs())
+        assertEquals("rope_pushdown", db.programDao().exercise(slot.id)!!.supersetExerciseId)
+        assertEquals(mainOnly, db.programDao().allLogs())
     }
 
     @Test

@@ -43,4 +43,15 @@ class RunReplanTest {
         assertEquals(seeded(1).single().copy(plannedIndex = 0, watchEditedAt = 123L),
             RunReplan.represcribe(current, seeded(1)).single())
     }
+    @Test fun `paired shrink uses shared indices and preserves either tracks completed rows`() {
+        val main = current() + current().take(1).map { it.copy(plannedIndex = 3, done = true) }
+        val partner = current().mapIndexed { i, row -> row.copy(done = i == 2, watchEditedAt = 123L) } +
+            current().take(1).map { it.copy(plannedIndex = 3) }
+        val result = RunReplan.represcribePaired(main, partner, seeded(1), seeded(1))
+        assertEquals(listOf(0, 2, 3), result.first.map { it.plannedIndex })
+        assertEquals(listOf(0, 2, 3), result.second.map { it.plannedIndex })
+        assertEquals(main[3], result.first[2])
+        assertEquals(partner[2], result.second[1])
+    }
+
 }

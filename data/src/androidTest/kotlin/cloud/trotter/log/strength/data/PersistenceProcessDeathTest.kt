@@ -180,6 +180,7 @@ class PersistenceProcessDeathTest {
 
         val squatRowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
         val rowRowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id
+        val benchRowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 2)!!.id
 
         // --- a completed workout: log, then DONE — advance ---------------------
         repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
@@ -194,7 +195,7 @@ class PersistenceProcessDeathTest {
         repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = false)))
         repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)))
         // An exercise swap: the bench slot becomes a dumbbell-bench slot.
-        repository.swapExercise("A", position = 2, newExerciseId = "db_bench")
+        repository.swapExerciseById("A", benchRowId, "db_bench")
 
         val logsBeforeKill = repository.dayTracksFlow(repository.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId }
         assertEquals(2, logsBeforeKill.size)

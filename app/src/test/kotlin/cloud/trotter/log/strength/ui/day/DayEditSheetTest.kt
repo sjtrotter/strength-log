@@ -6,6 +6,8 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
@@ -23,8 +25,9 @@ class DayEditSheetTest {
     val composeTestRule = createComposeRule()
 
     private fun show(
-        canSetSuperset: Boolean,
-        authored: Boolean = false,
+        canResetToTemplate: Boolean = false,
+        prescription: Prescription? = null,
+        partnerExerciseId: String? = null,
         edit: Boolean = true,
         hasSlot: Boolean = true,
         hasCardio: Boolean = false,
@@ -40,15 +43,16 @@ class DayEditSheetTest {
             exerciseId = "plank",
             title = "Plank",
             pattern = MovementPattern.CORE_ANTI_EXT,
-            isSuperset = false,
-            canSetSuperset = canSetSuperset,
+            isSuperset = partnerExerciseId != null,
+            partnerExerciseId = partnerExerciseId,
+            prescription = prescription,
             keepToPlan = keepToPlan,
         )
         composeTestRule.setContent {
             AppTheme {
                 DayEditSheet(
                     state = DayEditUiState(
-                        slots = if (hasSlot) listOf(slot) else emptyList(), authored = authored,
+                        slots = if (hasSlot) listOf(slot) else emptyList(), canResetToTemplate = canResetToTemplate,
                         runOpen = runOpen,
                         cardioBlock = if (hasCardio) cardioFixture().block else null,
                     ),
@@ -74,14 +78,14 @@ class DayEditSheetTest {
 
     @Test
     fun generatedDayOffersAddCardio() {
-        show(canSetSuperset = true, edit = false)
+        show(edit = false)
         composeTestRule.onNodeWithText("Add cardio").assertExists()
     }
 
     @Test
     fun generatedDayOffersEditAndRemoveCardio() {
         var removals = 0
-        show(canSetSuperset = true, edit = false, hasCardio = true, onRemoveCardio = { removals++ })
+        show(edit = false, hasCardio = true, onRemoveCardio = { removals++ })
         composeTestRule.onNodeWithText("Edit cardio").assertExists()
         composeTestRule.onNodeWithText("Remove cardio").assertIsEnabled().performClick()
         composeTestRule.runOnIdle { assertEquals(1, removals) }
@@ -89,57 +93,66 @@ class DayEditSheetTest {
 
     @Test
     fun cardioOnlyDayDisablesRemoveCardio() {
-        show(canSetSuperset = false, authored = true, edit = false, hasSlot = false, hasCardio = true)
+        show(edit = false, hasSlot = false, hasCardio = true)
         composeTestRule.onNodeWithText("Remove cardio").assertIsNotEnabled()
     }
 
     @Test
     fun dayWithAnExerciseCanRemoveCardio() {
         var removals = 0
-        show(canSetSuperset = false, authored = true, edit = false, hasCardio = true,
+        show(edit = false, hasCardio = true,
             onRemoveCardio = { removals++ })
         composeTestRule.onNodeWithText("Remove cardio").assertIsEnabled().performClick()
         composeTestRule.runOnIdle { assertEquals(1, removals) }
     }
 
     @Test
-    fun authoredSlotOffersPrescriptionAndMovesWithoutSupersets() {
-        show(canSetSuperset = true, authored = true)
+    fun prescribedSlotOffersPrescriptionMovesAndSupersets() {
+        show(prescription = Prescription(PrescribedTarget.Reps(12)))
         composeTestRule.onNodeWithText("Prescription").assertExists()
         composeTestRule.onNodeWithText("Move up").assertExists()
         composeTestRule.onNodeWithText("Move down").assertExists()
-        composeTestRule.onNodeWithText("Add superset").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Add superset").assertExists()
     }
 
     @Test
     fun authoredDayHidesResetToTemplate() {
-        show(canSetSuperset = false, authored = true, edit = false)
+        show(edit = false)
         composeTestRule.onNodeWithText("Reset day to template").assertDoesNotExist()
     }
 
     @Test
     fun generatedDayKeepsResetToTemplate() {
-        show(canSetSuperset = true, edit = false)
+        show(canResetToTemplate = true, edit = false)
         composeTestRule.onNodeWithText("Reset day to template").assertExists()
     }
 
     @Test
-    fun prescribedSlotHidesAddSuperset() {
-        show(canSetSuperset = false)
-        composeTestRule.onNodeWithText("Swap exercise").assertExists()
-        composeTestRule.onNodeWithText("Add superset").assertDoesNotExist()
+    fun prescribedPairOffersSwapAndRemoveSuperset() {
+        show(prescription = Prescription(PrescribedTarget.Reps(12)), partnerExerciseId = "pushup")
+        composeTestRule.onNodeWithText("Swap superset partner").assertExists()
+        composeTestRule.onNodeWithText("Remove superset").assertExists()
+    }
+
+    @Test
+    fun generatedDayOutsideTheTemplateHidesResetToTemplate() {
+        show(edit = false, canResetToTemplate = false)
+        composeTestRule.onNodeWithText("Reset day to template").assertDoesNotExist()
     }
 
     @Test
     fun generatedSlotOffersAddSuperset() {
-        show(canSetSuperset = true)
+        show()
+        composeTestRule.onNodeWithText("Prescription").assertExists()
+        composeTestRule.onNodeWithText("Move up").assertExists()
+        composeTestRule.onNodeWithText("Move down").assertExists()
         composeTestRule.onNodeWithText("Add superset").assertExists()
     }
 
     @Test
     fun generatedSlotOffersNextTimeAndForwardsItsChoice() {
         var choice: Pair<Long, Boolean>? = null
-        show(canSetSuperset = true, onKeepToPlan = { slot, keep -> choice = slot to keep })
+        show(onKeepToPlan = { slot, keep -> choice = slot to keep })
         composeTestRule.onNodeWithText("Next time").assertExists()
         composeTestRule.onNodeWithText("Last results").assertExists()
         composeTestRule.onNodeWithText("Plan").performClick()
@@ -148,7 +161,7 @@ class DayEditSheetTest {
 
     @Test
     fun authoredSlotOffersNextTimeAndReset() {
-        show(canSetSuperset = false, authored = true)
+        show()
         composeTestRule.onNodeWithText("Last results").assertExists()
         composeTestRule.onNodeWithText("Plan").assertExists()
         composeTestRule.onNodeWithText("Reset to plan").assertExists()
@@ -157,7 +170,7 @@ class DayEditSheetTest {
     @Test
     fun resetToPlanAsksBeforeForwardingTheSlot() {
         var resetSlot: Long? = null
-        show(canSetSuperset = true, onResetSlot = { resetSlot = it })
+        show(onResetSlot = { resetSlot = it })
         composeTestRule.onNodeWithText("Reset to plan").performClick()
         composeTestRule.onNodeWithText("Reset to plan?").assertExists()
         composeTestRule.runOnIdle { assertEquals(null, resetSlot) }
@@ -170,13 +183,13 @@ class DayEditSheetTest {
 
     @Test
     fun keptSlotHidesResetToPlan() {
-        show(canSetSuperset = true, keepToPlan = true)
+        show(keepToPlan = true)
         composeTestRule.onNodeWithText("Reset to plan").assertDoesNotExist()
     }
 
     @Test
     fun openDayHidesResetToPlan() {
-        show(canSetSuperset = true, runOpen = true)
+        show(runOpen = true)
         composeTestRule.onNodeWithText("Reset to plan").assertDoesNotExist()
     }
 }

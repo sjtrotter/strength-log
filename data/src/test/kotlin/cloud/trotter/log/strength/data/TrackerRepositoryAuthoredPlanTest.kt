@@ -9,7 +9,6 @@ import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
-import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -23,6 +22,13 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.CardioPlacement
+import cloud.trotter.log.strength.domain.seeding.SetSeeder
+import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -237,20 +243,54 @@ class TrackerRepositoryAuthoredPlanTest {
     }
 
     @Test
-    fun `generated plan refuses authored day mutations and prescriptions`() = runTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", listOf(ProgramExercise("plank"))))))
+    fun `generated plan supports day mutations prescriptions and removal down to one exercise`() = runTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", List(3) { ProgramExercise("plank") }))))
         val id = settings.selectedPlanIdFlow.first()!!
-        val slot = repo.daySlotsFlow("A").first().single().programExerciseId
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 10, SetKind.WORK)))
-        val before = db.programDao().exercise(slot)
-        val logs = db.programDao().allLogs()
-        assertNull(repo.addDay(id, "Day B"))
+        val slots = repo.daySlotsFlow("A").first()
+        assertEquals("B", repo.addDay(id, "Day B"))
         repo.renameDay(id, "A", "Renamed")
+        assertEquals("Renamed", db.programDao().day(id, "A")!!.title)
+        val prescription = Prescription(PrescribedTarget.Reps(15))
+        repo.setPrescription(slots[0].programExerciseId, prescription, 4)
+        assertEquals(prescription, repo.daySlotsFlow("A").first()[0].exercise.prescription)
+        assertEquals(4, repo.daySlotsFlow("A").first()[0].exercise.targetSets)
+        assertTrue(repo.removeExercise(slots[1].programExerciseId))
+        assertTrue(repo.removeExercise(slots[2].programExerciseId))
+        assertFalse(repo.removeExercise(slots[0].programExerciseId))
+        assertTrue(repo.removeDay(id, "B"))
         assertFalse(repo.removeDay(id, "A"))
-        repo.setPrescription(slot, Prescription(PrescribedTarget.Reps(15)), 4)
-        assertEquals(before, db.programDao().exercise(slot))
-        assertEquals(logs, db.programDao().allLogs())
-        assertEquals("Generated", db.programDao().day(id, "A")!!.title)
+    }
+
+    @Test
+    fun `six generated strength days plus two cardio days can add a seventh strength day`() = runTest {
+        val program = ProgramGenerator.generate(WizardAnswers(
+            daysPerWeek = 6, cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
+        ))
+        assertEquals(6, program.strengthDays.size)
+        assertEquals(listOf("C1", "C2"), program.cardioDays.map { it.id })
+        repo.replaceProgram(program)
+        val id = settings.selectedPlanIdFlow.first()!!
+        assertEquals("G", repo.addDay(id, "Day G"))
+        assertNull(repo.addDay(id, "Day H"))
+        assertEquals(9, repo.programFor(id).first().days.size)
+        assertEquals(7, repo.programFor(id).first().strengthDays.size)
+    }
+
+    @Test
+    fun `removing suggested B skips standalone cardio days`() = runTest {
+        val strength = listOf("A", "B").map { ProgramDay(it, "Day $it", "", emptyList()) }
+        val cardio = listOf("C1", "C2").map {
+            ProgramDay(it, "Cardio", "", emptyList(), kind = ProgramDayKind.CARDIO)
+        }
+        repo.replaceProgram(Program(strength + cardio))
+        val id = settings.selectedPlanIdFlow.first()!!
+        db.planDao().updateSuggestedDay(id, "B")
+        assertTrue(repo.removeDay(id, "B"))
+        assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
+        assertTrue(repo.removeDay(id, "A"))
+        assertEquals("C1", db.planDao().plan(id)!!.suggestedDayId)
+        assertTrue(repo.removeDay(id, "C1"))
+        assertEquals("C2", db.planDao().plan(id)!!.suggestedDayId)
     }
 
     @Test
@@ -276,18 +316,27 @@ class TrackerRepositoryAuthoredPlanTest {
     }
 
     @Test
-    fun `added authored slots use catalog defaults for every tracking type`() = runTest {
+    fun `added authored slots keep supplied counts and seed from goal math without prescriptions`() = runTest {
         val id = repo.createAuthoredPlan("Physio", "Day A")
         repo.publishCreatedAuthoredPlan(id)
         val flat = repo.addCustomExercise("Flat", cloud.trotter.log.strength.domain.model.MovementPattern.H_PUSH, emptyList(), false, 17.5)
         val reps = repo.addCustomExercise("Reps", cloud.trotter.log.strength.domain.model.MovementPattern.H_PUSH, emptyList(), false, 0.0, TrackingType.REPS, targetReps = 14)
         val timed = repo.addCustomExercise("Hold", cloud.trotter.log.strength.domain.model.MovementPattern.CORE_ANTI_EXT, emptyList(), false, 5.0, TrackingType.TIMED, targetSeconds = 45)
-        for (exercise in listOf(flat, reps, timed, "bb_back_squat")) repo.addExercise("A", ProgramExercise(exercise))
+        val exercises = listOf(flat, reps, timed, "bb_back_squat").mapIndexed { index, exercise ->
+            ProgramExercise(exercise, targetSets = index + 1)
+        }
+        exercises.forEach { repo.addExercise("A", it) }
         val slots = repo.daySlotsFlow("A").first()
-        assertEquals(listOf(
-            PrescribedTarget.LoadReps(17.5, 10), PrescribedTarget.Reps(14), PrescribedTarget.Hold(45, 5.0), PrescribedTarget.LoadReps(0.0, 10),
-        ), slots.map { it.exercise.prescription!!.target })
-        assertTrue(slots.all { it.exercise.targetSets == 3 })
-        assertTrue(repo.catalogFlow.first().find(flat)!!.goal is GoalSource.Flat)
+        assertEquals(exercises, slots.map { it.exercise })
+        assertTrue(slots.all { it.exercise.prescription == null && !it.exercise.keepToPlan })
+        val config = repo.configFlow.first()
+        val catalog = repo.catalogFlow.first()
+        for (slot in slots) {
+            val expected = SetSeeder.seed(slot.exercise, GoalCalculator.targetFor(catalog.get(slot.exercise.exerciseId), config), config)
+            assertTrue(repo.seedIfEmpty("A", slot.programExerciseId, Slot.MAIN, expected))
+            val actual = repo.dayTracksFlow(id, "A").first().tracks.single { it.programExerciseId == slot.programExerciseId }.sets
+            assertEquals(expected, actual)
+            assertTrue(actual.first().weightLb > 0.0 || actual.first().reps > 0 || actual.first().seconds > 0)
+        }
     }
 }

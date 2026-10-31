@@ -858,17 +858,17 @@ class TrackerRepositoryRunTest {
             SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson))
     }
 
-    @Test fun `both swap entry points keep the slots next time choice`() = runTest {
+    @Test fun `swapping by id keeps the slots next time choice`() = runTest {
         repo.replaceProgram(generated())
         val plan = repo.selectedPlanIdFlow.first()!!
         val slot = slot(plan)
         repo.setKeepToPlan(slot, true)
-        repo.swapExercise("A", 0, "hack_squat")
+        repo.swapExerciseById("A", slot, "hack_squat")
         assertTrue(db.programDao().exercise(slot)!!.keepToPlan)
         assertTrue(repo.swapExerciseById("A", slot, "bb_back_squat"))
         assertTrue(repo.daySlotsFlow("A").first().first().exercise.keepToPlan)
         repo.setKeepToPlan(slot, false)
-        repo.swapExercise("A", 0, "hack_squat")
+        repo.swapExerciseById("A", slot, "hack_squat")
         assertFalse(repo.daySlotsFlow("A").first().first().exercise.keepToPlan)
     }
 }

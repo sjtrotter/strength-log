@@ -1,7 +1,6 @@
 package cloud.trotter.log.strength.domain.model
 
-/** What an authored slot prescribes for each of its sets (A13). Sets are
- *  [ProgramExercise.targetSets]; a slot without one is generated. */
+/** Set count belongs to [ProgramExercise.targetSets], independently of the target. */
 data class Prescription(
     val target: PrescribedTarget,
     val eachSide: Boolean = false,

@@ -11,7 +11,6 @@ data class PlanUiState(
     val hasProgram: Boolean = false,
     val days: List<PlanDay> = emptyList(),
     val planId: Long? = null,
-    val authored: Boolean = false,
     val menuDayId: String? = null,
     val dialog: String? = null,
     val dialogDayId: String? = null,

@@ -285,7 +285,54 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertTrue(restored.dayEditState.value.editorOpen)
         assertEquals(draft, restored.dayEditState.value.prescriptionDraft)
-        assertTrue(repo.daySlotsFlow("A").first().single().exercise.prescription!!.target is PrescribedTarget.Hold)
+        assertNull(repo.daySlotsFlow("A").first().single().exercise.prescription)
+
+        restored.savePrescription()
+        advanceUntilIdle()
+
+        val exercise = repo.daySlotsFlow("A").first().single().exercise
+        assertEquals(5, exercise.targetSets)
+        assertEquals(draft.prescription(), exercise.prescription)
+        assertNull(restored.dayEditState.value.prescriptionDraft)
+        assertEquals(5, restored.uiState.value.exercises.single().rows.size)
+        restored.openPrescription(slotId)
+        advanceUntilIdle()
+        restored.changePrescriptionDraft(draft.copy(sets = 8))
+        restored.discardPrescription()
+        advanceUntilIdle()
+        assertNull(restored.dayEditState.value.prescriptionDraft)
+        assertEquals(5, repo.daySlotsFlow("A").first().single().exercise.targetSets)
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun generatedPrescriptionDraftAndPageSurviveProcessRecreationThenSaveAndReseed() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", emptyList()))))
+        repo.addExercise("A", ProgramExercise("plank"))
+        val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        val collectFirst = launch { first.dayEditState.collect {} }
+        advanceUntilIdle()
+        first.setDayEditorOpen(true)
+        first.openPrescription(slotId)
+        advanceUntilIdle()
+        val draft = first.dayEditState.value.prescriptionDraft!!.copy(
+            kind = PrescriptionKind.REPS_IN_TIME, sets = 5, seconds = 120,
+            hasRepAim = true, repAim = 40, eachSide = true, resistance = "Red band",
+        )
+        first.changePrescriptionDraft(draft)
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        collectFirst.cancel()
+        first.viewModelScope.cancel()
+        val restored = newViewModel(restoredHandle)
+        val collectEdit = launch { restored.dayEditState.collect {} }
+        val collectUi = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+        assertTrue(restored.dayEditState.value.editorOpen)
+        assertEquals(draft, restored.dayEditState.value.prescriptionDraft)
+        assertNull(repo.daySlotsFlow("A").first().single().exercise.prescription)
 
         restored.savePrescription()
         advanceUntilIdle()
@@ -317,7 +364,7 @@ class DayViewModelWiringTest {
         assertTrue(vm.uiState.value.hasProgram)
         assertEquals("Day A", vm.uiState.value.dayTitle)
         assertTrue(vm.uiState.value.pages.isEmpty())
-        assertTrue(vm.dayEditState.value.authored)
+        assertFalse(vm.dayEditState.value.canResetToTemplate)
         vm.setDayEditorOpen(true)
         vm.addDaySlot("plank")
         advanceUntilIdle()
@@ -344,6 +391,69 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertEquals("pushup", db.programDao().exercise(originals[1].programExerciseId)!!.exerciseId)
         assertEquals("plank", db.programDao().exercise(originals[2].programExerciseId)!!.exerciseId)
+        collectUi.cancel()
+    }
+
+    @Test
+    fun generatedSwapAfterRemovalAndMoveUsesTheSlotIdDespitePositionGaps() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", emptyList()))))
+        repeat(3) { repo.addExercise("A", ProgramExercise("plank")) }
+        val originals = repo.daySlotsFlow("A").first()
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.removeDaySlot(0)
+        advanceUntilIdle()
+        vm.moveDaySlot(originals[2].programExerciseId, up = true)
+        advanceUntilIdle()
+        vm.swapDaySlot(2, "pushup")
+        advanceUntilIdle()
+        assertEquals("pushup", db.programDao().exercise(originals[1].programExerciseId)!!.exerciseId)
+        assertEquals("plank", db.programDao().exercise(originals[2].programExerciseId)!!.exerciseId)
+        collectUi.cancel()
+    }
+
+    @Test
+    fun resetToTemplateRequiresGeneratedOriginAndADayInTheRecipe() = runVmTest {
+        repo.replaceProgram(Program(listOf(
+            ProgramDay("A", "Day A", "", emptyList()),
+            ProgramDay("G", "Added day", "", emptyList()),
+        )))
+        val generated = repo.selectedPlanIdFlow.first()!!
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        assertTrue(vm.dayEditState.value.canResetToTemplate)
+        vm.selectDay(DaySelection(generated, "G"))
+        advanceUntilIdle()
+        assertFalse(vm.dayEditState.value.canResetToTemplate)
+        val authored = repo.createAuthoredPlan("Authored", "Day A")
+        repo.publishCreatedAuthoredPlan(authored)
+        repo.setConfig(repo.configFlow.first())
+        vm.selectDay(DaySelection(authored, "A"))
+        advanceUntilIdle()
+        assertFalse(vm.dayEditState.value.canResetToTemplate)
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun authoredAddUsesThreeSetsAndSeedsAStandardLiftFromGoalMath() = runVmTest {
+        val plan = repo.createAuthoredPlan("Strength", "Day A")
+        repo.publishCreatedAuthoredPlan(plan)
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        vm.addDaySlot("bb_back_squat")
+        advanceUntilIdle()
+        val slot = repo.slotsFor(plan, "A").first().single()
+        assertEquals(3, slot.exercise.targetSets)
+        assertNull(slot.exercise.prescription)
+        assertEquals(DayScreenBuilder.previewMainSets(slot, repo.configFlow.first(), repo.catalogFlow.first()),
+            track(slot.programExerciseId, Slot.MAIN))
+        collectEdit.cancel()
         collectUi.cancel()
     }
 
@@ -388,7 +498,7 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun prescribedHoldsUseTheirAddedLoadForTheWeightControlAndDisableSupersets() = runVmTest {
+    fun prescribedHoldsUseTheirAddedLoadForTheWeightControlAndAllowSupersets() = runVmTest {
         val exercises = listOf(
             ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Hold(45, 25.0))),
             ProgramExercise("weighted_plank", prescription = Prescription(PrescribedTarget.Hold(45))),
@@ -403,7 +513,7 @@ class DayViewModelWiringTest {
         assertEquals(listOf(TrackingType.TIMED, TrackingType.TIMED), cards.map { it.tracking })
         assertEquals(listOf(true, false), cards.map { it.timedShowsWeight })
         assertEquals(listOf(25.0, 0.0), cards.map { it.rows.first().weightDisplay })
-        assertTrue(vm.dayEditState.value.slots.all { !it.canSetSuperset })
+        assertTrue(vm.dayEditState.value.slots.all { it.canSetSuperset })
 
         collectUi.cancel()
         collectEdit.cancel()
@@ -1280,22 +1390,20 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun removeDaySlotIsANoOpAtTheMinimumOfThree() = runVmTest {
+    fun removeDaySlotStopsAtOneExercise() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         val collect = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
-        // insertProgram's day A has 4 slots; remove once (down to 3) succeeds...
-        val firstPosition = vm.dayEditState.value.slots.first().position
-        vm.removeDaySlot(firstPosition)
+        repeat(3) {
+            vm.removeDaySlot(vm.dayEditState.value.slots.first().position)
+            advanceUntilIdle()
+        }
+        assertEquals(1, vm.dayEditState.value.slots.size)
+        assertFalse(vm.dayEditState.value.canRemove)
+        vm.removeDaySlot(vm.dayEditState.value.slots.single().position)
         advanceUntilIdle()
-        assertEquals(3, vm.dayEditState.value.slots.size)
-
-        // ...a further remove at the floor is refused.
-        val nextPosition = vm.dayEditState.value.slots.first().position
-        vm.removeDaySlot(nextPosition)
-        advanceUntilIdle()
-        assertEquals(3, vm.dayEditState.value.slots.size)
+        assertEquals(1, vm.dayEditState.value.slots.size)
         collect.cancel()
     }
 
@@ -1320,7 +1428,7 @@ class DayViewModelWiringTest {
     /**
      * The card's ⇄ chip end to end: [ExerciseCardState.position] through the
      * very [DayEditActions.onSwap] `SlotSwapSheet` invokes, down to
-     * [TrackerRepository.swapExercise]. The slot row survives the swap (same
+     * [TrackerRepository.swapExerciseById]. The slot row survives the swap (same
      * programExerciseId, so history stays keyed to it), its live sets are
      * discarded, and the seed pass refills from the new exercise's GOAL (§8.3).
      */

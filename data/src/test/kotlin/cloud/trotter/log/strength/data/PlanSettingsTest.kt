@@ -205,7 +205,7 @@ class PlanSettingsTest {
     }
 
     @Test
-    fun `first wizard write seeds a generated recipe but leaves authored recipes absent`() = runTest {
+    fun `first wizard write seeds a recipe for either origin`() = runTest {
         db.planDao().insertPlans(listOf(plan(1), plan(2).copy(origin = PlanOrigin.AUTHORED.name)))
         val global = GlobalLifter(bodyweightLb = 205, age = 41, level = ExperienceLevel.ADVANCED)
         settings.setGlobalLifter(global)
@@ -216,8 +216,8 @@ class PlanSettingsTest {
         assertEquals(WizardAnswers(config = global.toConfig(), cardio = prefs), answersFor(1))
         settings.setSelectedPlanId(2)
         repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
-        assertNull(db.planDao().plan(2)!!.recipeJson)
-        assertEquals(WizardAnswers(config = global.toConfig()), repo.wizardAnswersFlow.first())
+        assertEquals(WizardAnswers(config = global.toConfig(), cardio = prefs), answersFor(2))
+        assertEquals(WizardAnswers(config = global.toConfig(), cardio = prefs), repo.wizardAnswersFlow.first())
     }
 
     @Test
@@ -257,7 +257,7 @@ class PlanSettingsTest {
     }
 
     @Test
-    fun `wizard writes update selected recipe while authored config has only global parts`() = runTest {
+    fun `wizard writes update the selected recipe for either origin`() = runTest {
         val one = strengthAnswers()
         val two = physiqueAnswers()
         db.planDao().insertPlans(listOf(plan(1, one), plan(2, two), plan(3).copy(origin = PlanOrigin.AUTHORED.name)))
@@ -270,15 +270,36 @@ class PlanSettingsTest {
         settings.setSelectedPlanId(3)
         repo.setConfig(one.config.copy(bodyweightLb = 205))
         repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
-        assertNull(db.planDao().plan(3)!!.recipeJson)
-        assertEquals(LifterConfig(bodyweightLb = 205), repo.configFlow.first())
+        assertEquals(one.config.copy(bodyweightLb = 205), repo.configFlow.first())
+        assertEquals(prefs, answersFor(3).cardio)
         repo.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
-        assertNull(db.planDao().plan(3)!!.recipeJson)
-        assertEquals(WizardAnswers(config = LifterConfig(bodyweightLb = 215)), repo.wizardAnswersFlow.first())
+        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), answersFor(3))
+        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), repo.wizardAnswersFlow.first())
         settings.setSelectedPlanId(2)
         repo.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
         assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), repo.wizardAnswersFlow.first())
         assertLegacyKeysGone()
+    }
+
+    @Test
+    fun `authored emphasis creates a recipe sticks and changes standard lift goals`() = runTest {
+        val plan = repo.createAuthoredPlan("Strength", "Day A")
+        repo.publishCreatedAuthoredPlan(plan)
+        val original = repo.configFlow.first()
+        assertEquals(settings.globalLifterFlow.first().toConfig(), original)
+        val entry = repo.catalogFlow.first().get("bb_back_squat")
+        val before = GoalCalculator.targetFor(entry, original)
+        val changed = original.copy(emphasis = GoalEmphasis.STRENGTH)
+        repo.setConfig(changed)
+        assertEquals(changed, repo.configFlow.first())
+        assertEquals(changed, repo.wizardAnswersFor(plan).first().config)
+        assertEquals(changed, answersFor(plan).config)
+        assertFalse(before == GoalCalculator.targetFor(entry, repo.configFlow.first()))
+        val other = repo.createAuthoredPlan("Other", "Day A")
+        repo.publishCreatedAuthoredPlan(other)
+        assertEquals(original, repo.configFlow.first())
+        repo.selectPlan(plan)
+        assertEquals(changed, repo.configFlow.first())
     }
 
     @Test

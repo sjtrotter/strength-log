@@ -12,6 +12,8 @@ data class TrackEdit(
     val programExerciseId: Long,
     val slot: String,
     val exerciseId: String? = null,
+    /** The transform replaces the whole list from the screen rather than editing rows by index. */
+    val replacesAll: Boolean = false,
     /** Pure. Null leaves everything unwritten. */
     val transform: (List<LoggedSet>) -> List<LoggedSet>?,
 )

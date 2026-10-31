@@ -927,7 +927,7 @@ open class TrackerRepository(
         runId: String, dayId: String, programExerciseId: Long, slot: String, sets: List<LoggedSet>,
     ): RunWriteResult {
         val planId = planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
-        return applyToRun(runId, planId, dayId, listOf(TrackEdit(programExerciseId, slot) { current -> sets.keepingWatchStamps(current) }),
+        return applyToRun(runId, planId, dayId, listOf(TrackEdit(programExerciseId, slot, replacesAll = true) { current -> sets.keepingWatchStamps(current) }),
             seeds = listOf(RunSeed(programExerciseId, slot, CarryForward.cleared(sets))))
     }
 
@@ -972,8 +972,8 @@ open class TrackerRepository(
     ): RunWriteResult {
         val planId = planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
         return applyToRun(runId, planId, dayId, listOf(
-            TrackEdit(programExerciseId, Slot.MAIN) { current -> main.keepingWatchStamps(current) },
-            TrackEdit(programExerciseId, Slot.SS) { current -> ss.keepingWatchStamps(current) },
+            TrackEdit(programExerciseId, Slot.MAIN, replacesAll = true) { current -> main.keepingWatchStamps(current) },
+            TrackEdit(programExerciseId, Slot.SS, replacesAll = true) { current -> ss.keepingWatchStamps(current) },
         ), seeds = listOf(RunSeed(programExerciseId, Slot.MAIN, CarryForward.cleared(main)),
             RunSeed(programExerciseId, Slot.SS, CarryForward.cleared(ss))))
     }
@@ -1381,7 +1381,7 @@ open class TrackerRepository(
             val current = SetJson.decodeSets(track.setsJson)
             val result = edit.transform(current)
                 ?: return ResolvedRunEdits(failure = RunWriteResult.Unchanged)
-            if (reopened && !result.keepsDoneRowsOf(current)) {
+            if (reopened && edit.replacesAll && !result.keepsDoneRowsOf(current)) {
                 return ResolvedRunEdits(failure = RunWriteResult.Rejected)
             }
             resolved[index] = track.copy(setsJson = SetJson.encodeSets(result), updatedAt = clock.millis())
@@ -1391,8 +1391,8 @@ open class TrackerRepository(
     }
 
     /**
-     * A write that reopens a retired track was built from the screen's empty or stale rows,
-     * so it may only add to the reopened rows: every done row stays done, at its index, with
+     * A whole-list write that reopens a retired track was built from the screen's empty or
+     * stale rows, so it may only add to the reopened rows: every done row stays done, at its index, with
      * its values.
      */
     private fun List<LoggedSet>.keepsDoneRowsOf(reopened: List<LoggedSet>): Boolean =

@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LoggedSet
 
 /** Initial working values for a slot with no stored log. */
@@ -57,6 +58,10 @@ data class DayTracks(
     val tracks: List<LoggedSlot>,
     /** Tracks displaced by plan edits that still hold done work. */
     val retired: List<RunTrack> = emptyList(),
-)
+) {
+    /** Done rounds on retired MAIN tracks, excluding superset partner duplicates. */
+    val retiredRoundsDone: Int
+        get() = retired.filter { Slot.isRound(it.slot) }.sumOf { track -> track.sets.count { it.done } }
+}
 
 data class TodayTarget(val plan: PlanEntity, val dayId: String?)

@@ -207,8 +207,7 @@ class DayViewModel @Inject constructor(
                     buildState(ctx, dayId, slots, tracks.tracks.associateBy { it.programExerciseId to it.slot }, history)
                         .copy(runId = tracks.runId, runOpen = tracks.runOpen,
                             openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle,
-                            retiredRoundDoneCount = tracks.retired.filter { Slot.isRound(it.slot) }
-                                .sumOf { track -> track.sets.count { it.done } },
+                            retiredRoundDoneCount = tracks.retiredRoundsDone,
                             retiredTracks = tracks.retired.mapNotNull { track ->
                                 val doneCount = track.sets.count { it.done }
                                 if (doneCount == 0) null else RetiredTrackLine(
@@ -1161,10 +1160,8 @@ class DayViewModel @Inject constructor(
             if (!tracks.runOpen || tracks.runId != runId) return@mutate
             closeUndoWindow()
             val rounds = tracks.tracks.filter { Slot.isRound(it.slot) }
-            val retiredDoneCount = tracks.retired.filter { Slot.isRound(it.slot) }
-                .sumOf { track -> track.sets.count { it.done } }
-            val completedSetCount = rounds.sumOf { track -> track.sets.count { it.done } } + retiredDoneCount
-            val totalSetCount = rounds.sumOf { it.sets.size } + retiredDoneCount
+            val completedSetCount = rounds.sumOf { track -> track.sets.count { it.done } } + tracks.retiredRoundsDone
+            val totalSetCount = rounds.sumOf { it.sets.size } + tracks.retiredRoundsDone
             if (completedSetCount == 0) return@mutate
             val program = repo.programFor(planId).first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())

@@ -70,8 +70,8 @@ data class DayUiState(
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
     val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning
 
-    /** Rounds ticked across active and retired MAIN tracks. A
-     *  superset partner shares its round. Recomputed once per state, including copy(). */
+    /** Rounds ticked across active and retired MAIN tracks must match Today and the widget.
+     *  A superset partner shares its round. Recomputed once per state, including copy(). */
     val doneSets: Int = exercises.sumOf { card -> card.rows.count { it.done } } + retiredRoundDoneCount
 
     /** Rounds this day holds in total, counted the same way as [doneSets]. */

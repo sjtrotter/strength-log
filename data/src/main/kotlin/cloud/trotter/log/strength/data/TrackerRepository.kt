@@ -545,14 +545,20 @@ open class TrackerRepository(
             if (planDao.plan(row.planId)?.origin != PlanOrigin.AUTHORED.name) return@withTransaction
             val count = sets ?: row.targetSets
             require(count in 1..20)
-            val old = PrescriptionJson.decode(row.prescriptionJson)
             programDao.setPrescription(row.id, PrescriptionJson.encode(prescription), count)
             val run = runDao.openRun()
-            if (run?.planId == row.planId && run.dayId == row.dayId && old?.tracking == prescription.tracking) {
+            if (run?.planId == row.planId && run.dayId == row.dayId) {
                 val track = runDao.tracks(run.id).firstOrNull {
                     it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired
                 }
-                if (track != null) {
+                val capturedTracking = track?.let { SetJson.decodeSets(it.plannedJson).firstOrNull() }?.let {
+                    when {
+                        it.seconds > 0 -> TrackingType.TIMED
+                        it.weightLb > 0.0 || it.kind != SetKind.WORK -> TrackingType.WEIGHTED
+                        else -> TrackingType.REPS
+                    }
+                }
+                if (track != null && capturedTracking == prescription.tracking) {
                     runDao.updateTrack(track.copy(
                         setsJson = SetJson.encodeSets(RunReplan.represcribe(
                             SetJson.decodeSets(track.setsJson), SetSeeder.seedPrescribed(count, prescription),
@@ -1259,7 +1265,7 @@ open class TrackerRepository(
         val open = runDao.openRun()
         if (open?.id == runId) {
             if (open.planId != planId || open.dayId != dayId) return@withTransaction RunWriteResult.Rejected
-            val resolved = resolveRunEdits(runId, day, runDao.tracks(runId), edits, seeds)
+            val resolved = resolveRunEdits(runId, day, runDao.tracks(runId), edits, seeds, reopenRetired = true)
             if (resolved.failure != null) return@withTransaction resolved.failure
             writeRunTracks(resolved.tracks)
             return@withTransaction RunWriteResult.InRun(runId, false)
@@ -1334,17 +1340,35 @@ open class TrackerRepository(
         tracks: List<RunTrackEntity>,
         edits: List<TrackEdit>,
         seeds: List<RunSeed>,
+        reopenRetired: Boolean = false,
     ): ResolvedRunEdits {
         val resolved = tracks.toMutableList()
         val changed = linkedSetOf<Int>()
         for (edit in edits) {
+            val seed = seeds.firstOrNull { it.programExerciseId == edit.programExerciseId && it.slot == edit.slot }
             var index = resolved.indexOfFirst {
                 it.programExerciseId == edit.programExerciseId && it.slot == edit.slot &&
                     (if (edit.exerciseId != null) it.exerciseId == edit.exerciseId else !it.retired)
             }
+            if (reopenRetired && resolved.none {
+                    it.programExerciseId == edit.programExerciseId && it.slot == edit.slot && !it.retired
+                }) {
+                val slot = programDao.exercise(edit.programExerciseId)
+                    ?.takeIf { it.planId == day.planId && it.dayId == day.dayId }
+                val exerciseId = slot?.exerciseIdFor(edit.slot)
+                if (exerciseId != null && (edit.exerciseId == null || edit.exerciseId == exerciseId)) {
+                    val retiredIndex = resolved.indexOfFirst {
+                        it.programExerciseId == edit.programExerciseId && it.slot == edit.slot &&
+                            it.exerciseId == exerciseId && it.retired
+                    }
+                    if (retiredIndex >= 0) {
+                        resolved[retiredIndex] = reopenTrack(resolved[retiredIndex], seed)
+                        index = retiredIndex
+                    }
+                }
+            }
             if (index < 0) {
-                val seed = seeds.firstOrNull { it.programExerciseId == edit.programExerciseId && it.slot == edit.slot }
-                    ?: return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+                if (seed == null) return ResolvedRunEdits(failure = RunWriteResult.Rejected)
                 val slot = programDao.exercise(seed.programExerciseId)
                     ?.takeIf { it.planId == day.planId && it.dayId == day.dayId }
                     ?: return ResolvedRunEdits(failure = RunWriteResult.Rejected)
@@ -1369,6 +1393,14 @@ open class TrackerRepository(
 
     private fun RunTrackEntity.sameKey(other: RunTrackEntity): Boolean =
         runId == other.runId && programExerciseId == other.programExerciseId && slot == other.slot && exerciseId == other.exerciseId
+
+    private fun reopenTrack(track: RunTrackEntity, seed: RunSeed?): RunTrackEntity = track.copy(
+        retired = false,
+        setsJson = seed?.let {
+            SetJson.encodeSets(RunReplan.represcribe(SetJson.decodeSets(track.setsJson), it.sets))
+        } ?: track.setsJson,
+        updatedAt = clock.millis(),
+    )
 
     private suspend fun writeRunTracks(tracks: List<RunTrackEntity>) {
         tracks.forEach { if (it.id == 0L) runDao.insertTrack(it) else runDao.updateTrack(it) }
@@ -1423,7 +1455,7 @@ open class TrackerRepository(
     }
 
     /** Adds available seeds to the open run without replacing captured tracks.
-     * Swapping back reopens the earlier track with its rows. */
+     * Swapping back preserves done rows and re-plans undone rows from the current seed. */
     suspend fun seedRunTracksIfMissing(runId: String, seeds: List<RunSeed>) {
         db.withTransaction {
             val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction
@@ -1438,7 +1470,7 @@ open class TrackerRepository(
                 val track = runTrack(runId, slot, seed.slot, exerciseId, CarryForward.cleared(seed.sets))
                 val retiredIndex = existing.indexOfFirst { it.retired && it.sameKey(track) }
                 if (retiredIndex >= 0) {
-                    val reopened = existing[retiredIndex].copy(retired = false, updatedAt = clock.millis())
+                    val reopened = reopenTrack(existing[retiredIndex], seed)
                     runDao.updateTrack(reopened)
                     existing[retiredIndex] = reopened
                 } else {

@@ -272,9 +272,13 @@ fun DayScreen(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
-                                state.retiredTracks.forEach { line ->
+                                if (state.retiredTracks.isNotEmpty()) {
+                                    val description = state.retiredTracks.map { line ->
+                                        pluralStringResource(R.plurals.day_retired_track, line.doneCount, line.name, line.doneCount)
+                                    }.joinToString(", ")
                                     Text(
-                                        text = pluralStringResource(R.plurals.day_retired_track, line.doneCount, line.name, line.doneCount),
+                                        text = stringResource(R.string.day_retired_tracks, state.retiredTracks.joinToString(", ") { it.name }),
+                                        modifier = Modifier.semantics { contentDescription = description },
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,

@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.model.LifterConfig
@@ -146,10 +147,47 @@ class TrackerRepositoryRunEditsTest {
         val before = db.runDao().tracks(runId).single()
         repo.swapExercise("A", 0, "hack_squat")
         seed(runId, slot)
+        val swapped = db.runDao().tracks(runId)
+        assertEquals(before.copy(retired = true), swapped.single { it.exerciseId == "bb_back_squat" })
+        val alternate = swapped.single { it.exerciseId == "hack_squat" }
+        assertFalse(alternate.retired)
+        assertTrue(SetJson.decodeSets(alternate.setsJson).none { it.done })
         repo.swapExercise("A", 0, "bb_back_squat")
-        seed(runId, slot, work())
+        seed(runId, slot, squat())
         assertEquals(listOf(before), db.runDao().tracks(runId))
         assertTrue(repo.dayTracksFlow(plan, "A").first().retired.isEmpty())
+    }
+
+    /** [F] */
+    @Test fun `swapping back retires a done alternate archives it and carries restored values forward`() = runTest {
+        val plan = generated()
+        val slot = slot(plan)
+        val restoredRows = squat().mapIndexed { i, row ->
+            if (i == 0) row.copy(weightLb = 155.0, reps = 7) else row
+        }
+        val runId = start(plan, sets = restoredRows)
+        val original = db.runDao().tracks(runId).single()
+        repo.swapExercise("A", 0, "hack_squat")
+        seed(runId, slot)
+        val swapped = db.runDao().tracks(runId)
+        assertEquals(original.copy(retired = true), swapped.single { it.exerciseId == "bb_back_squat" })
+        assertFalse(swapped.single { it.exerciseId == "hack_squat" }.retired)
+        repo.updateSets(runId, "A", slot, Slot.MAIN, work().mapIndexed { i, row -> row.copy(done = i < 2) })
+        val alternate = db.runDao().tracks(runId).single { it.exerciseId == "hack_squat" }
+        repo.swapExercise("A", 0, "bb_back_squat")
+        seed(runId, slot, squat())
+        val restored = db.runDao().tracks(runId)
+        assertEquals(original, restored.single { it.exerciseId == "bb_back_squat" })
+        assertEquals(alternate.copy(retired = true), restored.single { it.exerciseId == "hack_squat" })
+        val session = repo.finishRun(runId)!!
+        val archived = repo.sessionSets(session)
+        val alternateRows = archived.filter { it.exerciseId == "hack_squat" }
+        assertEquals(2, alternateRows.size)
+        assertTrue(alternateRows.all { it.done })
+        assertEquals(restoredRows.size, archived.count { it.exerciseId == "bb_back_squat" })
+        val carried = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson)
+        assertEquals(restoredRows, carried)
+        assertEquals("bb_back_squat", db.programDao().exercise(slot)!!.exerciseId)
     }
 
     /** [F] */
@@ -175,8 +213,91 @@ class TrackerRepositoryRunEditsTest {
         val plan = authored()
         val runId = start(plan, sets = work())
         val before = db.runDao().tracks(runId)
-        repo.setPrescription(slot(plan), Prescription(PrescribedTarget.Hold(45)))
+        val hold = Prescription(PrescribedTarget.Hold(45))
+        repo.setPrescription(slot(plan), hold)
+        assertEquals(hold, PrescriptionJson.decode(db.programDao().exercise(slot(plan))!!.prescriptionJson))
         assertEquals(before, db.runDao().tracks(runId))
+        val longerHold = Prescription(PrescribedTarget.Hold(60))
+        repo.setPrescription(slot(plan), longerHold)
+        assertEquals(longerHold, PrescriptionJson.decode(db.programDao().exercise(slot(plan))!!.prescriptionJson))
+        assertEquals(before, db.runDao().tracks(runId))
+    }
+
+    /** [F] */
+    @Test fun `tick before lazy seed reopens the swapped back track`() = runTest {
+        val plan = generated()
+        val slot = slot(plan)
+        val runId = start(plan)
+        val original = db.runDao().tracks(runId).single()
+        repo.swapExercise("A", 0, "hack_squat")
+        seed(runId, slot)
+        assertTrue(db.runDao().tracks(runId).single { it.exerciseId == "bb_back_squat" }.retired)
+        repo.swapExercise("A", 0, "bb_back_squat")
+        val result = repo.applyToRun(runId, plan, "A", listOf(TrackEdit(slot, Slot.MAIN) { rows ->
+            rows.mapIndexed { i, row -> if (i == 1) row.copy(done = true) else row }
+        }))
+        assertEquals(RunWriteResult.InRun(runId, false), result)
+        val reopened = db.runDao().tracks(runId).single()
+        assertEquals(original.id, reopened.id)
+        assertEquals(original.plannedJson, reopened.plannedJson)
+        assertFalse(reopened.retired)
+        assertEquals(SetJson.decodeSets(original.setsJson).mapIndexed { i, row ->
+            if (i == 1) row.copy(done = true) else row
+        }, SetJson.decodeSets(reopened.setsJson))
+    }
+
+    /** [F] */
+    @Test fun `reopening by lazy seed follows a prescription edited while retired`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        val runId = start(plan, sets = work())
+        val original = db.runDao().tracks(runId).single()
+        repo.swapExercise("A", 0, "hack_squat")
+        seed(runId, slot)
+        assertTrue(db.runDao().tracks(runId).single { it.exerciseId == "bb_back_squat" }.retired)
+        val changed = Prescription(PrescribedTarget.LoadReps(55.0, 8))
+        repo.setPrescription(slot, changed, sets = 4)
+        assertEquals(original.copy(retired = true), db.runDao().tracks(runId).single { it.exerciseId == "bb_back_squat" })
+        repo.swapExercise("A", 0, "bb_back_squat")
+        seed(runId, slot, SetSeeder.seedPrescribed(4, changed))
+        val reopened = db.runDao().tracks(runId).single()
+        assertFalse(reopened.retired)
+        assertEquals(original.id, reopened.id)
+        assertEquals(original.plannedJson, reopened.plannedJson)
+        val rows = SetJson.decodeSets(reopened.setsJson)
+        assertEquals(SetJson.decodeSets(original.setsJson).first(), rows.first())
+        assertEquals(listOf(55.0, 55.0, 55.0), rows.drop(1).map { it.weightLb })
+        assertEquals(listOf(8, 8, 8), rows.drop(1).map { it.reps })
+        assertTrue(rows.drop(1).none { it.done })
+        assertEquals(listOf(0, 1, 2, null), rows.map { it.plannedIndex })
+    }
+
+    /** [F] */
+    @Test fun `tick with a seed reopens and replans before applying the edit`() = runTest {
+        val plan = authored()
+        val slot = slot(plan)
+        val runId = start(plan, sets = work())
+        val original = db.runDao().tracks(runId).single()
+        repo.swapExercise("A", 0, "hack_squat")
+        seed(runId, slot)
+        assertTrue(db.runDao().tracks(runId).single { it.exerciseId == "bb_back_squat" }.retired)
+        val changed = Prescription(PrescribedTarget.LoadReps(55.0, 8))
+        repo.setPrescription(slot, changed, sets = 4)
+        repo.swapExercise("A", 0, "bb_back_squat")
+        val result = repo.applyToRun(runId, plan, "A", listOf(TrackEdit(slot, Slot.MAIN, "bb_back_squat") { rows ->
+            rows.mapIndexed { i, row -> if (i == 1) row.copy(done = true) else row }
+        }), seeds = listOf(RunSeed(slot, Slot.MAIN, SetSeeder.seedPrescribed(4, changed))))
+        assertEquals(RunWriteResult.InRun(runId, false), result)
+        val reopened = db.runDao().tracks(runId).single()
+        assertFalse(reopened.retired)
+        assertEquals(original.id, reopened.id)
+        assertEquals(original.plannedJson, reopened.plannedJson)
+        val rows = SetJson.decodeSets(reopened.setsJson)
+        assertEquals(SetJson.decodeSets(original.setsJson).first(), rows.first())
+        assertEquals(listOf(55.0, 55.0, 55.0), rows.drop(1).map { it.weightLb })
+        assertEquals(listOf(8, 8, 8), rows.drop(1).map { it.reps })
+        assertEquals(listOf(true, true, false, false), rows.map { it.done })
+        assertEquals(listOf(0, 1, 2, null), rows.map { it.plannedIndex })
     }
 
     /** [F] */

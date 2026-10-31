@@ -3,7 +3,7 @@ package cloud.trotter.log.strength.ui.today
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cloud.trotter.log.strength.data.LoggedSlot
+import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -77,12 +76,12 @@ class TodayViewModel @Inject constructor(
             civilTimeSource.civilTime.flatMapLatest { now ->
                 combine(
                     repo.slotsFor(ctx.planId, dayId),
-                    repo.dayTracksFlow(ctx.planId, dayId).map { it.tracks },
+                    repo.dayTracksFlow(ctx.planId, dayId),
                     repo.sessionSummariesFor(ctx.planId),
                     repo.topSetHistoryFlow,
                     repo.lastSessionAtFor(ctx.planId),
-                ) { slots, logs, sessions, topSets, lastSessionAt ->
-                    build(ctx, dayId, slots, logs, sessions, topSets, lastSessionAt, now)
+                ) { slots, tracks, sessions, topSets, lastSessionAt ->
+                    build(ctx, dayId, slots, tracks, sessions, topSets, lastSessionAt, now)
                 }
             }
         }
@@ -132,7 +131,7 @@ class TodayViewModel @Inject constructor(
         ctx: TodayContext,
         dayId: String,
         slots: List<ProgramSlot>,
-        logs: List<LoggedSlot>,
+        tracks: DayTracks,
         sessions: List<SessionSummaryRow>,
         topSets: List<TopSetRow>,
         lastSessionAt: Long?,
@@ -143,15 +142,15 @@ class TodayViewModel @Inject constructor(
         val standalone = ctx.program.cardioDays.firstOrNull()
         // Rounds, the same count the widget, the watch and the session receipt
         // show — see [Slot.isRound] for why a superset partner isn't one.
-        val mainLogs = logs.filter { Slot.isRound(it.slot) }.associateBy { it.programExerciseId }
+        val mainLogs = tracks.tracks.filter { Slot.isRound(it.slot) }.associateBy { it.programExerciseId }
         val rowsBySlot = slots.associate { slot ->
             slot.programExerciseId to mainLogs[slot.programExerciseId]?.sets
         }
         val countBySlot = slots.associate { slot ->
             slot.programExerciseId to (rowsBySlot[slot.programExerciseId]?.size ?: seededRowCount(slot, ctx))
         }
-        val totalSets = countBySlot.values.sum()
-        val doneSets = slots.sumOf { slot -> rowsBySlot[slot.programExerciseId]?.count { it.done } ?: 0 }
+        val totalSets = countBySlot.values.sum() + tracks.retiredRoundsDone
+        val doneSets = slots.sumOf { slot -> rowsBySlot[slot.programExerciseId]?.count { it.done } ?: 0 } + tracks.retiredRoundsDone
 
         return TodayUiState(
             planId = ctx.planId,

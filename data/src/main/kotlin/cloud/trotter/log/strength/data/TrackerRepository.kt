@@ -1911,8 +1911,8 @@ open class TrackerRepository(
                 selected?.id
             }
         }
-        if (committed != null) restoreMarkerDao.clear()
         planSettingsMigrationMutex.withLock { legacyCardioConverted = false }
+        if (committed != null) restoreMarkerDao.clear()
         ensurePlanSettingsMigrated()
         return replayed
     }

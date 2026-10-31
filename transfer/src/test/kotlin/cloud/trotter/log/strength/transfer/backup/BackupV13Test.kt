@@ -37,7 +37,7 @@ class BackupV13Test {
         settings = SettingsBackup(200, 30, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
         plans = listOf(PlanBackup(1, "Plan", "GENERATED", 1000, days = listOf(
             ProgramDayBackup("A", "Day A", "", nextRunId = run.id, closedAt = 500,
-                exercises = listOf(ProgramExerciseBackup(7, "bb_back_squat", false, 3, "10", false, "ez_curl", ""))),
+                exercises = listOf(ProgramExerciseBackup(7, "bb_back_squat", false, 3, "10", false, "ez_curl", "", keepToPlan = false))),
             ProgramDayBackup("B", "Day B", "", nextRunId = "preview-B"),
         ))),
         runs = listOf(run), sessions = listOf(session),
@@ -46,7 +46,7 @@ class BackupV13Test {
 
     /** [F] */
     @Test fun `v13 round trip maps runs tracks day identities and archive fields`() {
-        val before = document()
+        val before = document().copy(schemaVersion = 13)
         val decoded = decode(before)
         assertEquals(13, decoded.schemaVersion)
         assertEquals(before, decoded)
@@ -62,8 +62,8 @@ class BackupV13Test {
         assertEquals(session.plannedJson, snapshot.sessions.single().plannedJson)
         assertEquals(0, snapshot.sessionSets.single().trackPosition)
         assertEquals(0, snapshot.sessionSets.single().plannedIndex)
-        assertEquals(before, snapshot.toDocument())
-        assertEquals(codec.encode(before), codec.encode(snapshot.toDocument()))
+        assertEquals(before, snapshot.toDocument().copy(schemaVersion = 13))
+        assertEquals(codec.encode(before), codec.encode(snapshot.toDocument().copy(schemaVersion = 13)))
     }
 
     /** [F] */

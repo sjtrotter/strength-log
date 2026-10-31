@@ -66,7 +66,6 @@ fun FullSnapshot.toDocument(): BackupDocument {
             keepScreenOn = keepScreenOn,
             topSetHelperSeen = topSetHelperSeen,
             supersetHelperSeen = supersetHelperSeen,
-            sessionNotes = sessionNotes,
             theme = themePreference.name,
         ),
         customExercises = customExercises.map {
@@ -112,6 +111,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                                 supersetExerciseId = ex.supersetExerciseId,
                                 note = ex.note,
                                 prescriptionJson = ex.prescriptionJson,
+                                keepToPlan = ex.keepToPlan,
                             )
                         },
                     )
@@ -146,6 +146,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 startedAt = s.startedAt,
                 completedAt = s.completedAt,
                 bodyweightLb = s.bodyweightLb,
+                note = s.note,
                 sets = setsBySession[s.id].orEmpty().map { set ->
                     SessionSetBackup(
                         id = set.id,
@@ -256,6 +257,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                     supersetExerciseId = ex.supersetExerciseId,
                     note = ex.note,
                     prescriptionJson = if (schemaVersion >= 10) ex.prescriptionJson else null,
+                    keepToPlan = ex.keepToPlan ?: (schemaVersion >= 10 && ex.prescriptionJson != null),
                 )
             }
         }
@@ -278,6 +280,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             startedAt = it.startedAt,
             completedAt = it.completedAt,
             bodyweightLb = it.bodyweightLb,
+            note = it.note.ifEmpty { settings.sessionNotes[it.id].orEmpty() }.trim().take(120),
             planId = it.planId,
             planName = it.planName,
             runId = if (schemaVersion >= 13) it.runId else null,
@@ -320,7 +323,6 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         keepScreenOn = settings.keepScreenOn,
         topSetHelperSeen = settings.topSetHelperSeen,
         supersetHelperSeen = settings.supersetHelperSeen,
-        sessionNotes = settings.sessionNotes,
         themePreference = enumOrDefault(settings.theme, ThemePreference.SYSTEM),
         customExercises = customExercises.map {
             CustomExerciseEntity(

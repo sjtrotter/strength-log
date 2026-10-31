@@ -2,11 +2,16 @@ package cloud.trotter.log.strength.transfer.backup
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -201,7 +206,7 @@ class RestoreCoordinationTest {
     }
 
     @Test
-    fun interruptedRestoreReplaysNotesForBothSessionsUnderTheRestoreLock() = runBlocking {
+    fun interruptedRestorePreservesRoomNotesForBothSessionsUnderTheRestoreLock() = runBlocking {
         val notes = mapOf(11L to "Easy first session", 12L to "Add weight next time")
         val codec = BackupCodec()
         val document = BackupDocument(
@@ -218,14 +223,16 @@ class RestoreCoordinationTest {
         assertTrue(failure is RestoreInterruption.SettingsPending)
         assertEquals(listOf(11L, 12L), db.sessionDao().allSessions().map { it.id })
         assertNotNull(db.restoreMarkerDao().nonce())
-        assertTrue(settings.sessionNotesFlow.first().isEmpty())
+        assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
 
         service.withRestoreLock {
-            assertEquals(notes, settings.sessionNotesFlow.first())
+            assertEquals(notes, repo.sessionNotesFlow.first())
+            assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
             assertNull(db.restoreMarkerDao().nonce())
         }
         assertFalse(service.reconcilePendingRestore())
-        assertEquals(notes, settings.sessionNotesFlow.first())
+        assertEquals(notes, repo.sessionNotesFlow.first())
+        assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
     }
 
     @Test
@@ -353,5 +360,33 @@ class RestoreCoordinationTest {
 
     private companion object {
         const val TIMEOUT_MS = 10_000L
+    }
+
+    @Test
+    fun v13RestoreMovesNotesIntoRoomAndClearsLegacyDataStoreNotes() = runBlocking {
+        val codec = BackupCodec()
+        val prescription = PrescriptionJson.encode(Prescription(PrescribedTarget.Reps(12)))
+        val document = BackupDocument(
+            schemaVersion = 13,
+            settings = SettingsBackup(190, 33, "NOVICE", weightUnit = "LB", wizardComplete = true,
+                sessionNotes = mapOf(11L to "  Restored note  ", 999L to "Unknown session")),
+            plans = listOf(PlanBackup(1, "My plan", "GENERATED", 1_000, days = listOf(
+                ProgramDayBackup("A", "Day A", "", exercises = listOf(
+                    ProgramExerciseBackup(1, "bb_back_squat", true, 3, "12", false, note = "", prescriptionJson = prescription),
+                )),
+            ))),
+            sessions = listOf(SessionBackup(11, "A", "Day A", completedAt = 2_000, bodyweightLb = 190)),
+        )
+        settingsStore.edit { it[stringPreferencesKey("session_notes")] = """{"11":"Stale local note"}""" }
+        val encoded = codec.encode(document).replace(",\"keepToPlan\":null", "")
+
+        service.import(encoded)
+
+        assertTrue(db.programDao().exercise(1)!!.keepToPlan)
+        assertEquals("Restored note", db.sessionDao().sessionById(11)!!.note)
+        assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
+        assertNull(settingsStore.data.first()[stringPreferencesKey("session_notes")])
+        repo.ensureSessionNotesMoved()
+        assertEquals(mapOf(11L to "Restored note"), repo.sessionNotesFlow.first())
     }
 }

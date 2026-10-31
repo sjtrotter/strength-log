@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.transfer.backup
 
 import cloud.trotter.log.strength.domain.standards.RestSettings
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 /**
@@ -15,8 +17,9 @@ import kotlinx.serialization.Serializable
  * v10 carries authored prescriptions; v11 carries authored cardio blocks;
  * v12 carries cardio activity and per-set results.
  * v13 carries workout runs, each day's run identity, and archived prescriptions.
+ * v14 carries each slot's next-time choice and each session's note.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 13
+const val CURRENT_SCHEMA_VERSION: Int = 14
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -136,8 +139,8 @@ data class SettingsBackup(
     val keepScreenOn: Boolean = false,
     val topSetHelperSeen: Boolean = false,
     val supersetHelperSeen: Boolean = false,
-    /** Temporary DataStore-backed session notes; no schema-version bump while
-     *  Room/backup v7 is reserved by the parallel cardio work. */
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
     val sessionNotes: Map<Long, String> = emptyMap(),
     /** Theme preference. Defaulted so pre-light-theme backups follow SYSTEM. */
     val theme: String = "SYSTEM",
@@ -199,6 +202,7 @@ data class ProgramExerciseBackup(
     val supersetExerciseId: String? = null,
     val note: String,
     val prescriptionJson: String? = null,
+    val keepToPlan: Boolean? = null,
 )
 
 /**
@@ -239,6 +243,9 @@ data class SessionBackup(
     val planName: String? = null,
     val runId: String? = null,
     val plannedJson: String? = null,
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val note: String = "",
 )
 
 @Serializable

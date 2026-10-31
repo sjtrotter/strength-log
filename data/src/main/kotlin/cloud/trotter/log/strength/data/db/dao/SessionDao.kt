@@ -220,6 +220,9 @@ interface SessionDao {
     @Query("DELETE FROM session_set WHERE sessionId = :sessionId")
     suspend fun deleteSetsForSession(sessionId: Long)
 
+    @Query("UPDATE workout_session SET note = :note WHERE id = :sessionId")
+    suspend fun setNote(sessionId: Long, note: String)
+
     @Query("DELETE FROM workout_session WHERE id = :sessionId")
     suspend fun deleteSessionById(sessionId: Long)
 

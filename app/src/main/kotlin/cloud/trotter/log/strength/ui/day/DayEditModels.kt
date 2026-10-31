@@ -28,6 +28,7 @@ data class DayEditUiState(
     val dayId: String? = null,
     val cardioBlock: CardioBlock? = null,
     val cardioDraft: CardioBlockDraft? = null,
+    val runOpen: Boolean = false,
 )
 
 /** One row of the day-edit sheet's slot list. */
@@ -51,6 +52,7 @@ data class DayEditSlotState(
     val targetSets: Int = 3,
     val canMoveUp: Boolean = false,
     val canMoveDown: Boolean = false,
+    val keepToPlan: Boolean = false,
 )
 
 /** Callbacks the day-edit sheet forwards to [DayViewModel]. */
@@ -73,4 +75,6 @@ data class DayEditActions(
     val onSaveCardio: () -> Unit = {},
     val onBackCardio: () -> Unit = {},
     val onRemoveCardio: () -> Unit = {},
+    val onSetKeepToPlan: (slotId: Long, keep: Boolean) -> Unit = { _, _ -> },
+    val onResetSlotToPlan: (slotId: Long) -> Unit = {},
 )

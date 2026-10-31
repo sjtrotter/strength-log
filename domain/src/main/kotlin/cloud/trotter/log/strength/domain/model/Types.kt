@@ -55,6 +55,7 @@ data class ProgramExercise(
     val note: String = "",
     /** Authored slots have no superset partner; editors must not offer one. */
     val prescription: Prescription? = null,
+    val keepToPlan: Boolean = false,
 )
 
 enum class ProgramDayKind { STRENGTH, CARDIO }

@@ -123,6 +123,7 @@ open class TrackerRepository(
     private val planDao = db.planDao()
     private val runDao = db.runDao()
     private val planSettingsMigrationMutex = Mutex()
+    private val sessionNotesMigrationMutex = Mutex()
 
     /** Serializes plan selection and archive changes across Room and DataStore. */
     private val planSelectionLock = Mutex()
@@ -761,14 +762,51 @@ open class TrackerRepository(
         programDao.setExerciseNote(programExerciseId, text.trim().take(120))
     }
 
-    // TODO(schema): Store this on workout_session when the coordinated Room
-    // schema bump lands; DataStore is the migration-free local-first bridge.
-    val sessionNotesFlow: Flow<Map<Long, String>> = settings.sessionNotesFlow
+    suspend fun setKeepToPlan(programExerciseId: Long, keep: Boolean) {
+        db.withTransaction {
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            programDao.setKeepToPlan(row.id, keep)
+            if (keep) deleteSlotWorkingValues(row)
+        }
+    }
 
-    fun sessionNoteFlow(sessionId: Long): Flow<String> = settings.sessionNoteFlow(sessionId)
+    suspend fun resetSlotToPlan(programExerciseId: Long): Boolean = db.withTransaction {
+        val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
+        if (row.keepToPlan) return@withTransaction false
+        val run = runDao.openRun()
+        if (run?.planId == row.planId && run.dayId == row.dayId) return@withTransaction false
+        deleteSlotWorkingValues(row)
+        true
+    }
+
+    private suspend fun deleteSlotWorkingValues(row: ProgramExerciseEntity) {
+        programDao.deleteLogForSlot(row.planId, row.dayId, row.id, Slot.MAIN)
+        programDao.deleteLogForSlot(row.planId, row.dayId, row.id, Slot.SS)
+    }
+
+    val sessionNotesFlow: Flow<Map<Long, String>> = flow {
+        ensureSessionNotesMoved()
+        emitAll(sessionDao.observeSessions().map { sessions ->
+            sessions.filter { it.note.isNotBlank() }.associate { it.id to it.note }
+        })
+    }
 
     suspend fun setSessionNote(sessionId: Long, text: String) {
-        settings.setSessionNote(sessionId, text)
+        ensureSessionNotesMoved()
+        sessionDao.setNote(sessionId, text.trim().take(120))
+    }
+
+    suspend fun ensureSessionNotesMoved() {
+        sessionNotesMigrationMutex.withLock {
+            if (restoreMarkerDao.nonce() != null) return@withLock
+            val notes = settings.legacySessionNotesFlow.first()
+            if (notes.isNotEmpty()) {
+                db.withTransaction {
+                    notes.forEach { (id, note) -> sessionDao.setNote(id, note.trim().take(120)) }
+                }
+            }
+            settings.removeLegacySessionNotes()
+        }
     }
 
     /**
@@ -1196,12 +1234,15 @@ open class TrackerRepository(
     }
 
     /** Deletes history only; in particular, the DataStore rotation pointer is untouched. */
-    suspend fun deleteSession(sessionId: Long): DeletedSession? = db.withTransaction {
-        val session = sessionDao.sessionById(sessionId) ?: return@withTransaction null
-        val sets = sessionDao.setsForSession(sessionId)
-        sessionDao.deleteSetsForSession(sessionId)
-        sessionDao.deleteSessionById(sessionId)
-        DeletedSession(session, sets)
+    suspend fun deleteSession(sessionId: Long): DeletedSession? {
+        ensureSessionNotesMoved()
+        return db.withTransaction {
+            val session = sessionDao.sessionById(sessionId) ?: return@withTransaction null
+            val sets = sessionDao.setsForSession(sessionId)
+            sessionDao.deleteSetsForSession(sessionId)
+            sessionDao.deleteSessionById(sessionId)
+            DeletedSession(session, sets)
+        }
     }
 
     /** Restores a just-deleted session exactly, including every original row id. */
@@ -1567,11 +1608,22 @@ open class TrackerRepository(
 
     private suspend fun carryForward(day: ProgramDayEntity, tracks: List<RunTrackEntity>) {
         val slots = programDao.exercisesForDay(day.planId, day.dayId).associateBy { it.id }
+        val changedShape = slots.values.filter { slot ->
+            if (slot.keepToPlan) return@filter false
+            val prescription = PrescriptionJson.decode(slot.prescriptionJson) ?: return@filter false
+            val main = tracks.firstOrNull {
+                !it.retired && it.programExerciseId == slot.id && it.slot == Slot.MAIN && it.exerciseId == slot.exerciseId
+            } ?: return@filter false
+            SetJson.decodeSets(main.plannedJson).isNotEmpty() &&
+                !main.canReplan(prescription.tracking == TrackingType.TIMED)
+        }.map { it.id }.toSet()
+        changedShape.forEach { deleteSlotWorkingValues(slots.getValue(it)) }
         for (track in tracks) {
             if (track.retired) continue
             val slot = slots[track.programExerciseId] ?: continue
             if (slot.exerciseIdFor(track.slot) != track.exerciseId) continue
-            if (slot.prescriptionJson != null) {
+            if (slot.id in changedShape) continue
+            if (slot.keepToPlan) {
                 programDao.deleteLogForSlot(day.planId, day.dayId, slot.id, track.slot)
             } else {
                 programDao.upsertLog(logEntity(day.planId, day.dayId, slot.id, track.slot, CarryForward.next(
@@ -1616,6 +1668,7 @@ open class TrackerRepository(
      */
     suspend fun exportSnapshot(): FullSnapshot {
         ensurePlanSettingsMigrated()
+        ensureSessionNotesMoved()
         // DataStore and Room have independent commits. Read preferences first;
         // never collect a DataStore-backed flow while holding a Room transaction.
         val global = settings.globalLifterFlow.first()
@@ -1626,7 +1679,6 @@ open class TrackerRepository(
         val keepScreenOn = settings.keepScreenOnFlow.first()
         val topSetHelperSeen = settings.topSetHelperSeenFlow.first()
         val supersetHelperSeen = settings.supersetHelperSeenFlow.first()
-        val sessionNotes = settings.sessionNotesFlow.first()
         val themePreference = settings.themePreferenceFlow.first()
         return db.withTransaction {
             // Use this same plan list for the legacy settings projection, too.
@@ -1645,7 +1697,6 @@ open class TrackerRepository(
                 keepScreenOn = keepScreenOn,
                 topSetHelperSeen = topSetHelperSeen,
                 supersetHelperSeen = supersetHelperSeen,
-                sessionNotes = sessionNotes,
                 themePreference = themePreference,
                 plans = plans,
                 customExercises = customExerciseDao.allOrdered(),
@@ -1793,7 +1844,6 @@ open class TrackerRepository(
                     keepScreenOn = snapshot.keepScreenOn,
                     topSetHelperSeen = snapshot.topSetHelperSeen,
                     supersetHelperSeen = snapshot.supersetHelperSeen,
-                    sessionNotes = snapshot.sessionNotes,
                     themePreference = snapshot.themePreference,
                 )
             } catch (e: IOException) {
@@ -1812,7 +1862,11 @@ open class TrackerRepository(
      */
     suspend fun reconcilePendingRestore(journal: RestoreJournal): Boolean {
         val committed = restoreMarkerDao.nonce()
-        val replayed = journal.reconcile(committed) { answers, suggestedDay, storedId ->
+        val replayed = journal.reconcile(committed, applyLegacySessionNotes = { notes ->
+            db.withTransaction {
+                notes.forEach { (id, note) -> sessionDao.setNote(id, note.trim().take(120)) }
+            }
+        }) { answers, suggestedDay, storedId ->
             db.withTransaction {
                 val recipe = PlanRecipeJson.encode(answers)
                 val plans = planDao.allPlans()

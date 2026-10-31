@@ -67,6 +67,7 @@ data class ProgramExerciseEntity(
     val supersetExerciseId: String?,
     val note: String,
     val prescriptionJson: String? = null,
+    val keepToPlan: Boolean = false,
 )
 
 /** The plan's working values for one slot track: next time's sets. Never holds results. */

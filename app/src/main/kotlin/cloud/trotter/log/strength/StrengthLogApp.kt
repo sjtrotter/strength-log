@@ -116,6 +116,8 @@ class StrengthLogApp : Application() {
                 .onFailure { Log.e(TAG, "Legacy session start adoption failed", it) }
             runCatching { repository.runPlanSettingsFixupIfNeeded() }
                 .onFailure { Log.e(TAG, "Plan settings fixup failed; will retry next launch", it) }
+            runCatching { repository.ensureSessionNotesMoved() }
+                .onFailure { Log.e(TAG, "Session notes move failed; will retry next launch", it) }
         }
     }
 

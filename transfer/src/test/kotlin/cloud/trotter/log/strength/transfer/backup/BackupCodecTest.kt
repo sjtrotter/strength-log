@@ -10,6 +10,9 @@ import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
@@ -708,5 +711,65 @@ class BackupCodecTest {
 
         val negative = document(settings = settings().copy(restLightSeconds = -1))
         assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(negative)) }
+    }
+
+    @Test
+    fun `v14 round trip carries next time choices and Room notes without legacy settings notes`() {
+        val prescription = PrescriptionJson.encode(Prescription(PrescribedTarget.Reps(12)))
+        val base = restSnapshot(RestSettings())
+        val slot = base.exercises.single()
+        val snapshot = base.copy(
+            exercises = listOf(
+                slot.copy(keepToPlan = true),
+                slot.copy(id = 2, position = 1, prescriptionJson = prescription, keepToPlan = false),
+            ),
+            sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000, 210, note = "Felt smooth")),
+        )
+        val encoded = codec.encode(snapshot.toDocument())
+        val decoded = codec.decode(encoded)
+        val restored = decoded.toSnapshot()
+
+        assertEquals(14, decoded.schemaVersion)
+        assertEquals(listOf(true, false), decoded.plans.single().days.single().exercises.map { it.keepToPlan })
+        assertFalse(encoded.contains("sessionNotes"))
+        assertEquals(snapshot.exercises, restored.exercises)
+        assertEquals(snapshot.sessions, restored.sessions)
+    }
+
+    @Test
+    fun `v13 restores legacy notes by backup session id and derives prescribed keep choice`() {
+        val prescription = PrescriptionJson.encode(Prescription(PrescribedTarget.Reps(12)))
+        val base = restSnapshot(RestSettings()).toDocument()
+        val plan = base.plans.single()
+        val day = plan.days.single()
+        val document = base.copy(
+            schemaVersion = 13,
+            settings = base.settings.copy(sessionNotes = mapOf(7L to "  ${"x".repeat(130)}  ", 8L to "Legacy", 999L to "Orphan")),
+            plans = listOf(plan.copy(days = listOf(day.copy(exercises = listOf(
+                day.exercises.single().copy(prescriptionJson = prescription, keepToPlan = null),
+                day.exercises.single().copy(id = 2, keepToPlan = null),
+            ))))),
+            sessions = listOf(
+                SessionBackup(7, "A", "Day A", completedAt = 5_000, bodyweightLb = 210),
+                SessionBackup(8, "A", "Day A", completedAt = 6_000, bodyweightLb = 210, note = "  Own note  "),
+            ),
+        )
+        val encoded = codec.encode(document).replace(",\"keepToPlan\":null", "")
+        val restored = codec.decode(encoded).toSnapshot()
+
+        assertEquals(listOf(true, false), restored.exercises.map { it.keepToPlan })
+        assertEquals(listOf(7L, 8L), restored.sessions.map { it.id })
+        assertEquals(listOf("x".repeat(120), "Own note"), restored.sessions.map { it.note })
+    }
+
+    @Test
+    fun `an explicit empty session note wins over a legacy note`() {
+        val base = restSnapshot(RestSettings()).toDocument()
+        val document = base.copy(
+            settings = base.settings.copy(sessionNotes = mapOf(7L to "Legacy")),
+            sessions = listOf(SessionBackup(7, "A", "Day A", completedAt = 5_000, note = "placeholder")),
+        )
+        val encoded = codec.encode(document).replace("\"note\":\"placeholder\"", "\"note\":\"\"")
+        assertEquals("", codec.decode(encoded).toSnapshot().sessions.single().note)
     }
 }

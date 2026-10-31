@@ -324,12 +324,13 @@ class DayViewModel @Inject constructor(
         val dayId = ctx.dayId
         val plan = ctx.plan
         if (dayId == null || plan == null) flowOf(DayEditUiState()) else combine(
-            repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id),
-        ) { slots, answers ->
+            repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id), repo.openRunFlow,
+        ) { slots, answers, run ->
             val origin = PlanOrigin.entries.firstOrNull { it.name == plan.origin } ?: PlanOrigin.GENERATED
             val block = ctx.program.days.firstOrNull { it.id == dayId }?.cardioBlock
             buildEditState(slots, ctx.catalog, answers.equipment, origin).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block,
+                runOpen = run?.planId == plan.id && run.dayId == dayId,
                 canRemove = DayEditRules.canRemove(slots.size, origin, block != null),
             )
         }
@@ -1349,6 +1350,14 @@ class DayViewModel @Inject constructor(
         mutate { repo.setSupersetPartner(day, position, partnerExerciseId, targetPlanId = planId) }
     }
 
+    fun setDaySlotKeepToPlan(slotId: Long, keep: Boolean) {
+        mutate { repo.setKeepToPlan(slotId, keep) }
+    }
+
+    fun resetDaySlotToPlan(slotId: Long) {
+        mutate { repo.resetSlotToPlan(slotId) }
+    }
+
     /** Breaking a superset back into a plain slot: the partner and its SS track
      *  go, the main track stays. */
     fun removeDaySlotSuperset(position: Int) {
@@ -1747,6 +1756,7 @@ class DayViewModel @Inject constructor(
                 partnerTitle = partnerId?.let { catalog.find(it)?.name ?: it },
                 canSetSuperset = origin != PlanOrigin.AUTHORED && pe.prescription == null,
                 prescription = pe.prescription,
+                keepToPlan = pe.keepToPlan,
                 targetSets = pe.targetSets,
                 canMoveUp = index > 0,
                 canMoveDown = index < slots.lastIndex,

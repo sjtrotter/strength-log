@@ -31,6 +31,7 @@ data class WorkoutSessionEntity(
     val planName: String? = null,
     val runId: String? = null,
     val plannedJson: String? = null,
+    val note: String = "",
 )
 
 /**

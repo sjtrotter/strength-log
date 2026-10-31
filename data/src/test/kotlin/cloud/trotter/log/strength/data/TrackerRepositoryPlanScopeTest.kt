@@ -845,10 +845,10 @@ class TrackerRepositoryPlanScopeTest {
     }
 
     @Test
-    fun `finishing authored slots archives edits and reseeds targets while generated logs persist`() = runTest {
+    fun `finishing kept slots archives edits and reseeds targets while remembered logs persist`() = runTest {
         val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8), resistance = "red band")
         val day = program("Physio", "bb_back_squat").days.single().copy(exercises = listOf(
-            ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription),
+            ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription, keepToPlan = true),
             ProgramExercise("bb_bench"),
         ))
         repo.replaceProgram(Program(listOf(day, day.copy(id = "B"))))
@@ -896,8 +896,8 @@ class TrackerRepositoryPlanScopeTest {
             PrescribedTarget.LoadReps(37.5, 8), PrescribedTarget.Reps(12),
             PrescribedTarget.Hold(45, 25.0), PrescribedTarget.RepsInTime(120, 50),
         )
-        val day = program("Authored", "plank").days.single().copy(exercises = targets.map {
-            ProgramExercise("plank", prescription = Prescription(it, true, "red band"))
+        val day = program("Authored", "plank").days.single().copy(exercises = targets.mapIndexed { index, target ->
+            ProgramExercise("plank", prescription = Prescription(target, true, "red band"), keepToPlan = index % 2 == 0)
         })
         repo.replaceProgram(Program(listOf(day)))
         val source = repo.plansFlow.first().single()
@@ -908,6 +908,7 @@ class TrackerRepositoryPlanScopeTest {
 
         val copies = db.programDao().exercisesForPlan(copyId)
         assertEquals(originals.map { it.prescriptionJson }, copies.map { it.prescriptionJson })
+        assertEquals(originals.map { it.keepToPlan }, copies.map { it.keepToPlan })
         assertTrue(copies.map { it.id }.toSet().intersect(originals.map { it.id }.toSet()).isEmpty())
         assertEquals(day.exercises, repo.slotsFor(copyId, "A").first().map { it.exercise })
     }

@@ -57,6 +57,9 @@ interface ProgramDao {
     @Query("SELECT * FROM program_exercise WHERE planId = :planId AND dayId = :dayId ORDER BY position")
     suspend fun exercisesForDay(planId: Long, dayId: String): List<ProgramExerciseEntity>
 
+    @Query("UPDATE program_exercise SET keepToPlan = :keep WHERE id = :id")
+    suspend fun setKeepToPlan(id: Long, keep: Boolean)
+
     @Query("SELECT * FROM program_exercise WHERE id = :id")
     suspend fun exercise(id: Long): ProgramExerciseEntity?
 

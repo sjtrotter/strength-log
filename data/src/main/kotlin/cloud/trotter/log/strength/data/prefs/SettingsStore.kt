@@ -96,8 +96,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val TOP_SET_HELPER_SEEN = booleanPreferencesKey("top_set_helper_seen")
         val SUPERSET_HELPER_SEEN = booleanPreferencesKey("superset_helper_seen")
 
-        // TODO(schema): Move these values onto workout_session once the next
-        // coordinated Room schema version is available.
         val SESSION_NOTES = stringPreferencesKey("session_notes")
 
         // Device-local SAF automation state. These keys are not part of the
@@ -192,11 +190,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val supersetHelperSeenFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.SUPERSET_HELPER_SEEN] ?: false }
 
-    val sessionNotesFlow: Flow<Map<Long, String>> =
+    val legacySessionNotesFlow: Flow<Map<Long, String>> =
         dataStore.data.map { decodeSessionNotes(it[Keys.SESSION_NOTES]) }
-
-    fun sessionNoteFlow(sessionId: Long): Flow<String> =
-        sessionNotesFlow.map { it[sessionId].orEmpty() }
 
     val themePreferenceFlow: Flow<ThemePreference> =
         dataStore.data.map { it.enum(Keys.THEME, ThemePreference.SYSTEM) }
@@ -333,12 +328,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun markSupersetHelperSeen() =
         dataStore.edit { it[Keys.SUPERSET_HELPER_SEEN] = true }
 
-    suspend fun setSessionNote(sessionId: Long, text: String) = dataStore.edit { prefs ->
-        val notes = decodeSessionNotes(prefs[Keys.SESSION_NOTES]).toMutableMap()
-        val clean = text.trim().take(120)
-        if (clean.isEmpty()) notes.remove(sessionId) else notes[sessionId] = clean
-        if (notes.isEmpty()) prefs.remove(Keys.SESSION_NOTES)
-        else prefs[Keys.SESSION_NOTES] = SessionNotesJson.encodeToString(SessionNotesSerializer, notes)
+    suspend fun removeLegacySessionNotes() {
+        dataStore.edit { it.remove(Keys.SESSION_NOTES) }
     }
 
     suspend fun setThemePreference(theme: ThemePreference) =
@@ -387,7 +378,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         keepScreenOn: Boolean,
         topSetHelperSeen: Boolean = false,
         supersetHelperSeen: Boolean = false,
-        sessionNotes: Map<Long, String> = emptyMap(),
         themePreference: ThemePreference = ThemePreference.SYSTEM,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
@@ -412,9 +402,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         prefs[Keys.KEEP_SCREEN_ON] = keepScreenOn
         prefs[Keys.TOP_SET_HELPER_SEEN] = topSetHelperSeen
         prefs[Keys.SUPERSET_HELPER_SEEN] = supersetHelperSeen
-        if (sessionNotes.isNotEmpty()) {
-            prefs[Keys.SESSION_NOTES] = SessionNotesJson.encodeToString(SessionNotesSerializer, sessionNotes)
-        }
         autoEnabled?.let { prefs[Keys.AUTO_BACKUP_ENABLED] = it }
         autoTreeUri?.let { prefs[Keys.AUTO_BACKUP_TREE_URI] = it }
         autoFolderName?.let { prefs[Keys.AUTO_BACKUP_FOLDER_NAME] = it }

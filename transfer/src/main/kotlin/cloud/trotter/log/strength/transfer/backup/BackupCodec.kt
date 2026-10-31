@@ -99,7 +99,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, 12, 13, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -155,7 +155,14 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         if (version >= 8 && document.program.isNotEmpty()) {
             throw BackupError.Malformed("program must be empty in schema v$version")
         }
-        return document
+        val emptyOwnNotes = (versioned["sessions"] as? JsonArray).orEmpty().mapNotNull { value ->
+            val session = value as? JsonObject ?: return@mapNotNull null
+            if (session["note"] != JsonPrimitive("")) return@mapNotNull null
+            (session["id"] as? JsonPrimitive)?.content?.toLongOrNull()
+        }.toSet()
+        return if (emptyOwnNotes.isEmpty()) document else document.copy(
+            settings = document.settings.copy(sessionNotes = document.settings.sessionNotes - emptyOwnNotes),
+        )
     }
 
     private fun withoutRunFields(root: JsonObject): JsonObject {

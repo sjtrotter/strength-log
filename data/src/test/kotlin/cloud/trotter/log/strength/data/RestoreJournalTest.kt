@@ -204,13 +204,12 @@ class RestoreJournalTest {
     }
 
     @Test
-    fun settingsFailureAfterTheCommit_replaysNotesForBothSessions() = runTest {
+    fun settingsFailureAfterTheCommit_preservesRoomNotesForBothSessions() = runTest {
         val restored = snapshot().copy(
             sessions = listOf(
-                WorkoutSessionEntity(11, "R", "Restored", null, 1_000, 190),
-                WorkoutSessionEntity(12, "R", "Restored", null, 2_000, 190),
+                WorkoutSessionEntity(11, "R", "Restored", null, 1_000, 190, note = "Easy first session"),
+                WorkoutSessionEntity(12, "R", "Restored", null, 2_000, 190, note = "Add weight next time"),
             ),
-            sessionNotes = mapOf(11L to "Easy first session", 12L to "Add weight next time"),
         )
         settingsStore.failOnUpdate = 1
 
@@ -219,15 +218,38 @@ class RestoreJournalTest {
         assertTrue(failure is RestoreInterruption.SettingsPending)
         assertEquals(restored.sessions, db.sessionDao().allSessions())
         assertNotNull(db.restoreMarkerDao().nonce())
-        assertTrue(settings.sessionNotesFlow.first().isEmpty())
+        assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
 
         assertTrue(repo.reconcilePendingRestore(journal))
 
-        assertEquals(restored.sessionNotes, settings.sessionNotesFlow.first())
+        assertEquals(restored.sessions, db.sessionDao().allSessions())
         assertSettingsRestored()
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(repo.reconcilePendingRestore(journal))
-        assertEquals(restored.sessionNotes, settings.sessionNotesFlow.first())
+        assertEquals(restored.sessions, db.sessionDao().allSessions())
+    }
+
+    @Test
+    fun previousBuildJournalMovesItsNotesIntoRoomBeforeClearingTheMarker() = runTest {
+        val restored = snapshot().copy(sessions = listOf(
+            WorkoutSessionEntity(11, "R", "Restored", null, 1_000, 190),
+        ))
+        val nonce = "legacy-notes-journal"
+        stagePreviousBuild(restored, nonce)
+        commitPreviousBuildRoomHalf(restored, nonce)
+        db.sessionDao().insertSessions(restored.sessions)
+        journalStore.edit { it[stringPreferencesKey("session_notes")] = """{"11":"Recovered note","999":"Orphan"}""" }
+        settingsStore.edit { it[stringPreferencesKey("session_notes")] = """{"11":"Stale device note"}""" }
+
+        repo.ensureSessionNotesMoved()
+        assertEquals("", repo.session(11)!!.note)
+        assertTrue(repo.reconcilePendingRestore(journal))
+
+        assertEquals("Recovered note", repo.session(11)!!.note)
+        assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
+        assertNull(db.restoreMarkerDao().nonce())
+        assertFalse(repo.reconcilePendingRestore(journal))
+        assertEquals("Recovered note", repo.session(11)!!.note)
     }
 
     @Test

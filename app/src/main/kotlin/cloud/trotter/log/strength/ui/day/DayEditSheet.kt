@@ -259,6 +259,9 @@ fun DayEditSheet(
                 onSwapClick = { swapSlotId = optionsSlot.programExerciseId },
                 onSupersetClick = { ssSlotId = optionsSlot.programExerciseId },
                 onRemoveSupersetClick = { actions.onRemoveSuperset(optionsSlot.position) },
+                runOpen = state.runOpen,
+                onKeepToPlanChange = { actions.onSetKeepToPlan(optionsSlot.programExerciseId, it) },
+                onResetToPlanClick = { actions.onResetSlotToPlan(optionsSlot.programExerciseId) },
             )
             else -> DaySlotList(
                 state = state,
@@ -359,6 +362,7 @@ private fun DaySlotRow(
 
 // --- page: per-slot options ----------------------------------------------
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SlotOptionsScreen(
     slot: DayEditSlotState,
@@ -369,10 +373,45 @@ private fun SlotOptionsScreen(
     onSwapClick: () -> Unit,
     onSupersetClick: () -> Unit,
     onRemoveSupersetClick: () -> Unit,
+    runOpen: Boolean,
+    onKeepToPlanChange: (Boolean) -> Unit,
+    onResetToPlanClick: () -> Unit,
 ) {
+    var confirmingReset by rememberSaveable(slot.programExerciseId, slot.keepToPlan, runOpen) { mutableStateOf(false) }
+    if (confirmingReset && !slot.keepToPlan && !runOpen) {
+        AppAlertDialog(
+            onDismissRequest = { confirmingReset = false },
+            title = { Text(stringResource(R.string.day_edit_reset_to_plan_confirm_title)) },
+            text = { Text(stringResource(R.string.day_edit_reset_to_plan_confirm_body)) },
+            confirmButton = {
+                DialogAction(stringResource(R.string.day_edit_reset_to_plan_confirm), Error) {
+                    confirmingReset = false
+                    onResetToPlanClick()
+                }
+            },
+            dismissButton = { DialogAction(stringResource(R.string.day_edit_cancel_button), TextSecondary) { confirmingReset = false } },
+        )
+    }
     val title = slot.partnerTitle?.let { stringResource(R.string.day_edit_slot_pair_title, slot.title, it) } ?: slot.title
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
         PickerHeader(title = title, onBack = onBack)
+        Spacer(Modifier.size(12.dp))
+        Text(stringResource(R.string.day_edit_next_time), style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            listOf(false, true).forEachIndexed { index, keep ->
+                SegmentedButton(
+                    selected = slot.keepToPlan == keep,
+                    onClick = { onKeepToPlanChange(keep) },
+                    shape = SegmentedButtonDefaults.itemShape(index, 2),
+                    label = { Text(stringResource(if (keep) R.string.day_edit_next_time_plan else R.string.day_edit_next_time_last)) },
+                )
+            }
+        }
+        if (!slot.keepToPlan && !runOpen) {
+            TextButton(onClick = { confirmingReset = true }) {
+                Text(stringResource(R.string.day_edit_reset_to_plan))
+            }
+        }
         Spacer(Modifier.size(12.dp))
         SheetButton(
             stringResource(R.string.day_edit_swap_exercise_button),

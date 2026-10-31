@@ -295,32 +295,36 @@ class PlanSettingsTest {
     fun `advance moves only the selected rotation inside the session transaction`() = runTest {
         db.planDao().insertPlans(listOf(plan(1, strengthAnswers(), "A"), plan(2, physiqueAnswers(), "C")))
         db.programDao().upsertDays(listOf(day(1, "A", 0), day(1, "B", 1)))
-        settings.stampSessionStartIfUnset(1_000, repo.currentDate().toString(), planId = 1, selectedPlanId = 1)
+        db.programDao().upsertDay(db.programDao().day(1, "A")!!.copy(nextRunId = "run-A"))
+        db.runDao().insertRun(cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity(
+            "run-A", 1, "A", "Day A", "My plan", 1_000))
 
-        val sessionId = repo.advanceDay("A")
+        val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
         assertEquals("B", db.planDao().plan(1)!!.suggestedDayId)
         assertEquals("C", db.planDao().plan(2)!!.suggestedDayId)
         assertEquals(1L, db.sessionDao().sessionById(sessionId)!!.planId)
         assertEquals(1_000L, db.sessionDao().sessionById(sessionId)!!.startedAt)
-        assertNull(settings.sessionStartRawFlow.first())
+        assertNull(repo.openRunFlow.first())
         assertLegacyKeysGone()
     }
 
     @Test
-    fun `failed rotation write rolls back the session and keeps the start stamp`() = runTest {
+    fun `failed rotation write rolls back the session and keeps the open run`() = runTest {
         db.planDao().insertPlan(plan(1, strengthAnswers(), "A"))
         db.programDao().upsertDays(listOf(day(1, "A", 0), day(1, "B", 1)))
-        settings.stampSessionStartIfUnset(1_000, repo.currentDate().toString(), planId = 1, selectedPlanId = 1)
+        db.programDao().upsertDay(db.programDao().day(1, "A")!!.copy(nextRunId = "run-A"))
+        db.runDao().insertRun(cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity(
+            "run-A", 1, "A", "Day A", "My plan", 1_000))
         db.openHelper.writableDatabase.execSQL(
             "CREATE TRIGGER fail_rotation BEFORE UPDATE OF suggestedDayId ON plan BEGIN SELECT RAISE(ABORT, 'rotation failed'); END",
         )
 
-        assertTrue(runCatching { repo.advanceDay("A") }.isFailure)
+        assertTrue(runCatching { repo.finishRun(repo.openRunFlow.first()!!.id)!! }.isFailure)
 
         assertTrue(db.sessionDao().allSessions().isEmpty())
         assertEquals("A", repo.suggestedDayFlow.first())
-        assertEquals(1_000L, settings.sessionStartRawFlow.first()!!.startedAtMillis)
+        assertEquals(1_000L, repo.openRunFlow.first()!!.startedAt)
     }
 
     @Test

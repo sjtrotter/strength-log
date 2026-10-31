@@ -1,9 +1,10 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.TrackEdit
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -12,68 +13,21 @@ import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.guardedFor
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
-import java.time.LocalDate
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Applies a watch [SetEditDelta] to the phone's live logs — the phone-side end of
- * the wire protocol. Everything derived (RAMP/BACK-OFF cascade off a TOP edit, the
- * paired one-tick-per-round on a superset) is computed *here on the phone* through
- * the exact same `:domain` helpers the day screen uses ([SetEditor],
- * [DayScreenBuilder.applyRoundTick]) and written through the same repository paths
- * ([TrackerRepository.updateSets]/[updateSetsPaired][TrackerRepository.updateSetsPaired]);
- * the watch never computes a derived set. The resulting higher-revision snapshot is
- * the watch's ack (spec §9, last-write-wins).
- *
- * A done=true delta (main or partner row) for the selected plan also stamps the
- * session-start time if unset ([TrackerRepository.stampSessionStartIfUnset]) — watch-first
- * workouts exist, so the same first-tick-starts-the-clock rule the day screen
- * applies must hold here too (session-start capture).
- *
- * A delta may also carry the wrist-observed start/complete millis for its round.
- * Those are persisted verbatim onto the row (and onto the aligned partner row when
- * the tick pairs) — the phone stores the facts and derives active time and actual
- * rest from them later; neither side computes a duration to store. A `done = false`
- * delta (the watch's long-press undo) clears them again: an untick retracts the
- * tick's facts along with the tick.
- *
- * Validation and reads follow the slot's plan, even when another plan is selected
- * on the phone.
- * A tick arriving after phone DONE can re-tick the next run of the same day on a
- * one-day plan.
- *
- * Three guards before any write:
- *  - **Validation** — the day, slot (programExerciseId + main/ss track) and set
- *    index must all exist; a superset "ss" delta needs a real partner. Anything
- *    else is [Outcome.INVALID] and touches no data (malformed input from an
- *    exported/foreign sender must never corrupt the log).
- *  - **Dedupe** — a delta whose `editedAtMillis` is not newer than the last one
- *    applied to that row is [Outcome.STALE] and dropped, which is what makes the
- *    watch's re-sends idempotent.
- *  - **Tracking guard** ([guardedFor]) — the target exercise's [TrackingType]
- *    strips any field it doesn't track (a weight edit on a REPS/TIMED hold, a reps
- *    edit on a TIMED hold, a seconds edit on a weighted lift) so a stale/old watch
- *    that still draws the wrong control can never write a dead field. The MAIN track
- *    resolves against the slot's exercise, an SS track against its superset partner —
- *    each has its own type.
- *
- * Read-modify-write over a whole track, so it holds [mutationLock] for the same
- * lost-update reason the day ViewModel serializes its own edits. That lock is
- * per-applier (a process singleton): it serializes concurrent *watch* deltas.
- * A watch edit racing a phone-UI edit on the identical track is not co-serialized
- * with the ViewModel's separate lock, which is acceptable and spec-blessed — one
- * user, one pair of hands, last-write-wins (§9).
+ * Old-watch deltas edit only an existing run on the addressed plan and day.
+ * They never start a run and must be newer than the day's closedAt. Row stamps
+ * commit with the edits; paired ticks commit in the same Room transaction.
  */
 class SetEditApplier(
     private val repo: TrackerRepository,
     private val markers: AppliedEditMarkers,
-    @CivilDay private val today: Flow<LocalDate>,
 ) {
 
-    enum class Outcome { APPLIED, STALE, INVALID }
+    enum class Outcome { APPLIED, STALE, INVALID, REJECTED }
 
     private val mutationLock = Mutex()
 
@@ -94,34 +48,50 @@ class SetEditApplier(
         val slot = slots.firstOrNull { it.programExerciseId == delta.programExerciseId } ?: return Outcome.INVALID
         if (delta.slot == Slot.SS && slot.exercise.superset == null) return Outcome.INVALID
 
-        val logs = repo.logsFor(planId, delta.dayId, today).first()
-        val track = logs.firstOrNull {
-            it.programExerciseId == delta.programExerciseId && it.slot == delta.slot
-        }?.sets.orEmpty()
-        if (delta.setIndex !in track.indices) return Outcome.INVALID
-
-        val rowKey = rowKey(delta)
-        if (delta.editedAtMillis <= markers.lastApplied(rowKey)) return Outcome.STALE
-
-        // Tracking guard: resolve the *edited* exercise's type (the partner's own
-        // type for an SS delta) and drop any field that type doesn't track.
         val catalog = repo.catalogFlow.first()
-        val editedExerciseId =
-            if (delta.slot == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
-        val prescription = slot.exercise.prescription.takeIf { delta.slot == Slot.MAIN }
-        val tracking = prescription?.tracking ?: editedExerciseId?.let { catalog.find(it)?.tracking } ?: TrackingType.WEIGHTED
-        val guarded = delta.guardedFor(tracking)
-
-        if (guarded.done == true && planId == repo.selectedPlanIdFlow.first()) {
-            repo.stampSessionStartIfUnset(planId)
+        var declined: Outcome? = null
+        val edits = mutableListOf<TrackEdit>()
+        fun edit(trackSlot: String, values: Boolean): TrackEdit = TrackEdit(delta.programExerciseId, trackSlot) { track ->
+            val row = track.getOrNull(delta.setIndex)
+            if (row == null) {
+                if (values) {
+                    declined = Outcome.INVALID
+                    null
+                } else track
+            } else if (values && (row.watchEditedAt ?: 0) >= delta.editedAtMillis) {
+                declined = Outcome.STALE
+                null
+            } else {
+                val exerciseId = if (trackSlot == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
+                val prescription = slot.exercise.prescription.takeIf { trackSlot == Slot.MAIN }
+                val tracking = prescription?.tracking ?: exerciseId?.let { catalog.find(it)?.tracking } ?: TrackingType.WEIGHTED
+                val guarded = delta.guardedFor(tracking)
+                var updated = track
+                if (values) {
+                    guarded.weightLb?.let { updated = SetEditor.editWeight(updated, delta.setIndex, it) }
+                    guarded.reps?.let { updated = SetEditor.editReps(updated, delta.setIndex, it) }
+                    guarded.seconds?.let { updated = SetEditor.editSeconds(updated, delta.setIndex, it) }
+                }
+                updated.stamped(delta).mapIndexed { i, set ->
+                    if (i == delta.setIndex) set.copy(done = delta.done ?: set.done, watchEditedAt = if (values) delta.editedAtMillis else set.watchEditedAt)
+                    else set
+                }
+            }
         }
-        if (delta.slot == Slot.MAIN) {
-            applyToMain(guarded, track, partnerTrack = logs.trackOf(delta.programExerciseId, Slot.SS))
-        } else {
-            applyToPartner(guarded, track)
+        edits.add(edit(delta.slot, true))
+        if (delta.done != null) {
+            val otherSlot = if (delta.slot == Slot.MAIN) Slot.SS else Slot.MAIN
+            val tracks = repo.dayTracksFlow(planId, delta.dayId).first().tracks
+            if (tracks.any { it.programExerciseId == delta.programExerciseId && it.slot == otherSlot && it.sets.isNotEmpty() }) {
+                edits.add(edit(otherSlot, false))
+            }
         }
-        markers.markApplied(rowKey, delta.editedAtMillis)
-        return Outcome.APPLIED
+        return when (repo.applyToOpenRun(planId, delta.dayId, delta.editedAtMillis, edits)) {
+            is RunWriteResult.InRun -> Outcome.APPLIED
+            RunWriteResult.Rejected -> Outcome.REJECTED
+            RunWriteResult.Unchanged -> declined ?: Outcome.INVALID
+            RunWriteResult.WorkingValues -> Outcome.REJECTED
+        }
     }
 
     /**
@@ -201,54 +171,11 @@ class SetEditApplier(
      */
     private suspend fun seedSwappedSlot(planId: Long, dayId: String, programExerciseId: Long, catalog: ExerciseCatalog) {
         val slots = repo.slotsFor(planId, dayId).first()
-        val existing = repo.logsFor(planId, dayId, today).first()
-            .associate { (it.programExerciseId to it.slot) to it.sets.size }
+        val existing = emptyMap<Pair<Long, String>, Int>()
         val cfg = repo.wizardAnswersFor(planId).first().config
         DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
             .filter { it.programExerciseId == programExerciseId }
             .forEach { write -> repo.seedIfEmpty(dayId, write.programExerciseId, write.slot, write.sets) }
-    }
-
-    private suspend fun applyToMain(
-        delta: SetEditDelta,
-        track: List<LoggedSet>,
-        partnerTrack: List<LoggedSet>,
-    ) {
-        var main = track
-        delta.weightLb?.let { main = SetEditor.editWeight(main, delta.setIndex, it) }
-        delta.reps?.let { main = SetEditor.editReps(main, delta.setIndex, it) }
-        delta.seconds?.let { main = SetEditor.editSeconds(main, delta.setIndex, it) }
-        main = main.stamped(delta)
-
-        val done = delta.done
-        if (done != null) {
-            // One-tick-per-round: a done on the main row flips the aligned partner
-            // round too, atomically — same rule and repo path as the day screen. A
-            // never-seeded partner stays missing (writing an empty SS row would mark
-            // it seeded forever).
-            val partner = partnerTrack.takeIf { it.isNotEmpty() }
-            val (newMain, newPartner) = DayScreenBuilder.applyRoundTick(main, partner, delta.setIndex, done)
-            if (newPartner != null) {
-                // The round is one round: its start/complete facts belong to the
-                // partner row too, written in the same paired transaction.
-                repo.updateSetsPaired(delta.dayId, delta.programExerciseId, newMain, newPartner.stamped(delta))
-                return
-            }
-            main = newMain
-        }
-        repo.updateSets(delta.dayId, delta.programExerciseId, Slot.MAIN, main)
-    }
-
-    private suspend fun applyToPartner(delta: SetEditDelta, track: List<LoggedSet>) {
-        var ss = track
-        delta.weightLb?.let { ss = SetEditor.editWeight(ss, delta.setIndex, it) }
-        delta.reps?.let { ss = SetEditor.editReps(ss, delta.setIndex, it) }
-        delta.seconds?.let { ss = SetEditor.editSeconds(ss, delta.setIndex, it) }
-        ss = ss.stamped(delta)
-        delta.done?.let { done ->
-            ss = ss.mapIndexed { i, s -> if (i == delta.setIndex) s.copy(done = done) else s }
-        }
-        repo.updateSets(delta.dayId, delta.programExerciseId, Slot.SS, ss)
     }
 
     /** Writes the watch-observed start/complete millis onto the delta's row. They are
@@ -259,8 +186,7 @@ class SetEditApplier(
      *
      *  An **untick is the exception**: `done = false` retracts the tick, and the
      *  stamps are facts *about that tick*. They clear with it, whether or not the
-     *  delta carries any (the watch's undo carries none) — the same rule
-     *  `CheckmarkReset` applies when a stale check clears at the day boundary.
+     *  delta carries any (the watch's undo carries none).
      *  Leaving a start/complete pair on a row that now reads unchecked would let a
      *  duration nobody performed ride into the day's derived active time. */
     private fun List<LoggedSet>.stamped(delta: SetEditDelta): List<LoggedSet> {
@@ -278,15 +204,4 @@ class SetEditApplier(
         }
     }
 
-    private fun List<cloud.trotter.log.strength.data.LoggedSlot>.trackOf(
-        programExerciseId: Long,
-        slot: String,
-    ): List<LoggedSet> =
-        firstOrNull { it.programExerciseId == programExerciseId && it.slot == slot }?.sets.orEmpty()
-
-    /** Per-ROW, not per-track: a per-track marker would let a newer edit to row 1
-     *  permanently STALE-starve a delayed re-send of a distinct row-0 edit. A
-     *  replayed edit still dedupes — it carries the same row and the same stamp. */
-    private fun rowKey(delta: SetEditDelta): String =
-        "${delta.dayId}|${delta.programExerciseId}|${delta.slot}|${delta.setIndex}"
 }

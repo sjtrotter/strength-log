@@ -197,7 +197,7 @@ class KeepScreenOnAndRotationTest {
         onRemoveSet = { _, _, _ -> },
         onSelectPage = {},
         onKeepScreenOnChange = onKeepScreenOnChange,
-        onClearChecks = {},
+        onDiscardWorkout = {},
         onDone = {},
         onCreateExercise = {},
         onSetUpProgram = {},

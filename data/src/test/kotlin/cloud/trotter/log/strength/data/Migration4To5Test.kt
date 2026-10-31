@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_9_10
 import cloud.trotter.log.strength.data.db.MIGRATION_10_11
 import cloud.trotter.log.strength.data.db.MIGRATION_11_12
 import cloud.trotter.log.strength.data.db.MIGRATION_12_13
+import cloud.trotter.log.strength.data.db.MIGRATION_13_14
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import kotlinx.coroutines.test.runTest
@@ -97,7 +98,7 @@ class Migration4To5Test {
                 MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                 MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             )
-            .allowMainThreadQueries()
+            .addMigrations(MIGRATION_13_14).allowMainThreadQueries()
             .build()
 
     /** Builds the DB at schema v4 (no Room), with a row in each table the

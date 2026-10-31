@@ -154,17 +154,6 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val unitFlow: Flow<WeightUnit> =
         dataStore.data.map { it.enum(Keys.WEIGHT_UNIT, WeightUnit.LB) }
 
-    /** The in-progress session's start, calendar date and plan, or `null` when
-     *  no set has been ticked since the last advance/clear. There is one slot:
-     *  ticking another plan replaces it, so the previous plan records no start
-     *  unless ticked again. A missing plan id is a legacy stamp and belongs to
-     *  the selected plan. Callers compare both date and plan before using it. */
-    val sessionStartRawFlow: Flow<SessionStartStamp?> = dataStore.data.map { prefs ->
-        val startedAt = prefs[Keys.SESSION_STARTED_AT] ?: return@map null
-        val date = prefs[Keys.SESSION_STARTED_DATE] ?: return@map null
-        SessionStartStamp(startedAt, date, prefs[Keys.SESSION_STARTED_PLAN_ID])
-    }
-
     /** Whether the one-shot reps→seconds fixup for reclassified-TIMED live
      *  logs has already run. */
     val legacyTimedFixupDoneFlow: Flow<Boolean> =
@@ -355,34 +344,19 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     suspend fun setThemePreference(theme: ThemePreference) =
         dataStore.edit { it[Keys.THEME] = theme.name }
 
-    /** Stamps [nowMillis]/[today] for [planId], unless that plan already has a
-     *  stamp today. A different date or plan replaces the one slot. Legacy stamps
-     *  without a plan belong to [selectedPlanId], supplied by the repository so
-     *  its fallback selection is respected even before selection is persisted. */
-    suspend fun stampSessionStartIfUnset(
-        nowMillis: Long,
-        today: String,
-        planId: Long,
-        selectedPlanId: Long?,
-    ) = dataStore.edit { prefs ->
-        val currentPlan = prefs[Keys.SESSION_STARTED_PLAN_ID] ?: selectedPlanId
-        if (prefs[Keys.SESSION_STARTED_AT] == null || prefs[Keys.SESSION_STARTED_DATE] != today || currentPlan != planId) {
-            prefs[Keys.SESSION_STARTED_AT] = nowMillis
-            prefs[Keys.SESSION_STARTED_DATE] = today
-        }
-        // Bind a legacy stamp on its first tick without moving its start.
-        prefs[Keys.SESSION_STARTED_PLAN_ID] = planId
-    }
-
-    /** Clears all three stamp keys only when the stamp belongs to [planId].
-     *  Legacy stamps belong to [selectedPlanId]. Called after clearing checks or
-     *  committing a completed session, outside the Room transaction. */
-    suspend fun clearSessionStartedAt(planId: Long, selectedPlanId: Long?) = dataStore.edit { prefs ->
-        if ((prefs[Keys.SESSION_STARTED_PLAN_ID] ?: selectedPlanId) == planId) {
+    suspend fun takeLegacySessionStart(): SessionStartStamp? {
+        var stamp: SessionStartStamp? = null
+        dataStore.edit { prefs ->
+            val startedAt = prefs[Keys.SESSION_STARTED_AT]
+            val date = prefs[Keys.SESSION_STARTED_DATE]
+            if (startedAt != null && date != null) {
+                stamp = SessionStartStamp(startedAt, date, prefs[Keys.SESSION_STARTED_PLAN_ID])
+            }
             prefs.remove(Keys.SESSION_STARTED_AT)
             prefs.remove(Keys.SESSION_STARTED_DATE)
             prefs.remove(Keys.SESSION_STARTED_PLAN_ID)
         }
+        return stamp
     }
 
     /**
@@ -391,9 +365,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      * leave a stale value behind; because these inputs together own every
      * key this store defines, nothing is orphaned. A single edit means a crash
      * mid-restore leaves either the whole old preference set or the whole new one
-     * — never a mix. The session-start stamp keys ([Keys.SESSION_STARTED_AT],
-     * [Keys.SESSION_STARTED_DATE] and [Keys.SESSION_STARTED_PLAN_ID]) are left
-     * cleared: a restore can't be "mid-workout".
+     * — never a mix.
      *
      * Device-local automatic-backup keys are captured and restored around the
      * clear: their SAF grant cannot be transferred in a backup document, but a
@@ -509,13 +481,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 private val SessionNotesJson = Json { ignoreUnknownKeys = true }
 private val SessionNotesSerializer = MapSerializer(Long.serializer(), String.serializer())
 
-/** A session-start stamp paired with its calendar [date] and owning [planId].
- *  A null plan id marks a legacy stamp belonging to the selected plan. [date]
- *  is a `yyyy-MM-dd` string from the same clock basis `CheckmarkReset` uses. */
-data class SessionStartStamp(val startedAtMillis: Long, val date: String, val planId: Long?) {
-    /** Old builds did not store a plan; their stamp serves the selected plan. */
-    fun belongsTo(planId: Long, selectedPlanId: Long?): Boolean = (this.planId ?: selectedPlanId) == planId
-}
+data class SessionStartStamp(val startedAtMillis: Long, val date: String, val planId: Long?)
 
 const val AUTO_BACKUP_DAILY_HOURS = 24
 

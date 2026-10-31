@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import kotlinx.coroutines.flow.map
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
@@ -180,24 +181,23 @@ class PersistenceProcessDeathTest {
         val rowRowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id
 
         // --- a completed workout: log, then DONE — advance ---------------------
-        repository.updateSets("A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
-        repository.updateSets("A", rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
-        repository.advanceDay("A") // appends history, clears A's checks, rotation -> B
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
+        repository.finishRun(repository.openRunFlow.first()!!.id)!! // appends history, clears A's checks, rotation -> B
 
         // --- mid-edit state after that session ---------------------------------
         // A set-weight edit: write once, then edit upward.
-        repository.updateSets("A", squatRowId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
-        repository.updateSets("A", squatRowId, Slot.MAIN, listOf(LoggedSet(255.0, 5, SetKind.TOP)))
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(255.0, 5, SetKind.TOP)))
         // A checkmark toggle: unchecked, then checked.
-        repository.updateSets("A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = false)))
-        repository.updateSets("A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)))
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = false)))
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)))
         // An exercise swap: the bench slot becomes a dumbbell-bench slot.
         repository.swapExercise("A", position = 2, newExerciseId = "db_bench")
 
-        // Snapshot the live logs (including each slot's checkDate) as the last
-        // thing written before the "kill".
-        val logsBeforeKill = repository.logFlow("A").first().sortedBy { it.programExerciseId }
+        val logsBeforeKill = repository.dayTracksFlow(repository.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId }
         assertEquals(2, logsBeforeKill.size)
+        assertTrue(logsBeforeKill.flatMap { it.sets }.all { it.plannedIndex == 0 })
 
         // --- kill the process: close DB and DataStore, reopen over the files ---
         closeSession()
@@ -213,10 +213,9 @@ class PersistenceProcessDeathTest {
         assertEquals(listOf(squat, row, bench.copy(exerciseId = "db_bench")), reopenedA.exercises)
         assertEquals(dayB, program.days.last())
 
-        // Live logs: weights, reps, kinds, done flags AND checkDate stamps.
-        assertEquals(logsBeforeKill, repository.logFlow("A").first().sortedBy { it.programExerciseId })
-        assertEquals(listOf(LoggedSet(255.0, 5, SetKind.TOP)), logsBeforeKill[0].sets)
-        assertEquals(listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)), logsBeforeKill[1].sets)
+        assertEquals(logsBeforeKill, repository.dayTracksFlow(repository.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId })
+        assertEquals(listOf(LoggedSet(255.0, 5, SetKind.TOP, plannedIndex = 0)), logsBeforeKill[0].sets)
+        assertEquals(listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true, plannedIndex = 0)), logsBeforeKill[1].sets)
 
         // Workout history: the session row and its denormalized set rows.
         val session = repository.sessionsFlow.first().single()

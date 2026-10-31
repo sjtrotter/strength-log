@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -36,7 +37,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -105,7 +105,7 @@ class DayViewModelCardioExecutionTest {
     private fun test(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
-        repo, publisher, share, handle, MutableStateFlow(repo.currentDate()), clock, alarm,
+        repo, publisher, share, handle, clock, alarm,
     ).also { vms += it }
 
     private suspend fun prepare(fiveK: Boolean = true) {
@@ -409,7 +409,7 @@ class DayViewModelCardioExecutionTest {
 
         assertNull(vm.uiState.value.timedRep)
         assertEquals(first.sessionId, vm.sessionReceipt.value?.sessionId)
-        assertEquals(12, repo.logFlow("A").first().single().sets.first().reps)
+        assertEquals(12, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single().sets.first().reps)
     }
 
     @Test
@@ -1074,7 +1074,7 @@ class DayViewModelCardioExecutionTest {
         // Rebuilding this day's logs with the same DayContext must not retry.
         vm.changeSeconds(vm.uiState.value.exercises.single().programExerciseId, Slot.MAIN, 0, 42)
         runCurrent()
-        assertEquals(42, repo.logFlow("B").first().single().sets.first().seconds)
+        assertEquals(42, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().single().sets.first().seconds)
         assertAutoEndedSaveFailed(vm, run)
         assertTrue(repo.cardioSessionsFlow.first().isEmpty())
         vm.retryCardioSave()

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -75,7 +76,7 @@ class TrackerRepositoryPairedWriteTest {
     }
 
     @Test
-    fun pairedWritePersistsBothTracksWithOneCheckDate() = runTest {
+    fun pairedWritePersistsBothTracksInOneRun() = runTest {
         val slotId = supersetSlot()
         val main = listOf(
             LoggedSet(60.0, 12, SetKind.WORK, done = true),
@@ -86,32 +87,30 @@ class TrackerRepositoryPairedWriteTest {
             LoggedSet(50.0, 14, SetKind.WORK),
         )
 
-        repo.updateSetsPaired("A", programExerciseId = slotId, mainSets = main, ssSets = partner)
+        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", programExerciseId = slotId, main = main, ss = partner)
 
-        val slots = repo.logFlow("A").first().associateBy { it.slot }
+        val slots = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().associateBy { it.slot }
         assertEquals(setOf(Slot.MAIN, Slot.SS), slots.keys)
-        assertEquals(main, slots.getValue(Slot.MAIN).sets)
-        assertEquals(partner, slots.getValue(Slot.SS).sets)
-        assertEquals(
-            slots.getValue(Slot.MAIN).checkDate,
-            slots.getValue(Slot.SS).checkDate,
-        )
+        assertEquals(main.mapIndexed { i, set -> set.copy(plannedIndex = i) }, slots.getValue(Slot.MAIN).sets)
+        assertEquals(partner.mapIndexed { i, set -> set.copy(plannedIndex = i) }, slots.getValue(Slot.SS).sets)
+        assertEquals(repo.openRunFlow.first()!!.id,
+            repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").first().runId)
     }
 
     @Test
     fun pairedWriteOverwritesBothTracksInPlace() = runTest {
         val slotId = supersetSlot()
-        repo.updateSetsPaired(
+        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(),
             "A", slotId,
-            mainSets = listOf(LoggedSet(60.0, 12, SetKind.WORK)),
-            ssSets = listOf(LoggedSet(50.0, 15, SetKind.WORK)),
+            main = listOf(LoggedSet(60.0, 12, SetKind.WORK)),
+            ss = listOf(LoggedSet(50.0, 15, SetKind.WORK)),
         )
         val grownMain = listOf(LoggedSet(60.0, 12, SetKind.WORK), LoggedSet(60.0, 12, SetKind.EXTRA))
         val grownSs = listOf(LoggedSet(50.0, 15, SetKind.WORK), LoggedSet(50.0, 15, SetKind.EXTRA))
 
-        repo.updateSetsPaired("A", slotId, grownMain, grownSs)
+        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", slotId, grownMain, grownSs)
 
-        val slots = repo.logFlow("A").first().associateBy { it.slot }
+        val slots = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().associateBy { it.slot }
         assertEquals(2, slots.size)
         assertEquals(grownMain, slots.getValue(Slot.MAIN).sets)
         assertEquals(grownSs, slots.getValue(Slot.SS).sets)

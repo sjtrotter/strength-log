@@ -424,7 +424,7 @@ internal fun DayRoute(
             onOpenAllSets = viewModel::openAllSets,
             onCloseAllSets = viewModel::closeSheet,
             onKeepScreenOnChange = viewModel::setKeepScreenOn,
-            onClearChecks = viewModel::clearChecks,
+            onDiscardWorkout = viewModel::discardWorkout,
             onDone = viewModel::completeDay,
             onStartCardio = viewModel::startCardio,
             onStopCardio = viewModel::stopCardio,

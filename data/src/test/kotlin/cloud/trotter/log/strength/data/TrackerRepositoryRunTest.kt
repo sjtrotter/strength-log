@@ -2,6 +2,9 @@ package cloud.trotter.log.strength.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -50,6 +53,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class TrackerRepositoryRunTest {
     private lateinit var db: StrengthDatabase
+    private lateinit var dataStore: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences>
     private lateinit var settings: SettingsStore
     private lateinit var journal: RestoreJournal
     private lateinit var repo: TrackerRepository
@@ -62,9 +66,10 @@ class TrackerRepositoryRunTest {
     @Before fun setUp() {
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         storeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+        dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("run-settings", ".preferences_pb")
-        })
+        }
+        settings = SettingsStore(dataStore)
         journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("run-journal", ".preferences_pb")
         }, settings)
@@ -75,6 +80,133 @@ class TrackerRepositoryRunTest {
         db.close()
         storeScope.cancel()
         context.deleteDatabase(databaseName)
+    }
+
+    /** [F] */
+    @Test fun `day tracks keep a tick across midnight`() = runTest {
+        val plan = authored()
+        var instant = Instant.parse("2026-10-19T23:50:00Z")
+        val changingClock = object : Clock() {
+            override fun getZone() = ZoneOffset.UTC
+            override fun withZone(zone: java.time.ZoneId): Clock = this
+            override fun instant() = instant
+        }
+        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, changingClock)
+        val id = start(plan)
+        instant = Instant.parse("2026-10-20T00:10:00Z")
+        val state = repo.dayTracksFlow(plan, "A").first()
+        assertTrue(state.runOpen)
+        assertEquals(id, state.runId)
+        assertTrue(state.tracks.single().sets.first().done)
+    }
+
+    /** [F] */
+    @Test fun `old-watch edits require an open run and a stamp newer than closedAt`() = runTest {
+        val plan = authored()
+        val edits = listOf(tick(slot(plan)))
+        assertEquals(RunWriteResult.Rejected, repo.applyToOpenRun(plan, "A", 10_000, edits))
+        assertNull(repo.openRunFlow.first())
+        start(plan)
+        val day = day(plan)
+        db.programDao().upsertDay(day.copy(closedAt = 9_000))
+        for (stamp in listOf(8_999L, 9_000L)) {
+            assertEquals(RunWriteResult.Rejected, repo.applyToOpenRun(plan, "A", stamp, edits))
+        }
+        assertTrue(repo.applyToOpenRun(plan, "A", 9_001, edits) is RunWriteResult.InRun)
+    }
+
+    /** [F] */
+    @Test fun `legacy session start moves run earlier and consumes all keys`() = runTest {
+        val plan = authored()
+        start(plan)
+        dataStore.edit {
+            it[longPreferencesKey("session_started_at")] = 1_000L
+            it[stringPreferencesKey("session_started_date")] = "2026-10-19"
+            it[longPreferencesKey("session_started_plan_id")] = plan
+        }
+        repo.adoptLegacySessionStartIfNeeded()
+        assertEquals(1_000L, repo.openRunFlow.first()!!.startedAt)
+        val prefs = dataStore.data.first()
+        assertNull(prefs[longPreferencesKey("session_started_at")])
+        assertNull(prefs[stringPreferencesKey("session_started_date")])
+        assertNull(prefs[longPreferencesKey("session_started_plan_id")])
+        assertNull(settings.takeLegacySessionStart())
+    }
+
+    /** [F] */
+    @Test fun `stale-date legacy session start is consumed without changing the run`() = runTest {
+        val plan = authored()
+        start(plan)
+        val before = repo.openRunFlow.first()!!.startedAt
+        dataStore.edit {
+            it[longPreferencesKey("session_started_at")] = 1_000L
+            it[stringPreferencesKey("session_started_date")] = "2026-10-18"
+            it[longPreferencesKey("session_started_plan_id")] = plan
+        }
+        repo.adoptLegacySessionStartIfNeeded()
+        assertEquals(before, repo.openRunFlow.first()!!.startedAt)
+        assertNull(settings.takeLegacySessionStart())
+        val prefs = dataStore.data.first()
+        assertNull(prefs[longPreferencesKey("session_started_at")])
+        assertNull(prefs[stringPreferencesKey("session_started_date")])
+        assertNull(prefs[longPreferencesKey("session_started_plan_id")])
+    }
+
+    /** [F] */
+    @Test fun `legacy start date is compared in the repository clock zone`() = runTest {
+        val plan = authored()
+        val zonedClock = Clock.fixed(Instant.parse("2026-10-20T01:00:00Z"), java.time.ZoneId.of("America/Chicago"))
+        val repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, zonedClock)
+        val id = day(plan).nextRunId
+        repository.applyToRun(id, plan, "A", listOf(tick(slot(plan))), listOf(RunSeed(slot(plan), Slot.MAIN, work())))
+        val earlier = zonedClock.millis() - 1_000
+        dataStore.edit {
+            it[longPreferencesKey("session_started_at")] = earlier
+            it[stringPreferencesKey("session_started_date")] = "2026-10-19"
+            it[longPreferencesKey("session_started_plan_id")] = plan
+        }
+        repository.adoptLegacySessionStartIfNeeded()
+        assertEquals(earlier, repository.openRunFlow.first()!!.startedAt)
+        assertNull(settings.takeLegacySessionStart())
+    }
+
+    /** [F] */
+    @Test fun `legacy restore splits on the repository clock and attaches minted identity`() = runTest {
+        val plan = authored()
+        val snapshot = repo.exportSnapshot()
+        val legacy = cloud.trotter.log.strength.data.run.LegacyLog(
+            plan, "A", slot(plan), Slot.MAIN, work().map { it.copy(done = true) }, "2026-10-19", 6_000,
+        )
+        repo.importSnapshot(snapshot.copy(days = snapshot.days.map { it.copy(nextRunId = "") },
+            legacyLogs = listOf(legacy)), journal)
+        val state = repo.dayTracksFlow(plan, "A").first()
+        assertTrue(state.runOpen)
+        assertEquals(db.programDao().day(plan, "A")!!.nextRunId, state.runId)
+        assertTrue(state.tracks.single().sets.all { it.done })
+        assertTrue(db.programDao().allLogs().flatMap { SetJson.decodeSets(it.setsJson) }.none { it.done })
+
+        repo.importSnapshot(snapshot.copy(legacyLogs = listOf(legacy.copy(checkDate = "2026-10-18"))), journal)
+        assertNull(repo.openRunFlow.first())
+        assertTrue(repo.sessionsFlow.first().isEmpty())
+        assertTrue(repo.dayTracksFlow(plan, "A").first().tracks.single().sets.none { it.done })
+    }
+
+    /** [F] */
+    @Test fun `legacy restore leaves an existing run attached to its own day`() = runTest {
+        val plan = authored()
+        val runId = start(plan)
+        val snapshot = repo.exportSnapshot()
+        val legacy = listOf("A", "B").map { day ->
+            cloud.trotter.log.strength.data.run.LegacyLog(plan, day, slot(plan, day), Slot.MAIN,
+                work().map { it.copy(done = true) }, "2026-10-19", 6_000)
+        }
+        repo.importSnapshot(snapshot.copy(legacyLogs = legacy), journal)
+        assertEquals(snapshot.runs, db.runDao().allRuns())
+        assertEquals(snapshot.runTracks, db.runDao().allTracks())
+        assertEquals(runId, day(plan).nextRunId)
+        assertNull(day(plan).closedAt)
+        assertEquals(listOf("B"), db.sessionDao().allSessions().map { it.dayId })
+        assertTrue(db.programDao().allLogs().flatMap { SetJson.decodeSets(it.setsJson) }.none { it.done })
     }
 
     private fun repository() = TrackerRepository(
@@ -201,7 +333,7 @@ class TrackerRepositoryRunTest {
     @Test fun `unticking a preview writes working values without starting a run`() = runTest {
         val plan = authored()
         val slot = slot(plan)
-        repo.updateSets("A", slot, Slot.MAIN, work())
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, work())
         val beforeDay = day(plan)
         val beforePlan = db.planDao().plan(plan)
         val edit = TrackEdit(slot, Slot.MAIN) { rows -> rows.map { it.copy(done = false) } }
@@ -245,8 +377,8 @@ class TrackerRepositoryRunTest {
         val slots = db.programDao().exercisesForDay(plan, "A")
         val main = slots[0].id
         val authored = slots[1].id
-        repo.updateSets("A", main, Slot.MAIN, squat())
-        repo.updateSets("A", authored, Slot.MAIN, work())
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(main) ?: -1, "A").first().runId.orEmpty(), "A", main, Slot.MAIN, squat())
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(authored) ?: -1, "A").first().runId.orEmpty(), "A", authored, Slot.MAIN, work())
         val id = day(plan).nextRunId
         repo.applyToRun(id, plan, "A", listOf(tick(main)))
         repo.applyToRun(id, plan, "A", listOf(TrackEdit(main, Slot.MAIN) { SetEditor.editWeight(it, 4, 245.0) }))
@@ -288,7 +420,7 @@ class TrackerRepositoryRunTest {
     private suspend fun finishArchivedRun(attached: Boolean) {
         val plan = authored()
         val slot = slot(plan)
-        repo.updateSets("A", slot, Slot.MAIN, work())
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, work())
         val id = start(plan)
         val beforeRun = repo.openRunFlow.first()!!
         val other = repo.createAuthoredPlan("Other", "Other day")
@@ -352,7 +484,7 @@ class TrackerRepositoryRunTest {
     @Test fun `discard preserves working values preview edits and plan changes`() = runTest {
         val plan = authored()
         val slot = slot(plan)
-        repo.updateSets("A", slot, Slot.MAIN, work())
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, work())
         val id = start(plan)
         repo.applyToRun(id, plan, "A", listOf(weight(slot, 80.0)))
         val other = slot(plan, "B")

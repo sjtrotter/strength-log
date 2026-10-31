@@ -5,8 +5,8 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 /**
  * One exercise slot of a day paired with its stable Room row id. The pure-domain
  * [ProgramExercise] carries no persistence id (spec: `:domain` stays id-free), but
- * the day screen needs [programExerciseId] to key each slot's live log and to seed
- * it — [logFlow]'s rows and [updateSets] are both keyed by that id.
+ * persisted working values and run tracks use [programExerciseId] to identify
+ * the slot independently of its exercise.
  */
 data class ProgramSlot(
     val programExerciseId: Long,

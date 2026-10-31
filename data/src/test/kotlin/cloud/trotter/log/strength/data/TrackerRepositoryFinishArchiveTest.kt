@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -104,8 +105,8 @@ class TrackerRepositoryFinishArchiveTest {
     }
 
     private suspend fun tickSets(slotId: Long, indices: Set<Int>) {
-        val sets = repo.logFlow("A").first().single { it.programExerciseId == slotId }.sets
-        repo.updateSets(
+        val sets = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.programExerciseId == slotId }.sets
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(),
             "A", slotId, Slot.MAIN,
             sets.mapIndexed { index, set ->
                 if (index in indices) {
@@ -125,7 +126,7 @@ class TrackerRepositoryFinishArchiveTest {
     fun finishClearsEarlierRunFlagsAndTimingForAnUntouchedTrack() = runTest {
         val ids = seedTracks()
         for (id in ids) tickSets(id, setOf(0, 1))
-        val firstSessionId = repo.advanceDay("A")
+        val firstSessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
         val firstArchive = repo.sessionSets(firstSessionId)
         assertEquals(4, firstArchive.size)
         firstArchive.forEach {
@@ -136,7 +137,7 @@ class TrackerRepositoryFinishArchiveTest {
 
         clock.instant = clock.instant.plusSeconds(3_600)
         tickSets(ids.first(), setOf(0))
-        val secondSessionId = repo.advanceDay("A")
+        val secondSessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
         val untouched = repo.sessionSets(secondSessionId).filter { it.exerciseId == "bb_bench" }
         assertEquals(2, untouched.size)
@@ -151,11 +152,11 @@ class TrackerRepositoryFinishArchiveTest {
     fun clearThenTickThenFinishArchivesOnlyTheNewTick() = runTest {
         val ids = seedTracks()
         for (id in ids) tickSets(id, setOf(0, 1))
-        repo.clearChecks("A")
+        repo.discardRun(repo.openRunFlow.first()!!.id)
 
         clock.instant = clock.instant.plusSeconds(3_600)
         tickSets(ids.first(), setOf(0))
-        val sessionId = repo.advanceDay("A")
+        val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
         val archived = repo.sessionSets(sessionId)
         val untouched = archived.filter { it.exerciseId == "bb_bench" }
@@ -176,11 +177,11 @@ class TrackerRepositoryFinishArchiveTest {
         clock.instant = Instant.parse("2026-07-06T23:40:00Z")
         assertEquals("2026-07-06", repo.currentDate().toString())
         tickSets(ids.first(), setOf(0))
-        val ticked = repo.logFlow("A").first().single { it.programExerciseId == ids.first() }.sets.first()
+        val ticked = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.programExerciseId == ids.first() }.sets.first()
 
         clock.instant = Instant.parse("2026-07-07T00:20:00Z")
         assertEquals("2026-07-07", repo.currentDate().toString())
-        val sessionId = repo.advanceDay("A")
+        val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
         val archived = repo.sessionSets(sessionId).single { it.exerciseId == "bb_back_squat" && it.setIndex == 0 }
         assertTrue(archived.done)

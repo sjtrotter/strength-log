@@ -46,8 +46,8 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
         )
         repository.replaceProgram(Program(listOf(day)))
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
-        repository.updateSets("A", squatId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
-        repository.advanceDay("A")
+        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), "A", squatId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
+        repository.finishRun(repository.openRunFlow.first()!!.id)!!
     }
 
     private fun csvService() = CsvHistoryService(repository)

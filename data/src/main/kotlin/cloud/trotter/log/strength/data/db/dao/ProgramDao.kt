@@ -151,15 +151,6 @@ interface ProgramDao {
     @Query("DELETE FROM exercise_log WHERE planId = :planId AND dayId = :dayId")
     suspend fun deleteLogsForDay(planId: Long, dayId: String)
 
-    /**
-     * Clears the day's checkmarks by invalidating each log's [ExerciseLogEntity.checkDate].
-     * The `done` flags stay in the stored JSON but read back as cleared (a stale
-     * date always surfaces unchecked), which is exactly the daily-reset rule — no
-     * need to rewrite every JSON blob.
-     */
-    @Query("UPDATE exercise_log SET checkDate = '' WHERE planId = :planId AND dayId = :dayId")
-    suspend fun clearChecksForDay(planId: Long, dayId: String)
-
     @Query("DELETE FROM program_day WHERE planId = :planId")
     suspend fun deleteDaysForPlan(planId: Long)
 

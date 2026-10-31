@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -11,6 +12,11 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.dao.ProgramDao
+import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
+import cloud.trotter.log.strength.data.db.dao.SessionDao
+import cloud.trotter.log.strength.data.db.dao.TopSetRow
+import kotlinx.coroutines.flow.emitAll
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -31,7 +37,6 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
-import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -79,7 +84,11 @@ class DayViewModelWiringTest {
     private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<DayViewModel>()
+    private var mutationReadGate: CompletableDeferred<Unit>? = null
+    private var mutationReadReady: CompletableDeferred<Unit>? = null
     private var historyGate: CompletableDeferred<Unit>? = null
+    private var finishReadReady: CompletableDeferred<Unit>? = null
+    private var finishReadGate: CompletableDeferred<Unit>? = null
 
     @Before
     fun setUp() {
@@ -95,8 +104,23 @@ class DayViewModelWiringTest {
         }
         repo = object : TrackerRepository(
             db = db,
-            programDao = db.programDao(),
-            sessionDao = db.sessionDao(),
+            programDao = object : ProgramDao by db.programDao() {
+                override fun observeLogs(planId: Long, dayId: String): Flow<List<ExerciseLogEntity>> = flow {
+                    val gate = mutationReadGate
+                    if (gate != null) {
+                        mutationReadReady?.complete(Unit)
+                        gate.await()
+                    }
+                    emitAll(db.programDao().observeLogs(planId, dayId))
+                }
+            },
+            sessionDao = object : SessionDao by db.sessionDao() {
+                override fun observeTopSets(topKind: String): Flow<List<TopSetRow>> = flow {
+                    finishReadReady?.complete(Unit)
+                    finishReadGate?.await()
+                    emitAll(db.sessionDao().observeTopSets(topKind))
+                }
+            },
             customExerciseDao = db.customExerciseDao(),
             settings = SettingsStore(dataStore),
         ) {
@@ -122,9 +146,8 @@ class DayViewModelWiringTest {
         handle: SavedStateHandle = SavedStateHandle(),
         publisher: SessionPublisher = SessionPublisher.NoOp,
         restRuntime: cloud.trotter.log.strength.rest.RestRuntime = cloud.trotter.log.strength.rest.NoOpRestRuntime,
-        today: Flow<LocalDate> = kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()),
     ): DayViewModel =
-        DayViewModel(repo, publisher, shareCardService, handle, today, FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
+        DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
 
     @Test
     fun authoredCardioDraftAndSetPageSurviveParcelRecreationAndSaveImmediately() = runVmTest {
@@ -479,7 +502,7 @@ class DayViewModelWiringTest {
         insertSelectionProgram()
         val id = slotId("ez_curl")
         val rows = List(3) { LoggedSet(50.0, 8, SetKind.WORK, done = false) }
-        repo.updateSets("A", id, Slot.MAIN, rows)
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, rows)
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         val collect = launch { vm.uiState.collect {} }
@@ -494,7 +517,7 @@ class DayViewModelWiringTest {
         assertEquals(editor, handle.get<OpenSheet>("day_open_sheet"))
 
         // A remote reseed bypasses the sheet's Remove set/dismiss callbacks.
-        repo.updateSets("A", id, Slot.MAIN, rows)
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, rows)
         advanceUntilIdle()
 
         // The screen's Back gate reads this resolved null, never the saved identity.
@@ -615,17 +638,8 @@ class DayViewModelWiringTest {
     @Test
     fun completingDayDoesNotWaitForANextDayRemovedByTheWizard() = runVmTest {
         insertSelectionProgram()
-        val advanceReady = CompletableDeferred<Unit>()
-        val advanceGate = CompletableDeferred<Unit>()
-        var holdAdvance = false
         val handle = SavedStateHandle()
-        val vm = newViewModel(handle, today = flow {
-            if (holdAdvance) {
-                advanceReady.complete(Unit)
-                advanceGate.await()
-            }
-            emit(repo.currentDate())
-        })
+        val vm = newViewModel(handle)
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("ez_curl")
@@ -634,14 +648,14 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertEquals(OpenSheet("A", OpenSheet.Kind.EDITOR, id, 0), vm.uiState.value.openSheet)
 
-        // Pause after DONE predicts B, before advanceDay reads the replacement.
-        holdAdvance = true
+        finishReadReady = CompletableDeferred()
+        finishReadGate = CompletableDeferred()
         vm.completeDay()
-        advanceReady.await()
+        finishReadReady!!.await()
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Day A", "", listOf(ProgramExercise("ez_curl")), cardio = null,
         ))))
-        advanceGate.complete(Unit)
+        finishReadGate!!.complete(Unit)
         advanceUntilIdle()
 
         assertTrue(repo.sessionSummariesFlow.first().isNotEmpty())
@@ -738,7 +752,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertEquals("cardio", revived.uiState.value.selectedPageKey)
         val id = slotId("ghost_unknown")
-        repo.updateSets("A", id, Slot.MAIN, listOf(LoggedSet(50.0, 8, SetKind.WORK, done = false)))
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(LoggedSet(50.0, 8, SetKind.WORK, done = false)))
         advanceUntilIdle()
         assertTrue(revived.uiState.value.exercises.single().rows.isNotEmpty())
         assertEquals("cardio", revived.uiState.value.pages[revived.uiState.value.currentPage].key)
@@ -750,7 +764,7 @@ class DayViewModelWiringTest {
     fun seededDayPinsFirstUnfinishedPageWithoutScreenAndCompletingItDoesNotMoveSelection() = runVmTest {
         insertProgram()
         val squatId = slotId("bb_back_squat")
-        repo.updateSets("A", squatId, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), "A", squatId, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         // Pinning belongs to the ViewModel even when nobody collects uiState.
@@ -871,7 +885,7 @@ class DayViewModelWiringTest {
         repo.daySlotsFlow("A").first().first { it.exercise.exerciseId == exerciseId }.programExerciseId
 
     private suspend fun track(id: Long, slot: String): List<LoggedSet>? =
-        repo.logFlow("A").first().firstOrNull { it.programExerciseId == id && it.slot == slot }?.sets
+        repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().firstOrNull { it.programExerciseId == id && it.slot == slot }?.sets
 
     // --- seeding trigger (M2 rule: VM seeds once, then the log persists) -------
 
@@ -1385,30 +1399,30 @@ class DayViewModelWiringTest {
         vm.completeDay()
         advanceUntilIdle()
 
-        // Exactly the session advanceDay just wrote is handed to the publisher.
+        // Exactly the session finishRun just wrote is handed to the publisher.
         val sessionId = repo.sessionSummariesFlow.first().first().session.id
         assertEquals(listOf(sessionId), published)
         collect.cancel()
     }
 
-    // --- session-start stamp (session-start capture) ----------------------------
+    // --- run start and Finish -----------------------------------------------
 
     @Test
-    fun firstDoneTickStampsSessionStart_secondTickDoesNotRestamp() = runVmTest {
+    fun firstDoneTickStartsRun_secondTickDoesNotRestamp() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
-        assertNull(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
+        assertNull(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first())
 
         vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
         advanceUntilIdle()
-        val stampedAt = repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first()
-        assertTrue("the first tick must stamp a session start", stampedAt != null)
+        val stampedAt = repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first()
+        assertTrue("the first tick must open a run", stampedAt != null)
 
         vm.toggleDone(squatId, index = 1, checked = true, isSuperset = false)
         advanceUntilIdle()
-        assertEquals("a later tick must not move the stamp", stampedAt, repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
+        assertEquals("a later tick must not move the run start", stampedAt, repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first())
     }
 
     @Test
@@ -1421,7 +1435,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(squatId, index = 0, checked = false, isSuperset = false)
         advanceUntilIdle()
 
-        assertNull("un-ticking is not performing a set", repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
+        assertNull("un-ticking is not performing a set", repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first())
     }
 
     @Test
@@ -1446,7 +1460,7 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun weightAndRepEditsDoNotStampSessionStart() = runVmTest {
+    fun weightAndRepEditsDoNotStartRun() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         advanceUntilIdle()
@@ -1456,11 +1470,11 @@ class DayViewModelWiringTest {
         vm.changeReps(squatId, Slot.MAIN, index = 4, newReps = 3)
         advanceUntilIdle()
 
-        assertNull("weight/rep edits are planning, not performing", repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
+        assertNull("weight/rep edits are planning, not performing", repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first())
     }
 
     @Test
-    fun supersetRoundTickStampsSessionStart() = runVmTest {
+    fun supersetRoundTickStartsRun() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         advanceUntilIdle()
@@ -1469,23 +1483,23 @@ class DayViewModelWiringTest {
         vm.toggleDone(curlId, index = 0, checked = true, isSuperset = true)
         advanceUntilIdle()
 
-        assertTrue(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first() != null)
+        assertTrue(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first() != null)
     }
 
     @Test
-    fun clearChecksClearsTheSessionStartStamp() = runVmTest {
+    fun discardClosesTheRun() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
         vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
         advanceUntilIdle()
-        assertTrue(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first() != null)
+        assertTrue(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first() != null)
 
-        vm.clearChecks()
+        vm.discardWorkout()
         advanceUntilIdle()
 
-        assertNull(repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
+        assertNull(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first())
     }
 
     @Test
@@ -1498,14 +1512,60 @@ class DayViewModelWiringTest {
 
         vm.toggleDone(squatId, index = 0, checked = true, isSuperset = false)
         advanceUntilIdle()
-        val stampedAt = repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first()
+        val stampedAt = repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first()
 
         vm.completeDay()
         advanceUntilIdle()
 
         val session = repo.sessionSummariesFlow.first().first().session
         assertEquals(stampedAt, session.startedAt)
-        assertNull("advanceDay must consume the stamp", repo.sessionStartedAtFlow(repo.selectedPlanIdFlow.first()!!).first())
+        assertNull("Finish must close the run", repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first())
+        collect.cancel()
+    }
+
+    /** [F] */
+    @Test fun firstTickOpensARunAndDiscardRestoresTheWorkingValues() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        val before = track(id, Slot.MAIN)!!
+        assertFalse(vm.uiState.value.runOpen)
+        vm.toggleDone(id, 0, true, false)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.runOpen)
+        assertEquals(repo.openRunFlow.first()!!.id, vm.uiState.value.runId)
+        vm.changeWeight(id, Slot.MAIN, 4, 999.0)
+        advanceUntilIdle()
+        assertEquals(999.0, track(id, Slot.MAIN)!![4].weightLb, 0.0)
+        vm.discardWorkout()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.runOpen)
+        assertNull(repo.openRunFlow.first())
+        assertEquals(before, track(id, Slot.MAIN))
+        collect.cancel()
+    }
+
+    /** [F] */
+    @Test fun anotherDayShowsTheOpenRunTitleAndCannotTick() = runVmTest {
+        insertSelectionProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val title = vm.uiState.value.dayTitle
+        vm.toggleDone(vm.uiState.value.exercises.first().programExerciseId, 0, true, false)
+        advanceUntilIdle()
+        val before = repo.openRunFlow.first()
+        vm.selectDay("B")
+        advanceUntilIdle()
+        assertEquals(title, vm.uiState.value.openRunElsewhere)
+        assertFalse(vm.uiState.value.runOpen)
+        val id = vm.uiState.value.exercises.first().programExerciseId
+        vm.toggleDone(id, 0, true, false)
+        advanceUntilIdle()
+        assertEquals(before, repo.openRunFlow.first())
+        assertFalse(vm.uiState.value.exercises.first().rows.first().done)
         collect.cancel()
     }
 
@@ -1564,6 +1624,176 @@ class DayViewModelWiringTest {
         collect.cancel()
     }
 
+    /** [F] */
+    @Test fun queuedFinishCannotCompleteAReplacementRunOnTheSameDay() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, false)
+        advanceUntilIdle()
+        val old = repo.openRunFlow.first()!!
+        mutationReadReady = CompletableDeferred()
+        val gate = CompletableDeferred<Unit>()
+        mutationReadGate = gate
+        vm.changeReps(id, Slot.MAIN, 0, 7)
+        mutationReadReady!!.await()
+        vm.completeDay()
+        mutationReadGate = null
+        repo.discardRun(old.id)
+        val day = db.programDao().day(old.planId!!, "A")!!
+        repo.updateSets(day.nextRunId, "A", id, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
+        val replacement = repo.openRunFlow.first()!!
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(replacement, repo.openRunFlow.first())
+        assertTrue(db.sessionDao().allSessions().isEmpty())
+    }
+
+    /** [F] */
+    @Test fun queuedFinishUsesTheDisplayedPlanAfterSelectionChanges() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, false)
+        advanceUntilIdle()
+        val old = repo.openRunFlow.first()!!
+        val other = repo.duplicatePlan(old.planId!!, "Other")
+        mutationReadReady = CompletableDeferred()
+        val gate = CompletableDeferred<Unit>()
+        mutationReadGate = gate
+        vm.changeReps(id, Slot.MAIN, 0, 7)
+        mutationReadReady!!.await()
+        vm.completeDay()
+        mutationReadGate = null
+        repo.selectPlan(other)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertNull(repo.openRunFlow.first())
+        val session = db.sessionDao().allSessions().single()
+        assertEquals(old.planId, session.planId)
+        assertEquals(old.id, session.runId)
+    }
+
+    /** [F] */
+    @Test fun discardClearsAnUndoCreatedByAnAlreadyQueuedRemoval() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, false)
+        advanceUntilIdle()
+        mutationReadReady = CompletableDeferred()
+        val gate = CompletableDeferred<Unit>()
+        mutationReadGate = gate
+        vm.removeSet(id, 1, false)
+        mutationReadReady!!.await()
+        vm.discardWorkout()
+        mutationReadGate = null
+        gate.complete(Unit)
+        advanceTimeBy(500)
+        assertNull(repo.openRunFlow.first())
+        assertTrue(vm.removedSets.value.isEmpty())
+        val before = track(id, Slot.MAIN)
+        vm.undoRemoveSet()
+        advanceTimeBy(500)
+        assertEquals(before, track(id, Slot.MAIN))
+    }
+
+    /** [F] */
+    @Test fun undoFromAClosedRunCannotRestoreIntoItsReplacement() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, false)
+        advanceUntilIdle()
+        val old = repo.openRunFlow.first()!!
+        vm.removeSet(id, 1, false)
+        advanceTimeBy(500)
+        assertEquals(old.id, vm.removedSets.value.single().runId)
+        repo.discardRun(old.id)
+        val day = db.programDao().day(old.planId!!, "A")!!
+        repo.updateSets(day.nextRunId, "A", id, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
+        advanceTimeBy(500)
+        val replacement = repo.openRunFlow.first()!!
+        vm.undoRemoveSet()
+        advanceTimeBy(500)
+        assertEquals(replacement, repo.openRunFlow.first())
+    }
+
+    /** [F] */
+    @Test fun discardSeedsWorkingValuesForSlotsThatOnlyHadRunTracks() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, false)
+        advanceUntilIdle()
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val expected = track(id, Slot.MAIN)!!.map { it.copy(done = false, plannedIndex = null) }
+        db.programDao().deleteLogForSlot(plan, "A", id, Slot.MAIN)
+        vm.discardWorkout()
+        advanceUntilIdle()
+        assertNull(repo.openRunFlow.first())
+        assertEquals(expected, track(id, Slot.MAIN))
+        assertFalse(track(id, Slot.MAIN).isNullOrEmpty())
+    }
+
+    /** [F] */
+    @Test fun defaultDayFollowsTheOpenRunsPlanAndExplicitOverrideStillWins() = runVmTest {
+        insertSelectionProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val originalPlan = vm.uiState.value.planId!!
+        val id = vm.uiState.value.exercises.first().programExerciseId
+        vm.toggleDone(id, 0, true, false)
+        advanceUntilIdle()
+        val other = repo.duplicatePlan(originalPlan, "Other")
+        repo.selectPlan(other)
+        advanceUntilIdle()
+        assertEquals(originalPlan, vm.uiState.value.planId)
+        assertEquals("A", vm.uiState.value.viewDayId)
+        assertTrue(vm.uiState.value.runOpen)
+        vm.selectDay("B")
+        advanceUntilIdle()
+        assertEquals(other, vm.uiState.value.planId)
+        assertEquals("B", vm.uiState.value.viewDayId)
+        assertEquals("Day A", vm.uiState.value.openRunElsewhere)
+        collect.cancel()
+    }
+
+    /** [F] */
+    @Test fun dayEditsFollowTheDisplayedRunPlanWhenAnotherPlanIsSelected() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        val editCollect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val plan = vm.uiState.value.planId!!
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, false)
+        advanceUntilIdle()
+        val beforeRun = repo.openRunFlow.first()
+        val other = repo.duplicatePlan(plan, "Other")
+        repo.selectPlan(other)
+        advanceUntilIdle()
+        val otherBefore = db.programDao().exercisesForDay(other, "A")
+        assertEquals(plan, vm.dayEditState.value.planId)
+        vm.swapDaySlot(0, "hack_squat")
+        vm.addDaySlot("face_pull")
+        advanceUntilIdle()
+        assertEquals("hack_squat", db.programDao().exercisesForDay(plan, "A").first().exerciseId)
+        assertEquals("face_pull", db.programDao().exercisesForDay(plan, "A").last().exerciseId)
+        assertEquals(otherBefore, db.programDao().exercisesForDay(other, "A"))
+        assertEquals(beforeRun!!.tracks.first { it.programExerciseId == id },
+            repo.openRunFlow.first()!!.tracks.first { it.programExerciseId == id })
+        collect.cancel()
+        editCollect.cancel()
+    }
+
     // --- the remove-set undo window -------------------------------------------
     //
     // Time matters here, so these advance the virtual clock:
@@ -1603,6 +1833,10 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
+        vm.toggleDone(slotId("bb_back_squat"), 0, true, false)
+        advanceUntilIdle()
+        vm.toggleDone(slotId("bb_back_squat"), 0, false, false)
+        advanceUntilIdle()
         // §11's cascade: the TOP edit re-derives every RAMP and the BACK-OFF.
         vm.changeWeight(squatId, Slot.MAIN, index = 4, newDisplayWeight = 245.0)
         advanceUntilIdle()
@@ -1627,6 +1861,10 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val squatId = slotId("bb_back_squat")
+        vm.toggleDone(slotId("bb_back_squat"), 0, true, false)
+        advanceUntilIdle()
+        vm.toggleDone(slotId("bb_back_squat"), 0, false, false)
+        advanceUntilIdle()
         val original = track(squatId, Slot.MAIN)!!
 
         // The second removal sits *after* the first, so its captured index is an
@@ -1676,6 +1914,10 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         advanceUntilIdle()
         val curlId = slotId("ez_curl")
+        vm.toggleDone(slotId("bb_back_squat"), 0, true, false)
+        advanceUntilIdle()
+        vm.toggleDone(slotId("bb_back_squat"), 0, false, false)
+        advanceUntilIdle()
         val mainBefore = track(curlId, Slot.MAIN)!!
         val partnerBefore = track(curlId, Slot.SS)!!
 

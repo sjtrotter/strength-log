@@ -97,7 +97,7 @@ class WatchSnapshotBuilderTest {
     }
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =
-        LoggedSlot(id, slot, sets, checkDate = "2026-07-09")
+        LoggedSlot(id, slot, sets)
 
     private fun prescribed(target: PrescribedTarget, unit: WeightUnit = WeightUnit.LB) =
         WatchSnapshotBuilder.build(

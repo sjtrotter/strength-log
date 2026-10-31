@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
@@ -60,4 +61,5 @@ data class FullSnapshot(
     val answersCarryRecipe: Boolean = true,
     val runs: List<WorkoutRunEntity> = emptyList(),
     val runTracks: List<RunTrackEntity> = emptyList(),
+    val legacyLogs: List<LegacyLog> = emptyList(),
 )

@@ -87,6 +87,42 @@ class RestoreCoordinationTest {
         service = BackupService(repo, journal)
     }
 
+    /** [F] */
+    @Test fun `legacy v12 ticks split through importSnapshot by the restore clock date`() = runBlocking {
+        val codec = BackupCodec()
+        val setJson = """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]"""
+        val doc = BackupDocument(
+            schemaVersion = 12,
+            settings = SettingsBackup(200, 30, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true),
+            plans = listOf(PlanBackup(1, "My plan", "GENERATED", 0, false, days = listOf(
+                ProgramDayBackup("A", "Day A", "", null, exercises = listOf(
+                    ProgramExerciseBackup(1, "bb_back_squat", true, 1, "5", false, null, ""),
+                )),
+            ))),
+            liveLogs = listOf(LiveLogBackup(1, "A", 1, "main", setJson, "2026-10-19", 6_000)),
+        )
+        val snapshot = codec.decode(codec.encode(doc)).toSnapshot()
+        assertTrue(snapshot.logs.isEmpty())
+        assertEquals(1, snapshot.legacyLogs.size)
+        for (date in listOf("2026-10-19", "2026-10-20")) {
+            val clock = java.time.Clock.fixed(java.time.Instant.parse("${date}T12:00:00Z"), java.time.ZoneOffset.UTC)
+            val repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings,
+                clock = clock, mintRunId = { "restored-A" })
+            repository.importSnapshot(snapshot, journal)
+            val open = repository.openRunFlow.first()
+            if (date == "2026-10-19") {
+                assertEquals("restored-A", open!!.id)
+                assertTrue(open.tracks.single().sets.single().done)
+                assertEquals(open.id, db.programDao().day(1, "A")!!.nextRunId)
+            } else {
+                assertNull(open)
+                assertTrue(db.sessionDao().allSessions().isEmpty())
+                assertTrue(cloud.trotter.log.strength.data.serialization.SetJson.decodeSets(
+                    db.programDao().allLogs().single().setsJson).none { it.done })
+            }
+        }
+    }
+
     @After
     fun tearDown() {
         db.close()

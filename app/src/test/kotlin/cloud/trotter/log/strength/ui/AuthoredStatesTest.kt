@@ -186,7 +186,7 @@ class AuthoredStatesTest {
         onRemoveSet = { _, _, _ -> },
         onSelectPage = {},
         onKeepScreenOnChange = {},
-        onClearChecks = {},
+        onDiscardWorkout = {},
         onDone = {},
         onCreateExercise = { _: MovementPattern -> },
         onSetUpProgram = onSetUpProgram,

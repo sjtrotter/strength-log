@@ -41,7 +41,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -118,7 +117,7 @@ class DayRouteNavigationTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             viewModel = DayViewModel(
                 repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle(),
-                MutableStateFlow(repo.currentDate()), FixedClock, alarm,
+                FixedClock, alarm,
             )
         }
         rule.setContent {

@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -52,16 +53,15 @@ class TodayViewModel @Inject constructor(
 ) : ViewModel() {
     private val planPickerOpen = savedState.getStateFlow(PLAN_PICKER_OPEN, false)
 
-    // Resolve selection once; every read contributing to the day uses this identity.
-    private val contextFlow = repo.selectedPlanFlow.flatMapLatest { plan ->
-        if (plan == null) flowOf(null) else combine(
-            repo.programFor(plan.id),
+    private val contextFlow = repo.todayTargetFlow.flatMapLatest { target ->
+        if (target == null) flowOf(null) else combine(
+            repo.programFor(target.plan.id),
             repo.catalogFlow,
-            repo.wizardAnswersFor(plan.id),
+            repo.wizardAnswersFor(target.plan.id),
         ) { program, catalog, answers ->
-            val dayId = plan.suggestedDayId?.takeIf { id -> program.days.any { it.id == id } }
+            val dayId = target.dayId?.takeIf { id -> program.days.any { it.id == id } }
                 ?: program.strengthDays.firstOrNull()?.id ?: program.days.firstOrNull()?.id
-            TodayContext(plan.id, program, dayId, catalog, answers.config, answers.cardio)
+            TodayContext(target.plan.id, program, dayId, catalog, answers.config, answers.cardio)
         }
     }
 
@@ -77,7 +77,7 @@ class TodayViewModel @Inject constructor(
             civilTimeSource.civilTime.flatMapLatest { now ->
                 combine(
                     repo.slotsFor(ctx.planId, dayId),
-                    repo.logsFor(ctx.planId, dayId, flowOf(now.date)),
+                    repo.dayTracksFlow(ctx.planId, dayId).map { it.tracks },
                     repo.sessionSummariesFor(ctx.planId),
                     repo.topSetHistoryFlow,
                     repo.lastSessionAtFor(ctx.planId),

@@ -69,15 +69,7 @@ data class ProgramExerciseEntity(
     val prescriptionJson: String? = null,
 )
 
-/**
- * The live ACTUAL log for one exercise slot's set track in a plan (spec §7).
- * This is the working state that seeds once from GOAL and then persists as the
- * lifter's living record; it is overwritten in place on every edit.
- *
- * [checkDate] is the device-local `yyyy-MM-dd` the `done` flags belong to. On
- * read, if it isn't today the checks surface as cleared (weights/reps persist);
- * see `CheckmarkReset`.
- */
+/** The plan's working values for one slot track: next time's sets. Never holds results. */
 @Entity(
     tableName = "exercise_log",
     primaryKeys = ["planId", "dayId", "programExerciseId", "slot"],
@@ -90,6 +82,5 @@ data class ExerciseLogEntity(
     val slot: String,
     /** Serialized `List<SetDto>` (kotlinx.serialization). */
     val setsJson: String,
-    val checkDate: String,
     val updatedAt: Long,
 )

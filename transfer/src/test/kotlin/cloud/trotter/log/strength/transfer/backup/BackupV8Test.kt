@@ -50,8 +50,8 @@ class BackupV8Test {
             ProgramExerciseEntity(21, 2, "A", 0, "bb_bench", true, 3, "8", false, null, "pause"),
         ),
         logs = listOf(
-            ExerciseLogEntity(1, "A", 11, "main", """[{"weightLb":225.0,"reps":5,"kind":"TOP","done":true}]""", "2026-10-20", 3_000),
-            ExerciseLogEntity(2, "A", 21, "main", "[]", "2026-10-20", 4_000),
+            ExerciseLogEntity(1, "A", 11, "main", """[{"weightLb":225.0,"reps":5,"kind":"TOP","done":true}]""", 3_000),
+            ExerciseLogEntity(2, "A", 21, "main", "[]", 4_000),
         ),
         sessions = listOf(
             WorkoutSessionEntity(7, "A", "Test A", 5_000, 65_000, 210, planId = 2, planName = "Test prep"),
@@ -153,7 +153,7 @@ class BackupV8Test {
         assertNull(restored.selectedPlanId)
         assertEquals(listOf(PlanEntity.LEGACY_ID), restored.days.map { it.planId })
         assertEquals(listOf(PlanEntity.LEGACY_ID), restored.exercises.map { it.planId })
-        assertEquals(listOf(PlanEntity.LEGACY_ID), restored.logs.map { it.planId })
+        assertEquals(listOf(PlanEntity.LEGACY_ID), restored.legacyLogs.map { it.planId })
         assertNull(restored.sessions.last().bodyweightLb)
     }
 
@@ -183,7 +183,7 @@ class BackupV8Test {
         assertNull(restored.selectedPlanId)
         assertEquals(listOf(PlanEntity.LEGACY_ID), restored.days.map { it.planId })
         assertEquals(listOf(PlanEntity.LEGACY_ID), restored.exercises.map { it.planId })
-        assertEquals(listOf(PlanEntity.LEGACY_ID), restored.logs.map { it.planId })
+        assertEquals(listOf(PlanEntity.LEGACY_ID), restored.legacyLogs.map { it.planId })
     }
 
     @Test

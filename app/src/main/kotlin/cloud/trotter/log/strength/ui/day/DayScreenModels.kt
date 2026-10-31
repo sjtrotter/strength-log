@@ -36,6 +36,9 @@ data class DayUiState(
     val openSheet: OpenSheet? = null,
     val viewDayId: String? = null,
     val planId: Long? = null,
+    val runId: String? = null,
+    val runOpen: Boolean = false,
+    val openRunElsewhere: String? = null,
     val dayIndex: Int = 0,
     val dayTitle: String = "",
     val emphasisLine: String = "",
@@ -251,6 +254,7 @@ data class RemovedSet(
     /** The day it was removed from — undo after a day switch must not write
      *  the row into whatever day the user moved to. */
     val dayId: String,
+    val runId: String,
     val main: LoggedSet,
     /** The superset partner's row for the same round, when there was one. */
     val partner: LoggedSet? = null,

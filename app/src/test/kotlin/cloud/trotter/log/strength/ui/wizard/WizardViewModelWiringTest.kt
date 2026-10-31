@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -370,7 +371,7 @@ class WizardViewModelWiringTest {
         repo.replaceProgram(restoredProgram())
         repo.setWizardComplete(true)
         val slot = db.programDao().exercisesForPlan(1).single().id
-        repo.updateSets("R", slot, Slot.MAIN, listOf(
+        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "R").first().runId.orEmpty(), "R", slot, Slot.MAIN, listOf(
             cloud.trotter.log.strength.domain.model.LoggedSet(225.0, 5, SetKind.WORK, done = true),
         ))
         val original = db.planDao().plan(1)
@@ -653,14 +654,14 @@ class WizardViewModelWiringTest {
         vm.onNext() // last step -> finish(): ProgramGenerator -> replaceProgram
         advanceUntilIdle()
 
-        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle(), kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate()), FixedCardioClock(), InertCardioAlarm)
+        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle(), FixedCardioClock(), InertCardioAlarm)
             .also { vms += it }
         advanceUntilIdle() // constructing the VM triggers the day-A seed pass
 
         val squatSlotId = repo.daySlotsFlow("A").first()
             .first { it.exercise.exerciseId == "bb_back_squat" }
             .programExerciseId
-        val squat = repo.logFlow("A").first()
+        val squat = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first()
             .first { it.programExerciseId == squatSlotId && it.slot == Slot.MAIN }
             .sets
         assertEquals(

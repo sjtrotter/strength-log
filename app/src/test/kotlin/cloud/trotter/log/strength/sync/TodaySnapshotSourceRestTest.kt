@@ -214,9 +214,9 @@ class TodaySnapshotSourceRestTest {
         val bounded = awaitStamps((9L..40L).toList())
         assertEquals(bounded, SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(bounded)))
         syncStore.recordProcessedEdit(20L)
-        awaitStamps((9L..40L).filterNot { it == 20L } + 20L)
         syncStore.recordProcessedEdit(5L)
-        awaitStamps((10L..40L).filterNot { it == 20L } + listOf(20L, 5L))
+        val next = awaitStamps((10L..40L).toList() + 5L)
+        assertEquals((10L..40L).toList() + 5L, next.processedEditStamps)
     }
 
     @Test

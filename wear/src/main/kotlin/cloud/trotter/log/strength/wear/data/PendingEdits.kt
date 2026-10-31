@@ -72,6 +72,7 @@ object PendingEdits {
     ): List<SetEditDelta> =
         pending.filter { delta ->
             when {
+                delta.runId != null && delta.editedAtMillis in snapshot.processedEditStamps.orEmpty() -> false
                 delta.planId != null && snapshot.planId != null && delta.planId != snapshot.planId -> true
                 delta.runId != null && snapshot.runId != null && delta.planId == snapshot.planId &&
                     delta.dayId == snapshot.day.dayId && delta.runId != snapshot.runId -> false
@@ -104,6 +105,7 @@ object PendingEdits {
     ): List<ExerciseSwapDelta> =
         pending.filter { swap ->
             when {
+                swap.runId != null && swap.editedAtMillis in snapshot.processedEditStamps.orEmpty() -> false
                 swap.planId != null && snapshot.planId != null && swap.planId != snapshot.planId -> true
                 swap.runId != null && snapshot.runId != null && swap.planId == snapshot.planId &&
                     swap.dayId == snapshot.day.dayId && swap.runId != snapshot.runId -> false

@@ -125,15 +125,17 @@ class WearSyncStoreTest {
     }
 
     @Test
-    fun `edit ack log retains the newest 32 distinct stamps in processing order`() = runTest {
+    fun `edit ack log retains the newest 32 distinct stamps and a known stamp keeps its place`() = runTest {
         val store = newStore().first
         assertEquals(emptyList<Long>(), store.processedEditsFlow.first())
         for (stamp in 1L..40L) store.recordProcessedEdit(stamp)
         assertEquals((9L..40L).toList(), store.processedEditsFlow.first())
+        // A replay of a known stamp must not change the list, or each snapshot would
+        // prompt another resend.
         store.recordProcessedEdit(20L)
-        assertEquals((9L..40L).filterNot { it == 20L } + 20L, store.processedEditsFlow.first())
+        assertEquals((9L..40L).toList(), store.processedEditsFlow.first())
         store.recordProcessedEdit(5L)
-        assertEquals((10L..40L).filterNot { it == 20L } + listOf(20L, 5L), store.processedEditsFlow.first())
+        assertEquals((10L..40L).toList() + 5L, store.processedEditsFlow.first())
     }
 
     @Test

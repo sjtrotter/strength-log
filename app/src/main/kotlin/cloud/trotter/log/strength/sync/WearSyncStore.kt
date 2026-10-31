@@ -102,8 +102,11 @@ class WearSyncStore(
 
     override suspend fun recordProcessedEdit(stamp: Long) {
         dataStore.edit { prefs ->
-            val recent = (processedEditStamps(prefs).filterNot { it == stamp } + stamp).takeLast(32)
-            prefs[PROCESSED_EDIT_STAMPS] = recent.joinToString(",")
+            // A known stamp keeps its place: moving it would change the published list on every
+            // replay, and each new snapshot would trigger another resend.
+            val known = processedEditStamps(prefs)
+            if (stamp in known) return@edit
+            prefs[PROCESSED_EDIT_STAMPS] = (known + stamp).takeLast(32).joinToString(",")
         }
     }
 

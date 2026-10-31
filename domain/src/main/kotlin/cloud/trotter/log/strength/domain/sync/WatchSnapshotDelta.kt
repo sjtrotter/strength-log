@@ -18,7 +18,9 @@ fun applyDelta(snapshot: WatchSnapshot, delta: SetEditDelta): WatchSnapshot =
 
 /** Older snapshots without content identity cannot confirm an exercise mismatch. */
 fun WatchSnapshot.hasExerciseMismatch(delta: SetEditDelta): Boolean =
-    delta.exerciseId != null && day.exercises.any {
+    // Only a run-aware delta is judged by exercise: an old phone publishes no processed
+    // stamps to settle it on, and it applies a run-less delta to the slot's current lift.
+    delta.runId != null && delta.exerciseId != null && day.exercises.any {
         it.programExerciseId == delta.programExerciseId && it.slot == delta.slot &&
             it.exerciseId.isNotBlank() && it.exerciseId != delta.exerciseId
     }

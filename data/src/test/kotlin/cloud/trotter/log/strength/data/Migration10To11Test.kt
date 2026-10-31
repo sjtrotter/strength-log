@@ -58,7 +58,7 @@ class Migration10To11Test {
         try {
             assertEquals(listOf(original), db.programDao().allDays().withoutRunIdentity())
             assertNull(db.programDao().allDays().single().cardioBlockJson)
-            assertEquals(legacy, db.programDao().allDays().single().toDomain(emptyList()).cardio)
+            assertEquals(legacy, CardioDto.decode(db.programDao().allDays().single().cardioJson))
             assertEquals("[]", db.programDao().allLogs().single().setsJson)
             assertEquals("old note", db.programDao().allExercises().single().note)
             val session = db.cardioSessionDao().all().single()

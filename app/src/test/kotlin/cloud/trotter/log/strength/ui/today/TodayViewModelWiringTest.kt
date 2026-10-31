@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.today
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -219,7 +221,7 @@ class TodayViewModelWiringTest {
             ProgramDay(
                 id = "A", title = "Squat day", emphasisLine = "",
                 exercises = listOf(ProgramExercise("bb_back_squat")),
-                cardio = CardioSuggestion("Easy jog", "10 minutes", hard = false),
+                cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Easy jog", "10 minutes", hard = false), true, CardioActivity.ROAD_RUN),
             ),
         )))
         val firstPlan = checkNotNull(repo.selectedPlanIdFlow.first())
@@ -231,7 +233,7 @@ class TodayViewModelWiringTest {
                 // Deliberately reuse the day id: identity must come from the plan.
                 id = "A", title = "Run prep", emphasisLine = "",
                 exercises = listOf(ProgramExercise("plank")),
-                cardio = CardioSuggestion("Intervals", "20 minutes", hard = true),
+                cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Intervals", "20 minutes", hard = true), true, CardioActivity.ROAD_RUN),
             ),
         )))
         db.sessionDao().insertSessions(listOf(
@@ -248,11 +250,11 @@ class TodayViewModelWiringTest {
         advanceUntilIdle()
         val firstContent = Triple(
             "Squat day", UiText.TodayCoach(TodayCoachKind.DAYS, "15 Oct", 5),
-            TodayCardio("Road run", "10 minutes", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN),
+            TodayCardio("Road run", "25:00", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN),
         )
         val secondContent = Triple(
             "Run prep", UiText.TodayCoach(TodayCoachKind.DAYS, "18 Oct", 2),
-            TodayCardio("Road run", "20 minutes", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN),
+            TodayCardio("Road run", "25:00", cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN),
         )
         assertEquals("Strength", today.uiState.value.planName)
         assertEquals(firstContent, today.uiState.value.let { Triple(it.dayTitle, it.coachLine, it.cardio) })
@@ -387,17 +389,14 @@ class TodayViewModelWiringTest {
                             ProgramExercise("bb_back_squat", isMain = true, targetSets = 3),
                             ProgramExercise("ez_curl", targetSets = 4),
                         ),
-                        cardio = null,
                     ),
                     ProgramDay(
                         id = "B", title = "Day B", emphasisLine = "",
                         exercises = listOf(ProgramExercise("ez_curl", targetSets = 2, superset = SupersetPartner("rope_pushdown"))),
-                        cardio = null,
                     ),
                     ProgramDay(
                         id = "C", title = "Day C", emphasisLine = "",
                         exercises = listOf(ProgramExercise("plank", targetSets = 3)),
-                        cardio = null,
                     ),
                 ),
             ),
@@ -526,7 +525,7 @@ class TodayViewModelWiringTest {
     /** [F] */
     @Test fun swappingAwayTwoDoneBenchRowsKeepsTodayAndDayCountsInSync() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)), null,
+            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)),
         ))))
         val today = newTodayViewModel()
         val day = newDayViewModel()

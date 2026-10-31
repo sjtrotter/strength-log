@@ -5,7 +5,6 @@ import cloud.trotter.log.strength.domain.generator.DeadliftVariant
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
@@ -120,13 +119,11 @@ class SetupStateBuilderTest {
     // --- buildUiState wires everything together -------------------------------
 
     @Test
-    fun buildUiState_assembles_config_cardio_unit_and_preview() {
+    fun buildUiState_assembles_config_unit_and_preview() {
         val cfg = LifterConfig(bodyweightLb = 235, age = 40)
-        val cardio = CardioPrefs()
-        val state = SetupStateBuilder.buildUiState(cfg, cardio, WeightUnit.LB, WizardAnswers())
+        val state = SetupStateBuilder.buildUiState(cfg, WeightUnit.LB, WizardAnswers())
 
         assertEquals(cfg, state.config)
-        assertEquals(cardio, state.cardio)
         assertEquals(WeightUnit.LB, state.unit)
         assertEquals(235.0, state.bodyweightDisplay)
         assertEquals(4, state.goalPreview.size)
@@ -173,7 +170,7 @@ class SetupStateBuilderTest {
         val cfg = LifterConfig(bodyweightLb = 235, age = 40)
         val restSettings = RestSettings(enabled = false, overrides = mapOf(RestCategory.WORK to 45))
 
-        val state = SetupStateBuilder.buildUiState(cfg, CardioPrefs(), WeightUnit.LB, WizardAnswers(), restSettings)
+        val state = SetupStateBuilder.buildUiState(cfg, WeightUnit.LB, WizardAnswers(), restSettings)
 
         assertEquals(false, state.restTimerEnabled)
         assertEquals(45, state.restCategories.first { it.category == RestCategory.WORK }.seconds)
@@ -182,7 +179,7 @@ class SetupStateBuilderTest {
     @Test
     fun buildUiState_defaults_restSettings_to_enabled_with_no_overrides() {
         val cfg = LifterConfig(bodyweightLb = 235, age = 40)
-        val state = SetupStateBuilder.buildUiState(cfg, CardioPrefs(), WeightUnit.LB, WizardAnswers())
+        val state = SetupStateBuilder.buildUiState(cfg, WeightUnit.LB, WizardAnswers())
 
         assertEquals(true, state.restTimerEnabled)
         RestCategory.entries.forEach { category ->

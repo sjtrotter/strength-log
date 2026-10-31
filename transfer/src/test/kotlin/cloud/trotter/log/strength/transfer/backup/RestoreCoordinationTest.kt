@@ -1,5 +1,14 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
+import cloud.trotter.log.strength.domain.model.CardioPrefs
+import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
+import cloud.trotter.log.strength.data.serialization.CardioDto
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
@@ -126,6 +135,53 @@ class RestoreCoordinationTest {
                 assertTrue(cloud.trotter.log.strength.data.serialization.SetJson.decodeSets(
                     db.programDao().allLogs().single().setsJson).none { it.done })
             }
+        }
+    }
+
+    @Test
+    fun v8AndV13ProseCardioUseRestoredRecipesBeforeImportReturnsAndExportNoProse() = runBlocking {
+        val codec = BackupCodec()
+        val suggestion = CardioSuggestion("Intervals", "Run hard, recover easy.", true)
+        val prose = CardioDto.encode(suggestion)
+        val answers = WizardAnswers(
+            cardio = CardioPrefs(
+                mode = CardioMode.TREADMILL, fiveKGoal = false,
+            ),
+        )
+        val expected = CardioBlocks.fromLegacy(
+            suggestion, false, CardioActivity.TREADMILL_RUN,
+        )
+        val day = ProgramDayBackup("C1", "Cardio + Core", "Easy", prose, kind = "CARDIO", exercises = listOf(
+            ProgramExerciseBackup(1, "plank", false, 3, "30s", false, note = ""),
+        ))
+        val legacy = codec.decode(backupJson("A", 190))
+        for (version in listOf(8, 13)) {
+            val document = BackupDocument(
+                schemaVersion = version,
+                settings = if (version == 8) legacy.settings.copy(
+                    cardioMode = "TREADMILL", cardioPlacement = "SEPARATE_DAYS", fiveKGoal = false,
+                    selectedPlanId = 7, suggestedDay = "C1",
+                ) else SettingsBackup(190, 33, "NOVICE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 7),
+                plans = listOf(PlanBackup(7, "Running", "GENERATED", 1_000, days = listOf(day),
+                    recipeJson = if (version == 13) PlanRecipeJson.encode(answers) else null,
+                    suggestedDay = if (version == 13) "C1" else null)),
+            )
+            val snapshot = codec.decode(codec.encode(document)).toSnapshot()
+            assertEquals(version == 8, snapshot.answersCarryRecipe)
+
+            repo.importSnapshot(snapshot, journal)
+
+            val stored = db.programDao().day(7, "C1")!!
+            assertNull(stored.cardioJson)
+            assertEquals(expected, CardioBlockJson.decode(stored.cardioBlockJson))
+            assertEquals(expected, repo.programFor(7).first().cardioDays.single().cardioBlock)
+            assertEquals(snapshot.plans.single().recipeJson
+                ?: PlanRecipeJson.encode(snapshot.answers),
+                db.planDao().plan(7)!!.recipeJson)
+            assertNull(db.restoreMarkerDao().nonce())
+            val exported = codec.decode(codec.encode(repo.exportSnapshot().toDocument()))
+            assertTrue(exported.plans.flatMap { it.days }.all { it.cardioJson == null })
+            assertEquals(stored.cardioBlockJson, exported.plans.single().days.single().cardioBlockJson)
         }
     }
 

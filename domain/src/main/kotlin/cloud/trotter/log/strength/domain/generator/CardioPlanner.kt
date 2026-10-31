@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.generator
 
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.CardioPrefs
@@ -12,17 +13,24 @@ import cloud.trotter.log.strength.domain.model.CardioSuggestion
 object CardioPlanner {
 
     /** Finisher card for one strength day, or null when none belongs there. */
-    fun finisher(prefs: CardioPrefs, legHeavy: Boolean): CardioSuggestion? {
+    fun finisher(prefs: CardioPrefs, legHeavy: Boolean): CardioBlock? {
         if (prefs.mode == CardioMode.NONE || prefs.placement == CardioPlacement.NONE) return null
         // SEPARATE_DAYS puts cardio on its own cards, never as a finisher.
         if (prefs.placement == CardioPlacement.SEPARATE_DAYS) return null
         val hard = !legHeavy && prefs.mode != CardioMode.LOW_IMPACT
-        return suggestion(prefs.mode, prefs.fiveKGoal, hard)
+        return block(prefs, hard)
     }
 
     /** Zone 2 piece for a standalone "Cardio + Core" day. */
-    fun standalone(prefs: CardioPrefs): CardioSuggestion =
-        suggestion(prefs.mode, prefs.fiveKGoal, hard = false)
+    fun standalone(prefs: CardioPrefs): CardioBlock? = block(prefs, hard = false)
+
+    internal fun standaloneDetail(prefs: CardioPrefs): String =
+        suggestion(prefs.mode, prefs.fiveKGoal, hard = false).detail
+
+    private fun block(prefs: CardioPrefs, hard: Boolean): CardioBlock? {
+        val activity = CardioBlocks.activityOf(prefs.mode) ?: return null
+        return CardioBlocks.fromLegacy(suggestion(prefs.mode, prefs.fiveKGoal, hard), prefs.fiveKGoal, activity)
+    }
 
     private fun suggestion(mode: CardioMode, fiveK: Boolean, hard: Boolean): CardioSuggestion {
         val verb = if (mode == CardioMode.LOW_IMPACT) "ride" else "run"

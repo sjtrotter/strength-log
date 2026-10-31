@@ -16,7 +16,6 @@ interface ProgramDao {
     @Query("UPDATE program_day SET nextRunId = :nextRunId, closedAt = :closedAt WHERE planId = :planId AND dayId = :dayId")
     suspend fun closeDay(planId: Long, dayId: String, nextRunId: String, closedAt: Long)
 
-
     // --- reads (Flow) --------------------------------------------------------
 
     @Query("SELECT * FROM program_day WHERE planId = :planId ORDER BY position")
@@ -30,6 +29,9 @@ interface ProgramDao {
 
     @Query("SELECT * FROM program_day ORDER BY planId, position")
     fun observeAllDays(): Flow<List<ProgramDayEntity>>
+
+    @Query("SELECT * FROM program_day WHERE cardioJson IS NOT NULL ORDER BY planId, position")
+    suspend fun daysWithLegacyCardio(): List<ProgramDayEntity>
 
     // --- one-shot reads ------------------------------------------------------
 

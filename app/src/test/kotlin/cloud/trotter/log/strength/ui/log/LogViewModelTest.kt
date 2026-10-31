@@ -36,7 +36,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -412,7 +411,6 @@ class LogViewModelTest {
                         title = "Lower",
                         emphasisLine = "",
                         exercises = listOf(ProgramExercise("bb_back_squat", isMain = true, targetSets = 6)),
-                        cardio = null,
                     ),
                 ),
             ),

@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -96,6 +97,11 @@ private fun measureText(measure: Measure): String = when (measure) {
 }
 
 internal fun formatCardioTime(seconds: Int): String = "%d:%02d".format(seconds / 60, seconds % 60)
+
+internal fun CardioBlock.plannedTimeDetail(): String {
+    if (sets.any { it.end !is Measure.Time }) return ""
+    return formatCardioTime(sets.sumOf { (it.end as Measure.Time).seconds })
+}
 
 @Composable
 internal fun CardioSummary(sets: List<CardioSetResult>, seconds: Int, modifier: Modifier = Modifier) {

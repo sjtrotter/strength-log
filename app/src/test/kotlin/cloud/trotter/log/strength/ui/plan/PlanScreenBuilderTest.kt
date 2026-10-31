@@ -62,7 +62,6 @@ class PlanScreenBuilderTest {
                         ProgramExercise("bb_back_squat", isMain = true, targetSets = 3),
                         ProgramExercise("ez_curl", targetSets = 4),
                     ),
-                    cardio = null,
                 ),
             ),
         )
@@ -85,6 +84,5 @@ class PlanScreenBuilderTest {
         exercises = rounds.mapIndexed { index, count ->
             ProgramExercise(exerciseId = "exercise-$id-$index", targetSets = count)
         },
-        cardio = null,
     )
 }

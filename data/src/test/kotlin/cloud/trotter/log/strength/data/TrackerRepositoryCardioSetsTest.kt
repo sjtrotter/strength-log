@@ -134,7 +134,7 @@ class TrackerRepositoryCardioSetsTest {
         repo.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, sets.map { it.spec })
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
-            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
         val otherPlan = repo.createAuthoredPlan("Other", "Other day")
         repo.publishCreatedAuthoredPlan(otherPlan)
@@ -153,7 +153,7 @@ class TrackerRepositoryCardioSetsTest {
         repo.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, sets.map { it.spec })
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
-            ProgramDay(it, "Run $it", "", emptyList(), null, cardioBlock = block)
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
         val first = repo.logCardioSession(session.copy(planId = planId), sets, finishDay = true)
         assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)

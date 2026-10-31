@@ -4,10 +4,9 @@ import cloud.trotter.log.strength.data.LoggedSlot
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.domain.model.CardioMode
-import cloud.trotter.log.strength.domain.model.CardioPrefs
-import cloud.trotter.log.strength.domain.model.effectiveCardio
 import cloud.trotter.log.strength.domain.sync.toWatch
+import cloud.trotter.log.strength.domain.model.CardioSuggestion
+import cloud.trotter.log.strength.ui.day.activityLabel
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
@@ -72,8 +71,6 @@ object WatchSnapshotBuilder {
         equipment: Set<Equipment> = Equipment.entries.toSet(),
         loggedCardio: CardioSessionEntity? = null,
         cardioAckStamp: Long = 0L,
-        cardioMode: String? = null,
-        cardioFiveK: Boolean? = null,
         planId: Long? = null,
         planName: String? = null,
         cardioAckedStamps: List<Long> = emptyList(),
@@ -84,7 +81,7 @@ object WatchSnapshotBuilder {
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val watchDays = program.days.filter {
-            it.kind == ProgramDayKind.STRENGTH || it.cardioBlock != null || it.cardio != null
+            it.kind == ProgramDayKind.STRENGTH || it.cardioBlock != null
         }
         val dayIndex = watchDays.indexOfFirst { it.id == dayId }
         if (dayIndex < 0) return null
@@ -113,11 +110,7 @@ object WatchSnapshotBuilder {
             ),
             unit = unit.name.lowercase(),
             cycle = watchDays.map { it.toCycleDay(catalog) },
-            cardioBlock = day.effectiveCardio(
-                CardioMode.entries.firstOrNull { it.name == cardioMode }?.let {
-                    CardioPrefs(mode = it, fiveKGoal = cardioFiveK ?: false)
-                },
-            )?.toWatch(),
+            cardioBlock = day.cardioBlock?.toWatch(),
             cardioAckStamp = cardioAckStamp,
             cardioAckedStamps = cardioAckedStamps,
             planId = planId,
@@ -126,12 +119,15 @@ object WatchSnapshotBuilder {
             runStartedAt = runStartedAt,
             retiredRoundsDone = retiredRoundsDone,
             processedEditStamps = processedEditStamps,
-            cardio = day.cardio?.copy(
-                mode = cardioMode,
-                fiveK = cardioFiveK,
-                loggedStartedAt = loggedCardio?.takeIf { it.dayId == dayId }?.startedAt,
-                loggedSeconds = loggedCardio?.takeIf { it.dayId == dayId }?.seconds,
-            ),
+            cardio = day.cardioBlock?.let { block ->
+                CardioSuggestion(
+                    label = activityLabel(block.activity),
+                    detail = "",
+                    hard = block.sets.any { it.hard },
+                    loggedStartedAt = loggedCardio?.takeIf { it.dayId == dayId }?.startedAt,
+                    loggedSeconds = loggedCardio?.takeIf { it.dayId == dayId }?.seconds,
+                )
+            },
         )
     }
 

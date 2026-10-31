@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -36,13 +37,24 @@ class SetupSectionsTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
-        // The list virtualises, so each header has to be scrolled into range
+        composeTestRule.onNodeWithText("Cardio").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Outdoor run").assertDoesNotExist()
+
+        // The list virtualizes, so each header has to be scrolled into range
         // before it exists at all. Exact (not substring) text matching keeps
         // "DATA" off the DATA / BACKUP button and "DISPLAY" off the unit switch.
         listOf("TRAINING", "DISPLAY", "REST TIMER", "DATA", "ABOUT").forEach { label ->
             composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
             composeTestRule.onNodeWithText(label).assertExists().assertHasNoClickAction()
         }
+    }
+
+    @Test
+    fun restTimerShortcutStillOpensAtItsSection() {
+        composeTestRule.setContent {
+            AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions(), openRestTimer = true) }
+        }
+        composeTestRule.onNodeWithText("REST TIMER").assertIsDisplayed()
     }
 
     @Test
@@ -68,9 +80,7 @@ class SetupSectionsTest {
         onAgeChange = {},
         onLevelChange = {},
         onEmphasisChange = {},
-        onCardioModeChange = {},
-        onCardioPlacementChange = {},
-        onFiveKChange = {},
+
         onUnitToggle = {},
         onRestTimerEnabledChange = {},
         onRestOverrideChange = { _, _ -> },

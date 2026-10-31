@@ -23,12 +23,10 @@ import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
-import cloud.trotter.log.strength.domain.model.effectiveCardio
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
@@ -174,7 +172,7 @@ class DayViewModel @Inject constructor(
         else combine(repo.programFor(target.plan.id), repo.wizardAnswersFor(target.plan.id), repo.unitFlow, repo.catalogFlow) {
                 program, answers, unit, catalog ->
             DayContext(program, target.plan.suggestedDayId, resolveDay(program, target.dayId),
-                answers.config, unit, catalog, plan = target.plan, cardioPrefs = answers.cardio)
+                answers.config, unit, catalog, plan = target.plan)
         }
     }.combine(effectiveDayId) { ctx, dayId ->
         ctx.copy(dayId = ctx.dayId?.takeIf { it == dayId })
@@ -351,7 +349,7 @@ class DayViewModel @Inject constructor(
     }
     val dayEditState: StateFlow<DayEditUiState> = combine(prescriptionEditState, cardioDraft) { state, draft ->
         state.copy(cardioDraft = draft?.takeIf {
-            state.authored && it.planId == state.planId && it.dayId == state.dayId
+            it.planId == state.planId && it.dayId == state.dayId
         })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
 
@@ -476,7 +474,7 @@ class DayViewModel @Inject constructor(
         val plan = repo.plansFlow.first().firstOrNull { it.id == planId } ?: return null
         val program = repo.programFor(plan.id).first()
         val day = program.days.firstOrNull { it.id == dayId } ?: return null
-        val block = day.effectiveCardio(repo.wizardAnswersFor(plan.id).first().cardio) ?: return null
+        val block = day.cardioBlock ?: return null
         val nextId = Rotation.nextFor(program, dayId, authored = plan.origin == PlanOrigin.AUTHORED.name)
             ?: plan.suggestedDayId
         val next = program.days.firstOrNull { it.id == nextId }
@@ -1243,7 +1241,6 @@ class DayViewModel @Inject constructor(
 
     fun openCardioBlock() {
         val state = dayEditState.value
-        if (!state.authored) return
         val plan = state.planId ?: return
         val day = state.dayId ?: return
         savedState[KEY_CARDIO_DRAFT] = state.cardioBlock?.let { CardioBlockDraft.from(plan, day, it) }
@@ -1276,7 +1273,7 @@ class DayViewModel @Inject constructor(
 
     fun removeCardioBlock() {
         val state = dayEditState.value
-        if (!state.authored || state.slots.isEmpty()) return
+        if (state.slots.isEmpty()) return
         val plan = state.planId ?: return
         val day = state.dayId ?: return
         mutate { repo.setCardioBlock(plan, day, null) }
@@ -1478,8 +1475,8 @@ class DayViewModel @Inject constructor(
             unit = ctx.unit,
             nextDayId = Rotation.nextFor(program, dayId, authored = ctx.plan?.origin == PlanOrigin.AUTHORED.name),
             exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, history) },
-            cardio = day.effectiveCardio(ctx.cardioPrefs)?.let {
-                CardioCardState(label = activityLabel(it.activity), detail = day.cardio?.detail.orEmpty(),
+            cardio = day.cardioBlock?.let {
+                CardioCardState(label = activityLabel(it.activity), detail = it.plannedTimeDetail(),
                     hard = it.sets.any { spec -> spec.hard }, block = it, finishesDay = day.exercises.isEmpty())
             },
         )
@@ -1573,7 +1570,7 @@ class DayViewModel @Inject constructor(
             }
             endCardioRun(run.reconcile(cardioClock).copy(showReceipt = false))
         } else if (run.startedAt == null &&
-            day.effectiveCardio(ctx.cardioPrefs)?.let(CardioBlockJson::encode) != run.sourceBlockJson
+            day.cardioBlock?.let(CardioBlockJson::encode) != run.sourceBlockJson
         ) {
             clearCardioExecution()
         }
@@ -1800,7 +1797,6 @@ class DayViewModel @Inject constructor(
         val unit: WeightUnit,
         val catalog: ExerciseCatalog,
         val plan: PlanEntity? = null,
-        val cardioPrefs: CardioPrefs? = null,
     )
 
     private data class CardioAnchors(

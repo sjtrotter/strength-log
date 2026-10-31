@@ -105,7 +105,7 @@ class SetEditApplierTest {
     fun `an authored rep window overrides weighted catalog tracking and logs only the count`() = runTest {
         val prescription = Prescription(PrescribedTarget.RepsInTime(120, 50))
         val exercise = ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription)
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise), null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise)))))
         val id = squatId()
         repo.seedIfEmpty("A", id, Slot.MAIN, SetSeeder.seedPrescribed(2, prescription))
         startRun()
@@ -126,7 +126,7 @@ class SetEditApplierTest {
     fun `eager watch swap reseeds from the slot prescription`() = runTest {
         val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8))
         val exercise = ProgramExercise("bb_back_squat", isMain = true, targetSets = 2, prescription = prescription)
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise), null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise)))))
         val id = squatId()
         repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(LoggedSet(50.0, 10, SetKind.WORK, done = false)))
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
@@ -151,7 +151,6 @@ class SetEditApplierTest {
                             ProgramExercise("bb_back_squat", isMain = true, targetSets = 6),
                             ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown")),
                         ),
-                        cardio = null,
                     ),
                 ),
             ),
@@ -485,7 +484,6 @@ class SetEditApplierTest {
                             // Mixed-type superset: a WEIGHTED main + a REPS partner (bench_dip).
                             ProgramExercise("ez_curl", superset = SupersetPartner("bench_dip")),
                         ),
-                        cardio = null,
                     ),
                 ),
             ),

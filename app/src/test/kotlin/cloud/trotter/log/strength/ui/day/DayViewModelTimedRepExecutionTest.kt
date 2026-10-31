@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -103,7 +105,7 @@ class DayViewModelTimedRepExecutionTest {
             Program(listOf(ProgramDay(
                 "A", "Timed reps", "", listOf(ProgramExercise(
                     "pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)),
-                )), CardioSuggestion("Easy cardio", "Run easy.", hard = false),
+                )), cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Easy cardio", "Run easy.", hard = false), true, CardioActivity.ROAD_RUN),
             ))),
         )
     }

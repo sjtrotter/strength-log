@@ -24,8 +24,6 @@ import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
-import cloud.trotter.log.strength.domain.model.ProgramDay
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -383,19 +381,7 @@ class WizardViewModel @Inject constructor(
         }
     }
 
-    private fun generatePreview(answers: WizardAnswers): Program {
-        val generated = ProgramGenerator.generate(answers)
-        return Program(generated.program.days + generated.cardioDays.map { day ->
-            ProgramDay(
-                id = day.id,
-                title = day.title,
-                emphasisLine = day.cardio.detail,
-                exercises = listOf(day.core),
-                cardio = day.cardio,
-                kind = ProgramDayKind.CARDIO,
-            )
-        })
-    }
+    private fun generatePreview(answers: WizardAnswers): Program = ProgramGenerator.generate(answers)
 
     // --- restore from backup (first run only) ----------------------------------
 

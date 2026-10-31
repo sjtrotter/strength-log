@@ -42,7 +42,6 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
             title = "Day A",
             emphasisLine = "Lower",
             exercises = listOf(ProgramExercise("bb_back_squat", isMain = true, targetSets = 3)),
-            cardio = null,
         )
         repository.replaceProgram(Program(listOf(day)))
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id

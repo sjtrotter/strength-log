@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.emitAll
 
 /**
  * The one observed projection of *today* — the open run or suggested day, its sets, their
@@ -39,8 +41,9 @@ class TodaySnapshotSource(
     private val editAckLog: EditAckLog,
 ) {
 
-    val snapshots: Flow<WatchSnapshot?> =
-        repo.todayTargetFlow.flatMapLatest { target ->
+    val snapshots: Flow<WatchSnapshot?> = flow {
+        repo.runPlanSettingsFixupIfNeeded()
+        emitAll(repo.todayTargetFlow.flatMapLatest { target ->
             val plan = target?.plan
             val dayId = target?.dayId
             if (plan == null || dayId == null) {
@@ -63,7 +66,7 @@ class TodaySnapshotSource(
                     repo.unitFlow,
                     repo.restSettingsFlow,
                 ) { answers, catalog, unit, rest ->
-                    Context(answers.config, catalog, unit, rest, answers.equipment, answers.cardio.mode.name, answers.cardio.fiveKGoal)
+                    Context(answers.config, catalog, unit, rest, answers.equipment)
                 }
                 combine(
                     program, context, repo.cardioSessionsFlow, today,
@@ -90,8 +93,6 @@ class TodaySnapshotSource(
                         loggedCardio = loggedCardio,
                         cardioAckStamp = cardioAck.highest,
                         cardioAckedStamps = cardioAck.recent,
-                        cardioMode = ctx.cardioMode,
-                        cardioFiveK = ctx.cardioFiveK,
                         planId = plan.id,
                         planName = plan.name,
                         runId = tracks.runId,
@@ -101,7 +102,8 @@ class TodaySnapshotSource(
                     )
                 }
             }
-        }
+        })
+    }
 
     /** The non-program half of a snapshot's inputs, combined separately so the
      *  program flows and the preference flows conflate independently. */
@@ -111,7 +113,5 @@ class TodaySnapshotSource(
         val unit: WeightUnit,
         val restSettings: RestSettings,
         val equipment: Set<Equipment>,
-        val cardioMode: String,
-        val cardioFiveK: Boolean,
     )
 }

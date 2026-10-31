@@ -106,8 +106,8 @@ class DayViewModelDaySwitchTest {
         repo.replaceProgram(
             Program(
                 listOf(
-                    ProgramDay("A", "Lower", "", listOf(ProgramExercise("bb_back_squat", isMain = true, targetSets = 6)), null),
-                    ProgramDay("B", "Upper", "", listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 6)), null),
+                    ProgramDay("A", "Lower", "", listOf(ProgramExercise("bb_back_squat", isMain = true, targetSets = 6))),
+                    ProgramDay("B", "Upper", "", listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 6))),
                 ),
             ),
         )

@@ -1,12 +1,12 @@
 package cloud.trotter.log.strength.ui.day
 
 import android.os.Parcelable
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.generator.CardioPlanner
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
-import cloud.trotter.log.strength.domain.model.CardioSuggestion
+import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.Measure
 import kotlinx.parcelize.Parcelize
 
@@ -53,10 +53,10 @@ data class CardioBlockDraft(
     fun block(): CardioBlock = CardioBlock(activity, sets.map(CardioSetDraft::spec))
 
     fun startFrom(template: CardioTemplate): CardioBlockDraft = from(
-        planId, dayId, CardioBlocks.fromLegacy(
-            CardioSuggestion("", "", hard = template != CardioTemplate.EASY),
-            fiveK = template == CardioTemplate.INTERVALS, activity = activity,
-        ),
+        planId, dayId, requireNotNull(CardioPlanner.finisher(
+            CardioPrefs(fiveKGoal = template == CardioTemplate.INTERVALS),
+            legHeavy = template == CardioTemplate.EASY,
+        )).copy(activity = activity),
     )
 
     /** Duplicate the last work/recovery pair ahead of any cool-down. */

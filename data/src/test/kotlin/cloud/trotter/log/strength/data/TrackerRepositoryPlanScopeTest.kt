@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -320,7 +321,7 @@ class TrackerRepositoryPlanScopeTest {
         val cardio = ProgramDay(
             id = "C", title = "Cardio + Core", emphasisLine = "",
             exercises = listOf(ProgramExercise("plank")),
-            cardio = CardioSuggestion("Zone 2", "20 minutes", hard = false),
+            cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Zone 2", "20 minutes", hard = false), true, CardioActivity.ROAD_RUN),
             kind = ProgramDayKind.CARDIO,
         )
         repo.replaceProgram(Program(listOf(strength, strength.copy(id = "B", title = "Upper"), cardio)))
@@ -561,7 +562,7 @@ class TrackerRepositoryPlanScopeTest {
             title = "Easy run",
             emphasisLine = "Conversational pace",
             exercises = emptyList(),
-            cardio = CardioSuggestion("Easy run", "20 minutes", hard = false, mode = "OUTDOOR_RUN"),
+            cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Easy run", "20 minutes", hard = false, mode = "OUTDOOR_RUN"), true, CardioActivity.ROAD_RUN),
             kind = ProgramDayKind.CARDIO,
         ).toEntity(1).copy(position = 1)
         db.programDao().upsertDay(cardioDay)
@@ -594,8 +595,9 @@ class TrackerRepositoryPlanScopeTest {
         )
         val copiedCardioDay = db.programDao().daysForPlan(copy).single { it.dayId == "C" }
         assertEquals(ProgramDayKind.CARDIO.name, copiedCardioDay.kind)
-        assertTrue(copiedCardioDay.cardioJson != null)
-        assertEquals(cardioDay.cardioJson, copiedCardioDay.cardioJson)
+        assertNull(copiedCardioDay.cardioJson)
+        assertTrue(copiedCardioDay.cardioBlockJson != null)
+        assertEquals(cardioDay.cardioBlockJson, copiedCardioDay.cardioBlockJson)
         val copiedSlot = db.programDao().exercisesForPlan(copy).single()
         assertTrue(slot.id != copiedSlot.id)
         assertEquals(db.programDao().exercisesForPlan(1).single().copy(id = copiedSlot.id, planId = copy), copiedSlot)
@@ -922,7 +924,7 @@ class TrackerRepositoryPlanScopeTest {
             CardioSetSpec(CardioRole.RECOVERY, Measure.Time(120)),
             CardioSetSpec(CardioRole.COOLDOWN, Measure.Distance(500)),
         ))
-        val day = ProgramDay("A", "Track", "", emptyList(), null,
+        val day = ProgramDay("A", "Track", "", emptyList(),
             kind = ProgramDayKind.CARDIO, cardioBlock = block)
         db.programDao().upsertDay(day.toEntity(sourceId))
 
@@ -946,7 +948,6 @@ class TrackerRepositoryPlanScopeTest {
                 title = title,
                 emphasisLine = "",
                 exercises = listOf(ProgramExercise(exerciseId = exerciseId)),
-                cardio = null,
             ),
         ),
     )

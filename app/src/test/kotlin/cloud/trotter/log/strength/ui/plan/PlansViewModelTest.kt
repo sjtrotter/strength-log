@@ -78,7 +78,7 @@ class PlansViewModelTest {
 
     private suspend fun seed() {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            id = "A", title = "Day A", emphasisLine = "", exercises = emptyList(), cardio = null,
+            id = "A", title = "Day A", emphasisLine = "", exercises = emptyList(),
         ))))
     }
 

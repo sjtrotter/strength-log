@@ -64,7 +64,7 @@ class JournalBuilderTest {
     fun mainLifts_reads_the_generated_program_mains_with_their_read_only_goals() {
         val generated = ProgramGenerator.generate(WizardAnswers())
         val cfg = LifterConfig()
-        val mains = JournalBuilder.mainLifts(generated.program, ExerciseCatalog(emptyList()), cfg)
+        val mains = JournalBuilder.mainLifts(generated, ExerciseCatalog(emptyList()), cfg)
 
         assertTrue(mains.isNotEmpty(), "the generated program has main lifts")
         // Spec §11's pinned squat GOAL, read (never recomputed) through GoalCalculator.
@@ -85,7 +85,7 @@ class JournalBuilderTest {
                 "A", "Mixed", "", listOf(
                     ProgramExercise("bb_back_squat", isMain = true, prescription = Prescription(target)),
                     ProgramExercise("bb_bench", isMain = true),
-                ), null,
+                ),
             )))
             val history = listOf(top("bb_back_squat", today, 235.0), top("bb_bench", today, 195.0))
 

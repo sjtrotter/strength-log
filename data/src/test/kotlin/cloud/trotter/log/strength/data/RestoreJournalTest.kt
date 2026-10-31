@@ -308,7 +308,7 @@ class RestoreJournalTest {
         commitPreviousBuildRoomHalf(restored, nonce)
         assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
 
-        repo.setCardioPrefs(CardioPrefs(CardioMode.NONE, CardioPlacement.NONE, false))
+        repo.setWizardAnswers(WizardAnswers(cardio = CardioPrefs(CardioMode.NONE, CardioPlacement.NONE, false)))
 
         assertNotNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
         assertFalse(settings.planSettingsFixupDoneFlow.first())

@@ -318,14 +318,12 @@ private fun DaySlotList(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SheetButton(stringResource(R.string.day_edit_add_exercise_button), onClick = onAddClick, modifier = Modifier.weight(1f))
         }
-        if (state.authored) {
-            TextButton(onClick = onOpenCardio) {
-                Text(stringResource(if (state.cardioBlock == null) R.string.day_edit_add_cardio else R.string.day_edit_edit_cardio))
-            }
-            if (state.cardioBlock != null) {
-                TextButton(onClick = onRemoveCardio, enabled = state.slots.isNotEmpty()) {
-                    Text(stringResource(R.string.day_edit_remove_cardio))
-                }
+        TextButton(onClick = onOpenCardio) {
+            Text(stringResource(if (state.cardioBlock == null) R.string.day_edit_add_cardio else R.string.day_edit_edit_cardio))
+        }
+        if (state.cardioBlock != null) {
+            TextButton(onClick = onRemoveCardio, enabled = state.slots.isNotEmpty()) {
+                Text(stringResource(R.string.day_edit_remove_cardio))
             }
         }
         if (!state.authored) {

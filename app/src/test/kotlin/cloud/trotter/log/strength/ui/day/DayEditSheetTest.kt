@@ -73,6 +73,21 @@ class DayEditSheetTest {
     }
 
     @Test
+    fun generatedDayOffersAddCardio() {
+        show(canSetSuperset = true, edit = false)
+        composeTestRule.onNodeWithText("Add cardio").assertExists()
+    }
+
+    @Test
+    fun generatedDayOffersEditAndRemoveCardio() {
+        var removals = 0
+        show(canSetSuperset = true, edit = false, hasCardio = true, onRemoveCardio = { removals++ })
+        composeTestRule.onNodeWithText("Edit cardio").assertExists()
+        composeTestRule.onNodeWithText("Remove cardio").assertIsEnabled().performClick()
+        composeTestRule.runOnIdle { assertEquals(1, removals) }
+    }
+
+    @Test
     fun cardioOnlyDayDisablesRemoveCardio() {
         show(canSetSuperset = false, authored = true, edit = false, hasSlot = false, hasCardio = true)
         composeTestRule.onNodeWithText("Remove cardio").assertIsNotEnabled()

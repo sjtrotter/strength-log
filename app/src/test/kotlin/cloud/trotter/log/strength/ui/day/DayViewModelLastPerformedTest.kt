@@ -98,7 +98,6 @@ class DayViewModelLastPerformedTest {
                         title = "Test",
                         emphasisLine = "",
                         exercises = listOf(ProgramExercise("bb_back_squat", isMain = true, targetSets = 6)),
-                        cardio = null,
                     ),
                 ),
             ),

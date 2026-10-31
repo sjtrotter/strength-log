@@ -114,17 +114,6 @@
 <string name="setup_emphasis_balanced_description">Even mix of heavy work and volume.</string>
 <string name="setup_emphasis_physique_title">Physique-leaning</string>
 <string name="setup_emphasis_physique_description">More volume and isolation work.</string>
-<string name="setup_cardio_label">Cardio</string>
-<string name="setup_cardio_placement_label">Placement</string>
-<string name="setup_cardio_five_k_toggle">Keep me 5k-ready</string>
-<string name="setup_cardio_mode_outdoor_run">Outdoor run</string>
-<string name="setup_cardio_mode_treadmill">Treadmill</string>
-<string name="setup_cardio_mode_low_impact">Bike / elliptical</string>
-<string name="setup_cardio_mode_none">None</string>
-<string name="setup_cardio_placement_finishers">Finishers after lifting</string>
-<string name="setup_cardio_placement_separate_days">Separate days</string>
-<string name="setup_cardio_placement_both">Both</string>
-<string name="setup_cardio_placement_none">None</string>
 <string name="setup_display_kilograms_toggle">Display weights in kilograms</string>
 <string name="setup_theme_label">Theme</string>
 <string name="setup_theme_system_title">System</string>

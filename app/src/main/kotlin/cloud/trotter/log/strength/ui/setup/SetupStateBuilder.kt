@@ -3,7 +3,6 @@ package cloud.trotter.log.strength.ui.setup
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
-import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
@@ -74,7 +73,6 @@ object SetupStateBuilder {
     /** Assembles the screen's full render state off the current config/prefs/answers. */
     fun buildUiState(
         cfg: LifterConfig,
-        cardio: CardioPrefs,
         unit: WeightUnit,
         answers: WizardAnswers,
         restSettings: RestSettings = RestSettings(),
@@ -82,7 +80,6 @@ object SetupStateBuilder {
         themePreference: ThemePreference = ThemePreference.SYSTEM,
     ): SetupUiState = SetupUiState(
         config = cfg,
-        cardio = cardio,
         unit = unit,
         bodyweightDisplay = bodyweightDisplay(cfg, unit),
         goalPreview = goalPreview(cfg, answers, unit),

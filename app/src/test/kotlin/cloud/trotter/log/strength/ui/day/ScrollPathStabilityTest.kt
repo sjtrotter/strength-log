@@ -207,7 +207,6 @@ class ScrollPathStabilityTest {
                             ProgramExercise("ez_curl", targetSets = 2, superset = SupersetPartner("rope_pushdown")),
                             ProgramExercise("face_pull", targetSets = 3),
                         ),
-                        cardio = null,
                     ),
                 ),
             ),

@@ -10,9 +10,9 @@ import kotlin.test.Test
 
 class RotationTest {
     private val program = Program(listOf(
-        ProgramDay("A", "Strength A", "", emptyList(), null),
-        ProgramDay("B", "Cardio B", "", emptyList(), null, kind = ProgramDayKind.CARDIO),
-        ProgramDay("C", "Strength C", "", emptyList(), null),
+        ProgramDay("A", "Strength A", "", emptyList()),
+        ProgramDay("B", "Cardio B", "", emptyList(), kind = ProgramDayKind.CARDIO),
+        ProgramDay("C", "Strength C", "", emptyList()),
     ))
 
     @Test fun authoredPlansRotateThroughEveryDay() {

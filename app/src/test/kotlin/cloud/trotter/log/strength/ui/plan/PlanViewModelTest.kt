@@ -141,7 +141,7 @@ class PlanViewModelTest {
 
     @Test
     fun `generated plans have no authored actions`() = runTest(dispatcher) {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList(), null))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList()))))
         val plan = repo.selectedPlanIdFlow.first()!!
         val vm = viewModel()
         advanceUntilIdle()

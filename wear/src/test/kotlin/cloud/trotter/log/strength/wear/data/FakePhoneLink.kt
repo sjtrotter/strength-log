@@ -81,16 +81,15 @@ internal class FakePhoneLink(private val clockMillis: () -> Long = { 0L }) : Pho
         emitAll(reachability)
     }
 
-    override suspend fun send(path: String, bytes: ByteArray): Boolean {
+    override suspend fun send(path: String, bytes: ByteArray) {
         peakInFlight.accumulateAndGet(inFlight.incrementAndGet()) { a, b -> maxOf(a, b) }
         try {
             if (sendDurationMillis > 0) delay(sendDurationMillis)
             if (!sendSucceeds) {
                 failedSends.incrementAndGet()
-                return false
+                return
             }
             wire += path to bytes
-            return true
         } finally {
             inFlight.decrementAndGet()
         }

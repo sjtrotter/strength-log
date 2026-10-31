@@ -125,6 +125,39 @@ class WearSyncStoreTest {
     }
 
     @Test
+    fun `edit ack log retains the newest 32 distinct stamps in processing order`() = runTest {
+        val store = newStore().first
+        assertEquals(emptyList<Long>(), store.processedEditsFlow.first())
+        for (stamp in 1L..40L) store.recordProcessedEdit(stamp)
+        assertEquals((9L..40L).toList(), store.processedEditsFlow.first())
+        store.recordProcessedEdit(20L)
+        assertEquals((9L..40L).filterNot { it == 20L } + 20L, store.processedEditsFlow.first())
+        store.recordProcessedEdit(5L)
+        assertEquals((10L..40L).filterNot { it == 20L } + listOf(20L, 5L), store.processedEditsFlow.first())
+    }
+
+    @Test
+    fun `processed edit stamps survive a restart`() = runTest {
+        val (store, scope) = newStore()
+        store.recordProcessedEdit(101L)
+        store.recordProcessedEdit(100L)
+        scope.release()
+        assertEquals(listOf(101L, 100L), newStore().first.processedEditsFlow.first())
+    }
+
+    @Test
+    fun `unreadable edit ack preferences acknowledge nothing and the next record repairs them`() = runTest {
+        val store = newStore().first
+        val key = stringPreferencesKey("processed_edit_stamps")
+        for (garbage in listOf("garbage", "1,broken,2", "1,", "9223372036854775808", "")) {
+            preferences.edit { it[key] = garbage }
+            assertEquals(emptyList<Long>(), store.processedEditsFlow.first())
+            store.recordProcessedEdit(5L)
+            assertEquals(listOf(5L), store.processedEditsFlow.first())
+        }
+    }
+
+    @Test
     fun `cardio ack log defaults empty and retains the newest 32 processed stamps in order`() = runTest {
         val store = newStore().first
         assertEquals(emptyList<Long>(), store.acksFlow.first().recent)

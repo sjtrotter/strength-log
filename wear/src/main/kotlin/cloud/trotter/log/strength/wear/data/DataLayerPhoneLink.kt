@@ -70,17 +70,13 @@ class DataLayerPhoneLink(
         awaitClose { capabilityClient.removeListener(listener, PHONE_CAPABILITY) }
     }.conflate()
 
-    override suspend fun send(path: String, bytes: ByteArray): Boolean {
+    override suspend fun send(path: String, bytes: ByteArray) {
         val targets = phoneNodeIds().ifEmpty { connectedNodeIds() }
-        var delivered = false
         targets.forEach { id ->
-            val sent = quietly("sending $path to $id", false) {
+            quietly<Unit>("sending $path to $id", Unit) {
                 messageClient.sendMessage(id, path, bytes).await()
-                true
             }
-            delivered = delivered || sent
         }
-        return delivered
     }
 
     /**

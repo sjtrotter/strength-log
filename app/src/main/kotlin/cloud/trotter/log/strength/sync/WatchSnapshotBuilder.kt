@@ -80,6 +80,7 @@ object WatchSnapshotBuilder {
         runId: String? = null,
         runStartedAt: Long? = null,
         retiredRoundsDone: Int? = null,
+        processedEditStamps: List<Long>? = null,
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val watchDays = program.days.filter {
@@ -124,6 +125,7 @@ object WatchSnapshotBuilder {
             runId = runId,
             runStartedAt = runStartedAt,
             retiredRoundsDone = retiredRoundsDone,
+            processedEditStamps = processedEditStamps,
             cardio = day.cardio?.copy(
                 mode = cardioMode,
                 fiveK = cardioFiveK,

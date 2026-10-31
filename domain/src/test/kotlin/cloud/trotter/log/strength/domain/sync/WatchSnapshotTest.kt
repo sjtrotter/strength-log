@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class WatchSnapshotTest {
@@ -72,6 +73,35 @@ class WatchSnapshotTest {
     @Test
     fun `schemaVersion defaults to 1`() {
         assertEquals(1, sample.schemaVersion)
+    }
+
+    @Test
+    fun `old snapshot payloads decode with null processed edit stamps`() {
+        val oldWire = """{"schemaVersion":1,"revision":2,"suggestedDayId":"A","unit":"lb","day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[]}}"""
+        val decoded = SyncCodec.decodeSnapshot(oldWire.encodeToByteArray())
+        assertNull(decoded.processedEditStamps)
+        assertNull(decoded.runId)
+        assertEquals(1, decoded.schemaVersion)
+    }
+
+    @Test
+    fun `a null processed edit list preserves the exact previous snapshot encoding`() {
+        val snapshot = WatchSnapshot(
+            revision = 2, suggestedDayId = "A", day = WatchDay("A", "A", 0, emptyList()),
+            unit = "lb", planId = 7, runId = "r-a", processedEditStamps = null,
+        )
+        val oldWire = """{"revision":2,"suggestedDayId":"A","day":{"dayId":"A","title":"A","accentIndex":0,"exercises":[]},"unit":"lb","planId":7,"runId":"r-a"}"""
+        assertEquals(oldWire, SyncCodec.encodeSnapshot(snapshot).decodeToString())
+    }
+
+    @Test
+    fun `processed edit stamps round-trip in processing order without a schema bump`() {
+        val snapshot = sample.copy(processedEditStamps = listOf(101L, 100L))
+        val decoded = SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(snapshot))
+        assertEquals(snapshot, decoded)
+        assertEquals(1, decoded.schemaVersion)
+        val empty = sample.copy(processedEditStamps = emptyList())
+        assertEquals(empty, SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(empty)))
     }
 
     @Test

@@ -42,11 +42,8 @@ interface PhoneLink {
      */
     fun phoneReachability(): Flow<Boolean>
 
-    /**
-     * True only after at least one node accepts the message. An unreachable phone or
-     * failed send returns false so an undelivered retired-track edit stays queued.
-     */
-    suspend fun send(path: String, bytes: ByteArray): Boolean
+    /** Transport acceptance cannot settle an edit; only the phone's snapshot can. */
+    suspend fun send(path: String, bytes: ByteArray)
 }
 
 /**

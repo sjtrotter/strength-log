@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.sync.SetEditApplier
 import cloud.trotter.log.strength.sync.CardioDeltaApplier
 import cloud.trotter.log.strength.sync.CardioAckLog
+import cloud.trotter.log.strength.sync.EditAckLog
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.sync.TodaySnapshotSource
 import cloud.trotter.log.strength.sync.WearSyncPublisher
@@ -52,6 +53,9 @@ object WearSyncModule {
     fun cardioAckLog(store: WearSyncStore): CardioAckLog = store
 
     @Provides
+    fun editAckLog(store: WearSyncStore): EditAckLog = store
+
+    @Provides
     @Singleton
     fun dataClient(@ApplicationContext context: Context): DataClient =
         Wearable.getDataClient(context)
@@ -61,7 +65,7 @@ object WearSyncModule {
     fun setEditApplier(
         repo: TrackerRepository,
         store: WearSyncStore,
-    ): SetEditApplier = SetEditApplier(repo, store)
+    ): SetEditApplier = SetEditApplier(repo, store, store)
 
     @Provides
     @Singleton
@@ -79,7 +83,8 @@ object WearSyncModule {
         repo: TrackerRepository,
         @CivilDay today: Flow<LocalDate>,
         ackLog: CardioAckLog,
-    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog)
+        editAckLog: EditAckLog,
+    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog)
 
     @Provides
     @Singleton

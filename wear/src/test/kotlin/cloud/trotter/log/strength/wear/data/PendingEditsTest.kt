@@ -498,8 +498,8 @@ class PendingEditsTest {
         val current = snapshot().copy(planId = 2, runId = "r-2")
         assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
         assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current))
-        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current, setOf(edit.editedAtMillis)))
-        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current, setOf(replacement.editedAtMillis)))
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current.copy(processedEditStamps = listOf(edit.editedAtMillis))))
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), current.copy(processedEditStamps = listOf(replacement.editedAtMillis))))
     }
 
     /** [F] */
@@ -511,27 +511,29 @@ class PendingEditsTest {
                 WatchSet(100.0, 5, "WORK", done = replacementDone),
             )).copy(planId = 1, runId = "r-1", retiredRoundsDone = 2)
             assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current))
+            assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit),
+                current.copy(processedEditStamps = listOf(edit.editedAtMillis + 1))))
             val displayed = applyDelta(current, edit)
             assertEquals(current, displayed)
             assertEquals(DayProgress(if (replacementDone) 3 else 2, 3), DayProgress.of(displayed))
-            assertTrue(PendingEdits.reconcile(listOf(edit), current, setOf(edit.editedAtMillis)).isEmpty())
+            assertTrue(PendingEdits.reconcile(listOf(edit), current.copy(processedEditStamps = listOf(edit.editedAtMillis))).isEmpty())
         }
     }
 
     /** [F] */
     @Test
-    fun `a swap back to matching identity uses per-field settling even after delivery`() {
+    fun `a swap back to matching identity uses per-field settling even after processing`() {
         val edit = delta(weightLb = 245.0, done = true)
             .copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
         val current = snapshot(sets = listOf(WatchSet(235.0, 5, "TOP", done = true)))
             .copy(planId = 1, runId = "r-1")
-        val delivered = setOf(edit.editedAtMillis)
-        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), current, delivered))
+        val processed = current.copy(processedEditStamps = listOf(edit.editedAtMillis))
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), processed))
         assertEquals(245.0, applyDelta(current, edit).day.exercises.single().sets.single().weightLb)
         val reflected = current.copy(day = current.day.copy(exercises = current.day.exercises.map {
             it.copy(sets = listOf(WatchSet(245.0, 5, "TOP", done = true)))
         }))
-        assertTrue(PendingEdits.reconcile(listOf(edit), reflected, delivered).isEmpty())
+        assertTrue(PendingEdits.reconcile(listOf(edit), reflected.copy(processedEditStamps = listOf(edit.editedAtMillis))).isEmpty())
     }
 
     /** [F] */
@@ -541,7 +543,7 @@ class PendingEditsTest {
         val hack = squat.copy(exerciseId = "hack_squat", reps = 8, editedAtMillis = 2)
         val current = snapshot().copy(planId = 1, runId = "r-1")
         assertEquals(listOf(squat, hack), PendingEdits.reconcile(listOf(squat, hack), current))
-        assertEquals(listOf(squat), PendingEdits.reconcile(listOf(squat, hack), current, setOf(hack.editedAtMillis)))
+        assertEquals(listOf(squat), PendingEdits.reconcile(listOf(squat, hack), current.copy(processedEditStamps = listOf(hack.editedAtMillis))))
     }
 
     /** [F] */
@@ -550,7 +552,8 @@ class PendingEditsTest {
         val edit = delta(done = true).copy(planId = 1, runId = "r-a")
         val anotherDay = snapshot(dayId = "B").copy(planId = 1, runId = "r-b")
         assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), anotherDay))
-        assertTrue(PendingEdits.reconcile(listOf(edit), anotherDay, setOf(edit.editedAtMillis)).isEmpty())
+        assertTrue(PendingEdits.reconcile(listOf(edit), anotherDay.copy(processedEditStamps = listOf(edit.editedAtMillis))).isEmpty())
+        assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), anotherDay.copy(processedEditStamps = emptyList())))
         assertEquals(anotherDay, applyDelta(anotherDay, edit))
         val ownDay = snapshot().copy(planId = 1, runId = "r-a")
         assertEquals(listOf(edit), PendingEdits.reconcile(listOf(edit), ownDay))
@@ -564,7 +567,9 @@ class PendingEditsTest {
         val replacement = swap().copy(planId = 1, runId = "r-a")
         val anotherDay = snapshot(dayId = "B").copy(planId = 1, runId = "r-b")
         assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), anotherDay))
-        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), anotherDay, setOf(replacement.editedAtMillis)).isEmpty())
+        assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), anotherDay.copy(processedEditStamps = listOf(replacement.editedAtMillis))).isEmpty())
+        assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement),
+            anotherDay.copy(processedEditStamps = listOf(replacement.editedAtMillis + 1))))
         val ownDay = snapshot().copy(planId = 1, runId = "r-a")
         assertEquals(listOf(replacement), PendingEdits.reconcileSwaps(listOf(replacement), ownDay))
         assertTrue(PendingEdits.reconcileSwaps(listOf(replacement), ownDay.copy(runId = "r-next")).isEmpty())

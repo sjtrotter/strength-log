@@ -27,13 +27,19 @@ import kotlinx.coroutines.sync.withLock
 class SetEditApplier(
     private val repo: TrackerRepository,
     private val markers: AppliedEditMarkers,
+    private val ackLog: EditAckLog,
 ) {
 
     enum class Outcome { APPLIED, STALE, INVALID, REJECTED }
 
     private val mutationLock = Mutex()
 
+    /** Throws leave the stamp unacknowledged; repository transactions must return first. */
     suspend fun apply(delta: SetEditDelta): Outcome = mutationLock.withLock {
+        applyEdit(delta).also { ackLog.recordProcessedEdit(delta.editedAtMillis) }
+    }
+
+    private suspend fun applyEdit(delta: SetEditDelta): Outcome {
         if (delta.slot != Slot.MAIN && delta.slot != Slot.SS) return Outcome.INVALID
         // Value hardening: this arrives through an exported service, so assume
         // hostile input. Negative or non-finite numbers must never reach the log
@@ -149,6 +155,10 @@ class SetEditApplier(
      *    retarget a delayed swap to another run.
      */
     suspend fun apply(swap: ExerciseSwapDelta): Outcome = mutationLock.withLock {
+        applySwap(swap).also { ackLog.recordProcessedEdit(swap.editedAtMillis) }
+    }
+
+    private suspend fun applySwap(swap: ExerciseSwapDelta): Outcome {
         val planId = swap.planId ?: repo.planIdOfSlot(swap.programExerciseId) ?: return Outcome.INVALID
         val slots = repo.slotsFor(planId, swap.dayId).first()
         val slot = slots.firstOrNull { it.programExerciseId == swap.programExerciseId }

@@ -188,7 +188,7 @@ class PendingEditStoreTest {
 
     /** [F] */
     @Test
-    fun `delivery of a replaced exercise is persisted before snapshot settlement`() = runTest {
+    fun `a mismatched tick survives store recreation until its processed stamp arrives`() = runTest {
         val edit = delta(setIndex = 1, done = true, stamp = 10)
             .copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
         val replaced = snapshot.copy(planId = 1, runId = "r-1", day = snapshot.day.copy(
@@ -197,16 +197,17 @@ class PendingEditStoreTest {
         store.enqueue(edit)
         store.reconcileAgainst(replaced)
         assertEquals(listOf(edit), store.all())
-        store.markDelivered(edit)
         val restored = PendingEditStore(dataStore)
         assertEquals(listOf(edit), restored.all())
-        restored.reconcileAgainst(replaced)
+        restored.reconcileAgainst(replaced.copy(processedEditStamps = listOf(edit.editedAtMillis + 1)))
+        assertEquals(listOf(edit), restored.all())
+        restored.reconcileAgainst(replaced.copy(processedEditStamps = listOf(edit.editedAtMillis)))
         assertEquals(emptyList(), restored.all())
     }
 
     /** [F] */
     @Test
-    fun `delivery after a replaced snapshot settles only that edit`() = runTest {
+    fun `a processed stamp for a replaced exercise settles only that edit`() = runTest {
         val edit = delta(setIndex = 1, done = true, stamp = 10)
             .copy(planId = 1, runId = "r-1", exerciseId = "bb_back_squat")
         val other = delta(setIndex = 0, done = true, stamp = 11).copy(programExerciseId = 9)
@@ -215,7 +216,7 @@ class PendingEditStoreTest {
         ))
         store.enqueue(edit)
         store.enqueue(other)
-        store.markDelivered(edit, replaced)
+        store.reconcileAgainst(replaced.copy(processedEditStamps = listOf(edit.editedAtMillis)))
         assertEquals(listOf(other), store.all())
     }
 
@@ -234,29 +235,22 @@ class PendingEditStoreTest {
         assertEquals(emptyList(), store.allSwaps())
     }
 
-    /** [F] */
     @Test
-    fun `both queues settle hidden-day edits only after persisted delivery in either order`() = runTest {
+    fun `hidden-day edits and swaps survive store recreation and settle on individual processed stamps`() = runTest {
         val otherDay = snapshot.copy(planId = 1, runId = "r-b", day = snapshot.day.copy(dayId = "B"))
-        for (deliveredFirst in listOf(false, true)) {
-            val stamp = if (deliveredFirst) 20L else 10L
-            val edit = delta(setIndex = 1, done = true, stamp = stamp).copy(planId = 1, runId = "r-a")
-            val replacement = swap(stamp = stamp + 1).copy(planId = 1, runId = "r-a")
-            store.enqueue(edit)
-            store.enqueueSwap(replacement)
-            if (deliveredFirst) {
-                store.markDelivered(edit)
-                store.markDelivered(replacement)
-                PendingEditStore(dataStore).reconcileAgainst(otherDay)
-            } else {
-                store.reconcileAgainst(otherDay)
-                assertEquals(listOf(edit), store.all())
-                assertEquals(listOf(replacement), store.allSwaps())
-                store.markDelivered(edit, otherDay)
-                store.markDelivered(replacement, otherDay)
-            }
-            assertEquals(emptyList(), store.all())
-            assertEquals(emptyList(), store.allSwaps())
-        }
+        val edit = delta(setIndex = 1, done = true, stamp = 10).copy(planId = 1, runId = "r-a")
+        val replacement = swap(stamp = 11).copy(planId = 1, runId = "r-a")
+        store.enqueue(edit)
+        store.enqueueSwap(replacement)
+        store.reconcileAgainst(otherDay)
+        val restored = PendingEditStore(dataStore)
+        restored.reconcileAgainst(otherDay.copy(processedEditStamps = listOf(12L)))
+        assertEquals(listOf(edit), restored.all())
+        assertEquals(listOf(replacement), restored.allSwaps())
+        restored.reconcileAgainst(otherDay.copy(processedEditStamps = listOf(edit.editedAtMillis)))
+        assertEquals(emptyList(), restored.all())
+        assertEquals(listOf(replacement), restored.allSwaps())
+        restored.reconcileAgainst(otherDay.copy(processedEditStamps = listOf(replacement.editedAtMillis)))
+        assertEquals(emptyList(), restored.allSwaps())
     }
 }

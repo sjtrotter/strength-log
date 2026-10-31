@@ -36,6 +36,7 @@ class TodaySnapshotSource(
     private val repo: TrackerRepository,
     @CivilDay private val today: Flow<LocalDate>,
     private val cardioAckLog: CardioAckLog,
+    private val editAckLog: EditAckLog,
 ) {
 
     val snapshots: Flow<WatchSnapshot?> =
@@ -66,8 +67,10 @@ class TodaySnapshotSource(
                 }
                 combine(
                     program, context, repo.cardioSessionsFlow, today,
-                    cardioAckLog.acksFlow,
-                ) { (programState, open), ctx, cardioHistory, civilDate, cardioAck ->
+                    combine(cardioAckLog.acksFlow, editAckLog.processedEditsFlow) { cardio, edits ->
+                        cardio to edits
+                    },
+                ) { (programState, open), ctx, cardioHistory, civilDate, (cardioAck, processedEdits) ->
                     val (prog, slots, tracks) = programState
                     val loggedCardio = cardioHistory.firstOrNull { session ->
                         session.planId == plan.id && session.dayId == dayId &&
@@ -94,6 +97,7 @@ class TodaySnapshotSource(
                         runId = tracks.runId,
                         runStartedAt = open?.takeIf { tracks.runOpen && it.id == tracks.runId }?.startedAt,
                         retiredRoundsDone = tracks.retiredRoundsDone.takeIf { it > 0 },
+                        processedEditStamps = processedEdits,
                     )
                 }
             }

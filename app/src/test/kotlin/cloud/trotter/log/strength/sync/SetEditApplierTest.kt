@@ -59,6 +59,7 @@ class SetEditApplierTest {
     private lateinit var storeScope: CoroutineScope
     private lateinit var markers: RecordingMarkers
     private lateinit var applier: SetEditApplier
+    private lateinit var syncStore: WearSyncStore
 
     private class RecordingMarkers : AppliedEditMarkers {
         val map = mutableMapOf<String, Long>()
@@ -86,7 +87,10 @@ class SetEditApplierTest {
             settings = SettingsStore(dataStore),
         )
         markers = RecordingMarkers()
-        applier = SetEditApplier(repo, markers)
+        syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("applier-edit-acks", ".preferences_pb")
+        })
+        applier = SetEditApplier(repo, markers, syncStore)
     }
 
     @After

@@ -32,9 +32,9 @@ import kotlinx.coroutines.sync.withLock
  *
  * The §11.4 mechanism lives here: messaging is fire-and-forget, so every edit is also
  * queued in [PendingEditStore] and re-sent until a later snapshot reflects it.
- * Replaced exercises and other days cannot echo those rows; delivery must be recorded
- * before their run-aware edits can settle. Three signals drain the queue: the first
- * prime on start, every inbound snapshot, and every
+ * Replaced exercises and other days cannot echo those rows; the phone must publish
+ * their processed stamps before those edits can settle. Three signals drain the
+ * queue: the first prime on start, every inbound snapshot, and every
  * report that a phone is reachable ([PhoneLink.phoneReachability]; the flow conflates,
  * so rapid flaps may collapse — the LATEST state always lands, which is all the drain
  * needs) — the last of these is what makes "deltas flush on reconnect" true rather
@@ -69,7 +69,6 @@ class DataLayerWatchClient(
 ) : WatchTrackerClient {
 
     private val snapshots = MutableStateFlow<WatchSnapshot?>(null)
-    private var authoritativeSnapshot: WatchSnapshot? = null
 
     /** One drain at a time. Concurrent drains would double every queued message on
      *  the wire for no gain — the queue they both read is the same one. */
@@ -195,7 +194,6 @@ class DataLayerWatchClient(
             // Reconciliation always reads the phone's wire truth. Only the remaining
             // durable deltas are then folded over a fresh in-memory copy for display.
             queue.reconcileAgainst(snapshot)
-            authoritativeSnapshot = snapshot
             var displayed = snapshot
             queue.all().forEach { delta -> displayed = applyDelta(displayed, delta) }
             queue.allSwaps().forEach { delta -> displayed = applyDelta(displayed, delta) }
@@ -244,21 +242,11 @@ class DataLayerWatchClient(
         queue.allCardio().forEach { sendCardioMessage(it) }
     }
 
-    private suspend fun send(delta: SetEditDelta) {
-        if (link.send(WearSyncPaths.SET_EDIT, SyncCodec.encodeDelta(delta))) {
-            installing.withLock {
-                queue.markDelivered(delta, authoritativeSnapshot)
-            }
-        }
-    }
+    private suspend fun send(delta: SetEditDelta) =
+        link.send(WearSyncPaths.SET_EDIT, SyncCodec.encodeDelta(delta))
 
-    private suspend fun sendSwapMessage(swap: ExerciseSwapDelta) {
-        if (link.send(WearSyncPaths.EXERCISE_SWAP, SyncCodec.encodeSwap(swap))) {
-            installing.withLock {
-                queue.markDelivered(swap, authoritativeSnapshot)
-            }
-        }
-    }
+    private suspend fun sendSwapMessage(swap: ExerciseSwapDelta) =
+        link.send(WearSyncPaths.EXERCISE_SWAP, SyncCodec.encodeSwap(swap))
 
     private suspend fun sendCardioMessage(delta: CardioDelta) =
         link.send(WearSyncPaths.CARDIO, SyncCodec.encodeCardio(delta))

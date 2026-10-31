@@ -17,9 +17,11 @@ import kotlin.math.abs
  * MessageClient is fire-and-forget, so [cloud.trotter.log.strength.wear.data.DataLayerWatchClient]
  * queues every edit and re-sends it until the phone's next snapshot *reflects* it —
  * the round-trip snapshot acknowledges visible rows. A replaced exercise cannot
- * echo its retired rows, so its edits settle only after a successful send. Run-aware
- * edits and swaps hidden by another day also require delivery before settling. Because the
- * phone dedupes replays by `editedAtMillis`, re-sending an already-applied delta is
+ * echo its retired rows, so its edits require an explicit processed stamp from the
+ * phone. Run-aware edits and swaps hidden by another day require the same ack.
+ * Run-aware edits require a snapshot with a runId, which old phones do not send,
+ * so a null processed-stamp list needs no legacy fallback. The phone dedupes
+ * replays by `editedAtMillis`, so re-sending an already-applied delta is
  * harmless, so the queue can safely resend everything still pending on any signal.
  *
  * Settling is decided **per field**, not per delta: the dial sends one tick delta
@@ -67,16 +69,16 @@ object PendingEdits {
     fun reconcile(
         pending: List<SetEditDelta>,
         snapshot: WatchSnapshot,
-        deliveredStamps: Set<Long> = emptySet(),
     ): List<SetEditDelta> =
         pending.filter { delta ->
             when {
                 delta.planId != null && snapshot.planId != null && delta.planId != snapshot.planId -> true
                 delta.runId != null && snapshot.runId != null && delta.planId == snapshot.planId &&
                     delta.dayId == snapshot.day.dayId && delta.runId != snapshot.runId -> false
-                delta.dayId != snapshot.day.dayId -> delta.runId != null && delta.editedAtMillis !in deliveredStamps
+                delta.dayId != snapshot.day.dayId ->
+                    delta.runId != null && delta.editedAtMillis !in snapshot.processedEditStamps.orEmpty()
                 snapshot.hasRemovedSlot(delta.planId, delta.programExerciseId) -> false
-                else -> !delta.isSettled(pending, snapshot, deliveredStamps)
+                else -> !delta.isSettled(pending, snapshot)
             }
         }
 
@@ -99,14 +101,14 @@ object PendingEdits {
     fun reconcileSwaps(
         pending: List<ExerciseSwapDelta>,
         snapshot: WatchSnapshot,
-        deliveredStamps: Set<Long> = emptySet(),
     ): List<ExerciseSwapDelta> =
         pending.filter { swap ->
             when {
                 swap.planId != null && snapshot.planId != null && swap.planId != snapshot.planId -> true
                 swap.runId != null && snapshot.runId != null && swap.planId == snapshot.planId &&
                     swap.dayId == snapshot.day.dayId && swap.runId != snapshot.runId -> false
-                swap.dayId != snapshot.day.dayId -> swap.runId != null && swap.editedAtMillis !in deliveredStamps
+                swap.dayId != snapshot.day.dayId ->
+                    swap.runId != null && swap.editedAtMillis !in snapshot.processedEditStamps.orEmpty()
                 snapshot.hasRemovedSlot(swap.planId, swap.programExerciseId) -> false
                 else -> !swap.isSettled(pending, snapshot)
             }
@@ -184,9 +186,8 @@ object PendingEdits {
     private fun SetEditDelta.isSettled(
         pending: List<SetEditDelta>,
         snapshot: WatchSnapshot,
-        deliveredStamps: Set<Long>,
     ): Boolean {
-        if (snapshot.hasExerciseMismatch(this)) return editedAtMillis in deliveredStamps
+        if (snapshot.hasExerciseMismatch(this)) return editedAtMillis in snapshot.processedEditStamps.orEmpty()
         val row = rowIn(snapshot)
         val newer = pending.filter { it.isNewerEditToSameRowAs(this) }
         fun overwritten(carries: (SetEditDelta) -> Boolean): Boolean = newer.any(carries)

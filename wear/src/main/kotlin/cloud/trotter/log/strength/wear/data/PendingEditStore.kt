@@ -5,13 +5,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
-import cloud.trotter.log.strength.domain.sync.hasExerciseMismatch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -22,7 +20,7 @@ import kotlinx.coroutines.flow.map
  * phone app is dead outlives the *watch* app being closed too, and is re-sent when
  * the phone comes back.
  *
- * Concurrency: every mutation here — [enqueue], [markDelivered], [reconcileAgainst], [issueStamp] —
+ * Concurrency: every mutation here — [enqueue], [reconcileAgainst], [issueStamp] —
  * is a single [DataStore.edit], and DataStore serializes edits. In particular
  * [reconcileAgainst]'s read-filter-write happens inside one edit, so a concurrent
  * [enqueue] can never land between its read and its write and be wiped from the
@@ -106,39 +104,6 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    /** Delivery must survive process death when snapshots cannot echo the addressed rows. */
-    suspend fun markDelivered(delta: SetEditDelta, snapshot: WatchSnapshot? = null) {
-        dataStore.edit { prefs ->
-            val pending = SyncCodec.decodeDeltaQueue(prefs[QUEUE].orEmpty())
-            if (delta in pending) {
-                val stamp = delta.editedAtMillis
-                if (snapshot != null && (snapshot.hasExerciseMismatch(delta) || snapshot.day.dayId != delta.dayId) &&
-                    PendingEdits.reconcile(listOf(delta), snapshot, setOf(stamp)).isEmpty()) {
-                    prefs[QUEUE] = SyncCodec.encodeDeltaQueue(pending - delta)
-                    prefs[DELIVERED] = prefs[DELIVERED].orEmpty() - stamp.toString()
-                } else {
-                    prefs[DELIVERED] = prefs[DELIVERED].orEmpty() + stamp.toString()
-                }
-            }
-        }
-    }
-
-    suspend fun markDelivered(swap: ExerciseSwapDelta, snapshot: WatchSnapshot? = null) {
-        dataStore.edit { prefs ->
-            val pending = SyncCodec.decodeSwapQueue(prefs[SWAP_QUEUE].orEmpty())
-            if (swap in pending) {
-                val stamp = swap.editedAtMillis
-                if (snapshot != null && snapshot.day.dayId != swap.dayId &&
-                    PendingEdits.reconcileSwaps(listOf(swap), snapshot, setOf(stamp)).isEmpty()) {
-                    prefs[SWAP_QUEUE] = SyncCodec.encodeSwapQueue(pending - swap)
-                    prefs[DELIVERED] = prefs[DELIVERED].orEmpty() - stamp.toString()
-                } else {
-                    prefs[DELIVERED] = prefs[DELIVERED].orEmpty() + stamp.toString()
-                }
-            }
-        }
-    }
-
     /** Atomically drops every queued delta [PendingEdits.reconcile] and every queued
      *  swap [PendingEdits.reconcileSwaps] settles against [snapshot]; entries enqueued
      *  concurrently are preserved (see the class doc's concurrency note). Both queues
@@ -147,21 +112,15 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
     suspend fun reconcileAgainst(snapshot: WatchSnapshot) {
         dataStore.edit { prefs ->
             val pending = SyncCodec.decodeDeltaQueue(prefs[QUEUE].orEmpty())
-            val delivered = prefs[DELIVERED].orEmpty()
-            val deliveredStamps = delivered.mapNotNull { it.toLongOrNull() }.toSet()
-            val stillPending = PendingEdits.reconcile(pending, snapshot, deliveredStamps)
+            val stillPending = PendingEdits.reconcile(pending, snapshot)
             if (stillPending.size != pending.size) {
                 prefs[QUEUE] = SyncCodec.encodeDeltaQueue(stillPending)
             }
             val swaps = SyncCodec.decodeSwapQueue(prefs[SWAP_QUEUE].orEmpty())
-            val stillSwapping = PendingEdits.reconcileSwaps(swaps, snapshot, deliveredStamps)
+            val stillSwapping = PendingEdits.reconcileSwaps(swaps, snapshot)
             if (stillSwapping.size != swaps.size) {
                 prefs[SWAP_QUEUE] = SyncCodec.encodeSwapQueue(stillSwapping)
             }
-            val pendingStamps = stillPending.mapTo(mutableSetOf()) { it.editedAtMillis.toString() }
-            stillSwapping.mapTo(pendingStamps) { it.editedAtMillis.toString() }
-            val stillDelivered = delivered.intersect(pendingStamps)
-            if (stillDelivered != delivered) prefs[DELIVERED] = stillDelivered
             val cardio = SyncCodec.decodeCardioQueue(prefs[CARDIO_QUEUE].orEmpty())
             val stillCardio = PendingEdits.reconcileCardio(cardio, snapshot)
             if (stillCardio.size != cardio.size) {
@@ -187,6 +146,5 @@ class PendingEditStore(private val dataStore: DataStore<Preferences>) {
         val SWAP_QUEUE = stringPreferencesKey("pending_swaps")
         val CARDIO_QUEUE = stringPreferencesKey("pending_cardio")
         val LAST_ISSUED = longPreferencesKey("last_issued_stamp")
-        val DELIVERED = stringSetPreferencesKey("delivered_stamps")
     }
 }

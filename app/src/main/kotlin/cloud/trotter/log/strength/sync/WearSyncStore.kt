@@ -31,13 +31,15 @@ import kotlinx.coroutines.flow.map
  *  - the per-row applied-edit markers ([AppliedEditMarkers]) that dedupe replayed
  *    watch deltas;
  *  - the recent processed wrist cardio stamps ([CardioAckLog]), so out-of-order
- *    delivery cannot acknowledge a session the phone never received.
+ *    delivery cannot acknowledge a session the phone never received;
+ *  - the recent processed wrist set-edit and swap stamps ([EditAckLog]),
+ *    recorded after commit or permanent refusal.
  */
 class WearSyncStore(
     private val dataStore: DataStore<Preferences>,
     private val nowMillis: () -> Long = System::currentTimeMillis,
     private val entropy: () -> Long = { java.security.SecureRandom().nextLong() },
-) : AppliedEditMarkers, WatchContinuitySource, CardioAckLog {
+) : AppliedEditMarkers, WatchContinuitySource, CardioAckLog, EditAckLog {
 
     /**
      * Atomically increments the revision and returns it with its epoch. One
@@ -98,6 +100,22 @@ class WearSyncStore(
         return stored.split(',').map { it.toLongOrNull() ?: return fallback }
     }
 
+    override suspend fun recordProcessedEdit(stamp: Long) {
+        dataStore.edit { prefs ->
+            val recent = (processedEditStamps(prefs).filterNot { it == stamp } + stamp).takeLast(32)
+            prefs[PROCESSED_EDIT_STAMPS] = recent.joinToString(",")
+        }
+    }
+
+    override val processedEditsFlow: Flow<List<Long>> = dataStore.data.map { prefs ->
+        processedEditStamps(prefs)
+    }.distinctUntilChanged()
+
+    private fun processedEditStamps(prefs: Preferences): List<Long> {
+        val stored = prefs[PROCESSED_EDIT_STAMPS] ?: return emptyList()
+        return stored.split(',').map { it.toLongOrNull() ?: return emptyList() }
+    }
+
     override val continuityFlow: Flow<WatchContinuity> = dataStore.data.map { prefs ->
         WatchContinuity(
             lastContactMillis = prefs[LAST_CONTACT] ?: 0L,
@@ -141,6 +159,7 @@ class WearSyncStore(
         val REVISION = longPreferencesKey("snapshot_revision")
         val EPOCH = longPreferencesKey("snapshot_epoch")
         const val APPLIED_PREFIX = "applied:"
+        val PROCESSED_EDIT_STAMPS = stringPreferencesKey("processed_edit_stamps")
         val CARDIO_ACKED_STAMPS = stringPreferencesKey("cardio_acked_stamps")
         val LAST_CONTACT = longPreferencesKey("last_watch_contact")
         val SYNCING_CHANGES = intPreferencesKey("syncing_changes")

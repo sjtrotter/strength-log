@@ -46,6 +46,7 @@ class SetEditApplierRunTest {
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private lateinit var applier: SetEditApplier
+    private lateinit var syncStore: WearSyncStore
 
     private class RecordingMarkers(private val beforeRead: suspend () -> Unit = {}) : AppliedEditMarkers {
         private val stamps = mutableMapOf<String, Long>()
@@ -71,7 +72,10 @@ class SetEditApplierRunTest {
             db = db, programDao = db.programDao(), sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(), settings = SettingsStore(dataStore),
         )
-        applier = SetEditApplier(repo, RecordingMarkers())
+        syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+            File.createTempFile("applier-edit-acks", ".preferences_pb")
+        })
+        applier = SetEditApplier(repo, RecordingMarkers(), syncStore)
     }
 
     @After
@@ -231,7 +235,7 @@ class SetEditApplierRunTest {
         val planId = authored()
         val runId = phoneStart(planId)
         val id = squatId(planId)
-        applier = SetEditApplier(repo, RecordingMarkers { repo.finishRun(runId) })
+        applier = SetEditApplier(repo, RecordingMarkers { repo.finishRun(runId) }, syncStore)
         assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
             editedAtMillis = 100, planId = planId, runId = runId,

@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.components.AppAlertDialog

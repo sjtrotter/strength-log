@@ -9,13 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.automirrored.filled.SwapHoriz
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -107,7 +103,6 @@ internal fun LiftSheet(
             }
             if (canSwap) item {
                 ListItem(headlineContent = { Text(stringResource(R.string.day_menu_swap)) },
-                    leadingContent = { Icon(Icons.AutoMirrored.Filled.SwapHoriz, null) },
                     modifier = Modifier.clickable { actions.onOpenSwapSheet(card.position, slot) })
             }
             weightSwap?.let { swap -> item {
@@ -118,7 +113,6 @@ internal fun LiftSheet(
             item {
                 ListItem(headlineContent = { Text(stringResource(R.string.day_menu_note)) },
                     supportingContent = if (card.note.isNotBlank()) { { Text(card.note) } } else null,
-                    leadingContent = { Icon(Icons.Default.Edit, null) },
                     modifier = Modifier.clickable(onClick = onNote))
             }
         }

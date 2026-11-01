@@ -139,8 +139,9 @@ class DayViewModelWorkoutTest {
     }
 
     private fun TestScope.at(millis: Long) {
+        val elapsed = millis - clock.now
         clock.now = millis
-        advanceTimeBy(250)
+        advanceTimeBy(elapsed)
         runCurrent()
     }
 
@@ -271,13 +272,38 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         vm.logFocusedSet()
         runCurrent()
+        val reads = clock.reads
         at(109_999)
         assertNotNull(vm.uiState.value.workout!!.undo)
+        assertEquals(reads, clock.reads)
         at(110_000)
         assertNull(vm.uiState.value.workout!!.undo)
+        val readsAtExpiry = clock.reads
+        assertTrue(readsAtExpiry > reads)
+        at(170_000)
+        assertEquals(readsAtExpiry, clock.reads)
         vm.undoLastLog()
         runCurrent()
         assertTrue(vm.uiState.value.exercises.single().rows[0].done)
+    }
+
+    @Test
+    fun `★ without an undo target the clock produces no reads or UI emissions for a minute`() = test {
+        prepare()
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        runCurrent()
+        assertTrue(vm.uiState.value.runOpen)
+        assertNull(repo.workoutRecordFlow.first()?.undo)
+        val emissions = mutableListOf<DayUiState>()
+        backgroundScope.launch { vm.uiState.collect { emissions += it } }
+        runCurrent()
+        val count = emissions.size
+        val reads = clock.reads
+        at(160_000)
+        assertEquals(count, emissions.size)
+        assertEquals(reads, clock.reads)
     }
 
     @Test
@@ -373,25 +399,124 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
+    fun `★ undo preserves a watch edit to another row between validation and writing`() = test {
+        prepare(restEnabled = true)
+        val vm = readyVm()
+        val state = vm.uiState.value
+        val id = state.exercises.single().programExerciseId
+        val before = track(vm, id)[0]
+        vm.logFocusedSet()
+        runCurrent()
+        assertNotNull(vm.uiState.value.workout!!.undo)
+        val applier = SetEditApplier(repo, syncStore, syncStore)
+        var watchRows: List<LoggedSet>? = null
+        vm.beforeWorkoutUndoWrite = {
+            vm.beforeWorkoutUndoWrite = null
+            assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
+                reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
+                exerciseId = "db_bench",
+            )))
+            watchRows = track(vm, id)
+        }
+        vm.undoLastLog()
+        runCurrent()
+        val expected = requireNotNull(watchRows).mapIndexed { index, row -> if (index == 0) before else row }
+        assertEquals(11, expected[1].reps)
+        assertEquals(expected, track(vm, id))
+        assertNull(repo.phoneRestFlow.first())
+        assertNull(repo.workoutRecordFlow.first()!!.undo)
+    }
+
+    @Test
+    fun `★ undo declines a concurrent target edit without canceling rest or clearing the record`() = test {
+        prepare(restEnabled = true)
+        val vm = readyVm()
+        val state = vm.uiState.value
+        val id = state.exercises.single().programExerciseId
+        vm.logFocusedSet()
+        runCurrent()
+        val record = repo.workoutRecordFlow.first()
+        val rest = repo.phoneRestFlow.first()
+        assertNotNull(record?.undo)
+        assertNotNull(rest)
+        val cancellations = runtime.cancellations
+        val applier = SetEditApplier(repo, syncStore, syncStore)
+        var watchRows: List<LoggedSet>? = null
+        vm.beforeWorkoutUndoWrite = {
+            vm.beforeWorkoutUndoWrite = null
+            assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
+                exerciseId = "db_bench",
+            )))
+            watchRows = track(vm, id)
+        }
+        vm.undoLastLog()
+        runCurrent()
+        assertEquals(requireNotNull(watchRows), track(vm, id))
+        assertEquals(record, repo.workoutRecordFlow.first())
+        assertEquals(rest, repo.phoneRestFlow.first())
+        assertEquals(cancellations, runtime.cancellations)
+        assertNull(vm.uiState.value.workout!!.undo)
+    }
+
+    @Test
+    fun `★ a watch value edit between the tick commit and record write leaves no valid undo`() = test {
+        prepare()
+        val vm = readyVm()
+        val state = vm.uiState.value
+        val id = state.exercises.single().programExerciseId
+        val before = track(vm, id)[0]
+        val applier = SetEditApplier(repo, syncStore, syncStore)
+        vm.afterWorkoutTickWrite = {
+            vm.afterWorkoutTickWrite = null
+            assertTrue(track(vm, id)[0].done)
+            assertEquals(100_000L, track(vm, id)[0].completedAtMillis)
+            assertNull(repo.workoutRecordFlow.first()?.undo)
+            assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+                reps = before.reps + 1, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
+                exerciseId = "db_bench",
+            )))
+        }
+        vm.logFocusedSet()
+        runCurrent()
+        val recorded = requireNotNull(repo.workoutRecordFlow.first()?.undo)
+        assertEquals(before.reps, recorded.after.reps)
+        val edited = track(vm, id)
+        assertEquals(before.reps + 1, edited[0].reps)
+        assertNull(vm.uiState.value.workout!!.undo)
+        vm.undoLastLog()
+        runCurrent()
+        assertEquals(edited, track(vm, id))
+    }
+
+    @Test
     fun `★ sheet ticks keep selection and undo target while next changes no sets`() = test {
-        prepare(listOf(bench(sets = 1), ProgramExercise("plank")))
+        prepare(listOf(bench(sets = 1), ProgramExercise("plank", targetSets = 1),
+            ProgramExercise("bb_back_squat", targetSets = 1)))
         val vm = readyVm()
         val id = vm.uiState.value.exercises[0].programExerciseId
+        val selectedId = vm.uiState.value.exercises[1].programExerciseId
         vm.logFocusedSet()
         runCurrent()
         val undo = repo.workoutRecordFlow.first()!!.undo
-        vm.selectWorkoutLift("exercise:$id")
+        assertNotNull(undo)
+        vm.selectWorkoutLift("exercise:$selectedId")
         runCurrent()
-        vm.toggleDone(id, 0, true, Slot.MAIN)
+        assertFalse(track(vm, selectedId).single().done)
+        vm.toggleDone(selectedId, 0, true, Slot.MAIN)
         runCurrent()
-        assertEquals(WorkoutSelection.Shown.Group("exercise:$id", true), vm.uiState.value.workout!!.shown)
+        assertTrue(track(vm, selectedId).single().done)
+        assertEquals(WorkoutSelection.Shown.Group("exercise:$selectedId", true), vm.uiState.value.workout!!.shown)
         assertTrue(vm.uiState.value.workout!!.completedView)
         assertEquals(undo, repo.workoutRecordFlow.first()!!.undo)
-        val sets = track(vm, id)
+        val sets = track(vm, selectedId)
         vm.nextWorkoutLift()
         runCurrent()
-        assertEquals(sets, track(vm, id))
-        assertEquals("exercise:${vm.uiState.value.exercises[1].programExerciseId}",
+        assertEquals(sets, track(vm, selectedId))
+        assertEquals("exercise:${vm.uiState.value.exercises[2].programExerciseId}",
             repo.workoutRecordFlow.first()!!.selectedKey)
         vm.toggleDone(id, 0, false, Slot.MAIN)
         runCurrent()
@@ -472,10 +597,15 @@ class DayViewModelWorkoutTest {
     }
 
     private class WorkoutClock(var now: Long = 100_000) : Clock(), CardioClock {
+        var reads = 0
+            private set
         override fun getZone(): ZoneId = ZoneOffset.UTC
         override fun withZone(zone: ZoneId): Clock = Clock.fixed(instant(), zone)
         override fun instant(): Instant = Instant.ofEpochMilli(now)
-        override fun millis(): Long = now
+        override fun millis(): Long {
+            reads++
+            return now
+        }
         override fun wallMillis(): Long = now
         override fun elapsedRealtimeMillis(): Long = now
         override fun bootCount(): Int = 1

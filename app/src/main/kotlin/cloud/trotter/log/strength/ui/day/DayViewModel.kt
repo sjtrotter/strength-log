@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -154,6 +155,9 @@ class DayViewModel @Inject constructor(
 
     /** Serializes all read-modify-write log mutations (see class doc). */
     private val mutationLock = Mutex()
+
+    internal var beforeWorkoutUndoWrite: (suspend () -> Unit)? = null
+    internal var afterWorkoutTickWrite: (suspend () -> Unit)? = null
 
     private val displayTargetFlow = combine(
         repo.todayTargetFlow, repo.selectedPlanFlow, repo.plansFlow, viewDayOverride,
@@ -315,10 +319,24 @@ class DayViewModel @Inject constructor(
     private val workoutRecord: Flow<WorkoutRecord?> =
         if (flags.setScreen) repo.workoutRecordFlow else flowOf(null)
 
-    private val workoutClock: Flow<Long> = if (!flags.setScreen) flowOf(0L) else flow {
-        while (true) {
-            emit(clock.millis())
-            delay(REST_TICK_MS)
+    private val workoutClock: Flow<Long> = if (!flags.setScreen) flowOf(0L) else combine(
+        requireNotNull(committedDayState).map { day ->
+            day.tracks?.takeIf { it.runOpen }?.runId
+        }.distinctUntilChanged(),
+        workoutRecord,
+        repo.phoneRestFlow,
+    ) { runId, record, rest ->
+        record?.takeIf { it.runId == runId }?.undo?.let { target ->
+            if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + 10_000L
+        }
+    }.distinctUntilChanged().flatMapLatest { deadline ->
+        flow {
+            val now = clock.millis()
+            emit(now)
+            if (deadline != null && deadline > now) {
+                delay(deadline - now)
+                emit(clock.millis())
+            }
         }
     }
 
@@ -1018,17 +1036,22 @@ class DayViewModel @Inject constructor(
                 val target = validUndo(tracks, record, repo.phoneRestFlow.first(), clock.millis()) ?: return@locked
                 if (tracks.runId != runId || currentDay() != day) return@locked
                 val before = runCatching { target.before.toDomain() }.getOrNull() ?: return@locked
-                val stored = tracks.tracks.firstOrNull {
-                    it.programExerciseId == target.programExerciseId && it.slot == target.slot
-                }?.sets ?: return@locked
-                val restored = stored.mapIndexed { index, set ->
-                    if (index != target.index) set else before.copy(
-                        done = false, startedAtMillis = null, completedAtMillis = null,
-                    )
-                }
-                if (repo.updateSets(runId, day, target.programExerciseId, target.slot, restored) == RunWriteResult.Rejected) {
-                    return@locked
-                }
+                beforeWorkoutUndoWrite?.invoke()
+                val result = repo.applyToRun(runId, planId, day, listOf(
+                    TrackEdit(target.programExerciseId, target.slot) { current ->
+                        val row = current.getOrNull(target.index)
+                        val after = target.after
+                        if (row == null || !row.done || row.weightLb != after.weightLb ||
+                            row.reps != after.reps || row.seconds != after.seconds ||
+                            row.completedAtMillis != target.loggedAtMillis
+                        ) null else current.mapIndexed { index, set ->
+                            if (index != target.index) set else before.copy(
+                                done = false, startedAtMillis = null, completedAtMillis = null,
+                            )
+                        }
+                    },
+                ))
+                if (result !is RunWriteResult.InRun) return@locked
                 PhoneRestActions.skipLocked(repo, phoneRestRuntime)
                 repo.setWorkoutRecord(WorkoutRecord(runId, "exercise:${target.programExerciseId}"))
             }
@@ -1089,6 +1112,7 @@ class DayViewModel @Inject constructor(
         }
         val result = repo.updateSets(runId, day, programExerciseId, slot, updated)
         if (result == RunWriteResult.Rejected) return
+        if (flags.setScreen) afterWorkoutTickWrite?.invoke()
         if (countEvent != null) clearTimedRep()
         val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
         val planId = repo.planIdOfSlot(programExerciseId) ?: return
@@ -1129,11 +1153,8 @@ class DayViewModel @Inject constructor(
                     }
                 }
                 if (recordLog) {
-                    val written = latest.tracks.firstOrNull {
-                        it.programExerciseId == programExerciseId && it.slot == slot
-                    }?.sets?.getOrNull(index) ?: return@locked
                     repo.setWorkoutRecord(WorkoutRecord(runId, selection, UndoTarget(
-                        programExerciseId, slot, index, SetDto.of(row), SetDto.of(written),
+                        programExerciseId, slot, index, SetDto.of(row), SetDto.of(updated[index]),
                         requireNotNull(loggedAt), restStarted,
                     )))
                 }

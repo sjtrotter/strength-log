@@ -9,7 +9,10 @@ class TopLevelDestinationTest {
     fun showsBarOn_only_matches_the_three_top_level_routes() {
         assertTrue(TopLevelDestination.showsBarOn("today"))
         assertTrue(TopLevelDestination.showsBarOn("log"))
-        assertTrue(TopLevelDestination.showsBarOn("plan"))
+        assertTrue(TopLevelDestination.showsBarOn("plans"))
+        assertFalse(TopLevelDestination.showsBarOn("plan/1"))
+        assertFalse(TopLevelDestination.showsBarOn("preview/1/A"))
+        assertFalse(TopLevelDestination.showsBarOn("plan"))
         assertFalse(TopLevelDestination.showsBarOn("day"))
         assertFalse(TopLevelDestination.showsBarOn("day/B"))
         assertFalse(TopLevelDestination.showsBarOn("setup?rest=true"))

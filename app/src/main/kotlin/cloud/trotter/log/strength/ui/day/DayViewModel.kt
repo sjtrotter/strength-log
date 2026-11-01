@@ -349,7 +349,9 @@ class DayViewModel @Inject constructor(
         }
     }
     private val prescriptionDraft = savedState.getStateFlow<PrescriptionDraft?>(KEY_PRESCRIPTION_DRAFT, null)
-    private val dayEditorOpen = savedState.getStateFlow(KEY_DAY_EDITOR_OPEN, false)
+    private val dayEditorOpen = savedState.getStateFlow(
+        KEY_DAY_EDITOR_OPEN, savedState.get<Boolean>(Routes.DAY_EDITOR_ARG) == true,
+    )
     private val cardioDraft = savedState.getStateFlow<CardioBlockDraft?>(KEY_CARDIO_DRAFT, null)
     private val prescriptionEditState = combine(
         editProgramState, repo.unitFlow, prescriptionDraft, dayEditorOpen,
@@ -1456,10 +1458,7 @@ class DayViewModel @Inject constructor(
     /** Seeds each day's logs before its authoritative rows are observed. */
     private suspend fun ensureSeeded(planId: Long, dayId: String, slots: List<ProgramSlot>) = mutationLock.withLock {
         val tracks = repo.dayTracksFlow(planId, dayId).first()
-        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
-        val cfg = repo.wizardAnswersFor(planId).first().config
-        val catalog = repo.catalogFlow.first()
-        val seeds = DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
+        val seeds = repo.daySeeds(planId, dayId, slots, tracks)
         val runId = tracks.runId
         if (tracks.runOpen && runId != null) {
             repo.seedRunTracksIfMissing(runId, seeds.map { RunSeed(it.programExerciseId, it.slot, it.sets) })
@@ -1520,14 +1519,7 @@ class DayViewModel @Inject constructor(
         performedIds: Map<Pair<Long, String>, String?>,
         catalog: ExerciseCatalog,
     ): DayHistory {
-        val ids = slots.flatMap { slot ->
-            listOfNotNull(
-                performedExercise(slot, performedIds[slot.programExerciseId to Slot.MAIN], catalog).exerciseId,
-                slot.exercise.superset?.let {
-                    performedExercise(slot, performedIds[slot.programExerciseId to Slot.SS], catalog, Slot.SS).exerciseId
-                },
-            )
-        }.distinct()
+        val ids = performedDayExerciseIds(slots, performedIds, catalog)
         return DayHistory(repo.lastPerformed(ids), repo.personalRecords(ids))
     }
 

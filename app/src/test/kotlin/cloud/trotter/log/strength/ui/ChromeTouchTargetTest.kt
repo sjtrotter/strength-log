@@ -22,9 +22,8 @@ import cloud.trotter.log.strength.ui.setup.SetupActions
 import cloud.trotter.log.strength.ui.setup.SetupScreen
 import cloud.trotter.log.strength.ui.setup.SetupUiState
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.today.TodayActions
-import cloud.trotter.log.strength.ui.today.TodayLift
+import cloud.trotter.log.strength.ui.today.TodayDay
 import cloud.trotter.log.strength.ui.today.TodayScreen
 import cloud.trotter.log.strength.ui.today.TodayUiState
 import org.junit.Rule
@@ -138,21 +137,13 @@ class ChromeTouchTargetTest {
 
     private fun todayState() = TodayUiState(
         hasProgram = true,
-        dayId = "B",
-        dayIndex = 1,
-        dayTitle = "Lower body",
-        lifts = listOf(
-            TodayLift("Barbell Back Squat", 5),
-            TodayLift("Seated Leg Curl", 3),
-        ),
-        lifeLine = UiText.TodayHistoryLife(daysAgo = 2, monthSessions = 3),
-        actionLabel = cloud.trotter.log.strength.ui.today.TodayScreenBuilder.actionLabel("B", 0, 18),
+        upNext = listOf(TodayDay(1, "Strength", "B", 1, "Lower body", preferred = true)),
+        fact = "Last trained Oct 28",
     )
 
     private fun todayActions() = TodayActions(
         onStart = {},
         onOpenSettings = {},
-        onOpenLog = {},
         onSetUpProgram = {},
     )
 

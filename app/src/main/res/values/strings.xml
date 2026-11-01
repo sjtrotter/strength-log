@@ -22,29 +22,7 @@
          inflated by the host before any Kotlin runs, so it can't ask for it. -->
     <string name="widget_no_program">SET UP YOUR PROGRAM</string>
 <!-- Today -->
-<string name="today_day_label">Day %1$s</string>
-<string name="today_switch_plan">Switch plan</string>
 <string name="day_index_description">Day %1$s</string>
-<string name="today_coach_today">Last trained today.</string>
-<string name="today_coach_yesterday">Last trained yesterday.</string>
-<string name="today_coach_days">Last trained %1$s, %2$d days ago.</string>
-<string name="today_coach_weeks">Last trained %1$s, %2$d weeks ago.</string>
-<string name="today_progress">%1$d of %2$d sets logged.</string>
-<plurals name="today_life_goal">
-    <item quantity="one">%1$s, %2$d session at goal.</item>
-    <item quantity="other">%1$s, %2$d sessions at goal.</item>
-</plurals>
-<plurals name="today_life_week">
-    <item quantity="one">This week, %1$d of %2$d. Last session %3$d day ago.</item>
-    <item quantity="other">This week, %1$d of %2$d. Last session %3$d days ago.</item>
-</plurals>
-<plurals name="today_life_history">
-    <item quantity="one">Last session %1$d day ago, %2$d this month.</item>
-    <item quantity="other">Last session %1$d days ago, %2$d this month.</item>
-</plurals>
-<string name="today_action_start">Start day %1$s</string>
-<string name="today_action_continue">Continue day %1$s</string>
-<string name="today_action_finish">Finish day %1$s</string>
 <string name="today_settings_description">Settings</string>
 <plurals name="today_lift_set_count">
     <item quantity="one">%d set</item>
@@ -54,7 +32,7 @@
 <!-- Top-level navigation -->
 <string name="nav_today">Today</string>
 <string name="nav_log">Log</string>
-<string name="nav_plan">Plan</string>
+<string name="nav_plans">Plans</string>
 
 <!-- Plan -->
 <string name="plan_title">Plan</string>
@@ -708,4 +686,18 @@
     <string name="day_swap_the_plan">The plan</string>
     <string name="day_swap_apply">Swap</string>
     <string name="day_swap_other_workout_open">Another workout is open</string>
+    <string name="today_up_next">Up next</string>
+    <string name="today_other_days">Other days</string>
+    <string name="today_plan_day">%1$s · Day %2$s</string>
+    <string name="workout_identity">%1$s · Day %2$s %3$s</string>
+    <string name="workout_start">Start</string>
+    <string name="workout_resume">Resume</string>
+    <string name="workout_open">Workout open</string>
+    <string name="workout_discard_confirm">Discard workout?</string>
+    <string name="workout_discard_start">Discard and start</string>
+    <string name="preview_working">Today %1$s</string>
+    <string name="preview_last">Last %1$s</string>
+    <string name="preview_no_lifts">No lifts yet</string>
+    <string name="preview_edit">Edit</string>
+    <string name="preview_start_day">Start day %1$s</string>
 </resources>

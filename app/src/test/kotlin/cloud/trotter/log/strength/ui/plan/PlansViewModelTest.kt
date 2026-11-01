@@ -135,7 +135,7 @@ class PlansViewModelTest {
         assertTrue(repo.programFor(created.id).first().days.single().exercises.isEmpty())
         assertEquals("Day A", repo.programFor(created.id).first().days.single().title)
         assertNull(restored.uiState.value.newPlanPage)
-        assertEquals(Unit, restored.selected.first())
+        assertEquals(created.id, restored.createdPlan.first())
     }
 
     @Test
@@ -203,7 +203,6 @@ class PlansViewModelTest {
         vm.select(copy.id)
         advanceUntilIdle()
         assertEquals(copy.id, settings.selectedPlanIdFlow.first())
-        assertEquals(Unit, vm.selected.first())
         assertTrue(vm.uiState.value.plans.first { it.id == copy.id }.selected)
     }
 

@@ -4,9 +4,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.ui.today.TodayActions
-import cloud.trotter.log.strength.ui.today.TodayScreen
-import cloud.trotter.log.strength.ui.today.TodayUiState
+import cloud.trotter.log.strength.ui.preview.PreviewActions
+import cloud.trotter.log.strength.ui.preview.PreviewScreen
+import cloud.trotter.log.strength.ui.preview.PreviewUiState
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -38,14 +38,16 @@ class EmptyDayScreenTest {
     }
 
     @Test
-    fun todayShowsTheEmptyDayTitleAndEmptyText() {
+    fun previewShowsTheEmptyDayTitleAndEditInsteadOfStart() {
         rule.setContent { AppTheme {
-            TodayScreen(
-                TodayUiState(hasProgram = true, dayId = "A", dayTitle = "Daily rehab"),
-                TodayActions(onStart = {}, onOpenSettings = {}, onOpenLog = {}, onSetUpProgram = {}),
+            PreviewScreen(
+                PreviewUiState(loading = false, selection = DaySelection(1, "A"), title = "Daily rehab"),
+                PreviewActions(onStart = {}, onBack = {}, onEdit = {}),
             )
         } }
         rule.onNodeWithText("Daily rehab").assertExists()
-        rule.onNodeWithText("No exercises yet").assertExists()
+        rule.onNodeWithText("No lifts yet").assertExists()
+        rule.onNodeWithText("Edit").assertExists()
+        rule.onNodeWithText("Start day A").assertDoesNotExist()
     }
 }

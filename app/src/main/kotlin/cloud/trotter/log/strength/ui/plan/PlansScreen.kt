@@ -6,12 +6,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,7 +22,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,7 +29,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.PlanSummary
@@ -51,9 +48,9 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.plans_title)) },
-                navigationIcon = {
-                    IconButton(onClick = actions.onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.setup_back_description))
+                actions = {
+                    IconButton(onClick = actions.onOpenSettings) {
+                        Icon(Icons.Outlined.Settings, stringResource(R.string.today_settings_description))
                     }
                 },
             )
@@ -64,7 +61,7 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
             }
         },
     ) { padding ->
-        LazyColumn(modifier = Modifier.selectableGroup(), contentPadding = padding) {
+        LazyColumn(contentPadding = padding) {
             items(active, key = { it.id }) { plan ->
                 PlanRow(plan, state.menuPlanId == plan.id, active.size > 1, actions)
                 HorizontalDivider()
@@ -85,7 +82,7 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
         }
     }
     if (state.newPlanPage != null) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = actions.onDismissNewPlan,
             title = { Text(stringResource(R.string.plans_new)) },
             text = {
@@ -121,7 +118,7 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
         )
     }
     if (state.renamePlanId != null) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = actions.onDismissRename,
             title = { Text(stringResource(R.string.plans_rename)) },
             text = {
@@ -147,21 +144,14 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
 @Composable
 private fun PlanRow(plan: PlanSummary, menuOpen: Boolean, canArchive: Boolean, actions: PlansActions) {
     ListItem(
-        modifier = if (plan.archived) Modifier else Modifier.selectable(
-            selected = plan.selected,
-            role = Role.RadioButton,
-            onClick = { actions.onSelect(plan.id) },
-        ),
-        leadingContent = if (plan.archived) null else {
-            { RadioButton(selected = plan.selected, onClick = null) }
-        },
+        modifier = Modifier.clickable { actions.onOpenPlan(plan.id) },
         headlineContent = { Text(plan.name) },
         supportingContent = {
             val next = plan.nextDayTitle?.let { stringResource(R.string.plans_next_day, it) }
                 ?: stringResource(R.string.plans_no_next_day)
             val last = plan.lastSessionAt?.let {
                 val date = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
-                    .format(DateTimeFormatter.ofPattern("d MMM"))
+                    .format(DateTimeFormatter.ofPattern("MMM d", java.util.Locale.US))
                 stringResource(R.string.plans_last_session, date)
             }
             val detail = if (last == null) next else stringResource(R.string.plans_supporting, next, last)

@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.CardioBlockDraft
 import cloud.trotter.log.strength.ui.day.CardioTemplate
 import java.io.File
@@ -72,11 +73,32 @@ class PlanViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(handle: SavedStateHandle = SavedStateHandle()): PlanViewModel =
-        PlanViewModel(repo, handle, context).also { vm ->
+    private suspend fun viewModel(handle: SavedStateHandle = SavedStateHandle()): PlanViewModel {
+        if (!handle.contains(Routes.PLAN_ID_ARG)) handle[Routes.PLAN_ID_ARG] = repo.selectedPlanIdFlow.first()!!.toString()
+        return PlanViewModel(repo, handle, context).also { vm ->
             viewModels += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
+    }
+
+    @Test
+    fun `tapped plan stays visible and all day actions target it while preferred changes`() = runTest(dispatcher) {
+        val preferred = repo.createAuthoredPlan("Preferred", "Preferred day")
+        repo.publishCreatedAuthoredPlan(preferred)
+        val tapped = repo.createAuthoredPlan("Physio", "Rehab")
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to tapped.toString())))
+        advanceUntilIdle()
+        assertEquals("Physio", vm.uiState.value.name)
+        assertEquals(listOf("Rehab"), vm.uiState.value.days.map { it.title })
+        vm.addDay()
+        advanceUntilIdle()
+        assertEquals(2, db.programDao().daysForPlan(tapped).size)
+        assertEquals(1, db.programDao().daysForPlan(preferred).size)
+        repo.selectPlan(tapped)
+        repo.selectPlan(preferred)
+        advanceUntilIdle()
+        assertEquals(tapped, vm.uiState.value.planId)
+    }
 
     @Test
     fun `added cardio only day exposes its activity and set count immediately`() = runTest(dispatcher) {

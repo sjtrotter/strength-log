@@ -37,7 +37,7 @@ class AppNavigationBarNavigationTest {
                 navigatorProvider.addNavigator(ComposeNavigator())
             }
             NavHost(navController = navController, startDestination = Routes.WIZARD) {
-                listOf(Routes.WIZARD, Routes.TODAY, Routes.LOG, Routes.PLAN).forEach { route ->
+                listOf(Routes.WIZARD, Routes.TODAY, Routes.LOG, Routes.PLANS).forEach { route ->
                     composable(route) { Box {} }
                 }
             }

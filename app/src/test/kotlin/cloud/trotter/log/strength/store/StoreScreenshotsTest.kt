@@ -55,9 +55,8 @@ import cloud.trotter.log.strength.ui.navigation.AppNavigationBar
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.today.TodayActions
-import cloud.trotter.log.strength.ui.today.TodayLift
+import cloud.trotter.log.strength.ui.today.TodayDay
 import cloud.trotter.log.strength.ui.today.TodayScreen
-import cloud.trotter.log.strength.ui.today.TodayScreenBuilder
 import cloud.trotter.log.strength.ui.today.TodayUiState
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -120,14 +119,9 @@ class StoreScreenshotsTest {
         val day = dayState()
         val state = TodayUiState(
             hasProgram = true,
-            dayId = "A",
-            dayIndex = day.dayIndex,
-            dayTitle = day.dayTitle,
-            coachLine = TodayScreenBuilder.progressLine(day.doneSets, day.totalSets),
-            lifts = day.exercises.map { TodayLift(it.title, it.rows.size) },
-            actionLabel = TodayScreenBuilder.actionLabel("A", day.doneSets, day.totalSets),
-            planId = 1L,
-            planName = "Four-day strength",
+            upNext = listOf(TodayDay(1L, "Four-day strength", "A", day.dayIndex, day.dayTitle, preferred = true)),
+            otherDays = listOf(TodayDay(1L, "Four-day strength", "B", 1, "Upper body")),
+            fact = "Last trained Oct 28",
         )
         render("01-today.png") {
             Scaffold(
@@ -477,7 +471,6 @@ class StoreScreenshotsTest {
     private fun todayActions() = TodayActions(
         onStart = {},
         onOpenSettings = {},
-        onOpenLog = {},
         onSetUpProgram = {},
     )
 

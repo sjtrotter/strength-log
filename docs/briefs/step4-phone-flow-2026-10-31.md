@@ -289,6 +289,73 @@ action slot. On top of that:
 - **The pager goes** once timed reps, holds and cardio use the same layout. Redo and the
   amend are out.
 
+#### Supersets on the set screen (owner, 2026-11-01)
+
+The owner, looking at the pager's superset page: supersets "almost fade into the same UI as a
+normal exercise". Today the pair shows as one line, "then Seated Cable Row 120 × 10", under
+the first lift's numerals (`ExercisePage.kt:240-252`). Logging per exercise makes this worse:
+the bench set and the row set are two consecutive screens, and nothing but the name changes
+between them, with no rest in between (`DayViewModel.kt:975-977` starts a rest only when the
+round is complete). The lifter has to remember they are mid-pair.
+
+The pair gets its own block in place of the lift row. It holds both names in fixed plan order,
+the round, and which one is now:
+
+```
+ [←]  Day A                          [≡]  Finish
+
+ Superset, round 2 of 3                                  titleMedium, onSurfaceVariant
+ ┃ DB Bench Press                              ›         headlineMedium, onSurface: the lift now
+ ┃ Seated Cable Row          next, 120 × 10    ›         titleMedium, onSurfaceVariant
+
+ 80 × 10                                                 the hero, as any set
+
+ [            Log 80 × 10            ]
+```
+
+After "Log 80 × 10":
+
+```
+ Superset, round 2 of 3
+ ┃ ✓ DB Bench Press          80 × 10           ›         titleMedium, onSurfaceVariant, check icon
+ ┃ Seated Cable Row                            ›         headlineMedium, onSurface: now
+
+ 120 × 10
+
+ ┌─────────────────────────────────────┐
+ │ [Undo Bench 80 × 10]                │                 no rest yet: the band holds Undo only, 10 s
+ └─────────────────────────────────────┘
+ [           Log 120 × 10            ]
+```
+
+- **The position line names the group.** "Superset, round 2 of 3" replaces "Set 2 of 3" on
+  both halves, so the line that stays still across the switch is the one that says "pair".
+  Gym notation (A1, A2) is out: the letters already mean days.
+- **Both names, fixed order.** The partner is always on screen, so the lifter never carries it
+  in their head. The current half is the headline; the other half is quieter and says
+  "next, 120 × 10" before it is done and shows a check icon and its logged load after.
+- **One M3 `VerticalDivider`** in `outlineVariant` runs beside the two names. Space alone
+  reads as two separate lifts, which is the complaint; the divider is the smallest stock
+  element that closes the group. No new color: the day accent stays the day and its action.
+- **Motion says "same pair".** Within a round the block does not slide; the emphasis moves
+  between the two names (M3 fast effects, a crossfade under reduced motion) and the hero
+  crossfades. The 300 ms slide stays the signal for a different lift, including the move
+  from the pair's last round to the next lift.
+- **No rest between halves**, as now. The band shows only Undo for 10 s, the rest-off form.
+  The rest starts when the round completes, and its "next" (band and notification) reads
+  "Round 3, DB Bench Press 80 × 10".
+- **Each name opens the Lift sheet for that lift.** The sheet's subtitle adds "Superset with
+  Seated Cable Row." Ticks there follow the per-exercise rule.
+- **Day sheet and preview** show the pair as one `ListItem` with `overlineContent` "Superset"
+  (sentence case, no tracking) and the headline "DB Bench Press + Seated Cable Row". The Day
+  sheet's trailing text is "Round 2 of 3, now" on the selected pair.
+- **TalkBack** reads the block as one node: "Superset, round 2 of 3. Now DB Bench Press.
+  Next Seated Cable Row, 120 × 10."
+- **States.** A pair whose partner track is missing (unknown catalog entry) draws as a plain
+  lift. A partner swapped mid-workout shows its new name at once. A round with the first half
+  ticked in the Lift sheet opens on the second half, already emphasized.
+- **Out of scope:** the watch (step 6), and round counting, which stays MAIN-based.
+
 ### Receipt (redesign phase 4)
 
 One receipt route, with the new-top-set rows inside it.

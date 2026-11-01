@@ -206,7 +206,7 @@ jobs:
         run: pip install --quiet pillow==11.3.0
 
       - name: Render store screenshots
-        run: ./gradlew :app:testDebugUnitTest --tests '*StoreScreenshotsTest' :wear:testDebugUnitTest --tests '*StoreScreenshotsTest' -PstoreShots=true
+        run: ./gradlew :app:testDebugUnitTest --tests '*StoreScreenshotsTest' --tests '*ListingImagesTest' :wear:testDebugUnitTest --tests '*StoreScreenshotsTest' -PstoreShots=true
         timeout-minutes: 20
 
       - name: Check store screenshots

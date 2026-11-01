@@ -26,6 +26,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.CardioCardState
@@ -35,6 +36,7 @@ import cloud.trotter.log.strength.ui.day.DayEditSlotState
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
+import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.ExerciseCardState
 import cloud.trotter.log.strength.ui.day.OpenSheet
@@ -53,6 +55,10 @@ import cloud.trotter.log.strength.ui.log.TrajectoryGridline
 import cloud.trotter.log.strength.ui.log.TrajectoryPoint
 import cloud.trotter.log.strength.ui.navigation.AppNavigationBar
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
+import cloud.trotter.log.strength.ui.preview.PreviewActions
+import cloud.trotter.log.strength.ui.preview.PreviewLift
+import cloud.trotter.log.strength.ui.preview.PreviewScreen
+import cloud.trotter.log.strength.ui.preview.PreviewUiState
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.today.TodayActions
 import cloud.trotter.log.strength.ui.today.TodayDay
@@ -141,15 +147,51 @@ class StoreScreenshotsTest {
     }
 
     @Test
+    fun preview() {
+        val day = dayState(dayExercises = supersetExercises)
+        val state = PreviewUiState(
+            loading = false,
+            selection = DaySelection(day.planId, requireNotNull(day.viewDayId)),
+            planName = "Four-day strength",
+            dayIndex = day.dayIndex,
+            title = day.dayTitle,
+            emphasis = day.emphasisLine,
+            lifts = day.exercises.map { card ->
+                val row = card.rows.first { it.kind != SetKind.RAMP }
+                val working = SetFormatter.summary(
+                    card.tracking, row.weightDisplay, row.reps, row.seconds, day.unit, spaced = true,
+                ).trim()
+                val partner = row.partner?.let {
+                    SetFormatter.summary(
+                        requireNotNull(card.partnerTracking), it.weightDisplay, it.reps, it.seconds,
+                        day.unit, spaced = true,
+                    ).trim()
+                }
+                PreviewLift(
+                    name = listOfNotNull(card.title, card.partnerTitle).joinToString(" + "),
+                    working = listOfNotNull(working, partner).joinToString(" + "),
+                    last = if (card.exerciseId == "bb_back_squat") "230 × 5" else null,
+                )
+            },
+        )
+        render(
+            "02-preview.png",
+            beforeCapture = { composeTestRule.onNodeWithText("Start day A").assertIsDisplayed() },
+        ) {
+            PreviewScreen(state, PreviewActions({}, {}, {}))
+        }
+    }
+
+    @Test
     fun workout() {
-        renderDay("02-workout.png", dayState())
+        renderDay("03-workout.png", dayState())
     }
 
     @Test
     fun superset() {
         val day = supersetDayState()
         renderDay(
-            "03-superset.png",
+            "04-superset.png",
             day,
             edit = dayEditState(day, supersetExercises),
             beforeCapture = {
@@ -172,7 +214,7 @@ class StoreScreenshotsTest {
             ),
         )
         renderDay(
-            "04-cardio.png",
+            "05-cardio.png",
             dayState(doneCounts = listOf(6, 6, 3, 3)).copy(
                 selectedPageKey = "cardio",
                 cardio = CardioCardState("Track run", "2 × 400 m · aim 1:45", hard = true, block = block),
@@ -189,7 +231,7 @@ class StoreScreenshotsTest {
     fun receipt() {
         val day = dayState(doneCounts = listOf(6, 6, 3, 3))
         renderDay(
-            "05-receipt.png",
+            "06-receipt.png",
             day,
             SessionReceipt(
                 sessionId = 1L,
@@ -251,7 +293,7 @@ class StoreScreenshotsTest {
                 ),
             ),
         )
-        render("06-history.png") {
+        render("07-history.png") {
             Scaffold(
                 contentWindowInsets = WindowInsets(0),
                 bottomBar = {
@@ -273,7 +315,7 @@ class StoreScreenshotsTest {
             it.copy(editorOpen = true, slots = it.slots.filter { slot -> slot.isSuperset })
         }
         renderDay(
-            "07-plan.png",
+            "08-plan.png",
             day,
             edit = edit,
             beforeCapture = {

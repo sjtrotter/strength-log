@@ -62,7 +62,7 @@ jobs:
         run: pip install --quiet pillow==11.3.0
 
       - name: Render store screenshots
-        run: ./gradlew :app:testDebugUnitTest --tests '*StoreScreenshotsTest' :wear:testDebugUnitTest --tests '*StoreScreenshotsTest' -PstoreShots=true
+        run: ./gradlew :app:testDebugUnitTest --tests '*StoreScreenshotsTest' --tests '*ListingImagesTest' :wear:testDebugUnitTest --tests '*StoreScreenshotsTest' -PstoreShots=true
         timeout-minutes: 20
 
       - name: Check store screenshots
@@ -91,3 +91,15 @@ jobs:
           api-level: 34
           arch: x86_64
           script: ./gradlew :data:connectedDebugAndroidTest :transfer:connectedDebugAndroidTest
+
+      # Last, so a stale listing image never hides the instrumented tests.
+      - name: Check listing images match the app
+        run: python scripts/check_listing_images.py app/build/outputs/listing play/listing/en-US/images
+
+      - name: Keep generated listing images
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: listing-images
+          path: app/build/outputs/listing/
+          if-no-files-found: ignore

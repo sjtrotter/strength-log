@@ -91,7 +91,7 @@ class WindowSizeTest {
                         totalSetCount = 18,
                         setCount = 18,
                         strongest = ReceiptLift("Barbell Back Squat", "235×3"),
-                        nextDayLine = "DAY B · UPPER",
+                        nextDayLine = "Day B, Upper",
                     ),
                     onShare = {},
                     onFinish = {},

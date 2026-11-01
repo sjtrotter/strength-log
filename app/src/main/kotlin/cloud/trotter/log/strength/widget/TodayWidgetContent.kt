@@ -30,6 +30,7 @@ data class TodayWidgetContent(
     val accentIndex: Int,
     val setsDone: Int,
     val totalSets: Int,
+    val dayLetter: String? = null,
 )
 
 sealed interface WidgetStatLine {
@@ -75,6 +76,7 @@ fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
 
     return TodayWidgetContent(
         dayLine = GlanceLines.dayLine(day.dayId, day.title),
+        dayLetter = day.dayId,
         statLine = WidgetStatLine.Data(GlanceLines.statLine(day.exercises.size, done, total)),
         state = state,
         accentIndex = day.accentIndex,

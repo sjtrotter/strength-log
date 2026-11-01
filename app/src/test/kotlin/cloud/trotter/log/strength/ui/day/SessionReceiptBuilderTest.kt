@@ -22,7 +22,7 @@ class SessionReceiptBuilderTest {
 
         assertEquals("DAY A COMPLETE", receipt.headline)
         assertEquals("Lower", receipt.dayTitle)
-        assertEquals("DAY B · UPPER", receipt.nextDayLine)
+        assertEquals("Day B, Upper", receipt.nextDayLine)
         assertEquals(0, receipt.dayIndex)
         assertEquals(7L, receipt.sessionId)
     }

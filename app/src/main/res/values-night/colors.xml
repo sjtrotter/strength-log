@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="splash_background">#0D0D0F</color>
+    <color name="widget_background">#0D0D0F</color>
+    <color name="widget_border">#2A2A30</color>
+    <color name="widget_text_primary">#F2F2F0</color>
+    <color name="widget_text_secondary">#9A9AA2</color>
+    <color name="widget_done">#3E8E5A</color>
+    <color name="widget_preview_accent">#D2815D</color>
 </resources>

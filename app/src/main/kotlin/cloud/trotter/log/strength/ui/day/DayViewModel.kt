@@ -38,7 +38,9 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.PhoneRestTimer
+import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.rest.PhoneRestActions
 import cloud.trotter.log.strength.rest.RestRuntime
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -437,6 +439,14 @@ class DayViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            var previous: DaySelection? = null
+            displayTargetFlow.collect { target ->
+                val current = target?.let { DaySelection(it.plan.id, it.dayId) }
+                if (previous != null && previous != current) PhoneRestActions.skip(repo, phoneRestRuntime)
+                previous = current
+            }
+        }
+        viewModelScope.launch {
             maybeAmendCardioDistances()
             effectiveDayId.collect { day ->
                 if (day != pinHeldFor) pinHeldFor = null
@@ -462,6 +472,7 @@ class DayViewModel @Inject constructor(
         val previous = DaySelection(dayState.value.planId, currentDay().orEmpty())
         savedState[KEY_VIEW_SELECTION] = selection
         if (selection == previous) return
+        skipRest()
         closeUndoWindow()
         setDayEditorOpen(false)
         savedState[KEY_SELECTED_PAGE] = null
@@ -967,11 +978,18 @@ class DayViewModel @Inject constructor(
                     val nextRow = nextCard?.rows?.firstOrNull { !it.complete }
                     val next = if (nextCard != null && nextRow != null) {
                         val title = if (nextRow.nextSlot == Slot.SS) nextCard.partnerTitle.orEmpty() else nextCard.title
-                        "$title ${nextRow.kindLabel}"
+                        val tracking = if (nextRow.nextSlot == Slot.SS) nextCard.partnerTracking ?: TrackingType.WEIGHTED else nextCard.tracking
+                        val nextSet = latest[nextCard.programExerciseId to nextRow.nextSlot]?.sets?.getOrNull(nextRow.index)
+                        val load = nextSet?.let {
+                            SetFormatter.summary(tracking, it.weightLb, it.reps, it.seconds, repo.unitFlow.first(), spaced = true)
+                        }.orEmpty()
+                        "$title $load".trim()
                     } else ""
                     PhoneRestTimer.start(clock.millis(), seconds, next)?.let { rest ->
-                        repo.setPhoneRest(rest)
-                        phoneRestRuntime.arm(rest)
+                        PhoneRestActions.locked {
+                            repo.setPhoneRest(rest)
+                            phoneRestRuntime.arm(rest)
+                        }
                     }
                 }
             }
@@ -979,13 +997,10 @@ class DayViewModel @Inject constructor(
     }
 
     fun adjustRest(seconds: Int) = viewModelScope.launch {
-        val current = repo.phoneRestFlow.first() ?: return@launch
-        val adjusted = PhoneRestTimer.adjust(current, clock.millis(), seconds)
-        repo.setPhoneRest(adjusted)
-        if (adjusted == null) phoneRestRuntime.cancel() else phoneRestRuntime.arm(adjusted)
+        PhoneRestActions.adjust(repo, phoneRestRuntime, clock.millis(), seconds)
     }
 
-    fun skipRest() = viewModelScope.launch { repo.setPhoneRest(null); phoneRestRuntime.cancel() }
+    fun skipRest() = viewModelScope.launch { PhoneRestActions.skip(repo, phoneRestRuntime) }
 
     fun addSet(programExerciseId: Long, isSuperset: Boolean) {
         val day = currentDay() ?: return
@@ -1144,6 +1159,7 @@ class DayViewModel @Inject constructor(
         mutate {
             closeUndoWindow()
             if (repo.discardRun(runId)) {
+                PhoneRestActions.skip(repo, phoneRestRuntime)
                 clearTimedRep()
                 seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
             }
@@ -1207,6 +1223,7 @@ class DayViewModel @Inject constructor(
                     ?: repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             } else null
             val sessionId = repo.finishRun(runId) ?: return@mutate
+            PhoneRestActions.skip(repo, phoneRestRuntime)
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_SELECTION] = null
             val advancedTo = repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId

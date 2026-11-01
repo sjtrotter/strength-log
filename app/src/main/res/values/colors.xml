@@ -1,37 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Launcher day-icon accents. A-D are the pinned in-app brand accents; E-G
-         extend the rotation for 5-7 day plans. Every day's barbell renders in
-         on_day_X, which is off-white except day C (goldenrod), which flips to
-         near-black for contrast — see docs/briefs and the icon design handoff. -->
-    <color name="day_a">#C1440E</color>
-    <color name="on_day_a">#F2F2F0</color>
-    <color name="day_b">#2D5A3D</color>
-    <color name="on_day_b">#F2F2F0</color>
-    <color name="day_c">#B8860B</color>
-    <color name="on_day_c">#0D0D0F</color>
-    <color name="day_d">#1F4E5F</color>
-    <color name="on_day_d">#F2F2F0</color>
-    <color name="day_e">#3C4E78</color>
-    <color name="on_day_e">#F2F2F0</color>
-    <color name="day_f">#8B4356</color>
-    <color name="on_day_f">#F2F2F0</color>
-    <color name="day_g">#6B6A2C</color>
-    <color name="on_day_g">#F2F2F0</color>
-
     <!-- Window background (spec §8.5 near-black) — matches the Compose Background
          token so the launch window and any pre-Compose frame never flash light. -->
     <color name="window_background">#0D0D0F</color>
     <color name="splash_background">#F1EFEA</color>
 
-    <!-- The home-screen widget renders as RemoteViews in the launcher's process,
-         which can't read ui/theme/Color.kt — these are that file's Border /
-         TextPrimary / TextSecondary / Done tokens in resource form, and must be
-         changed together with it. The per-day accent is not among them: it comes
-         from DayAccentColors at update time (glance-surfaces.md §1). -->
-    <color name="widget_background">#0D0D0F</color>
-    <color name="widget_border">#2A2A30</color>
-    <color name="widget_text_primary">#F2F2F0</color>
-    <color name="widget_text_secondary">#9A9AA2</color>
-    <color name="widget_done">#3E8E5A</color>
+    <!-- Widget roles mirror the phone's light palette; night overrides live in values-night. -->
+    <color name="widget_background">#F1EFEA</color>
+    <color name="widget_border">#D8D4CC</color>
+    <color name="widget_text_primary">#1B1B1E</color>
+    <color name="widget_text_secondary">#5C5C64</color>
+    <color name="widget_done">#37774E</color>
+    <color name="widget_preview_block">#C1440E</color>
+    <color name="widget_preview_on_block">#F2F2F0</color>
+    <color name="widget_preview_accent">#8F3813</color>
 </resources>

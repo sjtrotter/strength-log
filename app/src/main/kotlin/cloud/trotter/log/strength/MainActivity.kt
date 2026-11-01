@@ -13,9 +13,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import dagger.hilt.android.AndroidEntryPoint
 import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.icon.DayIconManager
 import cloud.trotter.log.strength.ui.AppNavHost
 import cloud.trotter.log.strength.ui.theme.AppTheme
+import cloud.trotter.log.strength.rest.PhoneRestActions
 import cloud.trotter.log.strength.rest.PhoneRestRuntime
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -32,17 +32,7 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var repository: TrackerRepository
 
-    @Inject
-    lateinit var dayIconManager: DayIconManager
     @Inject lateinit var phoneRestRuntime: PhoneRestRuntime
-
-    // Keeps the home-screen launcher icon in sync with the rotation
-    // day. Only recorded here, not applied — swapping the enabled
-    // activity-alias while this activity is resumed can tear down the
-    // running task on some launchers, making the app vanish the moment
-    // DONE is pressed. The icon is invisible while the user is inside
-    // the app anyway, so the swap happens in onStop instead.
-    private var iconDayId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -54,12 +44,6 @@ class MainActivity : ComponentActivity() {
             )
             AppTheme(preference = themePreference) {
                 AppNavHost()
-            }
-        }
-
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                repository.suggestedDayFlow.collect { iconDayId = it }
             }
         }
 
@@ -82,23 +66,20 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         if (!isChangingConfigurations) {
-            lifecycleScope.launch { phoneRestRuntime.setForeground(false, repository.phoneRestFlow.first()) }
+            lifecycleScope.launch {
+                PhoneRestActions.locked { phoneRestRuntime.setForeground(false, repository.phoneRestFlow.first()) }
+            }
         }
-        // Rotation also passes through onStop but recreates into the same task,
-        // which would reopen the launcher teardown window while the user is
-        // still looking at the app — apply only on a genuine exit (a skipped
-        // apply self-heals on the next one). applyDayIcon(null) is a no-op
-        // (dayIndexForIcon null-guards) and an unchanged day is a no-op
-        // (shouldReapplyIcon), so calling this on every real stop is safe.
-        if (!isChangingConfigurations) dayIconManager.applyDayIcon(iconDayId)
     }
 
     override fun onStart() {
         super.onStart()
         lifecycleScope.launch {
-            val rest = repository.phoneRestFlow.first()
-            rest?.let(phoneRestRuntime::arm)
-            phoneRestRuntime.setForeground(true, rest)
+            PhoneRestActions.locked {
+                val rest = repository.phoneRestFlow.first()
+                phoneRestRuntime.setForeground(true, rest)
+                rest?.let(phoneRestRuntime::arm)
+            }
         }
     }
 }

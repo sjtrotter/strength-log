@@ -57,8 +57,9 @@ class TodayWidgetContentTest {
     fun `an untouched day advertises the work ahead`() {
         val content = todayWidgetContent(snapshot(0, 0, 0))
 
-        assertEquals("DAY A · LOWER", content.dayLine)
-        assertEquals(WidgetStatLine.Data("3 LIFTS · 21 SETS"), content.statLine)
+        assertEquals("Day A, Lower", content.dayLine)
+        assertEquals("A", content.dayLetter)
+        assertEquals(WidgetStatLine.Data("3 lifts, 21 sets"), content.statLine)
         assertEquals(TodayWidgetState.BEFORE, content.state)
         assertEquals(0, content.setsDone)
         assertEquals(21, content.totalSets)
@@ -68,7 +69,7 @@ class TodayWidgetContentTest {
     fun `mid-session counts every logged round of the day, not just the current lift`() {
         val content = todayWidgetContent(snapshot(7, 5, 0))
 
-        assertEquals(WidgetStatLine.Data("12 / 21 SETS"), content.statLine)
+        assertEquals(WidgetStatLine.Data("12 of 21 sets"), content.statLine)
         assertEquals(TodayWidgetState.IN_PROGRESS, content.state)
         assertEquals(12, content.setsDone)
         assertEquals(21, content.totalSets)
@@ -78,7 +79,7 @@ class TodayWidgetContentTest {
     fun `a finished day says so and keeps the total`() {
         val content = todayWidgetContent(snapshot(7, 7, 7))
 
-        assertEquals(WidgetStatLine.Data("DONE · 21 SETS"), content.statLine)
+        assertEquals(WidgetStatLine.Data("Done, 21 sets"), content.statLine)
         assertEquals(TodayWidgetState.DONE, content.state)
         assertEquals(21, content.totalSets)
     }
@@ -88,6 +89,7 @@ class TodayWidgetContentTest {
         val content = todayWidgetContent(null)
 
         assertNull(content.dayLine)
+        assertNull(content.dayLetter)
         assertEquals(WidgetStatLine.SetUpProgram, content.statLine)
         assertEquals(TodayWidgetState.NO_PROGRAM, content.state)
     }
@@ -104,9 +106,10 @@ class TodayWidgetContentTest {
     @Test
     fun `an empty active list with retired work keeps the run progress`() {
         val content = todayWidgetContent(snapshot().copy(runId = "r-1", retiredRoundsDone = 2))
-        assertEquals("DAY A · LOWER", content.dayLine)
+        assertEquals("Day A, Lower", content.dayLine)
+        assertEquals("A", content.dayLetter)
         assertEquals(TodayWidgetState.DONE, content.state)
-        assertEquals(WidgetStatLine.Data("DONE · 2 SETS"), content.statLine)
+        assertEquals(WidgetStatLine.Data("Done, 2 sets"), content.statLine)
         assertEquals(2, content.setsDone)
         assertEquals(2, content.totalSets)
     }
@@ -118,7 +121,7 @@ class TodayWidgetContentTest {
 
     @Test
     fun `a titleless day still names the letter`() {
-        assertEquals("DAY A", todayWidgetContent(snapshot(0, title = "")).dayLine)
+        assertEquals("Day A", todayWidgetContent(snapshot(0, title = "")).dayLine)
     }
 
     @Test
@@ -146,7 +149,7 @@ class TodayWidgetContentTest {
             unit = "lb",
         )
 
-        assertEquals(WidgetStatLine.Data("1 LIFT · 1 SET"), todayWidgetContent(oneRound).statLine)
+        assertEquals(WidgetStatLine.Data("1 lift, 1 set"), todayWidgetContent(oneRound).statLine)
     }
 
     @Test
@@ -174,6 +177,6 @@ class TodayWidgetContentTest {
             unit = "lb",
         )
 
-        assertEquals(WidgetStatLine.Data("1 / 3 SETS"), todayWidgetContent(withPartner).statLine)
+        assertEquals(WidgetStatLine.Data("1 of 3 sets"), todayWidgetContent(withPartner).statLine)
     }
 }

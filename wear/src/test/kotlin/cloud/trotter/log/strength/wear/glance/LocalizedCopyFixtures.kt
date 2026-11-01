@@ -1,14 +1,14 @@
 package cloud.trotter.log.strength.wear.glance
 
 private val TEST_GLANCE_COPY = DayGlanceCopy(
-    noProgram = "no program", setUpOnPhone = "set up on your phone",
+    noProgram = "No program", setUpOnPhone = "Set up on your phone",
     nothingOnToday = "Nothing on Today",
-    dayTitle = { day, title -> "day $day · $title" }, dayOnly = { "day $it" },
+    dayTitle = { day, title -> "Day $day, $title" }, dayOnly = { "Day $it" },
     liftsSets = { lifts, sets ->
-        "$lifts ${if (lifts == 1) "lift" else "lifts"} · $sets ${if (sets == 1) "set" else "sets"}"
+        "$lifts ${if (lifts == 1) "lift" else "lifts"}, $sets ${if (sets == 1) "set" else "sets"}"
     },
-    progressSets = { done, total -> "$done / $total sets" },
-    doneSets = { "done · $it ${if (it == 1) "set" else "sets"}" },
+    progressSets = { done, total -> "$done of $total sets" },
+    doneSets = { "Done, $it ${if (it == 1) "set" else "sets"}" },
     noProgramDescription = "No program yet",
     doneDescription = { day, total -> "Day $day done, $total sets" },
     progressDescription = { day, done, total -> "Day $day, $done of $total sets done" },

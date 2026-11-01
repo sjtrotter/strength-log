@@ -200,7 +200,7 @@ class StoreScreenshotsTest {
                 totalSetCount = day.totalSets,
                 setCount = day.doneSets,
                 strongest = ReceiptLift(catalog.get("bb_back_squat").name, "235 × 5"),
-                nextDayLine = "DAY B · UPPER",
+                nextDayLine = "Day B, Upper",
             ),
         )
     }

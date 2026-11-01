@@ -5,6 +5,7 @@ import androidx.compose.runtime.Immutable
 import kotlinx.parcelize.Parcelize
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.text.UiText
@@ -89,6 +90,33 @@ data class DayUiState(
         WorkoutPage(null, it.label, if (it.loggedSeconds != null) 1 else 0, 1, it.loggedSeconds != null)
     })
     val currentPage: Int = DayScreenBuilder.currentPage(pages.map { it.key }, selectedPageKey, exercises)
+
+    val workoutCard: ExerciseCardState? get() = exercises.firstOrNull {
+        "exercise:${it.programExerciseId}" == (workout?.shown as? WorkoutSelection.Shown.Group)?.key
+    }
+
+    val workoutNextPage: WorkoutPage? get() {
+        val key = WorkoutSelection.next(
+            pages.map { WorkoutSelection.Group(it.key, it.allDone) },
+            (workout?.shown as? WorkoutSelection.Shown.Group)?.key,
+        )
+        return pages.firstOrNull { it.key == key }
+    }
+
+    val workoutAllLogged: Boolean get() = workout?.shown == WorkoutSelection.Shown.AllLogged ||
+        workout?.completedView == true && workoutNextPage == null
+
+    val usesWorkoutSetScreen: Boolean get() {
+        if (loading || !hasProgram || cardioRunning || timedRep != null) return false
+        val workout = workout ?: return false
+        return when (workout.shown) {
+            WorkoutSelection.Shown.AllLogged -> true
+            is WorkoutSelection.Shown.Group -> workoutCard?.let { card ->
+                workout.focus?.slot == Slot.SS || (card.timedRepDurationSeconds ?: 0) <= 0
+            } == true
+            WorkoutSelection.Shown.Empty -> false
+        }
+    }
 }
 
 data class WorkoutFocus(val programExerciseId: Long, val slot: String, val index: Int)
@@ -324,3 +352,9 @@ data class WeightSwapAffordance(
 data class WorkoutPage(val exerciseId: Long?, val title: String, val done: Int, val total: Int, val allDone: Boolean) {
     val key: String = exerciseId?.let { "exercise:$it" } ?: "cardio"
 }
+
+/** Duplicate custom titles cannot identify a performed partner or an Undo offer. */
+val DayEditUiState.workoutEntriesByTitle: Map<String, ExerciseEntry> get() = catalog.entries
+    .groupBy { it.name }
+    .mapNotNull { (title, entries) -> entries.singleOrNull()?.let { title to it } }
+    .toMap()

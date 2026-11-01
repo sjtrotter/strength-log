@@ -707,4 +707,25 @@
     <string name="preview_no_lifts">No lifts yet</string>
     <string name="preview_edit">Edit</string>
     <string name="preview_start_day">Start day %1$s</string>
+    <string name="workout_set_kind">Set %1$d of %2$d (%3$s)</string>
+    <string name="workout_edit_set">Edit set %1$d</string>
+    <string name="workout_plates">%1$s a side</string>
+    <string name="workout_empty_bar">Empty bar</string>
+    <string name="workout_superset_round">Superset, round %1$d of %2$d</string>
+    <string name="workout_now">Now</string>
+    <string name="workout_then_rest">Then rest</string>
+    <string name="workout_not_available">Not available</string>
+    <string name="workout_open_sets">%1$s, %2$s, open sets</string>
+    <string name="workout_done_count">Done, %1$d of %2$d</string>
+    <string name="workout_all_logged">All %1$d sets logged</string>
+    <string name="workout_exercises">Day %1$s lifts, %2$d of %3$d sets</string>
+    <string name="workout_announce_set">%1$s, set %2$d of %3$d</string>
+    <string name="workout_announce_round">%1$s, round %2$d of %3$d</string>
+    <string name="workout_seconds">%1$d s</string>
+    <string name="workout_weight_reps">%1$s × %2$d</string>
+    <string name="workout_times_reps">× %1$d</string>
+    <string name="workout_hold_load">%1$d s at %2$s %3$s</string>
+    <string name="workout_at_weight">at %1$s %2$s</string>
+    <string name="workout_undo">Undo %1$s</string>
+    <string name="workout_undo_lift">Undo %1$s %2$s</string>
 </resources>

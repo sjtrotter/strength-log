@@ -108,6 +108,7 @@ fun DayScreen(
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
     standaloneCardio: Boolean = false,
+    setScreenContent: (@Composable (() -> Unit, () -> Unit) -> Unit)? = null,
 ) {
     val accent = dayAccent(state.dayIndex)
     val onAccent = onDayAccent(state.dayIndex)
@@ -222,7 +223,29 @@ fun DayScreen(
             return@Box
         }
 
-        key(state.viewDayId) {
+        if (setScreenContent != null) {
+            setScreenContent(
+                { exercisesOpen = true },
+                {
+                    if (state.exercises.any { card -> card.rows.any { !it.complete } }) {
+                        confirmingPartialFinish = true
+                    } else {
+                        AppHaptics.perform(view, AppHaptics.Cue.FINISH)
+                        actions.onDone()
+                    }
+                },
+            )
+            if (exercisesOpen) {
+                ExercisesSheet(
+                    pages = state.pages,
+                    onSelect = { index ->
+                        exercisesOpen = false
+                        state.pages.getOrNull(index)?.key?.let(actions.onSelectWorkoutLift)
+                    },
+                    onDismiss = { exercisesOpen = false },
+                )
+            }
+        } else key(state.viewDayId) {
             val pages = if (standaloneCardio) state.pages.filter { it.exerciseId == null } else state.pages
             val pagerState = rememberPagerState(
                 initialPage = if (standaloneCardio) 0 else state.currentPage,
@@ -751,6 +774,10 @@ data class DayActions(
     val onOpenTimedRepCount: () -> Unit = {},
     val onTimedRepDraftChange: (String) -> Unit = {},
     val onLogTimedRepCount: () -> Unit = {},
+    val onLogFocusedSet: () -> Unit = {},
+    val onUndoLastLog: () -> Unit = {},
+    val onSelectWorkoutLift: (String) -> Unit = {},
+    val onNextWorkoutLift: () -> Unit = {},
 )
 
 @Composable

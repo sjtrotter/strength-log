@@ -67,6 +67,7 @@ data class DayUiState(
     val rest: RestUiState? = null,
     val watchStatus: WatchStatus? = null,
     val remoteTick: RemoteTick? = null,
+    val workout: WorkoutState? = null,
 ) {
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
     val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning
@@ -89,6 +90,27 @@ data class DayUiState(
     })
     val currentPage: Int = DayScreenBuilder.currentPage(pages.map { it.key }, selectedPageKey, exercises)
 }
+
+data class WorkoutFocus(val programExerciseId: Long, val slot: String, val index: Int)
+
+data class UndoOffer(
+    val programExerciseId: Long,
+    val slot: String,
+    val index: Int,
+    val title: String,
+    val set: LoggedSet,
+    val tracking: TrackingType,
+    val unit: WeightUnit,
+    val expiresAtMillis: Long?,
+)
+
+data class WorkoutState(
+    val shown: WorkoutSelection.Shown,
+    val focus: WorkoutFocus?,
+    val completedView: Boolean,
+    val undo: UndoOffer?,
+    val lastCompletionMillis: Long?,
+)
 
 /** Saved as one value; DayUiState exposes only an identity resolved against its day. */
 @Parcelize

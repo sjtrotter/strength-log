@@ -41,7 +41,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField(
+                "boolean", "WORKOUT_SET_SCREEN",
+                (providers.gradleProperty("workoutSetScreen").orNull == "true").toString(),
+            )
+        }
         release {
+            buildConfigField("boolean", "WORKOUT_SET_SCREEN", "false")
             // R8 on for the shipping build (PLAN.md A9);
             // :wear shrinks too.
             isMinifyEnabled = true
@@ -63,6 +70,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 

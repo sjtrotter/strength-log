@@ -68,17 +68,6 @@ jobs:
       - name: Check store screenshots
         run: python scripts/check_store_shots.py app/build/outputs/store wear/build/outputs/store
 
-      - name: Check listing images match the app
-        run: python scripts/check_listing_images.py app/build/outputs/listing play/listing/en-US/images
-
-      - name: Keep generated listing images
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: listing-images
-          path: app/build/outputs/listing/
-          if-no-files-found: ignore
-
       - uses: actions/upload-artifact@v4
         with:
           name: store-screenshots
@@ -102,3 +91,15 @@ jobs:
           api-level: 34
           arch: x86_64
           script: ./gradlew :data:connectedDebugAndroidTest :transfer:connectedDebugAndroidTest
+
+      # Last, so a stale listing image never hides the instrumented tests.
+      - name: Check listing images match the app
+        run: python scripts/check_listing_images.py app/build/outputs/listing play/listing/en-US/images
+
+      - name: Keep generated listing images
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: listing-images
+          path: app/build/outputs/listing/
+          if-no-files-found: ignore

@@ -25,34 +25,45 @@ private val NORMALIZED = booleanPreferencesKey("normalized")
  */
 @Singleton
 class LauncherAliasMigration internal constructor(
-    private val context: Context,
+    private val states: AliasStates,
     private val store: DataStore<Preferences>,
 ) {
-    @Inject constructor(@ApplicationContext context: Context) : this(context, context.launcherAliasStore)
+    @Inject constructor(@ApplicationContext context: Context) :
+        this(PackageManagerAliasStates(context), context.launcherAliasStore)
 
     private val lock = Mutex()
 
     suspend fun runOnce() {
         lock.withLock {
             if (store.data.first()[NORMALIZED] == true) return@withLock
-            val pm = context.packageManager
-            val aliases = ('A'..'G').map { ComponentName(context.packageName, "${context.packageName}.Launcher_Day$it") }
-            val enabled = aliases.map { alias ->
-                when (pm.getComponentEnabledSetting(alias)) {
+            val letters = ('A'..'G').toList()
+            val enabled = letters.map { letter ->
+                when (states.get(letter)) {
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
-                    PackageManager.COMPONENT_ENABLED_STATE_DEFAULT -> alias == aliases.first()
+                    PackageManager.COMPONENT_ENABLED_STATE_DEFAULT -> letter == letters.first()
                     else -> false
                 }
             }
             val selected = enabled.indexOfFirst { it }.takeIf { it >= 0 } ?: 0
             // Enable first so interruption cannot leave the app without a launcher.
-            if (!enabled[selected]) {
-                pm.setComponentEnabledSetting(aliases[selected], PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
-            }
-            aliases.filterIndexed { index, _ -> index != selected && enabled[index] }.forEach { alias ->
-                pm.setComponentEnabledSetting(alias, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+            if (!enabled[selected]) states.set(letters[selected], PackageManager.COMPONENT_ENABLED_STATE_ENABLED)
+            letters.filterIndexed { index, _ -> index != selected && enabled[index] }.forEach { letter ->
+                states.set(letter, PackageManager.COMPONENT_ENABLED_STATE_DISABLED)
             }
             store.edit { it[NORMALIZED] = true }
         }
     }
+}
+
+/** The enabled state of each `Launcher_Day*` alias, by its letter. */
+internal interface AliasStates {
+    fun get(letter: Char): Int
+    fun set(letter: Char, state: Int)
+}
+
+private class PackageManagerAliasStates(private val context: Context) : AliasStates {
+    private fun alias(letter: Char) = ComponentName(context.packageName, "${context.packageName}.Launcher_Day$letter")
+    override fun get(letter: Char): Int = context.packageManager.getComponentEnabledSetting(alias(letter))
+    override fun set(letter: Char, state: Int) =
+        context.packageManager.setComponentEnabledSetting(alias(letter), state, PackageManager.DONT_KILL_APP)
 }

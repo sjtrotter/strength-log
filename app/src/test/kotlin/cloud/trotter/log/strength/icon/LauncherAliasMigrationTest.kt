@@ -1,12 +1,8 @@
 package cloud.trotter.log.strength.icon
 
-import android.app.Application
-import android.content.ComponentName
-import android.content.Context
 import android.content.pm.PackageManager
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.test.core.app.ApplicationProvider
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,73 +14,54 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
-import org.robolectric.annotation.Config
-import org.robolectric.annotation.Implementation
-import org.robolectric.annotation.Implements
-import org.robolectric.shadows.ShadowApplicationPackageManager
 
-@Implements(className = "android.app.ApplicationPackageManager")
-class RecordingAliasPackageManager : ShadowApplicationPackageManager() {
-    val writes = mutableListOf<Pair<ComponentName, Int>>()
+private class RecordingAliasStates(initial: Map<Char, Int>) : AliasStates {
+    val states = ('A'..'G').associateWith { initial[it] ?: PackageManager.COMPONENT_ENABLED_STATE_DISABLED }.toMutableMap()
+    val writes = mutableListOf<Pair<Char, Int>>()
     val targetEnabledBeforeDisables = mutableListOf<Boolean>()
-    var target: ComponentName? = null
+    var target: Char? = null
 
-    @Implementation
-    public override fun setComponentEnabledSetting(componentName: ComponentName, newState: Int, flags: Int) {
+    fun effectivelyEnabled(letter: Char): Boolean = states.getValue(letter).let { state ->
+        state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED ||
+            (state == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT && letter == 'A')
+    }
+
+    override fun get(letter: Char): Int = states.getValue(letter)
+
+    override fun set(letter: Char, state: Int) {
         target?.let { selected ->
-            if (newState == PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
-                val state = getComponentEnabledSetting(selected)
-                targetEnabledBeforeDisables += state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED ||
-                    (state == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT && selected.className.endsWith("Launcher_DayA"))
-            }
+            if (state == PackageManager.COMPONENT_ENABLED_STATE_DISABLED) targetEnabledBeforeDisables += effectivelyEnabled(selected)
         }
-        writes += componentName to newState
-        super.setComponentEnabledSetting(componentName, newState, flags)
+        writes += letter to state
+        states[letter] = state
     }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [31], application = Application::class, shadows = [RecordingAliasPackageManager::class])
 class LauncherAliasMigrationTest {
-    private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val pm get() = context.packageManager
-    private fun alias(letter: Char) = ComponentName(context.packageName, "${context.packageName}.Launcher_Day$letter")
-    private fun set(letter: Char, state: Int) = pm.setComponentEnabledSetting(alias(letter), state, PackageManager.DONT_KILL_APP)
 
     private fun checkMigration(initial: Map<Char, Int>, expected: Char, verifyOnce: Boolean = false, expectNoWrites: Boolean = false) = runTest {
-        ('A'..'G').forEach { set(it, initial[it] ?: PackageManager.COMPONENT_ENABLED_STATE_DISABLED) }
-        val recorder = shadowOf(pm) as RecordingAliasPackageManager
-        recorder.writes.clear()
-        recorder.targetEnabledBeforeDisables.clear()
-        recorder.target = alias(expected)
+        val states = RecordingAliasStates(initial).apply { target = expected }
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
         val store = PreferenceDataStoreFactory.create(scope = scope) { File.createTempFile("aliases", ".preferences_pb") }
         try {
-            LauncherAliasMigration(context, store).runOnce()
-            assertEquals(listOf(expected), ('A'..'G').filter {
-                val state = pm.getComponentEnabledSetting(alias(it))
-                state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED ||
-                    (state == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT && it == 'A')
-            })
-            assertTrue("the target must be enabled before disabling another alias", recorder.targetEnabledBeforeDisables.all { it })
+            LauncherAliasMigration(states, store).runOnce()
+            assertEquals(listOf(expected), ('A'..'G').filter(states::effectivelyEnabled))
+            assertTrue("the target must be enabled before disabling another alias", states.targetEnabledBeforeDisables.all { it })
             if (initial.values.none { it == PackageManager.COMPONENT_ENABLED_STATE_ENABLED } &&
                 initial['A'] != PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
             ) {
-                assertEquals(alias('A') to PackageManager.COMPONENT_ENABLED_STATE_ENABLED, recorder.writes.first())
+                assertEquals('A' to PackageManager.COMPONENT_ENABLED_STATE_ENABLED, states.writes.first())
             }
-            if (expectNoWrites) assertTrue(recorder.writes.isEmpty())
+            if (expectNoWrites) assertTrue(states.writes.isEmpty())
             assertTrue(store.data.first()[booleanPreferencesKey("normalized")] == true)
             if (verifyOnce) {
-                set('G', PackageManager.COMPONENT_ENABLED_STATE_ENABLED)
-                recorder.writes.clear()
-                // A fresh manager still honors the persisted flag.
-                LauncherAliasMigration(context, store).runOnce()
-                assertEquals(PackageManager.COMPONENT_ENABLED_STATE_ENABLED, pm.getComponentEnabledSetting(alias('G')))
-                assertTrue(recorder.writes.isEmpty())
+                states.states['G'] = PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                states.writes.clear()
+                // A fresh migration still honors the persisted flag.
+                LauncherAliasMigration(states, store).runOnce()
+                assertEquals(PackageManager.COMPONENT_ENABLED_STATE_ENABLED, states.states['G'])
+                assertTrue(states.writes.isEmpty())
             }
         } finally {
             scope.cancel()

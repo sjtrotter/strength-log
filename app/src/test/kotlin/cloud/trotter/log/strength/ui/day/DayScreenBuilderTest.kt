@@ -622,4 +622,15 @@ class DayScreenBuilderTest {
         assertEquals(SetSeeder.seedPartner(7, GoalCalculator.targetFor(catalog.get("rope_pushdown"), cfg)), ss.sets)
         assertTrue(DayScreenBuilder.seedPlan(listOf(slot), existing, cfg, catalog).isEmpty())
     }
+
+    @Test fun `swap back seeds use the plan prescription while substitute seeds use goal math`() {
+        val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8))
+        val slot = ProgramSlot(1L, 0, ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription))
+        val cfg = LifterConfig()
+        val back = DayScreenBuilder.swapSeed(slot, Slot.MAIN, "bb_back_squat", emptyMap(), cfg, catalog)!!
+        assertEquals(SetSeeder.seedPrescribed(2, prescription), back.sets)
+        val substitute = DayScreenBuilder.swapSeed(slot, Slot.MAIN, "hack_squat", emptyMap(), cfg, catalog)!!
+        val exercise = slot.exercise.copy(exerciseId = "hack_squat", prescription = null)
+        assertEquals(SetSeeder.seed(exercise, GoalCalculator.targetFor(catalog.get("hack_squat"), cfg), cfg), substitute.sets)
+    }
 }

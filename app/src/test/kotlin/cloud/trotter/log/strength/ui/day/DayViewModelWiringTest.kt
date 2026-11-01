@@ -2693,12 +2693,19 @@ class DayViewModelWiringTest {
         val beforeRun = repo.openRunFlow.first()
         val beforeSlots = db.programDao().exercisesForDay(plan, "B")
         val beforeLogs = db.programDao().logsForDay(plan, "B")
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
         vm.swapWorkoutSlot(0, "db_bench")
         advanceUntilIdle()
         assertEquals(beforeRun, repo.openRunFlow.first())
         assertEquals(beforeSlots, db.programDao().exercisesForDay(plan, "B"))
         assertEquals(beforeLogs, db.programDao().logsForDay(plan, "B"))
         assertEquals(beforeRun!!.dayTitle, vm.uiState.value.openRunElsewhere)
+        assertTrue(vm.dayEditState.value.otherWorkoutOpenMessage)
+        vm.dismissSwapMessage()
+        advanceUntilIdle()
+        assertFalse(vm.dayEditState.value.otherWorkoutOpenMessage)
+        collectEdit.cancel()
         collect.cancel()
     }
 
@@ -2739,4 +2746,53 @@ class DayViewModelWiringTest {
         assertNull(vm.uiState.value.exercises.single().lastTimeDisplay)
         collect.cancel()
     }
+
+    @Test fun addAndRemoveWeightOnASubstituteKeepThePlanAndUseWorkoutSwaps() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Core", "", listOf(ProgramExercise("dead_bug"))))))
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val before = db.programDao().exercisesForDay(plan, "A")
+        vm.swapWorkoutSlot(0, "plank")
+        advanceUntilIdle()
+        val actions = DayEditActions(
+            onSwap = vm::swapDaySlot, onWorkoutSwap = vm::swapWorkoutSlot,
+            onAdd = {}, onRemove = {}, onSetSuperset = { _, _ -> },
+            onRemoveSuperset = {}, onResetToTemplate = {},
+        )
+        for (target in listOf("weighted_plank", "plank")) {
+            val card = vm.uiState.value.exercises.single()
+            assertEquals(target, card.weightSwap!!.targetExerciseId)
+            actions.swapWeight(card, vm.dayEditState.value, target)
+            advanceUntilIdle()
+            assertEquals(target, vm.uiState.value.exercises.single().exerciseId)
+            assertEquals(before, db.programDao().exercisesForDay(plan, "A"))
+        }
+        collectEdit.cancel()
+        collect.cancel()
+    }
+
+    @Test fun dayEditorSwapUsesThePerformedNameAndPatternAndRetainsThePlanReturnOption() = runVmTest {
+        insertBenchProgram()
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        vm.swapWorkoutSlot(0, "db_bench")
+        advanceUntilIdle()
+        val state = vm.dayEditState.value
+        val planned = state.slots.single()
+        val performed = state.performedSwapSlot(planned)
+        assertEquals("bb_bench", planned.exerciseId)
+        assertEquals("db_bench", performed.exerciseId)
+        assertEquals(vm.uiState.value.exercises.single().title, performed.title)
+        assertEquals(state.catalog.get("db_bench").pattern, performed.pattern)
+        assertTrue(state.swapCandidates(performed).any { it.id == "bb_bench" })
+        assertFalse(state.swapCandidates(performed).any { it.id == "db_bench" })
+        collectEdit.cancel()
+        collect.cancel()
+    }
+
 }

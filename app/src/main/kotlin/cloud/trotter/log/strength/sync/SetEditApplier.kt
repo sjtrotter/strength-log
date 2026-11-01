@@ -1,7 +1,7 @@
 package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.performedExercise
-import cloud.trotter.log.strength.data.RunStartResult
+import cloud.trotter.log.strength.data.ExerciseSwapResult
 import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunWriteResult
@@ -119,7 +119,28 @@ class SetEditApplier(
         }
     }
 
-    // Run identity is checked in the write transaction; legacy swaps keep plan semantics.
+    /**
+     * Applies a watch [ExerciseSwapDelta] under the set edits' [mutationLock].
+     * A run-identified swap changes only the workout, starting the day's next run
+     * if needed. Legacy swaps change the plan; returning to its exercise reopens
+     * the original run track. Validation and seeding follow the slot's owning plan.
+     *
+     * Guards:
+     * - **Validation** — the named slot must belong to this plan and day.
+     * - **Already there** — the repository compares the performed exercise inside
+     *   the swap transaction. A duplicate returns [Outcome.APPLIED] without a write,
+     *   even with a stale stamp; it cannot reopen a retired track or start a run.
+     * - **Dedupe before authority** — only a newer stamp can authorize a change.
+     *   Markers advance only after a committed mutation, so a forged far-future
+     *   stamp on an unauthorized swap cannot starve a legitimate swap.
+     * - **Authority** — targets are the plan exercise and the performed exercise's
+     *   alternates, re-derived through [WatchSnapshotBuilder.alternatesFor] with
+     *   this plan's equipment. The exported service never trusts message names
+     *   or a watch-provided alternates list.
+     * - **Run identity** — checked in the mutation transaction so Finish cannot
+     *   retarget a delayed swap to a successor run. A refusal is acknowledged;
+     *   a thrown transaction leaves its stamp unacknowledged for retry.
+     */
     suspend fun apply(swap: ExerciseSwapDelta): Outcome = mutationLock.withLock {
         applySwap(swap).also { ackLog.recordProcessedEdit(swap.editedAtMillis) }
     }
@@ -135,41 +156,35 @@ class SetEditApplier(
         val performed = performedExercise(slot, tracks.tracks.firstOrNull {
             it.programExerciseId == slot.programExerciseId && it.slot == Slot.MAIN
         }?.exerciseId, catalog)
-        if (performed.exerciseId == swap.exerciseId) {
-            if (swap.runId == null) return Outcome.APPLIED
-            if (tracks.runOpen) return if (repo.swapInRun(
-                    swap.runId, slot.programExerciseId, Slot.MAIN, swap.exerciseId, null,
-                )) Outcome.APPLIED else Outcome.REJECTED
-        }
-
         val rowKey = "${swap.dayId}|${swap.programExerciseId}|swap"
-        if (swap.editedAtMillis <= markers.lastApplied(rowKey)) return Outcome.STALE
-
+        val stale = swap.editedAtMillis <= markers.lastApplied(rowKey)
         val answers = repo.wizardAnswersFor(planId).first()
-        val prescribed = WatchSnapshotBuilder.alternatesFor(performed.exerciseId, catalog, answers.equipment)
-        if (swap.exerciseId != performed.exerciseId && swap.exerciseId != slot.exercise.exerciseId &&
-            prescribed.none { it.exerciseId == swap.exerciseId }) return Outcome.INVALID
-
+        val declined = when {
+            stale -> Outcome.STALE
+            swap.exerciseId != slot.exercise.exerciseId && swap.exerciseId != performed.exerciseId &&
+                WatchSnapshotBuilder.alternatesFor(performed.exerciseId, catalog, answers.equipment)
+                    .none { it.exerciseId == swap.exerciseId } -> Outcome.INVALID
+            else -> null
+        }
+        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
         val runId = swap.runId
-        if (runId != null) {
-            if (tracks.runId != runId) return Outcome.REJECTED
-            if (!tracks.runOpen) {
-                val seeds = DayScreenBuilder.seedPlan(slots, emptyMap(), answers.config, catalog)
-                    .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
-                when (val result = repo.startRunIfNext(runId, planId, swap.dayId, seeds)) {
-                    is RunStartResult.Started -> if (result.runId != runId) return Outcome.REJECTED
-                    is RunStartResult.AlreadyOpen -> if (result.runId != runId) return Outcome.REJECTED
-                    else -> return Outcome.REJECTED
-                }
-            }
-            val existing = repo.dayTracksFlow(planId, swap.dayId).first().tracks
-                .associate { (it.programExerciseId to it.slot) to it.sets.size }
-            val seed = DayScreenBuilder.swapSeed(slot, Slot.MAIN, swap.exerciseId, existing, answers.config, catalog)
+        val seeds = if (runId != null && declined == null) {
+            DayScreenBuilder.seedPlan(slots, existing, answers.config, catalog)
+                .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
+        } else emptyList()
+        val seed = if (runId != null && declined == null) {
+            DayScreenBuilder.swapSeed(slot, Slot.MAIN, swap.exerciseId, existing, answers.config, catalog)
                 ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
-            if (!repo.swapInRun(runId, slot.programExerciseId, Slot.MAIN, swap.exerciseId, seed)) return Outcome.REJECTED
-        } else {
-            if (!repo.swapExerciseById(swap.dayId, swap.programExerciseId, swap.exerciseId)) return Outcome.REJECTED
-            seedSwappedSlot(planId, swap.dayId, swap.programExerciseId, catalog)
+        } else null
+        when (repo.applyExerciseSwap(
+            planId, swap.dayId, slot.programExerciseId, swap.exerciseId, runId, seed, seeds,
+            allowChange = declined == null,
+        )) {
+            ExerciseSwapResult.ALREADY_THERE -> return Outcome.APPLIED
+            ExerciseSwapResult.REJECTED -> return declined ?: Outcome.REJECTED
+            ExerciseSwapResult.CHANGED -> if (runId == null) {
+                seedSwappedSlot(planId, swap.dayId, swap.programExerciseId, catalog)
+            }
         }
         markers.markApplied(rowKey, swap.editedAtMillis)
         return Outcome.APPLIED

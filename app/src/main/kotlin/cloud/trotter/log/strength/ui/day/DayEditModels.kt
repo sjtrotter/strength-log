@@ -31,6 +31,8 @@ data class DayEditUiState(
     val cardioBlock: CardioBlock? = null,
     val cardioDraft: CardioBlockDraft? = null,
     val runOpen: Boolean = false,
+    val performedExerciseIds: Map<Long, String> = emptyMap(),
+    val otherWorkoutOpenMessage: Boolean = false,
 )
 
 /** One row of the day-edit sheet's slot list. */
@@ -78,4 +80,22 @@ data class DayEditActions(
     val onSetKeepToPlan: (slotId: Long, keep: Boolean) -> Unit = { _, _ -> },
     val onResetSlotToPlan: (slotId: Long) -> Unit = {},
     val onWorkoutSwap: (position: Int, newExerciseId: String) -> Unit = { _, _ -> },
+    val onMessageShown: () -> Unit = {},
 )
+
+internal fun DayEditUiState.performedSwapSlot(slot: DayEditSlotState): DayEditSlotState {
+    val entry = performedExerciseIds[slot.programExerciseId]?.let(catalog::find) ?: return slot
+    return slot.copy(exerciseId = entry.id, title = entry.name, pattern = entry.pattern)
+}
+
+internal fun DayEditActions.swapWeight(card: ExerciseCardState, state: DayEditUiState, exerciseId: String) {
+    val planned = state.slots.firstOrNull { it.programExerciseId == card.programExerciseId } ?: return
+    if (card.exerciseId != planned.exerciseId) onWorkoutSwap(card.position, exerciseId)
+    else onSwap(card.position, exerciseId)
+}
+
+internal fun DayEditUiState.swapCandidates(slot: DayEditSlotState) = (
+    listOfNotNull(slots.firstOrNull {
+        it.programExerciseId == slot.programExerciseId && it.exerciseId != slot.exerciseId
+    }?.exerciseId?.let(catalog::find)) + catalog.substitutionsFor(slot.exerciseId)
+).distinctBy { it.id }.filter { it.id != slot.exerciseId }

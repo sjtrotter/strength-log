@@ -163,6 +163,13 @@ fun DayScreen(
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val snackbarHost = remember { SnackbarHostState() }
+    val otherWorkoutMessage = stringResource(R.string.day_swap_other_workout_open)
+    LaunchedEffect(dayEditState.otherWorkoutOpenMessage) {
+        if (dayEditState.otherWorkoutOpenMessage) {
+            scope.launch { snackbarHost.showSnackbar(otherWorkoutMessage) }
+            dayEditActions.onMessageShown()
+        }
+    }
     val removedMessage = stringResource(R.string.day_set_removed)
     val undoLabel = stringResource(R.string.day_undo)
     LaunchedEffect(openOffer, removedSets.size) {
@@ -444,7 +451,7 @@ fun DayScreen(
                                     onAllSets = { actions.onOpenAllSets(card.programExerciseId) },
                                     canSwap = card.programExerciseId in swappableSlotIds,
                                     onSwap = { swapCardSlotId = card.programExerciseId },
-                                    onSwapWeight = dayEditActions.onSwap,
+                                    onSwapWeight = { _, exerciseId -> dayEditActions.swapWeight(card, dayEditState, exerciseId) },
                                     onNote = { noteCardId = card.programExerciseId },
                                     timedRep = state.timedRep,
                                     executionBusy = state.executionBusy,

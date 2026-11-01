@@ -212,7 +212,7 @@ class TodaySnapshotSourceRestTest {
         )
         val applier = SetEditApplier(repo, syncStore, syncStore)
         db.openHelper.writableDatabase.execSQL(
-            "CREATE TRIGGER reject_watch_swap BEFORE UPDATE ON program_exercise " +
+            "CREATE TRIGGER reject_watch_swap BEFORE INSERT ON run_track " +
                 "BEGIN SELECT RAISE(ABORT, 'watch swap write failed'); END",
         )
         val failure = runCatching { applier.apply(swap) }.exceptionOrNull()

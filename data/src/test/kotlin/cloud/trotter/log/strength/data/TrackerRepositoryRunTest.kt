@@ -237,7 +237,7 @@ class TrackerRepositoryRunTest {
     }
 
     /** [F] */
-    @Test fun `swap rejects a mismatched expected run without writing`() = runTest {
+    @Test fun `workout swap rejects a mismatched run without writing`() = runTest {
         val plan = authored()
         val id = slot(plan)
         for (open in listOf(false, true)) {
@@ -245,7 +245,7 @@ class TrackerRepositoryRunTest {
             val beforeSlot = db.programDao().exercise(id)
             val beforeLogs = db.programDao().logsForDay(plan, "A")
             val beforeRun = repo.openRunFlow.first()
-            assertFalse(repo.swapExerciseById("A", id, "hack_squat", expectedRunId = day(plan, "B").nextRunId))
+            assertFalse(repo.swapInRun(day(plan, "B").nextRunId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, work())))
             assertEquals(beforeSlot, db.programDao().exercise(id))
             assertEquals(beforeLogs, db.programDao().logsForDay(plan, "A"))
             assertEquals(beforeRun, repo.openRunFlow.first())
@@ -253,16 +253,18 @@ class TrackerRepositoryRunTest {
     }
 
     /** [F] */
-    @Test fun `swap accepts the open or next run and rejects a finished run`() = runTest {
+    @Test fun `workout swap requires an open run and rejects a finished run`() = runTest {
         val plan = authored()
         val id = slot(plan)
         val preview = day(plan).nextRunId
-        assertTrue(repo.swapExerciseById("A", id, "hack_squat", expectedRunId = preview))
+        val seed = RunSeed(id, Slot.MAIN, work())
+        assertFalse(repo.swapInRun(preview, id, Slot.MAIN, "hack_squat", seed))
         val runId = start(plan)
         assertEquals(preview, runId)
-        assertTrue(repo.swapExerciseById("A", id, "bb_back_squat", expectedRunId = runId))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", seed))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat", null))
         repo.finishRun(runId)
-        assertFalse(repo.swapExerciseById("A", id, "hack_squat", expectedRunId = runId))
+        assertFalse(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", seed))
         assertEquals("bb_back_squat", db.programDao().exercise(id)!!.exerciseId)
     }
 
@@ -911,6 +913,23 @@ class TrackerRepositoryRunTest {
             false, cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN,
         ))
         assertEquals(RunStartResult.NoStrengthSlots, repo.startRun(plan, "A", emptyList()))
+        assertNull(repo.openRunFlow.first())
+    }
+
+    @Test fun `same exercise plan swap without an open run preserves working values`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.seedIfEmpty("A", id, Slot.MAIN, work())
+        val before = db.programDao().logsForDay(plan, "A")
+        assertTrue(repo.swapExerciseById("A", id, "bb_back_squat"))
+        assertEquals(before, db.programDao().logsForDay(plan, "A"))
+        assertNull(repo.openRunFlow.first())
+    }
+
+    @Test fun `explicit Start refuses a removed day without opening a run`() = runTest {
+        val plan = authored()
+        assertTrue(repo.removeDay(plan, "B"))
+        assertEquals(RunStartResult.NoStrengthSlots, repo.startRun(plan, "B", emptyList()))
         assertNull(repo.openRunFlow.first())
     }
 }

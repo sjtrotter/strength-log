@@ -331,12 +331,14 @@ class DayViewModel @Inject constructor(
         val plan = ctx.plan
         if (dayId == null || plan == null) flowOf(DayEditUiState()) else combine(
             repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id),
-            repo.openRunFlow.map { it?.planId to it?.dayId }.distinctUntilChanged(),
-        ) { slots, answers, run ->
+            repo.dayTracksFlow(plan.id, dayId),
+        ) { slots, answers, tracks ->
             val block = ctx.program.days.firstOrNull { it.id == dayId }?.cardioBlock
             buildEditState(slots, ctx.catalog, answers.equipment).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block, config = answers.config,
-                runOpen = run == (plan.id to dayId),
+                runOpen = tracks.runOpen,
+                performedExerciseIds = tracks.tracks.filter { it.slot == Slot.MAIN }
+                    .mapNotNull { track -> track.exerciseId?.let { track.programExerciseId to it } }.toMap(),
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
                 canResetToTemplate = plan.origin == PlanOrigin.GENERATED.name &&
                     ProgramGenerator.generate(answers).days.any { it.id == dayId },
@@ -356,10 +358,16 @@ class DayViewModel @Inject constructor(
             },
         )
     }
-    val dayEditState: StateFlow<DayEditUiState> = combine(prescriptionEditState, cardioDraft) { state, draft ->
+    private val otherWorkoutOpenMessage = MutableStateFlow(false)
+
+    fun dismissSwapMessage() { otherWorkoutOpenMessage.value = false }
+
+    val dayEditState: StateFlow<DayEditUiState> = combine(
+        prescriptionEditState, cardioDraft, otherWorkoutOpenMessage,
+    ) { state, draft, message ->
         state.copy(cardioDraft = draft?.takeIf {
             it.planId == state.planId && it.dayId == state.dayId
-        })
+        }, otherWorkoutOpenMessage = message)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
 
     val notificationPermissionAsked = repo.phoneRestNotificationAskedFlow
@@ -1350,12 +1358,18 @@ class DayViewModel @Inject constructor(
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
             val cfg = repo.wizardAnswersFor(planId).first().config
             val catalog = repo.catalogFlow.first()
-            val seeds = DayScreenBuilder.seedPlan(slots, emptyMap(), cfg, catalog)
+            val working = repo.dayTracksFlow(planId, day).first().tracks
+                .associate { (it.programExerciseId to it.slot) to it.sets.size }
+            val seeds = DayScreenBuilder.seedPlan(slots, working, cfg, catalog)
                 .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
             val runId = when (val result = repo.startRun(planId, day, seeds)) {
                 is RunStartResult.Started -> result.runId
                 is RunStartResult.AlreadyOpen -> result.runId
-                is RunStartResult.OtherRunOpen, RunStartResult.NoStrengthSlots -> return@mutate
+                is RunStartResult.OtherRunOpen -> {
+                    otherWorkoutOpenMessage.value = true
+                    return@mutate
+                }
+                RunStartResult.NoStrengthSlots -> return@mutate
             }
             val existing = repo.dayTracksFlow(planId, day).first().tracks
                 .associate { (it.programExerciseId to it.slot) to it.sets.size }

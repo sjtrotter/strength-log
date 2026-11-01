@@ -568,14 +568,22 @@ open class TrackerRepository(
             val run = runDao.openRun()
             if (run?.planId == row.planId && run.dayId == row.dayId) {
                 val tracks = runDao.tracks(run.id).filter {
-                    it.programExerciseId == row.id && !it.retired && it.exerciseId == row.exerciseIdFor(it.slot)
+                    it.programExerciseId == row.id && !it.retired
                 }
-                val main = tracks.firstOrNull { it.slot == Slot.MAIN }
+                val main = tracks.firstOrNull { it.slot == Slot.MAIN && it.exerciseId == row.exerciseId }
                 if (main != null && main.canReplan(prescription.tracking == TrackingType.TIMED)) {
                     val current = SetJson.decodeSets(main.setsJson)
                     val seeded = SetSeeder.seedPrescribed(count, prescription)
                     val partner = tracks.firstOrNull { it.slot == Slot.SS }
-                    val mainRows = if (partner == null) RunReplan.represcribe(current, seeded) else {
+                    val mainRows = if (partner == null) RunReplan.represcribe(current, seeded) else if (
+                        partner.exerciseId != row.exerciseIdFor(Slot.SS)
+                    ) {
+                        val partnerRows = SetJson.decodeSets(partner.setsJson)
+                        val alignedSeed = RunReplan.alignPaired(
+                            seeded, partnerRows, seeded, partnerRows.ifEmpty { seeded },
+                        ).first
+                        RunReplan.represcribe(current, alignedSeed)
+                    } else {
                         val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
                         val entry = catalog.find(partner.exerciseId)
                         if (entry == null) RunReplan.represcribe(current, seeded) else {
@@ -695,24 +703,26 @@ open class TrackerRepository(
         }
     }
 
-    /** The slot names its plan; a missing slot, mismatched day or unexpected run
-     * returns false without writing. The run check and swap must be atomic. */
+    /** The slot names its plan; a missing slot or mismatched day returns false. */
     suspend fun swapExerciseById(
         dayId: String,
         programExerciseId: Long,
         newExerciseId: String,
-        expectedRunId: String? = null,
-    ): Boolean = db.withTransaction {
-        val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
-        if (row.dayId != dayId) return@withTransaction false
-        if (expectedRunId != null) {
-            val open = runDao.openRun()
-            val day = programDao.day(row.planId, dayId)
-            if (!((open?.id == expectedRunId && open.planId == row.planId && open.dayId == dayId) ||
-                    day?.nextRunId == expectedRunId)) return@withTransaction false
+    ): Boolean {
+        val global = settings.globalLifterFlow.first()
+        val catalog = catalogFlow.first()
+        return db.withTransaction {
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
+            if (row.dayId != dayId) return@withTransaction false
+            if (newExerciseId == row.exerciseId) {
+                val run = runDao.openRun()?.takeIf { it.planId == row.planId && it.dayId == dayId }
+                    ?: return@withTransaction true
+                val config = answersForPlan(planDao.plan(row.planId), global).config
+                return@withTransaction swapInRun(run.id, row.id, Slot.MAIN, newExerciseId, null, config, catalog)
+            }
+            swapInPlan(row.planId, row.dayId, row.id, newExerciseId)
+            true
         }
-        swapInPlan(row.planId, row.dayId, row.id, newExerciseId)
-        true
     }
 
     private suspend fun swapInPlan(
@@ -1354,7 +1364,7 @@ open class TrackerRepository(
                 RunStartResult.AlreadyOpen(open.id)
             } else RunStartResult.OtherRunOpen(open.id, open.planId, open.dayId)
         }
-        val day = requireNotNull(programDao.day(planId, dayId))
+        val day = programDao.day(planId, dayId) ?: return@withTransaction RunStartResult.NoStrengthSlots
         if (programDao.exercisesForDay(planId, dayId).isEmpty()) return@withTransaction RunStartResult.NoStrengthSlots
         startRun(day, initialRunTracks(day, seeds))
         RunStartResult.Started(day.nextRunId)
@@ -1369,6 +1379,56 @@ open class TrackerRepository(
         startRun(planId, dayId, seeds)
     }
 
+    /** Identity and no-op checks share the mutation transaction, including preview swaps. */
+    suspend fun applyExerciseSwap(
+        planId: Long,
+        dayId: String,
+        programExerciseId: Long,
+        newExerciseId: String,
+        runId: String?,
+        seed: RunSeed?,
+        startSeeds: List<RunSeed>,
+        allowChange: Boolean,
+    ): ExerciseSwapResult {
+        val config = wizardAnswersFor(planId).first().config
+        val catalog = catalogFlow.first()
+        return db.withTransaction {
+            val row = programDao.exercise(programExerciseId)
+                ?.takeIf { it.planId == planId && it.dayId == dayId }
+                ?: return@withTransaction ExerciseSwapResult.REJECTED
+            val open = runDao.openRun()
+            val ownRun = open?.takeIf { it.planId == planId && it.dayId == dayId }
+            if (runId != null && (open != null && ownRun?.id != runId ||
+                    (open == null && programDao.day(planId, dayId)?.nextRunId != runId))) {
+                return@withTransaction ExerciseSwapResult.REJECTED
+            }
+            val active = ownRun?.let { run -> runDao.tracks(run.id).firstOrNull {
+                it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired
+            } }
+            if ((active?.exerciseId ?: row.exerciseId) == newExerciseId) {
+                return@withTransaction ExerciseSwapResult.ALREADY_THERE
+            }
+            if (!allowChange) return@withTransaction ExerciseSwapResult.REJECTED
+            val applied = if (runId == null && newExerciseId != row.exerciseId) {
+                swapInPlan(planId, dayId, programExerciseId, newExerciseId)
+                true
+            } else {
+                val targetRunId = runId ?: ownRun?.id ?: return@withTransaction ExerciseSwapResult.ALREADY_THERE
+                if (ownRun == null) {
+                    val initialSeed = seed ?: return@withTransaction ExerciseSwapResult.REJECTED
+                    if (initialSeed.programExerciseId != row.id || initialSeed.slot != Slot.MAIN) {
+                        return@withTransaction ExerciseSwapResult.REJECTED
+                    }
+                    if (startRunIfNext(targetRunId, planId, dayId, startSeeds) !is RunStartResult.Started) {
+                        return@withTransaction ExerciseSwapResult.REJECTED
+                    }
+                }
+                swapInRun(targetRunId, programExerciseId, Slot.MAIN, newExerciseId, seed, config, catalog)
+            }
+            if (applied) ExerciseSwapResult.CHANGED else ExerciseSwapResult.REJECTED
+        }
+    }
+
     suspend fun swapInRun(
         runId: String,
         programExerciseId: Long,
@@ -1379,6 +1439,18 @@ open class TrackerRepository(
         val planId = planIdOfSlot(programExerciseId) ?: return false
         val config = wizardAnswersFor(planId).first().config
         val catalog = catalogFlow.first()
+        return swapInRun(runId, programExerciseId, slot, newExerciseId, seed, config, catalog)
+    }
+
+    private suspend fun swapInRun(
+        runId: String,
+        programExerciseId: Long,
+        slot: String,
+        newExerciseId: String,
+        seed: RunSeed?,
+        config: LifterConfig,
+        catalog: ExerciseCatalog,
+    ): Boolean {
         return db.withTransaction {
             val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction false
             val row = programDao.exercise(programExerciseId)
@@ -1406,8 +1478,8 @@ open class TrackerRepository(
                 val swappedRows = SetJson.decodeSets(replacement.setsJson)
                 val otherRows = SetJson.decodeSets(partner.setsJson)
                 val count = maxOf(swappedRows.size, otherRows.size)
-                val swappedSeed = validSeed?.sets?.takeIf { it.isNotEmpty() }
-                    ?: SetJson.decodeSets(replacement.plannedJson)
+                val swappedSeed = if (retired != null) SetJson.decodeSets(retired.plannedJson)
+                    else validSeed?.sets.orEmpty()
                 val programSlot = ProgramSlot(row.id, row.position, row.toDomain())
                 val performed = performedExercise(programSlot, partner.exerciseId, catalog, otherSlot)
                 val otherSeed = if (otherSlot == Slot.SS) {

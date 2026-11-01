@@ -196,7 +196,10 @@ object DayScreenBuilder {
         catalog: ExerciseCatalog,
     ): SeedWrite? {
         val exercise = when (trackSlot) {
-            Slot.MAIN -> slot.exercise.copy(exerciseId = newExerciseId, prescription = null)
+            Slot.MAIN -> slot.exercise.copy(
+                exerciseId = newExerciseId,
+                prescription = slot.exercise.prescription.takeIf { newExerciseId == slot.exercise.exerciseId },
+            )
             Slot.SS -> slot.exercise.copy(superset = requireNotNull(slot.exercise.superset).copy(exerciseId = newExerciseId))
             else -> return null
         }

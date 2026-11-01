@@ -153,7 +153,7 @@ fun DayEditSheet(
         // the sheet's. This handler only claims the press while a page can go
         // back. Disabling it at the root returns the gesture to the sheet.
         BackHandler(enabled = backTarget != null, onBack = onBack)
-        val swapSlot = state.slots.firstOrNull { it.programExerciseId == swapSlotId }
+        val swapSlot = state.slots.firstOrNull { it.programExerciseId == swapSlotId }?.let(state::performedSwapSlot)
         val ssSlot = state.slots.firstOrNull { it.programExerciseId == ssSlotId }
         val optionsSlot = state.slots.firstOrNull { it.programExerciseId == optionsSlotId }
         when {
@@ -779,9 +779,7 @@ private fun SwapPickerPage(
             key = "swap-${slot.programExerciseId}",
             title = stringResource(R.string.day_edit_swap_title, slot.title),
             pattern = pattern,
-            candidates = (listOfNotNull(state.slots.firstOrNull {
-                it.programExerciseId == slot.programExerciseId && it.exerciseId != slot.exerciseId
-            }?.exerciseId?.let(state.catalog::find)) + state.catalog.substitutionsFor(slot.exerciseId)).distinctBy { it.id },
+            candidates = state.swapCandidates(slot),
             defaultEquipment = state.defaultEquipmentFilter,
             accent = accent,
             onPick = { pickedId = it.id },
@@ -791,6 +789,13 @@ private fun SwapPickerPage(
     }
 }
 
+/**
+ * The card's swap picker shares the day editor's performed identity and choices.
+ * After picking an exercise, "This workout" calls [onWorkoutSwap] and "The plan"
+ * calls [onSwap]. An open run defaults to "This workout". Applying closes the
+ * sheet; the ViewModel starts a run when needed and reports another open workout.
+ * Back from the choice returns to the picker; at its root the dialog dismisses.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SlotSwapSheet(

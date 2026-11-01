@@ -378,7 +378,7 @@ class DayViewModel @Inject constructor(
         state.copy(
             selectedPageKey = selection,
             pendingPlanSwap = pending?.takeIf {
-                flags.setScreen && state.planId == it.planId && state.viewDayId == it.dayId &&
+                flags.setScreen && !state.runOpen && state.planId == it.planId && state.viewDayId == it.dayId &&
                     state.exercises.any { card -> card.programExerciseId == it.programExerciseId }
             },
             swapUndo = undo?.takeIf { offer ->
@@ -517,6 +517,31 @@ class DayViewModel @Inject constructor(
     private var undoWindowJob: Job? = null
 
     init {
+        if (flags.setScreen) {
+            viewModelScope.launch {
+                swapUndo.flatMapLatest { offer ->
+                    if (offer == null) flowOf(null) else repo.openRunFlow.map { run ->
+                        offer.takeUnless {
+                            run != null && run.id == offer.runId && run.tracks.any { track ->
+                                !track.retired && track.programExerciseId == offer.programExerciseId &&
+                                    track.slot == offer.slot && track.exerciseId == offer.exerciseId
+                            }
+                        }
+                    }
+                }.collect { invalid ->
+                    if (invalid != null && swapUndo.value == invalid) dismissSwapUndo()
+                }
+            }
+            viewModelScope.launch {
+                combine(dayState, pendingPlanSwap) { state, pending ->
+                    pending?.takeIf {
+                        !state.loading && state.planId == it.planId && state.viewDayId == it.dayId
+                    }
+                }.collect { pending ->
+                    if (pending != null) mutationLock.withLock { reconcilePlanSwap(pending) }
+                }
+            }
+        }
         viewModelScope.launch {
             dayState.collect { state ->
                 if (!state.loading && state.viewDayId == currentDay() &&
@@ -1405,7 +1430,8 @@ class DayViewModel @Inject constructor(
             val seed = DayScreenBuilder.swapSeed(slot, offer.slot, offer.previousExerciseId, existing,
                 repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first())
                 ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
-            repo.swapInRun(offer.runId, offer.programExerciseId, offer.slot, offer.previousExerciseId, seed)
+            repo.swapInRun(offer.runId, offer.programExerciseId, offer.slot, offer.previousExerciseId, seed,
+                expectedExerciseId = offer.exerciseId)
             dismissSwapUndo()
         }
     }
@@ -1666,11 +1692,9 @@ class DayViewModel @Inject constructor(
                 return@mutate
             }
             val tracks = repo.dayTracksFlow(planId, day).first()
-            val doneCount = if (tracks.runOpen) 0 else tracks.tracks.filter {
-                it.programExerciseId == slot.programExerciseId && (half == Slot.MAIN || it.slot == Slot.SS)
-            }.sumOf { it.sets.count { set -> set.done } }
+            val doneCount = planSwapDoneCount(slot, tracks, half, exerciseId)
             val oldId = if (half == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
-            if (doneCount > 0 && (half == Slot.SS || oldId != exerciseId)) {
+            if (doneCount > 0) {
                 savedState[KEY_PENDING_PLAN_SWAP] = PendingPlanSwap(
                     day, planId, slot.programExerciseId, half, exerciseId,
                     oldId?.let { repo.catalogFlow.first().find(it)?.name ?: it }.orEmpty(), doneCount,
@@ -1690,16 +1714,39 @@ class DayViewModel @Inject constructor(
 
     fun dismissPlanSwap() { savedState[KEY_PENDING_PLAN_SWAP] = null }
 
+    private fun planSwapDoneCount(slot: ProgramSlot, tracks: DayTracks, half: String, exerciseId: String): Int {
+        if (tracks.runOpen || (half == Slot.MAIN && slot.exercise.exerciseId == exerciseId)) return 0
+        return tracks.tracks.filter {
+            it.programExerciseId == slot.programExerciseId && (half == Slot.MAIN || it.slot == Slot.SS)
+        }.sumOf { it.sets.count { set -> set.done } }
+    }
+
+    private suspend fun reconcilePlanSwap(pending: PendingPlanSwap, confirmed: Boolean = false) {
+        if (pendingPlanSwap.value != pending || dayState.value.planId != pending.planId ||
+            currentDay() != pending.dayId) return
+        val slot = repo.slotsFor(pending.planId, pending.dayId).first().firstOrNull {
+            it.programExerciseId == pending.programExerciseId
+        }
+        if (slot == null) {
+            dismissPlanSwap()
+            return
+        }
+        val tracks = repo.dayTracksFlow(pending.planId, pending.dayId).first()
+        val doneCount = planSwapDoneCount(slot, tracks, pending.slot, pending.exerciseId)
+        if (doneCount > 0) {
+            if (doneCount != pending.doneCount) {
+                savedState[KEY_PENDING_PLAN_SWAP] = pending.copy(doneCount = doneCount)
+                return
+            }
+            if (!confirmed) return
+        }
+        dismissPlanSwap()
+        applyPlanSwap(pending.dayId, pending.programExerciseId, pending.slot, pending.exerciseId)
+    }
+
     fun confirmPlanSwap() {
         val pending = uiState.value.pendingPlanSwap ?: return
-        mutate {
-            if (uiState.value.planId != pending.planId || currentDay() != pending.dayId) return@mutate
-            if (repo.slotsFor(pending.planId, pending.dayId).first().none {
-                it.programExerciseId == pending.programExerciseId
-            }) return@mutate
-            applyPlanSwap(pending.dayId, pending.programExerciseId, pending.slot, pending.exerciseId)
-            dismissPlanSwap()
-        }
+        mutate { reconcilePlanSwap(pending, confirmed = true) }
     }
 
     fun swapWorkoutSlot(position: Int, newExerciseId: String) = swapWorkoutSlot(position, newExerciseId, Slot.MAIN)

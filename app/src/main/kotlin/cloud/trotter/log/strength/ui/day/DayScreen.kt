@@ -177,7 +177,9 @@ fun DayScreen(
     val removedMessage = stringResource(R.string.day_set_removed)
     val undoLabel = stringResource(R.string.day_undo)
     LaunchedEffect(openOffer, removedSets.size) {
-        snackbarHost.currentSnackbarData?.dismiss()
+        // Canceling showSnackbar removes its own offer. An expired removal
+        // must not dismiss a newer swap; keep the pager's behavior unchanged.
+        if (openOffer != null || state.workout == null) snackbarHost.currentSnackbarData?.dismiss()
         if (openOffer != null) {
             val result = snackbarHost.showSnackbar(
                 message = removedMessage,

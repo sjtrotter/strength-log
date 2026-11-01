@@ -14,6 +14,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -134,7 +136,7 @@ class LiftSheetTest {
             onOpenSetEditor = { id, index -> state = state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.EDITOR, id, index)) },
         )) } }
         rule.onNodeWithTag("lift-set-3").performClick()
-        rule.onNodeWithText("R4").assertExists()
+        rule.onNodeWithText("Ramp set 4").assertIsDisplayed()
         rule.runOnIdle {
             assertEquals(3, state.openSheet?.setIndex)
             assertEquals(initial.workout, state.workout)
@@ -151,6 +153,32 @@ class LiftSheetTest {
         rule.onNodeWithText("Swap", substring = false).assertDoesNotExist()
         rule.onNodeWithText("Undo").performClick()
         rule.runOnIdle { assertEquals(1, undos) }
+    }
+
+    @Test fun removalExpiryKeepsNewerSwapSnackbarAndUndo() {
+        var state by mutableStateOf(workoutLiftSheetFixture())
+        var removed by mutableStateOf(listOf(RemovedSet(1L, 2, "A", "run",
+            LoggedSet(190.0, 5, SetKind.RAMP))))
+        var swapUndos = 0
+        var removalUndos = 0
+        rule.setContent { AppTheme {
+            WorkoutSetHost(state, pagerActions().copy(onUndoWorkoutSwap = { swapUndos++ }),
+                removedSets = removed, onUndoRemoveSet = { removalUndos++ })
+        } }
+        rule.onNodeWithText("Set removed").assertIsDisplayed()
+        rule.runOnIdle {
+            state = state.copy(swapUndo = WorkoutSwapUndo("A", "run", 1L, Slot.MAIN,
+                "bb_back_squat", "hack_squat", "Hack Squat"))
+        }
+        rule.onNodeWithText("Swapped to Hack Squat").assertIsDisplayed()
+        // The ViewModel clears this list when the removal window expires.
+        rule.runOnIdle { removed = emptyList() }
+        rule.onNodeWithText("Swapped to Hack Squat").assertIsDisplayed()
+        rule.onNodeWithText("Undo").performClick()
+        rule.runOnIdle {
+            assertEquals(1, swapUndos)
+            assertEquals(0, removalUndos)
+        }
     }
 
     @Test fun destructivePlanSwapConfirmationNamesExerciseAndLoggedCount() {

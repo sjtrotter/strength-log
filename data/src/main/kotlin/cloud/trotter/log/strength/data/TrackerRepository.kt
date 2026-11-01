@@ -1453,11 +1453,12 @@ open class TrackerRepository(
         slot: String,
         newExerciseId: String,
         seed: RunSeed?,
+        expectedExerciseId: String? = null,
     ): Boolean {
         val planId = planIdOfSlot(programExerciseId) ?: return false
         val config = wizardAnswersFor(planId).first().config
         val catalog = catalogFlow.first()
-        return swapInRun(runId, programExerciseId, slot, newExerciseId, seed, config, catalog)
+        return swapInRun(runId, programExerciseId, slot, newExerciseId, seed, config, catalog, expectedExerciseId)
     }
 
     private suspend fun swapInRun(
@@ -1468,6 +1469,7 @@ open class TrackerRepository(
         seed: RunSeed?,
         config: LifterConfig,
         catalog: ExerciseCatalog,
+        expectedExerciseId: String? = null,
     ): Boolean {
         return db.withTransaction {
             val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction false
@@ -1478,6 +1480,7 @@ open class TrackerRepository(
             val active = tracks.firstOrNull {
                 it.programExerciseId == programExerciseId && it.slot == slot && !it.retired
             }
+            if (expectedExerciseId != null && active?.exerciseId != expectedExerciseId) return@withTransaction false
             if (active?.exerciseId == newExerciseId) return@withTransaction true
             val retired = tracks.firstOrNull {
                 it.programExerciseId == programExerciseId && it.slot == slot && it.exerciseId == newExerciseId && it.retired

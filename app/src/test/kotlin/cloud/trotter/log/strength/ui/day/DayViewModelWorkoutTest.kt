@@ -9,8 +9,11 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.RunSeed
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -173,6 +176,15 @@ class DayViewModelWorkoutTest {
         }
     }
 
+    private suspend fun openRunWithLegacyRows(pending: PendingPlanSwap) {
+        val tracks = repo.dayTracksFlow(pending.planId, pending.dayId).first()
+        val id = pending.programExerciseId
+        assertTrue(repo.updateSetsPaired(requireNotNull(tracks.runId), pending.dayId, id,
+            tracks.tracks.single { it.programExerciseId == id && it.slot == Slot.MAIN }.sets,
+            tracks.tracks.single { it.programExerciseId == id && it.slot == Slot.SS }.sets,
+        ) is RunWriteResult.InRun)
+    }
+
     @Test
     fun `legacy plan MAIN swap confirms before deleting either half logged rows`() = test {
         prepare(listOf(bench(superset = true)))
@@ -212,6 +224,105 @@ class DayViewModelWorkoutTest {
         runCurrent()
         assertEquals("cable_row", vm.uiState.value.exercises.single().partnerExerciseId)
         assertNull(vm.uiState.value.pendingPlanSwap)
+    }
+
+    @Test
+    fun `restored plan swap after a run opens applies without deleting done rows`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        markLegacyRowsDone(vm)
+        runCurrent()
+        vm.swapDaySlot(0, "machine_chest")
+        runCurrent()
+        val pending = requireNotNull(vm.uiState.value.pendingPlanSwap)
+        vm.viewModelScope.cancel()
+        openRunWithLegacyRows(pending)
+        val before = requireNotNull(repo.openRunFlow.first())
+        assertEquals(2, before.tracks.sumOf { it.sets.count { set -> set.done } })
+        val saved = SavedStateHandle(mapOf("day_pending_plan_swap" to pending))
+        val restored = readyVm(savedState = saved)
+        assertNull(restored.uiState.value.pendingPlanSwap)
+        assertNull(saved.get<PendingPlanSwap>("day_pending_plan_swap"))
+        assertEquals("machine_chest", restored.uiState.value.exercises.single().exerciseId)
+        val after = requireNotNull(repo.openRunFlow.first())
+        before.tracks.forEach { original ->
+            assertEquals(original.sets, after.tracks.single { it.id == original.id }.sets)
+        }
+        val originalMain = before.tracks.single { it.slot == Slot.MAIN }
+        assertTrue(after.tracks.single { it.id == originalMain.id }.retired)
+    }
+
+    @Test
+    fun `restored plan swap shows the current deletion count`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        markLegacyRowsDone(vm)
+        runCurrent()
+        vm.swapDaySlot(0, "machine_chest")
+        runCurrent()
+        val pending = requireNotNull(vm.uiState.value.pendingPlanSwap)
+        vm.viewModelScope.cancel()
+        db.programDao().logsForDay(pending.planId, "A").forEach { log ->
+            db.programDao().upsertLog(log.copy(setsJson = SetJson.encodeSets(
+                SetJson.decodeSets(log.setsJson).mapIndexed { index, set -> set.copy(done = index < 2) },
+            )))
+        }
+        val restored = readyVm(savedState = SavedStateHandle(mapOf("day_pending_plan_swap" to pending)))
+        assertEquals(4, restored.uiState.value.pendingPlanSwap?.doneCount)
+        assertEquals("db_bench", restored.uiState.value.exercises.single().exerciseId)
+        restored.confirmPlanSwap()
+        runCurrent()
+        assertNull(restored.uiState.value.pendingPlanSwap)
+        assertEquals("machine_chest", restored.uiState.value.exercises.single().exerciseId)
+    }
+
+    @Test
+    fun `confirming a plan swap rechecks the deletion count before applying`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        markLegacyRowsDone(vm)
+        runCurrent()
+        vm.swapDaySlot(0, "machine_chest")
+        runCurrent()
+        val pending = requireNotNull(vm.uiState.value.pendingPlanSwap)
+        db.withTransaction {
+            db.programDao().logsForDay(pending.planId, "A").forEach { log ->
+                db.programDao().upsertLog(log.copy(setsJson = SetJson.encodeSets(
+                    SetJson.decodeSets(log.setsJson).mapIndexed { index, set -> set.copy(done = index < 2) },
+                )))
+            }
+            // Room has not published the new rows, so this confirms the old count.
+            vm.confirmPlanSwap()
+        }
+        runCurrent()
+        assertEquals(4, vm.uiState.value.pendingPlanSwap?.doneCount)
+        assertEquals("db_bench", vm.uiState.value.exercises.single().exerciseId)
+        vm.confirmPlanSwap()
+        runCurrent()
+        assertNull(vm.uiState.value.pendingPlanSwap)
+        assertEquals("machine_chest", vm.uiState.value.exercises.single().exerciseId)
+    }
+
+    @Test
+    fun `confirming a plan swap after a run opens preserves done rows`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        markLegacyRowsDone(vm)
+        runCurrent()
+        vm.setDaySlotSuperset(0, "bb_row")
+        runCurrent()
+        val pending = requireNotNull(vm.uiState.value.pendingPlanSwap)
+        openRunWithLegacyRows(pending)
+        val before = requireNotNull(repo.openRunFlow.first())
+        assertEquals(2, before.tracks.sumOf { it.sets.count { set -> set.done } })
+        vm.confirmPlanSwap()
+        runCurrent()
+        assertNull(vm.uiState.value.pendingPlanSwap)
+        assertEquals("bb_row", vm.uiState.value.exercises.single().partnerExerciseId)
+        val after = requireNotNull(repo.openRunFlow.first())
+        before.tracks.forEach { original ->
+            assertEquals(original.sets, after.tracks.single { it.id == original.id }.sets)
+        }
     }
 
     @Test
@@ -290,6 +401,40 @@ class DayViewModelWorkoutTest {
         assertEquals(main, restored.tracks.single { it.id == main.id })
         assertEquals(partner, restored.tracks.single { it.id == partner.id })
         assertEquals(main.sets, track(vm, id))
+    }
+
+    @Test
+    fun `MAIN swap undo stays invalid after a remote swap away and back`() = test {
+        remoteSwapCycleClearsUndo(Slot.MAIN, "machine_chest", "bb_bench")
+    }
+
+    @Test
+    fun `SS swap undo stays invalid after a remote swap away and back`() = test {
+        remoteSwapCycleClearsUndo(Slot.SS, "bb_row", "db_row")
+    }
+
+    private suspend fun TestScope.remoteSwapCycleClearsUndo(half: String, replacement: String, remote: String) {
+        prepare(listOf(bench(superset = true)))
+        val saved = SavedStateHandle()
+        val vm = readyVm(savedState = saved)
+        val id = roundTwo(vm)
+        vm.swapWorkoutSlot(0, replacement, half)
+        runCurrent()
+        val offer = requireNotNull(vm.uiState.value.swapUndo)
+        assertTrue(repo.swapInRun(offer.runId, id, half, remote, RunSeed(id, half, track(vm, id, half))))
+        runCurrent()
+        assertNull(vm.uiState.value.swapUndo)
+        assertNull(saved.get<WorkoutSwapUndo>("day_swap_undo"))
+        assertTrue(repo.swapInRun(offer.runId, id, half, replacement, null))
+        runCurrent()
+        assertNull(vm.uiState.value.swapUndo)
+        vm.undoWorkoutSwap()
+        runCurrent()
+        assertEquals(replacement, repo.openRunFlow.first()!!.tracks.single { it.slot == half && !it.retired }.exerciseId)
+        val restored = readyVm(savedState = SavedStateHandle(mapOf(
+            "day_swap_undo" to saved.get<WorkoutSwapUndo>("day_swap_undo"),
+        )))
+        assertNull(restored.uiState.value.swapUndo)
     }
 
     @Test

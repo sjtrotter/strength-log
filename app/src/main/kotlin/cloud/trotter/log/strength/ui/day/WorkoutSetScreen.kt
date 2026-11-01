@@ -14,16 +14,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -38,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,7 +60,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -72,6 +68,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -238,23 +235,22 @@ private fun WorkoutLift(
     val row = card.rows.getOrNull(index)
     val slot = focus?.slot ?: Slot.MAIN
     val title = if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title
+    if (card.isSuperset) {
+        WorkoutSuperset(state, actions, catalog, reducedMotion)
+        return
+    }
     val announcement = when {
         workout.completedView -> stringResource(R.string.workout_done_count, card.rows.size, card.rows.size)
-        card.isSuperset -> stringResource(R.string.workout_announce_round, title, index + 1, card.rows.size)
         else -> stringResource(R.string.workout_announce_set, title, index + 1, card.rows.size)
     }
     Column(
         Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announcement },
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        if (card.isSuperset && row != null) {
-            WorkoutSuperset(card, row, slot, state.unit, workout.completedView, actions, reducedMotion)
-        } else {
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(card.title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-                TextButton(onClick = { actions.onOpenAllSets(card.programExerciseId) }, colors = neutralTextButtonColors()) {
-                    Text(stringResource(R.string.day_all_sets))
-                }
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(card.title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = { actions.onOpenAllSets(card.programExerciseId) }, colors = neutralTextButtonColors()) {
+                Text(stringResource(R.string.day_all_sets))
             }
         }
         if (workout.completedView) {
@@ -264,15 +260,13 @@ private fun WorkoutLift(
             }
             Text(card.summaryLine, style = MaterialTheme.typography.bodyLarge)
         } else if (row != null) {
-            if (!card.isSuperset) {
-                Text(
-                    if (row.kind in setOf(SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF)) {
-                        stringResource(R.string.workout_set_kind, index + 1, card.rows.size, row.kindLabel)
-                    } else stringResource(R.string.day_set_of, index + 1, card.rows.size),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                if (row.kind in setOf(SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF)) {
+                    stringResource(R.string.workout_set_kind, index + 1, card.rows.size, row.kindLabel)
+                } else stringResource(R.string.day_set_of, index + 1, card.rows.size),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             val values = row.values(slot)
             if (values != null) {
                 val editLabel = stringResource(R.string.workout_edit_set, index + 1)
@@ -300,69 +294,142 @@ private fun WorkoutLift(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkoutSuperset(
-    card: ExerciseCardState,
-    row: SetRowState,
-    slot: String,
-    unit: WeightUnit,
-    completed: Boolean,
+    state: DayUiState,
     actions: DayActions,
+    catalog: ExerciseCatalog,
     reducedMotion: Boolean,
 ) {
-    val largeFont = LocalDensity.current.fontScale > 1.3f
-    val statusWidth = 56.dp * LocalDensity.current.fontScale
-    OutlinedCard(border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-        Text(stringResource(R.string.workout_superset_round, row.index + 1, card.rows.size),
-            style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
-        for (half in listOf(Slot.MAIN, Slot.SS)) {
-            val values = row.values(half)
-            val now = !completed && half == slot
-            val done = values?.done == true
-            val status = stringResource(when {
-                done -> R.string.set_edit_done
-                now -> R.string.workout_now
-                else -> R.string.plan_next
-            })
-            val name = if (half == Slot.SS) card.partnerTitle.orEmpty() else card.title
-            val description = stringResource(R.string.workout_open_sets, name, status)
-            val value = values?.let { workoutValue(it, card.tracking(half), unit) } ?: stringResource(R.string.workout_not_available)
-            val valueModifier = if (now && values != null) Modifier.alpha(0f).clearAndSetSemantics { } else Modifier
-            ListItem(
-                leadingContent = {
-                    Column(Modifier.width(statusWidth), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Crossfade(status, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutHalf") {
-                            Text(it, style = MaterialTheme.typography.titleMedium)
-                        }
-                        if (done) Icon(Icons.Default.Check, null) else Spacer(Modifier.size(24.dp))
+    val workout = state.workout ?: return
+    val card = state.workoutCard ?: return
+    val focus = workout.focus
+    val index = focus?.index ?: card.rows.lastIndex
+    val slot = focus?.slot ?: Slot.MAIN
+    val title = if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title
+    val position = if (workout.completedView) {
+        stringResource(R.string.workout_done_rounds, card.rows.size, card.rows.size)
+    } else stringResource(R.string.workout_superset_round, index + 1, card.rows.size)
+    val announcement = if (workout.completedView) position else {
+        stringResource(R.string.workout_announce_round, title, index + 1, card.rows.size)
+    }
+    Column(
+        Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announcement },
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(position, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        AnimatedContent(
+            targetState = state,
+            contentKey = { it.workout?.focus to it.workout?.completedView },
+            transitionSpec = {
+                fadeIn(if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS))
+                    .togetherWith(fadeOut(if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS)))
+                    .using(null)
+            },
+            label = "workoutSuperset",
+        ) { shown ->
+            val outgoing = shown.workout?.focus != focus || shown.workout?.completedView != workout.completedView
+            Column(
+                if (outgoing) Modifier.clearAndSetSemantics { } else Modifier,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                WorkoutSupersetLift(shown, actions, catalog)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog: ExerciseCatalog) {
+    val workout = state.workout ?: return
+    val card = state.workoutCard ?: return
+    if (workout.completedView) {
+        for (slot in listOf(Slot.MAIN, Slot.SS)) {
+            Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
+                style = MaterialTheme.typography.headlineMedium)
+            val summary = card.rows.mapNotNull { it.values(slot) }.joinToString(", ") {
+                SetFormatter.summary(card.tracking(slot), state.unit.toLb(it.weightDisplay), it.reps, it.seconds, state.unit)
+            }
+            Text(summary, style = MaterialTheme.typography.bodyLarge)
+        }
+        return
+    }
+    val focus = workout.focus ?: return
+    val row = card.rows.getOrNull(focus.index) ?: return
+    val slot = focus.slot
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
+            style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+        TextButton(onClick = { actions.onOpenAllSets(card.programExerciseId) }, colors = neutralTextButtonColors()) {
+            Text(stringResource(R.string.day_all_sets))
+        }
+    }
+    row.values(slot)?.let { values ->
+        val editLabel = stringResource(R.string.workout_edit_set, focus.index + 1)
+        TextButton(
+            onClick = { actions.onOpenSetEditor(card.programExerciseId, focus.index) },
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
+            colors = neutralTextButtonColors(),
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            WorkoutHero(values, card.tracking(slot))
+        }
+        if (card.tracking(slot) == TrackingType.TIMED && values.weightDisplay > 0.0) {
+            Text(stringResource(R.string.workout_at_weight, WeightStepper.format(values.weightDisplay), state.unit.name.lowercase()),
+                style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        workoutDetail(card, slot, state.unit, catalog)?.let {
+            Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    WorkoutPartnerCard(card, row, slot, state.unit, actions)
+    if (state.workoutThenRest) {
+        Text(stringResource(R.string.workout_then_rest), style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun WorkoutPartnerCard(card: ExerciseCardState, row: SetRowState, slot: String, unit: WeightUnit, actions: DayActions) {
+    val partnerSlot = if (slot == Slot.MAIN) Slot.SS else Slot.MAIN
+    val values = row.values(partnerSlot)
+    val done = values?.done == true
+    val status = stringResource(if (done) R.string.set_edit_done else R.string.plan_next)
+    val spokenStatus = stringResource(if (done) R.string.workout_partner_done else R.string.workout_partner_next)
+    val name = (if (partnerSlot == Slot.SS) card.partnerTitle else card.title)
+        ?.takeIf { it.isNotBlank() && values != null } ?: stringResource(R.string.workout_not_available)
+    val value = values?.let { workoutValue(it, card.tracking(partnerSlot), unit) }.orEmpty()
+    val description = if (value.isEmpty()) {
+        stringResource(R.string.workout_open_sets_without_value, name, spokenStatus)
+    } else stringResource(R.string.workout_open_sets, name, spokenStatus, value)
+    val largeFont = LocalDensity.current.fontScale >= 1.5f
+    OutlinedCard(Modifier.fillMaxWidth().testTag("workout-partner-card")) {
+        ListItem(
+            leadingContent = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (done) Icon(Icons.Default.Check, null)
+                    Text(status)
+                }
+            },
+            headlineContent = { Text(name) },
+            supportingContent = if (largeFont && value.isNotEmpty()) { { Text(value) } } else null,
+            trailingContent = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!largeFont && value.isNotEmpty()) Text(value)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                }
+            },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .testTag("workout-half-$partnerSlot")
+                .clickable { actions.onOpenAllSets(card.programExerciseId) }
+                .clearAndSetSemantics {
+                    contentDescription = description
+                    onClick {
+                        actions.onOpenAllSets(card.programExerciseId)
+                        true
                     }
                 },
-                headlineContent = {
-                    Crossfade(now, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutEmphasis") { current ->
-                        Text(name.ifBlank { stringResource(R.string.workout_not_available) },
-                            style = MaterialTheme.typography.titleLarge,
-                            color = if (current) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                },
-                supportingContent = if (largeFont) {
-                    { Text(value, style = MaterialTheme.typography.titleMedium, modifier = valueModifier) }
-                } else null,
-                trailingContent = if (!largeFont) {
-                    { Text(value, style = MaterialTheme.typography.titleMedium, modifier = valueModifier) }
-                } else null,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                    .clickable { actions.onOpenAllSets(card.programExerciseId) }
-                    .semantics(mergeDescendants = true) { contentDescription = description }
-                    .testTag("workout-half-$half"),
-            )
-        }
-        if (slot == Slot.SS && !completed) {
-            Text(stringResource(R.string.workout_then_rest), style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
-        }
+        )
     }
 }
 

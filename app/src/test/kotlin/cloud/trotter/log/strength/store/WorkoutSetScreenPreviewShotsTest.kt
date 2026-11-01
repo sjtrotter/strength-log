@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.ui.day.WorkoutSelection
 import cloud.trotter.log.strength.ui.day.WorkoutSetHost
 import cloud.trotter.log.strength.ui.day.WorkoutState
 import cloud.trotter.log.strength.ui.day.pagerRest
+import cloud.trotter.log.strength.ui.day.withWorkoutRestHint
 import cloud.trotter.log.strength.ui.day.workoutSetSingleFixture
 import cloud.trotter.log.strength.ui.day.workoutSetSupersetFixture
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -65,7 +66,7 @@ class WorkoutSetScreenPreviewShotsTest {
             workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1), undo = UndoOffer(
                 1L, Slot.MAIN, 1, "DB Bench Press", LoggedSet(80.0, 10, SetKind.WORK), TrackingType.WEIGHTED, WeightUnit.LB, null,
             )),
-        ))
+        ).withWorkoutRestHint(true, emptyMap()))
     }
 
     @Test fun rest() {
@@ -98,6 +99,33 @@ class WorkoutSetScreenPreviewShotsTest {
     }
 
     @Test fun supersetLight() = render("07-superset-light.png", workoutSetSupersetFixture(), ThemePreference.LIGHT)
+
+    @Test fun supersetRest() {
+        val state = workoutSetSupersetFixture()
+        render("08-superset-rest.png", state.copy(
+            exercises = state.exercises.map { card -> card.copy(rows = card.rows.map { row ->
+                if (row.index < 2) row.copy(done = true, partner = row.partner?.copy(done = true)) else row
+            }) },
+            rest = pagerRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
+            workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 2), undo = UndoOffer(
+                1L, Slot.SS, 1, "Seated Cable Row", LoggedSet(120.0, 10, SetKind.WORK), TrackingType.WEIGHTED, WeightUnit.LB, null,
+            )),
+        ))
+    }
+
+    @Test fun supersetCompleted() {
+        val state = workoutSetSupersetFixture()
+        val card = state.exercises.single()
+        render("09-superset-completed.png", state.copy(
+            exercises = listOf(card.copy(allDone = true, rows = card.rows.map { row ->
+                row.copy(done = true, partner = row.partner?.copy(done = true))
+            }), workoutSetSingleFixture().exercises.single().copy(
+                programExerciseId = 2L, position = 1, exerciseId = "bb_row", title = "Barbell Row",
+            )),
+            workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("exercise:1", true),
+                focus = null, completedView = true),
+        ))
+    }
 
     private fun render(name: String, state: DayUiState, theme: ThemePreference = ThemePreference.DARK) {
         rule.mainClock.autoAdvance = false

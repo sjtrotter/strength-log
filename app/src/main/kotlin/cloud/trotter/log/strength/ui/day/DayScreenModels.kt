@@ -11,6 +11,8 @@ import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.standards.PhoneRest
+import cloud.trotter.log.strength.domain.standards.RestCategory
+import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.sync.RemoteTick
 
 @Parcelize
@@ -68,6 +70,8 @@ data class DayUiState(
     val watchStatus: WatchStatus? = null,
     val remoteTick: RemoteTick? = null,
     val workout: WorkoutState? = null,
+    /** Derived presentation hint; never controls logging or starts a timer. */
+    val workoutThenRest: Boolean = false,
 ) {
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
     val executionKeepsScreenOn: Boolean = timedRepRunning || cardioRunning
@@ -351,4 +355,24 @@ data class WeightSwapAffordance(
 @Immutable
 data class WorkoutPage(val exerciseId: Long?, val title: String, val done: Int, val total: Int, val allDone: Boolean) {
     val key: String = exerciseId?.let { "exercise:$it" } ?: "cardio"
+}
+
+/** Mirrors the existing phone timer's eligibility using the current rows and rest preferences. */
+internal fun DayUiState.withWorkoutRestHint(enabled: Boolean, overrides: Map<RestCategory, Int>): DayUiState {
+    val card = workoutCard
+    val focus = workout?.focus
+    val row = card?.rows?.getOrNull(focus?.index ?: -1)
+    val completesRound = when (focus?.slot) {
+        Slot.MAIN -> row?.done == false && row.partner?.done != false
+        Slot.SS -> row?.done == true && row.partner?.done == false
+        else -> false
+    }
+    val moreStrength = exercises.any { other -> other.rows.any {
+        !it.complete && (other.programExerciseId != focus?.programExerciseId || it.index != focus?.index)
+    } }
+    val restSeconds = if (card != null && row != null) {
+        RestPolicy.effectiveRestSeconds(row.kind, card.tracking, overrides)
+    } else 0
+    return copy(workoutThenRest = enabled && card?.isSuperset == true && workout?.completedView == false &&
+        !workoutAllLogged && completesRound && moreStrength && restSeconds > 0)
 }

@@ -1012,6 +1012,26 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(tracks.none { it.dropped })
     }
 
+    @Test fun `whole slot restore aligns a reseeded partner with an extended done MAIN`() = runTest {
+        val plan = authored()
+        repo.addExercise("A", ProgramExercise("bb_bench"))
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val skip = repo.skipLift(plan, "A", id, Slot.SS, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
+        val main = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }
+        val extended = (main.sets + main.sets.last()).map { it.copy(done = true) }
+        assertTrue(repo.updateSets(skip.runId, "A", id, Slot.MAIN, extended) is RunWriteResult.InRun)
+        assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", null) is RunWriteResult.InRun)
+        assertTrue(repo.restoreSkippedLift(skip.runId, id) is RunWriteResult.InRun)
+        repo.seedRunTracksIfMissing(skip.runId, listOf(
+            RunSeed(id, Slot.MAIN, work()), RunSeed(id, Slot.SS, work()),
+        ), alignPairs = true)
+        val active = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id && !it.retired }
+        assertEquals(extended, active.single { it.slot == Slot.MAIN }.sets)
+        assertEquals(extended.size, active.single { it.slot == Slot.SS }.sets.size)
+        assertTrue(repo.openRunFlow.first()!!.tracks.none { it.dropped })
+    }
+
     @Test fun `last active plain lift skip is rejected before starting and after another lift was skipped`() = runTest {
         val plan = authored()
         val id = slot(plan)

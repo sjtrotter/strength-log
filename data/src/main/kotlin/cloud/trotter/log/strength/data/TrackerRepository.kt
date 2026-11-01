@@ -1951,8 +1951,7 @@ open class TrackerRepository(
                     runDao.updateTrack(reopened)
                     existing[retiredIndex] = reopened
                 } else {
-                    runDao.insertTrack(track)
-                    existing.add(track)
+                    existing.add(track.copy(id = runDao.insertTrack(track)))
                 }
                 if (alignPairs) seededSlots.add(seed.programExerciseId)
             }

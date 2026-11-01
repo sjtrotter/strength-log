@@ -41,7 +41,6 @@ internal fun LiftSheet(
     onWeightSwap: (WeightSwapAffordance) -> Unit,
     onNote: () -> Unit,
     onDismiss: () -> Unit,
-    skipEnabled: Boolean = false,
     skippedPartner: SkippedLift? = null,
     canSkipLift: Boolean = card.isSuperset,
 ) {
@@ -73,7 +72,7 @@ internal fun LiftSheet(
                     )
                 }
             }
-            if (skipEnabled && skippedPartner != null) item {
+            if (skippedPartner != null) item {
                 ListItem(headlineContent = { Text(stringResource(R.string.day_bring_back_lift, skippedPartner.title)) },
                     modifier = Modifier.heightIn(min = 48.dp).clickable {
                         actions.onRestoreSkipped(card.programExerciseId, skippedPartner.slot)
@@ -111,7 +110,7 @@ internal fun LiftSheet(
             }
             val now = focus?.takeIf { it.programExerciseId == card.programExerciseId && it.slot == slot }
                 ?.let { card.rows.getOrNull(it.index) }?.takeIf { it.values(slot)?.done == false }
-            if (skipEnabled && now != null) item {
+            if (now != null) item {
                 ListItem(headlineContent = { Text(stringResource(
                     if (card.isSuperset) R.string.day_skip_round else R.string.day_skip_set)) },
                     modifier = Modifier.heightIn(min = 48.dp).clickable {
@@ -124,7 +123,7 @@ internal fun LiftSheet(
                 ListItem(headlineContent = { Text(stringResource(R.string.day_menu_swap)) },
                     modifier = Modifier.clickable { actions.onOpenSwapSheet(card.position, slot) })
             }
-            if (skipEnabled && canSkipLift) item {
+            if (canSkipLift) item {
                 ListItem(headlineContent = { Text(stringResource(R.string.day_skip_workout)) },
                     modifier = Modifier.heightIn(min = 48.dp).clickable {
                         onDismiss()

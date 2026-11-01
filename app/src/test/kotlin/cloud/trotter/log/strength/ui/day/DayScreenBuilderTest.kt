@@ -87,7 +87,6 @@ class DayScreenBuilderTest {
         assertTrue(DayScreenBuilder.seedPlan(slots, existing, LifterConfig(), ExerciseCatalog.CODE_ONLY).isEmpty())
     }
 
-
     @Test
     fun focusIndexFindsFirstUndoneOrMinusOne() {
         val rows = List(3) { SetRowState(it, "${it + 1}", false, 95.0, 5, false) }
@@ -95,15 +94,6 @@ class DayScreenBuilderTest {
         assertEquals(2, DayScreenBuilder.focusIndex(rows.mapIndexed { index, row -> row.copy(done = index < 2) }))
         assertEquals(-1, DayScreenBuilder.focusIndex(rows.map { it.copy(done = true) }))
         assertEquals(-1, DayScreenBuilder.focusIndex(emptyList()))
-    }
-
-    @Test
-    fun focusLabelsDistinguishRampsTopBackoffAndWork() {
-        val kinds = listOf(SetKind.RAMP, SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF, SetKind.WORK)
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.SetLabel(SetKind.RAMP, 2), DayScreenBuilder.focusLabel(kinds, 1))
-        assertEquals(SetKind.TOP, DayScreenBuilder.focusLabel(kinds, 2).kind)
-        assertEquals(SetKind.BACKOFF, DayScreenBuilder.focusLabel(kinds, 3).kind)
-        assertEquals(cloud.trotter.log.strength.ui.text.UiText.SetLabel(SetKind.WORK, 5), DayScreenBuilder.focusLabel(kinds, 4))
     }
 
     @Test
@@ -133,7 +123,7 @@ class DayScreenBuilderTest {
 
     @Test
     fun currentPageHonorsSelectionThenUndoneThenLastLift() {
-        val cards = pagerFixture().exercises
+        val cards = workoutDayFixture().exercises
         val keys = listOf("exercise:1", "exercise:2", "exercise:3", "cardio")
         assertEquals(2, DayScreenBuilder.currentPage(keys, "exercise:3", cards))
         assertEquals(1, DayScreenBuilder.currentPage(keys, "exercise:99", cards))
@@ -145,19 +135,11 @@ class DayScreenBuilderTest {
 
     @Test
     fun currentPageFallsBackToPageZeroWhenEveryExerciseIsUnseeded() {
-        val cards = pagerFixture().exercises.map { it.copy(rows = emptyList()) }
+        val cards = workoutDayFixture().exercises.map { it.copy(rows = emptyList()) }
         val keys = listOf("exercise:1", "exercise:2", "exercise:3", "cardio")
         assertEquals(0, DayScreenBuilder.currentPage(keys, null, cards))
         assertEquals(0, DayScreenBuilder.currentPage(keys, "exercise:99", cards))
         assertEquals(3, DayScreenBuilder.currentPage(keys, "cardio", cards))
-    }
-
-    @Test
-    fun nextSetDisplayUsesTheFollowingRowAndStopsAtTheEnd() {
-        val rows = listOf(SetRowState(0, "R3", false, 95.0, 5, false), SetRowState(1, "R4", false, 110.0, 3, false))
-        assertEquals("110 × 3", DayScreenBuilder.nextSetDisplay(rows, 0, TrackingType.WEIGHTED, WeightUnit.LB))
-        assertNull(DayScreenBuilder.nextSetDisplay(rows, 1, TrackingType.WEIGHTED, WeightUnit.LB))
-        assertNull(DayScreenBuilder.nextSetDisplay(rows, -1, TrackingType.WEIGHTED, WeightUnit.LB))
     }
 
     @Test
@@ -182,13 +164,6 @@ class DayScreenBuilderTest {
             RemoteTick("A", 7, 1, eventId = 9),
         )
         assertEquals(listOf(false, true), marked.exercises.single().rows.map { it.justTickedRemotely })
-    }
-
-    @Test
-    fun doneButtonStateResolvesNothingPartialAndComplete() {
-        assertEquals(DoneButtonState.NOTHING_LOGGED, DayScreenBuilder.doneButtonState(0, 18))
-        assertEquals(DoneButtonState.PARTIAL, DayScreenBuilder.doneButtonState(7, 18))
-        assertEquals(DoneButtonState.ALL_DONE, DayScreenBuilder.doneButtonState(18, 18))
     }
 
     private val cfg = LifterConfig() // bw 235, age 40, INTERMEDIATE, BALANCED

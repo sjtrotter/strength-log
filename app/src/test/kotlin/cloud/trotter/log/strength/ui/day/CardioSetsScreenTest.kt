@@ -21,7 +21,6 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.ui.theme.dayAccent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -47,32 +46,13 @@ class CardioSetsScreenTest {
             startedAt = 1_000, wallStart = 1_000, elapsedStart = 1_000, bootCount = 1)
     }
 
-    @Test fun distanceShowsStaticTargetAndElapsedUntilReachedTap() {
-        var reached = 0
-        var delivered: CardioSetAction? = null
-        val run = run()
-        val cardio = CardioCardState("Track run", "", false, block = run.block, run = run, elapsedSeconds = 127)
-        rule.setContent { AppTheme {
-            CardioPage(cardio, "D", dayAccent(0), pagerActions().copy(onReachCardioTarget = { delivered = it; reached++ }), false, {})
-        } }
-        rule.onNodeWithText("Target").assertExists()
-        rule.onNodeWithText("400 m").assertExists()
-        rule.onNodeWithText("Elapsed 2:07").assertExists()
-        rule.onNodeWithText("Stop").assertExists()
-        rule.onNodeWithText("Reached 400 m").performClick()
-        rule.runOnIdle {
-            assertEquals(1, reached)
-            assertEquals(run.action(), delivered)
-        }
-    }
-
     @Test fun entryIsBlankWithoutKeyboardFocusAndOnlyPositiveMetresOrBlankEnableDone() {
         var run by mutableStateOf(run().copy(wallStart = null, elapsedStart = null, bootCount = null,
             results = listOf(SavedCardioResult("SHORTENED", 23)),
             drafts = listOf(CardioDistanceDraft(0, stopped = true))))
         var saved = 0
         var delivered: CardioSetAction? = null
-        val actions = pagerActions().copy(
+        val actions = workoutActions().copy(
             onCardioDistanceChange = { text -> run = run.copy(drafts = listOf(run.drafts.single().copy(text = text))) },
             onSaveCardioDistance = { delivered = it; saved++ },
         )
@@ -94,14 +74,15 @@ class CardioSetsScreenTest {
         }
     }
 
-    @Test fun allSetsReportsStatusesAndTheMeasuredAimComparison() {
+    @Test fun cardioSheetReportsStatusesAndThePrescribedAim() {
         val run = run().copy(wallStart = null, elapsedStart = null, bootCount = null,
             results = listOf(SavedCardioResult("FINISHED", 127, 400)))
         val cardio = CardioCardState("Track run", "", false, block = run.block, run = run)
-        rule.setContent { AppTheme { CardioSetsSheet(cardio, pagerActions()) } }
-        rule.onNodeWithText("Set 1, Work, Finished").assertExists()
-        rule.onNodeWithText("Finished · 2:07 / 1:45 · Aim missed").assertExists()
-        rule.onNodeWithText("Set 2, Recovery, Ready").assertExists()
+        rule.setContent { AppTheme { WorkoutCardioSheet(cardio, "D", workoutActions(), {}, true) } }
+        rule.onNodeWithText("Finished").assertExists()
+        rule.onNodeWithText("400 m · aim 1:45").assertExists()
+        rule.onNodeWithText("Recovery").assertExists()
+        rule.onNodeWithText("Now").assertExists()
         rule.onNodeWithText("Add set").assertIsEnabled()
     }
 
@@ -109,23 +90,23 @@ class CardioSetsScreenTest {
         val cardio = CardioCardState("Track run", "", false, block = block(), canAddSet = false)
         var additions = 0
         rule.setContent { AppTheme {
-            CardioSetsSheet(cardio, pagerActions().copy(onAddCardioSet = { additions++ }))
+            WorkoutCardioSheet(cardio, "D", workoutActions().copy(onAddCardioSet = { additions++ }), {}, false)
         } }
-        rule.onNodeWithText("Add set").assertIsNotEnabled().performClick()
+        rule.onNodeWithText("Add set").assertDoesNotExist()
         rule.runOnIdle { assertEquals(0, additions) }
     }
 
     @Test fun distanceAndRecoveryHoldTheViewAwakeAndDisposalClearsIt() {
         var visible by mutableStateOf(true)
         val distanceRun = run()
-        var state by mutableStateOf(pagerFixture().copy(exercises = emptyList(), selectedPageKey = "cardio",
+        var state by mutableStateOf(workoutSetCardioFixture().copy(exercises = emptyList(),
             cardioRunning = true, executionBusy = true,
             cardio = CardioCardState("Track run", "", false, block = distanceRun.block, run = distanceRun)))
         var view: View? = null
         rule.setContent { AppTheme {
             val currentView = LocalView.current
             SideEffect { view = currentView }
-            if (visible) DayScreen(state, pagerActions(), DayEditUiState(), pagerEditActions())
+            if (visible) WorkoutSetHost(state, workoutActions(), DayEditUiState(), workoutEditActions())
         } }
         rule.runOnIdle {
             assertTrue(requireNotNull(view).keepScreenOn)
@@ -135,5 +116,23 @@ class CardioSetsScreenTest {
         }
         rule.runOnIdle { assertTrue(requireNotNull(view).keepScreenOn); visible = false }
         rule.runOnIdle { assertFalse(requireNotNull(view).keepScreenOn) }
+    }
+    @Test
+    fun `planned detail sums timed ends including warmup and recovery regardless of aims`() {
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(
+            CardioSetSpec(CardioRole.WARMUP, Measure.Time(300)),
+            CardioSetSpec(CardioRole.WORK, Measure.Time(120), Measure.Distance(400), hard = true),
+            CardioSetSpec(CardioRole.RECOVERY, Measure.Time(120)),
+        ))
+        assertEquals("9:00", block.plannedTimeDetail())
+    }
+
+    @Test
+    fun `a distance end leaves planned detail empty even with a timed aim`() {
+        val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(
+            CardioSetSpec(CardioRole.WARMUP, Measure.Time(300)),
+            CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true),
+        ))
+        assertEquals("", block.plannedTimeDetail())
     }
 }

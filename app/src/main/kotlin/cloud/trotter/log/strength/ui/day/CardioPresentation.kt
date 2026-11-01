@@ -1,48 +1,28 @@
 package cloud.trotter.log.strength.ui.day
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
@@ -53,8 +33,6 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
-import cloud.trotter.log.strength.ui.theme.DisplayXl
-import cloud.trotter.log.strength.ui.theme.Done
 
 /** History's stored label is a title-cased activity, independent of the former interval labels. */
 internal fun activityLabel(activity: CardioActivity): String =
@@ -129,172 +107,6 @@ internal val CardioCardState.completed: Boolean get() {
 internal val CardioCardState.position: Int get() {
     val block = block ?: return 0
     return run?.position ?: if (completed) block.sets.size else 0
-}
-
-@Composable
-internal fun CardioPage(
-    cardio: CardioCardState,
-    dayId: String,
-    accent: Color,
-    actions: DayActions,
-    startEnabled: Boolean,
-    onEnd: () -> Unit,
-) {
-    val block = cardio.block ?: return
-    val run = cardio.run
-    val results = run?.resultSets ?: cardio.loggedSets
-    val completed = cardio.completed
-    val position = cardio.position
-    val spec = block.sets.getOrNull(position)
-    var menu by remember { mutableStateOf(false) }
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row {
-                Text(cardioActivityName(block.activity), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-                Box {
-                    IconButton(onClick = { menu = true }) {
-                        Icon(Icons.Default.MoreVert, stringResource(R.string.cardio_options))
-                    }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.cardio_skip)) },
-                            enabled = run?.running != true && !completed && startEnabled,
-                            onClick = { menu = false; actions.onSkipCardioSet(run?.action() ?: CardioSetAction(dayId, null, position)) })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.cardio_end)) },
-                            enabled = !completed && (run != null || startEnabled),
-                            onClick = { menu = false; onEnd() })
-                    }
-                }
-            }
-            if (cardio.finishesDay) Text(stringResource(R.string.cardio_finishes_day, dayId))
-            if (spec != null) {
-                Text(roleName(spec.role))
-                Text(stringResource(R.string.cardio_set_of, position + 1, block.sets.size))
-                Text(spec.aim?.let { stringResource(R.string.cardio_end_aim, measureText(spec.end), measureText(it)) }
-                    ?: measureText(spec.end))
-                when (val end = spec.end) {
-                    is Measure.Time -> Text(formatCardioTime(if (run?.running == true) cardio.stepSecondsLeft else end.seconds),
-                        style = DisplayXl, color = accent)
-                    is Measure.Distance -> {
-                        Text(stringResource(R.string.cardio_target))
-                        Text(stringResource(R.string.cardio_metres, end.metres), style = DisplayXl, color = accent)
-                        Text(stringResource(R.string.day_cardio_elapsed, formatCardioTime(cardio.elapsedSeconds)))
-                    }
-                }
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                block.sets.forEachIndexed { index, set ->
-                    val result = results.getOrNull(index)
-                    val current = index == position
-                    val status = statusName(result?.status, current && run?.running == true)
-                    val description = stringResource(R.string.cardio_segment_description, index + 1, roleName(set.role), status)
-                    val color = when {
-                        result?.status == CardioSetStatus.FINISHED -> Done
-                        result?.status == CardioSetStatus.SHORTENED -> MaterialTheme.colorScheme.onSurfaceVariant
-                        current -> accent
-                        else -> MaterialTheme.colorScheme.surfaceVariant
-                    }
-                    Box(Modifier.weight(1f).height(8.dp)
-                        .then(if (result?.status == CardioSetStatus.SKIPPED) Modifier.border(1.dp, MaterialTheme.colorScheme.outline)
-                            else Modifier.background(color))
-                        .semantics { contentDescription = description })
-                }
-            }
-            if (run?.running == true) {
-                (spec?.end as? Measure.Distance)?.let {
-                    Button(onClick = { actions.onReachCardioTarget(run.action()) }) { Text(stringResource(R.string.cardio_reached, it.metres)) }
-                }
-                TextButton(onClick = { actions.onStopCardio(run.action()) }) { Text(stringResource(R.string.day_cardio_stop_button)) }
-            } else if (run?.complete != true) {
-                Button(onClick = actions.onStartCardio, enabled = startEnabled) { Text(stringResource(R.string.day_cardio_start_button)) }
-            }
-            if (run?.saveFailed == true) {
-                Text(stringResource(R.string.cardio_save_failed))
-                Button(onClick = actions.onRetryCardioSave) { Text(stringResource(R.string.cardio_retry)) }
-            }
-            TextButton(onClick = actions.onOpenCardioSets) { Text(stringResource(R.string.cardio_all_sets)) }
-            cardio.distanceRuns.forEach { entry ->
-                entry.drafts.filter { !it.saved }.forEach { draft ->
-                    TextButton(onClick = { actions.onRequestCardioDistance(entry.action(draft.position)) }) {
-                        Text(stringResource(R.string.cardio_enter_distance))
-                    }
-                }
-                if (entry.sessionId != null && entry.saveFailed) {
-                    Text(stringResource(R.string.cardio_save_failed))
-                    Button(onClick = actions.onRetryCardioSave) { Text(stringResource(R.string.cardio_retry)) }
-                }
-            }
-            if (run?.sessionId != null) {
-                CardioSummary(run.resultSets, run.results.sumOf { it.seconds })
-            } else if (run == null) cardio.loggedSeconds?.let {
-                if (cardio.loggedSets.isNotEmpty()) CardioSummary(cardio.loggedSets, it)
-                else Text(stringResource(R.string.day_cardio_logged, formatCardioTime(it)))
-            }
-        }
-    }
-}
-
-@Composable
-private fun cardioResultText(result: CardioSetResult): String {
-    val status = statusName(result.status, false)
-    val aim = result.spec.aim ?: return stringResource(R.string.cardio_result_elapsed, status, formatCardioTime(result.elapsedSeconds))
-    val met = if (result.status == CardioSetStatus.SKIPPED) null else when (aim) {
-        is Measure.Time -> result.elapsedSeconds <= aim.seconds
-        is Measure.Distance -> result.metres?.let { it >= aim.metres }
-    }
-    val aimStatus = stringResource(when (met) {
-        true -> R.string.cardio_aim_met
-        false -> R.string.cardio_aim_missed
-        null -> R.string.cardio_aim_unknown
-    })
-    val actual = when (aim) {
-        is Measure.Time -> formatCardioTime(result.elapsedSeconds)
-        is Measure.Distance -> result.metres?.toString() ?: stringResource(R.string.cardio_unknown_value)
-    }
-    return stringResource(R.string.cardio_result_aim, status, actual, measureText(aim), aimStatus)
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun CardioSetsSheet(cardio: CardioCardState, actions: DayActions) {
-    val block = cardio.block ?: return
-    val run = cardio.run
-    val results = run?.resultSets ?: cardio.loggedSets
-    AppModalBottomSheet(onDismissRequest = actions.onCloseAllSets,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        LazyColumn(Modifier.fillMaxWidth()) {
-            item { Text(stringResource(R.string.cardio_all_sets), Modifier.padding(20.dp), style = MaterialTheme.typography.titleLarge) }
-            itemsIndexed(block.sets) { index, set ->
-                val result = results.getOrNull(index)
-                val status = statusName(result?.status, run?.running == true && index == run.position)
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.cardio_segment_description, index + 1, roleName(set.role), status)) },
-                    supportingContent = {
-                        Column {
-                            Text(set.aim?.let { stringResource(R.string.cardio_end_aim, measureText(set.end), measureText(it)) }
-                                ?: measureText(set.end))
-                            result?.let {
-                                Text(cardioResultText(it))
-                                val metres = it.metres
-                                if (metres != null && set.aim !is Measure.Distance) {
-                                    Text(stringResource(R.string.cardio_distance_total, metres))
-                                }
-                            }
-                        }
-                    },
-                    trailingContent = {
-                        val entry = run ?: cardio.distanceRuns.firstOrNull { it.sessionId == cardio.loggedSessionId }
-                        if (entry?.drafts?.any { it.position == index } == true) {
-                            TextButton(onClick = { actions.onCloseAllSets(); actions.onRequestCardioDistance(entry.action(index)) }) {
-                                Text(stringResource(R.string.cardio_enter_distance))
-                            }
-                        }
-                    },
-                )
-            }
-            item { TextButton(onClick = actions.onAddCardioSet, enabled = cardio.canAddSet && run?.complete != true && (run != null || results.isEmpty())) { Text(stringResource(R.string.cardio_add_set)) } }
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

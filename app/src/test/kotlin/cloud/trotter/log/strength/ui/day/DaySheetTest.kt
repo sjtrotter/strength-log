@@ -28,7 +28,7 @@ class DaySheetTest {
         var selected: String? = null
         var dismissals = 0
         rule.setContent { AppTheme {
-            DaySheet(workoutDaySheetFixture(), pagerActions().copy(onSelectWorkoutLift = { selected = it }),
+            DaySheet(workoutDaySheetFixture(), workoutActions().copy(onSelectWorkoutLift = { selected = it }),
                 {}, {}, { dismissals++ })
         } }
         rule.onNodeWithText("Day A").assertIsDisplayed()
@@ -58,7 +58,7 @@ class DaySheetTest {
         var dismissals = 0
         var discards = 0
         rule.setContent { AppTheme {
-            DaySheet(state, pagerActions(), { edits++ }, { clears++ }, { dismissals++ }, { discards++ })
+            DaySheet(state, workoutActions(), { edits++ }, { clears++ }, { dismissals++ }, { discards++ })
         } }
         rule.onNodeWithText("Done").assertIsDisplayed()
         rule.onNodeWithText("Edit day").performScrollTo().performClick()
@@ -74,7 +74,7 @@ class DaySheetTest {
 
     @Test fun selectedPlainLiftShowsProgress() {
         val base = workoutLiftSheetFixture()
-        rule.setContent { AppTheme { DaySheet(base, pagerActions(), {}, {}, {}) } }
+        rule.setContent { AppTheme { DaySheet(base, workoutActions(), {}, {}, {}) } }
         rule.onNodeWithText("2 of 6, now").assertIsDisplayed()
     }
 
@@ -85,7 +85,7 @@ class DaySheetTest {
         val state = base.copy(exercises = base.exercises.filterNot { it.programExerciseId == skipped.programExerciseId },
             skippedLifts = listOf(SkippedLift(skipped.programExerciseId, skipped.position, skipped.title)))
         rule.setContent { AppTheme {
-            DaySheet(state, pagerActions().copy(onRestoreSkipped = { id, half -> restored = id to half }), {}, {}, {})
+            DaySheet(state, workoutActions().copy(onRestoreSkipped = { id, half -> restored = id to half }), {}, {}, {})
         } }
         rule.onNodeWithText("Skipped").assertIsDisplayed()
         val before = rule.onNodeWithText("Barbell Back Squat").fetchSemanticsNode().boundsInRoot.top
@@ -96,12 +96,4 @@ class DaySheetTest {
         rule.runOnIdle { assertEquals(skipped.programExerciseId to Slot.MAIN, restored) }
     }
 
-    @Test fun skippedRowsAreAbsentWithoutTheSetScreen() {
-        val base = workoutLiftSheetFixture().copy(workout = null,
-            skippedLifts = listOf(SkippedLift(99L, 0, "Skipped lift")))
-        rule.setContent { AppTheme { DaySheet(base, pagerActions(), {}, {}, {}) } }
-        rule.onNodeWithText("Skipped").assertDoesNotExist()
-        rule.onNodeWithText("Bring back").assertDoesNotExist()
-        rule.onNodeWithText("Skipped lift").assertDoesNotExist()
-    }
 }

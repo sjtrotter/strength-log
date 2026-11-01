@@ -1,5 +1,6 @@
 # The workout as cards you swipe — Fable's exploration (2026-10-12, evening)
 
+Current phone UI (4.5b): `WorkoutSetScreen` replaces the workout pager; lift navigation uses the Day sheet.
 The owner asked, after revision 2: instead of a list of exercises, a card per exercise that
 the lifter swipes through, with the remaining sets shown another way (a count, a row of
 dots), so a busy station can be skipped by swiping, and so the phone mirrors the watch.

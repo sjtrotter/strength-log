@@ -39,7 +39,7 @@ class LiftSheetTest {
         var edited: Pair<Long, Int>? = null
         var swapped: Pair<Int, String>? = null
         rule.setContent { AppTheme {
-            LiftSheet(card, Slot.MAIN, state.workout?.focus, pagerActions().copy(
+            LiftSheet(card, Slot.MAIN, state.workout?.focus, workoutActions().copy(
                 onToggleDone = { id, index, done, slot -> tick = listOf(id, index, done, slot) },
                 onOpenSetEditor = { id, index -> edited = id to index },
                 onOpenSwapSheet = { position, slot -> swapped = position to slot },
@@ -66,7 +66,7 @@ class LiftSheetTest {
         var tick: List<Any>? = null
         var swapped: Pair<Int, String>? = null
         rule.setContent { AppTheme {
-            LiftSheet(state.exercises.single(), Slot.SS, state.workout?.focus, pagerActions().copy(
+            LiftSheet(state.exercises.single(), Slot.SS, state.workout?.focus, workoutActions().copy(
                 onToggleDone = { id, index, done, slot -> tick = listOf(id, index, done, slot) },
                 onOpenSwapSheet = { position, slot -> swapped = position to slot },
             ), true, null, {}, {}, {})
@@ -116,7 +116,7 @@ class LiftSheetTest {
         rule.setContent { AppTheme {
             WorkoutSetHost(base.copy(openSheet = OpenSheet("A", OpenSheet.Kind.SWAP, 1L, 0, slot = Slot.SS)),
                 dayEditState = DayEditUiState(slots = listOf(planned), catalog = catalog, runOpen = true),
-                dayEditActions = pagerEditActions().copy(
+                dayEditActions = workoutEditActions().copy(
                     onSetSuperset = { position, id -> changed = position to id },
                     onSwap = { _, _ -> error("MAIN plan swap") },
                     onWorkoutSwapHalf = { _, _, _ -> error("Workout swap") },
@@ -132,7 +132,7 @@ class LiftSheetTest {
     @Test fun sheetToEditorUsesExistingEditorAndOpeningKeepsFocus() {
         val initial = workoutLiftSheetFixture()
         var state by mutableStateOf(initial.copy(openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, 1L, 0)))
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
             onOpenSetEditor = { id, index -> state = state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.EDITOR, id, index)) },
         )) } }
         rule.onNodeWithTag("lift-set-3").performClick()
@@ -148,7 +148,7 @@ class LiftSheetTest {
         val state = base.copy(swapUndo = WorkoutSwapUndo("A", "run", 1L, Slot.MAIN,
             "bb_back_squat", "hack_squat", "Hack Squat"))
         var undos = 0
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onUndoWorkoutSwap = { undos++ })) } }
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onUndoWorkoutSwap = { undos++ })) } }
         rule.onNodeWithText("Swapped to Hack Squat").assertIsDisplayed()
         rule.onNodeWithText("Swap", substring = false).assertDoesNotExist()
         rule.onNodeWithText("Undo").performClick()
@@ -162,7 +162,7 @@ class LiftSheetTest {
         var swapUndos = 0
         var removalUndos = 0
         rule.setContent { AppTheme {
-            WorkoutSetHost(state, pagerActions().copy(onUndoWorkoutSwap = { swapUndos++ }),
+            WorkoutSetHost(state, workoutActions().copy(onUndoWorkoutSwap = { swapUndos++ }),
                 removedSets = removed, onUndoRemoveSet = { removalUndos++ })
         } }
         rule.onNodeWithText("Set removed").assertIsDisplayed()
@@ -186,7 +186,7 @@ class LiftSheetTest {
             "A", 1L, 1L, Slot.MAIN, "hack_squat", "Barbell Back Squat", 2,
         ))
         var confirmed = 0
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onConfirmPlanSwap = { confirmed++ })) } }
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onConfirmPlanSwap = { confirmed++ })) } }
         rule.onNodeWithText("Swap Barbell Back Squat? Its 2 logged sets today are removed.").assertIsDisplayed()
         rule.onNodeWithText("Swap").performClick()
         rule.runOnIdle { assertEquals(1, confirmed) }
@@ -196,7 +196,7 @@ class LiftSheetTest {
         val state = workoutLiftSheetFixture()
         rule.setContent { AppTheme {
             LiftSheet(state.exercises.single().copy(headerTarget = HeaderTarget.Goal("0"),
-                lastTimeDisplay = null, lastTimeDate = null), Slot.MAIN, null, pagerActions(), false, null, {}, {}, {})
+                lastTimeDisplay = null, lastTimeDate = null), Slot.MAIN, null, workoutActions(), false, null, {}, {}, {})
         } }
         rule.onNodeWithText("Goal", substring = true).assertDoesNotExist()
         rule.onNodeWithText("Last time", substring = true).assertDoesNotExist()
@@ -208,10 +208,10 @@ class LiftSheetTest {
         var setSkipped: Pair<Long, String>? = null
         var dismissals = 0
         rule.setContent { AppTheme {
-            LiftSheet(base.exercises.single(), Slot.MAIN, base.workout?.focus, pagerActions().copy(
+            LiftSheet(base.exercises.single(), Slot.MAIN, base.workout?.focus, workoutActions().copy(
                 onSkipLift = { id, half -> skipped = id to half },
                 onSkipNowSet = { id, half -> setSkipped = id to half },
-            ), true, null, {}, {}, { dismissals++ }, skipEnabled = true, canSkipLift = true)
+            ), true, null, {}, {}, { dismissals++ }, canSkipLift = true)
         } }
         rule.onNodeWithText("Skip this set").performScrollTo().performClick()
         rule.onNodeWithText("Skip for this workout").performScrollTo().performClick()
@@ -227,9 +227,9 @@ class LiftSheetTest {
         val base = workoutSetSupersetFixture()
         var skipped: Pair<Long, String>? = null
         rule.setContent { AppTheme {
-            LiftSheet(base.exercises.single(), Slot.SS, WorkoutFocus(1L, Slot.SS, 1), pagerActions().copy(
+            LiftSheet(base.exercises.single(), Slot.SS, WorkoutFocus(1L, Slot.SS, 1), workoutActions().copy(
                 onSkipNowSet = { id, half -> skipped = id to half },
-            ), true, null, {}, {}, {}, skipEnabled = true)
+            ), true, null, {}, {}, {})
         } }
         rule.onNodeWithText("Skip this round").performScrollTo().performClick()
         rule.runOnIdle { assertEquals(1L to Slot.SS, skipped) }
@@ -240,33 +240,19 @@ class LiftSheetTest {
         val base = workoutLiftSheetFixture()
         var restored: Pair<Long, String>? = null
         rule.setContent { AppTheme {
-            LiftSheet(base.exercises.single(), Slot.MAIN, base.workout?.focus, pagerActions().copy(
+            LiftSheet(base.exercises.single(), Slot.MAIN, base.workout?.focus, workoutActions().copy(
                 onRestoreSkipped = { id, half -> restored = id to half },
-            ), true, null, {}, {}, {}, skipEnabled = true,
-                skippedPartner = SkippedLift(1L, 0, "Seated Cable Row", Slot.SS))
+            ), true, null, {}, {}, {},                 skippedPartner = SkippedLift(1L, 0, "Seated Cable Row", Slot.SS))
         } }
         rule.onNodeWithText("Bring back Seated Cable Row").performClick()
         rule.runOnIdle { assertEquals(1L to Slot.SS, restored) }
     }
 
-    @Test fun skipActionsAreAbsentWithTheFlagOff() {
-        val base = workoutLiftSheetFixture()
-        rule.setContent { AppTheme {
-            LiftSheet(base.exercises.single(), Slot.MAIN, base.workout?.focus, pagerActions(),
-                true, null, {}, {}, {}, skipEnabled = false,
-                skippedPartner = SkippedLift(1L, 0, "Seated Cable Row", Slot.SS))
-        } }
-        rule.onNodeWithText("Skip for this workout").assertDoesNotExist()
-        rule.onNodeWithText("Skip this set").assertDoesNotExist()
-        rule.onNodeWithText("Skip this round").assertDoesNotExist()
-        rule.onNodeWithText("Bring back Seated Cable Row").assertDoesNotExist()
-    }
-
     @Test fun aLiftWithoutNowDoesNotOfferSkipSet() {
         val base = workoutLiftSheetFixture()
         rule.setContent { AppTheme {
-            LiftSheet(base.exercises.single(), Slot.MAIN, null, pagerActions(),
-                true, null, {}, {}, {}, skipEnabled = true, canSkipLift = true)
+            LiftSheet(base.exercises.single(), Slot.MAIN, null, workoutActions(),
+                true, null, {}, {}, {}, canSkipLift = true)
         } }
         rule.onNodeWithText("Skip this set").assertDoesNotExist()
         rule.onNodeWithText("Skip for this workout").performScrollTo().assertIsDisplayed()

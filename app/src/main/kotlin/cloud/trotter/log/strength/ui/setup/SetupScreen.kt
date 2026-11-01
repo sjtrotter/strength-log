@@ -42,7 +42,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import cloud.trotter.log.strength.BuildConfig
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
@@ -86,7 +85,6 @@ fun SetupScreen(
     state: SetupUiState,
     actions: SetupActions,
     openRestTimer: Boolean = false,
-    workoutSetScreen: Boolean = BuildConfig.WORKOUT_SET_SCREEN,
 ) {
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
     val accent = accentEmphasis(0)
@@ -130,7 +128,7 @@ fun SetupScreen(
                         onResetDefaults = { showRestResetConfirm = true },
                     )
                 }
-                if (workoutSetScreen) item {
+                item {
                     val label = stringResource(R.string.setup_keep_screen_on)
                     ListItem(headlineContent = { Text(label) }, trailingContent = {
                         Switch(state.keepScreenOn, actions.onKeepScreenOnChange,

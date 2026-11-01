@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -34,7 +35,9 @@ import cloud.trotter.log.strength.ui.day.DayActions
 import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayEditSlotState
 import cloud.trotter.log.strength.ui.day.DayEditUiState
+import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.day.DayScreen
+import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.DayUiState
@@ -195,7 +198,7 @@ class StoreScreenshotsTest {
             day,
             edit = dayEditState(day, supersetExercises),
             beforeCapture = {
-                composeTestRule.onNodeWithText("then Seated Cable Row 120 × 10").assertIsDisplayed()
+                composeTestRule.onNodeWithContentDescription("Seated Cable Row, next", substring = true).assertIsDisplayed()
             },
         )
     }
@@ -221,8 +224,8 @@ class StoreScreenshotsTest {
                 openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0),
             ),
             beforeCapture = {
-                composeTestRule.onNodeWithText("Set 1, Warm-up, Ready").assertIsDisplayed()
-                composeTestRule.onNodeWithText("Set 5, Cool-down, Ready").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Warm-up").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Cool-down").assertIsDisplayed()
             },
         )
     }
@@ -338,7 +341,7 @@ class StoreScreenshotsTest {
     ) {
         render(name, beforeCapture) {
             DayScreen(
-                state = state,
+                state = state.withWorkoutSelection(),
                 actions = dayActions(),
                 dayEditState = edit,
                 dayEditActions = dayEditActions(),
@@ -452,11 +455,9 @@ class StoreScreenshotsTest {
             allDone = DayScreenBuilder.allDone(rows),
             rows = rows,
             focusIndex = focus,
-            focusLabel = DayScreenBuilder.focusLabel(sets.map { it.kind }, focus),
             summaryLine = DayScreenBuilder.summaryLine(
                 sets, partnerSets, entry.tracking, partnerEntry?.tracking ?: entry.tracking, WeightUnit.LB,
             ),
-            nextSetDisplay = DayScreenBuilder.nextSetDisplay(rows, focus, entry.tracking, WeightUnit.LB),
             topSetComparison = DayScreenBuilder.topSetComparison(sets, null, WeightUnit.LB),
             plateLine = DayScreenBuilder.plateLine(sets, entry.equipment, WeightUnit.LB),
             weightSwap = DayScreenBuilder.weightSwapAffordance(entry, catalog),
@@ -489,15 +490,12 @@ class StoreScreenshotsTest {
     )
 
     private fun dayActions() = DayActions(
-        onSelectDay = {},
         onWeightChange = { _, _, _, _ -> },
         onRepsChange = { _, _, _, _ -> },
         onSecondsChange = { _, _, _, _ -> },
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> },
-        onSelectPage = {},
-        onKeepScreenOnChange = {},
         onDiscardWorkout = {},
         onDone = {},
         onCreateExercise = {},

@@ -1,5 +1,6 @@
 # Timed rep events (#274)
 
+Current phone UI (4.5b): `WorkoutSetScreen` replaces the workout pager; lift navigation uses the Day sheet.
 Design by Astra (gpt-6-astra), approved by the owner 2026-10-21 as written. The owner's requirements: the screen must not dim or lock while the clock runs; the count entry comes up by itself when time ends; consistent with the rest of the app.
 
 **Use the focused set as the clock, then automatically open the existing style of set-entry sheet.** Completion means the lifter has saved a count.

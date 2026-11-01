@@ -66,7 +66,7 @@ class WorkoutSetScreenTest {
 
     @Test fun singleLiftShowsSetAndPlatesAndGuardsDoubleTaps() {
         var logs = 0
-        show(workoutSetSingleFixture(), pagerActions().copy(onLogFocusedSet = { logs++ }))
+        show(workoutSetSingleFixture(), workoutActions().copy(onLogFocusedSet = { logs++ }))
         rule.onNodeWithText("Barbell Back Squat").assertIsDisplayed()
         rule.onNodeWithText("Set 3 of 6 (R3)").assertIsDisplayed()
         rule.onNodeWithText("45 + 25 + 2.5 a side").assertIsDisplayed()
@@ -104,7 +104,7 @@ class WorkoutSetScreenTest {
 
     @Test fun supersetPartnerAndAllSetsOpenTheirOwnLiftSheets() {
         val opened = mutableListOf<Pair<Long, String>>()
-        show(workoutSetSupersetFixture(), pagerActions().copy(onOpenLiftSheet = { id, slot -> opened += id to slot }))
+        show(workoutSetSupersetFixture(), workoutActions().copy(onOpenLiftSheet = { id, slot -> opened += id to slot }))
         rule.onNodeWithTag("workout-half-${Slot.SS}")
             .assertHeightIsAtLeast(48.dp).assertHasClickAction().performClick()
         rule.onNodeWithText("All sets").assertHasClickAction().performClick()
@@ -247,7 +247,7 @@ class WorkoutSetScreenTest {
         val base = workoutSetSupersetFixture()
         show(base.copy(exercises = base.exercises.map { card -> card.copy(rows = card.rows.map {
             if (it.index < 2) it.copy(done = true, partner = it.partner?.copy(done = true)) else it
-        }) }, workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 2)), rest = pagerRest()))
+        }) }, workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 2)), rest = workoutRest()))
         rule.onNodeWithText("Superset, round 3 of 3").assertIsDisplayed()
         rule.onNodeWithText("DB Bench Press").assertIsDisplayed()
         rule.onNodeWithText("80 × 10").assertIsDisplayed()
@@ -288,7 +288,7 @@ class WorkoutSetScreenTest {
         show(base.copy(exercises = listOf(completed, workoutSetSingleFixture().exercises.single().copy(
             programExerciseId = 2L, title = "Barbell Row",
         )), workout = base.workout?.copy(shown = WorkoutSelection.Shown.Group("exercise:1", true),
-            focus = null, completedView = true)), pagerActions().copy(onNextWorkoutLift = { next++ }))
+            focus = null, completedView = true)), workoutActions().copy(onNextWorkoutLift = { next++ }))
         rule.onNodeWithText("Done, 3 of 3 rounds").assertIsDisplayed()
         rule.onNodeWithText("DB Bench Press").assertIsDisplayed()
         rule.onNodeWithText("Seated Cable Row").assertIsDisplayed()
@@ -365,7 +365,7 @@ class WorkoutSetScreenTest {
         var adjustment = 0
         var skips = 0
         var logs = 0
-        show(workoutSetSingleFixture().copy(rest = pagerRest(), workout = workoutSetSingleFixture().workout?.copy(undo = undo())), pagerActions().copy(
+        show(workoutSetSingleFixture().copy(rest = workoutRest(), workout = workoutSetSingleFixture().workout?.copy(undo = undo())), workoutActions().copy(
             onUndoLastLog = { undos++ }, onAdjustRest = { adjustment = it }, onSkipRest = { skips++ },
             onLogFocusedSet = { logs++ },
         ))
@@ -384,7 +384,7 @@ class WorkoutSetScreenTest {
 
     @Test fun restOffBandHoldsOnlyUndo() {
         var undos = 0
-        show(workoutSetSingleFixture().copy(workout = workoutSetSingleFixture().workout?.copy(undo = undo())), pagerActions().copy(onUndoLastLog = { undos++ }))
+        show(workoutSetSingleFixture().copy(workout = workoutSetSingleFixture().workout?.copy(undo = undo())), workoutActions().copy(onUndoLastLog = { undos++ }))
         rule.onNodeWithText("Undo 165 × 5").assertIsDisplayed().performClick()
         rule.onNodeWithText("Rest").assertDoesNotExist()
         rule.onNodeWithText("+15 s").assertDoesNotExist()
@@ -414,7 +414,7 @@ class WorkoutSetScreenTest {
         show(state.copy(
             exercises = listOf(completed, completed.copy(programExerciseId = 2L, title = "Barbell Bench Press", allDone = false, rows = completed.rows.map { it.copy(done = false) })),
             workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("exercise:1", true), focus = null, completedView = true),
-        ), pagerActions().copy(onNextWorkoutLift = { nexts++ }, onLogFocusedSet = { logs++ }))
+        ), workoutActions().copy(onNextWorkoutLift = { nexts++ }, onLogFocusedSet = { logs++ }))
         rule.onNodeWithText("Done, 6 of 6").assertIsDisplayed()
         rule.onNodeWithText(completed.summaryLine).assertIsDisplayed()
         rule.onNodeWithText("Next: Barbell Bench Press").performClick()
@@ -429,7 +429,7 @@ class WorkoutSetScreenTest {
         rule.setContent { AppTheme {
             WorkoutSetHost(
                 state.copy(exercises = listOf(completed), workout = WorkoutState(WorkoutSelection.Shown.AllLogged, null, false, null, 0L)),
-                pagerActions().copy(onDone = { finishes++ }), DayEditUiState(), pagerEditActions(),
+                workoutActions().copy(onDone = { finishes++ }), DayEditUiState(), workoutEditActions(),
                 nowMillis = { rule.mainClock.currentTime },
             )
         } }
@@ -481,7 +481,7 @@ class WorkoutSetScreenTest {
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
-                AppTheme { WorkoutSetHost(state, pagerActions(), DayEditUiState(), pagerEditActions()) }
+                AppTheme { WorkoutSetHost(state, workoutActions(), DayEditUiState(), workoutEditActions()) }
             }
         }
         rule.onNodeWithText("Log $nowValue").assertIsDisplayed().assertIsEnabled()
@@ -506,7 +506,7 @@ class WorkoutSetScreenTest {
     @Test fun liftAndHeroUseExistingSheetCallbacks() {
         var sets: Long? = null
         var editor: Pair<Long, Int>? = null
-        show(workoutSetSingleFixture(), pagerActions().copy(onOpenLiftSheet = { id, _ -> sets = id }, onOpenSetEditor = { id, index -> editor = id to index }))
+        show(workoutSetSingleFixture(), workoutActions().copy(onOpenLiftSheet = { id, _ -> sets = id }, onOpenSetEditor = { id, index -> editor = id to index }))
         rule.onNodeWithText("All sets").performClick()
         rule.onNodeWithContentDescription("Edit set 3").performClick()
         rule.runOnIdle { assertEquals(1L, sets); assertEquals(1L to 2, editor) }
@@ -514,25 +514,11 @@ class WorkoutSetScreenTest {
 
     @Test fun partialFinishReusesExistingConfirmation() {
         var finishes = 0
-        show(workoutSetSingleFixture(), pagerActions().copy(onDone = { finishes++ }))
+        show(workoutSetSingleFixture(), workoutActions().copy(onDone = { finishes++ }))
         rule.onNodeWithText("Finish").performClick()
         rule.onNodeWithText("Finish with 2 of 6 sets?").assertIsDisplayed()
         rule.onNodeWithText("Keep going").performClick()
         rule.runOnIdle { assertEquals(0, finishes) }
-    }
-
-    @Test fun routingDrawsEveryWorkoutState() {
-        val state = workoutSetSingleFixture()
-        assertTrue(state.usesWorkoutSetScreen)
-        assertTrue(workoutSetTimedRepRunningFixture().usesWorkoutSetScreen)
-        assertFalse(state.copy(workout = null).usesWorkoutSetScreen)
-        assertFalse(state.copy(loading = true).usesWorkoutSetScreen)
-        assertFalse(state.copy(hasProgram = false).usesWorkoutSetScreen)
-        assertTrue(state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.Empty)).usesWorkoutSetScreen)
-        assertTrue(state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("cardio", false))).usesWorkoutSetScreen)
-        assertTrue(state.copy(cardioRunning = true).usesWorkoutSetScreen)
-        assertTrue(state.copy(exercises = state.exercises.map { it.copy(timedRepDurationSeconds = 40) }).usesWorkoutSetScreen)
-        assertTrue(state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.AllLogged)).usesWorkoutSetScreen)
     }
 
     @Test fun finishConfirmationSurvivesSwitchToTimedRepSlot() {
@@ -552,7 +538,7 @@ class WorkoutSetScreenTest {
         var state by mutableStateOf(workoutSetSingleFixture())
         var removed by mutableStateOf(emptyList<RemovedSet>())
         var undos = 0
-        val actions = pagerActions().copy(
+        val actions = workoutActions().copy(
             onOpenSetEditor = { id, index -> state = state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.EDITOR, id, index)) },
             onCloseSetEditor = { state = state.copy(openSheet = null) },
             onRemoveSet = { id, index, _ ->
@@ -587,7 +573,7 @@ class WorkoutSetScreenTest {
     }
 
     @Test fun restLiveRegionChangesOnlyAtMinuteBoundary() {
-        var state by mutableStateOf(workoutSetSingleFixture().copy(rest = pagerRest().copy(remainingSeconds = 62)))
+        var state by mutableStateOf(workoutSetSingleFixture().copy(rest = workoutRest().copy(remainingSeconds = 62)))
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
         fun announced() = rule.onNodeWithTag("workout-rest").fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
         rule.onNodeWithTag("workout-rest").assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
@@ -623,7 +609,7 @@ class WorkoutSetScreenTest {
     @Test fun timedRepReadyShowsClockAimAndStartsItsOwnSet() {
         var started: Pair<Long, Int>? = null
         var edited: Pair<Long, Int>? = null
-        show(workoutSetTimedRepFixture(), pagerActions().copy(
+        show(workoutSetTimedRepFixture(), workoutActions().copy(
             onStartTimedRep = { id, index -> started = id to index },
             onOpenSetEditor = { id, index -> edited = id to index },
         ))
@@ -637,7 +623,7 @@ class WorkoutSetScreenTest {
 
     @Test fun timedRepRunningShowsClockAndTonalCancel() {
         var stops = 0
-        show(workoutSetTimedRepRunningFixture(), pagerActions().copy(onStopTimedRep = { stops++ }))
+        show(workoutSetTimedRepRunningFixture(), workoutActions().copy(onStopTimedRep = { stops++ }))
         rule.onNodeWithText("0:27").assertIsDisplayed()
         rule.onNodeWithContentDescription("Edit set 1").assertDoesNotExist()
         rule.onNodeWithTag("workout-action-tonal").performClick()
@@ -649,7 +635,7 @@ class WorkoutSetScreenTest {
         var state by mutableStateOf(workoutSetTimedRepFixture())
         var starts = 0
         var stops = 0
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
             onStartTimedRep = { _, _ -> starts++; state = workoutSetTimedRepRunningFixture() },
             onStopTimedRep = { stops++ },
         )) } }
@@ -662,7 +648,7 @@ class WorkoutSetScreenTest {
 
     @Test fun dismissedCountCanBeRequestedAgain() {
         var requests = 0
-        show(workoutSetTimedRepRunningFixture(awaiting = true), pagerActions().copy(onRequestTimedRepCount = { requests++ }))
+        show(workoutSetTimedRepRunningFixture(awaiting = true), workoutActions().copy(onRequestTimedRepCount = { requests++ }))
         rule.onNodeWithText("0:00").assertIsDisplayed()
         rule.onNodeWithTag("workout-action-filled").assertIsDisplayed()
         rule.onNodeWithText("Enter reps").performClick()
@@ -699,7 +685,7 @@ class WorkoutSetScreenTest {
     @Test fun cardioReadyShowsActivityPositionTargetAndAllSets() {
         var starts = 0
         var sheets = 0
-        show(workoutSetCardioFixture(), pagerActions().copy(onStartCardio = { starts++ }, onOpenCardioSets = { sheets++ }))
+        show(workoutSetCardioFixture(), workoutActions().copy(onStartCardio = { starts++ }, onOpenCardioSets = { sheets++ }))
         rule.onNodeWithText("Road run").assertIsDisplayed()
         rule.onNodeWithText("Work, set 1 of 1").assertIsDisplayed()
         rule.onNodeWithText("5:00").assertIsDisplayed()
@@ -711,7 +697,7 @@ class WorkoutSetScreenTest {
     @Test fun cardioRunningTimeShowsCountdownAndStopsItsOwnInterval() {
         val state = workoutSetCardioRunningFixture()
         var stopped: CardioSetAction? = null
-        show(state, pagerActions().copy(onStopCardio = { stopped = it }))
+        show(state, workoutActions().copy(onStopCardio = { stopped = it }))
         rule.onNodeWithText("1:00").assertIsDisplayed()
         rule.onNodeWithTag("workout-action-tonal").performClick()
         rule.runOnIdle { assertEquals(state.cardio?.run?.action(), stopped) }
@@ -721,7 +707,7 @@ class WorkoutSetScreenTest {
         val state = workoutSetCardioDistanceFixture()
         var reached: CardioSetAction? = null
         var stopped: CardioSetAction? = null
-        show(state, pagerActions().copy(onReachCardioTarget = { reached = it }, onStopCardio = { stopped = it }))
+        show(state, workoutActions().copy(onReachCardioTarget = { reached = it }, onStopCardio = { stopped = it }))
         rule.onNodeWithText("0:27").assertIsDisplayed()
         rule.onNodeWithText("Aim 1:45").assertIsDisplayed()
         rule.onNodeWithText("to 400 m").assertIsDisplayed()
@@ -740,7 +726,7 @@ class WorkoutSetScreenTest {
         val run = requireNotNull(cardio.run)
         var state by mutableStateOf(recovery.copy(cardio = cardio.copy(run = run.copy(results = emptyList()))))
         val stops = mutableListOf<CardioSetAction>()
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onStopCardio = { stops += it })) } }
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onStopCardio = { stops += it })) } }
         rule.mainClock.autoAdvance = false
         rule.runOnIdle { state = recovery }
         rule.mainClock.advanceTimeByFrame()
@@ -755,7 +741,7 @@ class WorkoutSetScreenTest {
     @Test fun cardioDoneShowsSummaryAndNextWhenAnotherLiftRemains() {
         val done = workoutSetCardioDoneFixture()
         var nexts = 0
-        show(done.copy(exercises = workoutSetSingleFixture().exercises), pagerActions().copy(onNextWorkoutLift = { nexts++ }))
+        show(done.copy(exercises = workoutSetSingleFixture().exercises), workoutActions().copy(onNextWorkoutLift = { nexts++ }))
         rule.onNodeWithText("Done").assertIsDisplayed()
         rule.onNodeWithText("Logged 5:00").assertIsDisplayed()
         rule.onNodeWithText("1 finished · 0 shortened · 0 skipped").assertIsDisplayed()
@@ -799,7 +785,7 @@ class WorkoutSetScreenTest {
         val cardio = requireNotNull(running.cardio)
         var state by mutableStateOf(running.copy(cardio = cardio.copy(run = cardio.run?.copy(saveFailed = true))))
         var retries = 0
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onRetryCardioSave = { retries++ })) } }
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onRetryCardioSave = { retries++ })) } }
         rule.onNodeWithText("Couldn’t save the cardio. The sets are still here.").assertIsDisplayed()
         rule.onNodeWithText("Retry").performClick()
         rule.runOnIdle { state = state.copy(workout = workoutSetSingleFixture().workout) }
@@ -817,7 +803,7 @@ class WorkoutSetScreenTest {
         var state by mutableStateOf(base.copy(exercises = base.exercises + timed.exercises.single().copy(programExerciseId = 2L),
             timedRep = event.copy(event = event.event.copy(programExerciseId = 2L))))
         val selected = mutableListOf<String>()
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onSelectWorkoutLift = { selected += it })) } }
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onSelectWorkoutLift = { selected += it })) } }
         rule.onNodeWithText("Push-Up 0:27").performClick()
         rule.runOnIdle { state = state.copy(timedRep = state.timedRep?.let {
             it.copy(event = it.event.copy(awaitingCount = true, sheetDismissed = true), remainingSeconds = 0)
@@ -832,7 +818,7 @@ class WorkoutSetScreenTest {
         val timed = workoutSetTimedRepRunningFixture(awaiting = true)
         val state = timed.copy(cardio = runningCardioFixture(), cardioRunning = true)
         var selected: String? = null
-        show(state, pagerActions().copy(onSelectWorkoutLift = { selected = it }))
+        show(state, workoutActions().copy(onSelectWorkoutLift = { selected = it }))
         rule.onNodeWithText("Road run 1:00").performClick()
         rule.runOnIdle { assertEquals("cardio", selected) }
     }
@@ -841,7 +827,7 @@ class WorkoutSetScreenTest {
         val base = workoutSetCardioRunningFixture()
         var state by mutableStateOf(base.copy(workout = workoutSetSingleFixture().workout))
         var selected: String? = null
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onSelectWorkoutLift = { selected = it })) } }
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onSelectWorkoutLift = { selected = it })) } }
         rule.onNodeWithText("Road run 1:00").performClick()
         rule.runOnIdle { assertEquals("cardio", selected)
             state = workoutSetCardioDistanceFixture().copy(workout = workoutSetSingleFixture().workout) }
@@ -853,7 +839,7 @@ class WorkoutSetScreenTest {
     @Test fun emptyDayOffersEditDay() {
         var editing = false
         rule.setContent { AppTheme { WorkoutSetHost(workoutSetEmptyFixture(),
-            dayEditActions = pagerEditActions().copy(onEditorOpen = { editing = it })) } }
+            dayEditActions = workoutEditActions().copy(onEditorOpen = { editing = it })) } }
         rule.onNodeWithText("No lifts in day A yet.").assertIsDisplayed()
         rule.onNodeWithText("Edit day").performClick()
         rule.onNodeWithTag("workout-action-filled").assertDoesNotExist()
@@ -862,7 +848,7 @@ class WorkoutSetScreenTest {
 
     @Test fun finishWithOnlyCardioLeftConfirmsWithoutTheActivity() {
         var finishes = 0
-        show(workoutSetCardioFixture(), pagerActions().copy(onDone = { finishes++ }))
+        show(workoutSetCardioFixture(), workoutActions().copy(onDone = { finishes++ }))
         rule.onNodeWithText("Finish").performClick()
         rule.onNodeWithText("Finish without Road run?").assertIsDisplayed()
         rule.onNode(hasText("Finish") and hasAnyAncestor(isDialog())).performClick()
@@ -879,7 +865,7 @@ class WorkoutSetScreenTest {
         var requested: CardioSetAction? = null
         var closes = 0
         show(base.copy(cardio = base.cardio?.copy(block = block, run = run, distanceRuns = listOf(entry)),
-            openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0)), pagerActions().copy(
+            openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0)), workoutActions().copy(
                 onCloseAllSets = { closes++ }, onRequestCardioDistance = { requested = it }))
         for (status in listOf("Finished", "Shortened, 350 m", "Skipped", "Now")) {
             rule.onNodeWithText(status).assertIsDisplayed()
@@ -894,7 +880,7 @@ class WorkoutSetScreenTest {
         var skips: CardioSetAction? = null
         var adds = 0
         var ends = 0
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(
+        rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(
             onCloseAllSets = { state = state.copy(openSheet = null) }, onSkipCardioSet = { skips = it },
             onAddCardioSet = { adds++ }, onEndCardioBlock = { ends++ },
         )) } }
@@ -905,7 +891,7 @@ class WorkoutSetScreenTest {
             state = state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0))
         }
         rule.onNodeWithText("End cardio").performClick()
-        rule.onNodeWithText("End block?").assertIsDisplayed()
+        rule.onNodeWithText("End cardio?").assertIsDisplayed()
         rule.onNodeWithText("End and log").performClick()
         rule.runOnIdle { assertEquals(1, ends) }
     }
@@ -947,8 +933,8 @@ class WorkoutSetScreenTest {
         assertClockOutsideLiveRegion()
     }
 
-    private fun show(state: DayUiState, actions: DayActions = pagerActions()) {
-        rule.setContent { AppTheme { WorkoutSetHost(state, actions, DayEditUiState(), pagerEditActions()) } }
+    private fun show(state: DayUiState, actions: DayActions = workoutActions()) {
+        rule.setContent { AppTheme { WorkoutSetHost(state, actions, DayEditUiState(), workoutEditActions()) } }
     }
 
     private fun undo() = UndoOffer(1L, Slot.MAIN, 1, "Barbell Back Squat", LoggedSet(165.0, 5, SetKind.RAMP), TrackingType.WEIGHTED, WeightUnit.LB, null)

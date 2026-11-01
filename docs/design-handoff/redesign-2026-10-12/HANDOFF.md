@@ -1,5 +1,6 @@
 # strength.log phone redesign — handoff (decided 12 Oct 2026)
 
+Current phone UI (4.5b): `WorkoutSetScreen` replaces the workout pager; lift navigation uses the Day sheet.
 This is the single source for implementing the redesign. It supersedes the two proposals
 (`fable-design-plan.md`, `astra-design-plan.md`) and the exploration (`fable-pager-exploration.md`)
 where they disagree. Mocks of record: `fable-mock.html` (Today, receipt, Log, Plan, Settings,

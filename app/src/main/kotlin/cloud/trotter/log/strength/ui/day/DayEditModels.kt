@@ -32,7 +32,6 @@ data class DayEditUiState(
     val cardioBlock: CardioBlock? = null,
     val cardioDraft: CardioBlockDraft? = null,
     val runOpen: Boolean = false,
-    val workoutSetScreen: Boolean = false,
     val performedExerciseIds: Map<Long, String> = emptyMap(),
     val performedPartnerIds: Map<Long, String> = emptyMap(),
     val otherWorkoutOpenMessage: Boolean = false,
@@ -82,7 +81,6 @@ data class DayEditActions(
     val onRemoveCardio: () -> Unit = {},
     val onSetKeepToPlan: (slotId: Long, keep: Boolean) -> Unit = { _, _ -> },
     val onResetSlotToPlan: (slotId: Long) -> Unit = {},
-    val onWorkoutSwap: (position: Int, newExerciseId: String) -> Unit = { _, _ -> },
     val onWorkoutSwapHalf: (position: Int, newExerciseId: String, slot: String) -> Unit = { _, _, _ -> },
     val onMessageShown: () -> Unit = {},
 )
@@ -94,12 +92,6 @@ internal fun DayEditUiState.performedSwapSlot(slot: DayEditSlotState, half: Stri
         exerciseId = id.orEmpty(), title = slot.partnerTitle.orEmpty(), pattern = null,
     ) else slot
     return slot.copy(exerciseId = entry.id, title = entry.name, pattern = entry.pattern)
-}
-
-internal fun DayEditActions.swapWeight(card: ExerciseCardState, state: DayEditUiState, exerciseId: String) {
-    val planned = state.slots.firstOrNull { it.programExerciseId == card.programExerciseId } ?: return
-    if (card.exerciseId.isNotEmpty() && card.exerciseId != planned.exerciseId) onWorkoutSwap(card.position, exerciseId)
-    else onSwap(card.position, exerciseId)
 }
 
 internal fun DayEditUiState.swapCandidates(slot: DayEditSlotState, half: String = Slot.MAIN) = (

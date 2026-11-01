@@ -87,20 +87,10 @@ class SetupSectionsTest {
     }
 
     @Test
-    fun flagOffKeepsSetupWithoutKeepScreenOn() {
-        composeTestRule.setContent { AppTheme {
-            SetupScreen(SetupUiState(), setupActions(), workoutSetScreen = false)
-        } }
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("DATA"))
-        composeTestRule.onNodeWithText("Keep screen on during workouts").assertDoesNotExist()
-    }
-
-    @Test
-    fun flagOnKeepScreenOnSwitchUsesExistingPreferenceCallback() {
+    fun keepScreenOnSwitchUsesExistingPreferenceCallback() {
         var enabled: Boolean? = null
         composeTestRule.setContent { AppTheme {
-            SetupScreen(SetupUiState(), setupActions().copy(onKeepScreenOnChange = { enabled = it }),
-                workoutSetScreen = true)
+            SetupScreen(SetupUiState(), setupActions().copy(onKeepScreenOnChange = { enabled = it }))
         } }
         composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Keep screen on during workouts"))
         composeTestRule.onNodeWithContentDescription("Keep screen on during workouts").performClick()
@@ -112,7 +102,6 @@ class SetupSectionsTest {
         onAgeChange = {},
         onLevelChange = {},
         onEmphasisChange = {},
-
         onUnitToggle = {},
         onRestTimerEnabledChange = {},
         onRestOverrideChange = { _, _ -> },

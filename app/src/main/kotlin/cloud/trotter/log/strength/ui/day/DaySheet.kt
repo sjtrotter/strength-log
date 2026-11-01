@@ -50,7 +50,7 @@ internal fun DaySheet(
                 }
             }
             val entries = (state.pages.map { it to null } +
-                (if (state.workout != null) state.skippedLifts.map { null to it } else emptyList()))
+                state.skippedLifts.map { null to it })
                 .sortedBy { (page, skipped) -> skipped?.position ?: page?.exerciseId?.let { id ->
                     state.exercises.firstOrNull { it.programExerciseId == id }?.position
                 } ?: Int.MAX_VALUE }

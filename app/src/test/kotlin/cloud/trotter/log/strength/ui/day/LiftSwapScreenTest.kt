@@ -20,19 +20,18 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * A page's swap menu reaches the same swap mutation as the day-edit sheet's
+ * The Lift sheet reaches the same swap mutation as the day-edit sheet's
  * Edit -> Swap.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class CardSwapTest {
+class LiftSwapScreenTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
 
     private val dayState = DayUiState(
         hasProgram = true,
-
         viewDayId = "A",
         dayIndex = 0,
         dayTitle = "Lower — squat focus",
@@ -42,6 +41,7 @@ class CardSwapTest {
         exercises = listOf(
             ExerciseCardState(
                 programExerciseId = 1L,
+                exerciseId = "bb_back_squat",
                 position = 0,
                 title = "Barbell Back Squat",
                 isMain = true,
@@ -50,7 +50,6 @@ class CardSwapTest {
                 headerTarget = HeaderTarget.Goal("235"),
                 perHand = false,
                 allDone = false,
-
                 rows = listOf(
                     SetRowState(0, "R1", isTop = false, weightDisplay = 130.0, reps = 5, done = false),
                 ),
@@ -73,12 +72,12 @@ class CardSwapTest {
     )
 
     @Test
-    fun pageMenuOpensThePickerAndRecordsThePositionAndTargetId() {
+    fun liftSheetOpensThePickerAndRecordsThePositionAndTargetId() {
         val swaps = mutableListOf<Pair<Int, String>>()
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
         setDayContent(dayEditActions = swapRecorder(swaps))
 
-        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("All sets").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("The plan").performClick()
@@ -90,20 +89,20 @@ class CardSwapTest {
     /** The shortcut is the same mutation, not a second swap path that
      *  could drift from the sheet's. */
     @Test
-    fun thePageMenuAndTheSheetSwapProduceTheSameMutation() {
+    fun liftAndDayEditorsProduceTheSamePlanSwap() {
         val swaps = mutableListOf<Pair<Int, String>>()
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
         setDayContent(dayEditActions = swapRecorder(swaps))
 
-        // From the page menu: Swap exercise -> pick.
-        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        // From the Lift sheet: Swap exercise -> pick.
+        composeTestRule.onNodeWithText("All sets").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("The plan").performClick()
         composeTestRule.onNodeWithText("Swap").performClick()
 
-        // From the day menu: Edit day -> Edit -> Swap exercise -> pick.
-        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        // From the Day sheet: Edit day -> Edit -> Swap exercise -> pick.
+        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
         composeTestRule.onNodeWithText("Edit day").performClick()
         composeTestRule.onNodeWithText("Edit").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
@@ -121,9 +120,9 @@ class CardSwapTest {
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
         setDayContent(dayEditState = dayEditState.copy(runOpen = true),
             dayEditActions = swapRecorder(planSwaps).copy(
-                onWorkoutSwap = { position, id -> workoutSwaps += position to id },
+                onWorkoutSwapHalf = { position, id, _ -> workoutSwaps += position to id },
             ))
-        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("All sets").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("Swap").performClick()
@@ -137,9 +136,9 @@ class CardSwapTest {
         val workoutSwaps = mutableListOf<Pair<Int, String>>()
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
         setDayContent(dayEditActions = swapRecorder(planSwaps).copy(
-            onWorkoutSwap = { position, id -> workoutSwaps += position to id },
+            onWorkoutSwapHalf = { position, id, _ -> workoutSwaps += position to id },
         ))
-        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("All sets").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("This workout").performClick()
@@ -149,13 +148,13 @@ class CardSwapTest {
     }
 
     @Test
-    fun aSlotWithNoResolvablePatternGetsNoSwapMenuItem() {
+    fun unknownExerciseHasNoSwapAction() {
         val state = dayEditState.copy(
             slots = listOf(dayEditState.slots.single().copy(pattern = null)),
         )
-        setDayContent(dayEditState = state)
+        setDayContent(dayState = dayState.copy(exercises = dayState.exercises.map { it.copy(exerciseId = "unknown") }), dayEditState = state)
 
-        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("All sets").performClick()
         assertTrue(
             composeTestRule.onAllNodesWithText("Swap exercise")
                 .fetchSemanticsNodes().isEmpty(),
@@ -169,10 +168,16 @@ class CardSwapTest {
     ) {
         composeTestRule.setContent {
             val editState = remember { mutableStateOf(dayEditState) }
+            val screenState = remember { mutableStateOf(dayState.withWorkoutSelection()) }
             AppTheme {
                 DayScreen(
-                    state = dayState,
-                    actions = dayActions(),
+                    state = screenState.value,
+                    actions = dayActions().copy(
+                        onOpenLiftSheet = { id, slot -> screenState.value = screenState.value.copy(openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, id, 0, slot = slot)) },
+                        onOpenSwapSheet = { _, slot -> screenState.value = screenState.value.copy(openSheet = OpenSheet("A", OpenSheet.Kind.SWAP, 1L, 0, slot = slot)) },
+                        onOpenDaySheet = { screenState.value = screenState.value.copy(openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0, 0)) },
+                        onCloseAllSets = { screenState.value = screenState.value.copy(openSheet = null) },
+                    ),
                     dayEditState = editState.value,
                     dayEditActions = dayEditActions.copy(onEditorOpen = { editState.value = editState.value.copy(editorOpen = it) }),
                 )
@@ -181,15 +186,12 @@ class CardSwapTest {
     }
 
     private fun dayActions() = DayActions(
-        onSelectDay = {},
         onWeightChange = { _, _, _, _ -> },
         onRepsChange = { _, _, _, _ -> },
         onSecondsChange = { _, _, _, _ -> },
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> },
-        onSelectPage = {},
-        onKeepScreenOnChange = {},
         onDiscardWorkout = {},
         onDone = {},
         onCreateExercise = {},

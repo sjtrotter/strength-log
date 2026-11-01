@@ -1,5 +1,6 @@
 # Exploration round — the workout as swipeable exercise cards (2026-10-12, evening)
 
+Current phone UI (4.5b): `WorkoutSetScreen` replaces the workout pager; lift navigation uses the Day sheet.
 You are the same design lead who wrote `astra-design-plan.md` and `astra-mock.html` in this
 directory (read both first; they are yours, revision 2, already reviewed by the owner). Do NOT
 edit those two files. This round is an EXPLORATION of one idea the owner just raised, and your

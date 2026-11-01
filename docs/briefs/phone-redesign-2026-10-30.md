@@ -1,5 +1,6 @@
 # Phone redesign, 2026-10-30
 
+Current phone UI (4.5b): `WorkoutSetScreen` replaces the workout pager; lift navigation uses the Day sheet.
 > **Changed by the 2026-10-31 product council** (`product-council-2026-10-31.md`, owner
 > decided). Workout runs and one plan model come before any of this is built (#341, #342).
 > In this brief:

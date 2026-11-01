@@ -1,7 +1,5 @@
 package cloud.trotter.log.strength.di
 
-import cloud.trotter.log.strength.BuildConfig
-import cloud.trotter.log.strength.ui.day.WorkoutFlags
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,9 +32,6 @@ annotation class CivilDay
 @Module
 @InstallIn(SingletonComponent::class)
 object AppScopeModule {
-
-    @Provides
-    fun workoutFlags(): WorkoutFlags = WorkoutFlags(BuildConfig.WORKOUT_SET_SCREEN)
 
     @Provides
     @Singleton

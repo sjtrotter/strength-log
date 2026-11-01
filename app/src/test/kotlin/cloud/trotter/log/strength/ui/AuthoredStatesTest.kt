@@ -177,15 +177,12 @@ class AuthoredStatesTest {
     }
 
     private fun dayActions(onSetUpProgram: () -> Unit = {}) = DayActions(
-        onSelectDay = {},
         onWeightChange = { _, _, _, _ -> },
         onRepsChange = { _, _, _, _ -> },
         onSecondsChange = { _, _, _, _ -> },
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> },
-        onSelectPage = {},
-        onKeepScreenOnChange = {},
         onDiscardWorkout = {},
         onDone = {},
         onCreateExercise = { _: MovementPattern -> },

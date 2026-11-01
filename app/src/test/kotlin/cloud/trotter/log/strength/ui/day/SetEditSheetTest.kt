@@ -31,10 +31,10 @@ class SetEditSheetTest {
     @Test fun validEditsWriteImmediatelyAndDoneOnlyDismisses() {
         val writes = mutableListOf<Double>()
         var dismissed = 0
-        val card = pagerFixture().exercises[1].copy(equipment = listOf(Equipment.BARBELL))
+        val card = workoutDayFixture().exercises[1].copy(equipment = listOf(Equipment.BARBELL))
         var row by mutableStateOf(card.rows[1])
         rule.setContent { AppTheme {
-            SetEditSheet(card, row, WeightUnit.LB, 3, pagerActions().copy(onWeightChange = { id, slot, index, value ->
+            SetEditSheet(card, row, WeightUnit.LB, 3, workoutActions().copy(onWeightChange = { id, slot, index, value ->
                 assertEquals(2L, id)
                 assertEquals(Slot.MAIN, slot)
                 assertEquals(1, index)
@@ -52,7 +52,7 @@ class SetEditSheetTest {
 
     @Test fun typingDigitsKeepsTheFocusedTextAndStepperUpdatesIt() {
         val writes = mutableListOf<Double>()
-        val card = pagerFixture().exercises[1]
+        val card = workoutDayFixture().exercises[1]
         var row by mutableStateOf(card.rows[1])
         rule.setContent {
             AppTheme {
@@ -61,7 +61,7 @@ class SetEditSheetTest {
                     row = row,
                     unit = WeightUnit.LB,
                     dayIndex = 3,
-                    actions = pagerActions().copy(onWeightChange = { _, _, _, value ->
+                    actions = workoutActions().copy(onWeightChange = { _, _, _, value ->
                         writes += value
                         row = row.copy(weightDisplay = value)
                     }),
@@ -83,10 +83,10 @@ class SetEditSheetTest {
     }
 
     @Test fun repsOnlyHasNoWeightFieldAndRemoveUsesRoundIdentity() {
-        val card = pagerFixture().exercises[1].copy(tracking = TrackingType.REPS, isSuperset = true)
+        val card = workoutDayFixture().exercises[1].copy(tracking = TrackingType.REPS, isSuperset = true)
         var removed: Triple<Long, Int, Boolean>? = null
         rule.setContent { AppTheme {
-            SetEditSheet(card, card.rows[1], WeightUnit.LB, 3, pagerActions().copy(onRemoveSet = { id, index, paired ->
+            SetEditSheet(card, card.rows[1], WeightUnit.LB, 3, workoutActions().copy(onRemoveSet = { id, index, paired ->
                 removed = Triple(id, index, paired)
             }), onDismiss = {})
         } }
@@ -98,14 +98,14 @@ class SetEditSheetTest {
     }
 
     @Test fun doneTrackCorrectionsUseTheirOwnSlots() {
-        val card = pagerFixture().exercises[1].copy(
+        val card = workoutDayFixture().exercises[1].copy(
             tracking = TrackingType.TIMED, timedShowsWeight = false, isSuperset = true,
             partnerTitle = "Pull-up", partnerTracking = TrackingType.REPS,
         )
         val row = card.rows[1].copy(done = true, seconds = 45, partner = PartnerRowState(0.0, 6, done = true))
         val changes = mutableListOf<Pair<String, Int>>()
         rule.setContent { AppTheme {
-            SetEditSheet(card, row, WeightUnit.LB, 3, pagerActions().copy(
+            SetEditSheet(card, row, WeightUnit.LB, 3, workoutActions().copy(
                 onSecondsChange = { id, slot, index, seconds ->
                     assertEquals(card.programExerciseId, id)
                     assertEquals(row.index, index)
@@ -124,8 +124,8 @@ class SetEditSheetTest {
     }
 
     @Test fun timedFieldsOnlyOfferWeightWhenThePrescriptionCarriesIt() {
-        val card = pagerFixture().exercises[1].copy(tracking = TrackingType.TIMED, timedShowsWeight = false)
-        rule.setContent { AppTheme { SetEditSheet(card, card.rows[1].copy(seconds = 45), WeightUnit.LB, 3, pagerActions(), {}) } }
+        val card = workoutDayFixture().exercises[1].copy(tracking = TrackingType.TIMED, timedShowsWeight = false)
+        rule.setContent { AppTheme { SetEditSheet(card, card.rows[1].copy(seconds = 45), WeightUnit.LB, 3, workoutActions(), {}) } }
         rule.onNodeWithText("Seconds").assertExists()
         rule.onNodeWithText("Weight, lb").assertDoesNotExist()
         rule.onNodeWithText("Reps").assertDoesNotExist()

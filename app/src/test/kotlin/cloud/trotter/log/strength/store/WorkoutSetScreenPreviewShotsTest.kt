@@ -7,8 +7,6 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.ui.day.DayEditSlotState
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.WorkoutSwapUndo
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -155,16 +153,23 @@ class WorkoutSetScreenPreviewShotsTest {
         render("13-day-sheet.png", state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0L, 0)))
     }
 
-    @Test fun swapOnlyRows() {
-        val state = workoutSetSupersetFixture()
-        val catalog = ExerciseCatalog.CODE_ONLY
-        val main = catalog.get("db_bench")
-        val partner = catalog.get("cable_row")
-        val editState = DayEditUiState(workoutSetScreen = true, runOpen = true, catalog = catalog,
-            slots = listOf(DayEditSlotState(1L, 0, main.id, main.name, main.pattern, true,
-                partnerExerciseId = partner.id, partnerTitle = partner.name)))
-        render("14-swap-only-rows.png", state.copy(runOpen = true,
-            openSheet = OpenSheet("A", OpenSheet.Kind.SWAP, 1L, 1)), dayEditState = editState)
+    @Test fun liftSheetSkip() {
+        val base = workoutSetSupersetFixture()
+        val state = base.copy(exercises = base.exercises.map { card -> card.copy(
+            isSuperset = false, partnerExerciseId = null, partnerTitle = null, partnerTracking = null,
+            rows = card.rows.map { it.copy(partner = null) },
+        ) })
+        render("14-lift-sheet-skip.png", state.copy(
+            openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, 1L, 0)))
+    }
+
+    @Test fun daySheetSkipped() {
+        val state = workoutDaySheetFixture()
+        val skipped = state.exercises.first()
+        render("16-day-sheet-skipped.png", state.copy(
+            exercises = state.exercises.filterNot { it.programExerciseId == skipped.programExerciseId },
+            skippedLifts = listOf(cloud.trotter.log.strength.ui.day.SkippedLift(skipped.programExerciseId, skipped.position, skipped.title)),
+            openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0L, 0)))
     }
 
     @Test fun afterDrop() {
@@ -173,8 +178,8 @@ class WorkoutSetScreenPreviewShotsTest {
         render("15-after-drop.png", state.copy(runOpen = true, runId = "drop-preview",
             exercises = listOf(card.copy(isSuperset = false, partnerExerciseId = null, partnerTitle = null,
                 partnerTracking = null, rows = card.rows.map { it.copy(partner = null) })),
-            swapUndo = WorkoutSwapUndo("A", "drop-preview", 1L, Slot.MAIN, "db_bench", "db_bench",
-                card.title, dropKeep = Slot.MAIN)))
+            swapUndo = WorkoutSwapUndo("A", "drop-preview", 1L, Slot.MAIN, "cable_row", "db_bench",
+                card.partnerTitle.orEmpty(), skippedSlot = Slot.SS)))
     }
 
     private fun render(

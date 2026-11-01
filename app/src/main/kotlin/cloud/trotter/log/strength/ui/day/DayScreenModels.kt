@@ -63,6 +63,8 @@ data class DayUiState(
     /** The day DONE advances to (rotation successor of the viewed day). */
     val nextDayId: String? = null,
     val exercises: List<ExerciseCardState> = emptyList(),
+    val skippedLifts: List<SkippedLift> = emptyList(),
+    val skippedPartners: Map<Long, SkippedLift> = emptyMap(),
     val cardio: CardioCardState? = null,
     val timedRep: TimedRepState? = null,
     val executionBusy: Boolean = false,
@@ -168,7 +170,6 @@ data class PendingPlanSwap(
     val exerciseId: String,
     val title: String,
     val doneCount: Int,
-    val dropKeep: String? = null,
 ) : Parcelable
 
 @Parcelize
@@ -180,7 +181,7 @@ data class WorkoutSwapUndo(
     val previousExerciseId: String,
     val exerciseId: String,
     val title: String,
-    val dropKeep: String? = null,
+    val skippedSlot: String? = null,
 ) : Parcelable
 
 /** One atomic saved event: anchors while running, then a count draft and sheet delivery state. */
@@ -407,3 +408,5 @@ internal fun DayUiState.withWorkoutRestHint(enabled: Boolean, overrides: Map<Res
         } }
     return if (workoutThenRest == thenRest) this else copy(workoutThenRest = thenRest)
 }
+
+data class SkippedLift(val programExerciseId: Long, val position: Int, val title: String, val slot: String = Slot.MAIN)

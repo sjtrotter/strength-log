@@ -79,6 +79,7 @@ object WatchSnapshotBuilder {
         retiredRoundsDone: Int? = null,
         processedEditStamps: List<Long>? = null,
         droppedPartners: Set<Long> = emptySet(),
+        skippedLifts: Set<Long> = emptySet(),
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val watchDays = program.days.filter {
@@ -88,7 +89,7 @@ object WatchSnapshotBuilder {
         if (dayIndex < 0) return null
         val day = watchDays[dayIndex]
 
-        val workoutSlots = slots.forRun(droppedPartners)
+        val workoutSlots = slots.forRun(droppedPartners, skippedLifts)
         val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
         val previewSeeds = DayScreenBuilder.seedPlan(
             slots = workoutSlots,

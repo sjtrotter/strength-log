@@ -35,7 +35,6 @@ data class DayEditUiState(
     val workoutSetScreen: Boolean = false,
     val performedExerciseIds: Map<Long, String> = emptyMap(),
     val performedPartnerIds: Map<Long, String> = emptyMap(),
-    val droppedPartners: Set<Long> = emptySet(),
     val otherWorkoutOpenMessage: Boolean = false,
 )
 
@@ -85,7 +84,6 @@ data class DayEditActions(
     val onResetSlotToPlan: (slotId: Long) -> Unit = {},
     val onWorkoutSwap: (position: Int, newExerciseId: String) -> Unit = { _, _ -> },
     val onWorkoutSwapHalf: (position: Int, newExerciseId: String, slot: String) -> Unit = { _, _, _ -> },
-    val onOnly: (position: Int, keep: String, workout: Boolean, mainId: String, partnerId: String) -> Unit = { _, _, _, _, _ -> },
     val onMessageShown: () -> Unit = {},
 )
 

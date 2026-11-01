@@ -1050,14 +1050,14 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench(superset = true)), restEnabled = true)
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.dropSupersetHalf(0, Slot.MAIN, true, "db_bench", "cable_row")
+        vm.skipLift(vm.uiState.value.exercises.single().programExerciseId, Slot.SS)
         runCurrent()
         val card = vm.uiState.value.exercises.single()
         assertFalse(card.isSuperset)
         assertNull(card.partnerExerciseId)
         assertTrue(card.rows.all { it.partner == null })
         assertEquals(WorkoutFocus(id, Slot.MAIN, 0), vm.uiState.value.workout!!.focus)
-        assertEquals(Slot.MAIN, vm.uiState.value.swapUndo?.dropKeep)
+        assertEquals(Slot.SS, vm.uiState.value.swapUndo?.skippedSlot)
         backgroundScope.launch { vm.dayEditState.collect {} }
         runCurrent()
         assertTrue(vm.dayEditState.value.slots.single().isSuperset)
@@ -1077,11 +1077,11 @@ class DayViewModelWorkoutTest {
     @Test fun `keeping SS offers drop undo which restores the pair`() = test {
         prepare(listOf(bench(superset = true)))
         val vm = readyVm()
-        vm.dropSupersetHalf(0, Slot.SS, true, "db_bench", "cable_row")
+        vm.skipLift(vm.uiState.value.exercises.single().programExerciseId, Slot.MAIN)
         runCurrent()
         assertEquals("cable_row", vm.uiState.value.exercises.single().exerciseId)
         assertFalse(vm.uiState.value.exercises.single().isSuperset)
-        assertEquals(Slot.SS, vm.uiState.value.swapUndo?.dropKeep)
+        assertEquals(Slot.MAIN, vm.uiState.value.swapUndo?.skippedSlot)
         vm.undoWorkoutSwap()
         runCurrent()
         assertEquals("db_bench", vm.uiState.value.exercises.single().exerciseId)
@@ -1092,7 +1092,7 @@ class DayViewModelWorkoutTest {
     @Test fun `drop undo clears at first MAIN mismatch and stays cleared after swapping back`() = test {
         prepare(listOf(bench(superset = true)))
         val vm = readyVm()
-        vm.dropSupersetHalf(0, Slot.MAIN, true, "db_bench", "cable_row")
+        vm.skipLift(vm.uiState.value.exercises.single().programExerciseId, Slot.SS)
         runCurrent()
         val offer = requireNotNull(vm.uiState.value.swapUndo)
         val slots = repo.slotsFor(requireNotNull(vm.uiState.value.planId), "A").first()
@@ -1110,7 +1110,7 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench(superset = true)))
         val saved = SavedStateHandle()
         val vm = readyVm(savedState = saved)
-        vm.dropSupersetHalf(0, Slot.MAIN, true, "db_bench", "cable_row")
+        vm.skipLift(vm.uiState.value.exercises.single().programExerciseId, Slot.SS)
         runCurrent()
         val offer = requireNotNull(vm.uiState.value.swapUndo)
         repo.removeSupersetPartner("A", offer.programExerciseId)
@@ -1124,32 +1124,61 @@ class DayViewModelWorkoutTest {
         assertEquals(before, db.runDao().tracks(offer.runId))
     }
 
-    @Test fun `plan keep partner uses the existing deletion count confirmation then removes the pairing`() = test {
-        prepare(listOf(bench(superset = true)))
-        val vm = readyVm()
-        markLegacyRowsDone(vm)
-        runCurrent()
-        vm.dropSupersetHalf(0, Slot.SS, false, "db_bench", "cable_row")
-        runCurrent()
-        val pending = requireNotNull(vm.uiState.value.pendingPlanSwap)
-        assertEquals(2, pending.doneCount)
-        assertEquals(Slot.SS, pending.dropKeep)
-        vm.confirmPlanSwap()
-        runCurrent()
-        val planned = repo.slotsFor(pending.planId, "A").first().single().exercise
-        assertEquals("cable_row", planned.exerciseId)
-        assertNull(planned.superset)
-        assertNull(repo.openRunFlow.first())
-    }
-
-    @Test fun `flag off ignores drop actions`() = test {
+    @Test fun `flag off ignores skip restore and skip set actions`() = test {
         prepare(listOf(bench(superset = true)))
         val vm = readyVm(flags = WorkoutFlags(false))
-        vm.dropSupersetHalf(0, Slot.MAIN, true, "db_bench", "cable_row")
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.openLiftSheet(id, Slot.MAIN)
+        vm.openDaySheet()
+        vm.skipLift(id, Slot.SS)
+        vm.skipLift(id, Slot.MAIN)
+        vm.skipNowSet(id, Slot.MAIN)
+        vm.restoreSkipped(id, Slot.MAIN)
         runCurrent()
         assertTrue(vm.uiState.value.exercises.single().isSuperset)
         assertNull(repo.openRunFlow.first())
         assertNull(vm.uiState.value.swapUndo)
+        assertNull(vm.uiState.value.openSheet)
+        assertTrue(vm.uiState.value.skippedLifts.isEmpty())
+        assertTrue(vm.uiState.value.skippedPartners.isEmpty())
+    }
+
+    @Test fun `skip plain lift from its sheet selects next lift and Undo restores the skipped rows`() = test {
+        prepare(listOf(bench(), ProgramExercise("bb_back_squat", targetSets = 3)))
+        val vm = readyVm()
+        val first = vm.uiState.value.exercises.first()
+        val second = vm.uiState.value.exercises.last()
+        vm.openLiftSheet(first.programExerciseId, Slot.MAIN)
+        runCurrent()
+        vm.skipLift(first.programExerciseId, Slot.MAIN)
+        runCurrent()
+        assertNull(vm.uiState.value.openSheet)
+        assertEquals(listOf(second.programExerciseId), vm.uiState.value.exercises.map { it.programExerciseId })
+        assertEquals(1, vm.uiState.value.exercises.single().position)
+        assertEquals(second.programExerciseId, vm.uiState.value.workout?.focus?.programExerciseId)
+        assertEquals(first.programExerciseId, vm.uiState.value.skippedLifts.single().programExerciseId)
+        assertNotNull(vm.uiState.value.swapUndo)
+        vm.undoWorkoutSwap()
+        runCurrent()
+        assertEquals(listOf(first.programExerciseId, second.programExerciseId), vm.uiState.value.exercises.map { it.programExerciseId })
+        assertEquals(first.rows, vm.uiState.value.exercises.first().rows)
+        assertNull(vm.uiState.value.swapUndo)
+    }
+
+    @Test fun `skip Now set from lift sheet uses remove set and Undo restores it`() = test {
+        prepare()
+        val vm = readyVm()
+        val card = vm.uiState.value.exercises.single()
+        vm.openLiftSheet(card.programExerciseId, Slot.MAIN)
+        runCurrent()
+        vm.skipNowSet(card.programExerciseId, Slot.MAIN)
+        runCurrent()
+        assertNull(vm.uiState.value.openSheet)
+        assertEquals(card.rows.size - 1, vm.uiState.value.exercises.single().rows.size)
+        assertEquals(0, vm.removedSets.value.single().index)
+        vm.undoRemoveSet()
+        runCurrent()
+        assertEquals(card.rows, vm.uiState.value.exercises.single().rows)
     }
 
 }

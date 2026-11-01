@@ -5,7 +5,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import cloud.trotter.log.strength.data.isPartnerDropped
+import cloud.trotter.log.strength.data.isSlotSkipped
+import cloud.trotter.log.strength.data.skippedMainTrack
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.prefs.WorkoutRecord
@@ -222,10 +223,20 @@ class DayViewModel @Inject constructor(
             }
             slotsWithHistory.flatMapLatest { (slots, history) ->
                 combine(repo.dayTracksFlow(planId, dayId), repo.openRunFlow) { tracks, open ->
-                    val workoutSlots = if (flags.setScreen) slots.forRun(tracks.droppedPartners) else slots
+                    val workoutSlots = if (flags.setScreen) slots.forRun(tracks.droppedPartners, tracks.skippedLifts) else slots
                     val state = buildState(ctx, dayId, workoutSlots, tracks.tracks.associateBy { it.programExerciseId to it.slot }, history)
                         .copy(runId = tracks.runId, runOpen = tracks.runOpen,
                             openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle,
+                            skippedLifts = if (flags.setScreen) slots.filter { it.programExerciseId in tracks.skippedLifts }.map { slot ->
+                                val id = open?.skippedMainTrack(slot.programExerciseId)?.exerciseId ?: slot.exercise.exerciseId
+                                SkippedLift(slot.programExerciseId, slot.position, ctx.catalog.find(id)?.name ?: id)
+                            } else emptyList(),
+                            skippedPartners = if (flags.setScreen) slots.filter { it.programExerciseId in tracks.droppedPartners && it.programExerciseId !in tracks.skippedLifts }.mapNotNull { slot ->
+                                val skipped = open?.skippedMainTrack(slot.programExerciseId)
+                                    ?: open?.tracks?.singleOrNull { it.programExerciseId == slot.programExerciseId && it.slot == Slot.SS && it.dropped }
+                                skipped?.let { slot.programExerciseId to SkippedLift(slot.programExerciseId, slot.position,
+                                    ctx.catalog.find(it.exerciseId)?.name ?: it.exerciseId, it.slot) }
+                            }.toMap() else emptyMap(),
                             retiredRoundDoneCount = tracks.retiredRoundsDone,
                             retiredTracks = tracks.retired.mapNotNull { track ->
                                 val doneCount = track.sets.count { it.done }
@@ -386,9 +397,11 @@ class DayViewModel @Inject constructor(
             },
             swapUndo = undo?.takeIf { offer ->
                 flags.setScreen && state.runOpen && state.runId == offer.runId && state.viewDayId == offer.dayId &&
-                    state.exercises.any { card -> card.programExerciseId == offer.programExerciseId &&
-                        (if (offer.slot == Slot.SS) card.partnerExerciseId else card.exerciseId) == offer.exerciseId &&
-                        (offer.dropKeep == null || !card.isSuperset) }
+                    (if (offer.skippedSlot != null) {
+                        state.skippedLifts.any { it.programExerciseId == offer.programExerciseId } ||
+                            state.skippedPartners[offer.programExerciseId]?.slot == offer.skippedSlot
+                    } else state.exercises.any { card -> card.programExerciseId == offer.programExerciseId &&
+                        (if (offer.slot == Slot.SS) card.partnerExerciseId else card.exerciseId) == offer.exerciseId })
             },
             openSheet = savedSheet?.takeIf { sheetResolves(state, it, state.timedRep?.event) },
         )
@@ -422,14 +435,14 @@ class DayViewModel @Inject constructor(
             repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id),
             // Set ticks and edits re-emit the tracks; only the run and performed identities matter here.
             repo.dayTracksFlow(plan.id, dayId).map { tracks ->
-                Triple(tracks.runOpen, tracks.tracks
-                    .mapNotNull { track -> track.exerciseId?.let { (track.programExerciseId to track.slot) to it } }.toMap(), tracks.droppedPartners)
+                Pair(tracks.runOpen, tracks.tracks
+                    .mapNotNull { track -> track.exerciseId?.let { (track.programExerciseId to track.slot) to it } }.toMap())
             }.distinctUntilChanged(),
-        ) { slots, answers, (runOpen, performed, dropped) ->
+        ) { slots, answers, (runOpen, performed) ->
             val block = ctx.program.days.firstOrNull { it.id == dayId }?.cardioBlock
             buildEditState(slots, ctx.catalog, answers.equipment).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block, config = answers.config,
-                runOpen = runOpen, workoutSetScreen = flags.setScreen, droppedPartners = dropped,
+                runOpen = runOpen, workoutSetScreen = flags.setScreen,
                 performedExerciseIds = performed.filterKeys { it.second == Slot.MAIN }.mapKeys { it.key.first },
                 performedPartnerIds = performed.filterKeys { it.second == Slot.SS }.mapKeys { it.key.first },
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
@@ -527,11 +540,17 @@ class DayViewModel @Inject constructor(
                     if (offer == null) flowOf(null) else repo.openRunFlow.map { run ->
                         offer.takeUnless {
                             run != null && run.id == offer.runId &&
-                                (offer.dropKeep == null || run.isPartnerDropped(offer.programExerciseId)) &&
-                                run.tracks.any { track ->
-                                !track.retired && track.programExerciseId == offer.programExerciseId &&
-                                    track.slot == offer.slot && track.exerciseId == offer.exerciseId
-                            }
+                                (if (offer.skippedSlot != null) {
+                                    run.tracks.any { track -> track.programExerciseId == offer.programExerciseId &&
+                                        track.slot == offer.skippedSlot && track.dropped && track.exerciseId == offer.previousExerciseId } &&
+                                        (run.isSlotSkipped(offer.programExerciseId, Slot.MAIN) || run.tracks.any { track ->
+                                            !track.retired && track.programExerciseId == offer.programExerciseId &&
+                                                track.slot == Slot.MAIN && track.exerciseId == offer.exerciseId
+                                        })
+                                } else run.tracks.any { track ->
+                                    !track.retired && track.programExerciseId == offer.programExerciseId &&
+                                        track.slot == offer.slot && track.exerciseId == offer.exerciseId
+                                })
                         }
                     }
                 }.collect { invalid ->
@@ -1174,10 +1193,11 @@ class DayViewModel @Inject constructor(
         if (countEvent != null) clearTimedRep()
         val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
         val planId = repo.planIdOfSlot(programExerciseId) ?: return
-        val dropped = if (flags.setScreen) repo.dayTracksFlow(planId, day).first().droppedPartners else emptySet()
         val planSlots = repo.slotsFor(planId, day).first()
-        val isSuperset = (if (flags.setScreen) planSlots.forRun(dropped) else planSlots)
-            .firstOrNull { it.programExerciseId == programExerciseId }?.exercise?.superset != null
+        val workoutSlots = if (flags.setScreen) repo.dayTracksFlow(planId, day).first().let {
+            planSlots.forRun(it.droppedPartners, it.skippedLifts)
+        } else planSlots
+        val isSuperset = workoutSlots.firstOrNull { it.programExerciseId == programExerciseId }?.exercise?.superset != null
         if (checked && isSuperset && !row.done) repo.markSupersetHelperSeen()
         val main = trackFor(day, programExerciseId, Slot.MAIN)
         val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS).takeIf { it.isNotEmpty() } else null
@@ -1427,9 +1447,8 @@ class DayViewModel @Inject constructor(
         mutate {
             val state = uiState.value
             if (state.swapUndo != offer) return@mutate
-            if (offer.dropKeep != null) {
-                repo.undoDropSupersetHalf(offer.runId, offer.programExerciseId, offer.dropKeep, offer.exerciseId,
-                    previousMainId = offer.previousExerciseId)
+            if (offer.skippedSlot != null) {
+                repo.restoreSkipped(offer.runId, offer.programExerciseId, offer.skippedSlot)
                 dismissSwapUndo()
                 return@mutate
             }
@@ -1729,11 +1748,11 @@ class DayViewModel @Inject constructor(
     fun dismissPlanSwap() { savedState[KEY_PENDING_PLAN_SWAP] = null }
 
     private fun planSwapDoneCount(
-        slot: ProgramSlot, tracks: DayTracks, half: String, exerciseId: String, dropKeep: String? = null,
+        slot: ProgramSlot, tracks: DayTracks, half: String, exerciseId: String,
     ): Int {
         if (tracks.runOpen) return 0
         val replacesMain = half == Slot.MAIN && slot.exercise.exerciseId != exerciseId
-        if (half == Slot.MAIN && !replacesMain && dropKeep == null) return 0
+        if (half == Slot.MAIN && !replacesMain) return 0
         return tracks.tracks.filter {
             it.programExerciseId == slot.programExerciseId && (replacesMain || it.slot == Slot.SS)
         }.sumOf { it.sets.count { set -> set.done } }
@@ -1750,7 +1769,7 @@ class DayViewModel @Inject constructor(
             return
         }
         val tracks = repo.dayTracksFlow(pending.planId, pending.dayId).first()
-        val doneCount = planSwapDoneCount(slot, tracks, pending.slot, pending.exerciseId, pending.dropKeep)
+        val doneCount = planSwapDoneCount(slot, tracks, pending.slot, pending.exerciseId)
         if (doneCount > 0) {
             if (doneCount != pending.doneCount) {
                 savedState[KEY_PENDING_PLAN_SWAP] = pending.copy(doneCount = doneCount)
@@ -1759,8 +1778,7 @@ class DayViewModel @Inject constructor(
             if (!confirmed) return
         }
         dismissPlanSwap()
-        if (pending.dropKeep != null) applyPlanDrop(pending.dayId, pending.programExerciseId, pending.dropKeep, pending.exerciseId)
-        else applyPlanSwap(pending.dayId, pending.programExerciseId, pending.slot, pending.exerciseId)
+        applyPlanSwap(pending.dayId, pending.programExerciseId, pending.slot, pending.exerciseId)
     }
 
     fun confirmPlanSwap() {
@@ -1768,48 +1786,52 @@ class DayViewModel @Inject constructor(
         mutate { reconcilePlanSwap(pending, confirmed = true) }
     }
 
-    fun dropSupersetHalf(position: Int, keep: String, workout: Boolean, expectedMainId: String, expectedPartnerId: String) {
-        if (!flags.setScreen || (keep != Slot.MAIN && keep != Slot.SS)) return
+    fun skipLift(programExerciseId: Long, half: String) {
+        if (!flags.setScreen) return
         val day = currentDay() ?: return
-        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
+        val state = uiState.value.takeIf { it.viewDayId == day } ?: return
+        val planId = state.planId ?: return
+        val card = state.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return
+        val skippedId = if (half == Slot.SS) card.partnerExerciseId ?: return else card.exerciseId
         mutate {
-            val slot = repo.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
-            val plannedPartner = slot.exercise.superset ?: return@mutate
-            if (!workout) {
-                val half = if (keep == Slot.SS) Slot.MAIN else Slot.SS
-                val targetId = if (keep == Slot.SS) expectedPartnerId else expectedMainId
-                val tracks = repo.dayTracksFlow(planId, day).first()
-                val count = planSwapDoneCount(slot, tracks, half, targetId, dropKeep = keep)
-                if (count > 0) {
-                    val oldId = if (half == Slot.SS) plannedPartner.exerciseId else slot.exercise.exerciseId
-                    savedState[KEY_PENDING_PLAN_SWAP] = PendingPlanSwap(day, planId, slot.programExerciseId, half,
-                        targetId, repo.catalogFlow.first().find(oldId)?.name ?: oldId, count, dropKeep = keep)
-                } else applyPlanDrop(day, slot.programExerciseId, keep, targetId)
-                return@mutate
-            }
-            val result = repo.dropSupersetHalf(planId, day, slot.programExerciseId, keep, expectedMainId, expectedPartnerId)
+            val result = repo.skipLift(planId, day, programExerciseId, half, card.exerciseId, card.partnerExerciseId)
             if (result !is RunWriteResult.InRun) {
                 val open = repo.openRunFlow.first()
                 if (open != null && (open.planId != planId || open.dayId != day)) otherWorkoutOpenMessage.value = true
                 return@mutate
             }
+            closeSheet()
             clearLogUndo()
             closeUndoWindow()
             _removedSets.value = emptyList()
-            val keptId = if (keep == Slot.SS) expectedPartnerId else expectedMainId
-            val key = "exercise:${slot.programExerciseId}"
+            val key = if (card.isSuperset) "exercise:$programExerciseId" else
+                WorkoutSelection.next(workoutGroups(state), "exercise:$programExerciseId")
             savedState[KEY_SELECTED_PAGE] = key
             repo.setWorkoutRecord(WorkoutRecord(result.runId, key))
-            savedState[KEY_SWAP_UNDO] = WorkoutSwapUndo(day, result.runId, slot.programExerciseId, Slot.MAIN,
-                expectedMainId, keptId, repo.catalogFlow.first().find(keptId)?.name ?: keptId, dropKeep = keep)
+            val keptId = if (half == Slot.MAIN && card.isSuperset) card.partnerExerciseId.orEmpty() else card.exerciseId
+            savedState[KEY_SWAP_UNDO] = WorkoutSwapUndo(day, result.runId, programExerciseId, Slot.MAIN,
+                skippedId, keptId, repo.catalogFlow.first().find(skippedId)?.name ?: skippedId,
+                skippedSlot = if (card.isSuperset && card.exerciseId == card.partnerExerciseId) Slot.SS else half)
         }
     }
 
-    private suspend fun applyPlanDrop(day: String, id: Long, keep: String, exerciseId: String) {
-        if (keep == Slot.SS) applyPlanSwap(day, id, Slot.MAIN, exerciseId)
-        repo.removeSupersetPartner(day, id)
-        clearLogUndo()
-        dismissSwapUndo()
+    fun restoreSkipped(programExerciseId: Long, half: String) {
+        if (!flags.setScreen) return
+        val runId = uiState.value.runId ?: return
+        mutate {
+            repo.restoreSkipped(runId, programExerciseId, half)
+            dismissSwapUndo()
+        }
+    }
+
+    fun skipNowSet(programExerciseId: Long, half: String) {
+        if (!flags.setScreen) return
+        val state = uiState.value
+        val focus = state.workout?.focus?.takeIf { it.programExerciseId == programExerciseId && it.slot == half } ?: return
+        val card = state.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return
+        if (card.rows.getOrNull(focus.index)?.values(half)?.done != false) return
+        closeSheet()
+        removeSet(programExerciseId, focus.index, card.isSuperset)
     }
 
     fun swapWorkoutSlot(position: Int, newExerciseId: String) = swapWorkoutSlot(position, newExerciseId, Slot.MAIN)

@@ -202,11 +202,6 @@ fun DayEditSheet(
                     swapSlotId = null
                 },
                 half = swapHalf,
-                onOnly = { keep, workout, mainId, partnerId ->
-                    actions.onOnly(swapSlot.position, keep, workout, mainId, partnerId)
-                    swapSlotId = null
-                    if (workout) actions.onEditorOpen(false)
-                },
                 onBack = onBack,
                 onCreateExercise = onCreateExercise,
             )
@@ -773,31 +768,18 @@ private fun SwapPickerPage(
     onPick: (ExerciseEntry) -> Unit,
     onWorkoutPick: (ExerciseEntry) -> Unit,
     half: String = Slot.MAIN,
-    onOnly: (keep: String, workout: Boolean, mainId: String, partnerId: String) -> Unit = { _, _, _, _ -> },
     onBack: () -> Unit,
     onCreateExercise: (MovementPattern) -> Unit,
 ) {
-    var onlyHalf by rememberSaveable(slot.programExerciseId, half) { mutableStateOf<String?>(null) }
-    var onlyMainId by rememberSaveable(slot.programExerciseId, half) { mutableStateOf<String?>(null) }
-    var onlyPartnerId by rememberSaveable(slot.programExerciseId, half) { mutableStateOf<String?>(null) }
-    val planned = state.slots.firstOrNull { it.programExerciseId == slot.programExerciseId }
-    val mainId = state.performedExerciseIds[slot.programExerciseId] ?: planned?.exerciseId
-    val partnerId = state.performedPartnerIds[slot.programExerciseId] ?: planned?.partnerExerciseId
-    val onlyRows = if (state.workoutSetScreen && slot.programExerciseId !in state.droppedPartners && mainId != null && partnerId != null) {
-        listOf(Slot.MAIN to (state.catalog.find(mainId)?.name ?: mainId),
-            Slot.SS to (state.catalog.find(partnerId)?.name ?: partnerId))
-    } else emptyList()
     var pickedId by rememberSaveable(slot.programExerciseId, half) { mutableStateOf<String?>(null) }
     var workoutOnly by rememberSaveable(slot.programExerciseId, half) { mutableStateOf(state.runOpen) }
     val picked = pickedId?.let(state.catalog::find)
-    val onlyTitle = (if (onlyHalf == Slot.MAIN) onlyMainId else onlyPartnerId)
-        ?.takeIf { onlyHalf != null && state.workoutSetScreen }?.let { state.catalog.find(it)?.name ?: it }
-    if (picked != null || onlyTitle != null) {
-        val resetPick = { pickedId = null; onlyHalf = null }
+    if (picked != null) {
+        val resetPick = { pickedId = null }
         BackHandler(onBack = resetPick)
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             BackAction(onClick = resetPick)
-            Text(if (onlyTitle != null) stringResource(R.string.day_only, onlyTitle) else picked?.name.orEmpty(),
+            Text(picked.name,
                 style = MaterialTheme.typography.titleLarge)
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 listOf(true, false).forEachIndexed { index, workout ->
@@ -810,8 +792,7 @@ private fun SwapPickerPage(
             }
             FilledTonalButton(
                 onClick = {
-                    if (onlyTitle != null) onOnly(requireNotNull(onlyHalf), workoutOnly, requireNotNull(onlyMainId), requireNotNull(onlyPartnerId))
-                    else if (picked != null) { if (workoutOnly) onWorkoutPick(picked) else onPick(picked) }
+                    if (workoutOnly) onWorkoutPick(picked) else onPick(picked)
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.day_swap_apply)) }
@@ -825,8 +806,6 @@ private fun SwapPickerPage(
             defaultEquipment = state.defaultEquipmentFilter,
             accent = accent,
             onPick = { pickedId = it.id },
-            onlyRows = onlyRows,
-            onOnly = { onlyMainId = mainId; onlyPartnerId = partnerId; onlyHalf = it; workoutOnly = true },
             onBack = onBack,
             onCreateExercise = onCreateExercise,
         )
@@ -852,7 +831,6 @@ fun SlotSwapSheet(
     onCreateExercise: (MovementPattern) -> Unit,
     onWorkoutSwap: (position: Int, newExerciseId: String) -> Unit = { _, _ -> },
     half: String = Slot.MAIN,
-    onOnly: (position: Int, keep: String, workout: Boolean, mainId: String, partnerId: String) -> Unit = { _, _, _, _, _ -> },
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -864,7 +842,6 @@ fun SlotSwapSheet(
             onPick = { entry -> onSwap(slot.position, entry.id); onDismiss() },
             onWorkoutPick = { entry -> onWorkoutSwap(slot.position, entry.id); onDismiss() },
             half = half,
-            onOnly = { keep, workout, mainId, partnerId -> onOnly(slot.position, keep, workout, mainId, partnerId); onDismiss() },
             onBack = onDismiss,
             onCreateExercise = onCreateExercise,
         )
@@ -884,8 +861,6 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
     onPick: (ExerciseEntry) -> Unit,
     onBack: () -> Unit,
     onCreateExercise: (MovementPattern) -> Unit,
-    onlyRows: List<Pair<String, String>> = emptyList(),
-    onOnly: (String) -> Unit = {},
 ) {
     var query by rememberSaveable(key) { mutableStateOf("") }
     var equipmentFilter by rememberSaveable(
@@ -918,23 +893,13 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
             )
         }
         Spacer(Modifier.size(10.dp))
-        if (results.isEmpty() && onlyRows.isEmpty()) {
+        if (results.isEmpty()) {
             Text(stringResource(R.string.day_edit_no_matches), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         } else {
             LazyColumn(
                 modifier = Modifier.heightIn(max = 360.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(onlyRows, key = { "only-${it.first}" }) { (half, name) ->
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.day_only, name)) },
-                        supportingContent = { Text(stringResource(R.string.day_drops_other_half)) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = Role.Button) { onOnly(half) },
-                    )
-                }
-                if (results.isEmpty()) item {
-                    Text(stringResource(R.string.day_edit_no_matches), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                }
                 items(results, key = { it.id }) { entry ->
                     SelectionCard(
                         title = entry.name,

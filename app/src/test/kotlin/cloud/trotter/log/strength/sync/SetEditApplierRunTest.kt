@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.OpenRun
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -526,4 +527,17 @@ class SetEditApplierRunTest {
         assertTrue(900L in syncStore.processedEditsFlow.first())
     }
 
+
+    @Test fun `MAIN delta for a skipped plain lift is rejected and acknowledged without writes`() = runTest {
+        val plan = authored()
+        val runId = phoneStart(plan)
+        val id = squatId(plan)
+        assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", null) is RunWriteResult.InRun)
+        val before = db.runDao().tracks(runId)
+        val edit = SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 901, planId = plan, runId = runId, exerciseId = "bb_back_squat")
+        assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(edit))
+        assertEquals(before, db.runDao().tracks(runId))
+        assertTrue(901L in syncStore.processedEditsFlow.first())
+    }
 }

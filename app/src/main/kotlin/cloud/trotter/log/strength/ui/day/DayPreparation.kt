@@ -23,7 +23,7 @@ suspend fun TrackerRepository.daySeeds(
     val dayTracks = tracks ?: dayTracksFlow(planId, dayId).first()
     val existing = dayTracks.tracks
         .associate { (it.programExerciseId to it.slot) to it.sets.size }
-    return DayScreenBuilder.seedPlan(slots.forRun(dayTracks.droppedPartners), existing, wizardAnswersFor(planId).first().config, catalogFlow.first())
+    return DayScreenBuilder.seedPlan(slots.forRun(dayTracks.droppedPartners, dayTracks.skippedLifts), existing, wizardAnswersFor(planId).first().config, catalogFlow.first())
 }
 
 /** History follows performed identities, including independently swapped partners. */

@@ -4,6 +4,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -14,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,8 +49,23 @@ internal fun DaySheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            items(state.pages.size, key = { state.pages[it].key }) { index ->
-                val page = state.pages[index]
+            val entries = (state.pages.map { it to null } +
+                (if (state.workout != null) state.skippedLifts.map { null to it } else emptyList()))
+                .sortedBy { (page, skipped) -> skipped?.position ?: page?.exerciseId?.let { id ->
+                    state.exercises.firstOrNull { it.programExerciseId == id }?.position
+                } ?: Int.MAX_VALUE }
+            items(entries.size, key = { index -> entries[index].first?.key ?: "skipped:${entries[index].second?.programExerciseId}" }) { index ->
+                val (page, skipped) = entries[index]
+                if (skipped != null) {
+                    ListItem(headlineContent = { Text(skipped.title) },
+                        supportingContent = { Text(stringResource(R.string.day_skipped)) },
+                        trailingContent = {
+                            TextButton(onClick = { actions.onRestoreSkipped(skipped.programExerciseId, skipped.slot) },
+                                modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.day_bring_back)) }
+                        })
+                    return@items
+                }
+                if (page == null) return@items
                 val card = state.exercises.firstOrNull { it.programExerciseId == page.exerciseId }
                 val paired = card?.isSuperset == true
                 val selected = page.key == selectedKey

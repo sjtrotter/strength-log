@@ -697,4 +697,13 @@ class WatchSnapshotBuilderTest {
         assertTrue(exercise.sets.single().restAfterSeconds > 0)
     }
 
+
+    @Test fun `skipped lift is absent from the workout snapshot`() {
+        val lift = ProgramExercise("ez_curl")
+        val slots = listOf(ProgramSlot(30L, 0, lift), ProgramSlot(31L, 4, lift))
+        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(lift, lift))))
+        val snapshot = WatchSnapshotBuilder.build(program, "A", slots, emptyList(), cfg, catalog, WeightUnit.LB,
+            revision = 1L, skippedLifts = setOf(30L))!!
+        assertEquals(listOf(31L), snapshot.day.exercises.map { it.programExerciseId })
+    }
 }

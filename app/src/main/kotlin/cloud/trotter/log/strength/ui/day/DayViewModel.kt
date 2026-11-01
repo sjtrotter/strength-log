@@ -331,14 +331,17 @@ class DayViewModel @Inject constructor(
         val plan = ctx.plan
         if (dayId == null || plan == null) flowOf(DayEditUiState()) else combine(
             repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id),
-            repo.dayTracksFlow(plan.id, dayId),
-        ) { slots, answers, tracks ->
+            // Set ticks and edits re-emit the tracks; only the run and performed identities matter here.
+            repo.dayTracksFlow(plan.id, dayId).map { tracks ->
+                tracks.runOpen to tracks.tracks.filter { it.slot == Slot.MAIN }
+                    .mapNotNull { track -> track.exerciseId?.let { track.programExerciseId to it } }.toMap()
+            }.distinctUntilChanged(),
+        ) { slots, answers, (runOpen, performed) ->
             val block = ctx.program.days.firstOrNull { it.id == dayId }?.cardioBlock
             buildEditState(slots, ctx.catalog, answers.equipment).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block, config = answers.config,
-                runOpen = tracks.runOpen,
-                performedExerciseIds = tracks.tracks.filter { it.slot == Slot.MAIN }
-                    .mapNotNull { track -> track.exerciseId?.let { track.programExerciseId to it } }.toMap(),
+                runOpen = runOpen,
+                performedExerciseIds = performed,
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
                 canResetToTemplate = plan.origin == PlanOrigin.GENERATED.name &&
                     ProgramGenerator.generate(answers).days.any { it.id == dayId },

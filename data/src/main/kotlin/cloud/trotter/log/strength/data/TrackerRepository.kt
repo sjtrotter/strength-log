@@ -1371,7 +1371,7 @@ open class TrackerRepository(
     }
 
     // Watch swaps must not start a new identity if Finish wins during validation.
-    suspend fun startRunIfNext(
+    private suspend fun startRunIfNext(
         runId: String, planId: Long, dayId: String, seeds: List<RunSeed>,
     ): RunStartResult? = db.withTransaction {
         val day = programDao.day(planId, dayId) ?: return@withTransaction null

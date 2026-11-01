@@ -441,7 +441,7 @@ class DayViewModel @Inject constructor(
         viewModelScope.launch {
             var previous: DaySelection? = null
             displayTargetFlow.collect { target ->
-                val current = target?.let { DaySelection(it.plan.id, it.dayId) }
+                val current = target?.dayId?.let { dayId -> DaySelection(target.plan.id, dayId) }
                 if (previous != null && previous != current) PhoneRestActions.skip(repo, phoneRestRuntime)
                 previous = current
             }

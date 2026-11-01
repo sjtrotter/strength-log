@@ -69,10 +69,11 @@ class WorkoutSetScreenTest {
         log.performClick()
         log.performClick()
         rule.runOnIdle { assertEquals(1, logs) }
-        rule.mainClock.advanceTimeBy(599, ignoreFrameDuration = true)
+        // Each injected click also advances the test clock, so stay clear of the 600 ms edge.
+        rule.mainClock.advanceTimeBy(300)
         log.performClick()
         rule.runOnIdle { assertEquals(1, logs) }
-        rule.mainClock.advanceTimeBy(2, ignoreFrameDuration = true)
+        rule.mainClock.advanceTimeBy(700)
         log.performClick()
         rule.runOnIdle { assertEquals(2, logs) }
     }

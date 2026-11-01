@@ -72,7 +72,7 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
         ) {
             NotificationManagerCompat.from(context).notify(OVER_ID, overNotification())
         } else {
-            AppHaptics.restComplete(context)
+            AppHaptics.restComplete(context, alarm = true)
         }
         return true
     }

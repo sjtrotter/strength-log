@@ -101,6 +101,27 @@ class DayViewModelReceiptTest {
     // --- it appears, once, and only on a DONE --------------------------------
 
     @Test
+    fun finishingAPausedNonpreferredRunReportsItsOwnNextDay() = runVmTest {
+        insertProgram()
+        val owner = repo.selectedPlanIdFlow.first()!!
+        val other = repo.duplicatePlan(owner, "Preferred")
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        val slot = repo.slotsFor(owner, "A").first().first()
+        vm.toggleDone(slot.programExerciseId, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        repo.useOnly(other)
+        advanceUntilIdle()
+        assertEquals(owner, vm.uiState.value.planId)
+        vm.completeDay()
+        advanceUntilIdle()
+        assertEquals("B", db.planDao().plan(owner)!!.suggestedDayId)
+        assertEquals("A", db.planDao().plan(other)!!.suggestedDayId)
+        assertEquals("DAY B · UPPER", vm.sessionReceipt.value?.nextDayLine)
+        assertEquals(owner, repo.session(vm.sessionReceipt.value!!.sessionId)?.planId)
+    }
+
+    @Test
     fun completingStandaloneCardioProducesAReceiptWithoutAdvancingStrength() = runVmTest {
         insertProgram()
         val cardio = ProgramDay(

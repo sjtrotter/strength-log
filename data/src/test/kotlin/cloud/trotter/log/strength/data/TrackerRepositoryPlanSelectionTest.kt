@@ -59,6 +59,7 @@ class TrackerRepositoryPlanSelectionTest {
                 PlanEntity(2, "B", PlanOrigin.GENERATED.name, 1, 1_000),
             ))
             settings.setSelectedPlanId(1)
+            repo.runPlanSettingsFixupIfNeeded()
 
             store.pauseRead = archiveFirst
             store.pauseWrite = !archiveFirst

@@ -12,7 +12,7 @@ private val TEST_DIAL_COPY = DialCopy(
     sets = { "$it sets" }, undo = "undo", set = { "set $it" }, took = { "took $it" },
     thenPartner = { name, summary -> "then $name $summary" },
     releaseToReturn = "↺ release to return", queued = { "$it queued" },
-    noProgram = "no program", setUpOnPhone = "set up on your phone",
+    nothingOnToday = "Nothing on Today",
     noExercisesYet = "No exercises yet",
     rampLabel = { "R$it" }, topLabel = "TOP", backoffLabel = "B/O",
     cardio = "cardio", cardioStart = "start finisher",
@@ -37,4 +37,5 @@ fun ambientDialState(
     dayText = { "day $it" },
     dayProgressText = { day, done, total -> "day $day · $done/$total" },
     restingText = ambientLabel ?: "resting",
+    nothingOnTodayText = "Nothing on Today",
 )

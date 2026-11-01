@@ -39,6 +39,12 @@ interface PlanDao {
     @Query("UPDATE plan SET archived = :archived WHERE id = :id")
     suspend fun updateArchived(id: Long, archived: Boolean)
 
+    @Query("UPDATE plan SET onToday = :onToday WHERE id = :id")
+    suspend fun updateOnToday(id: Long, onToday: Boolean)
+
+    @Query("UPDATE plan SET onToday = (id = :id)")
+    suspend fun useOnly(id: Long)
+
     @Query("SELECT MAX(position) FROM plan")
     suspend fun maxPosition(): Int?
 

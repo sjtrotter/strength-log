@@ -170,6 +170,48 @@ class RestoreJournalTest {
 
     // --- the whole path, uninterrupted ----------------------------------------
 
+    private fun pausedSnapshot() = snapshot().copy(
+        answersCarryRecipe = false,
+        plans = listOf(PlanEntity(1, "Paused", "GENERATED", 0, 1000, suggestedDayId = "R")),
+    )
+
+    @Test fun importMarksMembershipFixupDoneAndPreservesAllPaused() = runTest {
+        repo.importSnapshot(pausedSnapshot(), journal)
+        assertTrue(settings.onTodayFixupDoneFlow.first())
+        repo.runPlanSettingsFixupIfNeeded()
+        assertFalse(db.planDao().plan(1)!!.onToday)
+    }
+
+    @Test fun markedReplayMarksMembershipFixupDoneAndPreservesAllPaused() = runTest {
+        val restored = pausedSnapshot()
+        journal.stage(restored, "marked")
+        commitPreviousBuildRoomHalf(restored, "marked")
+        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(settings.onTodayFixupDoneFlow.first())
+        repo.runPlanSettingsFixupIfNeeded()
+        assertFalse(db.planDao().plan(1)!!.onToday)
+    }
+
+    @Test fun unmarkedReplayLeavesMembershipFixupForTheGate() = runTest {
+        val restored = pausedSnapshot()
+        journal.stage(restored, "unmarked")
+        journalStore.edit { it.remove(booleanPreferencesKey("restore_today_membership")) }
+        commitPreviousBuildRoomHalf(restored, "unmarked")
+        assertTrue(repo.reconcilePendingRestore(journal))
+        assertFalse(settings.onTodayFixupDoneFlow.first())
+        assertFalse(db.planDao().plan(1)!!.onToday)
+        repo.runPlanSettingsFixupIfNeeded()
+        assertTrue(settings.onTodayFixupDoneFlow.first())
+        assertTrue(db.planDao().plan(1)!!.onToday)
+    }
+
+    @Test fun noReplayLeavesMembershipFixupUntouched() = runTest {
+        db.planDao().insertPlans(pausedSnapshot().plans)
+        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(settings.onTodayFixupDoneFlow.first())
+        assertFalse(db.planDao().plan(1)!!.onToday)
+    }
+
     @Test
     fun happyPath_leavesNoJournalAndNoMarker() = runTest {
         repo.importSnapshot(snapshot(), journal)

@@ -4,7 +4,7 @@ import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
-/** Which of the widget's four faces to paint; drives colour, not text. */
+/** The widget face determines its colors. */
 enum class TodayWidgetState {
     /** A day is queued but untouched — the widget advertises the work ahead. */
     BEFORE,
@@ -13,6 +13,7 @@ enum class TodayWidgetState {
 
     /** No program yet (or a day with no exercises): one tertiary line, never blank. */
     NO_PROGRAM,
+    NOTHING_ON_TODAY,
 }
 
 /**
@@ -21,7 +22,7 @@ enum class TodayWidgetState {
  * own.
  */
 data class TodayWidgetContent(
-    /** Null only in [TodayWidgetState.NO_PROGRAM], where the line is hidden. */
+    /** Null hides the day line when no workout is displayed. */
     val dayLine: String?,
     val statLine: WidgetStatLine,
     val state: TodayWidgetState,
@@ -33,6 +34,7 @@ data class TodayWidgetContent(
 
 sealed interface WidgetStatLine {
     data object SetUpProgram : WidgetStatLine
+    data object NothingOnToday : WidgetStatLine
     data class Data(val value: String) : WidgetStatLine
 }
 
@@ -47,6 +49,9 @@ sealed interface WidgetStatLine {
  * widget row.
  */
 fun todayWidgetContent(snapshot: WatchSnapshot?): TodayWidgetContent {
+    if (snapshot != null && snapshot.day.dayId.isBlank()) {
+        return TodayWidgetContent(null, WidgetStatLine.NothingOnToday, TodayWidgetState.NOTHING_ON_TODAY, 0, 0, 0)
+    }
     if (snapshot == null || (snapshot.day.exercises.isEmpty() && (snapshot.retiredRoundsDone ?: 0) == 0)) {
         return TodayWidgetContent(
             dayLine = null,

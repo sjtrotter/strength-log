@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.wear.glance
 
 private val TEST_GLANCE_COPY = DayGlanceCopy(
     noProgram = "no program", setUpOnPhone = "set up on your phone",
+    nothingOnToday = "Nothing on Today",
     dayTitle = { day, title -> "day $day · $title" }, dayOnly = { "day $it" },
     liftsSets = { lifts, sets ->
         "$lifts ${if (lifts == 1) "lift" else "lifts"} · $sets ${if (sets == 1) "set" else "sets"}"

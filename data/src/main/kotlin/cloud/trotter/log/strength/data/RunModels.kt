@@ -66,4 +66,8 @@ data class DayTracks(
         get() = retired.filter { Slot.isRound(it.slot) }.sumOf { track -> track.sets.count { it.done } }
 }
 
-data class TodayTarget(val plan: PlanEntity, val dayId: String?)
+sealed interface TodayTarget {
+    data class Day(val plan: PlanEntity, val dayId: String?) : TodayTarget
+    data object NoPlans : TodayTarget
+    data object NothingOnToday : TodayTarget
+}

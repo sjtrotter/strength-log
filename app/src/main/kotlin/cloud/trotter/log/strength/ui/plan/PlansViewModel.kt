@@ -124,7 +124,23 @@ class PlansViewModel @Inject constructor(
         viewModelScope.launch { repo.restorePlan(id) }
     }
 
+    fun useAlongside(id: Long) {
+        menuPlanId.value = null
+        viewModelScope.launch { repo.useAlongside(id) }
+    }
+
+    fun pause(id: Long) {
+        menuPlanId.value = null
+        viewModelScope.launch { repo.pause(id) }
+    }
+
+    fun useOnly(id: Long) {
+        menuPlanId.value = null
+        viewModelScope.launch { repo.useOnly(id) }
+    }
+
     fun select(id: Long) {
+        menuPlanId.value = null
         viewModelScope.launch {
             repo.selectPlan(id)
             if (repo.selectedPlanIdFlow.first() == id) selections.send(Unit)

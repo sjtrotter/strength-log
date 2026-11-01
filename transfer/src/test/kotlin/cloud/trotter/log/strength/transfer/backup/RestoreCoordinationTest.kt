@@ -16,6 +16,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
@@ -34,8 +35,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
@@ -100,6 +105,69 @@ class RestoreCoordinationTest {
             settings = settings,
         )
         service = BackupService(repo, journal)
+    }
+
+    @Test
+    fun liveTodayTargetResumesAfterImportClearsItsMarkerWithoutAnotherWrite() = runBlocking {
+        service.import(backupJson("A", 190))
+        val observed = Channel<TodayTarget?>(Channel.UNLIMITED)
+        val collector = storeScope.launch { repo.todayTargetFlow.collect { observed.send(it) } }
+        suspend fun awaitTarget(predicate: (TodayTarget?) -> Boolean): TodayTarget? = withTimeout(TIMEOUT_MS) {
+            var target = observed.receive()
+            while (!predicate(target)) target = observed.receive()
+            target
+        }
+        val open = CompletableDeferred<Unit>()
+        try {
+            awaitTarget { it is TodayTarget.Day && it.dayId == "A" }
+            val snapshot = BackupCodec().decode(backupJson("B", 205)).toSnapshot()
+            val gatedSettings = FlakyDataStore(settingsStore)
+            gatedSettings.gateOnUpdate = 1
+            gatedSettings.gate = open
+            val importingRepo = TrackerRepository(
+                db, db.programDao(), db.sessionDao(), db.customExerciseDao(), SettingsStore(gatedSettings),
+            )
+            val importing = storeScope.async { importingRepo.importSnapshot(snapshot, journal) }
+            withTimeout(TIMEOUT_MS) { gatedSettings.gateReached.await() }
+            awaitTarget { it == null }
+            open.complete(Unit)
+            withTimeout(TIMEOUT_MS) { importing.await() }
+            val skipped = mutableListOf<TodayTarget?>()
+            val target = withTimeout(TIMEOUT_MS) {
+                var next = observed.receive()
+                while (!(next is TodayTarget.Day && next.dayId == "B")) {
+                    skipped += next
+                    next = observed.receive()
+                }
+                next
+            } as TodayTarget.Day
+            assertTrue(skipped.all { it == null })
+            assertEquals(PlanEntity.LEGACY_ID, target.plan.id)
+            assertNull(db.restoreMarkerDao().nonce())
+        } finally {
+            open.complete(Unit)
+            collector.cancelAndJoin()
+        }
+    }
+
+    @Test
+    fun v15ImportAndInterruptedReplayPreserveAllPaused() = runBlocking {
+        val document = BackupDocument(
+            settings = SettingsBackup(190, 33, "NOVICE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
+            plans = listOf(PlanBackup(1, "Paused", "GENERATED", 1000, onToday = false)),
+        )
+        val text = BackupCodec().encode(document)
+        service.import(text)
+        assertTrue(settings.onTodayFixupDoneFlow.first())
+        assertFalse(db.planDao().plan(1)!!.onToday)
+        val nonce = "membership-replay"
+        journal.stage(repo.exportSnapshot(), nonce)
+        db.restoreMarkerDao().put(cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity(nonce = nonce))
+        service.withRestoreLock {
+            assertTrue(settings.onTodayFixupDoneFlow.first())
+            assertFalse(db.planDao().plan(1)!!.onToday)
+            assertNull(db.restoreMarkerDao().nonce())
+        }
     }
 
     /** [F] */

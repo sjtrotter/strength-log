@@ -195,6 +195,7 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onOpenCardio = { navController.navigate(Routes.day(it.dayId, it.planId)) },
                 onOpenSettings = { navController.navigate(Routes.SETUP) },
                 onOpenLog = { navController.navigateToTopLevel(TopLevelDestination.LOG) },
+                onOpenPlans = { navController.navigate(Routes.PLANS) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
         }
@@ -312,6 +313,7 @@ private fun TodayRoute(
     onOpenSettings: () -> Unit,
     onOpenLog: () -> Unit,
     onSetUpProgram: () -> Unit,
+    onOpenPlans: () -> Unit,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -323,6 +325,7 @@ private fun TodayRoute(
             onOpenSettings = onOpenSettings,
             onOpenLog = onOpenLog,
             onSetUpProgram = onSetUpProgram,
+            onOpenPlans = onOpenPlans,
             onShowPlanPicker = viewModel::showPlanPicker,
             onDismissPlanPicker = viewModel::dismissPlanPicker,
             onSelectPlan = viewModel::selectPlan,
@@ -352,6 +355,9 @@ private fun PlansRoute(
             onDuplicate = viewModel::duplicate,
             onArchive = viewModel::archive,
             onRestore = viewModel::restore,
+            onUseAlongside = viewModel::useAlongside,
+            onPause = viewModel::pause,
+            onUseOnly = viewModel::useOnly,
             onShowNewPlan = viewModel::showNewPlan,
             onStartEmpty = viewModel::startEmpty,
             onNewPlanName = viewModel::setNewPlanName,

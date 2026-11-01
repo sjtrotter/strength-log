@@ -164,7 +164,11 @@ private fun PlanRow(plan: PlanSummary, menuOpen: Boolean, canArchive: Boolean, a
                     .format(DateTimeFormatter.ofPattern("d MMM"))
                 stringResource(R.string.plans_last_session, date)
             }
-            Text(if (last == null) next else stringResource(R.string.plans_supporting, next, last))
+            val detail = if (last == null) next else stringResource(R.string.plans_supporting, next, last)
+            if (plan.archived) Text(detail) else {
+                val membership = stringResource(if (plan.onToday) R.string.plans_on_today else R.string.plans_paused)
+                Text(stringResource(R.string.plans_supporting, membership, detail))
+            }
         },
         trailingContent = {
             Box {
@@ -178,6 +182,20 @@ private fun PlanRow(plan: PlanSummary, menuOpen: Boolean, canArchive: Boolean, a
                             onClick = { actions.onRestore(plan.id) },
                         )
                     } else {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(if (plan.onToday) R.string.plans_pause else R.string.plans_use_alongside)) },
+                            onClick = { if (plan.onToday) actions.onPause(plan.id) else actions.onUseAlongside(plan.id) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.plans_use_only)) },
+                            onClick = { actions.onUseOnly(plan.id) },
+                        )
+                        if (!plan.selected) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.plans_make_preferred)) },
+                                onClick = { actions.onSelect(plan.id) },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.plans_rename)) },
                             onClick = { actions.onRename(plan.id) },

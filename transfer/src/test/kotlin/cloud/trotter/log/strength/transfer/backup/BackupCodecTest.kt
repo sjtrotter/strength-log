@@ -103,6 +103,56 @@ class BackupCodecTest {
     )
 
     @Test
+    fun `v15 round trip preserves membership including all plans paused`() {
+        val base = restSnapshot(RestSettings())
+        for (membership in listOf(listOf(true, false), listOf(false, false))) {
+            val plans = listOf(
+                base.plans.single().copy(onToday = membership[0]),
+                base.plans.single().copy(id = 2, position = 1, name = "Other", onToday = membership[1]),
+            )
+            val snapshot = base.copy(plans = plans)
+            val encoded = codec.encode(snapshot.toDocument())
+            val decoded = codec.decode(encoded)
+            assertEquals(15, decoded.schemaVersion)
+            assertTrue(encoded.contains("\"onToday\":false"))
+            assertEquals(plans, decoded.toSnapshot().plans)
+        }
+    }
+
+    @Test
+    fun `v14 derives only preferred fallback membership and ignores future fields`() {
+        val base = restSnapshot(RestSettings()).toDocument()
+        val plans = listOf(
+            base.plans.single().copy(id = 3, archived = true, days = emptyList(), suggestedDay = null, onToday = true),
+            base.plans.single().copy(id = 1, onToday = false),
+            base.plans.single().copy(id = 2, days = emptyList(), suggestedDay = null, onToday = true),
+        )
+        for ((stored, expected) in listOf(2L to 2L, 99L to 1L, 3L to 1L)) {
+            val old = base.copy(schemaVersion = 14, plans = plans, settings = base.settings.copy(selectedPlanId = stored))
+            val encoded = codec.encode(old).replace("\"onToday\":true", "\"onToday\":\"future\"")
+                .replace("\"onToday\":false", "\"onToday\":{}")
+            val snapshot = codec.decode(encoded).toSnapshot()
+            assertEquals(expected, snapshot.selectedPlanId)
+            assertEquals(listOf(expected), snapshot.plans.filter { it.onToday }.map { it.id })
+        }
+    }
+
+    @Test
+    fun `v15 normalizes stale preference without changing paused membership`() {
+        val base = restSnapshot(RestSettings()).toDocument()
+        val plans = listOf(
+            base.plans.single().copy(id = 1, onToday = false),
+            base.plans.single().copy(id = 2, archived = true, days = emptyList(), suggestedDay = null, onToday = false),
+        )
+        for (stored in listOf(99L, 2L)) {
+            val doc = base.copy(plans = plans, settings = base.settings.copy(selectedPlanId = stored))
+            val snapshot = codec.decode(codec.encode(doc)).toSnapshot()
+            assertEquals(1L, snapshot.selectedPlanId)
+            assertTrue(snapshot.plans.none { it.onToday })
+        }
+    }
+
+    @Test
     fun `encode is deterministic`() {
         val doc = document()
         assertEquals(codec.encode(doc), codec.encode(doc))
@@ -749,7 +799,7 @@ class BackupCodecTest {
             ),
             sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000, 210, note = "Felt smooth")),
         )
-        val encoded = codec.encode(snapshot.toDocument())
+        val encoded = codec.encode(snapshot.toDocument().copy(schemaVersion = 14))
         val decoded = codec.decode(encoded)
         val restored = decoded.toSnapshot()
 

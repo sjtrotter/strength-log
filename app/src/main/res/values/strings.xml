@@ -697,4 +697,11 @@
     <string name="day_edit_reset_to_plan">Reset to plan</string>
     <string name="day_edit_reset_to_plan_confirm_title">Reset to plan?</string>
     <string name="day_edit_reset_to_plan_confirm_body">Next time starts from the plan instead of your last results.</string>
+    <string name="nothing_on_today">Nothing on Today</string>
+    <string name="plans_on_today">On Today</string>
+    <string name="plans_paused">Paused</string>
+    <string name="plans_pause">Pause</string>
+    <string name="plans_use_alongside">Use alongside</string>
+    <string name="plans_use_only">Use only this plan</string>
+    <string name="plans_make_preferred">Make preferred</string>
 </resources>

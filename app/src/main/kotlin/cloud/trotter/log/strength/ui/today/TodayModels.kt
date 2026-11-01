@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.ui.text.UiText
 @Immutable
 data class TodayUiState(
     val hasProgram: Boolean = false,
+    val nothingOnToday: Boolean = false,
     /** True only while the program is still being read — see
      *  [cloud.trotter.log.strength.ui.day.DayUiState.loading] for why the two
      *  silences are worth telling apart. */
@@ -58,4 +59,5 @@ data class TodayActions(
     val onShowPlanPicker: () -> Unit = {},
     val onDismissPlanPicker: () -> Unit = {},
     val onSelectPlan: (Long) -> Unit = {},
+    val onOpenPlans: () -> Unit = {},
 )

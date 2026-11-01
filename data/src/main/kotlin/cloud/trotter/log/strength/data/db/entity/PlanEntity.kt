@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -16,6 +17,7 @@ data class PlanEntity(
     val recipeJson: String? = null,
     /** The plan's rotation position. */
     val suggestedDayId: String? = null,
+    @ColumnInfo(defaultValue = "0") val onToday: Boolean = false,
 ) {
     companion object {
         /** The plan a pre-plans program (Room v7, or a backup older than plans)

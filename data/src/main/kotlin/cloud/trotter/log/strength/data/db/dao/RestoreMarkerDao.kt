@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
+import kotlinx.coroutines.flow.Flow
 
 /** The restore commit marker — see [RestoreMarkerEntity] for why it lives in
  *  Room rather than beside the journal it belongs to. */
@@ -18,6 +19,9 @@ interface RestoreMarkerDao {
      *  the entity pins its own primary key, so there is only ever the one row. */
     @Query("SELECT nonce FROM restore_marker LIMIT 1")
     suspend fun nonce(): String?
+
+    @Query("SELECT nonce FROM restore_marker LIMIT 1")
+    fun observeNonce(): Flow<String?>
 
     @Query("DELETE FROM restore_marker")
     suspend fun clear()

@@ -33,6 +33,39 @@ class PlansScreenTest {
     )
 
     @Test
+    fun pausedRowMenuOffersMembershipAndPreferenceActions() {
+        var alongside: Long? = null
+        var only: Long? = null
+        var preferred: Long? = null
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(plans = listOf(
+                PlanSummary(2, "Other", "A", "Squat", false, false, null),
+            ), menuPlanId = 2), actions().copy(
+                onUseAlongside = { alongside = it }, onUseOnly = { only = it }, onSelect = { preferred = it },
+            ))
+        } }
+        composeTestRule.onNodeWithText("Use alongside").performClick()
+        composeTestRule.onNodeWithText("Use only this plan").performClick()
+        composeTestRule.onNodeWithText("Make preferred").performClick()
+        assertEquals(2L, alongside)
+        assertEquals(2L, only)
+        assertEquals(2L, preferred)
+    }
+
+    @Test
+    fun preferredRowCanPauseTheLastPlanOnToday() {
+        var paused: Long? = null
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(plans = listOf(
+                PlanSummary(1, "Preferred", "A", "Squat", true, false, null, onToday = true),
+            ), menuPlanId = 1), actions().copy(onPause = { paused = it }))
+        } }
+        composeTestRule.onNodeWithText("On Today", substring = true).assertExists()
+        composeTestRule.onNodeWithText("Pause").performClick()
+        assertEquals(1L, paused)
+    }
+
+    @Test
     fun newPlanOpensTheChoiceDialog() {
         var opened = false
         composeTestRule.setContent { AppTheme {

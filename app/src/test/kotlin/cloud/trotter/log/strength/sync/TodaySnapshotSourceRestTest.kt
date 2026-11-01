@@ -103,6 +103,49 @@ class TodaySnapshotSourceRestTest {
     }
 
     @Test
+    fun `pausing all plans publishes an empty snapshot with live acknowledgments`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+        ))))
+        val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore, syncStore)
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val before = source.snapshots.publishableSnapshots().first()
+        val expected = WatchSnapshotBuilder.build(
+            repo.programFor(plan).first(), "A", repo.slotsFor(plan, "A").first(), emptyList(),
+            repo.wizardAnswersFor(plan).first().config, repo.catalogFlow.first(), repo.unitFlow.first(),
+            revision = 0L, planId = plan, planName = before.planName, runId = before.runId,
+            restSettings = repo.restSettingsFlow.first(), equipment = repo.wizardAnswersFor(plan).first().equipment,
+            processedEditStamps = emptyList(),
+        )
+        assertEquals(expected, before)
+        val widgetBefore = todayWidgetContent(before)
+        repo.pause(plan)
+        syncStore.record(101)
+        syncStore.record(100)
+        syncStore.recordProcessedEdit(200)
+        val empty = source.snapshots.publishableSnapshots().first()
+        assertEquals("", empty.day.dayId)
+        assertTrue(empty.day.exercises.isEmpty())
+        assertEquals(101L, empty.cardioAckStamp)
+        assertEquals(listOf(101L, 100L), empty.cardioAckedStamps)
+        assertEquals(listOf(200L), empty.processedEditStamps)
+        assertEquals(cloud.trotter.log.strength.widget.WidgetStatLine.NothingOnToday, todayWidgetContent(empty).statLine)
+        syncStore.recordProcessedEdit(201)
+        assertEquals(listOf(200L, 201L), source.snapshots.publishableSnapshots().first().processedEditStamps)
+        repo.useAlongside(plan)
+        assertEquals(widgetBefore, todayWidgetContent(source.snapshots.publishableSnapshots().first()))
+    }
+
+    @Test
+    fun `nothing on Today stays null while a restore marker is present`() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Empty", "", emptyList()))))
+        repo.pause(repo.selectedPlanIdFlow.first()!!)
+        db.restoreMarkerDao().put(cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity(nonce = "pending"))
+        val source = TodaySnapshotSource(repo, MutableStateFlow(repo.currentDate()), syncStore, syncStore)
+        assertEquals(null, source.snapshots.first())
+    }
+
+    @Test
     fun `snapshot collected first waits for stored prose conversion`() = runTest(dispatcher) {
         db.planDao().insertPlan(PlanEntity(
             1, "Running", "GENERATED", 0, 1_000, suggestedDayId = "C1",

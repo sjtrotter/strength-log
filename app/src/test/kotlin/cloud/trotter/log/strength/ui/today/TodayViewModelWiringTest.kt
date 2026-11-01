@@ -161,6 +161,46 @@ class TodayViewModelWiringTest {
         }
 
     @Test
+    fun pausingAllPlansShowsNothingOnTodayAndClearsTheDayDefault() = runVmTest {
+        val today = newTodayViewModel()
+        advanceUntilIdle()
+        assertFalse(today.uiState.value.hasProgram)
+        assertFalse(today.uiState.value.nothingOnToday)
+        insertProgram()
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val day = newDayViewModel()
+        advanceUntilIdle()
+        assertTrue(today.uiState.value.hasProgram)
+        assertEquals("A", day.uiState.value.viewDayId)
+        repo.pause(plan)
+        advanceUntilIdle()
+        assertTrue(today.uiState.value.nothingOnToday)
+        assertFalse(today.uiState.value.hasProgram)
+        assertNull(day.uiState.value.viewDayId)
+        assertFalse(day.uiState.value.loading)
+        repo.useAlongside(plan)
+        advanceUntilIdle()
+        assertFalse(today.uiState.value.nothingOnToday)
+        assertEquals("A", today.uiState.value.dayId)
+    }
+
+    @Test
+    fun pausedPreferredPlanDisplaysTheOtherPlanOnToday() = runVmTest {
+        insertProgram()
+        val preferred = repo.selectedPlanIdFlow.first()!!
+        val other = repo.duplicatePlan(preferred, "Other")
+        repo.useAlongside(other)
+        repo.pause(preferred)
+        val today = newTodayViewModel()
+        advanceUntilIdle()
+        assertEquals(other, today.uiState.value.planId)
+        assertEquals(preferred, repo.selectedPlanIdFlow.first())
+        today.selectPlan(preferred)
+        advanceUntilIdle()
+        assertEquals(listOf(preferred), repo.plansFlow.first().filter { it.onToday }.map { it.id })
+    }
+
+    @Test
     fun oneActivePlanDoesNotOpenThePickerEvenWithAnArchivedPlan() = runVmTest {
         insertProgram()
         val selected = checkNotNull(repo.selectedPlanIdFlow.first())

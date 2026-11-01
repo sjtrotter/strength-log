@@ -9,4 +9,5 @@ data class PlanSummary(
     val selected: Boolean,
     val archived: Boolean,
     val lastSessionAt: Long?,
+    val onToday: Boolean = false,
 )

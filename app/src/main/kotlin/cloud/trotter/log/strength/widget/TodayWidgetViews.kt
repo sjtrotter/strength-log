@@ -29,6 +29,7 @@ internal fun TodayWidgetContent.toRemoteViews(context: Context): RemoteViews {
     }
 
     views.setTextViewText(R.id.widget_stat_line, when (val line = statLine) {
+        WidgetStatLine.NothingOnToday -> context.getString(R.string.nothing_on_today)
         WidgetStatLine.SetUpProgram -> context.getString(R.string.widget_no_program)
         is WidgetStatLine.Data -> line.value
     })
@@ -36,7 +37,7 @@ internal fun TodayWidgetContent.toRemoteViews(context: Context): RemoteViews {
         R.id.widget_stat_line,
         context.getColor(
             when (state) {
-                TodayWidgetState.NO_PROGRAM -> R.color.widget_text_secondary
+                TodayWidgetState.NO_PROGRAM, TodayWidgetState.NOTHING_ON_TODAY -> R.color.widget_text_secondary
                 TodayWidgetState.DONE -> R.color.widget_done
                 else -> R.color.widget_text_primary
             },

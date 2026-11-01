@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.DayTracks
+import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.ui.day.plannedTimeDetail
 import cloud.trotter.log.strength.data.TrackerRepository
@@ -20,6 +21,7 @@ import cloud.trotter.log.strength.ui.log.JournalBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -51,19 +53,20 @@ class TodayViewModel @Inject constructor(
 ) : ViewModel() {
     private val planPickerOpen = savedState.getStateFlow(PLAN_PICKER_OPEN, false)
 
-    private val contextFlow = repo.todayTargetFlow.flatMapLatest { target ->
-        if (target == null) flowOf(null) else combine(
+    private val contextFlow: Flow<Pair<TodayContext?, Boolean>> = repo.todayTargetFlow.flatMapLatest { target ->
+        if (target !is TodayTarget.Day) flowOf(null to (target == TodayTarget.NothingOnToday)) else combine(
             repo.programFor(target.plan.id),
             repo.catalogFlow,
             repo.wizardAnswersFor(target.plan.id),
         ) { program, catalog, answers ->
             val dayId = target.dayId?.takeIf { id -> program.days.any { it.id == id } }
                 ?: program.strengthDays.firstOrNull()?.id ?: program.days.firstOrNull()?.id
-            TodayContext(target.plan.id, program, dayId, catalog, answers.config)
+            TodayContext(target.plan.id, program, dayId, catalog, answers.config) to false
         }
     }
 
-    private val dayState = contextFlow.flatMapLatest { ctx ->
+    private val dayState = contextFlow.flatMapLatest { (ctx, nothingOnToday) ->
+        if (nothingOnToday) return@flatMapLatest flowOf(TodayUiState(nothingOnToday = true))
         val dayId = ctx?.dayId
         if (ctx == null || dayId == null) {
             // [contextFlow] picks the day from the same program emission, so a
@@ -121,7 +124,7 @@ class TodayViewModel @Inject constructor(
 
     fun selectPlan(id: Long) {
         viewModelScope.launch {
-            repo.selectPlan(id)
+            repo.useOnly(id)
             dismissPlanPicker()
         }
     }

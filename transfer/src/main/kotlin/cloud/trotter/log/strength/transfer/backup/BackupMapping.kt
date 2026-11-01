@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.transfer.backup
 import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.FullSnapshot
+import cloud.trotter.log.strength.data.preferredPlan
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
@@ -88,6 +89,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 origin = plan.origin,
                 createdAt = plan.createdAt,
                 archived = plan.archived,
+                onToday = plan.onToday,
                 recipeJson = plan.recipeJson,
                 suggestedDay = plan.suggestedDayId,
                 days = daysByPlan[plan.id].orEmpty().sortedBy { it.position }.map { day ->
@@ -309,13 +311,27 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         }
     }
 
+    val restoredPlans = if (schemaVersion >= 8) plans.mapIndexed { index, plan ->
+        PlanEntity(
+            id = plan.id,
+            name = plan.name,
+            origin = plan.origin,
+            position = index,
+            createdAt = plan.createdAt,
+            archived = plan.archived,
+            onToday = schemaVersion >= 15 && plan.onToday == true,
+            recipeJson = if (schemaVersion >= 9) plan.recipeJson else null,
+            suggestedDayId = if (schemaVersion >= 9) plan.suggestedDay else null,
+        )
+    } else emptyList()
+
     return FullSnapshot(
         answers = answers,
         unit = enumOrDefault(settings.weightUnit, WeightUnit.LB),
         wizardComplete = settings.wizardComplete,
         suggestedDay = if (schemaVersion >= 9) null else settings.suggestedDay,
         answersCarryRecipe = schemaVersion < 9,
-        selectedPlanId = if (schemaVersion >= 8) settings.selectedPlanId else null,
+        selectedPlanId = settings.selectedPlanId?.let { preferredPlan(restoredPlans, it)?.id },
         restSettings = RestSettings(
             enabled = settings.restTimerEnabled,
             overrides = settings.restOverrides(),
@@ -337,18 +353,10 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 targetSeconds = it.targetSeconds,
             )
         },
-        plans = if (schemaVersion >= 8) plans.mapIndexed { index, plan ->
-            PlanEntity(
-                id = plan.id,
-                name = plan.name,
-                origin = plan.origin,
-                position = index,
-                createdAt = plan.createdAt,
-                archived = plan.archived,
-                recipeJson = if (schemaVersion >= 9) plan.recipeJson else null,
-                suggestedDayId = if (schemaVersion >= 9) plan.suggestedDay else null,
-            )
-        } else emptyList(),
+        plans = if (schemaVersion >= 15) restoredPlans else {
+            val preferredId = preferredPlan(restoredPlans, settings.selectedPlanId)?.id
+            restoredPlans.map { it.copy(onToday = it.id == preferredId) }
+        },
         runs = if (schemaVersion >= 13) runs.map {
             WorkoutRunEntity(it.id, it.planId, it.dayId, it.dayTitle, it.planName, it.startedAt)
         } else emptyList(),

@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Intent
 import android.util.Log
+import androidx.wear.watchface.complications.data.NoDataComplicationData
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
@@ -28,7 +29,7 @@ import cloud.trotter.log.strength.wear.data.SnapshotItem
  * cold process with the phone out of range. Data pushes still refresh immediately;
  * activation and civil-day/timezone broadcasts cover visibility and rollover.
  */
-class DayComplicationService : SuspendingComplicationDataSourceService() {
+open class DayComplicationService : SuspendingComplicationDataSourceService() {
 
     override fun onComplicationActivated(complicationInstanceId: Int, type: ComplicationType) {
         ComplicationDataSourceUpdateRequester
@@ -43,7 +44,7 @@ class DayComplicationService : SuspendingComplicationDataSourceService() {
     override fun getPreviewData(type: ComplicationType): ComplicationData? =
         complicationData(type, PREVIEW)
 
-    private suspend fun readSnapshot() = try {
+    protected open suspend fun readSnapshot() = try {
         CivilDayFreshness.scheduleNextRollover(this)
         SnapshotItem.latest(Wearable.getDataClient(this))
     } catch (e: Exception) {
@@ -54,7 +55,7 @@ class DayComplicationService : SuspendingComplicationDataSourceService() {
     }
 
     private fun complicationData(type: ComplicationType, glance: DayGlance): ComplicationData? =
-        when (type) {
+        if (glance.nothingOnToday) NoDataComplicationData() else when (type) {
             ComplicationType.RANGED_VALUE -> RangedValueComplicationData.Builder(
                 glance.rangeValue,
                 0f,

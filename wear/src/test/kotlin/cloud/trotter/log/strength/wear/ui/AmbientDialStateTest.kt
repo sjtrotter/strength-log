@@ -38,6 +38,16 @@ class AmbientDialStateTest {
     )
 
     @Test
+    fun `blank day shows nothing on Today in ambient too`() {
+        val empty = snapshot().copy(day = WatchDay("", "", 0, emptyList()))
+        val state = ambientDialState(empty, timeText = "10:42", restRemainingSeconds = 84)
+        assertEquals("Nothing on Today", state.topText)
+        assertEquals("10:42", state.centerText)
+        assertNull(state.bottomText)
+        assertEquals(0f, state.dayProgress)
+    }
+
+    @Test
     fun `at rest it is the day, the count and the time`() {
         val state = ambientDialState(day, timeText = "10:42")
         assertEquals("DAY A · 12/21", state.topText)

@@ -32,6 +32,45 @@ class CardioSetStateTest {
             nowElapsedMillis = elapsed, nowWallMillis = wall, cardioSets = run, bootCount = 4))
     private fun texts(ui: DialUiState) = ui.disc.lines.flatMap { it.spans }.map { it.text }
 
+    @Test fun `active and between-set cardio controls survive a blank-day snapshot`() {
+        val active = run(time, time).start(100_000, 10_000, 4)
+        val blank = snapshot(active.block).copy(planId = null, cardioBlock = null,
+            day = WatchDay("", "", 0, emptyList()))
+        val running = render(active, snap = blank)
+        assertEquals(DialScreen.CARDIO_EXECUTING, running.screen)
+        assertEquals(DialHoldAction.STOP_CARDIO_SET, running.hold?.action)
+        assertTrue("Stop" in texts(running))
+
+        val between = active.resume(220_000, 130_000, 4)
+        val ready = render(between, elapsed = 130_000, wall = 220_000, snap = blank)
+        assertEquals(DialTap.CARDIO_SET, ready.tap)
+        assertEquals(DialHoldAction.CARDIO_SET_OPTIONS, ready.hold?.action)
+        assertTrue("Start" in texts(ready))
+        val continued = between.tap(230_000, 140_000, 4)
+        assertEquals(DialHoldAction.STOP_CARDIO_SET,
+            render(continued, elapsed = 140_000, wall = 230_000, snap = blank).hold?.action)
+    }
+
+    @Test fun `pending distance entry and unqueued completion survive a blank-day snapshot`() {
+        val pending = run(time.copy(aimKind = "DISTANCE", aimValue = 400))
+            .start(100_000, 10_000, 4).resume(220_000, 130_000, 4).turn(390)
+        val blank = snapshot(pending.block).copy(planId = null, cardioBlock = null,
+            day = WatchDay("", "", 0, emptyList()))
+        val entry = render(pending, snap = blank)
+        assertEquals(CardioSetInput.DISTANCE, entry.cardioSetInput)
+        assertEquals(DialTap.CARDIO_SET, entry.tap)
+        assertEquals(DialCrown.CARDIO_SET, entry.crown)
+        assertTrue("Distance (m)" in texts(entry))
+        assertTrue("390" in texts(entry))
+        assertTrue("Done" in texts(entry))
+        val completed = pending.tap(230_000, 140_000, 4)
+        assertEquals(390, completed.delta()?.sets?.single()?.metres)
+        assertEquals(listOf("Saving…"), texts(render(completed, snap = blank)))
+        val failed = render(completed.copy(saveFailed = true), snap = blank)
+        assertEquals(DialTap.CARDIO_SET, failed.tap)
+        assertTrue("Tap to retry" in texts(failed))
+    }
+
     @Test fun `legacy eleven sets wait for work starts and auto-start each recovery including the last`() {
         val legacy = CardioBlocks.fromLegacy(CardioSuggestion("Intervals", "", true), true, CardioActivity.TRACK_RUN).toWatch()
         var state = CardioSetState(9, "A", legacy)

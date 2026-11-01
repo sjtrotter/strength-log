@@ -32,6 +32,7 @@ data class DayGlance(
     val exerciseCount: Int,
     val doneSets: Int,
     val totalSets: Int,
+    val nothingOnToday: Boolean = false,
 ) {
 
     val done: Boolean get() = hasProgram && totalSets > 0 && doneSets >= totalSets
@@ -45,12 +46,14 @@ data class DayGlance(
      * the widget's "SET UP YOUR PROGRAM" — that is an instruction you can't follow
      * on a watch, and the tile is a mini version of a dial that already says this.
      */
-    fun titleLine(copy: DayGlanceCopy): String = if (!hasProgram) copy.noProgram.uppercase()
+    fun titleLine(copy: DayGlanceCopy): String = if (nothingOnToday) copy.nothingOnToday
+    else if (!hasProgram) copy.noProgram.uppercase()
     else if (dayTitle.isBlank()) copy.dayOnly(dayLetter).uppercase()
     else copy.dayTitle(dayLetter, dayTitle).uppercase()
 
     /** The hero line: "3 LIFTS · 21 SETS", "12 / 21 SETS", "DONE · 21 SETS". */
     fun setLine(copy: DayGlanceCopy): String = when {
+        nothingOnToday -> ""
         !hasProgram -> copy.setUpOnPhone.uppercase()
         done -> copy.doneSets(totalSets).uppercase()
         doneSets > 0 -> copy.progressSets(doneSets, totalSets).uppercase()
@@ -58,7 +61,11 @@ data class DayGlance(
     }
 
     /** The complication's short text: the day letter, or an em dash with no program. */
-    fun shortText(copy: DayGlanceCopy): String = if (hasProgram) dayLetter.uppercase() else copy.emptyShortText
+    fun shortText(copy: DayGlanceCopy): String = when {
+        nothingOnToday -> ""
+        hasProgram -> dayLetter.uppercase()
+        else -> copy.emptyShortText
+    }
 
     /** The SHORT_TEXT complication's title, "12/21"; blank with no program. */
     fun ratioText(copy: DayGlanceCopy): String = if (hasProgram) copy.ratio(doneSets, totalSets) else ""
@@ -73,6 +80,7 @@ data class DayGlance(
 
     /** What a screen reader says — the complication has no other way to explain itself. */
     fun contentDescription(copy: DayGlanceCopy): String = when {
+        nothingOnToday -> copy.nothingOnToday
         !hasProgram -> copy.noProgramDescription
         done -> copy.doneDescription(dayLetter, totalSets)
         else -> copy.progressDescription(dayLetter, doneSets, totalSets)
@@ -93,6 +101,7 @@ data class DayGlance(
 
         fun of(snapshot: WatchSnapshot?): DayGlance {
             val day = snapshot?.day ?: return NONE
+            if (day.dayId.isBlank()) return NONE.copy(nothingOnToday = true)
             val progress = DayProgress.of(snapshot)
             // A day with no sets is nothing to glance at, but it still has an accent —
             // keep it so the surface doesn't flip to day A's orange mid-rotation.
@@ -123,4 +132,5 @@ data class DayGlanceCopy(
     val progressDescription: (String, Int, Int) -> String,
     val emptyShortText: String,
     val ratio: (Int, Int) -> String,
+    val nothingOnToday: String,
 )

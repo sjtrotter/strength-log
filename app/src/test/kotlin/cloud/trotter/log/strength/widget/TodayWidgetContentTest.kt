@@ -44,6 +44,16 @@ class TodayWidgetContentTest {
         )
 
     @Test
+    fun `blank day is nothing on Today rather than setup`() {
+        val empty = snapshot().copy(day = WatchDay("", "", 0, emptyList()))
+        val content = todayWidgetContent(empty)
+        assertEquals(TodayWidgetState.NOTHING_ON_TODAY, content.state)
+        assertEquals(WidgetStatLine.NothingOnToday, content.statLine)
+        assertNull(content.dayLine)
+        assertEquals(0, content.totalSets)
+    }
+
+    @Test
     fun `an untouched day advertises the work ahead`() {
         val content = todayWidgetContent(snapshot(0, 0, 0))
 

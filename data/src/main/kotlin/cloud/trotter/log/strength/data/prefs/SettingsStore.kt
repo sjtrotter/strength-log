@@ -53,6 +53,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val EQUIPMENT = stringSetPreferencesKey("equipment")
 
         val SUGGESTED_DAY = stringPreferencesKey("suggested_day")
+        val ON_TODAY_FIXUP_DONE = booleanPreferencesKey("on_today_fixup_done")
         val PLAN_SETTINGS_FIXUP_DONE = booleanPreferencesKey("plan_settings_fixup_done")
         val SELECTED_PLAN_ID = longPreferencesKey("selected_plan_id")
         val WIZARD_COMPLETE = booleanPreferencesKey("wizard_complete")
@@ -141,6 +142,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     val legacySuggestedDayFlow: Flow<String?> = dataStore.data.map { it[Keys.SUGGESTED_DAY] }
 
+    val onTodayFixupDoneFlow: Flow<Boolean> =
+        dataStore.data.map { it[Keys.ON_TODAY_FIXUP_DONE] ?: false }
+
     val planSettingsFixupDoneFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.PLAN_SETTINGS_FIXUP_DONE] ?: false }
 
@@ -217,6 +221,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     // --- writes --------------------------------------------------------------
 
     suspend fun setGlobalLifter(global: GlobalLifter) = dataStore.edit { it.writeGlobalLifter(global) }
+
+    suspend fun setOnTodayFixupDone() {
+        dataStore.edit { it[Keys.ON_TODAY_FIXUP_DONE] = true }
+    }
 
     suspend fun setPlanSettingsFixupDone() =
         dataStore.edit { it[Keys.PLAN_SETTINGS_FIXUP_DONE] = true }
@@ -379,6 +387,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         topSetHelperSeen: Boolean = false,
         supersetHelperSeen: Boolean = false,
         themePreference: ThemePreference = ThemePreference.SYSTEM,
+        onTodayFixupDone: Boolean = false,
     ) = dataStore.edit { prefs ->
         // SAF grants and their schedule are properties of this installation,
         // not user data contained in the imported document. Keep them across a
@@ -410,6 +419,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         autoFailed?.let { prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = it }
         autoPermissionLost?.let { prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = it }
         prefs[Keys.THEME] = themePreference.name
+        if (onTodayFixupDone) prefs[Keys.ON_TODAY_FIXUP_DONE] = true
     }
 
     private fun decodeSessionNotes(value: String?): Map<Long, String> =

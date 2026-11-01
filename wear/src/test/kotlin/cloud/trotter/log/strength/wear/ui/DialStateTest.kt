@@ -619,10 +619,10 @@ class DialStateTest {
     }
 
     @Test
-    fun `a snapshot without a day shows no program with nothing to act on`() {
+    fun `a snapshot without a day shows nothing on Today with nothing to act on`() {
         val state = dialUiState(inputs(snapshot = noProgramSnapshot()))
         assertEquals(DiscStyle.DASHED, state.disc.style)
-        assertEquals(listOf("NO PROGRAM", "SET UP ON YOUR PHONE"), state.discText())
+        assertEquals(listOf("Nothing on Today"), state.discText())
         assertNull(state.topBand)
         assertEquals(DialTap.NONE, state.tap)
         assertEquals(DialCrown.NONE, state.crown)

@@ -78,7 +78,16 @@ import cloud.trotter.log.strength.ui.day.DaySelection
 @Composable
 fun TodayScreen(state: TodayUiState, actions: TodayActions) {
     if (!state.hasProgram) {
-        if (state.loading) ProgramLoadingState() else NoProgramState(actions.onSetUpProgram)
+        when {
+            state.loading -> ProgramLoadingState()
+            state.nothingOnToday -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.nothing_on_today), style = MaterialTheme.typography.headlineSmall)
+                    Button(onClick = actions.onOpenPlans) { Text(stringResource(R.string.plans_title)) }
+                }
+            }
+            else -> NoProgramState(actions.onSetUpProgram)
+        }
         return
     }
     val planName = state.planName.takeIf { state.activePlans.size > 1 }

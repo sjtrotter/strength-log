@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.transfer.backup
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.preferredPlan
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -99,7 +101,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
         validate(document)
@@ -139,7 +141,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             })
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
-        val withDayFields = if (version < 11) withoutFutureDayFields(shaped, version) else shaped
+        val withMembership = if (version < 15) {
+            val plans = shaped["plans"] as? JsonArray
+            if (plans == null) shaped else JsonObject(shaped + ("plans" to JsonArray(
+                plans.map { if (it is JsonObject) JsonObject(it - "onToday") else it },
+            )))
+        } else shaped
+        val withDayFields = if (version < 11) withoutFutureDayFields(withMembership, version) else withMembership
         val withRunFields = if (version < 13) withoutRunFields(withDayFields) else withDayFields
         val withSlotAndNoteFields = if (version < 14) withoutSlotAndNoteFields(withRunFields) else withRunFields
         val versioned = if (version < 12) {
@@ -334,12 +342,10 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                     validateSuggestedDay(plan.suggestedDay, plan.days)
                 }
             }
-            val selectedPlan = doc.settings.selectedPlanId?.let { id ->
-                val plan = doc.plans.firstOrNull { it.id == id }
-                    ?: throw BackupError.Inconsistent("selectedPlanId references unknown plan $id")
-                if (plan.archived) throw BackupError.Inconsistent("selectedPlanId references archived plan $id")
-                plan
-            } ?: doc.plans.firstOrNull { !it.archived }
+            val preferredId = preferredPlan(doc.plans.mapIndexed { position, plan ->
+                PlanEntity(plan.id, plan.name, plan.origin, position, plan.createdAt, plan.archived)
+            }, doc.settings.selectedPlanId)?.id
+            val selectedPlan = doc.plans.firstOrNull { it.id == preferredId }
             if (doc.schemaVersion == 8) {
                 validateSuggestedDay(doc.settings.suggestedDay, selectedPlan?.days.orEmpty())
             }

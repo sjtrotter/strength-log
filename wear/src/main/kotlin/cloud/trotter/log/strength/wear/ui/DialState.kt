@@ -158,6 +158,7 @@ fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
     val day = inputs.snapshot.day
     val cardioRun = inputs.cardioSets?.reconcile(inputs.snapshot)
     if (cardioRun != null) return cardioSetsDial(inputs, cardioRun)
+    if (day.dayId.isBlank()) return nothingOnToday(inputs.snapshot, copy)
     val cardioReady = day.exercises.isEmpty() || (inputs.face == DialFace.OVERVIEW &&
         day.exercises.all { ex -> ex.sets.all { it.done } })
     if (cardioReady) {
@@ -165,7 +166,6 @@ fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
             return cardioSetsDial(inputs, it)
         }
     }
-    if (day.dayId.isBlank()) return noProgram(inputs.snapshot, copy)
     if (day.exercises.isEmpty()) return emptyDay(inputs.snapshot, copy)
     val browsing = inputs.browseDayIndex?.takeIf { inputs.face == DialFace.OVERVIEW }
 
@@ -901,11 +901,10 @@ private fun emptyDay(snapshot: WatchSnapshot, copy: DialCopy) = DialUiState(
     )
 }
 
-/** The phone has no suggested day (§7): a dashed disc and nothing to act on. */
-private fun noProgram(snapshot: WatchSnapshot, copy: DialCopy) = DialUiState(
+private fun nothingOnToday(snapshot: WatchSnapshot, copy: DialCopy) = DialUiState(
     screen = DialScreen.OVERVIEW,
     accentIndex = snapshot.day.accentIndex,
-    cycle = cycleSegments(snapshot),
+    cycle = emptyList(),
     dayProgress = 0f,
     rounds = emptyList(),
     arc = null,
@@ -914,8 +913,7 @@ private fun noProgram(snapshot: WatchSnapshot, copy: DialCopy) = DialUiState(
     disc = DiscContent(
         style = DiscStyle.DASHED,
         lines = listOf(
-            DiscLine(copy.noProgram.uppercase(), DialTextRole.DISC_LABEL_SMALL, DialTone.PRIMARY),
-            DiscLine(copy.setUpOnPhone.uppercase(), DialTextRole.BAND_SECONDARY, DialTone.TERTIARY),
+            DiscLine(copy.nothingOnToday, DialTextRole.DISC_LABEL_SMALL, DialTone.PRIMARY),
         ),
     ),
     bloom = false,

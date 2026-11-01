@@ -86,6 +86,9 @@ import cloud.trotter.log.strength.ui.theme.onDayAccent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/** M3's fast-effects duration; `MaterialTheme.motionScheme` is internal in this BOM. */
+private const val FAST_EFFECTS_MILLIS = 150
+
 @Composable
 fun WorkoutSetScreen(
     state: DayUiState,
@@ -284,7 +287,7 @@ private fun WorkoutLift(
                 ) {
                     Crossfade(
                         targetState = values to card.tracking(slot),
-                        animationSpec = if (reducedMotion) snap() else MaterialTheme.motionScheme.fastEffectsSpec(),
+                        animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS),
                         label = "workoutHero",
                     ) { (set, tracking) -> WorkoutHero(set, tracking) }
                 }
@@ -334,14 +337,14 @@ private fun WorkoutSuperset(
             ListItem(
                 leadingContent = {
                     Column(Modifier.width(statusWidth), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Crossfade(status, animationSpec = if (reducedMotion) snap() else MaterialTheme.motionScheme.fastEffectsSpec(), label = "workoutHalf") {
+                        Crossfade(status, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutHalf") {
                             Text(it, style = MaterialTheme.typography.titleMedium)
                         }
                         if (done) Icon(Icons.Default.Check, null) else Spacer(Modifier.size(24.dp))
                     }
                 },
                 headlineContent = {
-                    Crossfade(now, animationSpec = if (reducedMotion) snap() else MaterialTheme.motionScheme.fastEffectsSpec(), label = "workoutEmphasis") { current ->
+                    Crossfade(now, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutEmphasis") { current ->
                         Text(name.ifBlank { stringResource(R.string.workout_not_available) }, minLines = 2,
                             style = if (current) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium.copy(lineHeight = nameLineHeight),
                             color = if (current) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
@@ -470,7 +473,7 @@ private fun WorkoutAction(label: String, tonal: Boolean, enabled: Boolean, reduc
     }
     val modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).testTag(if (tonal) "workout-action-tonal" else "workout-action-filled")
     val content: @Composable () -> Unit = {
-        Crossfade(label, animationSpec = if (reducedMotion) snap() else MaterialTheme.motionScheme.fastEffectsSpec(), label = "workoutAction") {
+        Crossfade(label, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutAction") {
             Text(it, style = MaterialTheme.typography.titleLarge)
         }
     }

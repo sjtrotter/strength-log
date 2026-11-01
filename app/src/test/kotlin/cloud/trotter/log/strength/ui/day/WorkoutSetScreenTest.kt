@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -27,6 +28,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.text.TextLayoutResult
@@ -46,6 +48,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -130,23 +133,70 @@ class WorkoutSetScreenTest {
         var state by mutableStateOf(workoutSetSupersetFixture())
         rule.mainClock.autoAdvance = false
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
-        val before = rule.onNodeWithText("DB Bench Press").fetchSemanticsNode().boundsInRoot
+        val outgoingName = hasTestTag("workout-now-lift") and hasText("DB Bench Press")
+        val incomingName = hasTestTag("workout-now-lift") and hasText("Seated Cable Row")
+        val before = rule.onNode(outgoingName).fetchSemanticsNode().boundsInRoot
         rule.runOnIdle {
             state = state.copy(exercises = state.exercises.map { card -> card.copy(rows = card.rows.map {
                 if (it.index == 1) it.copy(done = true) else it
             }) }, workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1)))
         }
         rule.mainClock.advanceTimeByFrame()
-        rule.mainClock.advanceTimeBy(32)
-        val after = rule.onNodeWithText("Seated Cable Row").fetchSemanticsNode().boundsInRoot
+        rule.mainClock.advanceTimeByFrame()
+        // Half of FAST_EFFECTS_MILLIS, after composition and the animation's first frame.
+        rule.mainClock.advanceTimeBy(75, ignoreFrameDuration = true)
+        rule.onNode(outgoingName, useUnmergedTree = true).assertExists()
+        rule.onNode(incomingName, useUnmergedTree = true).assertExists()
+        val after = rule.onNode(incomingName).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertEquals(before.left, after.left, 0f)
         assertEquals(before.top, after.top, 0f)
-        rule.onNodeWithText("DB Bench Press").assertDoesNotExist()
+        rule.onNode(outgoingName).assertDoesNotExist()
         rule.onNodeWithTag("workout-half-${Slot.SS}").assertDoesNotExist()
         rule.onNodeWithTag("workout-half-${Slot.MAIN}")
             .assertContentDescriptionEquals("DB Bench Press, done, 80 × 10, open sets")
         rule.onNodeWithContentDescription("Seated Cable Row, round 2 of 3")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+        rule.mainClock.advanceTimeBy(150)
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNode(outgoingName, useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("workout-half-${Slot.SS}", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNode(incomingName).assertIsDisplayed()
+    }
+
+    @Test fun supersetTalkBackTraversesContentThenBandAndLog() {
+        val base = workoutSetSupersetFixture()
+        show(base.copy(exercises = base.exercises.map { card -> card.copy(
+            headerTarget = HeaderTarget.Prescribed("3 × 12", eachSide = true, resistance = "Red band"),
+            rows = card.rows.map { row ->
+                if (row.index == 1) row.copy(partner = row.partner?.copy(done = true)) else row
+            },
+        ) }, workout = base.workout?.copy(undo = undo().copy(slot = Slot.SS)))
+            .withWorkoutRestHint(true, emptyMap()))
+
+        val content = rule.onNodeWithContentDescription("DB Bench Press, round 2 of 3").fetchSemanticsNode()
+        val actions = rule.onNodeWithTag("workout-superset-actions").fetchSemanticsNode()
+        assertTrue(content.config[SemanticsProperties.IsTraversalGroup])
+        assertTrue(actions.config[SemanticsProperties.IsTraversalGroup])
+        assertTrue(content.config[SemanticsProperties.TraversalIndex] < actions.config[SemanticsProperties.TraversalIndex])
+        fun assertOrder(parent: SemanticsNode, vararg nodes: SemanticsNode) {
+            fun ids(node: SemanticsNode): List<Int> = listOf(node.id) + node.children.flatMap { ids(it) }
+            val expected = nodes.map { it.id }
+            assertEquals(expected, ids(parent).filter { it in expected })
+        }
+        assertOrder(content,
+            rule.onNodeWithText("Superset, round 2 of 3").fetchSemanticsNode(),
+            rule.onNodeWithTag("workout-now-lift").fetchSemanticsNode(),
+            rule.onNodeWithText("All sets").fetchSemanticsNode(),
+            rule.onNodeWithContentDescription("Edit set 2").fetchSemanticsNode(),
+            rule.onNodeWithText("Each side, Red band").fetchSemanticsNode(),
+            rule.onNodeWithTag("workout-half-${Slot.SS}").fetchSemanticsNode(),
+            rule.onNodeWithText("Then rest").fetchSemanticsNode(),
+        )
+        assertOrder(actions,
+            rule.onNodeWithTag("workout-rest").fetchSemanticsNode(),
+            rule.onNode(hasClickAction() and hasAnyAncestor(hasTestTag("workout-rest"))).fetchSemanticsNode(),
+            rule.onNodeWithTag("workout-action-filled").fetchSemanticsNode(),
+        )
     }
 
     @Test fun partnerLoggedFirstShowsRecordedValuesAndMainCanCompleteRound() {
@@ -172,6 +222,28 @@ class WorkoutSetScreenTest {
         assertTrue(moreRounds.withWorkoutRestHint(true, emptyMap()).workoutThenRest)
         assertFalse(moreRounds.withWorkoutRestHint(true,
             mapOf(cloud.trotter.log.strength.domain.standards.RestCategory.WORK to 0)).workoutThenRest)
+    }
+
+    @Test fun restHintReusesStateWhenUnchanged() {
+        val single = workoutSetSingleFixture()
+        assertSame(single, single.withWorkoutRestHint(true, emptyMap()))
+        val main = workoutSetSupersetFixture()
+        assertSame(main, main.withWorkoutRestHint(true, emptyMap()))
+        assertSame(main, main.withWorkoutRestHint(false, emptyMap()))
+        val noWorkout = main.copy(workout = null)
+        assertSame(noWorkout, noWorkout.withWorkoutRestHint(true, emptyMap()))
+        val allLogged = main.copy(workout = main.workout?.copy(shown = WorkoutSelection.Shown.AllLogged))
+        assertSame(allLogged, allLogged.withWorkoutRestHint(true, emptyMap()))
+        val ss = main.copy(exercises = main.exercises.map { card -> card.copy(rows = card.rows.map {
+            if (it.index == 1) it.copy(done = true) else it
+        }) }, workout = main.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1)))
+        assertSame(ss, ss.withWorkoutRestHint(false, emptyMap()))
+        val hint = ss.withWorkoutRestHint(true, emptyMap())
+        assertTrue(hint.workoutThenRest)
+        assertSame(hint, hint.withWorkoutRestHint(true, emptyMap()))
+        val cleared = hint.withWorkoutRestHint(false, emptyMap())
+        assertFalse(cleared.workoutThenRest)
+        assertSame(cleared, cleared.withWorkoutRestHint(false, emptyMap()))
     }
 
     @Test fun supersetRestShowsNextRoundMainAndNextPartner() {
@@ -386,21 +458,53 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Log 45 s").assertIsEnabled()
     }
 
-    @Test fun supersetLogStaysReachableAtLargeFont() {
+    @Test
+    @Config(qualifiers = "w320dp-h891dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun supersetLogStaysReachableAtLargeFont() {
+        assertSupersetFitsAtLargeFont(workoutSetSupersetFixture(), "DB Bench Press", "Seated Cable Row", "80 × 10", "120 × 10")
+    }
+
+    @Test
+    @Config(qualifiers = "w320dp-h891dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun supersetSecondHalfLogStaysReachableAtLargeFontWithUndo() {
+        val base = workoutSetSupersetFixture()
+        val ss = base.copy(exercises = base.exercises.map { card -> card.copy(rows = card.rows.map {
+            if (it.index == 1) it.copy(done = true) else it
+        }) }, workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1),
+            undo = undo().copy(title = "DB Bench Press", set = LoggedSet(80.0, 10, SetKind.WORK))))
+            .withWorkoutRestHint(true, emptyMap())
+        assertSupersetFitsAtLargeFont(ss, "Seated Cable Row", "DB Bench Press", "120 × 10", "80 × 10")
+        rule.onNodeWithTag("workout-rest").assertIsDisplayed()
+        rule.onNodeWithText("Undo DB Bench Press 80 × 10").assertIsDisplayed().assertIsEnabled()
+    }
+
+    private fun assertSupersetFitsAtLargeFont(state: DayUiState, nowTitle: String, partnerTitle: String, nowValue: String, partnerValue: String) {
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
-                AppTheme { WorkoutSetHost(workoutSetSupersetFixture(), pagerActions(), DayEditUiState(), pagerEditActions()) }
+                AppTheme { WorkoutSetHost(state, pagerActions(), DayEditUiState(), pagerEditActions()) }
             }
         }
-        rule.onNodeWithText("Log 80 × 10").assertIsDisplayed().assertIsEnabled()
-        val results = mutableListOf<TextLayoutResult>()
-        rule.onNodeWithText("Seated Cable Row", useUnmergedTree = true).assertIsDisplayed()
-            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
-        assertFalse(results.single().hasVisualOverflow)
-        val name = rule.onNodeWithText("Seated Cable Row", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val value = rule.onNodeWithText("120 × 10", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        rule.onNodeWithText("Log $nowValue").assertIsDisplayed().assertIsEnabled()
+        val nowName = rule.onNodeWithText(nowTitle, useUnmergedTree = true)
+        val partnerName = rule.onNodeWithText(partnerTitle, useUnmergedTree = true)
+        val position = rule.onNodeWithText("Superset, round 2 of 3")
+        for (node in listOf(position, nowName, partnerName)) {
+            node.performScrollTo().assertIsDisplayed()
+            val results = mutableListOf<TextLayoutResult>()
+            node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+            val layout = results.single()
+            assertFalse("${layout.layoutInput.text} overflows", layout.hasVisualOverflow)
+            assertTrue("${layout.layoutInput.text} must allow wrapping", layout.layoutInput.softWrap)
+            assertTrue("${layout.layoutInput.text} must allow multiple lines", layout.layoutInput.maxLines > 1)
+        }
+        rule.onNodeWithTag("workout-partner-card").performScrollTo().assertIsDisplayed()
+        val name = partnerName.assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val value = rule.onNodeWithText(partnerValue, useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(name.bottom <= value.top)
+        rule.onNodeWithText("Log $nowValue").assertIsDisplayed().assertIsEnabled()
     }
 
     @Test fun liftAndHeroUseExistingSheetCallbacks() {

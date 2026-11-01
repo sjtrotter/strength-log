@@ -360,19 +360,18 @@ data class WorkoutPage(val exerciseId: Long?, val title: String, val done: Int, 
 /** Mirrors the existing phone timer's eligibility using the current rows and rest preferences. */
 internal fun DayUiState.withWorkoutRestHint(enabled: Boolean, overrides: Map<RestCategory, Int>): DayUiState {
     val card = workoutCard
+    if (card?.isSuperset != true) return this
     val focus = workout?.focus
-    val row = card?.rows?.getOrNull(focus?.index ?: -1)
+    val row = card.rows.getOrNull(focus?.index ?: -1)
     val completesRound = when (focus?.slot) {
         Slot.MAIN -> row?.done == false && row.partner?.done != false
         Slot.SS -> row?.done == true && row.partner?.done == false
         else -> false
     }
-    val moreStrength = exercises.any { other -> other.rows.any {
-        !it.complete && (other.programExerciseId != focus?.programExerciseId || it.index != focus?.index)
-    } }
-    val restSeconds = if (card != null && row != null) {
-        RestPolicy.effectiveRestSeconds(row.kind, card.tracking, overrides)
-    } else 0
-    return copy(workoutThenRest = enabled && card?.isSuperset == true && workout?.completedView == false &&
-        !workoutAllLogged && completesRound && moreStrength && restSeconds > 0)
+    val thenRest = enabled && workout?.completedView == false && !workoutAllLogged && row != null &&
+        completesRound && RestPolicy.effectiveRestSeconds(row.kind, card.tracking, overrides) > 0 &&
+        exercises.any { other -> other.rows.any {
+            !it.complete && (other.programExerciseId != focus?.programExerciseId || it.index != focus?.index)
+        } }
+    return if (workoutThenRest == thenRest) this else copy(workoutThenRest = thenRest)
 }

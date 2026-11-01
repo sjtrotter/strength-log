@@ -57,6 +57,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,9 +68,11 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -159,7 +162,13 @@ private fun WorkoutSetContent(
         },
         bottomBar = {
             Column(
-                Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp)
+                    .then(if (state.workoutCard?.isSuperset == true) {
+                        Modifier.testTag("workout-superset-actions").semantics {
+                            isTraversalGroup = true
+                            traversalIndex = 1f
+                        }
+                    } else Modifier),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -313,8 +322,14 @@ private fun WorkoutSuperset(
     val announcement = if (workout.completedView) position else {
         stringResource(R.string.workout_announce_round, title, index + 1, card.rows.size)
     }
+    val currentHalf by rememberUpdatedState(workout.focus to workout.completedView)
     Column(
-        Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announcement },
+        Modifier.fillMaxWidth().semantics {
+            liveRegion = LiveRegionMode.Polite
+            contentDescription = announcement
+            isTraversalGroup = true
+            traversalIndex = 0f
+        },
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(position, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -328,7 +343,7 @@ private fun WorkoutSuperset(
             },
             label = "workoutSuperset",
         ) { shown ->
-            val outgoing = shown.workout?.focus != focus || shown.workout?.completedView != workout.completedView
+            val outgoing = (shown.workout?.focus to shown.workout?.completedView) != currentHalf
             Column(
                 if (outgoing) Modifier.clearAndSetSemantics { } else Modifier,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -359,7 +374,7 @@ private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog:
     val slot = focus.slot
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
-            style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f).testTag("workout-now-lift"))
         TextButton(onClick = { actions.onOpenAllSets(card.programExerciseId) }, colors = neutralTextButtonColors()) {
             Text(stringResource(R.string.day_all_sets))
         }

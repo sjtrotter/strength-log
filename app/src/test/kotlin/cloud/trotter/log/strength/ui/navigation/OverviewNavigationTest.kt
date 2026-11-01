@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.navigation
 
 import android.content.Context
+import androidx.activity.ComponentDialog
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -9,6 +10,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.onNode
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -27,6 +33,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -69,6 +76,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDialog
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
@@ -113,7 +121,7 @@ class OverviewNavigationTest {
 
     private fun <T : ViewModel> keep(vm: T): T = vm.also { vms += it }
 
-    private fun render() {
+    private fun render(expectedRow: String = "Strength · Day A") {
         rule.setContent { AppTheme {
             nav = rememberNavController()
             val entry by nav.currentBackStackEntryAsState()
@@ -178,14 +186,15 @@ class OverviewNavigationTest {
                                     Routes.DAY_ID_ARG to dayEntry.arguments?.getString(Routes.DAY_ID_ARG),
                                     Routes.DAY_EDITOR_ARG to dayEntry.arguments?.getBoolean(Routes.DAY_EDITOR_ARG),
                                 )), FixedCardioClock(), InertCardioAlarm)) }
-                            DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = { nav.popBackStack() },
+                            DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = { nav.finishWorkout() },
+                                onBack = { nav.popBackStack() },
                                 onOpenRestTimer = {}, viewModel = dayVm)
                         }
                     }
                 }
             }
         } }
-        rule.waitUntil(5_000) { rule.onAllNodes(androidx.compose.ui.test.hasText("Strength · Day A")).fetchSemanticsNodes().isNotEmpty() }
+        rule.waitUntil(5_000) { rule.onAllNodes(hasText(expectedRow)).fetchSemanticsNodes().isNotEmpty() }
     }
 
     private fun openOtherPreview() {
@@ -203,6 +212,7 @@ class OverviewNavigationTest {
         rule.onNodeWithText("Log").assertExists()
         rule.onNodeWithText("Plans").assertExists()
         rule.onNodeWithText("Plan").assertDoesNotExist()
+        assertNotEquals(TopLevelDestination.LOG.icon, TopLevelDestination.PLANS.icon)
         openOtherPreview()
         rule.runOnIdle {
             assertEquals(Routes.PREVIEW, nav.currentDestination?.route)
@@ -226,7 +236,11 @@ class OverviewNavigationTest {
         val oldId = runBlocking { repo.openRunFlow.first()!!.id }
         render()
         rule.onNodeWithText("Start").performClick()
-        assertTrue(rule.onAllNodes(androidx.compose.ui.test.hasText("Other · Day B Arms")).fetchSemanticsNodes().isNotEmpty())
+        rule.waitUntil(5_000) {
+            rule.onAllNodes(hasText("Workout open") and hasAnyAncestor(isDialog())).fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNode(isDialog()).assertExists()
+        rule.onNode(hasText("Other · Day B Arms") and hasAnyAncestor(isDialog())).assertExists()
         rule.onNodeWithText("Discard and start").performClick()
         assertEquals(oldId, runBlocking { repo.openRunFlow.first()!!.id })
         rule.onNodeWithText("Discard workout?").assertExists()
@@ -249,12 +263,88 @@ class OverviewNavigationTest {
         render()
         openOtherPreview()
         rule.onNodeWithText("Edit").performClick()
-        rule.waitUntil(5_000) { rule.runOnIdle { ::dayVm.isInitialized && dayVm.dayEditState.value.editorOpen } }
+        rule.waitUntil(5_000) { rule.runOnIdle { nav.currentDestination?.route == Routes.DAY_EDIT_IN_PLAN && ::dayVm.isInitialized &&
+                !dayVm.uiState.value.loading && dayVm.uiState.value.planId == other && dayVm.dayEditState.value.editorOpen } }
         rule.runOnIdle {
             assertEquals(Routes.DAY_EDIT_IN_PLAN, nav.currentDestination?.route)
+            assertEquals(other.toString(), nav.currentBackStackEntry?.arguments?.getString(Routes.DAY_PLAN_ID_ARG))
             assertEquals(other, dayVm.uiState.value.planId)
             assertEquals("A", dayVm.uiState.value.viewDayId)
             assertTrue(dayVm.dayEditState.value.editorOpen)
         }
     }
+
+    private fun finishAndReturnToToday() {
+        rule.waitUntil(5_000) { rule.runOnIdle {
+            ::dayVm.isInitialized && dayVm.uiState.value.runOpen && dayVm.uiState.value.exercises.isNotEmpty()
+        } }
+        rule.runOnIdle {
+            val slot = dayVm.uiState.value.exercises.first()
+            dayVm.toggleDone(slot.programExerciseId, 0, true, Slot.MAIN)
+        }
+        rule.waitUntil(5_000) { rule.runOnIdle { dayVm.uiState.value.doneSets > 0 } }
+        rule.runOnIdle { dayVm.completeDay() }
+        rule.waitUntil(5_000) { rule.runOnIdle { dayVm.sessionReceipt.value != null } }
+        rule.waitUntil(5_000) { rule.onAllNodes(hasText("BACK TO TODAY")).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText("BACK TO TODAY").performClick()
+        rule.waitUntil(5_000) { rule.runOnIdle { nav.currentDestination?.route == Routes.TODAY } }
+        rule.runOnIdle {
+            assertEquals(Routes.TODAY, nav.currentDestination?.route)
+            assertEquals(null, nav.previousBackStackEntry)
+        }
+    }
+
+    @Test fun pausedPreferredPlanStartStartsTheFirstPlanOnToday() {
+        runBlocking { repo.pause(preferred) }
+        render(expectedRow = "Other · Day A")
+        rule.onNodeWithText("Start").performClick()
+        rule.waitUntil(5_000) { rule.runOnIdle { ::dayVm.isInitialized && dayVm.uiState.value.runOpen } }
+        assertEquals(other, runBlocking { repo.openRunFlow.first()!!.planId })
+        assertEquals(preferred, runBlocking { repo.selectedPlanIdFlow.first() })
+    }
+
+    @Test fun todayStartReceiptReturnsToToday() {
+        render()
+        rule.onNodeWithText("Start").performClick()
+        finishAndReturnToToday()
+    }
+
+    @Test fun todayPreviewStartReceiptClearsPreviewAndReturnsToToday() {
+        render()
+        rule.onNodeWithText("Strength · Day A").performClick()
+        rule.waitUntil(5_000) { rule.onAllNodes(hasText("Start day A")).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText("Start day A").performClick()
+        finishAndReturnToToday()
+    }
+
+    @Test fun plansPreviewStartReceiptClearsPlanAndPreviewAndReturnsToToday() {
+        render()
+        openOtherPreview()
+        rule.onNodeWithText("Start day A").performClick()
+        finishAndReturnToToday()
+    }
+
+    @Test fun backFromPreviewReturnsToThePlansDayList() {
+        render()
+        openOtherPreview()
+        rule.onNodeWithContentDescription("Back").performClick()
+        rule.waitUntil(5_000) { rule.runOnIdle { nav.currentDestination?.route == Routes.PLAN_IN_PLANS } }
+        rule.runOnIdle { assertEquals(other.toString(), nav.currentBackStackEntry?.arguments?.getString(Routes.PLAN_ID_ARG)) }
+    }
+
+    @Test fun backFromEditorClosesEditorThenReturnsToPreview() {
+        render()
+        openOtherPreview()
+        rule.onNodeWithText("Edit").performClick()
+        rule.waitUntil(5_000) { rule.runOnIdle { ::dayVm.isInitialized &&
+            !dayVm.uiState.value.loading && dayVm.uiState.value.planId == other && dayVm.dayEditState.value.editorOpen } }
+        // The sheet owns the first Back; leaving the workout then returns to its preview.
+        rule.onNode(isDialog()).assertExists()
+        rule.runOnIdle { (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed() }
+        rule.waitUntil(5_000) { rule.runOnIdle { !dayVm.dayEditState.value.editorOpen } }
+        rule.onNodeWithContentDescription("Back").performClick()
+        rule.waitUntil(5_000) { rule.runOnIdle { nav.currentDestination?.route == Routes.PREVIEW } }
+        rule.onNodeWithText("Start day A").assertExists()
+    }
+
 }

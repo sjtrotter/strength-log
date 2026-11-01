@@ -6,6 +6,10 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.performedExercise
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 
 /** The same missing-track seed plan for a preview, explicit Start, and the workout. */
@@ -33,3 +37,15 @@ fun performedDayExerciseIds(
         },
     )
 }.distinct()
+
+/** Refresh history when slots, performed identities, or archived sessions change. */
+fun TrackerRepository.dayHistoryKeys(
+    planId: Long,
+    dayId: String,
+): Flow<Pair<List<ProgramSlot>, Map<Pair<Long, String>, String?>>> = combine(
+    slotsFor(planId, dayId),
+    dayTracksFlow(planId, dayId).map { tracks ->
+        tracks.tracks.associate { (it.programExerciseId to it.slot) to it.exerciseId }
+    }.distinctUntilChanged(),
+    sessionSummariesFor(planId),
+) { slots, performedIds, _ -> slots to performedIds }

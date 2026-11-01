@@ -21,7 +21,6 @@ data class TodayDay(
     val dayId: String,
     val dayIndex: Int,
     val title: String,
-    val preferred: Boolean = false,
     val cardioOnly: Boolean = false,
 ) {
     val selection: DaySelection get() = DaySelection(planId, dayId)

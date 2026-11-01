@@ -195,13 +195,7 @@ class DayViewModel @Inject constructor(
             // Live-set keystrokes still do not touch this path, while a Log edit
             // immediately corrects both "last time" and "Best" on an open day.
             val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(noDayState(ctx))
-            val historyKeys = combine(
-                repo.slotsFor(planId, dayId),
-                repo.dayTracksFlow(planId, dayId).map { tracks ->
-                    tracks.tracks.associate { (it.programExerciseId to it.slot) to it.exerciseId }
-                }.distinctUntilChanged(),
-                repo.sessionSummariesFor(planId),
-            ) { slots, performedIds, _ -> slots to performedIds }
+            val historyKeys = repo.dayHistoryKeys(planId, dayId)
             val slotsWithHistory = historyKeys.flatMapLatest { (slots, performedIds) ->
                 flow {
                     ensureSeeded(planId, dayId, slots)
@@ -1361,11 +1355,7 @@ class DayViewModel @Inject constructor(
         mutate {
             val slots = repo.slotsFor(planId, day).first()
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
-            val cfg = repo.wizardAnswersFor(planId).first().config
-            val catalog = repo.catalogFlow.first()
-            val working = repo.dayTracksFlow(planId, day).first().tracks
-                .associate { (it.programExerciseId to it.slot) to it.sets.size }
-            val seeds = DayScreenBuilder.seedPlan(slots, working, cfg, catalog)
+            val seeds = repo.daySeeds(planId, day, slots)
                 .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
             val runId = when (val result = repo.startRun(planId, day, seeds)) {
                 is RunStartResult.Started -> result.runId
@@ -1470,10 +1460,7 @@ class DayViewModel @Inject constructor(
     private suspend fun seedWorkingValues(planId: Long, dayId: String, slots: List<ProgramSlot>) {
         val tracks = repo.dayTracksFlow(planId, dayId).first()
         if (tracks.runOpen) return
-        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
-        val cfg = repo.wizardAnswersFor(planId).first().config
-        val catalog = repo.catalogFlow.first()
-        DayScreenBuilder.seedPlan(slots, existing, cfg, catalog).forEach {
+        repo.daySeeds(planId, dayId, slots, tracks).forEach {
             repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets)
         }
     }

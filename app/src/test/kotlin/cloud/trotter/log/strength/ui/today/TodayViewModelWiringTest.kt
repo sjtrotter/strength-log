@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.ui.today
 
 import androidx.lifecycle.SavedStateHandle
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -13,7 +15,10 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.preview.OverviewFixture
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -42,7 +47,6 @@ class TodayViewModelWiringTest : OverviewFixture() {
         advanceUntilIdle()
         assertEquals(listOf(second, first), vm.uiState.value.upNext.map { it.planId })
         assertEquals(listOf("B", "A"), vm.uiState.value.upNext.map { it.dayId })
-        assertEquals(listOf(true, false), vm.uiState.value.upNext.map { it.preferred })
         assertNull(repo.openRunFlow.first())
     }
 
@@ -66,6 +70,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         assertEquals(DaySelection(plan, "B"), vm.uiState.value.resume?.selection)
         assertEquals(1, vm.uiState.value.resume?.dayIndex)
         assertTrue(vm.uiState.value.hasProgram)
+        assertTrue(vm.uiState.value.nothingOnToday)
         assertTrue(vm.uiState.value.upNext.isEmpty())
     }
 
@@ -101,7 +106,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         assertTrue(vm.uiState.value.upNext.isEmpty())
     }
 
-    @Test fun pausedPreferredPlanDoesNotGiveAnotherPlanADirectStart() = runTest(dispatcher) {
+    @Test fun pausedPreferredPlanGivesTheFirstPlanOnTodayDirectStart() = runTest(dispatcher) {
         insertProgram()
         val first = repo.selectedPlanIdFlow.first()!!
         val other = repo.duplicatePlan(first, "Other")
@@ -110,7 +115,10 @@ class TodayViewModelWiringTest : OverviewFixture() {
         val vm = today()
         advanceUntilIdle()
         assertEquals(other, vm.uiState.value.upNext.single().planId)
-        assertFalse(vm.uiState.value.upNext.single().preferred)
+        assertEquals(DaySelection(other, "A"), vm.uiState.value.upNext.first().selection)
+        vm.workoutStart.start(vm.uiState.value.upNext.first().selection)
+        advanceUntilIdle()
+        assertEquals(other, repo.openRunFlow.first()!!.planId)
     }
 
     @Test fun startCreatesRunBeforeEmittingDayNavigationAndDoubleStartReusesIt() = runTest(dispatcher) {
@@ -178,7 +186,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
             java.time.Instant.parse("2026-10-28T18:00:00Z").toEpochMilli(), 180, planId = plan))
         val vm = today()
         advanceUntilIdle()
-        assertEquals("Last trained Oct 28", vm.uiState.value.fact)
+        assertEquals("Oct 28", vm.uiState.value.fact)
     }
 
     @Test fun emptyAuthoredDayRemainsAnUpNextRowAndRemovalMovesIt() = runTest(dispatcher) {
@@ -192,4 +200,117 @@ class TodayViewModelWiringTest : OverviewFixture() {
         advanceUntilIdle()
         assertEquals("B", vm.uiState.value.upNext.single().dayId)
     }
+
+    @Test fun lastTrainedDateFollowsPlanSelection() = runTest(dispatcher) {
+        insertProgram()
+        val first = repo.selectedPlanIdFlow.first()!!
+        val second = repo.duplicatePlan(first, "Test prep")
+        db.sessionDao().insertSessions(listOf(historySession(first, "2026-10-15"), historySession(second, "2026-10-18")))
+        val vm = today()
+        advanceUntilIdle()
+        assertEquals("Oct 15", vm.uiState.value.fact)
+        assertEquals(completionAt("2026-10-15"), repo.lastSessionAtFor(first).first())
+        repo.selectPlan(second)
+        advanceUntilIdle()
+        assertEquals(second, vm.uiState.value.upNext.first().planId)
+        assertEquals("Oct 18", vm.uiState.value.fact)
+        assertEquals(completionAt("2026-10-18"), repo.lastSessionAtFor(second).first())
+        repo.selectPlan(first)
+        advanceUntilIdle()
+        assertEquals("Oct 15", vm.uiState.value.fact)
+    }
+
+    @Test fun onlyTheLegacyPlanCountsNullPlanWorkoutHistory() = runTest(dispatcher) {
+        insertProgram()
+        assertEquals(PlanEntity.LEGACY_ID, repo.selectedPlanIdFlow.first())
+        val second = repo.duplicatePlan(PlanEntity.LEGACY_ID, "Test prep")
+        db.sessionDao().insertSessions(listOf(historySession(PlanEntity.LEGACY_ID, "2026-10-15"), historySession(null, "2026-10-19")))
+        val vm = today()
+        advanceUntilIdle()
+        assertEquals("Oct 19", vm.uiState.value.fact)
+        assertEquals(completionAt("2026-10-19"), repo.lastSessionAtFor(PlanEntity.LEGACY_ID).first())
+        repo.selectPlan(second)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.fact)
+        assertNull(repo.lastSessionAtFor(second).first())
+    }
+
+    @Test fun cardioCountsForItsPlanAndNullPlanCardioCountsForLegacy() = runTest(dispatcher) {
+        insertProgram()
+        val first = repo.selectedPlanIdFlow.first()!!
+        val second = repo.duplicatePlan(first, "Test prep")
+        db.sessionDao().insertSession(historySession(first, "2026-10-15"))
+        db.cardioSessionDao().insertAll(listOf(cardioSession(first, "2026-10-18"), cardioSession(second, "2026-10-19")))
+        val vm = today()
+        advanceUntilIdle()
+        assertEquals("Oct 18", vm.uiState.value.fact)
+        assertEquals(completionAt("2026-10-18"), repo.lastSessionAtFor(first).first())
+        db.cardioSessionDao().insert(cardioSession(null, "2026-10-20"))
+        advanceUntilIdle()
+        assertEquals("Oct 20", vm.uiState.value.fact)
+        assertEquals(completionAt("2026-10-20"), repo.lastSessionAtFor(first).first())
+        repo.selectPlan(second)
+        advanceUntilIdle()
+        assertEquals("Oct 19", vm.uiState.value.fact)
+        assertEquals(completionAt("2026-10-19"), repo.lastSessionAtFor(second).first())
+    }
+
+    @Test fun everyEmissionKeepsTheFactWithItsRowsWhileMembershipProgramReadIsDelayed() = runTest(dispatcher) {
+        insertProgram()
+        val first = repo.selectedPlanIdFlow.first()!!
+        repo.renamePlan(first, "Strength")
+        val second = repo.duplicatePlan(first, "Running")
+        repo.renameDay(second, "A", "Run prep") // Same day id, different plan.
+        db.sessionDao().insertSessions(listOf(historySession(first, "2026-10-15"), historySession(second, "2026-10-18")))
+        val vm = today()
+        val emissions = mutableListOf<TodayUiState>()
+        val collect = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.uiState.collect { emissions += it }
+        }
+        advanceUntilIdle()
+        assertEquals(first, vm.uiState.value.upNext.single().planId)
+        assertEquals("Oct 15", vm.uiState.value.fact)
+
+        delayedPlanId = second
+        val gate = CompletableDeferred<Unit>()
+        programReadGate = gate
+        repo.useOnly(second)
+        advanceUntilIdle()
+        assertTrue("the new program must be waiting", delayedProgramReadStarted)
+        assertEquals(first, vm.uiState.value.upNext.single().planId)
+        assertEquals("Oct 15", vm.uiState.value.fact)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(second, vm.uiState.value.upNext.single().planId)
+        assertEquals("Oct 18", vm.uiState.value.fact)
+        repo.useOnly(first)
+        advanceUntilIdle()
+        assertEquals(first, vm.uiState.value.upNext.single().planId)
+        assertTrue(emissions.any { it.upNext.firstOrNull()?.planId == second })
+        emissions.filter { it.upNext.isNotEmpty() }.forEach { state ->
+            val row = state.upNext.first()
+            val expected = when (row.planId) {
+                first -> Triple("Strength", "Squat", "Oct 15")
+                second -> Triple("Running", "Run prep", "Oct 18")
+                else -> error("Unexpected plan in $state")
+            }
+            assertEquals("mixed plan content in $state", expected, Triple(row.planName, row.title, state.fact))
+            assertTrue(state.otherDays.all { it.planId == row.planId })
+        }
+        collect.cancel()
+    }
+
+    private fun historySession(planId: Long?, date: String) = WorkoutSessionEntity(
+        0, "A", "Day A", null, completionAt(date), 180, planId = planId,
+    )
+
+    private fun cardioSession(planId: Long?, date: String) = CardioSessionEntity(
+        dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Zone 2",
+        startedAt = completionAt(date) - 60_000, completedAt = completionAt(date),
+        seconds = 60, stepsCompleted = 1, planId = planId,
+    )
+
+    private fun completionAt(date: String) = java.time.LocalDate.parse(date).atTime(12, 0)
+        .atZone(java.time.ZoneId.of("America/Chicago")).toInstant().toEpochMilli()
+
 }

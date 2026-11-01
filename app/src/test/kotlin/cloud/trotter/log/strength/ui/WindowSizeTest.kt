@@ -212,7 +212,7 @@ class WindowSizeTest {
 
     private fun todayState() = TodayUiState(
         hasProgram = true,
-        upNext = listOf(TodayDay(1, "Strength", "B", 1, "Lower body", preferred = true)),
+        upNext = listOf(TodayDay(1, "Strength", "B", 1, "Lower body")),
         fact = "Last trained Oct 28",
     )
 

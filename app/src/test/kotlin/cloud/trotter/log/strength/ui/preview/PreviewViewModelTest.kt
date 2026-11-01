@@ -10,6 +10,9 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -48,6 +51,16 @@ class PreviewViewModelTest : OverviewFixture() {
             workout.uiState.value.exercises.single().rows.first { it.kind == SetKind.TOP }.let {
                 "${it.weightDisplay.toInt()} × ${it.reps}"
             })
+    }
+
+    @Test fun repsOnlyWorkingValueHasNoLeadingSpace() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Push", "", listOf(ProgramExercise("pushup"))))))
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
+        repo.seedIfEmpty("A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 8, SetKind.WORK)))
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        assertEquals("× 8", vm.uiState.value.lifts.single().working)
     }
 
     @Test fun previewUsesStoredFirstWorkingValuesRatherThanTheGoalOrRamp() = runTest(dispatcher) {

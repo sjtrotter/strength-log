@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,10 +72,11 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                             }
                         }
                     } }
-                    item { Text(stringResource(R.string.today_up_next), Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium) }
+                    if (state.upNext.isNotEmpty()) item { Text(stringResource(R.string.today_up_next), Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium) }
                     state.upNext.forEach { day -> item(key = "next:${day.planId}:${day.dayId}") {
                         TodayDayItem(day, onClick = { actions.onOpenPreview(day.selection) },
-                            start = if (day.preferred) ({ actions.onStart(day.selection) }) else null)
+                            start = if (day == state.upNext.firstOrNull()) ({ actions.onStart(day.selection) }) else null,
+                            tonalStart = state.resume != null)
                     } }
                     if (state.otherDays.isNotEmpty()) {
                         item { TextButton(onClick = actions.onToggleOtherDays) { Text(stringResource(R.string.today_other_days)) } }
@@ -84,7 +86,13 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
                             })
                         } }
                     }
-                    state.fact?.let { fact -> item { Text(fact, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium) } }
+                    if (state.nothingOnToday) item {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(stringResource(R.string.nothing_on_today), style = MaterialTheme.typography.headlineSmall)
+                            TextButton(onClick = actions.onOpenPlans) { Text(stringResource(R.string.plans_title)) }
+                        }
+                    }
+                    state.fact?.let { fact -> item { Text(stringResource(R.string.today_last_trained, fact), Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium) } }
                 }
             }
         }
@@ -92,15 +100,18 @@ fun TodayScreen(state: TodayUiState, actions: TodayActions) {
 }
 
 @Composable
-private fun TodayDayItem(day: TodayDay, onClick: () -> Unit, start: (() -> Unit)? = null) {
+private fun TodayDayItem(day: TodayDay, onClick: () -> Unit, start: (() -> Unit)? = null, tonalStart: Boolean = false) {
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
         leadingContent = { DayIndex(day.dayIndex, day.dayId, DayIndexSize.Small) },
         headlineContent = { Text(stringResource(R.string.today_plan_day, day.planName, day.dayId)) },
         supportingContent = { Text(day.title) },
-        trailingContent = start?.let { onStart -> { Button(
-            onClick = onStart,
-            colors = ButtonDefaults.buttonColors(containerColor = dayAccent(day.dayIndex), contentColor = onDayAccent(day.dayIndex)),
-        ) { Text(stringResource(R.string.workout_start)) } } },
+        trailingContent = start?.let { onStart -> {
+            if (tonalStart) FilledTonalButton(onClick = onStart) { Text(stringResource(R.string.workout_start)) }
+            else Button(
+                onClick = onStart,
+                colors = ButtonDefaults.buttonColors(containerColor = dayAccent(day.dayIndex), contentColor = onDayAccent(day.dayIndex)),
+            ) { Text(stringResource(R.string.workout_start)) }
+        } },
     )
 }

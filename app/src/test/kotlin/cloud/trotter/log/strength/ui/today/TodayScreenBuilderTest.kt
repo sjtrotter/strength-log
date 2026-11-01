@@ -11,7 +11,7 @@ class TodayScreenBuilderTest {
         assertNull(TodayScreenBuilder.coachLine(null, ZoneId.of("UTC")))
     }
     @Test fun lastTrainedUsesAmericanDateAndCivilZone() {
-        assertEquals("Last trained Oct 28", TodayScreenBuilder.coachLine(
+        assertEquals("Oct 28", TodayScreenBuilder.coachLine(
             Instant.parse("2026-10-29T01:00:00Z"), ZoneId.of("America/Chicago"),
         ))
     }

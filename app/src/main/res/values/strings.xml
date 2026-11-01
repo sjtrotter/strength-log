@@ -687,6 +687,7 @@
     <string name="day_swap_the_plan">The plan</string>
     <string name="day_swap_apply">Swap</string>
     <string name="day_swap_other_workout_open">Another workout is open</string>
+    <string name="today_last_trained">Last trained %1$s</string>
     <string name="today_up_next">Up next</string>
     <string name="today_other_days">Other days</string>
     <string name="today_plan_day">%1$s · Day %2$s</string>

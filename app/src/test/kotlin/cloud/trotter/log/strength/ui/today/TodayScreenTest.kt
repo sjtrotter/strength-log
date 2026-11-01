@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class TodayScreenTest {
     @get:Rule val rule = createComposeRule()
-    private val first = TodayDay(1, "Strength", "B", 1, "Squat", preferred = true)
+    private val first = TodayDay(1, "Strength", "B", 1, "Squat")
     private val second = TodayDay(2, "Prep", "A", 0, "Upper")
     private fun actions() = TodayActions(onStart = {}, onOpenSettings = {}, onSetUpProgram = {})
 
@@ -36,7 +36,7 @@ class TodayScreenTest {
         assertTrue(opened)
     }
 
-    @Test fun upNextRowsOpenPreviewAndOnlyPreferredRowHasStart() {
+    @Test fun upNextRowsOpenPreviewAndOnlyDisplayRowHasStart() {
         val previews = mutableListOf<DaySelection>()
         val starts = mutableListOf<DaySelection>()
         rule.setContent { AppTheme { TodayScreen(
@@ -64,6 +64,27 @@ class TodayScreenTest {
         assertTrue(resume.top < upNext.top)
         rule.onNodeWithText("Resume").performClick()
         assertEquals(second.selection, resumed)
+    }
+
+    @Test fun pausedOpenRunKeepsNothingOnTodayAndPlansBelowResumeWithoutUpNextHeader() {
+        var opened = false
+        rule.setContent { AppTheme { TodayScreen(
+            TodayUiState(hasProgram = true, nothingOnToday = true, resume = second),
+            actions().copy(onOpenPlans = { opened = true }),
+        ) } }
+        val resume = rule.onNodeWithText("Resume").fetchSemanticsNode().boundsInRoot
+        val nothing = rule.onNodeWithText("Nothing on Today").fetchSemanticsNode().boundsInRoot
+        assertTrue(resume.top < nothing.top)
+        rule.onNodeWithText("Up next").assertDoesNotExist()
+        rule.onNodeWithText("Plans").performClick()
+        assertTrue(opened)
+    }
+
+    @Test fun factFormatsTheLastTrainedStringAroundTheDate() {
+        rule.setContent { AppTheme { TodayScreen(
+            TodayUiState(hasProgram = true, upNext = listOf(first), fact = "Oct 28"), actions(),
+        ) } }
+        rule.onNodeWithText("Last trained Oct 28").assertExists()
     }
 
     @Test fun otherDaysExpandAndRouteStrengthToPreviewAndCardioToDay() {

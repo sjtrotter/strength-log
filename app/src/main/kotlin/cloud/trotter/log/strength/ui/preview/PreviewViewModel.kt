@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.WorkoutStart
+import cloud.trotter.log.strength.ui.day.dayHistoryKeys
 import cloud.trotter.log.strength.ui.day.activityLabel
 import cloud.trotter.log.strength.ui.day.performedDayExerciseIds
 import cloud.trotter.log.strength.ui.day.plannedTimeDetail
@@ -23,7 +24,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -38,13 +38,7 @@ class PreviewViewModel @Inject constructor(repo: TrackerRepository, savedState: 
     ) { program, answers, catalog, unit -> PreviewContext(program, answers.config, catalog, unit) }.distinctUntilChanged()
 
     val uiState = context.flatMapLatest { ctx ->
-        val history = combine(
-            repo.slotsFor(planId, dayId),
-            repo.dayTracksFlow(planId, dayId).map { tracks ->
-                tracks.tracks.associate { (it.programExerciseId to it.slot) to it.exerciseId }
-            }.distinctUntilChanged(),
-            repo.sessionSummariesFor(planId),
-        ) { slots, performedIds, _ -> slots to performedIds }.flatMapLatest { (slots, ids) ->
+        val history = repo.dayHistoryKeys(planId, dayId).flatMapLatest { (slots, ids) ->
             flow { emit(slots to repo.lastPerformed(performedDayExerciseIds(slots, ids, ctx.catalog))) }
         }
         combine(history, repo.dayTracksFlow(planId, dayId), repo.plansFlow) { (slots, last), tracks, plans ->
@@ -67,7 +61,7 @@ class PreviewViewModel @Inject constructor(repo: TrackerRepository, savedState: 
                         val key = slot.programExerciseId to trackSlot
                         val sets = stored[key]?.sets ?: seeds[key]?.sets.orEmpty()
                         sets.firstOrNull { it.kind != SetKind.RAMP }?.let { set ->
-                            SetFormatter.summary(performed[index].tracking, set.weightLb, set.reps, set.seconds, ctx.unit, spaced = true)
+                            SetFormatter.summary(performed[index].tracking, set.weightLb, set.reps, set.seconds, ctx.unit, spaced = true).trim()
                         }
                     }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
                     val lastDisplay = performed.mapNotNull { DayScreenBuilder.lastTimeDisplay(last[it.exerciseId], ctx.unit) }

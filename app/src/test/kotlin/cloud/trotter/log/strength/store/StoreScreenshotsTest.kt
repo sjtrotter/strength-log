@@ -119,9 +119,12 @@ class StoreScreenshotsTest {
         val day = dayState()
         val state = TodayUiState(
             hasProgram = true,
-            upNext = listOf(TodayDay(1L, "Four-day strength", "A", day.dayIndex, day.dayTitle, preferred = true)),
+            upNext = listOf(
+                TodayDay(1L, "Four-day strength", "A", day.dayIndex, day.dayTitle),
+                TodayDay(2L, "Run prep", "B", 1, "Core and mobility"),
+            ),
             otherDays = listOf(TodayDay(1L, "Four-day strength", "B", 1, "Upper body")),
-            fact = "Last trained Oct 28",
+            fact = "Oct 28",
         )
         render("01-today.png") {
             Scaffold(

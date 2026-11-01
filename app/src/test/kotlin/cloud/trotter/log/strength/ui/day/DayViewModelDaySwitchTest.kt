@@ -114,6 +114,31 @@ class DayViewModelDaySwitchTest {
     }
 
     @Test
+    fun pausingAllPlansClearsTheDayDefaultAndResumingRestoresIt() = runVmTest {
+        insertTwoDayProgram()
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(plan, vm.uiState.value.planId)
+        assertEquals("A", vm.uiState.value.viewDayId)
+        repo.pause(plan)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.viewDayId)
+        assertNull(vm.uiState.value.planId)
+        assertFalse(vm.uiState.value.hasProgram)
+        assertFalse(vm.uiState.value.loading)
+        assertTrue(vm.uiState.value.exercises.isEmpty())
+        repo.useAlongside(plan)
+        advanceUntilIdle()
+        assertEquals(plan, vm.uiState.value.planId)
+        assertEquals("A", vm.uiState.value.viewDayId)
+        assertFalse(vm.uiState.value.loading)
+        assertTrue(vm.uiState.value.exercises.isNotEmpty())
+        collect.cancel()
+    }
+
+    @Test
     fun switchingDaysDropsTheOldDaysRowsBeforeTheNewDaysArrive() = runVmTest {
         insertTwoDayProgram()
         val vm = newViewModel()

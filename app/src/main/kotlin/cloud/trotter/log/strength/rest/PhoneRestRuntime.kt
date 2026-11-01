@@ -47,6 +47,7 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
         // A queued receiver or onStart can still see the completed rest during its UI grace period.
         if (rest.deadlineEpochMillis == completedDeadline) return
         alarms.cancel(alarmIntent(context))
+        NotificationManagerCompat.from(context).cancel(OVER_ID)
         armedDeadline = rest.deadlineEpochMillis
         alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, rest.deadlineEpochMillis, alarmIntent(context))
         if (!foreground) showRunning(rest)
@@ -70,6 +71,8 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         ) {
             NotificationManagerCompat.from(context).notify(OVER_ID, overNotification())
+        } else {
+            AppHaptics.restComplete(context)
         }
         return true
     }

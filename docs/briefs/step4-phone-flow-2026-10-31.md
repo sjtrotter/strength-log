@@ -291,6 +291,8 @@ action slot. On top of that:
 
 #### Supersets on the set screen (owner, 2026-11-01; v2 the same day)
 
+**Dropping a half (4.4c3, #390).** With the set screen enabled, either half's swap picker starts with “Leg Press only” and “Calf Raise only,” using the current lift names and the supporting text “Drops the other half.” Both choices use the existing This workout / The plan scope step, with This workout selected for a drop. A workout drop retires and marks the run's SS track as dropped; keeping SS first swaps that exercise into MAIN in the same transaction, leaving the plan intact. The remaining lift appears as a plain lift and starts rest after each set, while done work on the dropped track stays available for Finish. The Snackbar names the kept lift and offers Undo, which restores the dropped track and reverses the MAIN swap when needed. The plan scope uses the existing partner removal, preceded by the existing plan swap and its deletion-count confirmation when keeping SS.
+
 The owner, looking at the pager's superset page: supersets "almost fade into the same UI as a
 normal exercise". Today the pair shows as one line, "then Seated Cable Row 120 × 10", under
 the first lift's numerals (`ExercisePage.kt:240-252`). Logging per exercise makes this worse:

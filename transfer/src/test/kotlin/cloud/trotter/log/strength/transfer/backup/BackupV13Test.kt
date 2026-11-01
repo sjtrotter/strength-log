@@ -184,6 +184,19 @@ class BackupV13Test {
             assertFailsWith<BackupError.Malformed> { decode(document().copy(runs = listOf(run.copy(tracks = listOf(invalid))))) }
         }
     }
+    @Test fun `dropped run tracks round trip and older backups default to false without a format bump`() {
+        val before = document().copy(runs = listOf(run.copy(tracks = listOf(track, partner.copy(dropped = true)))))
+        val snapshot = decode(before).toSnapshot()
+        assertTrue(snapshot.runTracks.single { it.slot == "ss" }.dropped)
+        val encoded = codec.encode(snapshot.toDocument())
+        val restored = codec.decode(encoded).toSnapshot()
+        assertEquals(snapshot.runTracks, restored.runTracks)
+        assertEquals(CURRENT_SCHEMA_VERSION, codec.decode(encoded).schemaVersion)
+        val legacy = encoded.replace("\"dropped\":true", "\"dropped\":false")
+            .replace(",\"dropped\":false", "")
+        assertTrue(codec.decode(legacy).toSnapshot().runTracks.none { it.dropped })
+    }
+
 }
 
 /** What a writer before format 14 produced: no next-time choice, no session note. */

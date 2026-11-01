@@ -1046,4 +1046,92 @@ class DayViewModelWorkoutTest {
         override fun cancel() { cancellations++ }
         override fun complete(): Boolean = true
     }
+    @Test fun `dropping SS shows a plain lift and starts rest after each kept set`() = test {
+        prepare(listOf(bench(superset = true)), restEnabled = true)
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.dropSupersetHalf(0, Slot.MAIN, true, "db_bench", "cable_row")
+        runCurrent()
+        val card = vm.uiState.value.exercises.single()
+        assertFalse(card.isSuperset)
+        assertNull(card.partnerExerciseId)
+        assertTrue(card.rows.all { it.partner == null })
+        assertEquals(WorkoutFocus(id, Slot.MAIN, 0), vm.uiState.value.workout!!.focus)
+        assertEquals(Slot.MAIN, vm.uiState.value.swapUndo?.dropKeep)
+        backgroundScope.launch { vm.dayEditState.collect {} }
+        runCurrent()
+        assertTrue(vm.dayEditState.value.slots.single().isSuperset)
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(1, runtime.armed.size)
+        assertNotNull(repo.phoneRestFlow.first())
+        vm.skipRest()
+        runCurrent()
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(2, runtime.armed.size)
+        assertNotNull(repo.phoneRestFlow.first())
+        assertTrue(track(vm, id).take(2).all { it.done })
+    }
+
+    @Test fun `keeping SS offers drop undo which restores the pair`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        vm.dropSupersetHalf(0, Slot.SS, true, "db_bench", "cable_row")
+        runCurrent()
+        assertEquals("cable_row", vm.uiState.value.exercises.single().exerciseId)
+        assertFalse(vm.uiState.value.exercises.single().isSuperset)
+        assertEquals(Slot.SS, vm.uiState.value.swapUndo?.dropKeep)
+        vm.undoWorkoutSwap()
+        runCurrent()
+        assertEquals("db_bench", vm.uiState.value.exercises.single().exerciseId)
+        assertTrue(vm.uiState.value.exercises.single().isSuperset)
+        assertNull(vm.uiState.value.swapUndo)
+    }
+
+    @Test fun `drop undo clears at first MAIN mismatch and stays cleared after swapping back`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        vm.dropSupersetHalf(0, Slot.MAIN, true, "db_bench", "cable_row")
+        runCurrent()
+        val offer = requireNotNull(vm.uiState.value.swapUndo)
+        val slots = repo.slotsFor(requireNotNull(vm.uiState.value.planId), "A").first()
+        val seed = DayScreenBuilder.swapSeed(slots.single(), Slot.MAIN, "bb_bench", emptyMap(),
+            repo.wizardAnswersFor(requireNotNull(vm.uiState.value.planId)).first().config, repo.catalogFlow.first())!!
+        repo.swapInRun(offer.runId, offer.programExerciseId, Slot.MAIN, "bb_bench", RunSeed(seed.programExerciseId, seed.slot, seed.sets))
+        runCurrent()
+        assertNull(vm.uiState.value.swapUndo)
+        repo.swapInRun(offer.runId, offer.programExerciseId, Slot.MAIN, "db_bench", null)
+        runCurrent()
+        assertNull(vm.uiState.value.swapUndo)
+    }
+
+    @Test fun `plan keep partner uses the existing deletion count confirmation then removes the pairing`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        markLegacyRowsDone(vm)
+        runCurrent()
+        vm.dropSupersetHalf(0, Slot.SS, false, "db_bench", "cable_row")
+        runCurrent()
+        val pending = requireNotNull(vm.uiState.value.pendingPlanSwap)
+        assertEquals(2, pending.doneCount)
+        assertEquals(Slot.SS, pending.dropKeep)
+        vm.confirmPlanSwap()
+        runCurrent()
+        val planned = repo.slotsFor(pending.planId, "A").first().single().exercise
+        assertEquals("cable_row", planned.exerciseId)
+        assertNull(planned.superset)
+        assertNull(repo.openRunFlow.first())
+    }
+
+    @Test fun `flag off ignores drop actions`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm(flags = WorkoutFlags(false))
+        vm.dropSupersetHalf(0, Slot.MAIN, true, "db_bench", "cable_row")
+        runCurrent()
+        assertTrue(vm.uiState.value.exercises.single().isSuperset)
+        assertNull(repo.openRunFlow.first())
+        assertNull(vm.uiState.value.swapUndo)
+    }
+
 }

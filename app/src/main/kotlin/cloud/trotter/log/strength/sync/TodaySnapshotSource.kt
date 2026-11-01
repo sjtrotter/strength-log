@@ -97,6 +97,7 @@ class TodaySnapshotSource(
                         suggestedDayId = dayId,
                         slots = slots,
                         logs = tracks.tracks,
+                        droppedPartners = tracks.droppedPartners,
                         cfg = ctx.cfg,
                         catalog = ctx.catalog,
                         unit = ctx.unit,

@@ -168,6 +168,7 @@ data class PendingPlanSwap(
     val exerciseId: String,
     val title: String,
     val doneCount: Int,
+    val dropKeep: String? = null,
 ) : Parcelable
 
 @Parcelize
@@ -179,6 +180,7 @@ data class WorkoutSwapUndo(
     val previousExerciseId: String,
     val exerciseId: String,
     val title: String,
+    val dropKeep: String? = null,
 ) : Parcelable
 
 /** One atomic saved event: anchors while running, then a count draft and sheet delivery state. */

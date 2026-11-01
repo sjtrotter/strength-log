@@ -754,4 +754,7 @@
     <string name="day_sheet_clear_button">Clear checks</string>
     <string name="day_plan_swap_confirm">Swap %1$s? Its %2$d logged sets today are removed.</string>
     <string name="day_plan_swap_confirm_one">Swap %1$s? Its %2$d logged set today is removed.</string>
+    <string name="day_only">%1$s only</string>
+    <string name="day_drops_other_half">Drops the other half</string>
+    <string name="day_only_this_workout">%1$s only this workout</string>
 </resources>

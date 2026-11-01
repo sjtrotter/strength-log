@@ -189,7 +189,7 @@ fun DayScreen(
             if (result == SnackbarResult.ActionPerformed) onUndoRemoveSet()
         }
     }
-    val swappedMessage = state.swapUndo?.let { stringResource(R.string.day_swapped_to, it.title) }
+    val swappedMessage = state.swapUndo?.let { stringResource(if (it.dropKeep != null) R.string.day_only_this_workout else R.string.day_swapped_to, it.title) }
     LaunchedEffect(state.swapUndo) {
         if (swappedMessage != null) {
             snackbarHost.currentSnackbarData?.dismiss()
@@ -565,7 +565,7 @@ fun DayScreen(
                         },
                         onWorkoutSwap = { position, id -> dayEditActions.onWorkoutSwapHalf(position, id, sheet.slot) },
                         onDismiss = actions.onCloseAllSets, onCreateExercise = actions.onCreateExercise,
-                        half = sheet.slot)
+                        half = sheet.slot, onOnly = dayEditActions.onOnly)
                 }
                 OpenSheet.Kind.ALL_SETS -> AllSetsSheet(
                     card = card,

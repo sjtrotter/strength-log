@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
@@ -19,9 +20,10 @@ suspend fun TrackerRepository.daySeeds(
     slots: List<ProgramSlot>,
     tracks: DayTracks? = null,
 ): List<DayScreenBuilder.SeedWrite> {
-    val existing = (tracks ?: dayTracksFlow(planId, dayId).first()).tracks
+    val dayTracks = tracks ?: dayTracksFlow(planId, dayId).first()
+    val existing = dayTracks.tracks
         .associate { (it.programExerciseId to it.slot) to it.sets.size }
-    return DayScreenBuilder.seedPlan(slots, existing, wizardAnswersFor(planId).first().config, catalogFlow.first())
+    return DayScreenBuilder.seedPlan(slots.forRun(dayTracks.droppedPartners), existing, wizardAnswersFor(planId).first().config, catalogFlow.first())
 }
 
 /** History follows performed identities, including independently swapped partners. */

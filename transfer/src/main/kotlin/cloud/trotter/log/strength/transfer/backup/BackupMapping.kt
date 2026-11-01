@@ -124,7 +124,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
             RunBackup(run.id, run.planId, run.dayId, run.dayTitle, run.planName, run.startedAt,
                 runTracks.filter { it.runId == run.id }.sortedWith(compareBy({ it.position }, { it.slot }, { it.id })).map {
                     RunTrackBackup(it.id, it.position, it.programExerciseId, it.slot, it.exerciseId,
-                        it.retired, it.plannedJson, it.setsJson, it.updatedAt)
+                        it.retired, it.plannedJson, it.setsJson, it.updatedAt, it.dropped)
                 },
             )
         },
@@ -363,7 +363,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         runTracks = if (schemaVersion >= 13) runs.flatMap { run ->
             run.tracks.map {
                 RunTrackEntity(it.id, run.id, it.position, it.programExerciseId, it.slot, it.exerciseId,
-                    it.retired, it.plannedJson, it.setsJson, it.updatedAt)
+                    it.retired, it.plannedJson, it.setsJson, it.updatedAt, it.dropped)
             }
         } else emptyList(),
         days = dayEntities,

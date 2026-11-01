@@ -49,6 +49,7 @@ data class RunTrack(
     val retired: Boolean,
     val planned: List<LoggedSet>,
     val sets: List<LoggedSet>,
+    val dropped: Boolean = false,
 )
 
 /** The open workout, independent of the selected plan and rotation. */
@@ -69,6 +70,7 @@ data class DayTracks(
     val tracks: List<LoggedSlot>,
     /** Tracks displaced by plan edits that still hold done work. */
     val retired: List<RunTrack> = emptyList(),
+    val droppedPartners: Set<Long> = emptySet(),
 ) {
     /** Done rounds on retired MAIN tracks, excluding superset partner duplicates. */
     val retiredRoundsDone: Int
@@ -80,3 +82,13 @@ sealed interface TodayTarget {
     data object NoPlans : TodayTarget
     data object NothingOnToday : TodayTarget
 }
+
+internal fun <T> Iterable<T>.isPartnerDropped(
+    programExerciseId: Long,
+    id: (T) -> Long?,
+    slot: (T) -> String,
+    dropped: (T) -> Boolean,
+): Boolean = any { id(it) == programExerciseId && slot(it) == Slot.SS && dropped(it) }
+
+fun OpenRun.isPartnerDropped(programExerciseId: Long): Boolean =
+    tracks.isPartnerDropped(programExerciseId, RunTrack::programExerciseId, RunTrack::slot, RunTrack::dropped)

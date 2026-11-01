@@ -683,4 +683,18 @@ class WatchSnapshotBuilderTest {
         assertTrue(exercise.alternates.any { it.exerciseId == "bb_back_squat" })
         assertEquals(rows.size, exercise.sets.size)
     }
+    @Test fun `a dropped pair is sent as a plain lift even with stale SS logs`() {
+        val pair = ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown"))
+        val slots = listOf(ProgramSlot(30L, 0, pair))
+        val program = Program(listOf(ProgramDay("A", "Arms", "", listOf(pair))))
+        val rows = listOf(LoggedSet(60.0, 10, SetKind.WORK))
+        val logs = listOf(loggedSlot(30L, Slot.MAIN, rows), loggedSlot(30L, Slot.SS, rows))
+        val exercise = WatchSnapshotBuilder.build(program, "A", slots, logs, cfg, catalog, WeightUnit.LB,
+            revision = 1L, droppedPartners = setOf(30L))!!.day.exercises.single()
+        assertNull(exercise.supersetPartnerName)
+        assertTrue(exercise.ssSets.isEmpty())
+        assertEquals(1, exercise.sets.size)
+        assertTrue(exercise.sets.single().restAfterSeconds > 0)
+    }
+
 }

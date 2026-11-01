@@ -529,6 +529,7 @@ internal fun DayRoute(
         onSwap = viewModel::swapDaySlot,
         onWorkoutSwap = { position, id -> viewModel.swapWorkoutSlot(position, id) },
         onWorkoutSwapHalf = { position, id, slot -> viewModel.swapWorkoutSlot(position, id, slot) },
+        onOnly = viewModel::dropSupersetHalf,
         onMessageShown = viewModel::dismissSwapMessage,
         onAdd = viewModel::addDaySlot,
         onRemove = viewModel::removeDaySlot,

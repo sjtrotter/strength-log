@@ -513,4 +513,17 @@ class SetEditApplierRunTest {
         assertEquals(afterPhoneSwap, repo.openRunFlow.first())
         assertEquals("hack_squat", repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }.exerciseId)
     }
+    @Test fun `SS delta for a dropped partner is rejected and acknowledged without changing tracks`() = runTest {
+        val plan = authored()
+        val runId = phoneStart(plan)
+        val id = repo.slotsFor(plan, "A").first().first { it.exercise.superset != null }.programExerciseId
+        repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "ez_curl", "rope_pushdown")
+        val before = db.runDao().tracks(runId)
+        val edit = SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 0,
+            done = true, editedAtMillis = 900, planId = plan, runId = runId, exerciseId = "rope_pushdown")
+        assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(edit))
+        assertEquals(before, db.runDao().tracks(runId))
+        assertTrue(900L in syncStore.processedEditsFlow.first())
+    }
+
 }

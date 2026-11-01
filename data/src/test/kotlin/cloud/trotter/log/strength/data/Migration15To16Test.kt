@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_15_16
+import cloud.trotter.log.strength.data.db.MIGRATION_16_17
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -66,7 +67,7 @@ class Migration15To16Test {
         val before = tables.associateWith { rows(helper.writableDatabase, it) }
         helper.close()
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-            .addMigrations(MIGRATION_15_16).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_15_16, MIGRATION_16_17).allowMainThreadQueries().build()
         try {
             assertTrue(db.planDao().allPlans().none { it.onToday })
             tables.forEach { table ->

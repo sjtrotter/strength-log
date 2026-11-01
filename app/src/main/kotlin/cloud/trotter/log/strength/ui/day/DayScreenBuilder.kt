@@ -25,7 +25,7 @@ import java.util.Locale
 
 /**
  * The pure §8.2 decision logic behind the day screen: set-row labels, the
- * pager focus and summary formats, the seeding-once
+ * workout selection and summary formats, the seeding-once
  * plan, and per-exercise focus. Kept free of Android and coroutines so
  * every behavior in the contract is unit-testable on the JVM; [DayViewModel] only
  * wires these to flows and repository writes.
@@ -101,21 +101,9 @@ object DayScreenBuilder {
 
     private const val WATCH_ACTIVE_WINDOW_MS = 2 * 60 * 1000L
 
-    fun doneButtonState(doneSets: Int, totalSets: Int): DoneButtonState = when {
-        doneSets <= 0 -> DoneButtonState.NOTHING_LOGGED
-        totalSets > 0 && doneSets >= totalSets -> DoneButtonState.ALL_DONE
-        else -> DoneButtonState.PARTIAL
-    }
-
     fun focusIndex(rows: List<SetRowState>): Int = rows.indexOfFirst { !it.complete }
 
     fun allDone(rows: List<SetRowState>): Boolean = rows.isNotEmpty() && rows.all { it.complete }
-
-    fun focusLabel(kinds: List<SetKind>, index: Int): cloud.trotter.log.strength.ui.text.UiText.SetLabel {
-        val kind = kinds.getOrElse(index) { SetKind.WORK }
-        val number = if (kind == SetKind.RAMP) kinds.take(index + 1).count { it == SetKind.RAMP } else index + 1
-        return cloud.trotter.log.strength.ui.text.UiText.SetLabel(kind, number)
-    }
 
     fun currentPage(pageKeys: List<String>, selectedKey: String?, exercises: List<ExerciseCardState>): Int {
         if (selectedKey != null) pageKeys.indexOf(selectedKey).takeIf { it >= 0 }?.let { return it }
@@ -124,11 +112,6 @@ object DayScreenBuilder {
         val fallback = firstUndone ?: exercises.lastOrNull()
         return fallback?.let { pageKeys.indexOf("exercise:${it.programExerciseId}").coerceAtLeast(0) } ?: 0
     }
-
-    fun nextSetDisplay(rows: List<SetRowState>, focusIndex: Int, tracking: TrackingType, unit: WeightUnit): String? =
-        if (focusIndex < 0) null else rows.getOrNull(focusIndex + 1)?.let {
-            SetFormatter.summary(tracking, unit.toLb(it.weightDisplay), it.reps, it.seconds, unit, spaced = true)
-        }
 
     /** One log write emitted by [seedPlan]. */
     data class SeedWrite(

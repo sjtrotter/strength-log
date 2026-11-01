@@ -8,8 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -44,32 +43,32 @@ class SessionLifecycleScreenTest {
     fun aDayWithNoTicksShowsZeroInTheAppBar() {
         setDayContent(dayState(done = 0))
 
-        composeTestRule.onNodeWithText("0 of 3").assertExists()
+        composeTestRule.onNodeWithContentDescription("Day A lifts, 0 of 3 sets").assertExists()
     }
 
     @Test
     fun theAppBarShowsTheSavedSetCount() {
         setDayContent(dayState(done = 1))
 
-        composeTestRule.onAllNodesWithText("1 of 3", useUnmergedTree = true).onFirst().assertExists()
+        composeTestRule.onNodeWithContentDescription("Day A lifts, 1 of 3 sets").assertExists()
     }
 
     @Test
     fun theAppBarReachesTheTotalWhenEveryRoundIsTicked() {
         setDayContent(dayState(done = 3))
 
-        composeTestRule.onAllNodesWithText("3 of 3", useUnmergedTree = true).onFirst().assertExists()
+        composeTestRule.onNodeWithContentDescription("Day A lifts, 3 of 3 sets").assertExists()
     }
 
     @Test
     fun theAppBarCountsRoundsAcrossEveryPage() {
-        val base = pagerFixture()
+        val base = workoutDayFixture()
         val cards = List(7) { index ->
             val source = base.exercises[index.coerceAtMost(2)]
             source.copy(programExerciseId = index + 1L, position = index)
         }
         setDayContent(base.copy(exercises = cards))
-        composeTestRule.onNodeWithText("4 of 21").assertExists()
+        composeTestRule.onNodeWithContentDescription("Day D lifts, 4 of 21 sets").assertExists()
     }
 
     // --- the receipt ---------------------------------------------------------
@@ -156,7 +155,7 @@ class SessionLifecycleScreenTest {
                 backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
                 var cascade by remember { mutableStateOf<CascadeCeremony?>(ceremony) }
                 DayScreen(
-                    state = dayState(done = 3),
+                    state = dayState(done = 3).withWorkoutSelection(),
                     actions = dayActions(),
                     dayEditState = dayEditState,
                     dayEditActions = noopEditActions(),
@@ -194,7 +193,6 @@ class SessionLifecycleScreenTest {
 
     private fun dayState(done: Int) = DayUiState(
         hasProgram = true,
-
         viewDayId = "A",
         dayIndex = 0,
         dayTitle = "Lower",
@@ -212,7 +210,6 @@ class SessionLifecycleScreenTest {
                 headerTarget = HeaderTarget.Goal("235"),
                 perHand = false,
                 allDone = done >= 3,
-
                 rows = List(3) { index ->
                     SetRowState(
                         index = index,
@@ -238,7 +235,7 @@ class SessionLifecycleScreenTest {
         composeTestRule.setContent {
             AppTheme {
                 DayScreen(
-                    state = state,
+                    state = state.withWorkoutSelection(),
                     actions = dayActions(),
                     dayEditState = dayEditState,
                     dayEditActions = noopEditActions(),
@@ -251,15 +248,12 @@ class SessionLifecycleScreenTest {
     }
 
     private fun dayActions() = DayActions(
-        onSelectDay = {},
         onWeightChange = { _, _, _, _ -> },
         onRepsChange = { _, _, _, _ -> },
         onSecondsChange = { _, _, _, _ -> },
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> },
-        onSelectPage = {},
-        onKeepScreenOnChange = {},
         onDiscardWorkout = {},
         onDone = {},
         onCreateExercise = {},

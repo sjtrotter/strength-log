@@ -176,9 +176,9 @@ class DayRouteNavigationTest {
                                 )), FixedClock, alarm)
                         }
                         DayRoute(
-                            onCreateExercise = {}, onSetUpProgram = {}, onOpenRestTimer = {},
+                            onCreateExercise = {}, onSetUpProgram = {},
                             onFinishSession = { navController.popBackStack() },
-                            initialDayId = entry.arguments?.getString(Routes.DAY_ID_ARG), viewModel = viewModel,
+                            viewModel = viewModel,
                         )
                     }
                 }
@@ -232,7 +232,7 @@ class DayRouteNavigationTest {
                     composable(Routes.DAY) {
                         view = LocalView.current
                         DayRoute(
-                            onCreateExercise = {}, onSetUpProgram = {}, onOpenRestTimer = {},
+                            onCreateExercise = {}, onSetUpProgram = {},
                             onFinishSession = { navController.popBackStack() },
                             viewModel = viewModel,
                         )

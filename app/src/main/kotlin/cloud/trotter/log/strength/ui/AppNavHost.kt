@@ -49,7 +49,6 @@ import cloud.trotter.log.strength.ui.day.WorkoutConflictDialog
 import cloud.trotter.log.strength.ui.day.DayActions
 import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayScreen
-import cloud.trotter.log.strength.ui.day.WorkoutSetScreen
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.DayViewModel
 import cloud.trotter.log.strength.ui.licenses.LicenseEntry
@@ -229,7 +228,6 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
                 onFinishSession = { navController.finishWorkout() },
                 onBack = { navController.popBackStack() },
-                onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
             )
         }
         listOf(
@@ -244,15 +242,12 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
             ),
         ).forEach { (route, arguments) ->
-            composable(route = route, arguments = arguments) { entry ->
-                val dayId = entry.arguments?.getString(Routes.DAY_ID_ARG).orEmpty()
+            composable(route = route, arguments = arguments) {
                 DayRoute(
                     onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
                     onSetUpProgram = { navController.navigate(Routes.WIZARD) },
                     onFinishSession = { navController.finishWorkout() },
                     onBack = { navController.popBackStack() },
-                    initialDayId = dayId,
-                    onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
                 )
             }
         }
@@ -441,8 +436,6 @@ internal fun DayRoute(
     onSetUpProgram: () -> Unit,
     onFinishSession: () -> Unit,
     onBack: () -> Unit = onFinishSession,
-    initialDayId: String? = null,
-    onOpenRestTimer: () -> Unit,
     viewModel: DayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -471,21 +464,18 @@ internal fun DayRoute(
         }
     }
     val actions = DayActions(
-        onSelectDay = viewModel::selectDay,
         onWeightChange = viewModel::changeWeight,
         onRepsChange = viewModel::changeReps,
         onSecondsChange = viewModel::changeSeconds,
         onToggleDone = viewModel::toggleDone,
         onAddSet = viewModel::addSet,
         onRemoveSet = viewModel::removeSet,
-        onSelectPage = viewModel::selectPage,
         onLogFocusedSet = viewModel::logFocusedSet,
         onUndoLastLog = viewModel::undoLastLog,
         onSelectWorkoutLift = viewModel::selectWorkoutLift,
         onNextWorkoutLift = viewModel::nextWorkoutLift,
         onOpenSetEditor = viewModel::openSetEditor,
         onCloseSetEditor = viewModel::closeSheet,
-        onOpenAllSets = viewModel::openAllSets,
         onOpenLiftSheet = viewModel::openLiftSheet,
         onOpenDaySheet = viewModel::openDaySheet,
         onSkipLift = viewModel::skipLift,
@@ -497,7 +487,6 @@ internal fun DayRoute(
         onConfirmPlanSwap = viewModel::confirmPlanSwap,
         onDismissPlanSwap = viewModel::dismissPlanSwap,
         onCloseAllSets = viewModel::closeSheet,
-        onKeepScreenOnChange = viewModel::setKeepScreenOn,
         onDiscardWorkout = viewModel::discardWorkout,
         onClearTodayChecks = viewModel::clearTodayChecks,
         onDone = viewModel::completeDay,
@@ -526,11 +515,9 @@ internal fun DayRoute(
         onSetUpProgram = onSetUpProgram,
         onSetExerciseNote = viewModel::setExerciseNote,
         onSetSessionNote = viewModel::setReceiptNote,
-        onOpenRestTimer = onOpenRestTimer,
     )
     val dayEditActions = DayEditActions(
         onSwap = viewModel::swapDaySlot,
-        onWorkoutSwap = { position, id -> viewModel.swapWorkoutSlot(position, id) },
         onWorkoutSwapHalf = { position, id, slot -> viewModel.swapWorkoutSlot(position, id, slot) },
         onMessageShown = viewModel::dismissSwapMessage,
         onAdd = viewModel::addDaySlot,
@@ -567,12 +554,6 @@ internal fun DayRoute(
         onBack = onBack,
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
-        standaloneCardio = initialDayId != null && !state.isProgramDay,
-        setScreenContent = if (state.usesWorkoutSetScreen) {
-            { onExercises, onFinish, snackbarHost, onEditDay ->
-                WorkoutSetScreen(state, actions, dayEditState.catalog, onExercises, onFinish, snackbarHost, onEditDay, onBack)
-            }
-        } else null,
     )
 }
 

@@ -187,7 +187,7 @@ class OverviewNavigationTest {
                                 )), FixedCardioClock(), InertCardioAlarm)) }
                             DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = { nav.finishWorkout() },
                                 onBack = { nav.popBackStack() },
-                                onOpenRestTimer = {}, viewModel = dayVm)
+                                viewModel = dayVm)
                         }
                     }
                 }

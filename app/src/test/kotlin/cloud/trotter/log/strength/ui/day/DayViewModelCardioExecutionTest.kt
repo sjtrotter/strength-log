@@ -263,7 +263,7 @@ class DayViewModelCardioExecutionTest {
         assertEquals(run.block, card.block)
         assertEquals(activityLabel(run.block.activity), card.label)
         assertTrue(failed.complete)
-        assertTrue(failed.saveFailed) // CardioPage exposes the existing failure message and Retry.
+        assertTrue(failed.saveFailed) // The set screen exposes the existing failure message and Retry.
         assertFalse(failed.showReceipt)
         assertTrue(vm.uiState.value.executionBusy)
         assertFalse(vm.uiState.value.executionKeepsScreenOn)

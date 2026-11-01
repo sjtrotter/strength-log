@@ -45,10 +45,10 @@ A single activity with a Today / Log / Plan `NavigationBar` (`ui/navigation/`,
 | Surface | Code | Moment | One job |
 |---|---|---|---|
 | Today | `ui/today/TodayScreen.kt` | Launch, at home or walking in; seconds | Say which day is next and start it |
-| Workout pager | `ui/day/DayScreen.kt`, `ExercisePage.kt` | Between sets, phone on a bench, 2 to 5 second looks | Log the set in front of you |
-| Rest pill and notification | `DayScreen.kt` `RestPill`, `rest/PhoneRestRuntime.kt` | After a logged set; phone may be pocketed | Say when the next set is due |
+| Workout set screen | `ui/day/DayScreen.kt`, `WorkoutSetScreen.kt` | Between sets, phone on a bench, 2 to 5 second looks | Log the set in front of you |
+| Rest band and notification | `WorkoutSetScreen.kt` `WorkoutRestBand`, `rest/PhoneRestRuntime.kt` | After a logged set; phone may be pocketed | Say when the next set is due |
 | Set edit sheet | `ui/day/SetEditSheet.kt` | Mid-workout correction | Change one set's numbers |
-| All sets and Exercises sheets | `ui/day/AllSetsSheet.kt` | Mid-workout check | Show the lift's sets, or jump to another lift |
+| Lift and Day sheets | `ui/day/LiftSheet.kt`, `DaySheet.kt` | Mid-workout check | Show the lift's sets, or jump to another lift |
 | Timed-rep count and cardio distance | `ui/day/TimedRepCountSheet.kt`, `CardioExecution.kt` | The moment a timer ends | Record the count or distance just done |
 | Cardio page | `ui/day/CardioPresentation.kt` | Treadmill or road, between intervals | Run the current cardio set |
 | Day edit and swap | `ui/day/DayEditSheet.kt` | Station taken, equipment missing | Change what today's day contains |

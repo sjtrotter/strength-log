@@ -17,7 +17,6 @@ import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.data.prefs.WorkoutRecord
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -134,12 +133,11 @@ class DayViewModelWorkoutTest {
     }
 
     private fun TestScope.readyVm(
-        flags: WorkoutFlags = WorkoutFlags(true),
         savedState: SavedStateHandle = SavedStateHandle(),
     ): DayViewModel {
         val vm = DayViewModel(
             repo, SessionPublisher.NoOp, share, savedState, clock, InertAlarm, runtime,
-            clock = clock, flags = flags,
+            clock = clock,
         ).also { vms += it }
         backgroundScope.launch { vm.uiState.collect {} }
         runCurrent()
@@ -985,39 +983,6 @@ class DayViewModelWorkoutTest {
         assertFalse(preferences.data.first().contains(stringPreferencesKey("workout_record")))
     }
 
-    @Test
-    fun flagOffKeepsSupersetRestAndUnstampedTicksWithoutWorkoutStateOrRecordWrites() = test {
-        prepare(listOf(bench(superset = true)), restEnabled = true)
-        val vm = readyVm(WorkoutFlags())
-        val id = roundTwo(vm)
-        val rest = PhoneRest(190_000, 90, "Old rest")
-        repo.setPhoneRest(rest)
-        val record = WorkoutRecord("untouched", "cardio")
-        repo.setWorkoutRecord(record)
-        runCurrent()
-        val cancellations = runtime.cancellations
-        vm.toggleDone(id, 1, true, Slot.MAIN)
-        runCurrent()
-        assertTrue(track(vm, id)[1].done)
-        assertFalse(track(vm, id, Slot.SS)[1].done)
-        assertNull(track(vm, id)[1].completedAtMillis)
-        assertEquals(rest, repo.phoneRestFlow.first())
-        assertEquals(cancellations, runtime.cancellations)
-        assertTrue(runtime.armed.isEmpty())
-        assertNull(vm.uiState.value.workout)
-        vm.logFocusedSet()
-        vm.selectWorkoutLift("cardio")
-        vm.nextWorkoutLift()
-        vm.undoLastLog()
-        runCurrent()
-        assertEquals(record, repo.workoutRecordFlow.first())
-        vm.toggleDone(id, 1, true, Slot.SS)
-        runCurrent()
-        assertEquals(90, runtime.armed.single().totalSeconds)
-        assertNull(track(vm, id, Slot.SS)[1].completedAtMillis)
-        assertNull(vm.uiState.value.workout)
-    }
-
     @Test fun `★ cardio logs one session and Finish advances once`() = test {
         prepare(listOf(bench(sets = 1)), cardio = true,
             dayB = ProgramDay("B", "Next workout", "", listOf(bench())))
@@ -1057,7 +1022,7 @@ class DayViewModelWorkoutTest {
         assertEquals(event, vm.uiState.value.timedRep?.event)
         assertEquals(30, vm.uiState.value.timedRep?.remainingSeconds)
         assertEquals(WorkoutSelection.Shown.Group("exercise:${other.programExerciseId}", false), vm.uiState.value.workout?.shown)
-        assertTrue(vm.uiState.value.usesWorkoutSetScreen)
+        assertNotNull(vm.uiState.value.workout)
         val before = track(vm, timed.programExerciseId)
         vm.stopTimedRep()
         runCurrent()
@@ -1200,25 +1165,6 @@ class DayViewModelWorkoutTest {
         assertNull(vm.uiState.value.swapUndo)
         assertNull(saved.get<WorkoutSwapUndo>("day_swap_undo"))
         assertEquals(before, db.runDao().tracks(offer.runId))
-    }
-
-    @Test fun `flag off ignores skip restore and skip set actions`() = test {
-        prepare(listOf(bench(superset = true)))
-        val vm = readyVm(flags = WorkoutFlags(false))
-        val id = vm.uiState.value.exercises.single().programExerciseId
-        vm.openLiftSheet(id, Slot.MAIN)
-        vm.openDaySheet()
-        vm.skipLift(id, Slot.SS)
-        vm.skipLift(id, Slot.MAIN)
-        vm.skipNowSet(id, Slot.MAIN)
-        vm.restoreSkipped(id, Slot.MAIN)
-        runCurrent()
-        assertTrue(vm.uiState.value.exercises.single().isSuperset)
-        assertNull(repo.openRunFlow.first())
-        assertNull(vm.uiState.value.swapUndo)
-        assertNull(vm.uiState.value.openSheet)
-        assertTrue(vm.uiState.value.skippedLifts.isEmpty())
-        assertTrue(vm.uiState.value.skippedPartners.isEmpty())
     }
 
     @Test fun `skip plain lift from its sheet selects next lift and Undo restores the skipped rows`() = test {

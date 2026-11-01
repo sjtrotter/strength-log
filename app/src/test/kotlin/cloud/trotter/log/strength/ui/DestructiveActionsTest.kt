@@ -27,6 +27,8 @@ import cloud.trotter.log.strength.ui.day.DayActions
 import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayEditSlotState
 import cloud.trotter.log.strength.ui.day.DayEditUiState
+import cloud.trotter.log.strength.ui.day.withWorkoutSelection
+import cloud.trotter.log.strength.ui.day.OpenSheet
 import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.ExerciseCardState
@@ -65,7 +67,7 @@ class DestructiveActionsTest {
     /** [F] */
     @Test fun discardIsShownWithAnOpenRun() {
         setDayContent(runOpen = true)
-        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
         composeTestRule.onNodeWithText(discardAction).assertIsDisplayed()
     }
 
@@ -76,7 +78,7 @@ class DestructiveActionsTest {
         var cleared = 0
         setDayContent(onDiscardWorkout = { cleared++ })
 
-        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
         composeTestRule.onNodeWithText(discardAction).performClick()
         assertEquals("the menu tap must only open the dialog", 0, cleared)
 
@@ -89,13 +91,13 @@ class DestructiveActionsTest {
         var cleared = 0
         setDayContent(onDiscardWorkout = { cleared++ })
 
-        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
         composeTestRule.onNodeWithText(discardAction).performClick()
         composeTestRule.onNodeWithText("Cancel").performClick()
 
         assertEquals(0, cleared)
         // The dialog is gone, so the menu action is reachable again.
-        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
         composeTestRule.onNodeWithText(discardAction).performClick()
         assertEquals(0, cleared)
     }
@@ -103,7 +105,7 @@ class DestructiveActionsTest {
     /** [F] */
     @Test fun discardIsHiddenWithoutAnOpenRun() {
         setDayContent(runOpen = false)
-        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
         composeTestRule.onNodeWithText(discardAction).assertDoesNotExist()
     }
 
@@ -141,12 +143,18 @@ class DestructiveActionsTest {
     /** Finishing a lift by removing its last undone set must not hide Snackbar undo. */
     @Test
     fun aRemovalThatFinishesTheCardKeepsSnackbarUndoUntilTheOfferIsGone() {
-        var state by mutableStateOf(dayState())
+        val base = dayState()
+        var state by mutableStateOf(base.copy(exercises = base.exercises.map { card ->
+            card.copy(rows = listOf(
+                card.rows.single().copy(done = true),
+                card.rows.single().copy(index = 1, kindLabel = "R2"),
+            ))
+        }))
         var offers by mutableStateOf(emptyList<RemovedSet>())
         composeTestRule.setContent {
             AppTheme {
                 DayScreen(
-                    state = state,
+                    state = state.withWorkoutSelection(),
                     actions = noopActions(onDiscardWorkout = {}, onRemoveSet = {}),
                     dayEditState = dayEditState(),
                     dayEditActions = noopEditActions(),
@@ -156,17 +164,22 @@ class DestructiveActionsTest {
             }
         }
 
-        // Same order the ViewModel writes them in: the offer opens, then the
-        // shortened track lands and the page reads as finished.
-        offers = listOf(offer(index = 1))
-        state = state.copy(
-            exercises = listOf(state.exercises.single().copy(allDone = true)),
-        )
+        composeTestRule.onNodeWithText("Log 5 reps").assertIsDisplayed()
+        // Same order the ViewModel writes them in: the offer opens, then removal
+        // of the last undone row leaves only logged work on the set screen.
+        composeTestRule.runOnIdle { offers = listOf(offer(index = 1)) }
+        composeTestRule.onNodeWithText("Undo").assertIsDisplayed()
+        composeTestRule.runOnIdle {
+            state = state.copy(exercises = state.exercises.map { card ->
+                card.copy(allDone = true, rows = card.rows.dropLast(1))
+            })
+        }
+        composeTestRule.onNodeWithText("All 1 sets logged").assertIsDisplayed()
         composeTestRule.onNodeWithText("Undo").assertIsDisplayed()
 
-        offers = emptyList()
+        composeTestRule.runOnIdle { offers = emptyList() }
         composeTestRule.onNodeWithText("Undo").assertDoesNotExist()
-        composeTestRule.onNodeWithText("All sets").assertIsDisplayed()
+        composeTestRule.onNodeWithText("All 1 sets logged").assertIsDisplayed()
     }
 
     // --- dismissing a confirm is not taking it --------------------------------
@@ -181,7 +194,7 @@ class DestructiveActionsTest {
         var cleared = 0
         setDayContent(onDiscardWorkout = { cleared++ })
 
-        composeTestRule.onNodeWithContentDescription("Day menu").performClick()
+        composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
         composeTestRule.onNodeWithText(discardAction).performClick()
         composeTestRule.onNodeWithText("Discard").assertIsDisplayed()
 
@@ -250,11 +263,15 @@ class DestructiveActionsTest {
         onRemoveSet: () -> Unit = {},
         onUndoRemoveSet: () -> Unit = {},
     ) {
+        var state by mutableStateOf(dayState().copy(runOpen = runOpen).withWorkoutSelection())
         composeTestRule.setContent {
             AppTheme {
                 DayScreen(
-                    state = dayState().copy(runOpen = runOpen),
-                    actions = noopActions(onDiscardWorkout = onDiscardWorkout, onRemoveSet = onRemoveSet),
+                    state = state,
+                    actions = noopActions(onDiscardWorkout = onDiscardWorkout, onRemoveSet = onRemoveSet).copy(
+                        onOpenDaySheet = { state = state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0, 0)) },
+                        onCloseAllSets = { state = state.copy(openSheet = null) },
+                    ),
                     dayEditState = dayEditState(),
                     dayEditActions = noopEditActions(),
                     removedSets = removedSets,
@@ -282,7 +299,6 @@ class DestructiveActionsTest {
     private fun dayState() = DayUiState(
         hasProgram = true,
         runOpen = true,
-
         viewDayId = "A",
         dayIndex = 0,
         dayTitle = "Lower — squat focus",
@@ -301,7 +317,6 @@ class DestructiveActionsTest {
                 perHand = false,
                 tracking = TrackingType.REPS,
                 allDone = false,
-
                 rows = listOf(
                     SetRowState(0, "R1", isTop = false, weightDisplay = 130.0, reps = 5, done = false),
                 ),
@@ -324,15 +339,12 @@ class DestructiveActionsTest {
     )
 
     private fun noopActions(onDiscardWorkout: () -> Unit, onRemoveSet: () -> Unit) = DayActions(
-        onSelectDay = {},
         onWeightChange = { _, _, _, _ -> },
         onRepsChange = { _, _, _, _ -> },
         onSecondsChange = { _, _, _, _ -> },
         onToggleDone = { _, _, _, _ -> },
         onAddSet = { _, _ -> },
         onRemoveSet = { _, _, _ -> onRemoveSet() },
-        onSelectPage = {},
-        onKeepScreenOnChange = {},
         onDiscardWorkout = onDiscardWorkout,
         onDone = {},
         onCreateExercise = {},

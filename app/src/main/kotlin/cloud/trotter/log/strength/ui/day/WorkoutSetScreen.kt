@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
@@ -147,18 +148,21 @@ private fun WorkoutSetContent(
             TopAppBar(
                 title = { Text(stringResource(R.string.today_day_label, state.viewDayId.orEmpty())) },
                 navigationIcon = {
-                    IconButton(onClick = { onBack?.invoke() }) {
+                    IconButton(onClick = { onBack?.invoke() },
+                        modifier = Modifier.size(48.dp)) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.day_back))
                     }
                 },
                 actions = {
-                    IconButton(onClick = onExercises) {
+                    IconButton(onClick = onExercises,
+                        modifier = Modifier.size(48.dp)) {
                         Icon(Icons.AutoMirrored.Filled.List, stringResource(
                             R.string.workout_exercises, state.viewDayId.orEmpty(), state.doneSets, state.totalSets,
                         ))
                     }
                     if (!allLogged) {
-                        TextButton(onClick = onFinish, enabled = state.canFinish, colors = neutralTextButtonColors()) {
+                        TextButton(onClick = onFinish, enabled = state.canFinish, colors = neutralTextButtonColors(),
+                            modifier = Modifier.testTag("workout-finish")) {
                             Text(stringResource(R.string.day_finish_partial_confirm_button))
                         }
                     }

@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -22,17 +21,16 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.day.AllSetsSheet
+import cloud.trotter.log.strength.ui.day.LiftSheet
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.EquipmentFilterRow
 import cloud.trotter.log.strength.ui.day.PartnerRowState
 import cloud.trotter.log.strength.ui.day.SetEditSheet
-import cloud.trotter.log.strength.ui.day.WeightSwapAffordance
-import cloud.trotter.log.strength.ui.day.WeightSwapConfirmDialog
-import cloud.trotter.log.strength.ui.day.pagerActions
-import cloud.trotter.log.strength.ui.day.pagerEditActions
-import cloud.trotter.log.strength.ui.day.pagerFixture
+import cloud.trotter.log.strength.ui.day.workoutActions
+import cloud.trotter.log.strength.ui.day.workoutEditActions
+import cloud.trotter.log.strength.ui.day.workoutDayFixture
 import cloud.trotter.log.strength.ui.licenses.LicenseEntry
 import cloud.trotter.log.strength.ui.licenses.LicensesScreen
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -89,12 +87,12 @@ class A11ySemanticsTest {
     @Test
     @Config(qualifiers = "w411dp-h891dp")
     fun allSetsCheckboxNamesTheExerciseSetAndValue() {
-        val card = pagerFixture().exercises[1]
+        val card = workoutDayFixture().exercises[1]
         val row = card.rows[1].copy(kind = SetKind.RAMP, rampIndex = 3)
         composeTestRule.setContent {
-            AppTheme { AllSetsSheet(card.copy(rows = listOf(row)), pagerActions(), onEdit = {}, onDismiss = {}) }
+            AppTheme { LiftSheet(card.copy(rows = listOf(row.copy(kindLabel = "R3"))), Slot.MAIN, null, workoutActions(), false, null, {}, {}, {}) }
         }
-        composeTestRule.onNodeWithContentDescription("Lift 2 Ramp set 3, 95 × 5")
+        composeTestRule.onNodeWithContentDescription("Lift 2 R3, 95 × 5")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
             .assertIsOff()
     }
@@ -103,7 +101,7 @@ class A11ySemanticsTest {
     @Config(qualifiers = "w411dp-h891dp")
     fun plainLogButtonUsesItsVisibleLabelAsItsAccessibleName() {
         composeTestRule.setContent {
-            AppTheme { DayScreen(pagerFixture(), pagerActions(), DayEditUiState(), pagerEditActions()) }
+            AppTheme { DayScreen(workoutDayFixture(), workoutActions(), DayEditUiState(), workoutEditActions()) }
         }
         composeTestRule.onNodeWithText("Log 95 × 5")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
@@ -114,14 +112,14 @@ class A11ySemanticsTest {
     @Test
     @Config(qualifiers = "w411dp-h891dp")
     fun editSteppersNameTheirFieldAndPartnerTrack() {
-        val card = pagerFixture().exercises[1].copy(
+        val card = workoutDayFixture().exercises[1].copy(
             isSuperset = true,
             partnerTitle = "Pull-up",
             partnerTracking = TrackingType.REPS,
         )
         val row = card.rows[1].copy(partner = PartnerRowState(0.0, 6))
         composeTestRule.setContent {
-            AppTheme { SetEditSheet(card, row, WeightUnit.LB, 3, pagerActions(), onDismiss = {}) }
+            AppTheme { SetEditSheet(card, row, WeightUnit.LB, 3, workoutActions(), onDismiss = {}) }
         }
         listOf(
             "Weight, 5 less", "Weight, 5 more", "Reps, one less", "Reps, one more",
@@ -132,7 +130,7 @@ class A11ySemanticsTest {
     @Test
     @Config(qualifiers = "w411dp-h891dp")
     fun timedEditSteppersNameSecondsOnBothTracks() {
-        val card = pagerFixture().exercises[1].copy(
+        val card = workoutDayFixture().exercises[1].copy(
             tracking = TrackingType.TIMED,
             isSuperset = true,
             partnerTitle = "Plank",
@@ -140,7 +138,7 @@ class A11ySemanticsTest {
         )
         val row = card.rows[1].copy(seconds = 45, partner = PartnerRowState(0.0, 0, seconds = 30))
         composeTestRule.setContent {
-            AppTheme { SetEditSheet(card, row, WeightUnit.LB, 3, pagerActions(), onDismiss = {}) }
+            AppTheme { SetEditSheet(card, row, WeightUnit.LB, 3, workoutActions(), onDismiss = {}) }
         }
         listOf("Seconds, 5 less", "Seconds, 5 more", "Plank, Seconds, 5 less", "Plank, Seconds, 5 more")
             .forEach { composeTestRule.onNodeWithContentDescription(it).assertExists() }
@@ -150,11 +148,11 @@ class A11ySemanticsTest {
     @Config(qualifiers = "w411dp-h891dp")
     fun focusNumeralIsAButtonWithAnEditAction() {
         composeTestRule.setContent {
-            AppTheme { DayScreen(pagerFixture(), pagerActions(), DayEditUiState(), pagerEditActions()) }
+            AppTheme { DayScreen(workoutDayFixture(), workoutActions(), DayEditUiState(), workoutEditActions()) }
         }
-        val numeral = composeTestRule.onNodeWithText("95 × 5")
+        val numeral = composeTestRule.onNodeWithContentDescription("Edit set 2")
         numeral.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
-        assertEquals("Edit", numeral.fetchSemanticsNode().config.getOrNull(SemanticsActions.OnClick)?.label)
+        assertEquals("Edit set 2", numeral.fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single())
     }
 
     @Test
@@ -220,24 +218,6 @@ class A11ySemanticsTest {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
             .performClick()
         assertEquals(1, toggleCount)
-    }
-
-    @Test
-    fun weightSwapConfirmDialogNamesTheTargetAndConfirmingInvokesTheCallback() {
-        var confirmed = false
-        composeTestRule.setContent {
-            AppTheme {
-                WeightSwapConfirmDialog(
-                    swap = WeightSwapAffordance("weighted_pullup", "Weighted Pull-Up", isRemove = false),
-                    onConfirm = { confirmed = true },
-                    onDismiss = {},
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("Switch to Weighted Pull-Up?").assertExists()
-        composeTestRule.onNodeWithText("Switch").performClick()
-        assertTrue(confirmed)
     }
 
     // --- License navigation ---------------------------------------------------

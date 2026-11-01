@@ -41,7 +41,6 @@ internal fun LiftSheet(
     onWeightSwap: (WeightSwapAffordance) -> Unit,
     onNote: () -> Unit,
     onDismiss: () -> Unit,
-    skipEnabled: Boolean = false,
     skippedPartner: SkippedLift? = null,
     canSkipLift: Boolean = card.isSuperset,
 ) {
@@ -50,14 +49,18 @@ internal fun LiftSheet(
     val target = if (partner) card.partnerHeaderTarget else card.headerTarget
     val last = if (partner) card.partnerLastTimeDisplay else card.lastTimeDisplay
     val date = if (partner) card.partnerLastTimeDate else card.lastTimeDate
+    val aimTemplate = stringResource(R.string.day_target_aim)
     val support = listOfNotNull(
-        target?.display?.takeIf { it.isNotBlank() && it.any { digit -> digit in '1'..'9' } }?.let {
-            stringResource(if (target is HeaderTarget.Goal) R.string.lift_sheet_goal else R.string.lift_sheet_target, it)
+        target?.takeIf { it.display.isNotBlank() && it.display.any { digit -> digit in '1'..'9' } }?.let {
+            val label = DayScreenBuilder.headerTargetLabel(it) { display, reps -> aimTemplate.format(display, reps) }
+            stringResource(if (it is HeaderTarget.Goal) R.string.lift_sheet_goal else R.string.lift_sheet_target, label)
         },
         last?.takeIf { it.isNotBlank() }?.let {
             if (date == null) stringResource(R.string.lift_sheet_last, it)
             else stringResource(R.string.lift_sheet_last_date, it, date)
         },
+        target?.let { DayScreenBuilder.headerTargetDetail(it, stringResource(R.string.day_target_each_side)) }
+            ?.takeIf { it.isNotBlank() },
     ).joinToString(" ")
     AppModalBottomSheet(onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -66,14 +69,17 @@ internal fun LiftSheet(
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(title, style = MaterialTheme.typography.titleLarge)
                     if (support.isNotEmpty()) Text(support, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = if (target is HeaderTarget.Prescribed) Modifier.semantics {
+                            contentDescription = support
+                        } else Modifier)
                     if (card.isSuperset) Text(
                         stringResource(R.string.lift_sheet_superset_with, if (partner) card.title else card.partnerTitle.orEmpty()),
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-            if (skipEnabled && skippedPartner != null) item {
+            if (skippedPartner != null) item {
                 ListItem(headlineContent = { Text(stringResource(R.string.day_bring_back_lift, skippedPartner.title)) },
                     modifier = Modifier.heightIn(min = 48.dp).clickable {
                         actions.onRestoreSkipped(card.programExerciseId, skippedPartner.slot)
@@ -111,7 +117,7 @@ internal fun LiftSheet(
             }
             val now = focus?.takeIf { it.programExerciseId == card.programExerciseId && it.slot == slot }
                 ?.let { card.rows.getOrNull(it.index) }?.takeIf { it.values(slot)?.done == false }
-            if (skipEnabled && now != null) item {
+            if (now != null) item {
                 ListItem(headlineContent = { Text(stringResource(
                     if (card.isSuperset) R.string.day_skip_round else R.string.day_skip_set)) },
                     modifier = Modifier.heightIn(min = 48.dp).clickable {
@@ -124,7 +130,7 @@ internal fun LiftSheet(
                 ListItem(headlineContent = { Text(stringResource(R.string.day_menu_swap)) },
                     modifier = Modifier.clickable { actions.onOpenSwapSheet(card.position, slot) })
             }
-            if (skipEnabled && canSkipLift) item {
+            if (canSkipLift) item {
                 ListItem(headlineContent = { Text(stringResource(R.string.day_skip_workout)) },
                     modifier = Modifier.heightIn(min = 48.dp).clickable {
                         onDismiss()

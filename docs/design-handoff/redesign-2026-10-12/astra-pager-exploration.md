@@ -1,5 +1,6 @@
 This exploration recommends **Variant B for the next prototype**: one exercise per page, one set in focus, with explicit Exercises and Sets sheets. It changes what the phone asks the lifter to attend to. Revision 2 remains the reviewed baseline; neither original file is changed.
 
+Current phone UI (4.5b): `WorkoutSetScreen` replaces the workout pager; lift navigation uses the Day sheet.
 The reference is this lifter’s day D: overhead press at 65/85/95/110/120 lb × 5, then 90 × 8; Bulgarian split squat at 35 lb each hand × 10 for three sets; seated leg curl at 90 × 10 for three; pull-up at six reps for three; cable lateral raise at 15 × 10 for three; plank at 45 seconds for three; then the interval run. That is six exercises and 21 lifting sets. Last values retain the reviewed mock’s history.
 
 **A keeps the exercise’s ledger.** Each page contains the existing name, right-aligned Goal with Last beneath, six ordinary value-and-Checkbox rows for the press, and Add set. Values still open the editor. Completed rows remain readable until the whole exercise finishes; then its body becomes a completed summary with one read-only Checkbox and View sets. This explores revision 2’s fold comparison inside a fixed page: the accomplishment survives without moving the next exercise vertically. Nothing automatically swipes away after completion.

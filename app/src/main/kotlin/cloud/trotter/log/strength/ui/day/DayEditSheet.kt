@@ -195,10 +195,8 @@ fun DayEditSheet(
                     swapSlotId = null
                 },
                 onWorkoutPick = { entry ->
-                    if (state.workoutSetScreen) {
-                        actions.onWorkoutSwapHalf(swapSlot.position, entry.id, swapHalf)
-                        actions.onEditorOpen(false)
-                    } else actions.onWorkoutSwap(swapSlot.position, entry.id)
+                    actions.onWorkoutSwapHalf(swapSlot.position, entry.id, swapHalf)
+                    actions.onEditorOpen(false)
                     swapSlotId = null
                 },
                 half = swapHalf,
@@ -271,7 +269,7 @@ fun DayEditSheet(
                 onBack = onBack,
                 onSwapClick = { swapHalf = Slot.MAIN; swapSlotId = optionsSlot.programExerciseId },
                 onSupersetClick = {
-                    if (state.workoutSetScreen && optionsSlot.partnerExerciseId != null) {
+                    if (optionsSlot.partnerExerciseId != null) {
                         swapHalf = Slot.SS
                         swapSlotId = optionsSlot.programExerciseId
                     } else ssSlotId = optionsSlot.programExerciseId

@@ -1,5 +1,6 @@
 # UI redesign — two proposals and the decisions they need (2026-10-12)
 
+Current phone UI (4.5b): `WorkoutSetScreen` replaces the workout pager; lift navigation uses the Day sheet.
 The feel review (2026-08-24) shipped in full and the direction review
 (2026-08-25) named the missing coaching loop. The owner, this morning:
 

@@ -5,24 +5,21 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.standards.PhoneRest
 
 @Composable
 internal fun WorkoutSetHost(
     state: DayUiState,
-    actions: DayActions = pagerActions(),
+    actions: DayActions = workoutActions(),
     dayEditState: DayEditUiState = DayEditUiState(),
-    dayEditActions: DayEditActions = pagerEditActions(),
+    dayEditActions: DayEditActions = workoutEditActions(),
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
     nowMillis: () -> Long = System::currentTimeMillis,
 ) {
     DayScreen(state, actions, dayEditState, dayEditActions,
         removedSets = removedSets, onUndoRemoveSet = onUndoRemoveSet,
-        setScreenContent = if (state.usesWorkoutSetScreen) {
-            { onExercises, onFinish, snackbarHost, onEditDay ->
-                WorkoutSetScreen(state, actions, dayEditState.catalog, onExercises, onFinish, snackbarHost, onEditDay, nowMillis = nowMillis)
-            }
-        } else null,
+        nowMillis = nowMillis,
     )
 }
 
@@ -47,7 +44,6 @@ internal fun workoutSetSupersetFixture(): DayUiState {
     )
     return state.copy(exercises = listOf(card), workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 1)))
 }
-
 
 internal fun workoutLiftSheetFixture(): DayUiState {
     val state = workoutSetSingleFixture()
@@ -151,3 +147,44 @@ internal fun workoutSetCardioDoneFixture(): DayUiState {
 
 internal fun workoutSetEmptyFixture(): DayUiState = workoutSetSingleFixture().copy(exercises = emptyList(),
     workout = WorkoutState(WorkoutSelection.Shown.Empty, null, false, null, null))
+
+internal fun workoutDayFixture(): DayUiState = DayUiState(
+    hasProgram = true, viewDayId = "D", dayIndex = 3, dayTitle = "Full body",
+    exercises = List(3) { page ->
+        val rows = List(3) { index -> SetRowState(index, "R${index + 1}", false, 85.0 + index * 10, 5,
+            done = page == 0 || page == 1 && index == 0, kind = SetKind.RAMP, rampIndex = index + 1) }
+        val focus = DayScreenBuilder.focusIndex(rows)
+        ExerciseCardState(programExerciseId = page + 1L, position = page, title = "Lift ${page + 1}",
+            isMain = true, isSuperset = false, hasWarmupHint = false, headerTarget = HeaderTarget.Goal("120"), perHand = false,
+            allDone = page == 0, rows = rows, focusIndex = focus,
+            summaryLine = "85×5, 95×5, 105×5")
+    },
+).withWorkoutSelection()
+
+internal fun workoutActions() = DayActions(
+    onWeightChange = { _, _, _, _ -> }, onRepsChange = { _, _, _, _ -> },
+    onSecondsChange = { _, _, _, _ -> }, onToggleDone = { _, _, _, _ -> }, onAddSet = { _, _ -> },
+    onRemoveSet = { _, _, _ -> }, onDiscardWorkout = {},
+    onDone = {}, onCreateExercise = {}, onSetUpProgram = {},
+)
+
+internal fun workoutEditActions() = DayEditActions(onSwap = { _, _ -> }, onAdd = {}, onRemove = {},
+    onSetSuperset = { _, _ -> }, onRemoveSuperset = {}, onResetToTemplate = {})
+
+internal fun workoutRest() = RestUiState(
+    rest = PhoneRest(deadlineEpochMillis = 90_000L, totalSeconds = 90, nextSetLabel = "Ramp set 2"),
+    remainingSeconds = 90,
+    remainingFraction = 1f,
+    over = false,
+)
+
+/** Resolve a snapshot just as the ViewModel resolves committed rows for the screen. */
+internal fun DayUiState.withWorkoutSelection(key: String? = selectedPageKey): DayUiState {
+    val shown = WorkoutSelection.shown(pages.map { WorkoutSelection.Group(it.key, it.allDone) }, key)
+    val group = shown as? WorkoutSelection.Shown.Group
+    val card = exercises.firstOrNull { "exercise:${it.programExerciseId}" == group?.key }
+    val row = card?.rows?.firstOrNull { !it.complete }
+    return copy(workout = WorkoutState(shown,
+        if (card != null && row != null) WorkoutFocus(card.programExerciseId, row.nextSlot, row.index) else null,
+        group?.complete == true, null, null))
+}

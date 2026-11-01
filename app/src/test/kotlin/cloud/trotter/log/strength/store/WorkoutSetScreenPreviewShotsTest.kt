@@ -31,7 +31,7 @@ import cloud.trotter.log.strength.ui.day.WorkoutFocus
 import cloud.trotter.log.strength.ui.day.WorkoutSelection
 import cloud.trotter.log.strength.ui.day.WorkoutSetHost
 import cloud.trotter.log.strength.ui.day.WorkoutState
-import cloud.trotter.log.strength.ui.day.pagerRest
+import cloud.trotter.log.strength.ui.day.workoutRest
 import cloud.trotter.log.strength.ui.day.withWorkoutRestHint
 import cloud.trotter.log.strength.ui.day.workoutSetSingleFixture
 import cloud.trotter.log.strength.ui.day.workoutSetSupersetFixture
@@ -88,7 +88,7 @@ class WorkoutSetScreenPreviewShotsTest {
     @Test fun rest() {
         val state = workoutSetSingleFixture()
         render("04-rest.png", state.copy(
-            rest = pagerRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
+            rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
             workout = state.workout?.copy(undo = UndoOffer(
                 1L, Slot.MAIN, 1, "Barbell Back Squat", LoggedSet(165.0, 5, SetKind.RAMP), TrackingType.WEIGHTED, WeightUnit.LB, null,
             )),
@@ -122,7 +122,7 @@ class WorkoutSetScreenPreviewShotsTest {
             exercises = state.exercises.map { card -> card.copy(rows = card.rows.map { row ->
                 if (row.index < 2) row.copy(done = true, partner = row.partner?.copy(done = true)) else row
             }) },
-            rest = pagerRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
+            rest = workoutRest().copy(remainingSeconds = 64, remainingFraction = 64f / 90f),
             workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 2), undo = UndoOffer(
                 1L, Slot.SS, 1, "Seated Cable Row", LoggedSet(120.0, 10, SetKind.WORK), TrackingType.WEIGHTED, WeightUnit.LB, null,
             )),

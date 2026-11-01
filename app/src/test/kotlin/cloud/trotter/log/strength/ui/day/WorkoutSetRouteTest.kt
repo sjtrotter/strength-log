@@ -6,7 +6,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -64,27 +63,21 @@ class WorkoutSetRouteTest {
         db.close()
     }
 
-    @Test fun flagOnShowsTheSetScreenWithoutThePagerIndicator() {
-        show(WorkoutFlags(true))
+    @Test fun routeShowsTheSetScreen() {
+        show()
         rule.onNode(hasText("Log", substring = true)).assertExists()
         rule.onAllNodesWithContentDescription("Barbell Back Squat, not started").assertCountEquals(0)
         rule.onNodeWithText("All sets").assertExists()
     }
 
-    @Test fun flagOffKeepsThePager() {
-        show(WorkoutFlags())
-        rule.onAllNodesWithContentDescription("Barbell Back Squat, not started").assertCountEquals(1)
-        rule.onNodeWithTag("workout-action-filled").assertDoesNotExist()
-    }
-
-    private fun show(flags: WorkoutFlags) {
+    private fun show() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         rule.runOnUiThread {
             viewModel = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle(),
-                TestClock, SilentAlarm, flags = flags)
+                TestClock, SilentAlarm)
         }
         rule.setContent { AppTheme {
-            DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onOpenRestTimer = {}, onFinishSession = {}, viewModel = viewModel)
+            DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = {}, viewModel = viewModel)
         } }
         rule.waitUntil(5_000) {
             rule.runOnIdle { viewModel.uiState.value.exercises.firstOrNull()?.rows?.isNotEmpty() == true }

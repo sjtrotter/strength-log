@@ -1,23 +1,20 @@
 package cloud.trotter.log.strength.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.ui.day.DayEditUiState
+import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.ReceiptLift
 import cloud.trotter.log.strength.ui.day.SessionReceipt
 import cloud.trotter.log.strength.ui.day.SessionReceiptScrim
-import cloud.trotter.log.strength.ui.day.pagerActions
-import cloud.trotter.log.strength.ui.day.pagerEditActions
-import cloud.trotter.log.strength.ui.day.pagerFixture
+import cloud.trotter.log.strength.ui.day.workoutActions
+import cloud.trotter.log.strength.ui.day.workoutEditActions
+import cloud.trotter.log.strength.ui.day.workoutDayFixture
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.chromeVerticalPadding
@@ -182,26 +179,37 @@ class WindowSizeTest {
     @Config(qualifiers = "w891dp-h411dp")
     fun workoutLogAndAllSetsRemainReachableInAShortWindow() {
         composeTestRule.setContent {
-            AppTheme { DayScreen(pagerFixture(), pagerActions(), DayEditUiState(), pagerEditActions()) }
+            AppTheme { DayScreen(workoutDayFixture(), workoutActions(), DayEditUiState(), workoutEditActions()) }
         }
-        composeTestRule.onNodeWithText("Log 95 × 5").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNode(
-            hasText("All sets") and hasAnyAncestor(hasTestTag("exercise-page:2")),
-        ).performScrollTo().assertIsDisplayed()
+        assertFullyInsideWindow("Log 95 × 5")
+        assertFullyInsideWindow("All sets")
     }
 
     @Test
     @Config(qualifiers = "w891dp-h360dp")
     fun runningCardioStopRemainsReachableInAShortWindow() {
-        val state = pagerFixture().copy(
+        val state = workoutDayFixture().copy(
             selectedPageKey = "cardio",
             cardioRunning = true,
             cardio = cloud.trotter.log.strength.ui.day.runningCardioFixture(),
         )
         composeTestRule.setContent {
-            AppTheme { DayScreen(state, pagerActions(), DayEditUiState(), pagerEditActions()) }
+            AppTheme { DayScreen(state.withWorkoutSelection("cardio"), workoutActions(), DayEditUiState(), workoutEditActions()) }
         }
-        composeTestRule.onNodeWithText("Stop").performScrollTo().assertIsDisplayed()
+        assertFullyInsideWindow("Stop")
+    }
+
+    private fun assertFullyInsideWindow(label: String) {
+        val root = composeTestRule.onRoot().fetchSemanticsNode().size
+        val node = composeTestRule.onNodeWithText(label).assertIsDisplayed().fetchSemanticsNode()
+        // Use the full layout size: clipped bounds alone can make a partial target look reachable.
+        val position = node.positionInRoot
+        assertTrue("$label extends outside the ${root.width} × ${root.height}px window",
+            position.x >= 0f && position.y >= 0f &&
+                position.x + node.size.width <= root.width && position.y + node.size.height <= root.height)
+        val visible = node.boundsInRoot
+        assertTrue("$label is clipped by its parent",
+            abs(visible.width - node.size.width) <= 1f && abs(visible.height - node.size.height) <= 1f)
     }
 
     private fun setTodayContent() {

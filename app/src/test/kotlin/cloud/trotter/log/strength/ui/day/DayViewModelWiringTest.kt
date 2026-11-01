@@ -9,7 +9,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -476,7 +475,6 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Targets", "", exercises))))
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
-        val context = ApplicationProvider.getApplicationContext<Context>()
         val expected = listOf(
             WeightUnit.LB to listOf("3 × 10 · 95 lb", "3 × 12", "3 × 0:45", "3 × 0:45 · 25 lb", "2:00", "2:00"),
             WeightUnit.KG to listOf("3 × 10 · 43.09 kg", "3 × 12", "3 × 0:45", "3 × 0:45 · 11.34 kg", "2:00", "2:00"),
@@ -485,10 +483,9 @@ class DayViewModelWiringTest {
             repo.setUnit(unit)
             advanceUntilIdle()
             val cards = vm.uiState.value.exercises
-            val goal = cards.first().headerTarget as HeaderTarget.Goal
             assertEquals(
-                if (unit == WeightUnit.LB) "Goal 235" else "Goal 106.59",
-                context.getString(R.string.day_goal, goal.display),
+                HeaderTarget.Goal(if (unit == WeightUnit.LB) "235" else "106.59"),
+                cards.first().headerTarget,
             )
             assertEquals(displays.mapIndexed { index, display ->
                 HeaderTarget.Prescribed(display, if (index == 5) 40 else null, true, "Red band")
@@ -549,7 +546,7 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("ez_curl")
-        vm.selectPage("exercise:$id")
+        vm.selectWorkoutLift("exercise:$id")
         advanceUntilIdle()
         assertEquals("exercise:$id", vm.uiState.value.selectedPageKey)
         collect.cancel()
@@ -557,7 +554,7 @@ class DayViewModelWiringTest {
         val revivedCollect = launch { revived.uiState.collect {} }
         advanceUntilIdle()
         assertEquals("exercise:$id", revived.uiState.value.selectedPageKey)
-        assertEquals(id, revived.uiState.value.pages[revived.uiState.value.currentPage].exerciseId)
+        assertEquals(id, revived.uiState.value.workoutCard?.programExerciseId)
         revivedCollect.cancel()
     }
 
@@ -587,14 +584,14 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun allSetsSurvivesViewModelRecreationAndEditorReplacesItInOneWrite() = runVmTest {
+    fun liftSheetSurvivesViewModelRecreationAndEditorReplacesItInOneWrite() = runVmTest {
         insertProgram()
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("bb_back_squat")
-        vm.openAllSets(id)
+        vm.openLiftSheet(id, Slot.MAIN)
         advanceUntilIdle()
         collect.cancel()
         vm.viewModelScope.cancel()
@@ -602,7 +599,7 @@ class DayViewModelWiringTest {
         val revived = newViewModel(handle)
         val revivedCollect = launch { revived.uiState.collect {} }
         advanceUntilIdle()
-        val allSets = OpenSheet("A", OpenSheet.Kind.ALL_SETS, id, 0)
+        val allSets = OpenSheet("A", OpenSheet.Kind.LIFT, id, 0)
         assertEquals(allSets, revived.uiState.value.openSheet)
         val writes = mutableListOf<OpenSheet?>()
         val savedCollect = launch(UnconfinedTestDispatcher(testScheduler)) {
@@ -648,16 +645,16 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun switchingDayClearsAllSetsAndItsSavedIdentity() = runVmTest {
+    fun switchingDayClearsLiftSheetAndItsSavedIdentity() = runVmTest {
         insertSelectionProgram()
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val id = slotId("ez_curl")
-        vm.openAllSets(id)
+        vm.openLiftSheet(id, Slot.MAIN)
         advanceUntilIdle()
-        val allSets = OpenSheet("A", OpenSheet.Kind.ALL_SETS, id, 0)
+        val allSets = OpenSheet("A", OpenSheet.Kind.LIFT, id, 0)
         assertEquals(allSets, vm.uiState.value.openSheet)
         assertEquals(allSets, handle.get<OpenSheet>("day_open_sheet"))
 
@@ -677,13 +674,13 @@ class DayViewModelWiringTest {
         val vm = newViewModel(handle)
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        vm.selectPage("cardio")
+        vm.selectWorkoutLift("cardio")
         val id = slotId("ez_curl")
-        vm.openAllSets(id)
+        vm.openLiftSheet(id, Slot.MAIN)
         vm.selectDay("A")
         advanceUntilIdle()
         assertEquals("cardio", handle.get<String>("selectedPageKey"))
-        assertEquals(OpenSheet("A", OpenSheet.Kind.ALL_SETS, id, 0), handle.get<OpenSheet>("day_open_sheet"))
+        assertEquals(OpenSheet("A", OpenSheet.Kind.LIFT, id, 0), handle.get<OpenSheet>("day_open_sheet"))
         collect.cancel()
     }
 
@@ -850,7 +847,7 @@ class DayViewModelWiringTest {
 
     @Test
     fun cardioSelectionBeforeSeedingIsKeptAndSurvivesRecreation() = runVmTest {
-        // Unknown catalog entries leave real pages available before any rows exist.
+        // Empty unknown-lift rows count as complete; unpinned selection resolves to cardio.
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Day A", "", listOf(ProgramExercise("ghost_unknown")),
             cardioBlock = CardioBlocks.fromLegacy(cloud.trotter.log.strength.domain.model.CardioSuggestion("Run", "20 minutes", false), true, CardioActivity.ROAD_RUN),
@@ -860,8 +857,8 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         assertTrue(vm.uiState.value.exercises.all { it.rows.isEmpty() })
-        assertEquals(0, vm.uiState.value.currentPage)
-        vm.selectPage("cardio")
+        assertEquals("cardio", (vm.uiState.value.workout?.shown as? WorkoutSelection.Shown.Group)?.key)
+        vm.selectWorkoutLift("cardio")
         advanceUntilIdle()
         assertEquals("cardio", handle.get<String>("selectedPageKey"))
         assertEquals("cardio", vm.uiState.value.selectedPageKey)
@@ -876,7 +873,7 @@ class DayViewModelWiringTest {
         repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(LoggedSet(50.0, 8, SetKind.WORK, done = false)))
         advanceUntilIdle()
         assertTrue(revived.uiState.value.exercises.single().rows.isNotEmpty())
-        assertEquals("cardio", revived.uiState.value.pages[revived.uiState.value.currentPage].key)
+        assertEquals("cardio", (revived.uiState.value.workout?.shown as WorkoutSelection.Shown.Group).key)
         assertEquals("cardio", handle.get<String>("selectedPageKey"))
         revivedCollect.cancel()
     }
@@ -894,7 +891,7 @@ class DayViewModelWiringTest {
         assertEquals("exercise:$curlId", handle.get<String>("selectedPageKey"))
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        assertEquals(1, vm.uiState.value.currentPage)
+        assertEquals(1, vm.uiState.value.pages.indexOfFirst { it.key == (vm.uiState.value.workout?.shown as? WorkoutSelection.Shown.Group)?.key })
 
         track(curlId, Slot.MAIN)!!.indices.forEach {
             vm.toggleDone(curlId, it, true, slot = Slot.MAIN)
@@ -903,25 +900,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertTrue(vm.uiState.value.exercises[1].allDone)
         assertTrue(vm.uiState.value.exercises.last().rows.any { !it.done })
-        assertEquals(1, vm.uiState.value.currentPage)
+        assertEquals(1, vm.uiState.value.pages.indexOfFirst { it.key == (vm.uiState.value.workout?.shown as? WorkoutSelection.Shown.Group)?.key })
         assertEquals("exercise:$curlId", handle.get<String>("selectedPageKey"))
-        collect.cancel()
-    }
-
-    @Test
-    fun unknownPageKeysAreIgnored() = runVmTest {
-        insertProgram()
-        val handle = SavedStateHandle()
-        val vm = newViewModel(handle)
-        val collect = launch { vm.uiState.collect {} }
-        advanceUntilIdle()
-        val selected = vm.uiState.value.selectedPageKey
-        vm.selectPage("exercise:-1")
-        vm.selectPage("cardio") // This program has no cardio page.
-        vm.selectPage("unknown")
-        advanceUntilIdle()
-        assertEquals(selected, handle.get<String>("selectedPageKey"))
-        assertEquals(selected, vm.uiState.value.selectedPageKey)
         collect.cancel()
     }
 
@@ -932,9 +912,9 @@ class DayViewModelWiringTest {
         val vm = newViewModel(handle)
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        vm.selectPage("cardio")
+        vm.selectWorkoutLift("cardio")
         advanceUntilIdle()
-        assertEquals("cardio", vm.uiState.value.pages[vm.uiState.value.currentPage].key)
+        assertEquals("cardio", (vm.uiState.value.workout?.shown as WorkoutSelection.Shown.Group).key)
         collect.cancel()
         vm.viewModelScope.cancel()
 
@@ -942,7 +922,7 @@ class DayViewModelWiringTest {
         val revivedCollect = launch { revived.uiState.collect {} }
         advanceUntilIdle()
         assertEquals("cardio", revived.uiState.value.selectedPageKey)
-        assertEquals("cardio", revived.uiState.value.pages[revived.uiState.value.currentPage].key)
+        assertEquals("cardio", (revived.uiState.value.workout?.shown as WorkoutSelection.Shown.Group).key)
         revivedCollect.cancel()
     }
 
@@ -953,12 +933,12 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val selected = vm.uiState.value.exercises.last()
-        vm.selectPage("exercise:${selected.programExerciseId}")
+        vm.selectWorkoutLift("exercise:${selected.programExerciseId}")
         advanceUntilIdle()
         vm.removeDaySlot(selected.position)
         advanceUntilIdle()
         assertTrue(vm.uiState.value.exercises.none { it.programExerciseId == selected.programExerciseId })
-        assertEquals(0, vm.uiState.value.currentPage)
+        assertEquals(0, vm.uiState.value.pages.indexOfFirst { it.key == (vm.uiState.value.workout?.shown as? WorkoutSelection.Shown.Group)?.key })
         collect.cancel()
     }
 
@@ -1220,7 +1200,7 @@ class DayViewModelWiringTest {
         assertTrue(track(id, Slot.SS)!![0].done)
         assertEquals(90, armed.single().totalSeconds)
         val partner = half.rows[1].partner!!
-        assertEquals("${half.partnerTitle} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(partner.weightDisplay)} × ${partner.reps}", armed.single().nextSetLabel)
+        assertEquals("Round 2, ${half.partnerTitle} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(partner.weightDisplay)} × ${partner.reps}", armed.single().nextSetLabel)
         assertEquals(armed.single(), repo.phoneRestFlow.first())
         repo.setPhoneRest(null)
         advanceUntilIdle()
@@ -1308,7 +1288,7 @@ class DayViewModelWiringTest {
         runCurrent()
         assertEquals(180, armed.single().totalSeconds)
         val next = vm.uiState.value.exercises.single().rows[0]
-        assertEquals("${vm.uiState.value.exercises.single().title} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(next.weightDisplay)} × ${next.reps}", armed.single().nextSetLabel)
+        assertEquals("Round 1, ${vm.uiState.value.exercises.single().title} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(next.weightDisplay)} × ${next.reps}", armed.single().nextSetLabel)
         repo.setPhoneRest(null)
         advanceUntilIdle()
         collect.cancel()
@@ -2177,7 +2157,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val plan = repo.selectedPlanIdFlow.first()!!
-        val expected = track(id, Slot.MAIN)!!.map { it.copy(done = false, plannedIndex = null) }
+        val expected = track(id, Slot.MAIN)!!.map { it.copy(done = false, startedAtMillis = null, completedAtMillis = null, plannedIndex = null) }
         db.programDao().deleteLogForSlot(plan, "A", id, Slot.MAIN)
         vm.discardWorkout()
         advanceUntilIdle()
@@ -2720,7 +2700,7 @@ class DayViewModelWiringTest {
             "hack_squat", emptyMap(), cfg, catalog)!!.sets,
             repo.openRunFlow.first()!!.tracks.single { !it.retired }.planned)
         assertTrue(card.rows.none { it.done })
-        assertEquals(DoneButtonState.NOTHING_LOGGED, DayScreenBuilder.doneButtonState(vm.uiState.value.doneSets, vm.uiState.value.totalSets))
+        assertFalse(vm.uiState.value.canFinish)
         vm.completeDay()
         advanceUntilIdle()
         assertTrue(repo.sessionsFlow.first().isEmpty())
@@ -2808,15 +2788,10 @@ class DayViewModelWiringTest {
         val before = db.programDao().exercisesForDay(plan, "A")
         vm.swapWorkoutSlot(0, "plank")
         advanceUntilIdle()
-        val actions = DayEditActions(
-            onSwap = vm::swapDaySlot, onWorkoutSwap = vm::swapWorkoutSlot,
-            onAdd = {}, onRemove = {}, onSetSuperset = { _, _ -> },
-            onRemoveSuperset = {}, onResetToTemplate = {},
-        )
         for (target in listOf("weighted_plank", "plank")) {
             val card = vm.uiState.value.exercises.single()
             assertEquals(target, card.weightSwap!!.targetExerciseId)
-            actions.swapWeight(card, vm.dayEditState.value, target)
+            vm.swapWorkoutSlot(card.position, target, Slot.MAIN)
             advanceUntilIdle()
             assertEquals(target, vm.uiState.value.exercises.single().exerciseId)
             assertEquals(before, db.programDao().exercisesForDay(plan, "A"))

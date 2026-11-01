@@ -11,7 +11,6 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
-import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.standards.PhoneRest
@@ -117,8 +116,6 @@ data class DayUiState(
     val workoutAllLogged: Boolean get() = workout?.shown == WorkoutSelection.Shown.AllLogged ||
         workout?.completedView == true && workoutNextPage == null
 
-    val usesWorkoutSetScreen: Boolean get() = !loading && hasProgram && workout != null
-
     internal val cardioStartEnabled: Boolean get() =
         !executionBusy || cardio?.run?.let { run -> !run.running && !run.complete } == true
 
@@ -179,7 +176,7 @@ data class OpenSheet(
     val cardioRunId: String? = null,
     val slot: String = Slot.MAIN,
 ) : Parcelable {
-    enum class Kind { EDITOR, ALL_SETS, TIMED_REP_COUNT, CARDIO_DISTANCE, CARDIO_SETS, LIFT, DAY, SWAP }
+    enum class Kind { EDITOR, TIMED_REP_COUNT, CARDIO_DISTANCE, CARDIO_SETS, LIFT, DAY, SWAP }
 }
 
 @Parcelize
@@ -236,8 +233,6 @@ data class RestUiState(val rest: PhoneRest, val remainingSeconds: Int, val remai
 enum class WatchStatusKind { ACTIVE, SYNCING, OFFLINE_QUEUED }
 data class WatchStatus(val kind: WatchStatusKind, val changeCount: Int = 0)
 
-enum class DoneButtonState { ALL_DONE, PARTIAL, NOTHING_LOGGED }
-
 @Immutable
 data class CardioCardState(
     val label: String,
@@ -275,7 +270,7 @@ sealed interface HeaderTarget {
 }
 
 /** One exercise card (spec §8.2). [Immutable] for the reason [DayUiState]
- *  carries it: this is the type the pager compares per page. */
+ *  carries it: this is the type the set screen compares between updates. */
 @Immutable
 data class ExerciseCardState(
     val programExerciseId: Long,
@@ -325,9 +320,7 @@ data class ExerciseCardState(
     val allDone: Boolean,
     val rows: List<SetRowState>,
     val focusIndex: Int = DayScreenBuilder.focusIndex(rows),
-    val focusLabel: UiText.SetLabel = UiText.SetLabel(SetKind.WORK, 1),
     val summaryLine: String = "",
-    val nextSetDisplay: String? = null,
     val partnerTitle: String? = null,
     val partnerExerciseId: String? = null,
     val equipment: List<Equipment> = emptyList(),
@@ -405,7 +398,7 @@ data class WeightSwapAffordance(
     val isRemove: Boolean,
 )
 
-/** Stable pager identity; cardio has no exercise id and uses its own string key. */
+/** Stable workout group identity; cardio has no exercise id and uses its own string key. */
 @Immutable
 data class WorkoutPage(val exerciseId: Long?, val title: String, val done: Int, val total: Int, val allDone: Boolean) {
     val key: String = exerciseId?.let { "exercise:$it" } ?: "cardio"

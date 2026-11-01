@@ -23,6 +23,7 @@
     <string name="widget_no_program">SET UP YOUR PROGRAM</string>
 <!-- Today -->
 <string name="day_index_description">Day %1$s</string>
+<string name="today_day_label">Day %1$s</string>
 <string name="today_settings_description">Settings</string>
 <plurals name="today_lift_set_count">
     <item quantity="one">%d set</item>

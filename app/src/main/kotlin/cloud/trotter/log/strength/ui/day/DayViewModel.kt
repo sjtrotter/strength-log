@@ -366,7 +366,13 @@ class DayViewModel @Inject constructor(
             )
         }
 
-    private val sheetUiState = combine(baseUiState, selectedPage, openSheet) { state, selection, savedSheet ->
+    private val restHintUiState = if (flags.setScreen) combine(
+        baseUiState, repo.phoneRestTimerEnabledFlow, repo.restSettingsFlow,
+    ) { state, phoneEnabled, settings ->
+        state.withWorkoutRestHint(phoneEnabled && phoneRestRuntime.available, settings.overrides)
+    } else baseUiState
+
+    private val sheetUiState = combine(restHintUiState, selectedPage, openSheet) { state, selection, savedSheet ->
         state.copy(
             selectedPageKey = selection,
             openSheet = savedSheet?.takeIf { sheetResolves(state, it, state.timedRep?.event) },

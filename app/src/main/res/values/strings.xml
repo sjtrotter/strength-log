@@ -712,10 +712,13 @@
     <string name="workout_plates">%1$s a side</string>
     <string name="workout_empty_bar">Empty bar</string>
     <string name="workout_superset_round">Superset, round %1$d of %2$d</string>
-    <string name="workout_now">Now</string>
     <string name="workout_then_rest">Then rest</string>
     <string name="workout_not_available">Not available</string>
-    <string name="workout_open_sets">%1$s, %2$s, open sets</string>
+    <string name="workout_open_sets">%1$s, %2$s, %3$s, open sets</string>
+    <string name="workout_open_sets_without_value">%1$s, %2$s, open sets</string>
+    <string name="workout_partner_done">done</string>
+    <string name="workout_partner_next">next</string>
+    <string name="workout_done_rounds">Done, %1$d of %2$d rounds</string>
     <string name="workout_done_count">Done, %1$d of %2$d</string>
     <string name="workout_all_logged">All %1$d sets logged</string>
     <string name="workout_exercises">Day %1$s lifts, %2$d of %3$d sets</string>

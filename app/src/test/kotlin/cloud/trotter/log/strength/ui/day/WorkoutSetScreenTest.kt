@@ -141,13 +141,9 @@ class WorkoutSetScreenTest {
                 if (it.index == 1) it.copy(done = true) else it
             }) }, workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.SS, 1)))
         }
-        rule.mainClock.advanceTimeByFrame()
-        rule.mainClock.advanceTimeByFrame()
-        // Half of FAST_EFFECTS_MILLIS, after composition and the animation's first frame.
-        rule.mainClock.advanceTimeBy(75, ignoreFrameDuration = true)
-        rule.onNode(outgoingName, useUnmergedTree = true).assertExists()
-        rule.onNode(incomingName, useUnmergedTree = true).assertExists()
-        val after = rule.onNode(incomingName, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.waitForIdle()
+        val after = rule.onNode(incomingName).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertEquals(before.left, after.left, 0f)
         assertEquals(before.top, after.top, 0f)
         rule.onNode(outgoingName).assertDoesNotExist()

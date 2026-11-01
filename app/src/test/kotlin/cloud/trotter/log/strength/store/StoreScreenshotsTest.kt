@@ -8,7 +8,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
@@ -157,7 +156,7 @@ class StoreScreenshotsTest {
             day,
             edit = dayEditState(day, supersetExercises),
             beforeCapture = {
-                composeTestRule.onNodeWithText("Log Seated Cable Row 120 × 10").assertIsDisplayed()
+                composeTestRule.onNodeWithText("then Seated Cable Row 120 × 10").assertIsDisplayed()
             },
         )
     }
@@ -177,16 +176,10 @@ class StoreScreenshotsTest {
         )
         renderDay(
             "04-cardio.png",
-            dayState().copy(
-                viewDayId = "C",
-                dayIndex = 2,
-                dayTitle = "Track intervals",
-                emphasisLine = "Conditioning · interval run",
-                nextDayId = "D",
-                exercises = emptyList(),
+            dayState(doneCounts = listOf(6, 6, 3, 3)).copy(
                 selectedPageKey = "cardio",
                 cardio = CardioCardState("Track run", "2 × 400 m · aim 1:45", hard = true, block = block),
-                openSheet = OpenSheet("C", OpenSheet.Kind.CARDIO_SETS, 0L, 0),
+                openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0),
             ),
             beforeCapture = {
                 composeTestRule.onNodeWithText("Set 1, Warm-up, Ready").assertIsDisplayed()
@@ -217,18 +210,23 @@ class StoreScreenshotsTest {
 
     @Test
     fun history() {
-        val dates = listOf("2026-03-03", "2026-02-27", "2026-02-23")
+        // Date, day letter, rotation index, title, sets: the last three sessions of the rotation.
+        val sessions = listOf(
+            listOf("2026-03-03", "A", 0, "Squat focus", 18),
+            listOf("2026-03-01", "D", 3, "Bench focus", 17),
+            listOf("2026-02-27", "C", 2, "Deadlift focus", 16),
+        )
         val state = LogUiState(
-            sessions = dates.mapIndexed { index, date ->
+            sessions = sessions.mapIndexed { index, (date, letter, dayIndex, title, sets) ->
                 val completedAt = Instant.parse("${date}T10:30:00Z").toEpochMilli()
                 SessionListItem(
                     sessionId = 3L - index,
                     dateDisplay = LogScreenBuilder.dateDisplay(completedAt),
                     completedAt = completedAt,
-                    dayLetter = "A",
-                    dayIndex = 0,
-                    dayTitle = "Squat focus",
-                    setCount = 18,
+                    dayLetter = letter as String,
+                    dayIndex = dayIndex as Int,
+                    dayTitle = title as String,
+                    setCount = sets as Int,
                     bodyweightDisplay = "235",
                     expanded = false,
                     planId = 1L,
@@ -356,7 +354,7 @@ class StoreScreenshotsTest {
     )
 
     private fun supersetDayState() = dayState(
-        doneCounts = listOf(6, 6, 1, 0),
+        doneCounts = listOf(6, 6, 0, 0),
         selectedExercise = 2,
         dayExercises = supersetExercises,
         partnerDoneCounts = listOf(6, 6, 0, 0),

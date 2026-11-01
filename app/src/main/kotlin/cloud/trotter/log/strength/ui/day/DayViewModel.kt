@@ -137,6 +137,8 @@ class DayViewModel @Inject constructor(
     private val selectedPage = savedState.getStateFlow<String?>(KEY_SELECTED_PAGE, null)
     /** The finished day whose page must not be re-pinned while the real advance reaches [effectiveDayId]. */
     private var pinHeldFor: String? = null
+    private val pendingPlanSwap = savedState.getStateFlow<PendingPlanSwap?>(KEY_PENDING_PLAN_SWAP, null)
+    private val swapUndo = savedState.getStateFlow<WorkoutSwapUndo?>(KEY_SWAP_UNDO, null)
     private val openSheet = savedState.getStateFlow<OpenSheet?>(KEY_OPEN_SHEET, null)
     private val cardioRun = savedState.getStateFlow<CardioRun?>(KEY_CARDIO_RUN, null)
     private val pendingCardioDistances = savedState.getStateFlow<ArrayList<CardioRun>>(KEY_CARDIO_DISTANCES, arrayListOf())
@@ -372,9 +374,18 @@ class DayViewModel @Inject constructor(
         state.withWorkoutRestHint(phoneEnabled && phoneRestRuntime.available, settings.overrides)
     } else baseUiState
 
-    private val sheetUiState = combine(restHintUiState, selectedPage, openSheet) { state, selection, savedSheet ->
+    private val sheetUiState = combine(restHintUiState, selectedPage, openSheet, swapUndo, pendingPlanSwap) { state, selection, savedSheet, undo, pending ->
         state.copy(
             selectedPageKey = selection,
+            pendingPlanSwap = pending?.takeIf {
+                flags.setScreen && state.planId == it.planId && state.viewDayId == it.dayId &&
+                    state.exercises.any { card -> card.programExerciseId == it.programExerciseId }
+            },
+            swapUndo = undo?.takeIf { offer ->
+                flags.setScreen && state.runOpen && state.runId == offer.runId && state.viewDayId == offer.dayId &&
+                    state.exercises.any { card -> card.programExerciseId == offer.programExerciseId &&
+                        (if (offer.slot == Slot.SS) card.partnerExerciseId else card.exerciseId) == offer.exerciseId }
+            },
             openSheet = savedSheet?.takeIf { sheetResolves(state, it, state.timedRep?.event) },
         )
     }
@@ -407,15 +418,16 @@ class DayViewModel @Inject constructor(
             repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id),
             // Set ticks and edits re-emit the tracks; only the run and performed identities matter here.
             repo.dayTracksFlow(plan.id, dayId).map { tracks ->
-                tracks.runOpen to tracks.tracks.filter { it.slot == Slot.MAIN }
-                    .mapNotNull { track -> track.exerciseId?.let { track.programExerciseId to it } }.toMap()
+                tracks.runOpen to tracks.tracks
+                    .mapNotNull { track -> track.exerciseId?.let { (track.programExerciseId to track.slot) to it } }.toMap()
             }.distinctUntilChanged(),
         ) { slots, answers, (runOpen, performed) ->
             val block = ctx.program.days.firstOrNull { it.id == dayId }?.cardioBlock
             buildEditState(slots, ctx.catalog, answers.equipment).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block, config = answers.config,
-                runOpen = runOpen,
-                performedExerciseIds = performed,
+                runOpen = runOpen, workoutSetScreen = flags.setScreen,
+                performedExerciseIds = performed.filterKeys { it.second == Slot.MAIN }.mapKeys { it.key.first },
+                performedPartnerIds = performed.filterKeys { it.second == Slot.SS }.mapKeys { it.key.first },
                 canRemove = DayEditRules.canRemove(slots.size, block != null),
                 canResetToTemplate = plan.origin == PlanOrigin.GENERATED.name &&
                     ProgramGenerator.generate(answers).days.any { it.id == dayId },
@@ -1350,6 +1362,54 @@ class DayViewModel @Inject constructor(
         savedState[KEY_OPEN_SHEET] = OpenSheet(day, OpenSheet.Kind.ALL_SETS, id, 0)
     }
 
+    fun openLiftSheet(id: Long, slot: String) {
+        if (!flags.setScreen) return
+        val day = currentDay() ?: return
+        savedState[KEY_OPEN_SHEET] = OpenSheet(day, OpenSheet.Kind.LIFT, id, 0, slot = slot)
+    }
+
+    fun openDaySheet() {
+        if (!flags.setScreen) return
+        val day = currentDay() ?: return
+        savedState[KEY_OPEN_SHEET] = OpenSheet(day, OpenSheet.Kind.DAY, 0, 0)
+    }
+
+    fun openSwapSheet(position: Int, slot: String) {
+        if (!flags.setScreen) return
+        val state = uiState.value
+        val day = currentDay() ?: return
+        val card = state.exercises.firstOrNull { it.position == position } ?: return
+        savedState[KEY_OPEN_SHEET] = OpenSheet(day, OpenSheet.Kind.SWAP, card.programExerciseId, 0, slot = slot)
+    }
+
+    private suspend fun clearLogUndo() {
+        val record = repo.workoutRecordFlow.first() ?: return
+        if (record.runId == uiState.value.runId) repo.setWorkoutRecord(record.copy(undo = null))
+    }
+
+    fun dismissSwapUndo() { savedState[KEY_SWAP_UNDO] = null }
+
+    fun undoWorkoutSwap() {
+        val offer = uiState.value.swapUndo ?: return
+        mutate {
+            val state = uiState.value
+            if (state.swapUndo != offer) return@mutate
+            val planId = state.planId ?: return@mutate
+            val slot = repo.slotsFor(planId, offer.dayId).first()
+                .firstOrNull { it.programExerciseId == offer.programExerciseId } ?: return@mutate
+            val tracks = repo.dayTracksFlow(planId, offer.dayId).first()
+            if (!tracks.runOpen || tracks.runId != offer.runId || tracks.tracks.none {
+                it.programExerciseId == offer.programExerciseId && it.slot == offer.slot && it.exerciseId == offer.exerciseId
+            }) return@mutate
+            val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
+            val seed = DayScreenBuilder.swapSeed(slot, offer.slot, offer.previousExerciseId, existing,
+                repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first())
+                ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
+            repo.swapInRun(offer.runId, offer.programExerciseId, offer.slot, offer.previousExerciseId, seed)
+            dismissSwapUndo()
+        }
+    }
+
     fun closeSheet() {
         if (openSheet.value?.kind == OpenSheet.Kind.CARDIO_DISTANCE) {
             distanceSheetAction()?.let { action ->
@@ -1369,6 +1429,21 @@ class DayViewModel @Inject constructor(
      *  the user chose does — and the activity, not this screen, applies it. */
     fun setKeepScreenOn(on: Boolean) {
         viewModelScope.launch { repo.setKeepScreenOn(on) }
+    }
+
+    fun clearTodayChecks() {
+        if (!flags.setScreen) return
+        val state = uiState.value
+        val runId = state.takeIf { it.viewDayId == currentDay() && it.runOpen }?.runId ?: return
+        mutate {
+            if (repo.clearRunChecks(runId)) {
+                closeUndoWindow()
+                dismissSwapUndo()
+                repo.setWorkoutRecord(repo.workoutRecordFlow.first()?.takeIf { it.runId == runId }?.copy(undo = null))
+                PhoneRestActions.skip(repo, phoneRestRuntime)
+                clearTimedRep()
+            }
+        }
     }
 
     fun discardWorkout() {
@@ -1578,20 +1653,66 @@ class DayViewModel @Inject constructor(
     /** Swaps the slot's exercise while the run keeps done work.
      * The new exercise seeds from its own goal on the next observation. */
     fun swapDaySlot(position: Int, newExerciseId: String) {
+        requestPlanSwap(position, newExerciseId, Slot.MAIN)
+    }
+
+    private fun requestPlanSwap(position: Int, exerciseId: String, half: String) {
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
             val slot = repo.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
-            repo.swapExerciseById(day, slot.programExerciseId, newExerciseId)
+            if (!flags.setScreen) {
+                applyPlanSwap(day, slot.programExerciseId, half, exerciseId)
+                return@mutate
+            }
+            val tracks = repo.dayTracksFlow(planId, day).first()
+            val doneCount = if (tracks.runOpen) 0 else tracks.tracks.filter {
+                it.programExerciseId == slot.programExerciseId && (half == Slot.MAIN || it.slot == Slot.SS)
+            }.sumOf { it.sets.count { set -> set.done } }
+            val oldId = if (half == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
+            if (doneCount > 0 && (half == Slot.SS || oldId != exerciseId)) {
+                savedState[KEY_PENDING_PLAN_SWAP] = PendingPlanSwap(
+                    day, planId, slot.programExerciseId, half, exerciseId,
+                    oldId?.let { repo.catalogFlow.first().find(it)?.name ?: it }.orEmpty(), doneCount,
+                )
+            } else applyPlanSwap(day, slot.programExerciseId, half, exerciseId)
         }
     }
 
-    fun swapWorkoutSlot(position: Int, newExerciseId: String) {
+    private suspend fun applyPlanSwap(day: String, id: Long, half: String, exerciseId: String) {
+        if (half == Slot.SS) repo.setSupersetPartner(day, id, exerciseId)
+        else repo.swapExerciseById(day, id, exerciseId)
+        if (flags.setScreen) {
+            clearLogUndo()
+            dismissSwapUndo()
+        }
+    }
+
+    fun dismissPlanSwap() { savedState[KEY_PENDING_PLAN_SWAP] = null }
+
+    fun confirmPlanSwap() {
+        val pending = uiState.value.pendingPlanSwap ?: return
+        mutate {
+            if (uiState.value.planId != pending.planId || currentDay() != pending.dayId) return@mutate
+            if (repo.slotsFor(pending.planId, pending.dayId).first().none {
+                it.programExerciseId == pending.programExerciseId
+            }) return@mutate
+            applyPlanSwap(pending.dayId, pending.programExerciseId, pending.slot, pending.exerciseId)
+            dismissPlanSwap()
+        }
+    }
+
+    fun swapWorkoutSlot(position: Int, newExerciseId: String) = swapWorkoutSlot(position, newExerciseId, Slot.MAIN)
+
+    fun swapWorkoutSlot(position: Int, newExerciseId: String, half: String) {
+        if (half != Slot.MAIN && half != Slot.SS) return
+        if (half == Slot.SS && !flags.setScreen) return
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
             val slots = repo.slotsFor(planId, day).first()
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
+            if (half == Slot.SS && slot.exercise.superset == null) return@mutate
             val seeds = repo.daySeeds(planId, day, slots)
                 .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
             val runId = when (val result = repo.startRun(planId, day, seeds)) {
@@ -1603,13 +1724,23 @@ class DayViewModel @Inject constructor(
                 }
                 RunStartResult.NoStrengthSlots -> return@mutate
             }
-            val existing = repo.dayTracksFlow(planId, day).first().tracks
-                .associate { (it.programExerciseId to it.slot) to it.sets.size }
+            val tracks = repo.dayTracksFlow(planId, day).first().tracks
+            val previousId = tracks.firstOrNull { it.programExerciseId == slot.programExerciseId && it.slot == half }?.exerciseId
+                ?: if (half == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
+            if (previousId == null || previousId == newExerciseId) return@mutate
+            val existing = tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
             val cfg = repo.wizardAnswersFor(planId).first().config
             val catalog = repo.catalogFlow.first()
-            val seed = DayScreenBuilder.swapSeed(slot, Slot.MAIN, newExerciseId, existing, cfg, catalog)
+            val seed = DayScreenBuilder.swapSeed(slot, half, newExerciseId, existing, cfg, catalog)
                 ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
-            repo.swapInRun(runId, slot.programExerciseId, Slot.MAIN, newExerciseId, seed)
+            val swapped = repo.swapInRun(runId, slot.programExerciseId, half, newExerciseId, seed)
+            if (swapped && flags.setScreen) {
+                clearLogUndo()
+                savedState[KEY_SWAP_UNDO] = WorkoutSwapUndo(
+                    day, runId, slot.programExerciseId, half, previousId, newExerciseId,
+                    catalog.find(newExerciseId)?.name ?: newExerciseId,
+                )
+            }
         }
     }
 
@@ -1636,12 +1767,7 @@ class DayViewModel @Inject constructor(
     /** Changes the superset partner while the run keeps done work and the main track.
      * The new partner seeds on the next observation, aligned to the main track. */
     fun setDaySlotSuperset(position: Int, partnerExerciseId: String) {
-        val day = currentDay() ?: return
-        val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
-        mutate {
-            val slot = repo.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
-            repo.setSupersetPartner(day, slot.programExerciseId, partnerExerciseId)
-        }
+        requestPlanSwap(position, partnerExerciseId, Slot.SS)
     }
 
     fun setDaySlotKeepToPlan(slotId: Long, keep: Boolean) {
@@ -1841,7 +1967,8 @@ class DayViewModel @Inject constructor(
         catalog: ExerciseCatalog,
     ): DayHistory {
         val ids = performedDayExerciseIds(slots, performedIds, catalog)
-        return DayHistory(repo.lastPerformed(ids), repo.personalRecords(ids))
+        return DayHistory(repo.lastPerformed(ids), repo.personalRecords(ids),
+            if (flags.setScreen) repo.lastPerformedDates(ids) else emptyMap())
     }
 
     private fun buildState(
@@ -1876,7 +2003,9 @@ class DayViewModel @Inject constructor(
 
     private fun sheetResolves(state: DayUiState, sheet: OpenSheet, event: TimedRepEvent?): Boolean =
         !state.loading && sheet.dayId == state.viewDayId &&
-            if (sheet.kind == OpenSheet.Kind.CARDIO_SETS || sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) {
+            (flags.setScreen || sheet.kind !in listOf(OpenSheet.Kind.DAY, OpenSheet.Kind.LIFT, OpenSheet.Kind.SWAP)) &&
+            if (sheet.kind == OpenSheet.Kind.DAY) flags.setScreen
+            else if (sheet.kind == OpenSheet.Kind.CARDIO_SETS || sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) {
                 state.cardio != null && (sheet.kind != OpenSheet.Kind.CARDIO_DISTANCE ||
                     distanceRuns().any { run ->
                         run.runId == sheet.cardioRunId && run.dayId == sheet.dayId && run.planId == state.planId &&
@@ -1884,7 +2013,8 @@ class DayViewModel @Inject constructor(
                     })
             } else state.exercises.any { card ->
             card.programExerciseId == sheet.programExerciseId &&
-                (sheet.kind == OpenSheet.Kind.ALL_SETS || card.rows.getOrNull(sheet.setIndex) != null) &&
+                (sheet.kind in listOf(OpenSheet.Kind.ALL_SETS, OpenSheet.Kind.LIFT, OpenSheet.Kind.SWAP) || card.rows.getOrNull(sheet.setIndex) != null) &&
+                (sheet.slot != Slot.SS || card.isSuperset) &&
                 (sheet.kind != OpenSheet.Kind.TIMED_REP_COUNT ||
                     (event?.awaitingCount == true && event.programExerciseId == sheet.programExerciseId &&
                         event.setIndex == sheet.setIndex))
@@ -2128,6 +2258,12 @@ class DayViewModel @Inject constructor(
             partnerTracking = partnerTracking,
             partnerTimedShowsWeight = partnerTimedShowsWeight,
             lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, unit),
+            lastTimeDate = history.lastPerformedDates[performed.exerciseId]?.let(::lastTimeDate),
+            partnerSetLabels = if (flags.setScreen) DayScreenBuilder.kindLabels(partnerSets.orEmpty()) else emptyList(),
+            partnerHeaderTarget = partnerGoalTarget?.takeIf { flags.setScreen }?.let { DayScreenBuilder.headerTarget(
+                pe.copy(prescription = null), it, unit) },
+            partnerLastTimeDisplay = DayScreenBuilder.lastTimeDisplay(partner?.exerciseId?.takeIf { flags.setScreen }?.let(history.lastPerformed::get), unit),
+            partnerLastTimeDate = partner?.exerciseId?.let(history.lastPerformedDates::get)?.let(::lastTimeDate),
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[performed.exerciseId], lastPerformed, unit),
             topSetComparison = DayScreenBuilder.topSetComparison(main, lastPerformed, unit),
             plateLine = DayScreenBuilder.plateLine(main, entry?.equipment.orEmpty(), unit),
@@ -2141,6 +2277,9 @@ class DayViewModel @Inject constructor(
             weightSwap = DayScreenBuilder.weightSwapAffordance(entry, catalog),
         )
     }
+
+    private fun lastTimeDate(millis: Long): String = java.time.format.DateTimeFormatter
+        .ofPattern("MMM d", java.util.Locale.US).format(java.time.Instant.ofEpochMilli(millis).atZone(clock.zone))
 
     private fun buildEditState(
         slots: List<ProgramSlot>,
@@ -2183,6 +2322,7 @@ class DayViewModel @Inject constructor(
     private data class DayHistory(
         val lastPerformed: Map<String, LastPerformed>,
         val personalRecords: Map<String, PersonalRecord>,
+        val lastPerformedDates: Map<String, Long> = emptyMap(),
     )
 
     private data class DayContext(
@@ -2210,6 +2350,8 @@ class DayViewModel @Inject constructor(
         const val KEY_DAY_EDITOR_OPEN = "day_editor_open"
         const val KEY_VIEW_DAY = "day_view_override"
         const val KEY_VIEW_SELECTION = "day_view_selection"
+        const val KEY_PENDING_PLAN_SWAP = "day_pending_plan_swap"
+        const val KEY_SWAP_UNDO = "day_swap_undo"
         const val KEY_OPEN_SHEET = "day_open_sheet"
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"

@@ -48,3 +48,33 @@ internal fun workoutSetSupersetFixture(): DayUiState {
     return state.copy(exercises = listOf(card), workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 1)))
 }
 
+
+internal fun workoutLiftSheetFixture(): DayUiState {
+    val state = workoutSetSingleFixture()
+    val weights = listOf(130.0, 165.0, 190.0, 210.0, 235.0, 175.0)
+    val kinds = listOf(SetKind.RAMP, SetKind.RAMP, SetKind.RAMP, SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF)
+    val labels = listOf("R1", "R2", "R3", "R4", "TOP", "B/O")
+    return state.copy(dayTitle = "Squat focus", runOpen = true, exercises = state.exercises.map { card ->
+        card.copy(lastTimeDisplay = "235 × 5", lastTimeDate = "Oct 21", rows = card.rows.mapIndexed { index, row ->
+            row.copy(weightDisplay = weights[index], kind = kinds[index], kindLabel = labels[index],
+                isTop = index == 4, rampIndex = if (index < 4) index + 1 else 0,
+                reps = when (index) { 3 -> 3; 5 -> 8; else -> 5 })
+        })
+    })
+}
+
+internal fun workoutDaySheetFixture(): DayUiState {
+    val state = workoutSetSupersetFixture()
+    val single = workoutLiftSheetFixture().exercises.single()
+    val squat = single.copy(programExerciseId = 3L, position = 0,
+        rows = single.rows.map { it.copy(done = it.index == 0) })
+    val bench = single.copy(programExerciseId = 2L, position = 1,
+        title = "Barbell Bench Press", exerciseId = "bb_bench",
+        rows = single.rows.map { it.copy(done = false) })
+    val plank = single.copy(programExerciseId = 4L, position = 3,
+        title = "Plank", exerciseId = "plank", isMain = false, tracking = TrackingType.TIMED,
+        rows = List(3) { SetRowState(it, "${it + 1}", false, 0.0, 0, false, seconds = 45) })
+    return state.copy(dayTitle = "Squat focus", runOpen = true,
+        exercises = listOf(squat, bench, state.exercises.single().copy(position = 2), plank),
+        cardio = CardioCardState("Zone 2", "", false))
+}

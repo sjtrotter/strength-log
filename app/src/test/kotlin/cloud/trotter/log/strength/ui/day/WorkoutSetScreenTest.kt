@@ -100,13 +100,13 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Then rest").assertDoesNotExist()
     }
 
-    @Test fun supersetPartnerAndAllSetsOpenTheExistingPairSheet() {
-        val opened = mutableListOf<Long>()
-        show(workoutSetSupersetFixture(), pagerActions().copy(onOpenAllSets = { opened += it }))
+    @Test fun supersetPartnerAndAllSetsOpenTheirOwnLiftSheets() {
+        val opened = mutableListOf<Pair<Long, String>>()
+        show(workoutSetSupersetFixture(), pagerActions().copy(onOpenLiftSheet = { id, slot -> opened += id to slot }))
         rule.onNodeWithTag("workout-half-${Slot.SS}")
             .assertHeightIsAtLeast(48.dp).assertHasClickAction().performClick()
         rule.onNodeWithText("All sets").assertHasClickAction().performClick()
-        rule.runOnIdle { assertEquals(listOf(1L, 1L), opened) }
+        rule.runOnIdle { assertEquals(listOf(1L to Slot.SS, 1L to Slot.MAIN), opened) }
     }
 
     @Test fun supersetSecondHalfShowsRecordedPartnerAndThenRestOnlyWithTimerOn() {
@@ -504,7 +504,7 @@ class WorkoutSetScreenTest {
     @Test fun liftAndHeroUseExistingSheetCallbacks() {
         var sets: Long? = null
         var editor: Pair<Long, Int>? = null
-        show(workoutSetSingleFixture(), pagerActions().copy(onOpenAllSets = { sets = it }, onOpenSetEditor = { id, index -> editor = id to index }))
+        show(workoutSetSingleFixture(), pagerActions().copy(onOpenLiftSheet = { id, _ -> sets = id }, onOpenSetEditor = { id, index -> editor = id to index }))
         rule.onNodeWithText("All sets").performClick()
         rule.onNodeWithContentDescription("Edit set 3").performClick()
         rule.runOnIdle { assertEquals(1L, sets); assertEquals(1L to 2, editor) }

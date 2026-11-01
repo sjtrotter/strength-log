@@ -12,6 +12,9 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.day.OpenSheet
+import cloud.trotter.log.strength.ui.day.workoutLiftSheetFixture
+import cloud.trotter.log.strength.ui.day.workoutDaySheetFixture
 import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.UndoOffer
 import cloud.trotter.log.strength.ui.day.WorkoutFocus
@@ -132,10 +135,25 @@ class WorkoutSetScreenPreviewShotsTest {
 
     @Test fun supersetLargeFont() = render("10-superset-large-font.png", workoutSetSupersetFixture(), fontScale = 2f)
 
+    @Test fun liftSheet() {
+        val state = workoutLiftSheetFixture()
+        render("11-lift-sheet.png", state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, 1L, 0)))
+    }
+
+    @Test fun liftSheetPartner() {
+        val state = workoutSetSupersetFixture()
+        render("12-lift-sheet-partner.png", state.copy(
+            openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, 1L, 0, slot = Slot.SS)))
+    }
+
+    @Test fun daySheet() {
+        val state = workoutDaySheetFixture()
+        render("13-day-sheet.png", state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0L, 0)))
+    }
+
     private fun render(
         name: String, state: DayUiState, theme: ThemePreference = ThemePreference.DARK, fontScale: Float? = null,
     ) {
-        rule.mainClock.autoAdvance = false
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale ?: density.fontScale)) {

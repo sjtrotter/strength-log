@@ -260,7 +260,7 @@ private fun WorkoutLift(
     ) {
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(card.title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = { actions.onOpenAllSets(card.programExerciseId) }, colors = neutralTextButtonColors()) {
+            TextButton(onClick = { actions.onOpenLiftSheet(card.programExerciseId, Slot.MAIN) }, colors = neutralTextButtonColors()) {
                 Text(stringResource(R.string.day_all_sets))
             }
         }
@@ -371,7 +371,7 @@ private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog:
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
             style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f).testTag("workout-now-lift"))
-        TextButton(onClick = { actions.onOpenAllSets(card.programExerciseId) }, colors = neutralTextButtonColors()) {
+        TextButton(onClick = { actions.onOpenLiftSheet(card.programExerciseId, slot) }, colors = neutralTextButtonColors()) {
             Text(stringResource(R.string.day_all_sets))
         }
     }
@@ -417,26 +417,30 @@ private fun WorkoutPartnerCard(card: ExerciseCardState, row: SetRowState, slot: 
     OutlinedCard(Modifier.fillMaxWidth().testTag("workout-partner-card")) {
         ListItem(
             leadingContent = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (done) Icon(Icons.Default.Check, null)
                     Text(status)
                 }
             },
             headlineContent = { Text(name) },
-            supportingContent = if (largeFont && value.isNotEmpty()) { { Text(value) } } else null,
+            supportingContent = if (largeFont && value.isNotEmpty()) { { Text(value,
+                style = MaterialTheme.typography.bodyLarge.copy(letterSpacing = 0.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant) } } else null,
             trailingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!largeFont && value.isNotEmpty()) Text(value)
+                    if (!largeFont && value.isNotEmpty()) Text(value,
+                        style = MaterialTheme.typography.bodyLarge.copy(letterSpacing = 0.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
                 }
             },
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
                 .testTag("workout-half-$partnerSlot")
-                .clickable { actions.onOpenAllSets(card.programExerciseId) }
+                .clickable { actions.onOpenLiftSheet(card.programExerciseId, partnerSlot) }
                 .clearAndSetSemantics {
                     contentDescription = description
                     onClick {
-                        actions.onOpenAllSets(card.programExerciseId)
+                        actions.onOpenLiftSheet(card.programExerciseId, partnerSlot)
                         true
                     }
                 },
@@ -591,8 +595,8 @@ private fun workoutValue(values: PartnerRowState, tracking: TrackingType, unit: 
     } else stringResource(R.string.workout_seconds, values.seconds)
 }
 
-private fun SetRowState.values(slot: String): PartnerRowState? =
+internal fun SetRowState.values(slot: String): PartnerRowState? =
     if (slot == Slot.SS) partner else PartnerRowState(weightDisplay, reps, done, seconds)
 
-private fun ExerciseCardState.tracking(slot: String): TrackingType =
+internal fun ExerciseCardState.tracking(slot: String): TrackingType =
     if (slot == Slot.SS) partnerTracking ?: TrackingType.WEIGHTED else tracking

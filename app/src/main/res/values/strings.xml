@@ -735,4 +735,24 @@
         <item quantity="one">%d minute of rest remaining</item>
         <item quantity="other">%d minutes of rest remaining</item>
     </plurals>
+    <string name="lift_sheet_goal">Goal %1$s.</string>
+    <string name="lift_sheet_target">Target %1$s.</string>
+    <string name="lift_sheet_last">Last time %1$s.</string>
+    <string name="lift_sheet_last_date">Last time %1$s, %2$s.</string>
+    <string name="lift_sheet_superset_with">Superset with %1$s.</string>
+    <string name="lift_sheet_now">Now</string>
+    <string name="day_sheet_progress">%1$d of %2$d sets</string>
+    <string name="day_sheet_pair">%1$s + %2$s</string>
+    <string name="day_sheet_superset">Superset</string>
+    <string name="day_sheet_round_now">Round %1$d of %2$d, now</string>
+    <string name="day_sheet_lift_now">%1$d of %2$d, now</string>
+    <string name="day_sheet_sets">%1$d sets</string>
+    <string name="day_swapped_to">Swapped to %1$s</string>
+    <string name="setup_keep_screen_on">Keep screen on during workouts</string>
+    <string name="day_sheet_clear_checks">Clear today\'s checks</string>
+    <string name="day_sheet_clear_title">Clear today\'s checks?</string>
+    <string name="day_sheet_clear_body">All sets in this workout are unchecked. Your weight and rep changes stay.</string>
+    <string name="day_sheet_clear_button">Clear checks</string>
+    <string name="day_plan_swap_confirm">Swap %1$s? Its %2$d logged sets today are removed.</string>
+    <string name="day_plan_swap_confirm_one">Swap %1$s? Its %2$d logged set today is removed.</string>
 </resources>

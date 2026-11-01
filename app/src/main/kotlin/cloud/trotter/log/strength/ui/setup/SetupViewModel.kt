@@ -58,8 +58,8 @@ class SetupViewModel @Inject constructor(
         state.copy(phoneRestTimerEnabled = phoneEnabled)
     }
 
-    val uiState: StateFlow<SetupUiState> = combine(trainingState, repo.themePreferenceFlow) { state, theme ->
-        state.copy(themePreference = theme)
+    val uiState: StateFlow<SetupUiState> = combine(trainingState, repo.themePreferenceFlow, repo.keepScreenOnFlow) { state, theme, keepOn ->
+        state.copy(themePreference = theme, keepScreenOn = keepOn)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SetupUiState())
 
     fun setBodyweight(displayValue: Double) = mutateConfig { cfg, unit ->
@@ -78,6 +78,10 @@ class SetupViewModel @Inject constructor(
 
     fun setThemePreference(theme: cloud.trotter.log.strength.domain.theme.ThemePreference) {
         viewModelScope.launch { repo.setThemePreference(theme) }
+    }
+
+    fun setKeepScreenOn(enabled: Boolean) {
+        viewModelScope.launch { repo.setKeepScreenOn(enabled) }
     }
 
     fun setRestTimerEnabled(enabled: Boolean) {

@@ -1313,6 +1313,11 @@ open class TrackerRepository(
         }
     }
 
+    /** Most recent completed-session date per exercise, for the Lift sheet. */
+    suspend fun lastPerformedDates(exerciseIds: List<String>): Map<String, Long> =
+        if (exerciseIds.isEmpty()) emptyMap() else sessionDao.lastPerformedDates(exerciseIds)
+            .associate { it.exerciseId to it.completedAt }
+
     /**
      * Batches the A1 "last time" chip for a whole day into one query:
      * [exerciseIds]' most recent completed performance, keyed by exercise id. An
@@ -1851,6 +1856,20 @@ open class TrackerRepository(
                 )))
             }
         }
+    }
+
+    /** Unticks the open workout's rows, including retired tracks, without changing their values. */
+    suspend fun clearRunChecks(runId: String): Boolean = db.withTransaction {
+        if (runDao.openRun()?.id != runId) return@withTransaction false
+        runDao.tracks(runId).forEach { track ->
+            runDao.updateTrack(track.copy(
+                setsJson = SetJson.encodeSets(SetJson.decodeSets(track.setsJson).map {
+                    it.copy(done = false, startedAtMillis = null, completedAtMillis = null)
+                }),
+                updatedAt = clock.millis(),
+            ))
+        }
+        true
     }
 
     /** Drops actuals, preserving working values and plan edits, and closes the day's identity. */

@@ -119,6 +119,7 @@ fun DayScreen(
     // The page menu reuses the day editor's slot picker.
     var swapCardSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     // Clearing the entire day retains its confirmation; single-set removal offers Undo.
+    var confirmingUntickChecks by rememberSaveable { mutableStateOf(false) }
     var confirmingClearChecks by rememberSaveable { mutableStateOf(false) }
     var confirmingEndCardio by rememberSaveable(state.viewDayId) { mutableStateOf(false) }
     var endingCardioStartedAt by rememberSaveable(state.viewDayId) { mutableStateOf<Long?>(null) }
@@ -143,7 +144,7 @@ fun DayScreen(
     val openSheet = state.openSheet
     val countHostFree = !showEditSheet && !exercisesOpen && openSheet == null &&
         noteCardId == null && !receiptNoteOpen && swapCardSlotId == null &&
-        !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && cascadeCeremony == null && sessionReceipt == null
+        !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null && cascadeCeremony == null && sessionReceipt == null
     LaunchedEffect(state.timedRep?.requestsSheet, countHostFree) {
         if (state.timedRep?.requestsSheet == true && countHostFree) actions.onOpenTimedRepCount()
     }
@@ -157,7 +158,7 @@ fun DayScreen(
             !showEditSheet && !exercisesOpen && openSheet == null && !confirmingEndCardio &&
             noteCardId == null && !confirmingPartialFinish &&
             swapCardSlotId == null &&
-            !confirmingClearChecks &&
+            !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null &&
             cascadeCeremony == null &&
             sessionReceipt == null,
         onBack = { onBack?.invoke() },
@@ -183,6 +184,15 @@ fun DayScreen(
                 duration = SnackbarDuration.Indefinite,
             )
             if (result == SnackbarResult.ActionPerformed) onUndoRemoveSet()
+        }
+    }
+    val swappedMessage = state.swapUndo?.let { stringResource(R.string.day_swapped_to, it.title) }
+    LaunchedEffect(state.swapUndo) {
+        if (swappedMessage != null) {
+            snackbarHost.currentSnackbarData?.dismiss()
+            val result = snackbarHost.showSnackbar(swappedMessage, undoLabel, duration = SnackbarDuration.Long)
+            if (result == SnackbarResult.ActionPerformed) actions.onUndoWorkoutSwap()
+            else actions.onDismissSwapUndo()
         }
     }
     // The keep-screen-on PREFERENCE is a window flag owned by MainActivity; this
@@ -225,7 +235,7 @@ fun DayScreen(
 
         if (setScreenContent != null) {
             setScreenContent(
-                { exercisesOpen = true },
+                actions.onOpenDaySheet,
                 {
                     if (state.exercises.any { card -> card.rows.any { !it.complete } }) {
                         confirmingPartialFinish = true
@@ -236,16 +246,6 @@ fun DayScreen(
                 },
                 snackbarHost,
             )
-            if (exercisesOpen) {
-                ExercisesSheet(
-                    pages = state.pages,
-                    onSelect = { index ->
-                        exercisesOpen = false
-                        state.pages.getOrNull(index)?.key?.let(actions.onSelectWorkoutLift)
-                    },
-                    onDismiss = { exercisesOpen = false },
-                )
-            }
         } else key(state.viewDayId) {
             val pages = if (standaloneCardio) state.pages.filter { it.exerciseId == null } else state.pages
             val selectedKey = (state.workout?.shown as? WorkoutSelection.Shown.Group)?.key
@@ -521,11 +521,49 @@ fun DayScreen(
         )
     }
     openSheet?.let { sheet ->
+        if (sheet.kind == OpenSheet.Kind.DAY) DaySheet(state, actions,
+            onEditDay = { dayEditActions.onEditorOpen(true) },
+            onClearChecks = { confirmingUntickChecks = true }, onDismiss = actions.onCloseAllSets,
+            onDiscardWorkout = { confirmingClearChecks = true })
         if (sheet.kind == OpenSheet.Kind.CARDIO_SETS) state.cardio?.let { CardioSetsSheet(it, actions) }
         if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.distanceRuns?.firstOrNull { it.runId == sheet.cardioRunId }?.let { CardioDistanceSheet(it, sheet.setIndex, actions) }
         state.exercises.firstOrNull { it.programExerciseId == sheet.programExerciseId }?.let { card ->
             when (sheet.kind) {
-                OpenSheet.Kind.CARDIO_SETS, OpenSheet.Kind.CARDIO_DISTANCE -> Unit
+                OpenSheet.Kind.CARDIO_SETS, OpenSheet.Kind.CARDIO_DISTANCE, OpenSheet.Kind.DAY -> Unit
+                OpenSheet.Kind.LIFT -> {
+                    val exerciseId = if (sheet.slot == Slot.SS) card.partnerExerciseId else card.exerciseId
+                    val entry = exerciseId?.let(dayEditState.catalog::find)
+                    LiftSheet(card, sheet.slot, state.workout?.focus, actions,
+                        canSwap = entry?.pattern != null,
+                        weightSwap = if (sheet.slot == Slot.SS) DayScreenBuilder.weightSwapAffordance(entry, dayEditState.catalog) else card.weightSwap,
+                        onWeightSwap = { swap ->
+                            actions.onCloseAllSets()
+                            val planned = dayEditState.slots.firstOrNull { it.programExerciseId == card.programExerciseId }
+                            val plannedId = if (sheet.slot == Slot.SS) planned?.partnerExerciseId else planned?.exerciseId
+                            if (exerciseId != plannedId) dayEditActions.onWorkoutSwapHalf(card.position, swap.targetExerciseId, sheet.slot)
+                            else if (sheet.slot == Slot.SS) dayEditActions.onSetSuperset(card.position, swap.targetExerciseId)
+                            else dayEditActions.onSwap(card.position, swap.targetExerciseId)
+                        },
+                        onNote = { actions.onCloseAllSets(); noteCardId = card.programExerciseId },
+                        onDismiss = actions.onCloseAllSets)
+                }
+                OpenSheet.Kind.SWAP -> {
+                    val slot = dayEditState.slots.firstOrNull { it.programExerciseId == card.programExerciseId }
+                        ?.let { planned ->
+                            val id = if (sheet.slot == Slot.SS) card.partnerExerciseId else card.exerciseId
+                            val entry = id?.let(dayEditState.catalog::find)
+                            if (entry != null) planned.copy(exerciseId = entry.id, title = entry.name, pattern = entry.pattern)
+                            else dayEditState.performedSwapSlot(planned, sheet.slot)
+                        }
+                    if (slot?.pattern != null) SlotSwapSheet(slot, slot.pattern, dayEditState, accent,
+                        onSwap = { position, id ->
+                            if (sheet.slot == Slot.SS) dayEditActions.onSetSuperset(position, id)
+                            else dayEditActions.onSwap(position, id)
+                        },
+                        onWorkoutSwap = { position, id -> dayEditActions.onWorkoutSwapHalf(position, id, sheet.slot) },
+                        onDismiss = actions.onCloseAllSets, onCreateExercise = actions.onCreateExercise,
+                        half = sheet.slot)
+                }
                 OpenSheet.Kind.ALL_SETS -> AllSetsSheet(
                     card = card,
                     actions = actions,
@@ -589,6 +627,31 @@ fun DayScreen(
             onWorkoutSwap = dayEditActions.onWorkoutSwap,
             onDismiss = { swapCardSlotId = null },
             onCreateExercise = actions.onCreateExercise,
+        )
+    }
+
+    state.pendingPlanSwap?.let { pending ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = actions.onDismissPlanSwap,
+            title = { Text(stringResource(if (pending.doneCount == 1) R.string.day_plan_swap_confirm_one else R.string.day_plan_swap_confirm,
+                pending.title, pending.doneCount)) },
+            confirmButton = { TextButton(onClick = actions.onConfirmPlanSwap) { Text(stringResource(R.string.day_swap_apply)) } },
+            dismissButton = { TextButton(onClick = actions.onDismissPlanSwap) { Text(stringResource(R.string.day_cancel_button)) } },
+        )
+    }
+
+    if (confirmingUntickChecks && state.runOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmingUntickChecks = false },
+            title = { Text(stringResource(R.string.day_sheet_clear_title)) },
+            text = { Text(stringResource(R.string.day_sheet_clear_body)) },
+            confirmButton = { TextButton(onClick = {
+                confirmingUntickChecks = false
+                actions.onClearTodayChecks()
+            }) { Text(stringResource(R.string.day_sheet_clear_button)) } },
+            dismissButton = { TextButton(onClick = { confirmingUntickChecks = false }) {
+                Text(stringResource(R.string.day_cancel_button))
+            } },
         )
     }
 
@@ -781,6 +844,14 @@ data class DayActions(
     val onUndoLastLog: () -> Unit = {},
     val onSelectWorkoutLift: (String) -> Unit = {},
     val onNextWorkoutLift: () -> Unit = {},
+    val onOpenLiftSheet: (Long, String) -> Unit = { _, _ -> },
+    val onOpenDaySheet: () -> Unit = {},
+    val onOpenSwapSheet: (Int, String) -> Unit = { _, _ -> },
+    val onUndoWorkoutSwap: () -> Unit = {},
+    val onDismissSwapUndo: () -> Unit = {},
+    val onClearTodayChecks: () -> Unit = {},
+    val onConfirmPlanSwap: () -> Unit = {},
+    val onDismissPlanSwap: () -> Unit = {},
 )
 
 @Composable

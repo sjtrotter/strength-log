@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.prefs.WorkoutRecord
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
@@ -161,6 +162,180 @@ class DayViewModelWorkoutTest {
         repo.updateSetsPaired(requireNotNull(vm.uiState.value.runId), "A", id, main, partner)
         runCurrent()
         return id
+    }
+
+    private suspend fun markLegacyRowsDone(vm: DayViewModel) {
+        val planId = requireNotNull(vm.uiState.value.planId)
+        db.programDao().logsForDay(planId, "A").forEach { log ->
+            db.programDao().upsertLog(log.copy(setsJson = SetJson.encodeSets(
+                SetJson.decodeSets(log.setsJson).mapIndexed { index, set -> set.copy(done = index == 0) },
+            )))
+        }
+    }
+
+    @Test
+    fun `legacy plan MAIN swap confirms before deleting either half logged rows`() = test {
+        prepare(listOf(bench(superset = true)))
+        val saved = SavedStateHandle()
+        val vm = readyVm(savedState = saved)
+        markLegacyRowsDone(vm)
+        runCurrent()
+        assertFalse(vm.uiState.value.runOpen)
+        vm.swapDaySlot(0, "machine_chest")
+        runCurrent()
+        val pending = requireNotNull(vm.uiState.value.pendingPlanSwap)
+        assertEquals(2, pending.doneCount)
+        assertEquals(Slot.MAIN, pending.slot)
+        assertEquals("db_bench", vm.uiState.value.exercises.single().exerciseId)
+        val restored = readyVm(savedState = SavedStateHandle(mapOf("day_pending_plan_swap" to pending)))
+        assertEquals(pending, restored.uiState.value.pendingPlanSwap)
+        restored.confirmPlanSwap()
+        runCurrent()
+        assertNull(restored.uiState.value.pendingPlanSwap)
+        assertEquals("machine_chest", restored.uiState.value.exercises.single().exerciseId)
+        assertEquals(0, restored.uiState.value.doneSets)
+    }
+
+    @Test
+    fun `legacy plan SS swap confirms only the partner logged count and can cancel`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        markLegacyRowsDone(vm)
+        runCurrent()
+        vm.setDaySlotSuperset(0, "bb_row")
+        runCurrent()
+        val pending = requireNotNull(vm.uiState.value.pendingPlanSwap)
+        assertEquals(Slot.SS, pending.slot)
+        assertEquals(1, pending.doneCount)
+        assertEquals("Seated Cable Row", pending.title)
+        vm.dismissPlanSwap()
+        runCurrent()
+        assertEquals("cable_row", vm.uiState.value.exercises.single().partnerExerciseId)
+        assertNull(vm.uiState.value.pendingPlanSwap)
+    }
+
+    @Test
+    fun `clear checks keeps the run and edited values including retired tracks`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        roundTwo(vm)
+        vm.swapWorkoutSlot(0, "bb_row", Slot.SS)
+        runCurrent()
+        val before = requireNotNull(repo.openRunFlow.first())
+        vm.clearTodayChecks()
+        runCurrent()
+        val after = requireNotNull(repo.openRunFlow.first())
+        assertEquals(before.id, after.id)
+        assertEquals(before.tracks.map { it.id }, after.tracks.map { it.id })
+        before.tracks.zip(after.tracks).forEach { (old, cleared) ->
+            assertEquals(old.retired, cleared.retired)
+            assertEquals(old.sets.map { it.copy(done = false, startedAtMillis = null, completedAtMillis = null) }, cleared.sets)
+        }
+        assertNull(vm.uiState.value.swapUndo)
+    }
+
+    @Test
+    fun `partner workout swap retires only SS sizes to MAIN and undo reopens original rows`() = test {
+        prepare(listOf(bench(sets = 5, superset = true)))
+        val vm = readyVm()
+        val id = roundTwo(vm)
+        val original = requireNotNull(repo.openRunFlow.first())
+        val main = original.tracks.single { it.slot == Slot.MAIN }
+        val partner = original.tracks.single { it.slot == Slot.SS }
+        val focus = vm.uiState.value.workout?.shown
+        vm.swapWorkoutSlot(0, "bb_row", Slot.SS)
+        runCurrent()
+        val swapped = requireNotNull(repo.openRunFlow.first())
+        assertEquals(main, swapped.tracks.single { it.slot == Slot.MAIN })
+        assertEquals(partner.copy(retired = true), swapped.tracks.single { it.id == partner.id })
+        val replacement = swapped.tracks.single { it.slot == Slot.SS && !it.retired }
+        assertEquals("bb_row", replacement.exerciseId)
+        assertEquals(main.sets.size, replacement.sets.size)
+        assertTrue(replacement.sets.none { it.done })
+        assertEquals("db_bench", vm.uiState.value.exercises.single().exerciseId)
+        assertEquals("bb_row", vm.uiState.value.exercises.single().partnerExerciseId)
+        assertEquals(Slot.SS, vm.uiState.value.swapUndo?.slot)
+        assertEquals(focus, vm.uiState.value.workout?.shown)
+        vm.undoWorkoutSwap()
+        runCurrent()
+        val restored = requireNotNull(repo.openRunFlow.first())
+        assertEquals(main, restored.tracks.single { it.slot == Slot.MAIN })
+        assertEquals(partner, restored.tracks.single { it.id == partner.id })
+        assertTrue(restored.tracks.single { it.id == replacement.id }.retired)
+        assertEquals(partner.sets, track(vm, id, Slot.SS))
+        assertNull(vm.uiState.value.swapUndo)
+    }
+
+    @Test
+    fun `MAIN workout swap undo survives a fresh handle reopens prescription and leaves partner alone`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        val id = roundTwo(vm)
+        val original = requireNotNull(repo.openRunFlow.first())
+        val main = original.tracks.single { it.slot == Slot.MAIN }
+        val partner = original.tracks.single { it.slot == Slot.SS }
+        vm.swapWorkoutSlot(0, "machine_chest", Slot.MAIN)
+        runCurrent()
+        val swapped = requireNotNull(repo.openRunFlow.first())
+        assertTrue(swapped.tracks.single { it.id == main.id }.retired)
+        assertEquals(partner, swapped.tracks.single { it.id == partner.id })
+        assertEquals(Slot.MAIN, vm.uiState.value.swapUndo?.slot)
+        val restoredVm = readyVm(savedState = SavedStateHandle(mapOf(
+            "day_swap_undo" to requireNotNull(vm.uiState.value.swapUndo),
+        )))
+        assertEquals(vm.uiState.value.swapUndo, restoredVm.uiState.value.swapUndo)
+        restoredVm.undoWorkoutSwap()
+        runCurrent()
+        val restored = requireNotNull(repo.openRunFlow.first())
+        assertEquals(main, restored.tracks.single { it.id == main.id })
+        assertEquals(partner, restored.tracks.single { it.id == partner.id })
+        assertEquals(main.sets, track(vm, id))
+    }
+
+    @Test
+    fun `Lift Day and swap sheets restore from a fresh saved state without moving focus`() = test {
+        prepare(listOf(bench(superset = true)))
+        val saved = SavedStateHandle()
+        val vm = readyVm(savedState = saved)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        val focus = vm.uiState.value.workout?.focus
+        vm.openLiftSheet(id, Slot.SS)
+        runCurrent()
+        assertEquals(focus, vm.uiState.value.workout?.focus)
+        val lift = requireNotNull(saved.get<OpenSheet>("day_open_sheet"))
+        val restored = readyVm(savedState = SavedStateHandle(mapOf("day_open_sheet" to lift)))
+        assertEquals(lift, restored.uiState.value.openSheet)
+        restored.openDaySheet()
+        runCurrent()
+        val day = requireNotNull(restored.uiState.value.openSheet)
+        val dayRestored = readyVm(savedState = SavedStateHandle(mapOf("day_open_sheet" to day)))
+        assertEquals(day, dayRestored.uiState.value.openSheet)
+        dayRestored.openSwapSheet(0, Slot.SS)
+        runCurrent()
+        val swap = requireNotNull(dayRestored.uiState.value.openSheet)
+        assertEquals(OpenSheet.Kind.SWAP, swap.kind)
+        assertEquals(Slot.SS, swap.slot)
+        val swapRestored = readyVm(savedState = SavedStateHandle(mapOf("day_open_sheet" to swap)))
+        assertEquals(swap, swapRestored.uiState.value.openSheet)
+        assertEquals(focus, swapRestored.uiState.value.workout?.focus)
+    }
+
+    @Test
+    fun `plan swaps retain both halves logged rows in retired tracks`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        roundTwo(vm)
+        val original = requireNotNull(repo.openRunFlow.first())
+        val main = original.tracks.single { it.slot == Slot.MAIN }
+        val partner = original.tracks.single { it.slot == Slot.SS }
+        vm.swapDaySlot(0, "machine_chest")
+        runCurrent()
+        vm.setDaySlotSuperset(0, "bb_row")
+        runCurrent()
+        val run = requireNotNull(repo.openRunFlow.first())
+        assertEquals(main.copy(retired = true), run.tracks.single { it.id == main.id })
+        assertEquals(partner.copy(retired = true), run.tracks.single { it.id == partner.id })
+        assertNull(vm.uiState.value.swapUndo)
     }
 
     @Test

@@ -32,6 +32,7 @@ data class SetupUiState(
     val goalPreview: List<GoalPreviewItem> = emptyList(),
     val restTimerEnabled: Boolean = true,
     val phoneRestTimerEnabled: Boolean = true,
+    val keepScreenOn: Boolean = false,
     val restCategories: List<RestCategoryUiState> =
         RestCategory.entries.map { RestCategoryUiState(it, RestPolicy.defaultSeconds(it)) },
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
@@ -53,4 +54,5 @@ data class SetupActions(
     val onOpenBackup: () -> Unit,
     val onOpenLicenses: () -> Unit,
     val onBack: () -> Unit,
+    val onKeepScreenOnChange: (Boolean) -> Unit = {},
 )

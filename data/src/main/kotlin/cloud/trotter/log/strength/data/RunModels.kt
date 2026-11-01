@@ -108,19 +108,3 @@ fun OpenRun.isSlotSkipped(programExerciseId: Long, slot: String): Boolean =
     tracks.isSlotSkipped(programExerciseId, slot, RunTrack::programExerciseId, RunTrack::slot, RunTrack::dropped, RunTrack::retired)
 
 fun OpenRun.isLiftSkipped(programExerciseId: Long): Boolean = isSlotSkipped(programExerciseId, Slot.MAIN)
-
-/** The original skipped MAIN, excluding the promoted partner when present. */
-internal fun <T> Iterable<T>.skippedMain(
-    programExerciseId: Long,
-    id: (T) -> Long?,
-    slot: (T) -> String,
-    dropped: (T) -> Boolean,
-    exerciseId: (T) -> String,
-): T? {
-    val partner = firstOrNull { id(it) == programExerciseId && slot(it) == Slot.SS && dropped(it) }
-    val mains = filter { id(it) == programExerciseId && slot(it) == Slot.MAIN && dropped(it) }
-    return mains.firstOrNull { partner == null || exerciseId(it) != exerciseId(partner) } ?: mains.firstOrNull()
-}
-
-fun OpenRun.skippedMainTrack(programExerciseId: Long): RunTrack? =
-    tracks.skippedMain(programExerciseId, RunTrack::programExerciseId, RunTrack::slot, RunTrack::dropped, RunTrack::exerciseId)

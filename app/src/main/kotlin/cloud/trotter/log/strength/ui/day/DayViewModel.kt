@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import cloud.trotter.log.strength.data.isSlotSkipped
-import cloud.trotter.log.strength.data.skippedMainTrack
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.prefs.WorkoutRecord
@@ -228,11 +227,11 @@ class DayViewModel @Inject constructor(
                         .copy(runId = tracks.runId, runOpen = tracks.runOpen,
                             openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle,
                             skippedLifts = if (flags.setScreen) slots.filter { it.programExerciseId in tracks.skippedLifts }.map { slot ->
-                                val id = open?.skippedMainTrack(slot.programExerciseId)?.exerciseId ?: slot.exercise.exerciseId
+                                val id = slot.exercise.exerciseId
                                 SkippedLift(slot.programExerciseId, slot.position, ctx.catalog.find(id)?.name ?: id)
                             } else emptyList(),
                             skippedPartners = if (flags.setScreen) slots.filter { it.programExerciseId in tracks.droppedPartners && it.programExerciseId !in tracks.skippedLifts }.mapNotNull { slot ->
-                                val skipped = open?.skippedMainTrack(slot.programExerciseId)
+                                val skipped = open?.tracks?.singleOrNull { it.programExerciseId == slot.programExerciseId && it.slot == Slot.MAIN && it.dropped }
                                     ?: open?.tracks?.singleOrNull { it.programExerciseId == slot.programExerciseId && it.slot == Slot.SS && it.dropped }
                                 skipped?.let { slot.programExerciseId to SkippedLift(slot.programExerciseId, slot.position,
                                     ctx.catalog.find(it.exerciseId)?.name ?: it.exerciseId, it.slot) }
@@ -1448,7 +1447,7 @@ class DayViewModel @Inject constructor(
             val state = uiState.value
             if (state.swapUndo != offer) return@mutate
             if (offer.skippedSlot != null) {
-                repo.restoreSkipped(offer.runId, offer.programExerciseId, offer.skippedSlot)
+                restoreSkippedInRun(offer.runId, offer.programExerciseId, offer.skippedSlot)
                 dismissSwapUndo()
                 return@mutate
             }
@@ -1820,9 +1819,24 @@ class DayViewModel @Inject constructor(
         if (!flags.setScreen) return
         val runId = uiState.value.runId ?: return
         mutate {
-            repo.restoreSkipped(runId, programExerciseId, half)
+            restoreSkippedInRun(runId, programExerciseId, half)
             dismissSwapUndo()
         }
+    }
+
+    private suspend fun restoreSkippedInRun(runId: String, programExerciseId: Long, half: String) {
+        val run = repo.openRunFlow.first()?.takeIf { it.id == runId } ?: return
+        if (!run.isSlotSkipped(programExerciseId, Slot.MAIN)) {
+            repo.restoreSkipped(runId, programExerciseId, half)
+            return
+        }
+        val planId = run.planId ?: return
+        val dayId = run.dayId ?: return
+        if (repo.restoreSkippedLift(runId, programExerciseId) !is RunWriteResult.InRun) return
+        // Clearing a whole skip leaves no active identity change to trigger dayHistoryKeys.
+        val slots = repo.slotsFor(planId, dayId).first().filter { it.programExerciseId == programExerciseId }
+        val seeds = repo.daySeeds(planId, dayId, slots)
+        repo.seedRunTracksIfMissing(runId, seeds.map { RunSeed(it.programExerciseId, it.slot, it.sets) }, alignPairs = true)
     }
 
     fun skipNowSet(programExerciseId: Long, half: String) {

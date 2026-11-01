@@ -1276,4 +1276,120 @@ class DayViewModelWorkoutTest {
         assertNull(recreated.uiState.value.swapUndo)
     }
 
+    @Test fun `Day sheet Bring back after swapped SS then both skips rebuilds the plan and preserves done rows`() = test {
+        restoreSwappedWholeLift(swapPromoted = false, undo = false)
+    }
+
+    @Test fun `Day sheet Bring back after swapped promotion then skip rebuilds the plan and preserves done rows`() = test {
+        restoreSwappedWholeLift(swapPromoted = true, undo = false)
+    }
+
+    @Test fun `whole lift skip Undo after a swapped promotion rebuilds the plan and preserves done rows`() = test {
+        restoreSwappedWholeLift(swapPromoted = true, undo = true)
+    }
+
+    private suspend fun TestScope.restoreSwappedWholeLift(swapPromoted: Boolean, undo: Boolean) {
+        prepare(listOf(bench(superset = true), ProgramExercise("bb_back_squat", targetSets = 3)))
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.first().programExerciseId
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        runCurrent()
+        vm.toggleDone(id, 0, true, Slot.SS)
+        runCurrent()
+        val runId = requireNotNull(vm.uiState.value.runId)
+        // A done extra row must survive reopening and extend both restored tracks.
+        val main = track(vm, id)
+        assertTrue(repo.updateSets(runId, "A", id, Slot.MAIN,
+            main + main.last().copy(done = true, weightLb = 85.0, reps = 7, plannedIndex = null),
+        ) is RunWriteResult.InRun)
+        runCurrent()
+        val original = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
+        if (swapPromoted) {
+            vm.skipLift(id, Slot.MAIN)
+            runCurrent()
+        }
+        val swappedSlot = if (swapPromoted) Slot.MAIN else Slot.SS
+        vm.swapWorkoutSlot(0, "machine_chest", swappedSlot)
+        runCurrent()
+        val swapped = repo.openRunFlow.first()!!.tracks.single {
+            it.programExerciseId == id && it.slot == swappedSlot && !it.retired
+        }
+        assertEquals("machine_chest", swapped.exerciseId)
+        val swappedRows = swapped.sets.mapIndexed { index, row -> row.copy(done = index == 0) }
+        assertTrue(repo.updateSets(runId, "A", id, swappedSlot, swappedRows) is RunWriteResult.InRun)
+        runCurrent()
+        if (!swapPromoted) {
+            vm.skipLift(id, Slot.SS)
+            runCurrent()
+        }
+        vm.skipLift(id, Slot.MAIN)
+        runCurrent()
+        assertEquals(id, vm.uiState.value.skippedLifts.single().programExerciseId)
+        if (undo) {
+            vm.undoWorkoutSwap()
+        } else {
+            vm.openDaySheet()
+            runCurrent()
+            val skipped = vm.uiState.value.skippedLifts.single()
+            vm.restoreSkipped(skipped.programExerciseId, skipped.slot)
+        }
+        runCurrent()
+        val restored = vm.uiState.value.exercises.first { it.programExerciseId == id }
+        assertEquals("db_bench", restored.exerciseId)
+        assertEquals("cable_row", restored.partnerExerciseId)
+        assertTrue(restored.isSuperset && restored.rows.all { it.partner != null })
+        val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
+        assertTrue(tracks.none { it.dropped })
+        val active = tracks.filterNot { it.retired }
+        assertEquals(2, active.size)
+        assertEquals("db_bench", active.single { it.slot == Slot.MAIN }.exerciseId)
+        assertEquals("cable_row", active.single { it.slot == Slot.SS }.exerciseId)
+        assertEquals(listOf(4, 4), active.map { it.sets.size })
+        for (captured in original) {
+            val reopened = active.single { it.id == captured.id }
+            assertEquals(captured.sets.withIndex().filter { it.value.done },
+                reopened.sets.withIndex().filter { it.value.done })
+        }
+        assertEquals(swappedRows, tracks.single { it.id == swapped.id }.sets)
+        assertTrue(tracks.single { it.id == swapped.id }.retired)
+        assertTrue(vm.uiState.value.skippedLifts.isEmpty())
+        assertTrue(vm.uiState.value.skippedPartners.isEmpty())
+    }
+
+    @Test fun `Lift sheet restores a skipped workout-swapped SS without changing its identity`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.swapWorkoutSlot(0, "machine_chest", Slot.SS)
+        runCurrent()
+        val before = repo.openRunFlow.first()!!.tracks.filterNot { it.retired }
+        vm.skipLift(id, Slot.SS)
+        runCurrent()
+        val skipped = requireNotNull(vm.uiState.value.skippedPartners[id])
+        vm.openLiftSheet(id, Slot.MAIN)
+        runCurrent()
+        vm.restoreSkipped(id, skipped.slot)
+        runCurrent()
+        assertEquals("machine_chest", vm.uiState.value.exercises.single().partnerExerciseId)
+        assertEquals(before, repo.openRunFlow.first()!!.tracks.filterNot { it.retired })
+        assertTrue(vm.uiState.value.skippedPartners.isEmpty())
+    }
+
+    @Test fun `half skip Undo restores MAIN and the workout-swapped partner precisely`() = test {
+        prepare(listOf(bench(superset = true)))
+        val vm = readyVm()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.swapWorkoutSlot(0, "machine_chest", Slot.SS)
+        runCurrent()
+        val before = repo.openRunFlow.first()!!.tracks.filterNot { it.retired }
+        vm.skipLift(id, Slot.MAIN)
+        runCurrent()
+        vm.undoWorkoutSwap()
+        runCurrent()
+        assertEquals("db_bench", vm.uiState.value.exercises.single().exerciseId)
+        assertEquals("machine_chest", vm.uiState.value.exercises.single().partnerExerciseId)
+        assertEquals(before, repo.openRunFlow.first()!!.tracks.filterNot { it.retired })
+        assertNull(vm.uiState.value.swapUndo)
+    }
+
 }

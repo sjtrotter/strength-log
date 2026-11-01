@@ -132,7 +132,16 @@ class RestoreCoordinationTest {
             awaitTarget { it == null }
             open.complete(Unit)
             withTimeout(TIMEOUT_MS) { importing.await() }
-            val target = awaitTarget { it is TodayTarget.Day && it.dayId == "B" } as TodayTarget.Day
+            val skipped = mutableListOf<TodayTarget?>()
+            val target = withTimeout(TIMEOUT_MS) {
+                var next = observed.receive()
+                while (!(next is TodayTarget.Day && next.dayId == "B")) {
+                    skipped += next
+                    next = observed.receive()
+                }
+                next
+            } as TodayTarget.Day
+            assertTrue(skipped.all { it == null })
             assertEquals(PlanEntity.LEGACY_ID, target.plan.id)
             assertNull(db.restoreMarkerDao().nonce())
         } finally {

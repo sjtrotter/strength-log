@@ -1324,7 +1324,8 @@ open class TrackerRepository(
         emitAll(combine(
             settings.selectedPlanIdFlow, openRunFlow, plansFlow, restoreMarkerDao.observeNonce(),
         ) { storedId, open, plans, restoreNonce ->
-            if (restoreNonce != null) return@combine null
+            // The plans can emit before the marker flow after an import commits; read it directly too.
+            if (restoreNonce != null || restoreMarkerDao.nonce() != null) return@combine null
             val running = open?.let { run -> plans.firstOrNull { it.id == run.planId } }
             val preferred = preferredPlan(plans, storedId)?.takeIf { it.onToday }
             val plan = running ?: preferred ?: plans.firstOrNull { !it.archived && it.onToday }

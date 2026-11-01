@@ -128,9 +128,12 @@ class DayViewModelWorkoutTest {
         repo.setPhoneRestTimerEnabled(restEnabled)
     }
 
-    private fun TestScope.readyVm(flags: WorkoutFlags = WorkoutFlags(true)): DayViewModel {
+    private fun TestScope.readyVm(
+        flags: WorkoutFlags = WorkoutFlags(true),
+        savedState: SavedStateHandle = SavedStateHandle(),
+    ): DayViewModel {
         val vm = DayViewModel(
-            repo, SessionPublisher.NoOp, share, SavedStateHandle(), clock, InertAlarm, runtime,
+            repo, SessionPublisher.NoOp, share, savedState, clock, InertAlarm, runtime,
             clock = clock, flags = flags,
         ).also { vms += it }
         backgroundScope.launch { vm.uiState.collect {} }
@@ -352,6 +355,59 @@ class DayViewModelWorkoutTest {
         vm.undoLastLog()
         runCurrent()
         assertTrue(track(vm, id)[0].done)
+    }
+
+    @Test
+    fun `selection before a run survives route restoration and the first focused log`() = test {
+        prepare(listOf(bench(), ProgramExercise("plank", targetSets = 2)))
+        val savedState = SavedStateHandle()
+        val first = readyVm(savedState = savedState)
+        assertFalse(first.uiState.value.runOpen)
+        assertNull(repo.openRunFlow.first())
+        val selectedId = first.uiState.value.exercises[1].programExerciseId
+        val selectedKey = "exercise:$selectedId"
+        val shown = WorkoutSelection.Shown.Group(selectedKey, false)
+        first.selectWorkoutLift(selectedKey)
+        runCurrent()
+        assertEquals(shown, first.uiState.value.workout!!.shown)
+        assertEquals(selectedKey, first.uiState.value.selectedPageKey)
+        assertNull(repo.workoutRecordFlow.first())
+        first.viewModelScope.cancel()
+        val restored = readyVm(savedState = savedState)
+        assertFalse(restored.uiState.value.runOpen)
+        assertEquals(shown, restored.uiState.value.workout!!.shown)
+        restored.logFocusedSet()
+        runCurrent()
+        val run = requireNotNull(repo.openRunFlow.first())
+        assertTrue(restored.uiState.value.runOpen)
+        assertTrue(track(restored, selectedId)[0].done)
+        val record = requireNotNull(repo.workoutRecordFlow.first())
+        assertEquals(run.id, record.runId)
+        assertEquals(selectedKey, record.selectedKey)
+    }
+
+    @Test
+    fun `next before a run persists selection when a sheet tick creates the run`() = test {
+        prepare(listOf(bench(), ProgramExercise("plank", targetSets = 2)))
+        val vm = readyVm()
+        val firstId = vm.uiState.value.exercises[0].programExerciseId
+        val selectedKey = "exercise:${vm.uiState.value.exercises[1].programExerciseId}"
+        val shown = WorkoutSelection.Shown.Group(selectedKey, false)
+        vm.nextWorkoutLift()
+        runCurrent()
+        assertEquals(shown, vm.uiState.value.workout!!.shown)
+        assertEquals(selectedKey, vm.uiState.value.selectedPageKey)
+        assertNull(repo.openRunFlow.first())
+        assertNull(repo.workoutRecordFlow.first())
+        vm.toggleDone(firstId, 0, true, Slot.MAIN)
+        runCurrent()
+        assertTrue(vm.uiState.value.runOpen)
+        assertTrue(track(vm, firstId)[0].done)
+        assertEquals(selectedKey, repo.workoutRecordFlow.first()!!.selectedKey)
+        assertNull(repo.workoutRecordFlow.first()!!.undo)
+        assertEquals(shown, vm.uiState.value.workout!!.shown)
+        vm.viewModelScope.cancel()
+        assertEquals(shown, readyVm().uiState.value.workout!!.shown)
     }
 
     @Test

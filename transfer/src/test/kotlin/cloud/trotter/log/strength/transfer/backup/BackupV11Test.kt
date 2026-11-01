@@ -62,7 +62,7 @@ class BackupV11Test {
     )
 
     private fun withBlock(json: String?): BackupDocument {
-        val document = snapshot().toDocument().copy(schemaVersion = 11)
+        val document = snapshot().toDocument().withoutV14Fields().copy(schemaVersion = 11)
         val plan = document.plans.single()
         return document.copy(plans = listOf(plan.copy(days = listOf(plan.days.single().copy(cardioBlockJson = json)))))
     }

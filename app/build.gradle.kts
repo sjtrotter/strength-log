@@ -74,8 +74,6 @@ android {
             it.systemProperty("storeShots.dir", storeShotsDir.absolutePath)
             it.systemProperty("roborazzi.test.record", recordStoreShots.toString())
             if (recordStoreShots) {
-                // Eight full-size captures in one JVM outgrow Gradle's 512 MB default.
-                it.maxHeapSize = "1g"
                 // A cached test task must never stand in for a render.
                 it.outputs.dir(storeShotsDir)
                 it.outputs.upToDateWhen { false }

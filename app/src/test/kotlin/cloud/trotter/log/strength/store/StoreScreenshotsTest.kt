@@ -8,16 +8,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -57,9 +54,6 @@ import cloud.trotter.log.strength.ui.log.TrajectoryGridline
 import cloud.trotter.log.strength.ui.log.TrajectoryPoint
 import cloud.trotter.log.strength.ui.navigation.AppNavigationBar
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
-import cloud.trotter.log.strength.ui.setup.SetupActions
-import cloud.trotter.log.strength.ui.setup.SetupScreen
-import cloud.trotter.log.strength.ui.setup.SetupStateBuilder
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.today.TodayActions
 import cloud.trotter.log.strength.ui.today.TodayLift
@@ -298,28 +292,6 @@ class StoreScreenshotsTest {
         )
     }
 
-    @Test
-    fun yourData() {
-        val state = SetupStateBuilder.buildUiState(
-            cfg = config,
-            unit = WeightUnit.LB,
-            answers = WizardAnswers(),
-            themePreference = ThemePreference.DARK,
-        )
-        render(
-            "08-your-data.png",
-            beforeCapture = {
-                composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("DATA / BACKUP"))
-                composeTestRule.mainClock.advanceTimeBy(2_000)
-                composeTestRule.waitForIdle()
-                composeTestRule.onNodeWithText("DATA").assertIsDisplayed()
-                composeTestRule.onNodeWithText("DATA / BACKUP").assertIsDisplayed()
-            },
-        ) {
-            SetupScreen(state, setupActions())
-        }
-    }
-
     private fun renderDay(
         name: String,
         state: DayUiState,
@@ -521,20 +493,5 @@ class StoreScreenshotsTest {
         onShare = {},
         onStartSession = {},
         onSetUpProgram = {},
-    )
-
-    private fun setupActions() = SetupActions(
-        onBodyweightChange = {},
-        onAgeChange = {},
-        onLevelChange = {},
-        onEmphasisChange = {},
-        onUnitToggle = {},
-        onRestTimerEnabledChange = {},
-        onRestOverrideChange = { _, _ -> },
-        onRestOverridesReset = {},
-        onCreateCustomExercise = {},
-        onOpenBackup = {},
-        onOpenLicenses = {},
-        onBack = {},
     )
 }

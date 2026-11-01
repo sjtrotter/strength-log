@@ -534,6 +534,7 @@
     <string name="day_set_removed">Set removed</string>
     <string name="unit_reps">reps</string>
     <string name="unit_seconds">s</string>
+    <string name="unit_at">at %1$s</string>
     <string name="day_back">Back</string>
     <string name="set_edit_menu">Set menu</string>
     <string name="set_edit_weight_field">Weight</string>

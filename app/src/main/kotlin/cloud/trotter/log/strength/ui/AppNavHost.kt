@@ -474,6 +474,7 @@ internal fun DayRoute(
         dayEditState = dayEditState,
         dayEditActions = DayEditActions(
             onSwap = viewModel::swapDaySlot,
+            onWorkoutSwap = viewModel::swapWorkoutSlot,
             onAdd = viewModel::addDaySlot,
             onRemove = viewModel::removeDaySlot,
             onSetSuperset = viewModel::setDaySlotSuperset,

@@ -871,4 +871,46 @@ class TrackerRepositoryRunTest {
         repo.swapExerciseById("A", slot, "hack_squat")
         assertFalse(repo.daySlotsFlow("A").first().first().exercise.keepToPlan)
     }
+
+    @Test fun `explicit Start captures every slot using working values before seeds and Discard closes it`() = runTest {
+        repo.replaceProgram(generated())
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val slots = db.programDao().exercisesForDay(plan, "A")
+        val main = slots.first().id
+        val remembered = squat().map { it.copy(weightLb = 123.0) }
+        repo.seedIfEmpty("A", main, Slot.MAIN, remembered)
+        val seeds = listOf(RunSeed(main, Slot.MAIN, squat()), RunSeed(main, Slot.SS, work()),
+            RunSeed(slots[1].id, Slot.MAIN, work()))
+        val id = day(plan).nextRunId
+        assertEquals(RunStartResult.Started(id), repo.startRun(plan, "A", seeds))
+        val open = repo.openRunFlow.first()!!
+        assertEquals(id, open.id)
+        assertEquals(3, open.tracks.size)
+        assertTrue(open.tracks.all { track -> track.sets.none { it.done } })
+        assertEquals(remembered, open.tracks.first().planned)
+        assertEquals(work(), open.tracks.first { it.slot == Slot.SS }.planned)
+        assertEquals(RunStartResult.AlreadyOpen(id), repo.startRun(plan, "A", emptyList()))
+        assertEquals(open, repo.openRunFlow.first())
+        assertTrue(repo.discardRun(id))
+        assertNull(repo.openRunFlow.first())
+        assertNotEquals(id, day(plan).nextRunId)
+    }
+
+    @Test fun `explicit Start refuses another open run and returns its identity`() = runTest {
+        val plan = authored()
+        val id = start(plan)
+        val before = repo.openRunFlow.first()
+        assertEquals(RunStartResult.OtherRunOpen(id, plan, "A"), repo.startRun(plan, "B", emptyList()))
+        assertEquals(before, repo.openRunFlow.first())
+    }
+
+    @Test fun `explicit Start refuses a day with no strength slots`() = runTest {
+        val plan = repo.createAuthoredPlan("Cardio", "Running")
+        repo.setCardioBlock(plan, "A", cloud.trotter.log.strength.domain.generator.CardioBlocks.fromLegacy(
+            cloud.trotter.log.strength.domain.model.CardioSuggestion("Easy", "", false),
+            false, cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN,
+        ))
+        assertEquals(RunStartResult.NoStrengthSlots, repo.startRun(plan, "A", emptyList()))
+        assertNull(repo.openRunFlow.first())
+    }
 }

@@ -536,7 +536,13 @@ fun DayScreen(
         )
     }
 
-    val swapSlot = dayEditState.slots.firstOrNull { it.programExerciseId == swapCardSlotId }
+    val swapSlot = dayEditState.slots.firstOrNull { it.programExerciseId == swapCardSlotId }?.let { planned ->
+        val card = state.exercises.firstOrNull { it.programExerciseId == planned.programExerciseId }
+        val entry = card?.exerciseId?.let(dayEditState.catalog::find)
+        if (card == null || entry == null) planned else planned.copy(
+            exerciseId = card.exerciseId, title = card.title, pattern = entry.pattern,
+        )
+    }
     if (swapSlot != null && swapSlot.pattern != null) {
         SlotSwapSheet(
             slot = swapSlot,
@@ -544,6 +550,7 @@ fun DayScreen(
             state = dayEditState,
             accent = accent,
             onSwap = dayEditActions.onSwap,
+            onWorkoutSwap = dayEditActions.onWorkoutSwap,
             onDismiss = { swapCardSlotId = null },
             onCreateExercise = actions.onCreateExercise,
         )

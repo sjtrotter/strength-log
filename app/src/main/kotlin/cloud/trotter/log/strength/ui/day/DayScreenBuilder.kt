@@ -187,6 +187,23 @@ object DayScreenBuilder {
         return writes
     }
 
+    fun swapSeed(
+        slot: ProgramSlot,
+        trackSlot: String,
+        newExerciseId: String,
+        existing: Map<Pair<Long, String>, Int>,
+        cfg: LifterConfig,
+        catalog: ExerciseCatalog,
+    ): SeedWrite? {
+        val exercise = when (trackSlot) {
+            Slot.MAIN -> slot.exercise.copy(exerciseId = newExerciseId, prescription = null)
+            Slot.SS -> slot.exercise.copy(superset = requireNotNull(slot.exercise.superset).copy(exerciseId = newExerciseId))
+            else -> return null
+        }
+        return seedPlan(listOf(slot.copy(exercise = exercise)), existing - (slot.programExerciseId to trackSlot), cfg, catalog)
+            .firstOrNull { it.slot == trackSlot }
+    }
+
     /** Per-row kind labels: R1…, TOP, B/O, or a plain 1-based number for WORK/EXTRA. */
     fun kindLabels(sets: List<LoggedSet>): List<String> = kindLabelsForKinds(sets.map { it.kind })
 

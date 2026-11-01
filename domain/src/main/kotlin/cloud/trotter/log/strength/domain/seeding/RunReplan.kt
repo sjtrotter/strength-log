@@ -16,6 +16,23 @@ object RunReplan {
             }
         }
 
+    fun alignPaired(
+        main: List<LoggedSet>,
+        partner: List<LoggedSet>,
+        seededMain: List<LoggedSet>,
+        seededPartner: List<LoggedSet>,
+    ): Pair<List<LoggedSet>, List<LoggedSet>> {
+        val count = maxOf(main.size, partner.size)
+        fun pad(current: List<LoggedSet>, seeded: List<LoggedSet>): List<LoggedSet> =
+            (0 until count).map { index ->
+                current.getOrNull(index) ?: (seeded.getOrNull(index) ?: seeded.last()).copy(
+                    done = false, plannedIndex = null, watchEditedAt = null,
+                    startedAtMillis = null, completedAtMillis = null,
+                )
+            }
+        return pad(main, seededMain) to pad(partner, seededPartner)
+    }
+
     fun represcribePaired(
         main: List<LoggedSet>,
         partner: List<LoggedSet>,

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.today
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.ProgramSlot
@@ -170,8 +171,11 @@ class TodayViewModel @Inject constructor(
                 TodayScreenBuilder.progressLine(doneSets, totalSets)
             },
             lifts = slots.map { slot ->
+                val performed = performedExercise(slot, tracks.tracks.firstOrNull {
+                    it.programExerciseId == slot.programExerciseId && it.slot == Slot.MAIN
+                }?.exerciseId, ctx.catalog)
                 TodayLift(
-                    name = ctx.catalog.find(slot.exercise.exerciseId)?.name ?: slot.exercise.exerciseId,
+                    name = performed.entry?.name ?: performed.exerciseId,
                     setCount = countBySlot.getValue(slot.programExerciseId),
                 )
             },
@@ -183,7 +187,7 @@ class TodayViewModel @Inject constructor(
             },
             actionLabel = TodayScreenBuilder.actionLabel(
                 dayId, doneSets, totalSets,
-                started = tracks.tracks.any { track -> track.sets.any { it.done } } ||
+                started = tracks.runOpen || tracks.tracks.any { track -> track.sets.any { it.done } } ||
                     tracks.retired.any { track -> track.sets.any { it.done } },
             ),
             lifeLine = TodayScreenBuilder.lifeLine(

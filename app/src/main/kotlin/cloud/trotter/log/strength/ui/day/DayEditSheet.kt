@@ -188,6 +188,7 @@ fun DayEditSheet(
                 state = state,
                 accent = accent,
                 onPick = { entry -> actions.onSwap(swapSlot.position, entry.id); swapSlotId = null },
+                onWorkoutPick = { entry -> actions.onWorkoutSwap(swapSlot.position, entry.id); swapSlotId = null },
                 onBack = onBack,
                 onCreateExercise = onCreateExercise,
             )
@@ -739,6 +740,7 @@ private fun PatternPickerScreen(
  * directly ([SlotSwapSheet]). One definition so both routes rank, filter and
  * title identically.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwapPickerPage(
     slot: DayEditSlotState,
@@ -746,32 +748,49 @@ private fun SwapPickerPage(
     state: DayEditUiState,
     accent: Color,
     onPick: (ExerciseEntry) -> Unit,
+    onWorkoutPick: (ExerciseEntry) -> Unit,
     onBack: () -> Unit,
     onCreateExercise: (MovementPattern) -> Unit,
 ) {
-    ExercisePickerScreen(
-        key = "swap-${slot.programExerciseId}",
-        title = stringResource(R.string.day_edit_swap_title, slot.title),
-        pattern = pattern,
-        candidates = state.catalog.substitutionsFor(slot.exerciseId),
-        defaultEquipment = state.defaultEquipmentFilter,
-        accent = accent,
-        onPick = onPick,
-        onBack = onBack,
-        onCreateExercise = onCreateExercise,
-    )
+    var pickedId by rememberSaveable(slot.programExerciseId) { mutableStateOf<String?>(null) }
+    var workoutOnly by rememberSaveable(slot.programExerciseId) { mutableStateOf(state.runOpen) }
+    val picked = pickedId?.let(state.catalog::find)
+    if (picked != null) {
+        BackHandler { pickedId = null }
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            BackAction(onClick = { pickedId = null })
+            Text(picked.name, style = MaterialTheme.typography.titleLarge)
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                listOf(true, false).forEachIndexed { index, workout ->
+                    SegmentedButton(
+                        selected = workoutOnly == workout,
+                        onClick = { workoutOnly = workout },
+                        shape = SegmentedButtonDefaults.itemShape(index, 2),
+                    ) { Text(stringResource(if (workout) R.string.day_swap_this_workout else R.string.day_swap_the_plan)) }
+                }
+            }
+            FilledTonalButton(
+                onClick = { if (workoutOnly) onWorkoutPick(picked) else onPick(picked) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(stringResource(R.string.day_swap_apply)) }
+        }
+    } else {
+        ExercisePickerScreen(
+            key = "swap-${slot.programExerciseId}",
+            title = stringResource(R.string.day_edit_swap_title, slot.title),
+            pattern = pattern,
+            candidates = (listOfNotNull(state.slots.firstOrNull {
+                it.programExerciseId == slot.programExerciseId && it.exerciseId != slot.exerciseId
+            }?.exerciseId?.let(state.catalog::find)) + state.catalog.substitutionsFor(slot.exerciseId)).distinctBy { it.id },
+            defaultEquipment = state.defaultEquipmentFilter,
+            accent = accent,
+            onPick = { pickedId = it.id },
+            onBack = onBack,
+            onCreateExercise = onCreateExercise,
+        )
+    }
 }
 
-/**
- * The swap picker on its own sheet, opened from an exercise card's ⇄ chip
- * instead of walking the slot list and options pages. It has no parent page,
- * so ← and system back both just close it — no [BackHandler] needed, the
- * sheet dialog's own dismiss-on-back is exactly right.
- *
- * [onSwap] is the same [DayEditActions.onSwap] the sheet's swap page calls, so
- * the mutation (log kept keyed by programExerciseId, new exercise reseeded from
- * its GOAL — spec §8.3) is identical whichever route the user took.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SlotSwapSheet(
@@ -782,6 +801,7 @@ fun SlotSwapSheet(
     onSwap: (position: Int, newExerciseId: String) -> Unit,
     onDismiss: () -> Unit,
     onCreateExercise: (MovementPattern) -> Unit,
+    onWorkoutSwap: (position: Int, newExerciseId: String) -> Unit = { _, _ -> },
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -791,6 +811,7 @@ fun SlotSwapSheet(
             state = state,
             accent = accent,
             onPick = { entry -> onSwap(slot.position, entry.id); onDismiss() },
+            onWorkoutPick = { entry -> onWorkoutSwap(slot.position, entry.id); onDismiss() },
             onBack = onDismiss,
             onCreateExercise = onCreateExercise,
         )

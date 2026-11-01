@@ -81,6 +81,8 @@ class CardSwapTest {
         composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
+        composeTestRule.onNodeWithText("The plan").performClick()
+        composeTestRule.onNodeWithText("Swap").performClick()
 
         assertEquals(listOf(0 to target.id), swaps)
     }
@@ -97,6 +99,8 @@ class CardSwapTest {
         composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
+        composeTestRule.onNodeWithText("The plan").performClick()
+        composeTestRule.onNodeWithText("Swap").performClick()
 
         // From the day menu: Edit day -> Edit -> Swap exercise -> pick.
         composeTestRule.onNodeWithContentDescription("Day menu").performClick()
@@ -104,8 +108,44 @@ class CardSwapTest {
         composeTestRule.onNodeWithText("Edit").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
+        composeTestRule.onNodeWithText("The plan").performClick()
+        composeTestRule.onNodeWithText("Swap").performClick()
 
         assertEquals(listOf(0 to target.id, 0 to target.id), swaps)
+    }
+
+    @Test
+    fun anOpenRunDefaultsToThisWorkout() {
+        val planSwaps = mutableListOf<Pair<Int, String>>()
+        val workoutSwaps = mutableListOf<Pair<Int, String>>()
+        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+        setDayContent(dayEditState = dayEditState.copy(runOpen = true),
+            dayEditActions = swapRecorder(planSwaps).copy(
+                onWorkoutSwap = { position, id -> workoutSwaps += position to id },
+            ))
+        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("Swap exercise").performClick()
+        composeTestRule.onNodeWithText(target.name).performClick()
+        composeTestRule.onNodeWithText("Swap").performClick()
+        assertEquals(listOf(0 to target.id), workoutSwaps)
+        assertTrue(planSwaps.isEmpty())
+    }
+
+    @Test
+    fun thisWorkoutCanBeChosenBeforeARunIsOpen() {
+        val planSwaps = mutableListOf<Pair<Int, String>>()
+        val workoutSwaps = mutableListOf<Pair<Int, String>>()
+        val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
+        setDayContent(dayEditActions = swapRecorder(planSwaps).copy(
+            onWorkoutSwap = { position, id -> workoutSwaps += position to id },
+        ))
+        composeTestRule.onNodeWithContentDescription("Barbell Back Squat menu").performClick()
+        composeTestRule.onNodeWithText("Swap exercise").performClick()
+        composeTestRule.onNodeWithText(target.name).performClick()
+        composeTestRule.onNodeWithText("This workout").performClick()
+        composeTestRule.onNodeWithText("Swap").performClick()
+        assertEquals(listOf(0 to target.id), workoutSwaps)
+        assertTrue(planSwaps.isEmpty())
     }
 
     @Test

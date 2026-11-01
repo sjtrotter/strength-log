@@ -77,4 +77,5 @@ data class DayEditActions(
     val onRemoveCardio: () -> Unit = {},
     val onSetKeepToPlan: (slotId: Long, keep: Boolean) -> Unit = { _, _ -> },
     val onResetSlotToPlan: (slotId: Long) -> Unit = {},
+    val onWorkoutSwap: (position: Int, newExerciseId: String) -> Unit = { _, _ -> },
 )

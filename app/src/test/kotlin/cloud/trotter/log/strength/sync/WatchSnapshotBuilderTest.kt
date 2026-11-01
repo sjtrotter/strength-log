@@ -28,6 +28,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -37,6 +38,8 @@ import cloud.trotter.log.strength.widget.WidgetStatLine
 import cloud.trotter.log.strength.widget.todayWidgetContent
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertNull
 
 /**
@@ -658,5 +661,26 @@ class WatchSnapshotBuilderTest {
     fun `returns null when there is no suggested day or it is not in the program`() {
         assertNull(WatchSnapshotBuilder.build(program, null, emptyList(), emptyList(), cfg, catalog, WeightUnit.LB, 1L))
         assertNull(WatchSnapshotBuilder.build(program, "Z", emptyList(), emptyList(), cfg, catalog, WeightUnit.LB, 1L))
+    }
+
+    @Test fun `substitute snapshot uses performed identity tracking goal and alternates without a prescription`() {
+        val pe = ProgramExercise("bb_back_squat", targetSets = 2,
+            prescription = Prescription(PrescribedTarget.RepsInTime(90, 30)))
+        val rows = listOf(LoggedSet(75.0, 8, SetKind.WORK))
+        val snapshot = WatchSnapshotBuilder.build(program, "A", listOf(ProgramSlot(10L, 0, pe)),
+            listOf(LoggedSlot(10L, Slot.MAIN, rows, exerciseId = "hack_squat")), cfg,
+            catalog, WeightUnit.LB, revision = 1L)!!
+        val exercise = snapshot.day.exercises.single()
+        val entry = catalog.get("hack_squat")
+        assertEquals(entry.shortName ?: entry.name, exercise.name)
+        assertEquals("hack_squat", exercise.exerciseId)
+        assertEquals("weighted", exercise.tracking)
+        assertFalse(exercise.prescribed)
+        assertEquals(0, exercise.repWindowSeconds)
+        assertNull(exercise.repAim)
+        assertEquals(GoalFormatter.label(
+            GoalCalculator.targetFor(entry, cfg), WeightUnit.LB), exercise.goalLabel)
+        assertTrue(exercise.alternates.any { it.exerciseId == "bb_back_squat" })
+        assertEquals(rows.size, exercise.sets.size)
     }
 }

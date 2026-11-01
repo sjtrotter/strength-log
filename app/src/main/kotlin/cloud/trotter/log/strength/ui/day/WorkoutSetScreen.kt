@@ -202,9 +202,9 @@ private fun WorkoutSetContent(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             val modifier = Modifier.widthIn(max = ReadableWidth).fillMaxSize()
-                .verticalScroll(rememberScrollState()).padding(20.dp)
+            val scrollModifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)
             if (reducedMotion) {
-                Column(modifier) { WorkoutLift(state, actions, catalog, reducedMotion) }
+                Column(modifier.then(scrollModifier)) { WorkoutLift(state, actions, catalog, reducedMotion) }
             } else {
                 AnimatedContent(
                     targetState = state,
@@ -217,7 +217,9 @@ private fun WorkoutSetContent(
                     modifier = modifier,
                     label = "workoutGroup",
                 ) { shown ->
-                    Column { WorkoutLift(shown, actions, catalog, reducedMotion) }
+                    Column(Modifier.fillMaxSize().then(scrollModifier)) {
+                        WorkoutLift(shown, actions, catalog, reducedMotion)
+                    }
                 }
             }
         }
@@ -314,19 +316,13 @@ private fun WorkoutSuperset(
     val card = state.workoutCard ?: return
     val focus = workout.focus
     val index = focus?.index ?: card.rows.lastIndex
-    val slot = focus?.slot ?: Slot.MAIN
-    val title = if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title
     val position = if (workout.completedView) {
         stringResource(R.string.workout_done_rounds, card.rows.size, card.rows.size)
     } else stringResource(R.string.workout_superset_round, index + 1, card.rows.size)
-    val announcement = if (workout.completedView) position else {
-        stringResource(R.string.workout_announce_round, title, index + 1, card.rows.size)
-    }
     val currentHalf by rememberUpdatedState(workout.focus to workout.completedView)
     Column(
-        Modifier.fillMaxWidth().semantics {
+        Modifier.fillMaxWidth().testTag("workout-superset-content").semantics {
             liveRegion = LiveRegionMode.Polite
-            contentDescription = announcement
             isTraversalGroup = true
             traversalIndex = 0f
         },

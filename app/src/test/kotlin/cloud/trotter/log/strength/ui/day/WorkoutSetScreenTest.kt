@@ -154,7 +154,7 @@ class WorkoutSetScreenTest {
         rule.onNodeWithTag("workout-half-${Slot.SS}").assertDoesNotExist()
         rule.onNodeWithTag("workout-half-${Slot.MAIN}")
             .assertContentDescriptionEquals("DB Bench Press, done, 80 × 10, open sets")
-        rule.onNodeWithContentDescription("Seated Cable Row, round 2 of 3")
+        rule.onNodeWithTag("workout-superset-content")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
         rule.mainClock.advanceTimeBy(150)
         rule.mainClock.advanceTimeByFrame()
@@ -173,7 +173,7 @@ class WorkoutSetScreenTest {
         ) }, workout = base.workout?.copy(undo = undo().copy(slot = Slot.SS)))
             .withWorkoutRestHint(true, emptyMap()))
 
-        val content = rule.onNodeWithContentDescription("DB Bench Press, round 2 of 3").fetchSemanticsNode()
+        val content = rule.onNodeWithTag("workout-superset-content").fetchSemanticsNode()
         val actions = rule.onNodeWithTag("workout-superset-actions").fetchSemanticsNode()
         assertTrue(content.config[SemanticsProperties.IsTraversalGroup])
         assertTrue(actions.config[SemanticsProperties.IsTraversalGroup])

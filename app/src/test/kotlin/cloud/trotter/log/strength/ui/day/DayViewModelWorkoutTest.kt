@@ -411,6 +411,27 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
+    fun `★ a run started by the watch keeps the selection made before it`() = test {
+        prepare(listOf(bench(), ProgramExercise("plank", targetSets = 2)))
+        val vm = readyVm()
+        val state = vm.uiState.value
+        val firstId = state.exercises[0].programExerciseId
+        val selectedKey = "exercise:${state.exercises[1].programExerciseId}"
+        vm.selectWorkoutLift(selectedKey)
+        runCurrent()
+        assertNull(repo.openRunFlow.first())
+        val applier = SetEditApplier(repo, syncStore, syncStore)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = firstId, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 100_001, planId = state.planId, runId = state.runId, exerciseId = "db_bench",
+        )))
+        runCurrent()
+        assertTrue(vm.uiState.value.runOpen)
+        assertNull(repo.workoutRecordFlow.first())
+        assertEquals(WorkoutSelection.Shown.Group(selectedKey, false), vm.uiState.value.workout!!.shown)
+    }
+
+    @Test
     fun `★ record survives a fresh route handle and a foreign run record is ignored`() = test {
         prepare(listOf(bench(), ProgramExercise("plank")))
         val first = readyVm()

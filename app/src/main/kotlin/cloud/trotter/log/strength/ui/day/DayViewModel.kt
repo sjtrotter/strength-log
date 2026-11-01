@@ -990,7 +990,7 @@ class DayViewModel @Inject constructor(
             if (tracks.runId != runId || currentDay() != day) return@mutate
             val projected = projectWorkout(uiState.value, tracks)
             val record = repo.workoutRecordFlow.first()?.takeIf { tracks.runOpen && it.runId == runId }
-            val selection = if (tracks.runOpen) record?.selectedKey else selectedPage.value
+            val selection = if (record != null) record.selectedKey else selectedPage.value
             val shown = WorkoutSelection.shown(workoutGroups(projected), selection)
             val focus = workoutFocus(projected, shown) ?: return@mutate
             tickSetLocked(day, runId, focus.programExerciseId, focus.index, true, focus.slot, actionLog = true)
@@ -1765,7 +1765,8 @@ class DayViewModel @Inject constructor(
         now: Long,
     ): WorkoutState {
         val record = savedRecord?.takeIf { tracks?.runOpen == true && it.runId == tracks.runId }
-        val selection = if (tracks?.runOpen == true) record?.selectedKey else selectedPage.value
+        // The run's record wins once it exists; until then (no run, or a run the watch started) the route's.
+        val selection = if (record != null) record.selectedKey else selectedPage.value
         val shown = WorkoutSelection.shown(workoutGroups(state), selection)
         val undo = validUndo(tracks, record, rest, now)?.let { target ->
             state.exercises.firstOrNull { it.programExerciseId == target.programExerciseId }?.let { card ->

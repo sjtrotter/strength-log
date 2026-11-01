@@ -780,6 +780,20 @@ class WorkoutSetScreenTest {
         rule.onNodeWithTag("workout-action-tonal").assertDoesNotExist()
     }
 
+    @Test fun cardioOnlyAllLoggedWithoutSetHistoryShowsDoneSummaryAndNoAction() {
+        val base = workoutSetCardioFixture()
+        show(base.copy(exercises = emptyList(),
+            cardio = requireNotNull(base.cardio).copy(loggedSeconds = 240, loggedSets = emptyList(), run = null),
+            workout = WorkoutState(WorkoutSelection.Shown.AllLogged, null, false, null, null)))
+        rule.onNodeWithText("Road run").assertIsDisplayed()
+        rule.onNodeWithText("Done").assertIsDisplayed()
+        rule.onNodeWithText("Logged 4:00").assertIsDisplayed()
+        rule.onNodeWithText("5:00").assertDoesNotExist()
+        rule.onNodeWithText("All 0 sets logged").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-filled").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-tonal").assertDoesNotExist()
+    }
+
     @Test fun cardioSaveFailureBandStaysOnEveryGroupAndRetries() {
         val running = workoutSetCardioRunningFixture()
         val cardio = requireNotNull(running.cardio)
@@ -812,6 +826,15 @@ class WorkoutSetScreenTest {
         rule.runOnIdle { assertEquals(listOf("exercise:2", "exercise:2"), selected)
             state = state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("exercise:2", false))) }
         rule.onNodeWithTag("workout-clock-chip").assertDoesNotExist()
+    }
+
+    @Test fun cardioClockChipRemainsAvailableOnShownTimedRepGroupWithPendingCount() {
+        val timed = workoutSetTimedRepRunningFixture(awaiting = true)
+        val state = timed.copy(cardio = runningCardioFixture(), cardioRunning = true)
+        var selected: String? = null
+        show(state, pagerActions().copy(onSelectWorkoutLift = { selected = it }))
+        rule.onNodeWithText("Road run 1:00").performClick()
+        rule.runOnIdle { assertEquals("cardio", selected) }
     }
 
     @Test fun cardioClockChipReturnsToCardioAndHidesOnItsOwnGroup() {

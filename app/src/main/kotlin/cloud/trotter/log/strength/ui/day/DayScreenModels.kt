@@ -129,7 +129,7 @@ data class DayUiState(
             timedRep?.let { timed ->
                 val event = timed.event
                 val key = "exercise:${event.programExerciseId}"
-                if (shown?.key == key) return null
+                if (shown?.key == key) return@let
                 val title = exercises.firstOrNull { it.programExerciseId == event.programExerciseId }?.title ?: return null
                 return ClockChip(key, if (event.awaitingCount) {
                     stringResource(R.string.workout_clock_chip_enter_reps, title)

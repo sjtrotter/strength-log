@@ -316,7 +316,8 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
     val cardio = state.cardio ?: return
     val block = cardio.block ?: return
     val run = cardio.run
-    val done = cardio.completed || (state.workout?.shown as? WorkoutSelection.Shown.Group)?.complete == true
+    val done = cardio.completed || state.workoutCardioOnlyDone ||
+        (state.workout?.shown as? WorkoutSelection.Shown.Group)?.complete == true
     val spec = block.sets.getOrNull(cardio.position)
     val position = spec?.let { stringResource(R.string.workout_cardio_position, roleName(it.role), cardio.position + 1, block.sets.size) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {

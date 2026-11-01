@@ -53,6 +53,7 @@ import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,6 +72,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -269,12 +271,16 @@ class DayViewModel @Inject constructor(
                         }
                     }
                     if (!expired) break
-                    delay(REST_OVER_MS)
-                    PhoneRestActions.locked {
-                        val current = repo.phoneRestFlow.first()
-                        if (current != null && current.deadlineEpochMillis == rest.deadlineEpochMillis && current.deadlineEpochMillis <= clock.millis()) {
-                            // complete() already canceled the running alarm; keep the Rest over notification.
-                            repo.setPhoneRest(null)
+                    // The subscription can stop during the grace period; the persisted rest must still clear,
+                    // or a recreated process would complete it a second time.
+                    withContext(NonCancellable) {
+                        delay(REST_OVER_MS)
+                        PhoneRestActions.locked {
+                            val current = repo.phoneRestFlow.first()
+                            if (current != null && current.deadlineEpochMillis == rest.deadlineEpochMillis && current.deadlineEpochMillis <= clock.millis()) {
+                                // complete() already canceled the running alarm; keep the Rest over notification.
+                                repo.setPhoneRest(null)
+                            }
                         }
                     }
                     break

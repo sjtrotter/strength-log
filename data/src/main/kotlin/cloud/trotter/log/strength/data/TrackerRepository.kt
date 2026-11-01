@@ -728,6 +728,7 @@ open class TrackerRepository(
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction false
             if (row.dayId != dayId) return@withTransaction false
             if (newExerciseId == row.exerciseId) {
+                clearSlotSkipState(row.planId, dayId, row.id)
                 val run = runDao.openRun()?.takeIf { it.planId == row.planId && it.dayId == dayId }
                     ?: return@withTransaction true
                 val config = answersForPlan(planDao.plan(row.planId), global).config
@@ -744,21 +745,38 @@ open class TrackerRepository(
         programExerciseId: Long,
         newExerciseId: String,
     ) {
+        clearSlotSkipState(planId, dayId, programExerciseId)
         retireActiveTrack(planId, dayId, programExerciseId, Slot.MAIN)
         programDao.setExerciseId(programExerciseId, newExerciseId)
         programDao.deleteLogsForExercise(planId, dayId, programExerciseId)
     }
 
-    /** The open run's active track for this slot: retired when it holds done work, dropped otherwise. */
+    /** The open run's active track for this slot: retired when it holds done work, deleted otherwise. */
     private suspend fun retireActiveTrack(planId: Long, dayId: String, programExerciseId: Long, slot: String) {
         val run = runDao.openRun()?.takeIf { it.planId == planId && it.dayId == dayId } ?: return
         val track = runDao.tracks(run.id).firstOrNull {
             it.programExerciseId == programExerciseId && it.slot == slot && !it.retired
         } ?: return
+        retireTrack(track)
+    }
+
+    private suspend fun retireTrack(track: RunTrackEntity) {
         if (SetJson.decodeSets(track.setsJson).any { it.done }) {
             runDao.updateTrack(track.copy(retired = true, updatedAt = clock.millis()))
         } else {
             runDao.deleteTrack(track.id)
+        }
+    }
+
+    /** Plan edits and whole-lift Bring back supersede this slot's skip state. */
+    private suspend fun clearSlotSkipState(planId: Long, dayId: String, programExerciseId: Long) {
+        val run = runDao.openRun()?.takeIf { it.planId == planId && it.dayId == dayId } ?: return
+        val tracks = runDao.tracks(run.id).filter { it.programExerciseId == programExerciseId }
+        val partner = tracks.firstOrNull { it.slot == Slot.SS && it.dropped }
+        for (track in tracks) {
+            if (track.dropped || (partner != null && track.slot == Slot.MAIN && track.exerciseId == partner.exerciseId)) {
+                retireTrack(track.copy(dropped = false))
+            }
         }
     }
 
@@ -783,6 +801,7 @@ open class TrackerRepository(
             ) != null
             val floor = minExercisesPerDay(hasCardio)
             if (count <= floor) return@withTransaction false
+            clearSlotSkipState(row.planId, row.dayId, row.id)
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
             retireActiveTrack(row.planId, row.dayId, row.id, Slot.MAIN)
             retireActiveTrack(row.planId, row.dayId, row.id, Slot.SS)
@@ -856,6 +875,7 @@ open class TrackerRepository(
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction
             if (row.dayId != dayId) return@withTransaction
             val planId = row.planId
+            clearSlotSkipState(planId, dayId, row.id)
             retireActiveTrack(planId, dayId, row.id, Slot.SS)
             programDao.setSupersetExerciseId(row.id, partnerExerciseId)
             programDao.deleteLogForSlot(planId, dayId, row.id, Slot.SS)
@@ -869,6 +889,7 @@ open class TrackerRepository(
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction
             if (row.dayId != dayId) return@withTransaction
             val planId = row.planId
+            clearSlotSkipState(planId, dayId, row.id)
             retireActiveTrack(planId, dayId, row.id, Slot.SS)
             programDao.setSupersetExerciseId(row.id, null)
             programDao.deleteLogForSlot(planId, dayId, row.id, Slot.SS)
@@ -1023,7 +1044,12 @@ open class TrackerRepository(
         if (open?.planId == planId && open.dayId == dayId) {
             DayTracks(open.id, true, open.tracks.filter { !it.retired }.mapNotNull { track ->
                 track.programExerciseId?.let { LoggedSlot(it, track.slot, track.sets, track.exerciseId) }
-            }, retired = open.tracks.filter { it.retired })
+            }, retired = open.tracks.filter { it.retired && (!it.dropped || it.sets.any { set -> set.done }) },
+                droppedPartners = open.tracks.mapNotNull { it.programExerciseId }.filterTo(mutableSetOf()) { id ->
+                    open.isPartnerDropped(id)
+                }, skippedLifts = open.tracks.mapNotNull { it.programExerciseId }.filterTo(mutableSetOf()) { id ->
+                    open.isLiftSkipped(id)
+                })
         } else {
             DayTracks(days.firstOrNull { it.dayId == dayId }?.nextRunId?.takeIf(String::isNotBlank),
                 false, logs.map { log -> log.toLoggedSlot().copy(
@@ -1372,7 +1398,7 @@ open class TrackerRepository(
 
     private fun RunTrackEntity.toRunTrack(): RunTrack = RunTrack(
         id, position, programExerciseId, slot, exerciseId, retired,
-        SetJson.decodeSets(plannedJson), SetJson.decodeSets(setsJson),
+        SetJson.decodeSets(plannedJson), SetJson.decodeSets(setsJson), dropped,
     )
 
     suspend fun startRun(planId: Long, dayId: String, seeds: List<RunSeed>): RunStartResult = db.withTransaction {
@@ -1447,6 +1473,148 @@ open class TrackerRepository(
         }
     }
 
+    private fun List<RunTrackEntity>.slotSkipped(programExerciseId: Long, slot: String): Boolean =
+        isSlotSkipped(programExerciseId, slot, RunTrackEntity::programExerciseId, RunTrackEntity::slot,
+            RunTrackEntity::dropped, RunTrackEntity::retired)
+
+    suspend fun skipLift(
+        planId: Long, dayId: String, programExerciseId: Long, slot: String,
+        expectedMainId: String, expectedPartnerId: String?,
+    ): RunWriteResult {
+        if (slot != Slot.MAIN && slot != Slot.SS) return RunWriteResult.Rejected
+        if (slot == Slot.SS && expectedPartnerId == null) return RunWriteResult.Rejected
+        return dropSupersetHalf(planId, dayId, programExerciseId,
+            if (slot == Slot.SS) Slot.MAIN else Slot.SS, expectedMainId, expectedPartnerId)
+    }
+
+    suspend fun dropSupersetHalf(
+        planId: Long,
+        dayId: String,
+        programExerciseId: Long,
+        keep: String,
+        expectedMainId: String,
+        expectedPartnerId: String?,
+    ): RunWriteResult {
+        if (keep != Slot.MAIN && keep != Slot.SS) return RunWriteResult.Rejected
+        val config = wizardAnswersFor(planId).first().config
+        val catalog = catalogFlow.first()
+        return db.withTransaction {
+            val day = programDao.day(planId, dayId) ?: return@withTransaction RunWriteResult.Rejected
+            val row = programDao.exercise(programExerciseId)
+                ?.takeIf { it.planId == planId && it.dayId == dayId }
+                ?: return@withTransaction RunWriteResult.Rejected
+            val open = runDao.openRun()
+            if (open != null && (open.planId != planId || open.dayId != dayId)) return@withTransaction RunWriteResult.Rejected
+            val runId = open?.id ?: day.nextRunId
+            val programSlot = ProgramSlot(row.id, row.position, row.toDomain())
+            val seeds = if (open != null) emptyList() else programDao.exercisesForDay(planId, dayId).flatMap { seedRow ->
+                val seedSlot = ProgramSlot(seedRow.id, seedRow.position, seedRow.toDomain())
+                val main = performedExercise(seedSlot, null, catalog)
+                val mainSeed = main.prescription?.let { SetSeeder.seedPrescribed(seedRow.targetSets, it) }
+                    ?: main.goal(config)?.let { SetSeeder.seed(seedSlot.exercise, it, config) }
+                    ?: return@flatMap emptyList()
+                val mainCount = programDao.logForSlot(planId, dayId, seedRow.id, Slot.MAIN)
+                    ?.let { SetJson.decodeSets(it.setsJson).size } ?: mainSeed.size
+                val partnerSeed = seedSlot.exercise.superset?.let {
+                    performedExercise(seedSlot, null, catalog, Slot.SS).goal(config)
+                        ?.let { goal -> RunSeed(seedRow.id, Slot.SS, SetSeeder.seedPartner(mainCount, goal)) }
+                }
+                listOfNotNull(RunSeed(seedRow.id, Slot.MAIN, mainSeed), partnerSeed)
+            }
+            val tracks = if (open == null) initialRunTracks(day, seeds) else runDao.tracks(runId)
+            val main = tracks.firstOrNull { it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired }
+                ?: return@withTransaction RunWriteResult.Rejected
+            val partner = tracks.firstOrNull { it.programExerciseId == row.id && it.slot == Slot.SS && !it.retired }
+            if (main.exerciseId != expectedMainId || partner?.exerciseId != expectedPartnerId) {
+                return@withTransaction RunWriteResult.Rejected
+            }
+            if (partner == null) {
+                if (keep != Slot.SS) return@withTransaction RunWriteResult.Rejected
+                if (programDao.exercisesForDay(planId, dayId).none {
+                        it.id != row.id && !tracks.slotSkipped(it.id, Slot.MAIN)
+                    }) return@withTransaction RunWriteResult.Rejected
+                if (open == null) startRun(day, tracks)
+                val capturedMain = runDao.tracks(runId).single { it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired }
+                runDao.updateTrack(capturedMain.copy(retired = true, dropped = true, updatedAt = clock.millis()))
+                return@withTransaction RunWriteResult.InRun(runId, started = open == null)
+            }
+            val keptSeed = if (keep == Slot.SS) {
+                val performed = performedExercise(programSlot, partner.exerciseId, catalog)
+                val goal = performed.goal(config) ?: return@withTransaction RunWriteResult.Rejected
+                RunSeed(row.id, Slot.MAIN, SetSeeder.seed(
+                    programSlot.exercise.copy(exerciseId = partner.exerciseId, prescription = null, superset = null), goal, config,
+                ))
+            } else null
+            if (open == null) startRun(day, tracks)
+            val capturedPartner = runDao.tracks(runId).first { it.programExerciseId == row.id && it.slot == Slot.SS && !it.retired }
+            runDao.updateTrack(capturedPartner.copy(retired = true, dropped = true, updatedAt = clock.millis()))
+            if (keep == Slot.SS) {
+                val capturedMain = runDao.tracks(runId).single { it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired }
+                check(swapInRun(runId, row.id, Slot.MAIN, partner.exerciseId, keptSeed, config, catalog,
+                    expectedExerciseId = main.exerciseId))
+                // The track key cannot hold a second MAIN with the same exercise.
+                if (main.exerciseId != partner.exerciseId) {
+                    runDao.updateTrack(capturedMain.copy(retired = true, dropped = true, updatedAt = clock.millis()))
+                }
+            }
+            RunWriteResult.InRun(runId, started = open == null)
+        }
+    }
+
+    /** Whole-lift Bring back clears the workout skip; the caller then reseeds from the plan. */
+    suspend fun restoreSkippedLift(runId: String, programExerciseId: Long): RunWriteResult = db.withTransaction {
+        val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction RunWriteResult.Rejected
+        val row = programDao.exercise(programExerciseId)
+            ?.takeIf { it.planId == run.planId && it.dayId == run.dayId }
+            ?: return@withTransaction RunWriteResult.Rejected
+        if (!runDao.tracks(runId).slotSkipped(row.id, Slot.MAIN)) return@withTransaction RunWriteResult.Rejected
+        clearSlotSkipState(row.planId, row.dayId, row.id)
+        RunWriteResult.InRun(runId, started = false)
+    }
+
+    /** Restores a single captured half while its remaining half still matches. */
+    suspend fun restoreSkipped(runId: String, programExerciseId: Long, slot: String): RunWriteResult {
+        if (slot != Slot.MAIN && slot != Slot.SS) return RunWriteResult.Rejected
+        return db.withTransaction {
+            val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction RunWriteResult.Rejected
+            val row = programDao.exercise(programExerciseId)
+                ?.takeIf { it.planId == run.planId && it.dayId == run.dayId }
+                ?: return@withTransaction RunWriteResult.Rejected
+            val tracks = runDao.tracks(runId)
+            val main = tracks.singleOrNull { it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired }
+                ?: return@withTransaction RunWriteResult.Rejected
+            val droppedMain = tracks.singleOrNull { it.programExerciseId == row.id && it.slot == Slot.MAIN && it.dropped }
+            val partner = tracks.singleOrNull { it.programExerciseId == row.id && it.slot == Slot.SS && it.dropped && it.retired }
+            if (partner == null || row.supersetExerciseId == null || tracks.any {
+                    it.programExerciseId == row.id && it.slot == Slot.SS && !it.retired
+                }) return@withTransaction RunWriteResult.Rejected
+            val restoredMain = if (slot == Slot.MAIN) {
+                if (main.exerciseId != partner.exerciseId) return@withTransaction RunWriteResult.Rejected
+                droppedMain ?: main.takeIf { row.exerciseId == partner.exerciseId }
+                    ?: return@withTransaction RunWriteResult.Rejected
+            } else {
+                if (droppedMain != null) return@withTransaction RunWriteResult.Rejected
+                main
+            }
+            val mainRows = SetJson.decodeSets(restoredMain.setsJson)
+            val partnerRows = SetJson.decodeSets(partner.setsJson)
+            val mainSeed = SetJson.decodeSets(restoredMain.plannedJson)
+            val partnerSeed = SetJson.decodeSets(partner.plannedJson)
+            val count = maxOf(mainRows.size, partnerRows.size)
+            if ((mainRows.size < count && mainSeed.isEmpty()) ||
+                (partnerRows.size < count && partnerSeed.isEmpty())) return@withTransaction RunWriteResult.Rejected
+            val aligned = RunReplan.alignPaired(mainRows, partnerRows, mainSeed, partnerSeed)
+            if (main.id != restoredMain.id) {
+                runDao.updateTrack(main.copy(retired = true, dropped = false, updatedAt = clock.millis()))
+            }
+            writeRunTracks(listOf(
+                restoredMain.copy(retired = false, dropped = false, setsJson = SetJson.encodeSets(aligned.first), updatedAt = clock.millis()),
+                partner.copy(retired = false, dropped = false, setsJson = SetJson.encodeSets(aligned.second), updatedAt = clock.millis()),
+            ))
+            RunWriteResult.InRun(runId, started = false)
+        }
+    }
+
     suspend fun swapInRun(
         runId: String,
         programExerciseId: Long,
@@ -1477,6 +1645,7 @@ open class TrackerRepository(
                 ?.takeIf { it.planId == run.planId && it.dayId == run.dayId } ?: return@withTransaction false
             if (row.exerciseIdFor(slot) == null) return@withTransaction false
             val tracks = runDao.tracks(runId)
+            if (tracks.slotSkipped(programExerciseId, slot)) return@withTransaction false
             val active = tracks.firstOrNull {
                 it.programExerciseId == programExerciseId && it.slot == slot && !it.retired
             }
@@ -1486,7 +1655,7 @@ open class TrackerRepository(
                 it.programExerciseId == programExerciseId && it.slot == slot && it.exerciseId == newExerciseId && it.retired
             }
             val validSeed = seed?.takeIf { it.programExerciseId == programExerciseId && it.slot == slot }
-            var replacement = retired?.copy(retired = false, updatedAt = clock.millis()) ?: run {
+            var replacement = retired?.copy(retired = false, dropped = false, updatedAt = clock.millis()) ?: run {
                 val base = validSeed?.sets ?: return@withTransaction false
                 runTrack(runId, row, slot, newExerciseId, CarryForward.cleared(base))
             }
@@ -1622,6 +1791,9 @@ open class TrackerRepository(
         val resolved = tracks.toMutableList()
         val changed = linkedSetOf<Int>()
         for (edit in edits) {
+            if (tracks.slotSkipped(edit.programExerciseId, edit.slot)) {
+                return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+            }
             val seed = seeds.firstOrNull { it.programExerciseId == edit.programExerciseId && it.slot == edit.slot }
             var reopened = false
             var index = resolved.indexOfFirst {
@@ -1757,14 +1929,17 @@ open class TrackerRepository(
     }
 
     /** Adds available seeds to the open run without replacing captured tracks.
-     * Swapping back preserves done rows and re-plans undone rows from the current seed. */
-    suspend fun seedRunTracksIfMissing(runId: String, seeds: List<RunSeed>) {
+     * Swapping back preserves done rows and re-plans undone rows from the current seed.
+     * Whole-lift Bring back also aligns reopened pairs when done rows extend beyond the seeds. */
+    suspend fun seedRunTracksIfMissing(runId: String, seeds: List<RunSeed>, alignPairs: Boolean = false) {
         db.withTransaction {
             val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction
             val planId = run.planId ?: return@withTransaction
             val dayId = run.dayId ?: return@withTransaction
             val existing = runDao.tracks(runId).toMutableList()
+            val seededSlots = mutableSetOf<Long>()
             for (seed in seeds) {
+                if (existing.slotSkipped(seed.programExerciseId, seed.slot)) continue
                 if (existing.any { it.programExerciseId == seed.programExerciseId && it.slot == seed.slot && !it.retired }) continue
                 val slot = programDao.exercise(seed.programExerciseId)
                     ?.takeIf { it.planId == planId && it.dayId == dayId } ?: continue
@@ -1776,9 +1951,26 @@ open class TrackerRepository(
                     runDao.updateTrack(reopened)
                     existing[retiredIndex] = reopened
                 } else {
-                    runDao.insertTrack(track)
-                    existing.add(track)
+                    existing.add(track.copy(id = runDao.insertTrack(track)))
                 }
+                if (alignPairs) seededSlots.add(seed.programExerciseId)
+            }
+            for (id in seededSlots) {
+                val main = existing.singleOrNull { it.programExerciseId == id && it.slot == Slot.MAIN && !it.retired } ?: continue
+                val partner = existing.singleOrNull { it.programExerciseId == id && it.slot == Slot.SS && !it.retired } ?: continue
+                val mainRows = SetJson.decodeSets(main.setsJson)
+                val partnerRows = SetJson.decodeSets(partner.setsJson)
+                if (mainRows.size == partnerRows.size) continue
+                val mainSeed = seeds.firstOrNull { it.programExerciseId == id && it.slot == Slot.MAIN }?.sets
+                    ?: SetJson.decodeSets(main.plannedJson)
+                val partnerSeed = seeds.firstOrNull { it.programExerciseId == id && it.slot == Slot.SS }?.sets
+                    ?: SetJson.decodeSets(partner.plannedJson)
+                if (mainSeed.isEmpty() || partnerSeed.isEmpty()) continue
+                val aligned = RunReplan.alignPaired(mainRows, partnerRows, mainSeed, partnerSeed)
+                writeRunTracks(listOf(
+                    main.copy(setsJson = SetJson.encodeSets(aligned.first), updatedAt = clock.millis()),
+                    partner.copy(setsJson = SetJson.encodeSets(aligned.second), updatedAt = clock.millis()),
+                ))
             }
         }
     }
@@ -1847,7 +2039,7 @@ open class TrackerRepository(
         }.map { it.id }.toSet()
         changedShape.forEach { deleteSlotWorkingValues(slots.getValue(it)) }
         for (track in tracks) {
-            if (track.retired) continue
+            if (track.retired || track.dropped) continue
             val slot = slots[track.programExerciseId] ?: continue
             if (slot.exerciseIdFor(track.slot) != track.exerciseId) continue
             if (slot.id in changedShape) continue

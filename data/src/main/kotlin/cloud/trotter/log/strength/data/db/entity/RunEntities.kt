@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -31,4 +32,5 @@ data class RunTrackEntity(
     val plannedJson: String,
     val setsJson: String,
     val updatedAt: Long,
+    @ColumnInfo(defaultValue = "0") val dropped: Boolean = false,
 )

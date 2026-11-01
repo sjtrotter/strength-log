@@ -1,10 +1,12 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.isSlotSkipped
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.ExerciseSwapResult
 import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunWriteResult
+import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -52,12 +54,14 @@ class SetEditApplier(
 
         // A delayed edit still belongs to the slot's plan after a phone plan switch.
         val planId = delta.planId ?: repo.planIdOfSlot(delta.programExerciseId) ?: return Outcome.INVALID
-        val slots = repo.slotsFor(planId, delta.dayId).first()
+        val dayTracks = repo.dayTracksFlow(planId, delta.dayId).first()
+        if (repo.openRunFlow.first()?.isSlotSkipped(delta.programExerciseId, delta.slot) == true) return Outcome.REJECTED
+        val slots = repo.slotsFor(planId, delta.dayId).first().forRun(dayTracks.droppedPartners, dayTracks.skippedLifts)
         val slot = slots.firstOrNull { it.programExerciseId == delta.programExerciseId } ?: return Outcome.INVALID
         if (delta.slot == Slot.SS && slot.exercise.superset == null) return Outcome.INVALID
 
         val catalog = repo.catalogFlow.first()
-        val tracks = repo.dayTracksFlow(planId, delta.dayId).first().tracks
+        val tracks = dayTracks.tracks
         var declined: Outcome? = null
         val edits = mutableListOf<TrackEdit>()
         fun edit(trackSlot: String, values: Boolean): TrackEdit = TrackEdit(

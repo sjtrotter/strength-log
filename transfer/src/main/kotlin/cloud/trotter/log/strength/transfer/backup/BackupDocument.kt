@@ -297,4 +297,5 @@ data class RunTrackBackup(
     val plannedJson: String,
     val setsJson: String,
     val updatedAt: Long,
+    val dropped: Boolean = false,
 )

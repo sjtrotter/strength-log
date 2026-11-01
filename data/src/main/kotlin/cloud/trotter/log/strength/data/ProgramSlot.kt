@@ -13,3 +13,8 @@ data class ProgramSlot(
     val position: Int,
     val exercise: ProgramExercise,
 )
+
+fun List<ProgramSlot>.forRun(dropped: Set<Long>, skipped: Set<Long> = emptySet()): List<ProgramSlot> =
+    filterNot { it.programExerciseId in skipped }.map { slot ->
+        if (slot.programExerciseId in dropped) slot.copy(exercise = slot.exercise.copy(superset = null)) else slot
+    }

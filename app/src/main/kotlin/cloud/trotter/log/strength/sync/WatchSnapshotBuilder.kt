@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.LoggedSlot
 import cloud.trotter.log.strength.data.ProgramSlot
@@ -77,6 +78,8 @@ object WatchSnapshotBuilder {
         runStartedAt: Long? = null,
         retiredRoundsDone: Int? = null,
         processedEditStamps: List<Long>? = null,
+        droppedPartners: Set<Long> = emptySet(),
+        skippedLifts: Set<Long> = emptySet(),
     ): WatchSnapshot? {
         val dayId = suggestedDayId ?: return null
         val watchDays = program.days.filter {
@@ -86,14 +89,15 @@ object WatchSnapshotBuilder {
         if (dayIndex < 0) return null
         val day = watchDays[dayIndex]
 
+        val workoutSlots = slots.forRun(droppedPartners, skippedLifts)
         val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
         val previewSeeds = DayScreenBuilder.seedPlan(
-            slots = slots,
+            slots = workoutSlots,
             existing = logsByKey.mapValues { it.value.sets.size },
             cfg = cfg,
             catalog = catalog,
         ).associateBy { it.programExerciseId to it.slot }
-        val exercises = slots.map { slot ->
+        val exercises = workoutSlots.map { slot ->
             buildExercise(slot, logsByKey, previewSeeds, cfg, catalog, unit, restSettings, equipment)
         }
 

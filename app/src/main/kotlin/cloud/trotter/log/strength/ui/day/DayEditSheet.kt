@@ -775,10 +775,12 @@ private fun SwapPickerPage(
     var workoutOnly by rememberSaveable(slot.programExerciseId, half) { mutableStateOf(state.runOpen) }
     val picked = pickedId?.let(state.catalog::find)
     if (picked != null) {
-        BackHandler { pickedId = null }
+        val resetPick = { pickedId = null }
+        BackHandler(onBack = resetPick)
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            BackAction(onClick = { pickedId = null })
-            Text(picked.name, style = MaterialTheme.typography.titleLarge)
+            BackAction(onClick = resetPick)
+            Text(picked.name,
+                style = MaterialTheme.typography.titleLarge)
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 listOf(true, false).forEachIndexed { index, workout ->
                     SegmentedButton(
@@ -789,7 +791,9 @@ private fun SwapPickerPage(
                 }
             }
             FilledTonalButton(
-                onClick = { if (workoutOnly) onWorkoutPick(picked) else onPick(picked) },
+                onClick = {
+                    if (workoutOnly) onWorkoutPick(picked) else onPick(picked)
+                },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.day_swap_apply)) }
         }

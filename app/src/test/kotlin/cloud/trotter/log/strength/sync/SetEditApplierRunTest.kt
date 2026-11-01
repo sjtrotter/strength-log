@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.OpenRun
+import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -512,5 +513,31 @@ class SetEditApplierRunTest {
         )))
         assertEquals(afterPhoneSwap, repo.openRunFlow.first())
         assertEquals("hack_squat", repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }.exerciseId)
+    }
+    @Test fun `SS delta for a dropped partner is rejected and acknowledged without changing tracks`() = runTest {
+        val plan = authored()
+        val runId = phoneStart(plan)
+        val id = repo.slotsFor(plan, "A").first().first { it.exercise.superset != null }.programExerciseId
+        repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "ez_curl", "rope_pushdown")
+        val before = db.runDao().tracks(runId)
+        val edit = SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 0,
+            done = true, editedAtMillis = 900, planId = plan, runId = runId, exerciseId = "rope_pushdown")
+        assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(edit))
+        assertEquals(before, db.runDao().tracks(runId))
+        assertTrue(900L in syncStore.processedEditsFlow.first())
+    }
+
+
+    @Test fun `MAIN delta for a skipped plain lift is rejected and acknowledged without writes`() = runTest {
+        val plan = authored()
+        val runId = phoneStart(plan)
+        val id = squatId(plan)
+        assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", null) is RunWriteResult.InRun)
+        val before = db.runDao().tracks(runId)
+        val edit = SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 901, planId = plan, runId = runId, exerciseId = "bb_back_squat")
+        assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(edit))
+        assertEquals(before, db.runDao().tracks(runId))
+        assertTrue(901L in syncStore.processedEditsFlow.first())
     }
 }

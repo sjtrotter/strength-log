@@ -189,7 +189,7 @@ fun DayScreen(
             if (result == SnackbarResult.ActionPerformed) onUndoRemoveSet()
         }
     }
-    val swappedMessage = state.swapUndo?.let { stringResource(R.string.day_swapped_to, it.title) }
+    val swappedMessage = state.swapUndo?.let { stringResource(if (it.skippedSlot != null) R.string.day_skipped_lift else R.string.day_swapped_to, it.title) }
     LaunchedEffect(state.swapUndo) {
         if (swappedMessage != null) {
             snackbarHost.currentSnackbarData?.dismiss()
@@ -538,6 +538,9 @@ fun DayScreen(
                     val entry = exerciseId?.let(dayEditState.catalog::find)
                     LiftSheet(card, sheet.slot, state.workout?.focus, actions,
                         canSwap = entry?.pattern != null,
+                        skipEnabled = state.workout != null,
+                        canSkipLift = card.isSuperset || state.exercises.size > 1,
+                        skippedPartner = state.skippedPartners[card.programExerciseId],
                         weightSwap = if (sheet.slot == Slot.SS) DayScreenBuilder.weightSwapAffordance(entry, dayEditState.catalog) else card.weightSwap,
                         onWeightSwap = { swap ->
                             actions.onCloseAllSets()
@@ -849,6 +852,9 @@ data class DayActions(
     val onNextWorkoutLift: () -> Unit = {},
     val onOpenLiftSheet: (Long, String) -> Unit = { _, _ -> },
     val onOpenDaySheet: () -> Unit = {},
+    val onSkipLift: (Long, String) -> Unit = { _, _ -> },
+    val onRestoreSkipped: (Long, String) -> Unit = { _, _ -> },
+    val onSkipNowSet: (Long, String) -> Unit = { _, _ -> },
     val onOpenSwapSheet: (Int, String) -> Unit = { _, _ -> },
     val onUndoWorkoutSwap: () -> Unit = {},
     val onDismissSwapUndo: () -> Unit = {},

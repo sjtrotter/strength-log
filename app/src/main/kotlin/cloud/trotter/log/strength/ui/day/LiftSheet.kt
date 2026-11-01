@@ -41,6 +41,9 @@ internal fun LiftSheet(
     onWeightSwap: (WeightSwapAffordance) -> Unit,
     onNote: () -> Unit,
     onDismiss: () -> Unit,
+    skipEnabled: Boolean = false,
+    skippedPartner: SkippedLift? = null,
+    canSkipLift: Boolean = card.isSuperset,
 ) {
     val partner = slot == Slot.SS
     val title = if (partner) card.partnerTitle.orEmpty() else card.title
@@ -69,6 +72,12 @@ internal fun LiftSheet(
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            if (skipEnabled && skippedPartner != null) item {
+                ListItem(headlineContent = { Text(stringResource(R.string.day_bring_back_lift, skippedPartner.title)) },
+                    modifier = Modifier.heightIn(min = 48.dp).clickable {
+                        actions.onRestoreSkipped(card.programExerciseId, skippedPartner.slot)
+                    })
             }
             items(card.rows, key = { it.index }) { row ->
                 row.values(slot)?.let { values ->
@@ -99,11 +108,28 @@ internal fun LiftSheet(
             item {
                 TextButton(onClick = { actions.onAddSet(card.programExerciseId, card.isSuperset) },
                     modifier = Modifier.padding(horizontal = 16.dp)) { Text(stringResource(R.string.day_add_set)) }
-                HorizontalDivider()
             }
+            val now = focus?.takeIf { it.programExerciseId == card.programExerciseId && it.slot == slot }
+                ?.let { card.rows.getOrNull(it.index) }?.takeIf { it.values(slot)?.done == false }
+            if (skipEnabled && now != null) item {
+                ListItem(headlineContent = { Text(stringResource(
+                    if (card.isSuperset) R.string.day_skip_round else R.string.day_skip_set)) },
+                    modifier = Modifier.heightIn(min = 48.dp).clickable {
+                        onDismiss()
+                        actions.onSkipNowSet(card.programExerciseId, slot)
+                    })
+            }
+            item { HorizontalDivider() }
             if (canSwap) item {
                 ListItem(headlineContent = { Text(stringResource(R.string.day_menu_swap)) },
                     modifier = Modifier.clickable { actions.onOpenSwapSheet(card.position, slot) })
+            }
+            if (skipEnabled && canSkipLift) item {
+                ListItem(headlineContent = { Text(stringResource(R.string.day_skip_workout)) },
+                    modifier = Modifier.heightIn(min = 48.dp).clickable {
+                        onDismiss()
+                        actions.onSkipLift(card.programExerciseId, slot)
+                    })
             }
             weightSwap?.let { swap -> item {
                 ListItem(headlineContent = { Text(stringResource(

@@ -7,6 +7,8 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.ui.day.DayEditUiState
+import cloud.trotter.log.strength.ui.day.WorkoutSwapUndo
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -151,14 +153,44 @@ class WorkoutSetScreenPreviewShotsTest {
         render("13-day-sheet.png", state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0L, 0)))
     }
 
+    @Test fun liftSheetSkip() {
+        val base = workoutSetSupersetFixture()
+        val state = base.copy(exercises = base.exercises.map { card -> card.copy(
+            isSuperset = false, partnerExerciseId = null, partnerTitle = null, partnerTracking = null,
+            rows = card.rows.map { it.copy(partner = null) },
+        ) })
+        render("14-lift-sheet-skip.png", state.copy(
+            openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, 1L, 0)))
+    }
+
+    @Test fun daySheetSkipped() {
+        val state = workoutDaySheetFixture()
+        val skipped = state.exercises.first()
+        render("16-day-sheet-skipped.png", state.copy(
+            exercises = state.exercises.filterNot { it.programExerciseId == skipped.programExerciseId },
+            skippedLifts = listOf(cloud.trotter.log.strength.ui.day.SkippedLift(skipped.programExerciseId, skipped.position, skipped.title)),
+            openSheet = OpenSheet("A", OpenSheet.Kind.DAY, 0L, 0)))
+    }
+
+    @Test fun afterDrop() {
+        val state = workoutSetSupersetFixture()
+        val card = state.exercises.single()
+        render("15-after-drop.png", state.copy(runOpen = true, runId = "drop-preview",
+            exercises = listOf(card.copy(isSuperset = false, partnerExerciseId = null, partnerTitle = null,
+                partnerTracking = null, rows = card.rows.map { it.copy(partner = null) })),
+            swapUndo = WorkoutSwapUndo("A", "drop-preview", 1L, Slot.MAIN, "cable_row", "db_bench",
+                card.partnerTitle.orEmpty(), skippedSlot = Slot.SS)))
+    }
+
     private fun render(
         name: String, state: DayUiState, theme: ThemePreference = ThemePreference.DARK, fontScale: Float? = null,
+        dayEditState: DayEditUiState = DayEditUiState(),
     ) {
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale ?: density.fontScale)) {
                 AppTheme(preference = theme) {
-                    WorkoutSetHost(state, nowMillis = { rule.mainClock.currentTime })
+                    WorkoutSetHost(state, dayEditState = dayEditState, nowMillis = { rule.mainClock.currentTime })
                 }
             }
         }

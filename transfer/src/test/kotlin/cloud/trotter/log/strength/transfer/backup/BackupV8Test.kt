@@ -305,11 +305,18 @@ class BackupV8Test {
     }
 
     @Test
-    fun `selectedPlanId naming a missing or archived plan uses the first active plan`() {
+    fun `selectedPlanId naming a missing plan normalizes to the first active plan`() {
         val doc = document()
         val missing = decode(doc.copy(settings = doc.settings.copy(selectedPlanId = 99))).toSnapshot()
+        assertEquals(1L, missing.selectedPlanId)
         assertEquals(listOf(1L), missing.plans.filter { it.onToday }.map { it.id })
+    }
+
+    @Test
+    fun `selectedPlanId naming an archived plan normalizes to the first active plan`() {
+        val doc = document()
         val archived = decode(doc.copy(plans = listOf(doc.plans.first(), doc.plans.last().copy(archived = true)))).toSnapshot()
+        assertEquals(1L, archived.selectedPlanId)
         assertEquals(listOf(1L), archived.plans.filter { it.onToday }.map { it.id })
     }
 

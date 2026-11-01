@@ -28,8 +28,8 @@ class CardioDeltaApplier(
      * delta this phone can never apply must be acked and dropped, or the watch
      * re-sends it forever. Recording happens after repository work returns,
      * outside any Room transaction.
-     * Its explicit plan survives a phone plan switch; a null plan keeps the old
-     * selected-plan behavior.
+     * Its explicit plan survives a phone plan switch; a null plan logs without
+     * a plan and never advances a rotation.
      */
     suspend fun apply(delta: CardioDelta): Outcome = lock.withLock {
         val sets = runCatching { delta.sets.map { it.toDomain() } }.getOrNull()

@@ -237,8 +237,8 @@ class CardioDeltaApplierTest {
         assertEquals(listOf(12L), recordedStamps)
     }
 
-    @Test fun `explicit-plan cardio stays with its plan and old-watch cardio uses selection`() = runTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", emptyList()))))
+    @Test fun `explicit-plan cardio stays with its plan and old-watch cardio has no plan or rotation`() = runTest {
+        repo.replaceProgram(Program(listOf("A", "B").map { ProgramDay(it, "Test $it", "", emptyList()) }))
         val planP = repo.selectedPlanIdFlow.first()!!
         repo.renamePlan(planP, "Strength")
         val planQ = repo.duplicatePlan(planP, "Running")
@@ -249,10 +249,13 @@ class CardioDeltaApplierTest {
         val planned = repo.cardioSessionsFlow.first().single()
         assertEquals(planP, planned.planId)
         assertEquals("Strength", planned.planName)
-        assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta(stamp = 11L, startedAt = 100_000L)))
+        val rotations = db.planDao().allPlans().associate { it.id to it.suggestedDayId }
+        assertEquals(CardioDeltaApplier.Outcome.APPLIED,
+            applier.apply(delta(stamp = 11L, startedAt = 100_000L).copy(finishesDay = true)))
         val legacy = repo.cardioSessionsFlow.first().first { it.startedAt == 100_000L }
-        assertEquals(planQ, legacy.planId)
-        assertEquals("Running", legacy.planName)
+        assertEquals(null, legacy.planId)
+        assertEquals(null, legacy.planName)
+        assertEquals(rotations, db.planDao().allPlans().associate { it.id to it.suggestedDayId })
         // Plan identity does not change content identity, even across selection.
         assertEquals(CardioDeltaApplier.Outcome.DUPLICATE, applier.apply(delta(stamp = 12L).copy(planId = planQ)))
         assertEquals(2, repo.cardioSessionsFlow.first().size)

@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.data
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -44,6 +46,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -93,6 +96,55 @@ class PlanSettingsTest {
     fun tearDown() {
         db.close()
         storeScope.cancel()
+    }
+
+    @Test
+    fun `membership fixup rechecks the marker after an import commits Room`() = runTest {
+        db.planDao().insertPlan(plan(1))
+        settings.setPlanSettingsFixupDone()
+        val readReached = CompletableDeferred<Unit>()
+        val readOpen = CompletableDeferred<Unit>()
+        var pauseNextRead = true
+        val gatedSettings = SettingsStore(object : DataStore<Preferences> {
+            override val data = store.data.onEach {
+                if (pauseNextRead) {
+                    pauseNextRead = false
+                    readReached.complete(Unit)
+                    readOpen.await()
+                }
+            }
+
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+                store.updateData(transform)
+        })
+        val repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), gatedSettings)
+        val snapshot = FullSnapshot(
+            answers = WizardAnswers(), unit = WeightUnit.LB, wizardComplete = true,
+            suggestedDay = null, selectedPlanId = 2, restSettings = RestSettings(),
+            plans = listOf(plan(2)), answersCarryRecipe = false,
+            customExercises = emptyList(), days = emptyList(), exercises = emptyList(),
+            logs = emptyList(), sessions = emptyList(), sessionSets = emptyList(),
+        )
+        val writeOpen = CompletableDeferred<Unit>()
+        store.gateOnUpdate = 2
+        store.gate = writeOpen
+        val fixup = launch { repository.runPlanSettingsFixupIfNeeded() }
+        readReached.await()
+        val importing = launch { repository.importSnapshot(snapshot, journal) }
+        try {
+            store.gateReached.await()
+            assertTrue(db.restoreMarkerDao().nonce() != null)
+            readOpen.complete(Unit)
+            fixup.join()
+            assertEquals(snapshot.plans, db.planDao().allPlans())
+            assertFalse(settings.onTodayFixupDoneFlow.first())
+        } finally {
+            readOpen.complete(Unit)
+            writeOpen.complete(Unit)
+        }
+        importing.join()
+        assertEquals(snapshot.plans, db.planDao().allPlans())
+        assertTrue(settings.onTodayFixupDoneFlow.first())
     }
 
     @Test

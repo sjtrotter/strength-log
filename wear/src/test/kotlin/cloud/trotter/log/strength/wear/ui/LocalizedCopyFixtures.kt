@@ -37,4 +37,5 @@ fun ambientDialState(
     dayText = { "day $it" },
     dayProgressText = { day, done, total -> "day $day · $done/$total" },
     restingText = ambientLabel ?: "resting",
+    nothingOnTodayText = "Nothing on Today",
 )

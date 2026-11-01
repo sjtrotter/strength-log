@@ -132,5 +132,5 @@ data class DayGlanceCopy(
     val progressDescription: (String, Int, Int) -> String,
     val emptyShortText: String,
     val ratio: (Int, Int) -> String,
-    val nothingOnToday: String = "Nothing on Today",
+    val nothingOnToday: String,
 )

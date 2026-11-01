@@ -156,9 +156,9 @@ fun roundLabel(round: RoundUiState): String =
 
 fun dialUiState(inputs: DialInputs, copy: DialCopy): DialUiState {
     val day = inputs.snapshot.day
-    if (day.dayId.isBlank()) return nothingOnToday(inputs.snapshot, copy)
     val cardioRun = inputs.cardioSets?.reconcile(inputs.snapshot)
     if (cardioRun != null) return cardioSetsDial(inputs, cardioRun)
+    if (day.dayId.isBlank()) return nothingOnToday(inputs.snapshot, copy)
     val cardioReady = day.exercises.isEmpty() || (inputs.face == DialFace.OVERVIEW &&
         day.exercises.all { ex -> ex.sets.all { it.done } })
     if (cardioReady) {

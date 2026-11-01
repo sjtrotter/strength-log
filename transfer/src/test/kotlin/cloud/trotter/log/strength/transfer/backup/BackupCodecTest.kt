@@ -132,7 +132,23 @@ class BackupCodecTest {
             val encoded = codec.encode(old).replace("\"onToday\":true", "\"onToday\":\"future\"")
                 .replace("\"onToday\":false", "\"onToday\":{}")
             val snapshot = codec.decode(encoded).toSnapshot()
+            assertEquals(expected, snapshot.selectedPlanId)
             assertEquals(listOf(expected), snapshot.plans.filter { it.onToday }.map { it.id })
+        }
+    }
+
+    @Test
+    fun `v15 normalizes stale preference without changing paused membership`() {
+        val base = restSnapshot(RestSettings()).toDocument()
+        val plans = listOf(
+            base.plans.single().copy(id = 1, onToday = false),
+            base.plans.single().copy(id = 2, archived = true, days = emptyList(), suggestedDay = null, onToday = false),
+        )
+        for (stored in listOf(99L, 2L)) {
+            val doc = base.copy(plans = plans, settings = base.settings.copy(selectedPlanId = stored))
+            val snapshot = codec.decode(codec.encode(doc)).toSnapshot()
+            assertEquals(1L, snapshot.selectedPlanId)
+            assertTrue(snapshot.plans.none { it.onToday })
         }
     }
 

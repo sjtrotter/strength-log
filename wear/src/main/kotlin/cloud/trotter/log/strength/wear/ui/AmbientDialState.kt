@@ -34,7 +34,7 @@ fun ambientDialState(
     dayText: (String) -> String,
     dayProgressText: (String, Int, Int) -> String,
     restingText: String,
-    nothingOnTodayText: String = "Nothing on Today",
+    nothingOnTodayText: String,
 ): AmbientDialState {
     if (snapshot.day.dayId.isBlank()) return AmbientDialState(0f, nothingOnTodayText, timeText, null)
     val progress = DayProgress.of(snapshot)

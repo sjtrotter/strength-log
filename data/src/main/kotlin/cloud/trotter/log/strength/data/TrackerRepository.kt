@@ -141,27 +141,30 @@ open class TrackerRepository(
             preferredPlan(plans, storedId)?.id
         }.distinctUntilChanged()
 
-    val planSummariesFlow: Flow<List<PlanSummary>> = combine(
-        plansFlow,
-        settings.selectedPlanIdFlow,
-        programDao.observeAllDays(),
-        sessionDao.lastSessionByPlan(),
-    ) { plans, storedId, days, sessions ->
-        val selectedId = preferredPlan(plans, storedId)?.id
-        val daysByPlan = days.groupBy { it.planId }
-        val lastByPlan = sessions.associate { it.planId to it.completedAt }
-        plans.map { plan ->
-            PlanSummary(
-                id = plan.id,
-                name = plan.name,
-                nextDayId = plan.suggestedDayId,
-                nextDayTitle = daysByPlan[plan.id]?.firstOrNull { it.dayId == plan.suggestedDayId }?.title,
-                selected = plan.id == selectedId,
-                archived = plan.archived,
-                onToday = plan.onToday,
-                lastSessionAt = lastByPlan[plan.id],
-            )
-        }
+    val planSummariesFlow: Flow<List<PlanSummary>> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(combine(
+            plansFlow,
+            settings.selectedPlanIdFlow,
+            programDao.observeAllDays(),
+            sessionDao.lastSessionByPlan(),
+        ) { plans, storedId, days, sessions ->
+            val selectedId = preferredPlan(plans, storedId)?.id
+            val daysByPlan = days.groupBy { it.planId }
+            val lastByPlan = sessions.associate { it.planId to it.completedAt }
+            plans.map { plan ->
+                PlanSummary(
+                    id = plan.id,
+                    name = plan.name,
+                    nextDayId = plan.suggestedDayId,
+                    nextDayTitle = daysByPlan[plan.id]?.firstOrNull { it.dayId == plan.suggestedDayId }?.title,
+                    selected = plan.id == selectedId,
+                    archived = plan.archived,
+                    onToday = plan.onToday,
+                    lastSessionAt = lastByPlan[plan.id],
+                )
+            }
+        })
     }
 
     private val selectedPlanStateFlow: Flow<PlanEntity?> =
@@ -460,6 +463,7 @@ open class TrackerRepository(
     /** Idempotently writes the global lifter and selects an existing active plan
      * under the selection lock. */
     open suspend fun publishCreatedPlan(id: Long, answers: WizardAnswers) {
+        ensurePlanSettingsMigrated()
         planSelectionLock.withLock {
             val active = planDao.plan(id)?.archived == false
             if (active) planDao.updateOnToday(id, true)
@@ -485,6 +489,7 @@ open class TrackerRepository(
     }
 
     suspend fun publishCreatedAuthoredPlan(id: Long) {
+        ensurePlanSettingsMigrated()
         planSelectionLock.withLock {
             val plan = planDao.plan(id)
             if (plan?.origin == PlanOrigin.AUTHORED.name && !plan.archived) {
@@ -941,10 +946,12 @@ open class TrackerRepository(
             }
             if (migrateOnToday && !settings.onTodayFixupDoneFlow.first()) {
                 val storedId = settings.selectedPlanIdFlow.first()
-                db.withTransaction {
+                val migrated = db.withTransaction {
+                    if (restoreMarkerDao.nonce() != null) return@withTransaction false
                     preferredPlan(planDao.allPlans(), storedId)?.let { planDao.updateOnToday(it.id, true) }
+                    true
                 }
-                settings.setOnTodayFixupDone()
+                if (migrated) settings.setOnTodayFixupDone()
             }
             if (legacyCardioConverted) return@withLock
             val global = settings.globalLifterFlow.first()
@@ -1314,12 +1321,13 @@ open class TrackerRepository(
 
     val todayTargetFlow: Flow<TodayTarget?> = flow {
         ensurePlanSettingsMigrated()
-        emitAll(combine(settings.selectedPlanIdFlow, openRunFlow, plansFlow) { storedId, open, plans ->
-            if (restoreMarkerDao.nonce() != null) return@combine null
+        emitAll(combine(
+            settings.selectedPlanIdFlow, openRunFlow, plansFlow, restoreMarkerDao.observeNonce(),
+        ) { storedId, open, plans, restoreNonce ->
+            if (restoreNonce != null) return@combine null
             val running = open?.let { run -> plans.firstOrNull { it.id == run.planId } }
             val preferred = preferredPlan(plans, storedId)?.takeIf { it.onToday }
-            val plan = running ?: preferred ?: plans.filter { !it.archived && it.onToday }
-                .minWithOrNull(compareBy({ it.position }, { it.id }))
+            val plan = running ?: preferred ?: plans.firstOrNull { !it.archived && it.onToday }
             when {
                 plan != null -> TodayTarget.Day(plan, if (running != null) open?.dayId else plan.suggestedDayId)
                 plans.isEmpty() -> TodayTarget.NoPlans

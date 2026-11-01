@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -74,6 +75,45 @@ class OnTodayTest {
         db.planDao().updateOnToday(2, false)
         repo.runPlanSettingsFixupIfNeeded()
         assertTrue(db.planDao().allPlans().none { it.onToday })
+    }
+
+    @Test fun `first plan summaries include migrated membership`() = runTest {
+        db.planDao().insertPlans(listOf(plan(1), plan(2)))
+        settings.setSelectedPlanId(2)
+        settings.setPlanSettingsFixupDone()
+
+        val summaries = repo.planSummariesFlow.first()
+
+        assertEquals(listOf(2L), summaries.filter { it.onToday }.map { it.id })
+        assertTrue(settings.onTodayFixupDoneFlow.first())
+    }
+
+    @Test fun `publishing a generated plan migrates the old preferred plan first`() = runTest {
+        db.planDao().insertPlan(plan(1))
+        db.programDao().upsertDay(ProgramDayEntity(1, "A", 0, "Day A", "", null))
+        settings.setSelectedPlanId(1)
+        settings.setPlanSettingsFixupDone()
+        val program = Program(listOf(ProgramDay("A", "Day A", "", emptyList())))
+        val generated = repo.createGeneratedPlan("Generated", WizardAnswers(), program)
+
+        repo.publishCreatedPlan(generated, WizardAnswers())
+
+        assertEquals(generated, settings.selectedPlanIdFlow.first())
+        assertEquals(listOf(1L, generated), db.planDao().allPlans().filter { it.onToday }.map { it.id })
+        assertTrue(settings.onTodayFixupDoneFlow.first())
+    }
+
+    @Test fun `publishing an authored plan migrates the old preferred plan first`() = runTest {
+        db.planDao().insertPlan(plan(1))
+        settings.setSelectedPlanId(1)
+        settings.setPlanSettingsFixupDone()
+        val authored = repo.createAuthoredPlan("Authored", "Day A")
+
+        repo.publishCreatedAuthoredPlan(authored)
+
+        assertEquals(authored, settings.selectedPlanIdFlow.first())
+        assertEquals(listOf(1L, authored), db.planDao().allPlans().filter { it.onToday }.map { it.id })
+        assertTrue(settings.onTodayFixupDoneFlow.first())
     }
 
     @Test fun `membership fixup and display defer under the restore marker`() = runTest {

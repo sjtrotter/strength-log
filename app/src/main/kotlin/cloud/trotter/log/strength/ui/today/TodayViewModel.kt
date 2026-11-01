@@ -14,6 +14,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -30,7 +31,9 @@ class TodayViewModel @Inject constructor(
     private val expanded = savedState.getStateFlow("today_other_days", false)
     // The branch owns both the program reads and the history identity. A delayed
     // membership switch keeps the previous complete overview until all new data arrives.
-    private val overview = combine(repo.todayPlans, repo.todayTargetFlow, repo.openRunFlow) { plans, target, run ->
+    // Set ticks re-emit the open run's tracks; the overview needs only its identity.
+    private val openRunIdentity = repo.openRunFlow.map { it?.copy(tracks = emptyList()) }.distinctUntilChanged()
+    private val overview = combine(repo.todayPlans, repo.todayTargetFlow, openRunIdentity) { plans, target, run ->
         Triple(plans, target, run)
     }.flatMapLatest { (plans, target, run) ->
         val planIds = (plans.map { it.id } + listOfNotNull(run?.planId)).distinct()

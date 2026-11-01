@@ -22,19 +22,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import com.github.takahirom.roborazzi.captureRoboImage
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -64,7 +66,7 @@ class ListingImagesTest {
         val canvas = Canvas(bitmap)
         canvas.drawColor((icon.background as ColorDrawable).color)
         val foreground = requireNotNull(icon.foreground)
-        foreground.setBounds(-128, -128, 640, 640)
+        foreground.setBounds(-96, -96, 608, 608)
         foreground.draw(canvas)
         bitmap.setHasAlpha(false)
         if (System.getProperty("roborazzi.test.record") == "true") {
@@ -104,19 +106,19 @@ class ListingImagesTest {
                             Image(
                                 painterResource(R.drawable.ic_barbell_foreground),
                                 contentDescription = null,
-                                modifier = Modifier.requiredSize(288.dp),
+                                modifier = Modifier.requiredSize(264.dp),
                             )
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
                                 title,
                                 color = MaterialTheme.colorScheme.onBackground,
-                                style = MaterialTheme.typography.displayLarge,
+                                style = MaterialTheme.typography.displayLarge.copy(fontSize = 112.sp, lineHeight = 112.sp),
                             )
                             Text(
                                 tagline,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 32.sp, lineHeight = 40.sp),
                             )
                         }
                     }
@@ -131,7 +133,9 @@ class ListingImagesTest {
         if (System.getProperty("roborazzi.test.record") == "true") {
             val file = File(System.getProperty("listingImages.dir"), "featureGraphic.png")
             file.parentFile.mkdirs()
-            root.captureRoboImage(file)
+            val bitmap = root.captureToImage().asAndroidBitmap()
+            bitmap.setHasAlpha(false)
+            file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
         }
     }
 }

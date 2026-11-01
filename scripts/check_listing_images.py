@@ -8,6 +8,8 @@ from PIL import Image, ImageChops
 def check(rendered, committed, expected_size):
     try:
         with Image.open(rendered) as image:
+            if image.mode != "RGB":
+                raise ValueError(f"rendered mode is {image.mode}; Play wants opaque RGB")
             rgb = image.convert("RGB")
         with Image.open(committed) as image:
             committed_rgb = image.convert("RGB")

@@ -43,7 +43,7 @@
         android:name=".StrengthLogApp"
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.StrengthLog.Starting"
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"

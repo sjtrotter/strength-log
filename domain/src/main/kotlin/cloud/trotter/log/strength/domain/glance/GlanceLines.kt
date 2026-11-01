@@ -6,8 +6,8 @@ package cloud.trotter.log.strength.domain.glance
  * follow the same wording, with a parity test against this contract, so one day
  * says the same thing on the home screen and on the wrist.
  *
- * What a surface still decides for itself is its no-program wording — "set up
- * your program" is an instruction you can follow on a phone and not on a watch.
+ * What a surface still decides for itself is its no-program wording — "Set up
+ * a plan" is an instruction you can follow on a phone and not on a watch.
  */
 object GlanceLines {
 

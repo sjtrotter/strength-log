@@ -259,10 +259,24 @@ class DayViewModel @Inject constructor(
                 val remaining = PhoneRestTimer.remainingSeconds(rest, now)
                 emit(RestUiState(rest, remaining, PhoneRestTimer.remainingFraction(rest, now), remaining == 0))
                 if (remaining == 0) {
-                    phoneRestRuntime.complete()
+                    val expired = PhoneRestActions.locked {
+                        val current = repo.phoneRestFlow.first()
+                        if (current == null || current.deadlineEpochMillis != rest.deadlineEpochMillis || current.deadlineEpochMillis > clock.millis()) {
+                            false
+                        } else {
+                            phoneRestRuntime.complete()
+                            true
+                        }
+                    }
+                    if (!expired) break
                     delay(REST_OVER_MS)
-                    phoneRestRuntime.cancel()
-                    repo.setPhoneRest(null)
+                    PhoneRestActions.locked {
+                        val current = repo.phoneRestFlow.first()
+                        if (current != null && current.deadlineEpochMillis == rest.deadlineEpochMillis && current.deadlineEpochMillis <= clock.millis()) {
+                            // complete() already canceled the running alarm; keep the Rest over notification.
+                            repo.setPhoneRest(null)
+                        }
+                    }
                     break
                 }
                 delay(REST_TICK_MS)
@@ -472,7 +486,6 @@ class DayViewModel @Inject constructor(
         val previous = DaySelection(dayState.value.planId, currentDay().orEmpty())
         savedState[KEY_VIEW_SELECTION] = selection
         if (selection == previous) return
-        skipRest()
         closeUndoWindow()
         setDayEditorOpen(false)
         savedState[KEY_SELECTED_PAGE] = null
@@ -983,7 +996,7 @@ class DayViewModel @Inject constructor(
                         val load = nextSet?.let {
                             SetFormatter.summary(tracking, it.weightLb, it.reps, it.seconds, repo.unitFlow.first(), spaced = true)
                         }.orEmpty()
-                        "$title $load".trim()
+                        listOf(title, load.trim()).filter { it.isNotBlank() }.joinToString(" ")
                     } else ""
                     PhoneRestTimer.start(clock.millis(), seconds, next)?.let { rest ->
                         PhoneRestActions.locked {

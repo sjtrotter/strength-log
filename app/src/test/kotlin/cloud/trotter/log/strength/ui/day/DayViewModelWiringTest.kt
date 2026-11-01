@@ -1257,6 +1257,31 @@ class DayViewModelWiringTest {
     }
 
     @Test
+    fun repsOnlyRestLabelHasOneSpaceBetweenTitleAndLoad() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Push", "", listOf(
+            ProgramExercise("pushup", targetSets = 2),
+        )))))
+        repo.setPhoneRestTimerEnabled(true)
+        val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
+        val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
+            override val available = true
+            override fun arm(rest: cloud.trotter.log.strength.domain.standards.PhoneRest) { armed += rest }
+            override fun cancel() = Unit
+            override fun complete() = false
+        }
+        val vm = newViewModel(restRuntime = runtime)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.toggleDone(slotId("pushup"), 0, true, Slot.MAIN)
+        runCurrent()
+        val card = vm.uiState.value.exercises.single()
+        assertEquals("${card.title} × ${card.rows[1].reps}", armed.single().nextSetLabel)
+        repo.setPhoneRest(null)
+        advanceUntilIdle()
+        collect.cancel()
+    }
+
+    @Test
     fun partnerFirstStartsRestOnlyAfterMainAndUsesMainSetKind() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(
             ProgramExercise("bb_back_squat", isMain = true, superset = SupersetPartner("rope_pushdown")),

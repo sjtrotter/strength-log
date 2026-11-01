@@ -37,16 +37,19 @@ class LauncherAliasMigration internal constructor(
             if (store.data.first()[NORMALIZED] == true) return@withLock
             val pm = context.packageManager
             val aliases = ('A'..'G').map { ComponentName(context.packageName, "${context.packageName}.Launcher_Day$it") }
-            val selected = aliases.indexOfFirst { alias ->
+            val enabled = aliases.map { alias ->
                 when (pm.getComponentEnabledSetting(alias)) {
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
                     PackageManager.COMPONENT_ENABLED_STATE_DEFAULT -> alias == aliases.first()
                     else -> false
                 }
-            }.takeIf { it >= 0 } ?: 0
+            }
+            val selected = enabled.indexOfFirst { it }.takeIf { it >= 0 } ?: 0
             // Enable first so interruption cannot leave the app without a launcher.
-            pm.setComponentEnabledSetting(aliases[selected], PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
-            aliases.filterIndexed { index, _ -> index != selected }.forEach { alias ->
+            if (!enabled[selected]) {
+                pm.setComponentEnabledSetting(aliases[selected], PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+            }
+            aliases.filterIndexed { index, _ -> index != selected && enabled[index] }.forEach { alias ->
                 pm.setComponentEnabledSetting(alias, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
             }
             store.edit { it[NORMALIZED] = true }

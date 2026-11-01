@@ -63,7 +63,7 @@ A single activity with a Today / Log / Plan `NavigationBar` (`ui/navigation/`,
 | Wizard | `ui/wizard/WizardScreen.kt` | First run, or a new plan | Produce a rotation the lifter accepts |
 | Health Connect rationale | `health/HealthRationaleActivity.kt` | System permission flow | Explain each permission |
 | Widget | `widget/` | Home screen | Say today's day and progress |
-| Day launcher icon | `icon/DayIconManager.kt` | Home screen | Show today's letter |
+| Launcher icon | `icon/LauncherAliasMigration.kt` | Home screen | Keep legacy aliases pointing at the barbell |
 
 ### Watch (`wear/src/main/kotlin/cloud/trotter/log/strength/wear/`)
 

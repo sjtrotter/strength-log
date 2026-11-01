@@ -32,6 +32,7 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
     private val alarms = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     private var foreground = false
     private var armedDeadline: Long? = null
+    private var completedDeadline: Long? = null
     val isForeground: Boolean get() = foreground
 
     init { createChannel(context) }
@@ -43,6 +44,8 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
     }
 
     override fun arm(rest: PhoneRest) {
+        // A queued receiver or onStart can still see the completed rest during its UI grace period.
+        if (rest.deadlineEpochMillis == completedDeadline) return
         alarms.cancel(alarmIntent(context))
         armedDeadline = rest.deadlineEpochMillis
         alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, rest.deadlineEpochMillis, alarmIntent(context))
@@ -59,13 +62,20 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
     @Synchronized
     override fun complete(): Boolean {
         if (armedDeadline == null) return false
+        completedDeadline = armedDeadline
         cancel()
-        if (foreground || !canNotify(context)) AppHaptics.restComplete(context)
+        if (foreground) {
+            AppHaptics.restComplete(context)
+        } else if (Build.VERSION.SDK_INT < 33 ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        ) {
+            NotificationManagerCompat.from(context).notify(OVER_ID, overNotification())
+        }
         return true
     }
 
     private fun showRunning(rest: PhoneRest) {
-        if (!canNotify(context)) return
+        if (rest.deadlineEpochMillis == completedDeadline || !canNotify(context)) return
         val notification = runningNotification(rest)
         // Lint wants the permission check beside the call, not behind a helper.
         if (Build.VERSION.SDK_INT >= 33 &&
@@ -77,7 +87,7 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
     internal fun runningNotification(rest: PhoneRest): Notification = NotificationCompat.Builder(context, CHANNEL)
         .setSmallIcon(R.drawable.ic_barbell_monochrome)
         .setContentTitle(context.getString(R.string.rest_notification_title))
-        .setContentText(context.getString(R.string.rest_notification_next, rest.nextSetLabel))
+        .setContentText(rest.nextSetLabel.takeIf { it.isNotBlank() }?.let { context.getString(R.string.rest_notification_next, it) })
         .setWhen(rest.deadlineEpochMillis)
         .setUsesChronometer(true)
         .setChronometerCountDown(true)
@@ -156,13 +166,8 @@ class RestAlarmReceiver : BroadcastReceiver() {
                     // An alarm already in flight may predate +15 s or a replacement rest.
                     if (rest.deadlineEpochMillis > System.currentTimeMillis()) return@locked
                     if (!runtime.isForeground) runtime.arm(rest)
-                    val delivered = runtime.complete()
+                    runtime.complete()
                     if (!runtime.isForeground) repo.setPhoneRest(null)
-                    if (delivered && !runtime.isForeground && PhoneRestRuntime.canNotify(context)) {
-                        if (Build.VERSION.SDK_INT < 33 ||
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-                        ) NotificationManagerCompat.from(context).notify(PhoneRestRuntime.OVER_ID, runtime.overNotification())
-                    }
                 }
             } finally { pending.finish() }
         }

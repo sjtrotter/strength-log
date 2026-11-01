@@ -283,7 +283,7 @@ private fun SessionReceiptScrimPreview() {
                 totalSetCount = 18,
                 setCount = 18,
                 strongest = ReceiptLift("Barbell Back Squat", "245×5"),
-                nextDayLine = "DAY B · UPPER",
+                nextDayLine = "Day B, Upper",
             ),
             onShare = {},
             onFinish = {},

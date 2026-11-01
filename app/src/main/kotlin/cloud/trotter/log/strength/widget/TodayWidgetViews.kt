@@ -62,6 +62,8 @@ internal fun TodayWidgetContent.toRemoteViews(context: Context): RemoteViews {
 
 /** API 31 hosts choose the color at apply time, including after a system theme change. */
 private fun RemoteViews.setThemeTextColor(context: Context, viewId: Int, colorId: Int) {
+    // Older hosts must resolve the XML color resources when their theme changes.
+    if (Build.VERSION.SDK_INT < 31) return
     fun color(mode: Int): Int {
         val config = Configuration(context.resources.configuration)
         config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or mode

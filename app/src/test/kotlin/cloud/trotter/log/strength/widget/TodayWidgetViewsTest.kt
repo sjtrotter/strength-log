@@ -16,6 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -44,25 +45,28 @@ class TodayWidgetViewsTest {
             assertEquals("2 of 18 sets", stat.text.toString())
             assertEquals("A", letter.text.toString())
             assertEquals(View.VISIBLE, letter.visibility)
+            assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, letter.importantForAccessibility)
             assertEquals(DayAccentColors.onAccentHex(0).toInt(), letter.currentTextColor)
             assertEquals(host.getColor(R.color.widget_text_primary), day.currentTextColor)
             assertEquals(host.getColor(R.color.widget_text_primary), stat.currentTextColor)
             val background = view.background as GradientDrawable
             assertEquals(host.getColor(R.color.widget_background), background.color!!.defaultColor)
             assertEquals(if (night) DayAccentColors.brightHex(0).toInt() else DayAccentColors.deepHex(0).toInt(),
-                (progress.colorFilter as PorterDuffColorFilter).color)
+                shadowOf(progress.colorFilter as PorterDuffColorFilter).color)
             assertEquals(10_000 * 2 / 18, progress.drawable.level)
         }
     }
 
     @Test @Config(sdk = [30]) fun olderHostsUseTheCurrentResourceTheme() {
-        val host = themed(true)
         val content = TodayWidgetContent("Day B, Upper", WidgetStatLine.Data("1 of 4 sets"),
             TodayWidgetState.IN_PROGRESS, 1, 1, 4, "B")
-        val view = content.toRemoteViews(host).apply(host, null)
-        assertEquals(host.getColor(R.color.widget_text_primary), view.findViewById<TextView>(R.id.widget_stat_line).currentTextColor)
-        assertEquals(DayAccentColors.brightHex(1).toInt(),
-            (view.findViewById<ImageView>(R.id.widget_progress_fill).colorFilter as PorterDuffColorFilter).color)
+        val remote = content.toRemoteViews(themed(false))
+        for (night in listOf(false, true)) {
+            val host = themed(night)
+            val view = remote.apply(host, null)
+            assertEquals(host.getColor(R.color.widget_text_primary), view.findViewById<TextView>(R.id.widget_day_line).currentTextColor)
+            assertEquals(host.getColor(R.color.widget_text_secondary), view.findViewById<TextView>(R.id.widget_stat_line).currentTextColor)
+        }
     }
 
     @Test fun emptyWidgetUsesSentenceCaseAndHidesTheDayBlock() {

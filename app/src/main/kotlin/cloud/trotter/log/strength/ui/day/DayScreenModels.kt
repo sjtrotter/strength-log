@@ -371,7 +371,7 @@ internal fun DayUiState.withWorkoutRestHint(enabled: Boolean, overrides: Map<Res
     val thenRest = enabled && workout?.completedView == false && !workoutAllLogged && row != null &&
         completesRound && RestPolicy.effectiveRestSeconds(row.kind, card.tracking, overrides) > 0 &&
         exercises.any { other -> other.rows.any {
-            !it.complete && (other.programExerciseId != focus.programExerciseId || it.index != focus.index)
+            !it.complete && (other.programExerciseId != focus?.programExerciseId || it.index != focus.index)
         } }
     return if (workoutThenRest == thenRest) this else copy(workoutThenRest = thenRest)
 }

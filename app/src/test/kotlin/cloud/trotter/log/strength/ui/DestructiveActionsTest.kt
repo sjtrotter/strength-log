@@ -143,7 +143,13 @@ class DestructiveActionsTest {
     /** Finishing a lift by removing its last undone set must not hide Snackbar undo. */
     @Test
     fun aRemovalThatFinishesTheCardKeepsSnackbarUndoUntilTheOfferIsGone() {
-        var state by mutableStateOf(dayState())
+        val base = dayState()
+        var state by mutableStateOf(base.copy(exercises = base.exercises.map { card ->
+            card.copy(rows = listOf(
+                card.rows.single().copy(done = true),
+                card.rows.single().copy(index = 1, kindLabel = "R2"),
+            ))
+        }))
         var offers by mutableStateOf(emptyList<RemovedSet>())
         composeTestRule.setContent {
             AppTheme {
@@ -158,17 +164,22 @@ class DestructiveActionsTest {
             }
         }
 
-        // Same order the ViewModel writes them in: the offer opens, then the
-        // shortened track lands and the page reads as finished.
-        offers = listOf(offer(index = 1))
-        state = state.copy(
-            exercises = listOf(state.exercises.single().copy(allDone = true)),
-        )
+        composeTestRule.onNodeWithText("Log 5 reps").assertIsDisplayed()
+        // Same order the ViewModel writes them in: the offer opens, then removal
+        // of the last undone row leaves only logged work on the set screen.
+        composeTestRule.runOnIdle { offers = listOf(offer(index = 1)) }
+        composeTestRule.onNodeWithText("Undo").assertIsDisplayed()
+        composeTestRule.runOnIdle {
+            state = state.copy(exercises = state.exercises.map { card ->
+                card.copy(allDone = true, rows = card.rows.dropLast(1))
+            })
+        }
+        composeTestRule.onNodeWithText("All 1 sets logged").assertIsDisplayed()
         composeTestRule.onNodeWithText("Undo").assertIsDisplayed()
 
-        offers = emptyList()
+        composeTestRule.runOnIdle { offers = emptyList() }
         composeTestRule.onNodeWithText("Undo").assertDoesNotExist()
-        composeTestRule.onNodeWithText("All sets").assertIsDisplayed()
+        composeTestRule.onNodeWithText("All 1 sets logged").assertIsDisplayed()
     }
 
     // --- dismissing a confirm is not taking it --------------------------------

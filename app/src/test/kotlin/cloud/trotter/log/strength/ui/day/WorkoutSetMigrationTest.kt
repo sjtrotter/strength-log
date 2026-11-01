@@ -10,6 +10,9 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -53,10 +56,10 @@ class WorkoutSetMigrationTest {
         var finishes = 0
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onDone = { finishes++ })) } }
         rule.runOnIdle { assertEquals(state.totalSets, state.doneSets) }
-        rule.onNodeWithText("Finish").performClick()
+        rule.onNodeWithTag("workout-finish").performClick()
         rule.onNodeWithText("Finish with partner sets open?").assertExists()
         rule.runOnIdle { assertEquals(0, finishes) }
-        rule.onNodeWithText("Finish").performClick()
+        rule.onNode(hasText("Finish") and hasAnyAncestor(isDialog())).performClick()
         rule.runOnIdle { assertEquals(1, finishes) }
     }
 

@@ -9,7 +9,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -476,7 +475,6 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Targets", "", exercises))))
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
-        val context = ApplicationProvider.getApplicationContext<Context>()
         val expected = listOf(
             WeightUnit.LB to listOf("3 × 10 · 95 lb", "3 × 12", "3 × 0:45", "3 × 0:45 · 25 lb", "2:00", "2:00"),
             WeightUnit.KG to listOf("3 × 10 · 43.09 kg", "3 × 12", "3 × 0:45", "3 × 0:45 · 11.34 kg", "2:00", "2:00"),
@@ -485,10 +483,9 @@ class DayViewModelWiringTest {
             repo.setUnit(unit)
             advanceUntilIdle()
             val cards = vm.uiState.value.exercises
-            val goal = cards.first().headerTarget as HeaderTarget.Goal
             assertEquals(
-                if (unit == WeightUnit.LB) "Goal 235" else "Goal 106.59",
-                context.getString(R.string.lift_sheet_goal, goal.display),
+                HeaderTarget.Goal(if (unit == WeightUnit.LB) "235" else "106.59"),
+                cards.first().headerTarget,
             )
             assertEquals(displays.mapIndexed { index, display ->
                 HeaderTarget.Prescribed(display, if (index == 5) 40 else null, true, "Red band")
@@ -850,7 +847,7 @@ class DayViewModelWiringTest {
 
     @Test
     fun cardioSelectionBeforeSeedingIsKeptAndSurvivesRecreation() = runVmTest {
-        // Unknown catalog entries leave real pages available before any rows exist.
+        // Empty unknown-lift rows count as complete; unpinned selection resolves to cardio.
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Day A", "", listOf(ProgramExercise("ghost_unknown")),
             cardioBlock = CardioBlocks.fromLegacy(cloud.trotter.log.strength.domain.model.CardioSuggestion("Run", "20 minutes", false), true, CardioActivity.ROAD_RUN),
@@ -860,7 +857,7 @@ class DayViewModelWiringTest {
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         assertTrue(vm.uiState.value.exercises.all { it.rows.isEmpty() })
-        assertEquals(0, vm.uiState.value.pages.indexOfFirst { it.key == (vm.uiState.value.workout?.shown as? WorkoutSelection.Shown.Group)?.key })
+        assertEquals("cardio", (vm.uiState.value.workout?.shown as? WorkoutSelection.Shown.Group)?.key)
         vm.selectWorkoutLift("cardio")
         advanceUntilIdle()
         assertEquals("cardio", handle.get<String>("selectedPageKey"))

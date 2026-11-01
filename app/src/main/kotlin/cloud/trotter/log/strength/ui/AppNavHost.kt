@@ -242,14 +242,12 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
             ),
         ).forEach { (route, arguments) ->
-            composable(route = route, arguments = arguments) { entry ->
-                val dayId = entry.arguments?.getString(Routes.DAY_ID_ARG).orEmpty()
+            composable(route = route, arguments = arguments) {
                 DayRoute(
                     onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
                     onSetUpProgram = { navController.navigate(Routes.WIZARD) },
                     onFinishSession = { navController.finishWorkout() },
                     onBack = { navController.popBackStack() },
-                    initialDayId = dayId,
                 )
             }
         }
@@ -438,7 +436,6 @@ internal fun DayRoute(
     onSetUpProgram: () -> Unit,
     onFinishSession: () -> Unit,
     onBack: () -> Unit = onFinishSession,
-    initialDayId: String? = null,
     viewModel: DayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

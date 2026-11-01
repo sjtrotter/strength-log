@@ -178,7 +178,7 @@ class DayRouteNavigationTest {
                         DayRoute(
                             onCreateExercise = {}, onSetUpProgram = {},
                             onFinishSession = { navController.popBackStack() },
-                            initialDayId = entry.arguments?.getString(Routes.DAY_ID_ARG), viewModel = viewModel,
+                            viewModel = viewModel,
                         )
                     }
                 }

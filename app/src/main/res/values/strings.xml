@@ -500,6 +500,7 @@
     <string name="health_rationale_read_bodyweight_bullet">Read your latest bodyweight, to offer to update your training GOALs.</string>
     <string name="day_next_exercise">Next: %1$s</string>
     <string name="day_set_of">Set %1$d of %2$d</string>
+    <string name="day_target_aim">%1$s · aim %2$d</string>
     <string name="day_target_each_side">Each side</string>
     <string name="day_log_exercise_set">Log %1$s %2$s</string>
     <string name="day_log_set">Log %1$s</string>

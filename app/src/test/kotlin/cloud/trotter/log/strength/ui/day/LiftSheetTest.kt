@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -15,7 +16,12 @@ import androidx.compose.ui.test.performScrollToNode
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.standards.GoalTarget
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -29,6 +35,36 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class LiftSheetTest {
     @get:Rule val rule = createComposeRule()
+
+    @Test fun prescribedHeadersShowEveryTargetInBothUnitsAndReadTheVisibleLabel() {
+        val cases = listOf(
+            Triple(PrescribedTarget.LoadReps(95.0, 10), "Target 3 × 10 · 95 lb", "Target 3 × 10 · 43.09 kg"),
+            Triple(PrescribedTarget.Reps(12), "Target 3 × 12", "Target 3 × 12"),
+            Triple(PrescribedTarget.Hold(45), "Target 3 × 0:45", "Target 3 × 0:45"),
+            Triple(PrescribedTarget.Hold(45, 25.0), "Target 3 × 0:45 · 25 lb", "Target 3 × 0:45 · 11.34 kg"),
+            Triple(PrescribedTarget.RepsInTime(120), "Target 2:00", "Target 2:00"),
+            Triple(PrescribedTarget.RepsInTime(120, 40), "Target 2:00 · aim 40", "Target 2:00 · aim 40"),
+        )
+        val base = workoutLiftSheetFixture().exercises.single().copy(lastTimeDisplay = "3 × 12", lastTimeDate = null)
+        var card by mutableStateOf(base)
+        rule.setContent { AppTheme {
+            LiftSheet(card, Slot.MAIN, null, workoutActions(), false, null, {}, {}, {})
+        } }
+        for ((target, lb, kg) in cases) {
+            for ((unit, label) in listOf(WeightUnit.LB to lb, WeightUnit.KG to kg)) {
+                rule.runOnIdle {
+                    card = base.copy(headerTarget = DayScreenBuilder.headerTarget(
+                        ProgramExercise("weighted_plank", targetSets = 3,
+                            prescription = Prescription(target, eachSide = true, resistance = "Red band")),
+                        GoalTarget.Weight(235.0, perHand = false), unit,
+                    ))
+                }
+                val support = "$label. Last time 3 × 12. Each side · Red band"
+                rule.onNodeWithText(support).assertIsDisplayed()
+                rule.onNodeWithContentDescription(support).assertIsDisplayed()
+            }
+        }
+    }
 
     @Test fun squatShowsHistoryNotationFocusAndIndependentRowActions() {
         val state = workoutLiftSheetFixture()

@@ -165,8 +165,8 @@ The day accents A to G live in `domain/src/main/kotlin/cloud/trotter/log/strengt
 are fills. Text and strokes use `brightHex` (35% toward `#F2F2F0`) on dark and `deepHex` (30%
 toward ink `#1B1B1E`) on light, both pinned at 4.5:1 or better by `DayAccentColorsTest`; the
 phone picks one with `accentEmphasis()` (`app/.../ui/theme/Color.kt`). On-accent ink is per
-day: C (goldenrod) takes dark text, the rest light (`onDayAccent`). Launcher icons and the
-widget read copies in `app/src/main/res/values/colors.xml`, since resources cannot read
+day: C (goldenrod) takes dark text, the rest light (`onDayAccent`). The widget
+reads copies in `app/src/main/res/values/colors.xml`, since resources cannot read
 Kotlin; those copies change with the SSOT.
 
 Done green marks completed work only (dark `#3E8E5A`, light `#37774E`). Error is crimson

@@ -14,6 +14,9 @@ supply convention so the files are readable by other tools too:
 Screenshots are rendered in CI and no longer committed, so upload carries
 text, icon and feature graphic only. The screenshots mode replaces phone
 and Wear screenshots from the supplied directory without changing other assets.
+The icon and feature graphic are rendered from the app by ListingImagesTest and
+CI fails when the committed copies differ; download the listing-images artifact
+to update them.
 
 Usage: play_listing.py inspect|upload|screenshots [--images <dir>]
 """

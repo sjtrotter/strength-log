@@ -746,7 +746,6 @@
     <string name="day_sheet_superset">Superset</string>
     <string name="day_sheet_round_now">Round %1$d of %2$d, now</string>
     <string name="day_sheet_lift_now">%1$d of %2$d, now</string>
-    <string name="day_sheet_sets">%1$d sets</string>
     <string name="day_swapped_to">Swapped to %1$s</string>
     <string name="setup_keep_screen_on">Keep screen on during workouts</string>
     <string name="day_sheet_clear_checks">Clear today\'s checks</string>

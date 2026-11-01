@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,18 +55,18 @@ internal fun DaySheet(
                 val total = if (page.exerciseId == null) state.cardio?.block?.sets?.size ?: page.total else page.total
                 val title = if (card?.isSuperset == true) stringResource(R.string.day_sheet_pair, page.title, card.partnerTitle.orEmpty()) else page.title
                 ListItem(
-                    overlineContent = if (paired) { { Text(stringResource(R.string.day_sheet_superset)) } } else null,
+                    overlineContent = if (paired) { { Text(stringResource(R.string.day_sheet_superset), style = MaterialTheme.typography.bodySmall) } } else null,
                     headlineContent = { Text(title) },
                     trailingContent = {
                         if (page.allDone) Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Check, null)
-                            Text(stringResource(R.string.set_edit_done))
+                            Text(stringResource(R.string.set_edit_done), style = MaterialTheme.typography.bodyMedium)
                         } else Text(when {
                             selected && paired -> stringResource(R.string.day_sheet_round_now,
                                 (state.workout?.focus?.index ?: 0) + 1, total)
                             selected -> stringResource(R.string.day_sheet_lift_now, page.done, total)
-                            else -> stringResource(R.string.day_sheet_sets, total)
-                        })
+                            else -> pluralStringResource(R.plurals.plan_sets, total, total)
+                        }, style = MaterialTheme.typography.bodyMedium)
                     },
                     modifier = Modifier.clickable { actions.onSelectWorkoutLift(page.key); onDismiss() },
                 )

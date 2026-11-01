@@ -91,7 +91,7 @@ internal fun LiftSheet(
                             }
                         },
                         trailingContent = if (focus == WorkoutFocus(card.programExerciseId, slot, row.index)) {
-                            { Text(stringResource(R.string.lift_sheet_now)) }
+                            { Text(stringResource(R.string.lift_sheet_now), style = MaterialTheme.typography.bodyMedium) }
                         } else null,
                     )
                 }

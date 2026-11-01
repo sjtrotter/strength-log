@@ -28,3 +28,5 @@ val AppShapes = Shapes(
     large = RoundedCornerShape(12.dp),
     extraLarge = RoundedCornerShape(28.dp),
 )
+
+val WorkoutRestShape = RoundedCornerShape(16.dp)

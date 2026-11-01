@@ -341,8 +341,8 @@ class DayViewModel @Inject constructor(
     }
 
     private val workoutDay = if (flags.setScreen) combine(
-        requireNotNull(committedDayState), workoutRecord, workoutClock,
-    ) { day, record, now -> Triple(day, record, now) }
+        requireNotNull(committedDayState), workoutRecord, workoutClock, selectedPage,
+    ) { day, record, now, _ -> Triple(day, record, now) }
     else dayState.map { Triple(CommittedDay(it), null, 0L) }
 
     private val baseUiState: Flow<DayUiState> =
@@ -990,7 +990,8 @@ class DayViewModel @Inject constructor(
             if (tracks.runId != runId || currentDay() != day) return@mutate
             val projected = projectWorkout(uiState.value, tracks)
             val record = repo.workoutRecordFlow.first()?.takeIf { tracks.runOpen && it.runId == runId }
-            val shown = WorkoutSelection.shown(workoutGroups(projected), record?.selectedKey)
+            val selection = if (record != null) record.selectedKey else selectedPage.value
+            val shown = WorkoutSelection.shown(workoutGroups(projected), selection)
             val focus = workoutFocus(projected, shown) ?: return@mutate
             tickSetLocked(day, runId, focus.programExerciseId, focus.index, true, focus.slot, actionLog = true)
         }
@@ -1003,23 +1004,29 @@ class DayViewModel @Inject constructor(
 
     fun nextWorkoutLift() {
         if (!flags.setScreen) return
-        updateWorkoutSelection { state, record ->
+        updateWorkoutSelection { state, selection ->
             val groups = workoutGroups(state)
-            val shown = WorkoutSelection.shown(groups, record.selectedKey) as? WorkoutSelection.Shown.Group
+            val shown = WorkoutSelection.shown(groups, selection) as? WorkoutSelection.Shown.Group
             WorkoutSelection.next(groups, shown?.key)
         }
     }
 
-    private fun updateWorkoutSelection(selection: (DayUiState, WorkoutRecord) -> String?) {
+    private fun updateWorkoutSelection(selection: (DayUiState, String?) -> String?) {
         val state = dayState.value
         val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
         val planId = state.planId ?: return
-        val runId = state.runId ?: return
+        val runId = state.runId
         mutate {
             val tracks = repo.dayTracksFlow(planId, day).first()
-            if (!tracks.runOpen || tracks.runId != runId || currentDay() != day) return@mutate
-            val record = repo.workoutRecordFlow.first()?.takeIf { it.runId == runId } ?: WorkoutRecord(runId)
-            repo.setWorkoutRecord(record.copy(selectedKey = selection(projectWorkout(uiState.value, tracks), record)))
+            if (tracks.runId != runId || currentDay() != day) return@mutate
+            val projected = projectWorkout(uiState.value, tracks)
+            if (!tracks.runOpen) {
+                savedState[KEY_SELECTED_PAGE] = selection(projected, selectedPage.value)
+            } else {
+                val record = repo.workoutRecordFlow.first()?.takeIf { it.runId == runId }
+                    ?: WorkoutRecord(requireNotNull(runId), selectedPage.value)
+                repo.setWorkoutRecord(record.copy(selectedKey = selection(projected, record.selectedKey)))
+            }
         }
     }
 
@@ -1134,7 +1141,7 @@ class DayViewModel @Inject constructor(
             val previous = repo.workoutRecordFlow.first()?.takeIf { it.runId == runId }
             val recordLog = checked && !row.done && (actionLog || countEvent != null)
             val selection = if (recordLog) WorkoutSelection.afterActionLog(groups, loggedKey)
-                else previous?.selectedKey
+                else if (previous != null) previous.selectedKey else selectedPage.value
             PhoneRestActions.locked {
                 var restStarted = false
                 if (checked && !row.done) {
@@ -1159,6 +1166,8 @@ class DayViewModel @Inject constructor(
                         programExerciseId, slot, index, SetDto.of(row), SetDto.of(updated[index]),
                         requireNotNull(loggedAt), restStarted,
                     )))
+                } else if (previous == null) {
+                    repo.setWorkoutRecord(WorkoutRecord(runId, selection))
                 }
             }
         } else if (checked && roundComplete && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
@@ -1756,7 +1765,9 @@ class DayViewModel @Inject constructor(
         now: Long,
     ): WorkoutState {
         val record = savedRecord?.takeIf { tracks?.runOpen == true && it.runId == tracks.runId }
-        val shown = WorkoutSelection.shown(workoutGroups(state), record?.selectedKey)
+        // The run's record wins once it exists; until then (no run, or a run the watch started) the route's.
+        val selection = if (record != null) record.selectedKey else selectedPage.value
+        val shown = WorkoutSelection.shown(workoutGroups(state), selection)
         val undo = validUndo(tracks, record, rest, now)?.let { target ->
             state.exercises.firstOrNull { it.programExerciseId == target.programExerciseId }?.let { card ->
                 UndoOffer(
@@ -2098,6 +2109,7 @@ class DayViewModel @Inject constructor(
             position = slot.position,
             title = name,
             partnerTitle = partnerEntry?.name ?: partner?.exerciseId,
+            partnerExerciseId = partner?.exerciseId,
             equipment = entry?.equipment.orEmpty(),
             note = pe.note,
             isMain = pe.isMain,

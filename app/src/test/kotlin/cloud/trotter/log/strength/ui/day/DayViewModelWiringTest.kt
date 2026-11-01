@@ -2669,6 +2669,29 @@ class DayViewModelWiringTest {
         assertTrue("nothing was removed, so nothing is offered back", vm.removedSets.value.isEmpty())
     }
 
+    @Test fun partnerCardUsesPerformedWorkoutSwapIdentity() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Push and pull", "", listOf(
+            ProgramExercise("db_bench", targetSets = 3, superset = SupersetPartner("cable_row")),
+        )))))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        assertEquals("cable_row", vm.uiState.value.exercises.single().partnerExerciseId)
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        val run = repo.openRunFlow.first()!!
+        assertTrue(repo.swapInRun(run.id, id, Slot.SS, "bb_row", cloud.trotter.log.strength.data.RunSeed(
+            id, Slot.SS, List(3) { LoggedSet(190.0, 10, SetKind.WORK) },
+        )))
+        advanceUntilIdle()
+        val card = vm.uiState.value.exercises.single()
+        assertEquals("bb_row", card.partnerExerciseId)
+        assertEquals("Barbell Row", card.partnerTitle)
+        assertEquals("cable_row", repo.slotsFor(requireNotNull(run.planId), "A").first().single().exercise.superset?.exerciseId)
+        collect.cancel()
+    }
+
     @Test fun workoutSwapStartsBeforeTheFirstSetAndUsesTheSubstitutesGoalAndTracking() = runVmTest {
         val plan = repo.createAuthoredPlan("Authored", "Day A")
         repo.publishCreatedAuthoredPlan(plan)

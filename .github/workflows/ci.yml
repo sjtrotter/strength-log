@@ -62,7 +62,7 @@ jobs:
         run: pip install --quiet pillow==11.3.0
 
       - name: Render store screenshots
-        run: ./gradlew :app:testDebugUnitTest --tests '*StoreScreenshotsTest' --tests '*ListingImagesTest' :wear:testDebugUnitTest --tests '*StoreScreenshotsTest' -PstoreShots=true
+        run: ./gradlew :app:testDebugUnitTest --tests '*StoreScreenshotsTest' --tests '*ListingImagesTest' --tests '*WorkoutSetScreenPreviewShotsTest' :wear:testDebugUnitTest --tests '*StoreScreenshotsTest' -PstoreShots=true
         timeout-minutes: 20
 
       - name: Check store screenshots
@@ -74,6 +74,12 @@ jobs:
           path: |
             app/build/outputs/store/
             wear/build/outputs/store/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: set-screen-preview
+          path: app/build/outputs/preview/
           if-no-files-found: error
 
       - name: Compile instrumented tests

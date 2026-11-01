@@ -89,6 +89,33 @@ data class DayUiState(
         WorkoutPage(null, it.label, if (it.loggedSeconds != null) 1 else 0, 1, it.loggedSeconds != null)
     })
     val currentPage: Int = DayScreenBuilder.currentPage(pages.map { it.key }, selectedPageKey, exercises)
+
+    val workoutCard: ExerciseCardState? get() = exercises.firstOrNull {
+        "exercise:${it.programExerciseId}" == (workout?.shown as? WorkoutSelection.Shown.Group)?.key
+    }
+
+    val workoutNextPage: WorkoutPage? get() {
+        val key = WorkoutSelection.next(
+            pages.map { WorkoutSelection.Group(it.key, it.allDone) },
+            (workout?.shown as? WorkoutSelection.Shown.Group)?.key,
+        )
+        return pages.firstOrNull { it.key == key }
+    }
+
+    val workoutAllLogged: Boolean get() = workout?.shown == WorkoutSelection.Shown.AllLogged ||
+        workout?.completedView == true && workoutNextPage == null
+
+    val usesWorkoutSetScreen: Boolean get() {
+        if (loading || !hasProgram || cardioRunning || timedRep != null) return false
+        val workout = workout ?: return false
+        return when (workout.shown) {
+            WorkoutSelection.Shown.AllLogged -> true
+            is WorkoutSelection.Shown.Group -> workoutCard?.let { card ->
+                workout.focus?.slot == Slot.SS || (card.timedRepDurationSeconds ?: 0) <= 0
+            } == true
+            WorkoutSelection.Shown.Empty -> false
+        }
+    }
 }
 
 data class WorkoutFocus(val programExerciseId: Long, val slot: String, val index: Int)
@@ -244,6 +271,7 @@ data class ExerciseCardState(
     val summaryLine: String = "",
     val nextSetDisplay: String? = null,
     val partnerTitle: String? = null,
+    val partnerExerciseId: String? = null,
     val equipment: List<Equipment> = emptyList(),
     /** The Add weight / Remove weight menu (§4.2); null when this slot's
      *  exercise has no weighted-pair link at all. */

@@ -108,6 +108,7 @@ fun DayScreen(
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
     standaloneCardio: Boolean = false,
+    setScreenContent: (@Composable (() -> Unit, () -> Unit, SnackbarHostState) -> Unit)? = null,
 ) {
     val accent = dayAccent(state.dayIndex)
     val onAccent = onDayAccent(state.dayIndex)
@@ -222,14 +223,39 @@ fun DayScreen(
             return@Box
         }
 
-        key(state.viewDayId) {
+        if (setScreenContent != null) {
+            setScreenContent(
+                { exercisesOpen = true },
+                {
+                    if (state.exercises.any { card -> card.rows.any { !it.complete } }) {
+                        confirmingPartialFinish = true
+                    } else {
+                        AppHaptics.perform(view, AppHaptics.Cue.FINISH)
+                        actions.onDone()
+                    }
+                },
+                snackbarHost,
+            )
+            if (exercisesOpen) {
+                ExercisesSheet(
+                    pages = state.pages,
+                    onSelect = { index ->
+                        exercisesOpen = false
+                        state.pages.getOrNull(index)?.key?.let(actions.onSelectWorkoutLift)
+                    },
+                    onDismiss = { exercisesOpen = false },
+                )
+            }
+        } else key(state.viewDayId) {
             val pages = if (standaloneCardio) state.pages.filter { it.exerciseId == null } else state.pages
+            val selectedKey = (state.workout?.shown as? WorkoutSelection.Shown.Group)?.key
+            val selectedPage = if (state.workout != null) pages.indexOfFirst { it.key == selectedKey }.coerceAtLeast(0) else state.currentPage
             val pagerState = rememberPagerState(
-                initialPage = if (standaloneCardio) 0 else state.currentPage,
+                initialPage = if (standaloneCardio) 0 else selectedPage,
                 pageCount = { pages.size },
             )
             val latestPages by rememberUpdatedState(pages)
-            val latestSelect by rememberUpdatedState(actions.onSelectPage)
+            val latestSelect by rememberUpdatedState(if (state.workout != null) actions.onSelectWorkoutLift else actions.onSelectPage)
             LaunchedEffect(pagerState) {
                 snapshotFlow { pagerState.settledPage }.collect { page ->
                     latestPages.getOrNull(page)?.key?.let(latestSelect)
@@ -237,8 +263,8 @@ fun DayScreen(
             }
             // The derived page changes only on explicit selection or invalid selection,
             // never on a log once selected; this one-way sync cannot fight the finger.
-            LaunchedEffect(state.currentPage) {
-                val target = if (standaloneCardio) 0 else state.currentPage
+            LaunchedEffect(selectedPage) {
+                val target = if (standaloneCardio) 0 else selectedPage
                 if (pages.isNotEmpty() && target != pagerState.currentPage && !pagerState.isScrollInProgress) {
                     pagerState.scrollToPage(target)
                 }
@@ -751,6 +777,10 @@ data class DayActions(
     val onOpenTimedRepCount: () -> Unit = {},
     val onTimedRepDraftChange: (String) -> Unit = {},
     val onLogTimedRepCount: () -> Unit = {},
+    val onLogFocusedSet: () -> Unit = {},
+    val onUndoLastLog: () -> Unit = {},
+    val onSelectWorkoutLift: (String) -> Unit = {},
+    val onNextWorkoutLift: () -> Unit = {},
 )
 
 @Composable

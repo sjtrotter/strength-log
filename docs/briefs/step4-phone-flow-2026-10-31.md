@@ -307,8 +307,8 @@ both names in fixed plan order, and a state word on each. Sol reviewed the first
 
  ┌─────────────────────────────────────┐                  OutlinedCard, outlineVariant, neutral
  │ Superset, round 2 of 3              │                  titleMedium, onSurfaceVariant
- │ Now    DB Bench Press             › │                  row ≥ 48 dp; name headlineSmall, onSurface
- │ Next   Seated Cable Row  120 × 10 › │                  row ≥ 48 dp; titleMedium, onSurfaceVariant
+ │ Now    DB Bench Press             › │                  row ≥ 48 dp; name titleLarge, onSurface
+ │ Next   Seated Cable Row  120 × 10 › │                  row ≥ 48 dp; name titleLarge, onSurfaceVariant
  └─────────────────────────────────────┘
 
  80 × 10                                                  the hero, as any set
@@ -350,7 +350,7 @@ After "Log 80 × 10":
   300 ms slide is kept for leaving the pair for another lift.
 - **No rest between halves**, as now. The band shows only Undo for 10 s, the rest-off form.
   The rest starts when the round completes. During that rest the card shows the next round
-  ("round 3 of 3", both rows "Now"/"Next" again) and the rest's "next" (band and notification)
+  ("round 3 of 3", both rows "Now"/"Next" again) and the rest notification's "next"
   reads "Round 3, DB Bench Press 80 × 10". After the pair's last round the rest runs as usual
   and the screen slides to the next lift; after the day's last set no rest starts.
 - **Undo touches one half.** This overrides the redesign's "both tracks of a superset round"

@@ -1368,6 +1368,8 @@ class DayViewModel @Inject constructor(
             }
             val existing = repo.dayTracksFlow(planId, day).first().tracks
                 .associate { (it.programExerciseId to it.slot) to it.sets.size }
+            val cfg = repo.wizardAnswersFor(planId).first().config
+            val catalog = repo.catalogFlow.first()
             val seed = DayScreenBuilder.swapSeed(slot, Slot.MAIN, newExerciseId, existing, cfg, catalog)
                 ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
             repo.swapInRun(runId, slot.programExerciseId, Slot.MAIN, newExerciseId, seed)

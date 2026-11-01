@@ -343,7 +343,7 @@ class OverviewNavigationTest {
         rule.waitUntil(5_000) { rule.runOnIdle { !dayVm.dayEditState.value.editorOpen } }
         rule.onNodeWithContentDescription("Back").performClick()
         rule.waitUntil(5_000) { rule.runOnIdle { nav.currentDestination?.route == Routes.PREVIEW } }
-        rule.onNodeWithText("Start day A").assertExists()
+        rule.waitUntil(5_000) { rule.onAllNodes(hasText("Start day A")).fetchSemanticsNodes().isNotEmpty() }
     }
 
 }

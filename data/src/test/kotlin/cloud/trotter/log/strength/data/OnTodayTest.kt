@@ -88,6 +88,26 @@ class OnTodayTest {
         assertTrue(settings.onTodayFixupDoneFlow.first())
     }
 
+    @Test fun `today plans waits for migrated membership on its first emission`() = runTest {
+        db.planDao().insertPlans(listOf(plan(1), plan(2)))
+        settings.setSelectedPlanId(2)
+        settings.setPlanSettingsFixupDone()
+        assertEquals(listOf(2L), repo.todayPlans.first().map { it.id })
+        assertTrue(settings.onTodayFixupDoneFlow.first())
+    }
+
+    @Test fun `today plans orders preferred first then position and excludes paused and archived`() = runTest {
+        db.planDao().insertPlans(listOf(plan(1, 3), plan(2, 2), plan(3, 1), plan(4, 0, archived = true)))
+        settings.setSelectedPlanId(1)
+        repo.runPlanSettingsFixupIfNeeded()
+        db.planDao().updateOnToday(2, true)
+        db.planDao().updateOnToday(3, true)
+        db.planDao().updateOnToday(4, true)
+        assertEquals(listOf(1L, 3L, 2L), repo.todayPlans.first().map { it.id })
+        repo.pause(3)
+        assertEquals(listOf(1L, 2L), repo.todayPlans.first().map { it.id })
+    }
+
     @Test fun `publishing a generated plan migrates the old preferred plan first`() = runTest {
         db.planDao().insertPlan(plan(1))
         db.programDao().upsertDay(ProgramDayEntity(1, "A", 0, "Day A", "", null))

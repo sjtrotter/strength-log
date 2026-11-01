@@ -167,6 +167,16 @@ open class TrackerRepository(
         })
     }
 
+    /** Plans on Today, after the same settings gate as the display target. */
+    val todayPlans: Flow<List<PlanEntity>> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(combine(plansFlow, settings.selectedPlanIdFlow) { plans, storedId ->
+            val preferredId = preferredPlan(plans, storedId)?.id
+            plans.filter { !it.archived && it.onToday }
+                .sortedWith(compareBy<PlanEntity> { it.id != preferredId }.thenBy { it.position })
+        }.distinctUntilChanged())
+    }
+
     private val selectedPlanStateFlow: Flow<PlanEntity?> =
         combine(selectedPlanIdFlow, plansFlow) { id, plans ->
             plans.firstOrNull { it.id == id }

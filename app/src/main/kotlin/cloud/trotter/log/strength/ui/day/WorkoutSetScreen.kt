@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.ui.theme.SetNumerals
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.PaddingValues
 import android.animation.ValueAnimator
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
@@ -91,6 +94,7 @@ import kotlinx.coroutines.delay
 
 /** M3's fast-effects duration; `MaterialTheme.motionScheme` is internal in this BOM. */
 private const val FAST_EFFECTS_MILLIS = 150
+private const val HERO_MIN_SP = 48
 
 @Composable
 fun WorkoutSetScreen(
@@ -274,8 +278,9 @@ private fun WorkoutLift(
                 val editLabel = stringResource(R.string.workout_edit_set, index + 1)
                 TextButton(
                     onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
-                    modifier = Modifier.semantics { contentDescription = editLabel },
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
                     colors = neutralTextButtonColors(),
+                    contentPadding = PaddingValues(0.dp),
                 ) {
                     Crossfade(
                         targetState = values to card.tracking(slot),
@@ -378,19 +383,19 @@ private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType) {
             append(primary)
             append(" ")
             withStyle(MaterialTheme.typography.displayMedium.toSpanStyle().copy(
-                fontSize = (MaterialTheme.typography.displayMedium.fontSize.value / MaterialTheme.typography.displayLarge.fontSize.value).em,
+                fontSize = 0.5.em,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )) {
                 append(secondary)
             }
         },
         modifier = Modifier.fillMaxWidth().testTag("workout-hero"),
-        style = MaterialTheme.typography.displayLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+        style = SetNumerals.copy(color = MaterialTheme.colorScheme.onSurface),
         maxLines = 1,
         softWrap = false,
         autoSize = TextAutoSize.StepBased(
-            minFontSize = MaterialTheme.typography.displaySmall.fontSize,
-            maxFontSize = MaterialTheme.typography.displayLarge.fontSize,
+            minFontSize = HERO_MIN_SP.sp,
+            maxFontSize = SetNumerals.fontSize,
         ),
     )
 }

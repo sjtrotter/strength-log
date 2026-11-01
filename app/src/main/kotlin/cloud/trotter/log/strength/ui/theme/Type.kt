@@ -48,6 +48,9 @@ val DisplayXl = TextStyle(
     fontFeatureSettings = "tnum",
 )
 
+/** The workout's set numerals, read from a bench at arm's length; the hero auto-sizes down from here. */
+val SetNumerals = DisplayXl.copy(fontSize = 104.sp, lineHeight = 104.sp)
+
 val DayIndexLetter = TextStyle(
     fontFamily = Condensed,
     fontWeight = FontWeight.Bold,

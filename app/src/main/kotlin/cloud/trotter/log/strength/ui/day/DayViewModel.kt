@@ -1427,6 +1427,12 @@ class DayViewModel @Inject constructor(
         mutate {
             val state = uiState.value
             if (state.swapUndo != offer) return@mutate
+            if (offer.dropKeep != null) {
+                repo.undoDropSupersetHalf(offer.runId, offer.programExerciseId, offer.dropKeep, offer.exerciseId,
+                    previousMainId = offer.previousExerciseId)
+                dismissSwapUndo()
+                return@mutate
+            }
             val planId = state.planId ?: return@mutate
             val slot = repo.slotsFor(planId, offer.dayId).first()
                 .firstOrNull { it.programExerciseId == offer.programExerciseId } ?: return@mutate
@@ -1434,12 +1440,6 @@ class DayViewModel @Inject constructor(
             if (!tracks.runOpen || tracks.runId != offer.runId || tracks.tracks.none {
                 it.programExerciseId == offer.programExerciseId && it.slot == offer.slot && it.exerciseId == offer.exerciseId
             }) return@mutate
-            if (offer.dropKeep != null) {
-                repo.undoDropSupersetHalf(offer.runId, offer.programExerciseId, offer.dropKeep, offer.exerciseId,
-                    previousMainId = offer.previousExerciseId)
-                dismissSwapUndo()
-                return@mutate
-            }
             val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
             val seed = DayScreenBuilder.swapSeed(slot, offer.slot, offer.previousExerciseId, existing,
                 repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first())

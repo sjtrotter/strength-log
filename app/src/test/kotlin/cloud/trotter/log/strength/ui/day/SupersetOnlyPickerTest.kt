@@ -42,7 +42,7 @@ class SupersetOnlyPickerTest {
         rule.onAllNodesWithText("Drops the other half").assertCountEquals(2)
         rule.onNodeWithText("${partner.name} only").assertExists()
         rule.onNodeWithText("${main.name} only").performClick()
-        rule.onNodeWithText("Apply").performClick()
+        rule.onNodeWithText("Swap").performClick()
         assertEquals(listOf(0, Slot.MAIN, true, main.id, partner.id), selected)
     }
 
@@ -51,7 +51,7 @@ class SupersetOnlyPickerTest {
         show(half = Slot.SS) { position, keep, workout, mainId, partnerId -> selected = listOf(position, keep, workout, mainId, partnerId) }
         rule.onNodeWithText("${partner.name} only").performClick()
         rule.onNodeWithText("The plan").performClick()
-        rule.onNodeWithText("Apply").performClick()
+        rule.onNodeWithText("Swap").performClick()
         assertEquals(listOf(0, Slot.SS, false, main.id, partner.id), selected)
     }
 

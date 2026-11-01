@@ -810,6 +810,84 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(RunWriteResult.Rejected, repo.undoDropSupersetHalf(result.runId, id, Slot.MAIN, "bb_back_squat"))
     }
 
+    @Test fun `drop undo rejects a removed plan partner without writing tracks`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val drop = repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
+        repo.removeSupersetPartner("A", id)
+        val before = db.runDao().tracks(drop.runId)
+        assertTrue(before.single { it.slot == Slot.SS }.let { it.retired && it.dropped })
+        assertEquals(RunWriteResult.Rejected, repo.undoDropSupersetHalf(drop.runId, id, Slot.MAIN, "bb_back_squat"))
+        assertEquals(before, db.runDao().tracks(drop.runId))
+    }
+
+    @Test fun `drop undo rejects a different plan partner without writing tracks`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val drop = repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
+        repo.setSupersetPartner("A", id, "rope_pushdown")
+        val before = db.runDao().tracks(drop.runId)
+        assertTrue(before.single { it.slot == Slot.SS }.let { it.retired && it.dropped })
+        assertEquals(RunWriteResult.Rejected, repo.undoDropSupersetHalf(drop.runId, id, Slot.MAIN, "bb_back_squat"))
+        assertEquals(before, db.runDao().tracks(drop.runId))
+    }
+
+    @Test fun `drop undo pads SS after adding a MAIN row and preserves existing work`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = explicitStart(plan)
+        seed(runId, id, SetSeeder.seedPartner(3, 45.0), Slot.SS)
+        val mainRows = work().mapIndexed { index, row ->
+            row.copy(weightLb = 60.0 + index * 5, reps = 8 + index, done = index != 1,
+                plannedIndex = index, watchEditedAt = 100L + index)
+        }
+        val partnerRows = SetSeeder.seedPartner(3, 45.0).mapIndexed { index, row ->
+            row.copy(weightLb = 40.0 + index * 5, done = index == 0, plannedIndex = index)
+        }
+        repo.updateSetsPaired(runId, "A", id, mainRows, partnerRows)
+        assertTrue(repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
+        val extended = mainRows + work().first().copy(weightLb = 75.0, reps = 7)
+        assertTrue(repo.updateSets(runId, "A", id, Slot.MAIN, extended) is RunWriteResult.InRun)
+        assertTrue(repo.undoDropSupersetHalf(runId, id, Slot.MAIN, "bb_back_squat") is RunWriteResult.InRun)
+        val restored = repo.openRunFlow.first()!!.tracks
+        assertEquals(extended, restored.single { it.slot == Slot.MAIN && !it.retired }.sets)
+        val partner = restored.single { it.slot == Slot.SS }
+        assertFalse(partner.retired || partner.dropped)
+        assertEquals(4, partner.sets.size)
+        assertEquals(partnerRows, partner.sets.take(3))
+        assertEquals(SetSeeder.seedPartner(1, 45.0).single(), partner.sets.last())
+    }
+
+    @Test fun `drop undo pads a shortened MAIN to the preserved SS row count`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = explicitStart(plan)
+        seed(runId, id, SetSeeder.seedPartner(3, 45.0), Slot.SS)
+        val mainRows = work().mapIndexed { index, row ->
+            row.copy(weightLb = 60.0 + index * 5, reps = 8 + index, done = index == 0, plannedIndex = index)
+        }
+        val partnerRows = SetSeeder.seedPartner(3, 45.0).mapIndexed { index, row ->
+            row.copy(done = index == 2, plannedIndex = index)
+        }
+        repo.updateSetsPaired(runId, "A", id, mainRows, partnerRows)
+        assertTrue(repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
+        val shortened = mainRows.take(2)
+        assertTrue(repo.updateSets(runId, "A", id, Slot.MAIN, shortened) is RunWriteResult.InRun)
+        assertTrue(repo.undoDropSupersetHalf(runId, id, Slot.MAIN, "bb_back_squat") is RunWriteResult.InRun)
+        val restored = repo.openRunFlow.first()!!.tracks
+        val main = restored.single { it.slot == Slot.MAIN && !it.retired }
+        assertEquals(3, main.sets.size)
+        assertEquals(shortened, main.sets.take(2))
+        assertEquals(work().last(), main.sets.last())
+        val partner = restored.single { it.slot == Slot.SS }
+        assertFalse(partner.retired || partner.dropped)
+        assertEquals(partnerRows, partner.sets)
+    }
+
     @Test fun `stale paired write cannot edit MAIN or reopen dropped SS`() = runTest {
         val plan = authored()
         val id = slot(plan)

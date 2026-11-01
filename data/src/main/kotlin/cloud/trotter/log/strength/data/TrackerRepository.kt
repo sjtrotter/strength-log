@@ -1534,11 +1534,13 @@ open class TrackerRepository(
             if (!tracks.partnerDropped(row.id)) return@withTransaction RunWriteResult.Rejected
             val partner = tracks.singleOrNull { it.programExerciseId == row.id && it.slot == Slot.SS && it.dropped && it.retired }
                 ?: return@withTransaction RunWriteResult.Rejected
+            if (row.supersetExerciseId != partner.exerciseId) return@withTransaction RunWriteResult.Rejected
             val main = tracks.singleOrNull { it.programExerciseId == row.id && it.slot == Slot.MAIN && !it.retired }
                 ?: return@withTransaction RunWriteResult.Rejected
             if (main.exerciseId != expectedActiveMainId || tracks.any {
                     it.programExerciseId == row.id && it.slot == Slot.SS && !it.retired
                 }) return@withTransaction RunWriteResult.Rejected
+            var restoredMain = main
             if (keep == Slot.SS) {
                 if (main.exerciseId != partner.exerciseId) return@withTransaction RunWriteResult.Rejected
                 val candidates = tracks.filter { it.programExerciseId == row.id && it.slot == Slot.MAIN && it.retired }
@@ -1547,11 +1549,23 @@ open class TrackerRepository(
                 if (!unchangedMain) {
                     val previous = if (previousMainId != null) candidates.singleOrNull { it.exerciseId == previousMainId }
                         else candidates.singleOrNull()
-                    if (previous == null || !swapInRun(runId, row.id, Slot.MAIN, previous.exerciseId, null, config, catalog,
-                            expectedExerciseId = expectedActiveMainId)) return@withTransaction RunWriteResult.Rejected
+                    restoredMain = previous ?: return@withTransaction RunWriteResult.Rejected
                 }
             }
-            runDao.updateTrack(partner.copy(retired = false, dropped = false, updatedAt = clock.millis()))
+            val mainRows = SetJson.decodeSets(restoredMain.setsJson)
+            val partnerRows = SetJson.decodeSets(partner.setsJson)
+            val mainSeed = SetJson.decodeSets(restoredMain.plannedJson)
+            val partnerSeed = SetJson.decodeSets(partner.plannedJson)
+            val count = maxOf(mainRows.size, partnerRows.size)
+            if ((mainRows.size < count && mainSeed.isEmpty()) ||
+                (partnerRows.size < count && partnerSeed.isEmpty())) return@withTransaction RunWriteResult.Rejected
+            val aligned = RunReplan.alignPaired(mainRows, partnerRows, mainSeed, partnerSeed)
+            if (restoredMain != main && !swapInRun(runId, row.id, Slot.MAIN, restoredMain.exerciseId, null, config, catalog,
+                    expectedExerciseId = expectedActiveMainId)) return@withTransaction RunWriteResult.Rejected
+            writeRunTracks(listOf(
+                restoredMain.copy(retired = false, setsJson = SetJson.encodeSets(aligned.first), updatedAt = clock.millis()),
+                partner.copy(retired = false, dropped = false, setsJson = SetJson.encodeSets(aligned.second), updatedAt = clock.millis()),
+            ))
             RunWriteResult.InRun(runId, started = false)
         }
     }

@@ -1106,6 +1106,24 @@ class DayViewModelWorkoutTest {
         assertNull(vm.uiState.value.swapUndo)
     }
 
+    @Test fun `rejected drop undo clears the saved offer after removing the plan partner`() = test {
+        prepare(listOf(bench(superset = true)))
+        val saved = SavedStateHandle()
+        val vm = readyVm(savedState = saved)
+        vm.dropSupersetHalf(0, Slot.MAIN, true, "db_bench", "cable_row")
+        runCurrent()
+        val offer = requireNotNull(vm.uiState.value.swapUndo)
+        repo.removeSupersetPartner("A", offer.programExerciseId)
+        runCurrent()
+        assertNotNull(vm.uiState.value.swapUndo)
+        val before = db.runDao().tracks(offer.runId)
+        vm.undoWorkoutSwap()
+        runCurrent()
+        assertNull(vm.uiState.value.swapUndo)
+        assertNull(saved.get<WorkoutSwapUndo>("day_swap_undo"))
+        assertEquals(before, db.runDao().tracks(offer.runId))
+    }
+
     @Test fun `plan keep partner uses the existing deletion count confirmation then removes the pairing`() = test {
         prepare(listOf(bench(superset = true)))
         val vm = readyVm()

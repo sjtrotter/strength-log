@@ -75,26 +75,12 @@ class UiTextMappingTest {
     }
 
     @Test
-    fun today_actions_resolve_every_kind_and_uppercase_day_ids_at_the_resource_boundary() {
-        val expected = mapOf(
-            TodayActionKind.START to "Start day B",
-            TodayActionKind.CONTINUE to "Continue day B",
-            TodayActionKind.FINISH to "Finish day B",
-        )
-
-        assertEquals(TodayActionKind.entries.toSet(), expected.keys)
-        assertAllResolve(expected.map { (kind, copy) -> UiText.TodayAction(kind, "b", 4, 18) to copy })
-    }
-
-    @Test
-    fun today_coach_and_progress_lines_resolve_their_resource_copy() {
-        assertAllResolve(listOf(
-            UiText.TodayCoach(TodayCoachKind.TODAY) to "Last trained today.",
-            UiText.TodayCoach(TodayCoachKind.YESTERDAY) to "Last trained yesterday.",
-            UiText.TodayCoach(TodayCoachKind.DAYS, "19 Aug", 5) to "Last trained 19 Aug, 5 days ago.",
-            UiText.TodayCoach(TodayCoachKind.WEEKS, "16 Jun", 10) to "Last trained 16 Jun, 10 weeks ago.",
-            UiText.TodayProgress(4, 21) to "4 of 21 sets logged.",
-        ))
+    fun overview_and_preview_actions_resolve_sentence_case_copy() {
+        assertEquals("Start", context.getString(R.string.workout_start))
+        assertEquals("Resume", context.getString(R.string.workout_resume))
+        assertEquals("Start day B", context.getString(R.string.preview_start_day, "B"))
+        assertEquals("Edit", context.getString(R.string.preview_edit))
+        assertEquals("Other days", context.getString(R.string.today_other_days))
     }
 
     @Test

@@ -16,7 +16,7 @@ enum class TopLevelDestination(
 ) {
     TODAY(Routes.TODAY, R.string.nav_today, Icons.Outlined.Home),
     LOG(Routes.LOG, R.string.nav_log, Icons.AutoMirrored.Outlined.List),
-    PLAN(Routes.PLAN, R.string.nav_plan, Icons.Outlined.DateRange),
+    PLANS(Routes.PLANS, R.string.nav_plans, Icons.Outlined.DateRange),
     ;
 
     companion object {

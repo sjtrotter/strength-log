@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.data.TrackerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -13,11 +14,15 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PlanViewModel @Inject constructor(
     private val repo: TrackerRepository,
@@ -32,15 +37,14 @@ class PlanViewModel @Inject constructor(
     private val dialogState = combine(dialog, dialogDay, title, menu) { kind, day, draft, menuDay ->
         PlanUiState(dialog = kind, dialogDayId = day, dayTitleDraft = draft, menuDayId = menuDay)
     }
-    private val programState = combine(
-        repo.programFlow, repo.suggestedDayFlow, repo.configFlow, repo.catalogFlow, repo.selectedPlanFlow,
-    ) { program, nextDayId, config, catalog, plan ->
-        val days = PlanScreenBuilder.days(program, nextDayId, config, catalog)
-        PlanUiState(
-            name = plan?.name, hasProgram = days.isNotEmpty(), days = days,
-            planId = plan?.id,
-        )
-    }
+    private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
+    private val programState = repo.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
+        .flatMapLatest { plan -> combine(
+            repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow,
+        ) { program, answers, catalog ->
+            val days = PlanScreenBuilder.days(program, plan?.suggestedDayId, answers.config, catalog)
+            PlanUiState(name = plan?.name, hasProgram = days.isNotEmpty(), days = days, planId = planId)
+        } }
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState) { program, draft ->
         program.copy(
             menuDayId = draft.menuDayId, dialog = draft.dialog,

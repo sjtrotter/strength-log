@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -111,6 +112,31 @@ class DayViewModelDaySwitchTest {
                 ),
             ),
         )
+    }
+
+    @Test
+    fun pausingAllPlansClearsTheDayDefaultAndResumingRestoresIt() = runVmTest {
+        insertTwoDayProgram()
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(plan, vm.uiState.value.planId)
+        assertEquals("A", vm.uiState.value.viewDayId)
+        repo.pause(plan)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.viewDayId)
+        assertNull(vm.uiState.value.planId)
+        assertFalse(vm.uiState.value.hasProgram)
+        assertFalse(vm.uiState.value.loading)
+        assertTrue(vm.uiState.value.exercises.isEmpty())
+        repo.useAlongside(plan)
+        advanceUntilIdle()
+        assertEquals(plan, vm.uiState.value.planId)
+        assertEquals("A", vm.uiState.value.viewDayId)
+        assertFalse(vm.uiState.value.loading)
+        assertTrue(vm.uiState.value.exercises.isNotEmpty())
+        collect.cancel()
     }
 
     @Test

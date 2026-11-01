@@ -11,6 +11,9 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.glance.DayProgress
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -264,6 +267,43 @@ class DayViewModelReceiptTest {
         // nothing to over-count.
         assertEquals(headerCount, partnerRows)
         assertEquals(headerCount, vm.sessionReceipt.value?.setCount)
+    }
+
+    @Test
+    fun partialAndLegacySupersetRowsKeepDaySnapshotAndReceiptCountsMainBased() = runVmTest {
+        for ((mainDone, partnerDone) in listOf(true to false, false to true, true to true)) {
+            repo.replaceProgram(Program(listOf(ProgramDay("A", "Arms", "", listOf(
+                ProgramExercise("ez_curl", targetSets = 1, superset = SupersetPartner("rope_pushdown")),
+            )))))
+            val vm = newCollectingViewModel()
+            advanceUntilIdle()
+            val planId = requireNotNull(repo.selectedPlanIdFlow.first())
+            val id = repo.slotsFor(planId, "A").first().single().programExerciseId
+            if (mainDone) vm.toggleDone(id, 0, true, Slot.MAIN)
+            if (partnerDone) vm.toggleDone(id, 0, true, Slot.SS)
+            advanceUntilIdle()
+            val expectedDone = if (mainDone) 1 else 0
+            val tracks = repo.dayTracksFlow(planId, "A").first()
+            assertEquals(mainDone, tracks.tracks.first { it.slot == Slot.MAIN }.sets.single().done)
+            assertEquals(partnerDone, tracks.tracks.first { it.slot == Slot.SS }.sets.single().done)
+            assertEquals(expectedDone, vm.uiState.value.doneSets)
+            assertEquals(1, vm.uiState.value.totalSets)
+            assertEquals(0, tracks.retiredRoundsDone)
+            val snapshot = requireNotNull(WatchSnapshotBuilder.build(
+                program = repo.programFor(planId).first(), suggestedDayId = "A",
+                slots = repo.slotsFor(planId, "A").first(), logs = tracks.tracks,
+                cfg = repo.wizardAnswersFor(planId).first().config, catalog = repo.catalogFlow.first(),
+                unit = WeightUnit.LB, revision = 1, retiredRoundsDone = tracks.retiredRoundsDone,
+            ))
+            assertEquals(DayProgress(expectedDone, 1), DayProgress.of(snapshot))
+            vm.completeDay()
+            advanceUntilIdle()
+            val receipt = requireNotNull(vm.sessionReceipt.value)
+            assertEquals(expectedDone, receipt.completedSetCount)
+            assertEquals(expectedDone, receipt.setCount)
+            assertEquals(1, receipt.totalSetCount)
+            vm.viewModelScope.cancel()
+        }
     }
 
     /** The receipt's only live handle is the row the advance wrote — the same id

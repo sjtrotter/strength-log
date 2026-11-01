@@ -42,6 +42,10 @@ import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseActions
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseScreen
 import cloud.trotter.log.strength.ui.customexercise.CustomExerciseViewModel
+import cloud.trotter.log.strength.ui.preview.PreviewActions
+import cloud.trotter.log.strength.ui.preview.PreviewScreen
+import cloud.trotter.log.strength.ui.preview.PreviewViewModel
+import cloud.trotter.log.strength.ui.day.WorkoutConflictDialog
 import cloud.trotter.log.strength.ui.day.DayActions
 import cloud.trotter.log.strength.ui.day.DayEditActions
 import cloud.trotter.log.strength.ui.day.DayScreen
@@ -54,6 +58,8 @@ import cloud.trotter.log.strength.ui.log.LogScreen
 import cloud.trotter.log.strength.ui.log.LogViewModel
 import cloud.trotter.log.strength.ui.navigation.AppNavigationBar
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
+import cloud.trotter.log.strength.ui.navigation.finishWorkout
+import cloud.trotter.log.strength.ui.navigation.legacyPlanDestination
 import cloud.trotter.log.strength.ui.navigation.navigateToTopLevel
 import cloud.trotter.log.strength.ui.plan.PlanActions
 import cloud.trotter.log.strength.ui.plan.PlanScreen
@@ -82,10 +88,12 @@ import kotlinx.coroutines.withContext
 
 /**
  * Single-activity nav graph (spec §8.1, brief D1): `wizard` (first run / new plan),
- * `today` (home), `day` (the workout screen, pushed from Today), `setup` (the
- * gear), `customExercise` (creation), `log` (history, D2), and `plan`. Today, Log,
- * and Plan share the navigation bar; the workout and every other destination hide
- * it.
+ * `today` (overview), `plans` (plans list), `plan/{planId}` (one plan's days),
+ * `preview/{planId}/{dayId}` (day preview), and `day` / `dayplan` (workout).
+ * The plan-scoped workout's `/edit` route opens its editor once. `setup` is
+ * the gear, `customExercise` creates exercises, and `log` shows history.
+ * Today, Log, and Plans share the navigation bar; all other destinations hide it.
+ * The legacy plain `plan` destination redirects restored back stacks to Plans.
  */
 object Routes {
     const val TODAY = "today"
@@ -97,13 +105,20 @@ object Routes {
     // find it. A day that carries its plan uses DAY_IN_PLAN instead.
     const val DAY_WITH_ID = "$DAY/{$DAY_ID_ARG}"
     const val DAY_IN_PLAN = "dayplan/{$DAY_PLAN_ID_ARG}/{$DAY_ID_ARG}"
-    fun day(dayId: String, planId: Long? = null) =
-        if (planId == null) "$DAY/$dayId" else "dayplan/$planId/$dayId"
+    const val DAY_EDITOR_ARG = "openEditor"
+    const val DAY_EDIT_IN_PLAN = "dayplan/{$DAY_PLAN_ID_ARG}/{$DAY_ID_ARG}/edit"
+    fun day(dayId: String, planId: Long? = null, openEditor: Boolean = false) =
+        if (planId == null) "$DAY/$dayId" else "dayplan/$planId/$dayId" + if (openEditor) "/edit" else ""
     const val WIZARD = "wizard"
     const val SETUP = "setup"
     const val SETUP_REST = "setup?rest=true"
     const val LOG = "log"
-    const val PLAN = "plan"
+    const val PLAN = "plan" // Compatibility for back stacks saved before the Plans tab.
+    const val PLAN_ID_ARG = "planId"
+    const val PLAN_IN_PLANS = "plan/{$PLAN_ID_ARG}"
+    const val PREVIEW = "preview/{$PLAN_ID_ARG}/{$DAY_ID_ARG}"
+    fun plan(planId: Long) = "plan/$planId"
+    fun preview(selection: DaySelection) = "preview/${requireNotNull(selection.planId)}/${selection.dayId}"
     const val PLANS = "plans"
     const val BACKUP = "backup"
     const val LICENSES = "licenses"
@@ -193,9 +208,9 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 // stacked copies of it to back out of.
                 onStart = { navController.navigate(Routes.day(it.dayId, it.planId)) { launchSingleTop = true } },
                 onOpenCardio = { navController.navigate(Routes.day(it.dayId, it.planId)) },
+                onOpenPreview = { navController.navigate(Routes.preview(it)) },
                 onOpenSettings = { navController.navigate(Routes.SETUP) },
-                onOpenLog = { navController.navigateToTopLevel(TopLevelDestination.LOG) },
-                onOpenPlans = { navController.navigate(Routes.PLANS) },
+                onOpenPlans = { navController.navigateToTopLevel(TopLevelDestination.PLANS) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
         }
@@ -211,15 +226,18 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
             DayRoute(
                 onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
-                // Dismissing the session receipt is the same pop system back
-                // already performs — a finished workout leaves the workout
-                // screen, and Today re-derives what the rotation now says.
-                onFinishSession = { navController.popBackStack() },
+                onFinishSession = { navController.finishWorkout() },
+                onBack = { navController.popBackStack() },
                 onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
             )
         }
         listOf(
             Routes.DAY_WITH_ID to listOf(navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType }),
+            Routes.DAY_EDIT_IN_PLAN to listOf(
+                navArgument(Routes.DAY_PLAN_ID_ARG) { type = NavType.StringType },
+                navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
+                navArgument(Routes.DAY_EDITOR_ARG) { type = NavType.BoolType; defaultValue = true },
+            ),
             Routes.DAY_IN_PLAN to listOf(
                 navArgument(Routes.DAY_PLAN_ID_ARG) { type = NavType.StringType },
                 navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
@@ -230,7 +248,8 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 DayRoute(
                     onCreateExercise = { pattern -> navController.navigate(Routes.customExercise(pattern)) },
                     onSetUpProgram = { navController.navigate(Routes.WIZARD) },
-                    onFinishSession = { navController.popBackStack() },
+                    onFinishSession = { navController.finishWorkout() },
+                    onBack = { navController.popBackStack() },
                     initialDayId = dayId,
                     onOpenRestTimer = { navController.navigate(Routes.SETUP_REST) },
                 )
@@ -282,16 +301,29 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
             )
         }
-        composable(Routes.PLAN) {
+        legacyPlanDestination(navController)
+        composable(Routes.PLAN_IN_PLANS, arguments = listOf(
+            navArgument(Routes.PLAN_ID_ARG) { type = NavType.StringType },
+        )) {
             PlanRoute(
-                onOpenDay = { navController.navigate(Routes.day(it.dayId, it.planId)) },
-                onOpenPlans = { navController.navigate(Routes.PLANS) },
+                onOpenDay = { navController.navigate(Routes.preview(it)) },
+                onOpenPlans = { navController.popBackStack() },
                 onSetUpProgram = { navController.navigate(Routes.WIZARD) },
+            )
+        }
+        composable(Routes.PREVIEW, arguments = listOf(
+            navArgument(Routes.PLAN_ID_ARG) { type = NavType.StringType },
+            navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
+        )) {
+            PreviewRoute(
+                onBack = { navController.popBackStack() },
+                onOpenDay = { selection, edit -> navController.navigate(Routes.day(selection.dayId, selection.planId, edit)) { launchSingleTop = true } },
             )
         }
         composable(Routes.PLANS) {
             PlansRoute(
-                onBack = { navController.popBackStack() },
+                onOpenPlan = { navController.navigate(Routes.plan(it)) },
+                onOpenSettings = { navController.navigate(Routes.SETUP) },
                 onNewPlan = { navController.navigate(Routes.WIZARD) },
             )
         }
@@ -302,49 +334,59 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
 }
 
 /**
- * The orientation screen and the app's home: it says what day is next and what
- * is in it, then hands off. [TodayViewModel] also switches the selected plan;
- * workout writes remain [DayViewModel]'s job.
+ * Home overview: resume the open run, preview any day, or explicitly start
+ * the display plan. Shared Start handling resolves conflicts before navigation.
  */
 @Composable
-private fun TodayRoute(
+internal fun TodayRoute(
     onStart: (DaySelection) -> Unit,
     onOpenCardio: (DaySelection) -> Unit,
+    onOpenPreview: (DaySelection) -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenLog: () -> Unit,
     onSetUpProgram: () -> Unit,
     onOpenPlans: () -> Unit,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TodayScreen(
-        state = state,
-        actions = TodayActions(
-            onStart = onStart,
-            onOpenCardio = onOpenCardio,
-            onOpenSettings = onOpenSettings,
-            onOpenLog = onOpenLog,
-            onSetUpProgram = onSetUpProgram,
-            onOpenPlans = onOpenPlans,
-            onShowPlanPicker = viewModel::showPlanPicker,
-            onDismissPlanPicker = viewModel::dismissPlanPicker,
-            onSelectPlan = viewModel::selectPlan,
-        ),
-    )
+    val start = viewModel.workoutStart
+    val conflict by start.conflict.collectAsStateWithLifecycle()
+    LaunchedEffect(start) { start.navigation.collect { onStart(it) } }
+    TodayScreen(state, TodayActions(
+        onStart = start::start, onResume = onStart,
+        onOpenCardio = onOpenCardio, onOpenPreview = onOpenPreview,
+        onOpenSettings = onOpenSettings, onSetUpProgram = onSetUpProgram,
+        onOpenPlans = onOpenPlans, onToggleOtherDays = viewModel::toggleOtherDays,
+    ))
+    WorkoutConflictDialog(conflict, start::dismiss, start::resume, start::confirmDiscard, start::discardAndStart)
+}
+
+@Composable
+internal fun PreviewRoute(
+    onBack: () -> Unit,
+    onOpenDay: (DaySelection, Boolean) -> Unit,
+    viewModel: PreviewViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val start = viewModel.workoutStart
+    val conflict by start.conflict.collectAsStateWithLifecycle()
+    LaunchedEffect(start) { start.navigation.collect { onOpenDay(it, false) } }
+    PreviewScreen(state, PreviewActions(onBack, { onOpenDay(viewModel.selection, true) }, viewModel::start))
+    WorkoutConflictDialog(conflict, start::dismiss, start::resume, start::confirmDiscard, start::discardAndStart)
 }
 
 @Composable
 private fun PlansRoute(
-    onBack: () -> Unit,
+    onOpenPlan: (Long) -> Unit,
+    onOpenSettings: () -> Unit,
     onNewPlan: () -> Unit,
     viewModel: PlansViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(viewModel) { viewModel.selected.collect { onBack() } }
+    LaunchedEffect(viewModel) { viewModel.createdPlan.collect { onOpenPlan(it) } }
     PlansScreen(
         state,
         PlansActions(
-            onBack = onBack,
+            onOpenPlan = onOpenPlan, onOpenSettings = onOpenSettings,
             onNewPlan = onNewPlan,
             onSelect = viewModel::select,
             onMenu = viewModel::openMenu,
@@ -397,6 +439,7 @@ internal fun DayRoute(
     onCreateExercise: (MovementPattern) -> Unit,
     onSetUpProgram: () -> Unit,
     onFinishSession: () -> Unit,
+    onBack: () -> Unit = onFinishSession,
     initialDayId: String? = null,
     onOpenRestTimer: () -> Unit,
     viewModel: DayViewModel = hiltViewModel(),
@@ -502,7 +545,7 @@ internal fun DayRoute(
         onFinishSession = {
             if (viewModel.dismissSessionReceipt()) onFinishSession()
         },
-        onBack = onFinishSession,
+        onBack = onBack,
         removedSets = removedSets,
         onUndoRemoveSet = viewModel::undoRemoveSet,
         standaloneCardio = initialDayId != null && !state.isProgramDay,

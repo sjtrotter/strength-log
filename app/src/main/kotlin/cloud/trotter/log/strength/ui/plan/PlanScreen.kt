@@ -7,7 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -50,9 +51,9 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
         topBar = {
             TopAppBar(
                 title = { Text(state.name ?: stringResource(R.string.plan_title)) },
-                actions = {
-                    TextButton(onClick = actions.onOpenPlans) {
-                        Text(stringResource(R.string.plans_title))
+                navigationIcon = {
+                    IconButton(onClick = actions.onOpenPlans) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.setup_back_description))
                     }
                 },
             )
@@ -79,7 +80,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
     }
     if (state.dialog != null) {
         val renaming = state.dialog == "rename"
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = actions.onDismissDayDialog,
             title = { Text(stringResource(if (renaming) R.string.plan_rename_day else R.string.plan_remove_day)) },
             text = {

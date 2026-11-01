@@ -6,6 +6,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import java.util.regex.Pattern
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -79,11 +80,12 @@ class BaselineProfileGenerator {
             }
         }
 
-        /** Today's primary action, whatever phase the day is in. */
+        /** Resume the open run or start the preferred plan from its overview row. */
         fun openTodaysWorkout(device: UiDevice) {
-            val start = device.wait(Until.findObject(By.textStartsWith("START DAY")), WAIT_MS)
-                ?: device.findObject(By.textStartsWith("CONTINUE"))
-                ?: device.findObject(By.textStartsWith("FINISH DAY"))
+            val start = device.wait(
+                Until.findObject(By.text(Pattern.compile("Resume.*|Start", Pattern.DOTALL))),
+                WAIT_MS,
+            )
                 ?: return
             start.click()
             device.waitForIdle(WAIT_MS)

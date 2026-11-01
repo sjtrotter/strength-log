@@ -23,7 +23,7 @@ import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.chromeVerticalPadding
 import cloud.trotter.log.strength.ui.theme.isShortWindow
 import cloud.trotter.log.strength.ui.today.TodayActions
-import cloud.trotter.log.strength.ui.today.TodayLift
+import cloud.trotter.log.strength.ui.today.TodayDay
 import cloud.trotter.log.strength.ui.today.TodayScreen
 import cloud.trotter.log.strength.ui.today.TodayUiState
 import kotlin.math.abs
@@ -49,20 +49,18 @@ class WindowSizeTest {
         setTodayContent()
 
         val rootWidth = composeTestRule.onRoot().fetchSemanticsNode().size.width.toFloat()
-        val dayLabel = composeTestRule.onNodeWithText("Day B").fetchSemanticsNode().boundsInRoot
-        val start = composeTestRule.onNodeWithText("Start day B").fetchSemanticsNode().boundsInRoot
+        val dayLabel = composeTestRule.onNodeWithText("Strength · Day B").fetchSemanticsNode().boundsInRoot
+        val start = composeTestRule.onNodeWithText("Start").fetchSemanticsNode().boundsInRoot
         val readable = with(composeTestRule.density) { ReadableWidth.toPx() }
         val gutters = with(composeTestRule.density) { 32.dp.toPx() }
-        val leftGap = start.left
-        val rightGap = rootWidth - start.right
 
         assertTrue(
             "start width ${start.width}px exceeded readable $readable px plus $gutters px padding",
             start.width <= readable + gutters,
         )
         assertTrue(
-            "start gaps were $leftGap px left and $rightGap px right",
-            abs(leftGap - rightGap) <= 2f,
+            "start escaped the readable band",
+            start.left >= (rootWidth - readable) / 2f && start.right <= (rootWidth + readable) / 2f,
         )
         assertTrue(
             "Day label at ${dayLabel.left}..${dayLabel.right}px escaped the centred $readable px band",
@@ -165,14 +163,14 @@ class WindowSizeTest {
         setTodayContent()
 
         val rootHeight = composeTestRule.onRoot().fetchSemanticsNode().size.height.toFloat()
-        val headerBottom = composeTestRule.onNodeWithText("Day B")
+        val headerBottom = composeTestRule.onNodeWithText("Strength · Day B")
             .fetchSemanticsNode().boundsInRoot.bottom
-        val start = composeTestRule.onNodeWithText("Start day B")
+        val start = composeTestRule.onNodeWithText("Start")
             .fetchSemanticsNode().boundsInRoot
 
         assertTrue(
-            "day header at $headerBottom px overlaps the primary action at ${start.top} px",
-            headerBottom < start.top,
+            "day row bottom $headerBottom px escaped the $rootHeight px window",
+            headerBottom <= rootHeight,
         )
         assertTrue(
             "primary action bottom ${start.bottom}px escaped the $rootHeight px window",
@@ -214,17 +212,13 @@ class WindowSizeTest {
 
     private fun todayState() = TodayUiState(
         hasProgram = true,
-        dayId = "B",
-        dayIndex = 1,
-        dayTitle = "Lower body",
-        lifts = listOf(TodayLift("Barbell Back Squat", 5)),
-        actionLabel = cloud.trotter.log.strength.ui.today.TodayScreenBuilder.actionLabel("B", 0, 18),
+        upNext = listOf(TodayDay(1, "Strength", "B", 1, "Lower body")),
+        fact = "Last trained Oct 28",
     )
 
     private fun todayActions() = TodayActions(
         onStart = {},
         onOpenSettings = {},
-        onOpenLog = {},
         onSetUpProgram = {},
     )
 }

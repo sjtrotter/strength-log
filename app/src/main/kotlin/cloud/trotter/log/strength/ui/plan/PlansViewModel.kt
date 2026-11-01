@@ -27,8 +27,8 @@ class PlansViewModel @Inject constructor(
     private val menuPlanId = MutableStateFlow<Long?>(null)
     private val renamePlanId = savedState.getStateFlow<Long?>(RENAME_ID, null)
     private val renameDraft = savedState.getStateFlow(RENAME_DRAFT, "")
-    private val selections = Channel<Unit>(Channel.BUFFERED)
-    val selected = selections.receiveAsFlow()
+    private val creations = Channel<Long>(Channel.BUFFERED)
+    val createdPlan = creations.receiveAsFlow()
 
     private val newPlanPage = savedState.getStateFlow<String?>(NEW_PAGE, null)
     private val newPlanName = savedState.getStateFlow(NEW_NAME, "")
@@ -66,7 +66,7 @@ class PlansViewModel @Inject constructor(
                 creating.value = false
                 if (repo.selectedPlanIdFlow.first() == id) {
                     dismissNewPlan()
-                    selections.send(Unit)
+                    creations.send(id)
                 }
             } finally {
                 creating.value = false
@@ -143,7 +143,6 @@ class PlansViewModel @Inject constructor(
         menuPlanId.value = null
         viewModelScope.launch {
             repo.selectPlan(id)
-            if (repo.selectedPlanIdFlow.first() == id) selections.send(Unit)
         }
     }
 

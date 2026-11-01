@@ -195,13 +195,7 @@ class DayViewModel @Inject constructor(
             // Live-set keystrokes still do not touch this path, while a Log edit
             // immediately corrects both "last time" and "Best" on an open day.
             val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(noDayState(ctx))
-            val historyKeys = combine(
-                repo.slotsFor(planId, dayId),
-                repo.dayTracksFlow(planId, dayId).map { tracks ->
-                    tracks.tracks.associate { (it.programExerciseId to it.slot) to it.exerciseId }
-                }.distinctUntilChanged(),
-                repo.sessionSummariesFor(planId),
-            ) { slots, performedIds, _ -> slots to performedIds }
+            val historyKeys = repo.dayHistoryKeys(planId, dayId)
             val slotsWithHistory = historyKeys.flatMapLatest { (slots, performedIds) ->
                 flow {
                     ensureSeeded(planId, dayId, slots)
@@ -349,7 +343,9 @@ class DayViewModel @Inject constructor(
         }
     }
     private val prescriptionDraft = savedState.getStateFlow<PrescriptionDraft?>(KEY_PRESCRIPTION_DRAFT, null)
-    private val dayEditorOpen = savedState.getStateFlow(KEY_DAY_EDITOR_OPEN, false)
+    private val dayEditorOpen = savedState.getStateFlow(
+        KEY_DAY_EDITOR_OPEN, savedState.get<Boolean>(Routes.DAY_EDITOR_ARG) == true,
+    )
     private val cardioDraft = savedState.getStateFlow<CardioBlockDraft?>(KEY_CARDIO_DRAFT, null)
     private val prescriptionEditState = combine(
         editProgramState, repo.unitFlow, prescriptionDraft, dayEditorOpen,
@@ -1359,11 +1355,7 @@ class DayViewModel @Inject constructor(
         mutate {
             val slots = repo.slotsFor(planId, day).first()
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
-            val cfg = repo.wizardAnswersFor(planId).first().config
-            val catalog = repo.catalogFlow.first()
-            val working = repo.dayTracksFlow(planId, day).first().tracks
-                .associate { (it.programExerciseId to it.slot) to it.sets.size }
-            val seeds = DayScreenBuilder.seedPlan(slots, working, cfg, catalog)
+            val seeds = repo.daySeeds(planId, day, slots)
                 .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
             val runId = when (val result = repo.startRun(planId, day, seeds)) {
                 is RunStartResult.Started -> result.runId
@@ -1376,6 +1368,8 @@ class DayViewModel @Inject constructor(
             }
             val existing = repo.dayTracksFlow(planId, day).first().tracks
                 .associate { (it.programExerciseId to it.slot) to it.sets.size }
+            val cfg = repo.wizardAnswersFor(planId).first().config
+            val catalog = repo.catalogFlow.first()
             val seed = DayScreenBuilder.swapSeed(slot, Slot.MAIN, newExerciseId, existing, cfg, catalog)
                 ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
             repo.swapInRun(runId, slot.programExerciseId, Slot.MAIN, newExerciseId, seed)
@@ -1456,10 +1450,7 @@ class DayViewModel @Inject constructor(
     /** Seeds each day's logs before its authoritative rows are observed. */
     private suspend fun ensureSeeded(planId: Long, dayId: String, slots: List<ProgramSlot>) = mutationLock.withLock {
         val tracks = repo.dayTracksFlow(planId, dayId).first()
-        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
-        val cfg = repo.wizardAnswersFor(planId).first().config
-        val catalog = repo.catalogFlow.first()
-        val seeds = DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
+        val seeds = repo.daySeeds(planId, dayId, slots, tracks)
         val runId = tracks.runId
         if (tracks.runOpen && runId != null) {
             repo.seedRunTracksIfMissing(runId, seeds.map { RunSeed(it.programExerciseId, it.slot, it.sets) })
@@ -1471,10 +1462,7 @@ class DayViewModel @Inject constructor(
     private suspend fun seedWorkingValues(planId: Long, dayId: String, slots: List<ProgramSlot>) {
         val tracks = repo.dayTracksFlow(planId, dayId).first()
         if (tracks.runOpen) return
-        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
-        val cfg = repo.wizardAnswersFor(planId).first().config
-        val catalog = repo.catalogFlow.first()
-        DayScreenBuilder.seedPlan(slots, existing, cfg, catalog).forEach {
+        repo.daySeeds(planId, dayId, slots, tracks).forEach {
             repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets)
         }
     }
@@ -1520,14 +1508,7 @@ class DayViewModel @Inject constructor(
         performedIds: Map<Pair<Long, String>, String?>,
         catalog: ExerciseCatalog,
     ): DayHistory {
-        val ids = slots.flatMap { slot ->
-            listOfNotNull(
-                performedExercise(slot, performedIds[slot.programExerciseId to Slot.MAIN], catalog).exerciseId,
-                slot.exercise.superset?.let {
-                    performedExercise(slot, performedIds[slot.programExerciseId to Slot.SS], catalog, Slot.SS).exerciseId
-                },
-            )
-        }.distinct()
+        val ids = performedDayExerciseIds(slots, performedIds, catalog)
         return DayHistory(repo.lastPerformed(ids), repo.personalRecords(ids))
     }
 

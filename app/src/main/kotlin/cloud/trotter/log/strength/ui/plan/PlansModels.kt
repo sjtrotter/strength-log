@@ -13,8 +13,9 @@ data class PlansUiState(
 )
 
 data class PlansActions(
-    val onBack: () -> Unit,
     val onNewPlan: () -> Unit,
+    val onOpenPlan: (Long) -> Unit = {},
+    val onOpenSettings: () -> Unit = {},
     val onSelect: (Long) -> Unit,
     val onMenu: (Long?) -> Unit,
     val onRename: (Long) -> Unit,

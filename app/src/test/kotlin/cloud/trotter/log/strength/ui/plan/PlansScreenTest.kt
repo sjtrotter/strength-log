@@ -1,11 +1,6 @@
 package cloud.trotter.log.strength.ui.plan
 
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -27,10 +22,20 @@ class PlansScreenTest {
     val composeTestRule = createComposeRule()
 
     private fun actions() = PlansActions(
-        onBack = {}, onNewPlan = {}, onSelect = {}, onMenu = {},
+        onNewPlan = {}, onSelect = {}, onMenu = {},
         onRename = {}, onRenameDraft = {}, onSaveRename = {}, onDismissRename = {},
         onDuplicate = {}, onArchive = {}, onRestore = {},
     )
+
+    @Test
+    fun settingsGearOpensSettings() {
+        var opened = false
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(), actions().copy(onOpenSettings = { opened = true }))
+        } }
+        composeTestRule.onNodeWithContentDescription("Settings").performClick()
+        assertTrue(opened)
+    }
 
     @Test
     fun pausedRowMenuOffersMembershipAndPreferenceActions() {
@@ -87,7 +92,7 @@ class PlansScreenTest {
     }
 
     @Test
-    fun planNameLabelsTheRadioRowAndOverflowRemainsASeparateAction() {
+    fun planRowOpensItsDaysAndOverflowRemainsASeparateAction() {
         val selected = mutableListOf<Long>()
         val menus = mutableListOf<Long?>()
         composeTestRule.setContent {
@@ -97,7 +102,7 @@ class PlansScreenTest {
                         PlanSummary(1, "Full body", "A", "Squat", selected = true, archived = false, lastSessionAt = null),
                     )),
                     PlansActions(
-                        onBack = {}, onNewPlan = {}, onSelect = { selected += it }, onMenu = { menus += it },
+                        onNewPlan = {}, onSelect = {}, onOpenPlan = { selected += it }, onMenu = { menus += it },
                         onRename = {}, onRenameDraft = {}, onSaveRename = {}, onDismissRename = {},
                         onDuplicate = {}, onArchive = {}, onRestore = {},
                     ),
@@ -106,9 +111,7 @@ class PlansScreenTest {
         }
 
         val row = composeTestRule.onNodeWithText("Full body")
-        row.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-            .assertIsSelected()
-            .assertHasClickAction()
+        row.assertHasClickAction()
         composeTestRule.onNodeWithContentDescription("Plan options")
             .assertHasClickAction()
             .performClick()

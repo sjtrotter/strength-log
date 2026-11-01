@@ -154,7 +154,8 @@ class DayRouteNavigationTest {
                     TodayScreen(state, TodayActions(
                         onStart = { navController.navigate(Routes.day(it.dayId, it.planId)) },
                         onOpenCardio = { navController.navigate(Routes.day(it.dayId, it.planId)) },
-                        onOpenSettings = {}, onOpenLog = {}, onSetUpProgram = {},
+                        onOpenSettings = {}, onSetUpProgram = {},
+                        onToggleOtherDays = todayViewModel::toggleOtherDays,
                     ))
                 }
                 listOf(Routes.DAY_WITH_ID, Routes.DAY_IN_PLAN).forEach { route ->
@@ -184,11 +185,12 @@ class DayRouteNavigationTest {
             }
         } }
         rule.waitUntil(5_000) {
-            rule.runOnIdle { todayViewModel.uiState.value.standaloneCardio != null }
+            rule.runOnIdle { todayViewModel.uiState.value.otherDays.any { it.planId == displayedPlan && it.dayId == "C1" } }
         }
-        rule.runOnIdle { assertEquals(displayedPlan, todayViewModel.uiState.value.planId) }
+        rule.runOnIdle { assertEquals(displayedPlan, todayViewModel.uiState.value.resume?.planId) }
 
-        rule.onNodeWithText("Log cardio + core, 25 min").performClick()
+        rule.onNodeWithText("Other days").performClick()
+        rule.onNodeWithText("My plan · Day C1").performClick()
         rule.waitUntil(5_000) {
             rule.runOnIdle { ::viewModel.isInitialized && !viewModel.uiState.value.loading }
         }

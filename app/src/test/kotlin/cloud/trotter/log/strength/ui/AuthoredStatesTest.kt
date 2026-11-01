@@ -204,7 +204,6 @@ class AuthoredStatesTest {
     private fun todayActions(onSetUpProgram: () -> Unit = {}) = TodayActions(
         onStart = {},
         onOpenSettings = {},
-        onOpenLog = {},
         onSetUpProgram = onSetUpProgram,
     )
 

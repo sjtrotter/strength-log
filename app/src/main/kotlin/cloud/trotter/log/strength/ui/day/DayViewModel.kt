@@ -1047,6 +1047,8 @@ class DayViewModel @Inject constructor(
                         ) null else current.mapIndexed { index, set ->
                             if (index != target.index) set else before.copy(
                                 done = false, startedAtMillis = null, completedAtMillis = null,
+                                // A watch stamp only moves forward, or a replayed watch tick redoes this set.
+                                watchEditedAt = listOfNotNull(before.watchEditedAt, set.watchEditedAt).maxOrNull(),
                             )
                         }
                     },

@@ -429,6 +429,30 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
+    fun `★ undo keeps the watch stamp so a replayed watch tick stays stale`() = test {
+        prepare()
+        val vm = readyVm()
+        val state = vm.uiState.value
+        val id = state.exercises.single().programExerciseId
+        vm.logFocusedSet()
+        runCurrent()
+        val applier = SetEditApplier(repo, syncStore, syncStore)
+        val watchTick = SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, editedAtMillis = 100_001, planId = state.planId, runId = state.runId, exerciseId = "db_bench",
+        )
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(watchTick))
+        runCurrent()
+        assertNotNull(vm.uiState.value.workout!!.undo)
+        vm.undoLastLog()
+        runCurrent()
+        assertEquals(100_001L, track(vm, id)[0].watchEditedAt)
+        assertEquals(SetEditApplier.Outcome.STALE, applier.apply(watchTick))
+        runCurrent()
+        assertTrue(!track(vm, id)[0].done)
+    }
+
+    @Test
     fun `★ undo declines a concurrent target edit without canceling rest or clearing the record`() = test {
         prepare(restEnabled = true)
         val vm = readyVm()

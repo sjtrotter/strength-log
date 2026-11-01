@@ -19,8 +19,8 @@ internal fun WorkoutSetHost(
     DayScreen(state, actions, dayEditState, dayEditActions,
         removedSets = removedSets, onUndoRemoveSet = onUndoRemoveSet,
         setScreenContent = if (state.usesWorkoutSetScreen) {
-            { onExercises, onFinish, snackbarHost ->
-                WorkoutSetScreen(state, actions, dayEditState.catalog, onExercises, onFinish, snackbarHost, nowMillis = nowMillis)
+            { onExercises, onFinish, snackbarHost, onEditDay ->
+                WorkoutSetScreen(state, actions, dayEditState.catalog, onExercises, onFinish, snackbarHost, onEditDay, nowMillis = nowMillis)
             }
         } else null,
     )
@@ -78,3 +78,76 @@ internal fun workoutDaySheetFixture(): DayUiState {
         exercises = listOf(squat, bench, state.exercises.single().copy(position = 2), plank),
         cardio = CardioCardState("Zone 2", "", false))
 }
+
+internal fun workoutSetTimedRepFixture(): DayUiState {
+    val state = workoutSetSingleFixture()
+    val card = state.exercises.single().copy(
+        title = "Push-Up", exerciseId = "pushup", tracking = TrackingType.REPS, plateLine = null,
+        timedRepDurationSeconds = 40, timedRepAim = 20, headerTarget = HeaderTarget.Prescribed("40 s"),
+        rows = List(2) { SetRowState(it, "${it + 1}", false, 0.0, 20, false) },
+    )
+    return state.copy(exercises = listOf(card), workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 0)))
+}
+
+internal fun workoutSetTimedRepRunningFixture(awaiting: Boolean = false, index: Int = 0): DayUiState {
+    val state = workoutSetTimedRepFixture()
+    return state.copy(executionBusy = true, timedRep = TimedRepState(
+        TimedRepEvent("A", 1L, "pushup", index, 40, 1_000L, 1_000L, 1,
+            awaitingCount = awaiting, sheetDismissed = awaiting), if (awaiting) 0 else 27,
+    ))
+}
+
+internal fun workoutSetCardioFixture(): DayUiState {
+    val state = workoutSetSingleFixture()
+    return state.copy(cardio = cardioFixture(),
+        exercises = state.exercises.map { card -> card.copy(allDone = true, rows = card.rows.map { it.copy(done = true) }) },
+        workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("cardio", false), focus = null))
+}
+
+internal fun workoutSetCardioRunningFixture(): DayUiState = workoutSetCardioFixture().copy(
+    cardio = runningCardioFixture(), cardioRunning = true, executionBusy = true,
+)
+
+internal fun workoutSetCardioDistanceFixture(): DayUiState {
+    val state = workoutSetCardioRunningFixture()
+    val cardio = requireNotNull(state.cardio)
+    val run = requireNotNull(cardio.run)
+    val block = cloud.trotter.log.strength.domain.model.CardioBlock(
+        cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN,
+        listOf(cloud.trotter.log.strength.domain.model.CardioSetSpec(
+            cloud.trotter.log.strength.domain.model.CardioRole.WORK,
+            cloud.trotter.log.strength.domain.model.Measure.Distance(400),
+            cloud.trotter.log.strength.domain.model.Measure.Time(105),
+        )),
+    )
+    val json = cloud.trotter.log.strength.data.serialization.CardioBlockJson.encode(block)
+    return state.copy(cardio = cardio.copy(block = block, elapsedSeconds = 27,
+        run = run.copy(sourceBlockJson = json, blockJson = json)))
+}
+
+internal fun workoutSetCardioRecoveryFixture(): DayUiState {
+    val state = workoutSetCardioRunningFixture()
+    val cardio = requireNotNull(state.cardio)
+    val run = requireNotNull(cardio.run)
+    val block = requireNotNull(cardio.block).let { it.copy(sets = it.sets +
+        cloud.trotter.log.strength.domain.model.CardioSetSpec(
+            cloud.trotter.log.strength.domain.model.CardioRole.RECOVERY,
+            cloud.trotter.log.strength.domain.model.Measure.Time(60))) }
+    val json = cloud.trotter.log.strength.data.serialization.CardioBlockJson.encode(block)
+    return state.copy(cardio = cardio.copy(block = block, stepSecondsLeft = 42, elapsedSeconds = 18,
+        run = run.copy(sourceBlockJson = json, blockJson = json,
+            results = listOf(SavedCardioResult("FINISHED", 300)), wallStart = 301_000L)))
+}
+
+internal fun workoutSetCardioDoneFixture(): DayUiState {
+    val state = workoutSetCardioFixture()
+    val cardio = requireNotNull(state.cardio)
+    val spec = requireNotNull(cardio.block).sets.single()
+    return state.copy(cardio = cardio.copy(loggedSeconds = 300, loggedSets = listOf(
+        cloud.trotter.log.strength.domain.model.CardioSetResult(spec,
+            cloud.trotter.log.strength.domain.model.CardioSetStatus.FINISHED, 300))),
+        workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("cardio", true), completedView = true))
+}
+
+internal fun workoutSetEmptyFixture(): DayUiState = workoutSetSingleFixture().copy(exercises = emptyList(),
+    workout = WorkoutState(WorkoutSelection.Shown.Empty, null, false, null, null))

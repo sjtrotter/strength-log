@@ -75,7 +75,7 @@ internal fun cardioActivityName(activity: CardioActivity): String = stringResour
 })
 
 @Composable
-private fun roleName(role: CardioRole): String = stringResource(when (role) {
+internal fun roleName(role: CardioRole): String = stringResource(when (role) {
     CardioRole.WARMUP -> R.string.cardio_warmup
     CardioRole.WORK -> R.string.cardio_work
     CardioRole.RECOVERY -> R.string.cardio_recovery
@@ -83,7 +83,7 @@ private fun roleName(role: CardioRole): String = stringResource(when (role) {
 })
 
 @Composable
-private fun statusName(status: CardioSetStatus?, running: Boolean): String = stringResource(when (status) {
+internal fun statusName(status: CardioSetStatus?, running: Boolean): String = stringResource(when (status) {
     CardioSetStatus.FINISHED -> R.string.cardio_finished
     CardioSetStatus.SHORTENED -> R.string.cardio_shortened
     CardioSetStatus.SKIPPED -> R.string.cardio_skipped
@@ -91,7 +91,7 @@ private fun statusName(status: CardioSetStatus?, running: Boolean): String = str
 })
 
 @Composable
-private fun measureText(measure: Measure): String = when (measure) {
+internal fun measureText(measure: Measure): String = when (measure) {
     is Measure.Time -> formatCardioTime(measure.seconds)
     is Measure.Distance -> stringResource(R.string.cardio_metres, measure.metres)
 }
@@ -121,6 +121,16 @@ internal fun CardioSummary(sets: List<CardioSetResult>, seconds: Int, modifier: 
     }
 }
 
+internal val CardioCardState.completed: Boolean get() {
+    val results = run?.resultSets ?: loggedSets
+    return run?.complete == true || (run == null && results.isNotEmpty())
+}
+
+internal val CardioCardState.position: Int get() {
+    val block = block ?: return 0
+    return run?.position ?: if (completed) block.sets.size else 0
+}
+
 @Composable
 internal fun CardioPage(
     cardio: CardioCardState,
@@ -133,8 +143,8 @@ internal fun CardioPage(
     val block = cardio.block ?: return
     val run = cardio.run
     val results = run?.resultSets ?: cardio.loggedSets
-    val completed = run?.complete == true || (run == null && results.isNotEmpty())
-    val position = run?.position ?: if (completed) block.sets.size else 0
+    val completed = cardio.completed
+    val position = cardio.position
     val spec = block.sets.getOrNull(position)
     var menu by remember { mutableStateOf(false) }
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {

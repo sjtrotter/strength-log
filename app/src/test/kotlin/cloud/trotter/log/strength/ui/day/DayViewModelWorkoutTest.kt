@@ -122,13 +122,14 @@ class DayViewModelWorkoutTest {
         exercises: List<ProgramExercise> = listOf(bench()),
         restEnabled: Boolean = false,
         cardio: Boolean = false,
+        dayB: ProgramDay? = null,
     ) {
-        repo.replaceProgram(Program(listOf(ProgramDay(
+        repo.replaceProgram(Program(listOfNotNull(ProgramDay(
             "A", "Workout", "", exercises,
             cardioBlock = if (cardio) CardioBlocks.fromLegacy(
                 CardioSuggestion("Easy cardio", "Run easy.", hard = false), true, CardioActivity.ROAD_RUN,
             ) else null,
-        ))))
+        ), dayB)))
         repo.setPhoneRestTimerEnabled(restEnabled)
     }
 
@@ -1015,6 +1016,82 @@ class DayViewModelWorkoutTest {
         assertEquals(90, runtime.armed.single().totalSeconds)
         assertNull(track(vm, id, Slot.SS)[1].completedAtMillis)
         assertNull(vm.uiState.value.workout)
+    }
+
+    @Test fun `★ cardio logs one session and Finish advances once`() = test {
+        prepare(listOf(bench(sets = 1)), cardio = true,
+            dayB = ProgramDay("B", "Next workout", "", listOf(bench())))
+        val vm = readyVm()
+        val plan = requireNotNull(vm.uiState.value.planId)
+        vm.logFocusedSet()
+        runCurrent()
+        assertEquals(WorkoutSelection.Shown.Group("cardio", false), vm.uiState.value.workout?.shown)
+        vm.startCardio()
+        runCurrent()
+        at(clock.now + 10_000)
+        vm.endCardioBlock()
+        runCurrent()
+        val session = repo.cardioSessionsFlow.first().single()
+        assertEquals(10, session.seconds)
+        assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
+        assertEquals(WorkoutSelection.Shown.Group("cardio", true), vm.uiState.value.workout?.shown)
+        vm.completeDay()
+        vm.completeDay()
+        runCurrent()
+        assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
+        assertEquals(listOf(session), repo.cardioSessionsFlow.first())
+    }
+
+    @Test fun `jumping away from a running timed rep keeps its clock`() = test {
+        prepare(listOf(ProgramExercise("pushup", targetSets = 2,
+            prescription = Prescription(PrescribedTarget.RepsInTime(40, 20))), bench()))
+        val vm = readyVm()
+        val timed = vm.uiState.value.exercises.first()
+        val other = vm.uiState.value.exercises.last()
+        vm.startTimedRep(timed.programExerciseId, 0)
+        runCurrent()
+        val event = requireNotNull(vm.uiState.value.timedRep).event
+        vm.selectWorkoutLift("exercise:${other.programExerciseId}")
+        runCurrent()
+        at(clock.now + 10_000)
+        assertEquals(event, vm.uiState.value.timedRep?.event)
+        assertEquals(30, vm.uiState.value.timedRep?.remainingSeconds)
+        assertEquals(WorkoutSelection.Shown.Group("exercise:${other.programExerciseId}", false), vm.uiState.value.workout?.shown)
+        assertTrue(vm.uiState.value.usesWorkoutSetScreen)
+        val before = track(vm, timed.programExerciseId)
+        vm.stopTimedRep()
+        runCurrent()
+        assertNull(vm.uiState.value.timedRep)
+        assertEquals(before, track(vm, timed.programExerciseId))
+        assertTrue(track(vm, timed.programExerciseId).none { it.done })
+    }
+
+    @Test fun `★ save failure retries once with the flag on`() = test {
+        prepare(listOf(bench(sets = 1)), cardio = true,
+            dayB = ProgramDay("B", "Next workout", "", listOf(bench())))
+        val vm = readyVm()
+        val plan = requireNotNull(vm.uiState.value.planId)
+        vm.logFocusedSet()
+        runCurrent()
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
+        vm.startCardio()
+        runCurrent()
+        at(clock.now + 10_000)
+        vm.endCardioBlock()
+        runCurrent()
+        val failed = requireNotNull(vm.uiState.value.cardio?.run)
+        assertTrue(failed.saveFailed)
+        assertTrue(failed.complete)
+        assertEquals(WorkoutSelection.Shown.Group("cardio", false), vm.uiState.value.workout?.shown)
+        assertTrue(repo.cardioSessionsFlow.first().isEmpty())
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
+        vm.retryCardioSave()
+        vm.retryCardioSave()
+        runCurrent()
+        assertEquals(1, repo.cardioSessionsFlow.first().size)
+        assertEquals(10, repo.cardioSessionsFlow.first().single().seconds)
+        assertEquals(WorkoutSelection.Shown.Group("cardio", true), vm.uiState.value.workout?.shown)
+        assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
     }
 
     private class WorkoutClock(var now: Long = 100_000) : Clock(), CardioClock {

@@ -298,17 +298,20 @@ the bench set and the row set are two consecutive screens, and nothing but the n
 between them, with no rest in between (`DayViewModel.kt:975-977` starts a rest only when the
 round is complete). The lifter has to remember they are mid-pair.
 
-The pair gets its own block in place of the lift row. It holds both names in fixed plan order,
-the round, and which one is now:
+The pair gets its own block in place of the lift row: one M3 `OutlinedCard` holding the round,
+both names in fixed plan order, and a state word on each. Sol reviewed the first version
+(7/10, sound with changes); its findings are folded in.
 
 ```
  [←]  Day A                          [≡]  Finish
 
- Superset, round 2 of 3                                  titleMedium, onSurfaceVariant
- ┃ DB Bench Press                              ›         headlineMedium, onSurface: the lift now
- ┃ Seated Cable Row          next, 120 × 10    ›         titleMedium, onSurfaceVariant
+ ┌─────────────────────────────────────┐                  OutlinedCard, outlineVariant, neutral
+ │ Superset, round 2 of 3              │                  titleMedium, onSurfaceVariant
+ │ Now    DB Bench Press             › │                  row ≥ 48 dp; name headlineSmall, onSurface
+ │ Next   Seated Cable Row  120 × 10 › │                  row ≥ 48 dp; titleMedium, onSurfaceVariant
+ └─────────────────────────────────────┘
 
- 80 × 10                                                 the hero, as any set
+ 80 × 10                                                  the hero, as any set
 
  [            Log 80 × 10            ]
 ```
@@ -316,45 +319,58 @@ the round, and which one is now:
 After "Log 80 × 10":
 
 ```
- Superset, round 2 of 3
- ┃ ✓ DB Bench Press          80 × 10           ›         titleMedium, onSurfaceVariant, check icon
- ┃ Seated Cable Row                            ›         headlineMedium, onSurface: now
+ ┌─────────────────────────────────────┐
+ │ Superset, round 2 of 3              │
+ │ Done ✓ DB Bench Press    80 × 10  › │
+ │ Now    Seated Cable Row           › │
+ │ Then rest                           │                  bodyMedium, onSurfaceVariant
+ └─────────────────────────────────────┘
 
  120 × 10
 
- ┌─────────────────────────────────────┐
- │ [Undo Bench 80 × 10]                │                 no rest yet: the band holds Undo only, 10 s
- └─────────────────────────────────────┘
+ [Undo Bench 80 × 10]                                     no rest yet: the band holds Undo only, 10 s
  [           Log 120 × 10            ]
 ```
 
+- **The card is the group.** Space alone reads as two separate lifts, which is the complaint.
+  One neutral `OutlinedCard` encloses the pair; nothing else on the set screen is a card, so it
+  reads as "these go together". No new color: the day accent stays the day and its action.
 - **The position line names the group.** "Superset, round 2 of 3" replaces "Set 2 of 3" on
-  both halves, so the line that stays still across the switch is the one that says "pair".
-  Gym notation (A1, A2) is out: the letters already mean days.
-- **Both names, fixed order.** The partner is always on screen, so the lifter never carries it
-  in their head. The current half is the headline; the other half is quieter and says
-  "next, 120 × 10" before it is done and shows a check icon and its logged load after.
-- **One M3 `VerticalDivider`** in `outlineVariant` runs beside the two names. Space alone
-  reads as two separate lifts, which is the complaint; the divider is the smallest stock
-  element that closes the group. No new color: the day accent stays the day and its action.
-- **Motion says "same pair".** Within a round the block does not slide; the emphasis moves
-  between the two names (M3 fast effects, a crossfade under reduced motion) and the hero
-  crossfades. The 300 ms slide stays the signal for a different lift, including the move
-  from the pair's last round to the next lift.
+  both halves. Gym notation (A1, A2) is out: the letters already mean days.
+- **State in words, not weight.** Each row starts with "Now", "Next" or "Done" (with a check
+  icon), so the current half never depends on font emphasis alone, and identical loads on the
+  two halves can't hide the switch. "Then rest" shows under the second half only.
+- **Each half uses its own tracking**: weighted reps, reps only, seconds, or a loaded hold.
+  The plate line under the hero belongs to the half that is now (today's plate projection is
+  MAIN-only, `DayScreenBuilder.kt:341`). A timed-rep first half runs its clock and count sheet
+  as any timed-rep set, then moves to the second half.
+- **Motion says "same pair".** Between halves and between rounds of the same pair the card
+  does not slide; the state words and emphasis change (M3 fast effects, a crossfade under
+  reduced motion) and the hero crossfades. Row heights are reserved so names never shift. The
+  300 ms slide is kept for leaving the pair for another lift.
 - **No rest between halves**, as now. The band shows only Undo for 10 s, the rest-off form.
-  The rest starts when the round completes, and its "next" (band and notification) reads
-  "Round 3, DB Bench Press 80 × 10".
-- **Each name opens the Lift sheet for that lift.** The sheet's subtitle adds "Superset with
-  Seated Cable Row." Ticks there follow the per-exercise rule.
+  The rest starts when the round completes. During that rest the card shows the next round
+  ("round 3 of 3", both rows "Now"/"Next" again) and the rest's "next" (band and notification)
+  reads "Round 3, DB Bench Press 80 × 10". After the pair's last round the rest runs as usual
+  and the screen slides to the next lift; after the day's last set no rest starts.
+- **Undo touches one half.** This overrides the redesign's "both tracks of a superset round"
+  (`phone-redesign-2026-10-30.md:483`): Undo restores only the last logged exercise's set and
+  returns to that half. Undoing the second half cancels the rest and leaves the first half done.
+- **Rows open the Lift sheet for their lift.** Each row is its own 48 dp touch target and
+  TalkBack node, labeled with its state ("DB Bench Press, now, open sets"). The sheet's subtitle
+  adds "Superset with Seated Cable Row." Ticks there follow the per-exercise rule. A switch
+  between halves is announced in a polite live region ("Seated Cable Row, round 2 of 3").
+- **Largest font scale.** Names wrap; the value on a "Next" or "Done" row drops below its
+  name; the card grows. Log stays reachable under the redesign's large-font rule.
 - **Day sheet and preview** show the pair as one `ListItem` with `overlineContent` "Superset"
   (sentence case, no tracking) and the headline "DB Bench Press + Seated Cable Row". The Day
   sheet's trailing text is "Round 2 of 3, now" on the selected pair.
-- **TalkBack** reads the block as one node: "Superset, round 2 of 3. Now DB Bench Press.
-  Next Seated Cable Row, 120 × 10."
-- **States.** A pair whose partner track is missing (unknown catalog entry) draws as a plain
-  lift. A partner swapped mid-workout shows its new name at once. A round with the first half
-  ticked in the Lift sheet opens on the second half, already emphasized.
-- **Out of scope:** the watch (step 6), and round counting, which stays MAIN-based.
+- **States.** The focus is the earliest round not complete on both halves, MAIN before SS; a
+  round whose second half was ticked first in the Lift sheet opens on the first half. A partner
+  whose track is missing (unknown catalog entry) shows its row as "Not available" rather than
+  disappearing. A partner swapped mid-workout shows its new name at once.
+- **Out of scope:** the watch (step 6), and round counting, which stays MAIN-based. The model
+  allows exactly one partner (`domain/.../model/Types.kt:45`), so giant sets need nothing.
 
 ### Receipt (redesign phase 4)
 

@@ -211,7 +211,7 @@ class LiftSheetTest {
             LiftSheet(base.exercises.single(), Slot.MAIN, base.workout?.focus, pagerActions().copy(
                 onSkipLift = { id, half -> skipped = id to half },
                 onSkipNowSet = { id, half -> setSkipped = id to half },
-            ), true, null, {}, {}, { dismissals++ }, skipEnabled = true)
+            ), true, null, {}, {}, { dismissals++ }, skipEnabled = true, canSkipLift = true)
         } }
         rule.onNodeWithText("Skip this set").performScrollTo().performClick()
         rule.onNodeWithText("Skip for this workout").performScrollTo().performClick()
@@ -266,9 +266,30 @@ class LiftSheetTest {
         val base = workoutLiftSheetFixture()
         rule.setContent { AppTheme {
             LiftSheet(base.exercises.single(), Slot.MAIN, null, pagerActions(),
-                true, null, {}, {}, {}, skipEnabled = true)
+                true, null, {}, {}, {}, skipEnabled = true, canSkipLift = true)
         } }
         rule.onNodeWithText("Skip this set").assertDoesNotExist()
+        rule.onNodeWithText("Skip for this workout").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun lastPlainLiftHasNoSkipWorkoutRowButKeepsSkipSet() {
+        val base = workoutLiftSheetFixture()
+        rule.setContent { AppTheme {
+            WorkoutSetHost(base.copy(openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, 1L, 0)))
+        } }
+        rule.onNodeWithText("Skip this set").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Note").performScrollTo()
+        rule.onNodeWithText("Skip for this workout").assertDoesNotExist()
+    }
+
+    @Test fun lastSupersetStillOffersSkipForEitherHalf() {
+        val base = workoutSetSupersetFixture()
+        var half by mutableStateOf(Slot.MAIN)
+        rule.setContent { AppTheme {
+            WorkoutSetHost(base.copy(openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, 1L, 0, slot = half)))
+        } }
+        rule.onNodeWithText("Skip for this workout").performScrollTo().assertIsDisplayed()
+        rule.runOnIdle { half = Slot.SS }
         rule.onNodeWithText("Skip for this workout").performScrollTo().assertIsDisplayed()
     }
 }

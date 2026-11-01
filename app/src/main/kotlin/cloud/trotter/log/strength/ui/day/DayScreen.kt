@@ -539,6 +539,7 @@ fun DayScreen(
                     LiftSheet(card, sheet.slot, state.workout?.focus, actions,
                         canSwap = entry?.pattern != null,
                         skipEnabled = state.workout != null,
+                        canSkipLift = card.isSuperset || state.exercises.size > 1,
                         skippedPartner = state.skippedPartners[card.programExerciseId],
                         weightSwap = if (sheet.slot == Slot.SS) DayScreenBuilder.weightSwapAffordance(entry, dayEditState.catalog) else card.weightSwap,
                         onWeightSwap = { swap ->

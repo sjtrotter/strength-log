@@ -43,6 +43,7 @@ internal fun LiftSheet(
     onDismiss: () -> Unit,
     skipEnabled: Boolean = false,
     skippedPartner: SkippedLift? = null,
+    canSkipLift: Boolean = card.isSuperset,
 ) {
     val partner = slot == Slot.SS
     val title = if (partner) card.partnerTitle.orEmpty() else card.title
@@ -123,7 +124,7 @@ internal fun LiftSheet(
                 ListItem(headlineContent = { Text(stringResource(R.string.day_menu_swap)) },
                     modifier = Modifier.clickable { actions.onOpenSwapSheet(card.position, slot) })
             }
-            if (skipEnabled) item {
+            if (skipEnabled && canSkipLift) item {
                 ListItem(headlineContent = { Text(stringResource(R.string.day_skip_workout)) },
                     modifier = Modifier.heightIn(min = 48.dp).clickable {
                         onDismiss()

@@ -50,7 +50,6 @@ data class RunTrack(
     val planned: List<LoggedSet>,
     val sets: List<LoggedSet>,
     val dropped: Boolean = false,
-    val skippedAt: Long = 0L,
 )
 
 /** The open workout, independent of the selected plan and rotation. */
@@ -110,13 +109,18 @@ fun OpenRun.isSlotSkipped(programExerciseId: Long, slot: String): Boolean =
 
 fun OpenRun.isLiftSkipped(programExerciseId: Long): Boolean = isSlotSkipped(programExerciseId, Slot.MAIN)
 
-internal fun <T> Iterable<T>.latestSkippedMain(
+/** The original skipped MAIN, excluding the promoted partner when present. */
+internal fun <T> Iterable<T>.skippedMain(
     programExerciseId: Long,
     id: (T) -> Long?,
     slot: (T) -> String,
     dropped: (T) -> Boolean,
-    updatedAt: (T) -> Long,
-): T? = filter { id(it) == programExerciseId && slot(it) == Slot.MAIN && dropped(it) }.maxByOrNull(updatedAt)
+    exerciseId: (T) -> String,
+): T? {
+    val partner = firstOrNull { id(it) == programExerciseId && slot(it) == Slot.SS && dropped(it) }
+    val mains = filter { id(it) == programExerciseId && slot(it) == Slot.MAIN && dropped(it) }
+    return mains.firstOrNull { partner == null || exerciseId(it) != exerciseId(partner) } ?: mains.firstOrNull()
+}
 
 fun OpenRun.skippedMainTrack(programExerciseId: Long): RunTrack? =
-    tracks.latestSkippedMain(programExerciseId, RunTrack::programExerciseId, RunTrack::slot, RunTrack::dropped, RunTrack::skippedAt)
+    tracks.skippedMain(programExerciseId, RunTrack::programExerciseId, RunTrack::slot, RunTrack::dropped, RunTrack::exerciseId)

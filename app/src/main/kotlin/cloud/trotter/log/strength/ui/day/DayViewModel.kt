@@ -1792,6 +1792,7 @@ class DayViewModel @Inject constructor(
         val state = uiState.value.takeIf { it.viewDayId == day } ?: return
         val planId = state.planId ?: return
         val card = state.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return
+        if (!card.isSuperset && state.exercises.size <= 1) return
         val skippedId = if (half == Slot.SS) card.partnerExerciseId ?: return else card.exerciseId
         mutate {
             val result = repo.skipLift(planId, day, programExerciseId, half, card.exerciseId, card.partnerExerciseId)

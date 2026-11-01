@@ -815,11 +815,11 @@ class TrackerRepositoryRunEditsTest {
         val plan = authored()
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
-        val drop = repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
+        val drop = repo.dropSupersetHalf(plan, "A", id, Slot.SS, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
         repo.removeSupersetPartner("A", id)
         val before = db.runDao().tracks(drop.runId)
-        assertTrue(before.single { it.slot == Slot.SS }.let { it.retired && it.dropped })
-        assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(drop.runId, id, Slot.SS))
+        assertTrue(before.isEmpty())
+        assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(drop.runId, id, Slot.MAIN))
         assertEquals(before, db.runDao().tracks(drop.runId))
     }
 
@@ -830,7 +830,7 @@ class TrackerRepositoryRunEditsTest {
         val drop = repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
         repo.setSupersetPartner("A", id, "rope_pushdown")
         val before = db.runDao().tracks(drop.runId)
-        assertTrue(before.single { it.slot == Slot.SS }.let { it.retired && it.dropped })
+        assertTrue(before.none { it.dropped })
         assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(drop.runId, id, Slot.SS))
         assertEquals(before, db.runDao().tracks(drop.runId))
     }
@@ -927,6 +927,7 @@ class TrackerRepositoryRunEditsTest {
 
     @Test fun `skip empty plain lift retains MAIN blocks reseeding and edits and restores its rows`() = runTest {
         val plan = authored()
+        repo.addExercise("A", ProgramExercise("bb_bench"))
         val id = slot(plan)
         val runId = explicitStart(plan)
         val rows = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && it.slot == Slot.MAIN }.sets
@@ -943,8 +944,9 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(rows, repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }.sets)
     }
 
-    @Test fun `skip SS then remaining plain lift restores MAIN while SS stays skipped`() = runTest {
+    @Test fun `skip SS then remaining plain lift restores the whole pair in one call`() = runTest {
         val plan = authored()
+        repo.addExercise("A", ProgramExercise("bb_bench"))
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val drop = repo.skipLift(plan, "A", id, Slot.SS, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
@@ -953,35 +955,123 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(repo.restoreSkipped(drop.runId, id, Slot.MAIN) is RunWriteResult.InRun)
         val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
         assertFalse(tracks.single { it.slot == Slot.MAIN }.retired)
-        assertTrue(tracks.single { it.slot == Slot.SS }.let { it.retired && it.dropped })
-        assertTrue(repo.restoreSkipped(drop.runId, id, Slot.SS) is RunWriteResult.InRun)
+        assertFalse(tracks.single { it.slot == Slot.SS }.retired)
+        assertTrue(tracks.none { it.dropped })
+        assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(drop.runId, id, Slot.SS))
     }
 
-    @Test fun `skip MAIN then remaining plain lift brings back the promoted lift before restoring the pair`() = runTest {
+    @Test fun `skip MAIN then promoted MAIN and clear checks restores the aligned original pair with tied timestamps`() = runTest {
         val plan = authored()
+        repo.addExercise("A", ProgramExercise("bb_bench"))
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = explicitStart(plan, work() + work().take(1))
+        seed(runId, id, work(), Slot.SS)
         val drop = repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
         assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "ez_curl", null) is RunWriteResult.InRun)
+        assertTrue(repo.clearRunChecks(runId))
+        assertEquals(setOf(clock.millis()), db.runDao().tracks(runId).map { it.updatedAt }.toSet())
+        assertEquals("bb_back_squat", repo.openRunFlow.first()!!.skippedMainTrack(id)?.exerciseId)
         assertTrue(repo.restoreSkipped(drop.runId, id, Slot.MAIN) is RunWriteResult.InRun)
-        assertEquals("ez_curl", repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }.exerciseId)
-        assertEquals(setOf(id), repo.dayTracksFlow(plan, "A").first().droppedPartners)
-        assertTrue(repo.restoreSkipped(drop.runId, id, Slot.MAIN) is RunWriteResult.InRun)
+        val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
+        assertEquals(2, tracks.size)
+        assertTrue(tracks.none { it.retired || it.dropped })
+        assertEquals("bb_back_squat", tracks.single { it.slot == Slot.MAIN }.exerciseId)
+        assertEquals("ez_curl", tracks.single { it.slot == Slot.SS }.exerciseId)
+        assertEquals(listOf(4, 4), tracks.map { it.sets.size })
+        assertTrue(tracks.flatMap { it.sets }.none { it.done })
         assertEquals(setOf(Slot.MAIN, Slot.SS), repo.dayTracksFlow(plan, "A").first().tracks.filter { it.programExerciseId == id }.map { it.slot }.toSet())
     }
 
-    @Test fun `restoring a skipped swapped remaining lift uses its latest dropped MAIN record`() = runTest {
+    @Test fun `whole slot restore keeps done promoted MAIN work retired and clears its skip`() = runTest {
         val plan = authored()
+        repo.addExercise("A", ProgramExercise("bb_bench"))
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val drop = repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
-        assertTrue(repo.swapInRun(drop.runId, id, Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
-        assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "hack_squat", null) is RunWriteResult.InRun)
-        assertEquals("hack_squat", repo.openRunFlow.first()!!.skippedMainTrack(id)?.exerciseId)
+        val promoted = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }
+        val doneRows = promoted.sets.mapIndexed { index, set -> set.copy(done = index == 0) }
+        assertTrue(repo.updateSets(drop.runId, "A", id, Slot.MAIN, doneRows) is RunWriteResult.InRun)
+        assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "ez_curl", null) is RunWriteResult.InRun)
         assertTrue(repo.restoreSkipped(drop.runId, id, Slot.MAIN) is RunWriteResult.InRun)
-        val tracks = repo.openRunFlow.first()!!.tracks
-        assertEquals("hack_squat", tracks.single { it.programExerciseId == id && !it.retired }.exerciseId)
-        assertTrue(tracks.single { it.programExerciseId == id && it.exerciseId == "bb_back_squat" }.dropped)
-        assertEquals(setOf(id), repo.dayTracksFlow(plan, "A").first().droppedPartners)
+        val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
+        assertEquals("bb_back_squat", tracks.single { it.slot == Slot.MAIN && !it.retired }.exerciseId)
+        assertEquals(doneRows, tracks.single { it.id == promoted.id }.sets)
+        assertTrue(tracks.single { it.id == promoted.id }.retired)
+        assertTrue(tracks.none { it.dropped })
+    }
+
+    @Test fun `last active plain lift skip is rejected before starting and after another lift was skipped`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        assertEquals(RunWriteResult.Rejected, repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", null))
+        assertNull(repo.openRunFlow.first())
+        repo.addExercise("A", ProgramExercise("bb_bench"))
+        val other = db.programDao().exercisesForDay(plan, "A").last().id
+        val skipped = repo.skipLift(plan, "A", other, Slot.MAIN, "bb_bench", null) as RunWriteResult.InRun
+        val before = db.runDao().tracks(skipped.runId)
+        assertEquals(RunWriteResult.Rejected, repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", null))
+        assertEquals(before, db.runDao().tracks(skipped.runId))
+    }
+
+    @Test fun `plan MAIN swap clears skips reseeds the new pair and rejects stale Undo`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val skip = repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
+        assertTrue(repo.swapExerciseById("A", id, "hack_squat"))
+        seed(skip.runId, id)
+        seed(skip.runId, id, work(), Slot.SS)
+        val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
+        assertTrue(tracks.none { it.dropped })
+        assertEquals("hack_squat", tracks.single { it.slot == Slot.MAIN && !it.retired }.exerciseId)
+        assertEquals("ez_curl", tracks.single { it.slot == Slot.SS && !it.retired }.exerciseId)
+        assertTrue(tracks.filterNot { it.retired }.all { it.sets.isNotEmpty() })
+        assertTrue(repo.dayTracksFlow(plan, "A").first().skippedLifts.isEmpty())
+        val before = db.runDao().tracks(skip.runId)
+        assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(skip.runId, id, Slot.MAIN))
+        assertEquals(before, db.runDao().tracks(skip.runId))
+    }
+
+    @Test fun `plan partner change clears skipped tracks preserves done work and retires promotion`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = explicitStart(plan)
+        seed(runId, id, work(), Slot.SS)
+        val done = work().mapIndexed { index, set -> set.copy(done = index == 0) }
+        repo.updateSetsPaired(runId, "A", id, done, done)
+        assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
+        val promoted = repo.openRunFlow.first()!!.tracks.single { !it.retired }
+        repo.updateSets(runId, "A", id, Slot.MAIN, done)
+        repo.setSupersetPartner("A", id, "rope_pushdown")
+        val retired = repo.openRunFlow.first()!!.tracks
+        assertEquals(3, retired.size)
+        assertTrue(retired.all { it.retired && !it.dropped })
+        assertTrue(retired.all { it.sets == done })
+        assertTrue(retired.any { it.id == promoted.id })
+        seed(runId, id)
+        seed(runId, id, work(), Slot.SS)
+        val active = repo.openRunFlow.first()!!.tracks.filterNot { it.retired }
+        assertEquals("bb_back_squat", active.single { it.slot == Slot.MAIN }.exerciseId)
+        assertEquals("rope_pushdown", active.single { it.slot == Slot.SS }.exerciseId)
+        assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(runId, id, Slot.MAIN))
+    }
+
+    @Test fun `plan exercise removal clears its skip and promotion while preserving done work`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.addExercise("A", ProgramExercise("bb_bench"))
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = explicitStart(plan)
+        seed(runId, id, work(), Slot.SS)
+        val done = work().mapIndexed { index, set -> set.copy(done = index == 0) }
+        repo.updateSetsPaired(runId, "A", id, done, done)
+        assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
+        assertTrue(repo.removeExercise(id))
+        val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
+        assertEquals(2, tracks.size)
+        assertTrue(tracks.all { it.retired && !it.dropped && it.sets == done })
+        assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(runId, id, Slot.MAIN))
     }
 }

@@ -31,6 +31,8 @@ data class LastPerformedRow(
     val seconds: Int = 0,
 )
 
+data class LastPerformedDateRow(val exerciseId: String, val completedAt: Long)
+
 /**
  * One flat row behind [SessionDao.personalRecordRows] — see
  * [cloud.trotter.log.strength.data.TrackerRepository.personalRecords] for
@@ -140,6 +142,14 @@ interface SessionDao {
         """,
     )
     suspend fun lastPerformedRows(exerciseIds: List<String>): List<LastPerformedRow>
+
+    @Query("""
+        SELECT ss.exerciseId AS exerciseId, MAX(ws.completedAt) AS completedAt
+        FROM session_set ss INNER JOIN workout_session ws ON ws.id = ss.sessionId
+        WHERE ss.exerciseId IN (:exerciseIds) AND ss.done = 1
+        GROUP BY ss.exerciseId
+    """)
+    suspend fun lastPerformedDates(exerciseIds: List<String>): List<LastPerformedDateRow>
 
     /**
      * Every completed set ever logged for any of [exerciseIds], heaviest weight

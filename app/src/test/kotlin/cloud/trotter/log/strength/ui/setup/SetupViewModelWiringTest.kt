@@ -100,6 +100,20 @@ class SetupViewModelWiringTest {
         }
 
     @Test
+    fun keepScreenOnReadsAndWritesTheExistingPreference() = runVmTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        assertEquals(false, vm.uiState.value.keepScreenOn)
+        vm.setKeepScreenOn(true)
+        advanceUntilIdle()
+        assertEquals(true, repo.keepScreenOnFlow.first())
+        assertEquals(true, vm.uiState.value.keepScreenOn)
+        repo.setKeepScreenOn(false)
+        advanceUntilIdle()
+        assertEquals(false, vm.uiState.value.keepScreenOn)
+    }
+
+    @Test
     fun setBodyweight_persists_in_canonical_lb_regardless_of_display_unit() = runVmTest {
         repo.setUnit(WeightUnit.KG)
         val vm = newViewModel()

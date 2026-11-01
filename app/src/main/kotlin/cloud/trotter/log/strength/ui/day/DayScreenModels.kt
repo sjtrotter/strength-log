@@ -45,6 +45,8 @@ data class DayUiState(
     val isProgramDay: Boolean = true,
     val selectedPageKey: String? = null,
     val openSheet: OpenSheet? = null,
+    val swapUndo: WorkoutSwapUndo? = null,
+    val pendingPlanSwap: PendingPlanSwap? = null,
     val viewDayId: String? = null,
     val planId: Long? = null,
     val runId: String? = null,
@@ -152,9 +154,32 @@ data class OpenSheet(
     val programExerciseId: Long,
     val setIndex: Int,
     val cardioRunId: String? = null,
+    val slot: String = Slot.MAIN,
 ) : Parcelable {
-    enum class Kind { EDITOR, ALL_SETS, TIMED_REP_COUNT, CARDIO_DISTANCE, CARDIO_SETS }
+    enum class Kind { EDITOR, ALL_SETS, TIMED_REP_COUNT, CARDIO_DISTANCE, CARDIO_SETS, LIFT, DAY, SWAP }
 }
+
+@Parcelize
+data class PendingPlanSwap(
+    val dayId: String,
+    val planId: Long,
+    val programExerciseId: Long,
+    val slot: String,
+    val exerciseId: String,
+    val title: String,
+    val doneCount: Int,
+) : Parcelable
+
+@Parcelize
+data class WorkoutSwapUndo(
+    val dayId: String,
+    val runId: String,
+    val programExerciseId: Long,
+    val slot: String,
+    val previousExerciseId: String,
+    val exerciseId: String,
+    val title: String,
+) : Parcelable
 
 /** One atomic saved event: anchors while running, then a count draft and sheet delivery state. */
 @Parcelize
@@ -255,6 +280,11 @@ data class ExerciseCardState(
     val partnerTimedShowsWeight: Boolean = false,
     /** "185 × 8"-style chip (PLAN.md A1 bonus); null when never performed before. */
     val lastTimeDisplay: String? = null,
+    val lastTimeDate: String? = null,
+    val partnerHeaderTarget: HeaderTarget? = null,
+    val partnerLastTimeDisplay: String? = null,
+    val partnerLastTimeDate: String? = null,
+    val partnerSetLabels: List<String> = emptyList(),
     /** "245×5"-style all-time-best chip (docs/briefs/performance-profile.md Phase
      *  1); null when there is no record, or when it equals [lastTimeDisplay] —
      *  showing the same number twice is noise, not signal. */

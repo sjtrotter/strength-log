@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.onNodeWithContentDescription
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Rule
@@ -83,6 +84,27 @@ class SetupSectionsTest {
         composeTestRule.onNodeWithText("System").assertIsSelected()
         composeTestRule.onNodeWithText("Light").performClick()
         assertEquals(ThemePreference.LIGHT, chosen)
+    }
+
+    @Test
+    fun flagOffKeepsSetupWithoutKeepScreenOn() {
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupUiState(), setupActions(), workoutSetScreen = false)
+        } }
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("DATA"))
+        composeTestRule.onNodeWithText("Keep screen on during workouts").assertDoesNotExist()
+    }
+
+    @Test
+    fun flagOnKeepScreenOnSwitchUsesExistingPreferenceCallback() {
+        var enabled: Boolean? = null
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupUiState(), setupActions().copy(onKeepScreenOnChange = { enabled = it }),
+                workoutSetScreen = true)
+        } }
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Keep screen on during workouts"))
+        composeTestRule.onNodeWithContentDescription("Keep screen on during workouts").performClick()
+        composeTestRule.runOnIdle { assertEquals(true, enabled) }
     }
 
     private fun setupActions() = SetupActions(

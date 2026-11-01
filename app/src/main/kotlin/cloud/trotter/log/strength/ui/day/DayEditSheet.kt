@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -110,6 +111,7 @@ fun DayEditSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var swapSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var swapHalf by rememberSaveable { mutableStateOf(Slot.MAIN) }
     var pickingPattern by rememberSaveable { mutableStateOf(false) }
     var addPatternName by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmingReset by rememberSaveable { mutableStateOf(false) }
@@ -153,7 +155,7 @@ fun DayEditSheet(
         // the sheet's. This handler only claims the press while a page can go
         // back. Disabling it at the root returns the gesture to the sheet.
         BackHandler(enabled = backTarget != null, onBack = onBack)
-        val swapSlot = state.slots.firstOrNull { it.programExerciseId == swapSlotId }?.let(state::performedSwapSlot)
+        val swapSlot = state.slots.firstOrNull { it.programExerciseId == swapSlotId }?.let { state.performedSwapSlot(it, swapHalf) }
         val ssSlot = state.slots.firstOrNull { it.programExerciseId == ssSlotId }
         val optionsSlot = state.slots.firstOrNull { it.programExerciseId == optionsSlotId }
         when {
@@ -187,8 +189,19 @@ fun DayEditSheet(
                 pattern = swapSlot.pattern,
                 state = state,
                 accent = accent,
-                onPick = { entry -> actions.onSwap(swapSlot.position, entry.id); swapSlotId = null },
-                onWorkoutPick = { entry -> actions.onWorkoutSwap(swapSlot.position, entry.id); swapSlotId = null },
+                onPick = { entry ->
+                    if (swapHalf == Slot.SS) actions.onSetSuperset(swapSlot.position, entry.id)
+                    else actions.onSwap(swapSlot.position, entry.id)
+                    swapSlotId = null
+                },
+                onWorkoutPick = { entry ->
+                    if (state.workoutSetScreen) {
+                        actions.onWorkoutSwapHalf(swapSlot.position, entry.id, swapHalf)
+                        actions.onEditorOpen(false)
+                    } else actions.onWorkoutSwap(swapSlot.position, entry.id)
+                    swapSlotId = null
+                },
+                half = swapHalf,
                 onBack = onBack,
                 onCreateExercise = onCreateExercise,
             )
@@ -256,8 +269,13 @@ fun DayEditSheet(
                 onPrescriptionClick = { actions.onOpenPrescription(optionsSlot.programExerciseId) },
                 onMove = { up -> actions.onMove(optionsSlot.programExerciseId, up) },
                 onBack = onBack,
-                onSwapClick = { swapSlotId = optionsSlot.programExerciseId },
-                onSupersetClick = { ssSlotId = optionsSlot.programExerciseId },
+                onSwapClick = { swapHalf = Slot.MAIN; swapSlotId = optionsSlot.programExerciseId },
+                onSupersetClick = {
+                    if (state.workoutSetScreen && optionsSlot.partnerExerciseId != null) {
+                        swapHalf = Slot.SS
+                        swapSlotId = optionsSlot.programExerciseId
+                    } else ssSlotId = optionsSlot.programExerciseId
+                },
                 onRemoveSupersetClick = { actions.onRemoveSuperset(optionsSlot.position) },
                 runOpen = state.runOpen,
                 onKeepToPlanChange = { actions.onSetKeepToPlan(optionsSlot.programExerciseId, it) },
@@ -749,11 +767,12 @@ private fun SwapPickerPage(
     accent: Color,
     onPick: (ExerciseEntry) -> Unit,
     onWorkoutPick: (ExerciseEntry) -> Unit,
+    half: String = Slot.MAIN,
     onBack: () -> Unit,
     onCreateExercise: (MovementPattern) -> Unit,
 ) {
-    var pickedId by rememberSaveable(slot.programExerciseId) { mutableStateOf<String?>(null) }
-    var workoutOnly by rememberSaveable(slot.programExerciseId) { mutableStateOf(state.runOpen) }
+    var pickedId by rememberSaveable(slot.programExerciseId, half) { mutableStateOf<String?>(null) }
+    var workoutOnly by rememberSaveable(slot.programExerciseId, half) { mutableStateOf(state.runOpen) }
     val picked = pickedId?.let(state.catalog::find)
     if (picked != null) {
         BackHandler { pickedId = null }
@@ -776,10 +795,10 @@ private fun SwapPickerPage(
         }
     } else {
         ExercisePickerScreen(
-            key = "swap-${slot.programExerciseId}",
+            key = "swap-${slot.programExerciseId}-$half",
             title = stringResource(R.string.day_edit_swap_title, slot.title),
             pattern = pattern,
-            candidates = state.swapCandidates(slot),
+            candidates = state.swapCandidates(slot, half),
             defaultEquipment = state.defaultEquipmentFilter,
             accent = accent,
             onPick = { pickedId = it.id },
@@ -807,6 +826,7 @@ fun SlotSwapSheet(
     onDismiss: () -> Unit,
     onCreateExercise: (MovementPattern) -> Unit,
     onWorkoutSwap: (position: Int, newExerciseId: String) -> Unit = { _, _ -> },
+    half: String = Slot.MAIN,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -817,6 +837,7 @@ fun SlotSwapSheet(
             accent = accent,
             onPick = { entry -> onSwap(slot.position, entry.id); onDismiss() },
             onWorkoutPick = { entry -> onWorkoutSwap(slot.position, entry.id); onDismiss() },
+            half = half,
             onBack = onDismiss,
             onCreateExercise = onCreateExercise,
         )

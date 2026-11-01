@@ -268,6 +268,21 @@ class TrackerRepositoryRunTest {
         assertEquals("bb_back_squat", db.programDao().exercise(id)!!.exerciseId)
     }
 
+    @Test fun `workout swap checks the expected active exercise before writing`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        val runId = start(plan)
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, work()),
+            expectedExerciseId = "bb_back_squat"))
+        val before = repo.openRunFlow.first()
+        assertFalse(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat", null,
+            expectedExerciseId = "bb_bench"))
+        assertEquals(before, repo.openRunFlow.first())
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat", null,
+            expectedExerciseId = "hack_squat"))
+        assertEquals("bb_back_squat", repo.openRunFlow.first()!!.tracks.single { !it.retired }.exerciseId)
+    }
+
     private fun generated() = Program(listOf(
         ProgramDay("A", "Day A", "", listOf(
             ProgramExercise("bb_back_squat", isMain = true, superset = SupersetPartner("ez_curl")),

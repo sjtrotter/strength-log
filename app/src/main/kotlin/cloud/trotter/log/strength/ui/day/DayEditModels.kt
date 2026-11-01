@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -31,7 +32,9 @@ data class DayEditUiState(
     val cardioBlock: CardioBlock? = null,
     val cardioDraft: CardioBlockDraft? = null,
     val runOpen: Boolean = false,
+    val workoutSetScreen: Boolean = false,
     val performedExerciseIds: Map<Long, String> = emptyMap(),
+    val performedPartnerIds: Map<Long, String> = emptyMap(),
     val otherWorkoutOpenMessage: Boolean = false,
 )
 
@@ -80,11 +83,16 @@ data class DayEditActions(
     val onSetKeepToPlan: (slotId: Long, keep: Boolean) -> Unit = { _, _ -> },
     val onResetSlotToPlan: (slotId: Long) -> Unit = {},
     val onWorkoutSwap: (position: Int, newExerciseId: String) -> Unit = { _, _ -> },
+    val onWorkoutSwapHalf: (position: Int, newExerciseId: String, slot: String) -> Unit = { _, _, _ -> },
     val onMessageShown: () -> Unit = {},
 )
 
-internal fun DayEditUiState.performedSwapSlot(slot: DayEditSlotState): DayEditSlotState {
-    val entry = performedExerciseIds[slot.programExerciseId]?.let(catalog::find) ?: return slot
+internal fun DayEditUiState.performedSwapSlot(slot: DayEditSlotState, half: String = Slot.MAIN): DayEditSlotState {
+    val id = if (half == Slot.SS) performedPartnerIds[slot.programExerciseId] ?: slot.partnerExerciseId
+        else performedExerciseIds[slot.programExerciseId] ?: return slot
+    val entry = id?.let(catalog::find) ?: return if (half == Slot.SS) slot.copy(
+        exerciseId = id.orEmpty(), title = slot.partnerTitle.orEmpty(), pattern = null,
+    ) else slot
     return slot.copy(exerciseId = entry.id, title = entry.name, pattern = entry.pattern)
 }
 
@@ -94,8 +102,8 @@ internal fun DayEditActions.swapWeight(card: ExerciseCardState, state: DayEditUi
     else onSwap(card.position, exerciseId)
 }
 
-internal fun DayEditUiState.swapCandidates(slot: DayEditSlotState) = (
+internal fun DayEditUiState.swapCandidates(slot: DayEditSlotState, half: String = Slot.MAIN) = (
     listOfNotNull(slots.firstOrNull {
-        it.programExerciseId == slot.programExerciseId && it.exerciseId != slot.exerciseId
-    }?.exerciseId?.let(catalog::find)) + catalog.substitutionsFor(slot.exerciseId)
+        it.programExerciseId == slot.programExerciseId
+    }?.let { if (half == Slot.SS) it.partnerExerciseId else it.exerciseId }?.let(catalog::find)) + catalog.substitutionsFor(slot.exerciseId)
 ).distinctBy { it.id }.filter { it.id != slot.exerciseId }

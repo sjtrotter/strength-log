@@ -1313,6 +1313,11 @@ open class TrackerRepository(
         }
     }
 
+    /** Most recent completed-session date per exercise, for the Lift sheet. */
+    suspend fun lastPerformedDates(exerciseIds: List<String>): Map<String, Long> =
+        if (exerciseIds.isEmpty()) emptyMap() else sessionDao.lastPerformedDates(exerciseIds)
+            .associate { it.exerciseId to it.completedAt }
+
     /**
      * Batches the A1 "last time" chip for a whole day into one query:
      * [exerciseIds]' most recent completed performance, keyed by exercise id. An
@@ -1448,11 +1453,12 @@ open class TrackerRepository(
         slot: String,
         newExerciseId: String,
         seed: RunSeed?,
+        expectedExerciseId: String? = null,
     ): Boolean {
         val planId = planIdOfSlot(programExerciseId) ?: return false
         val config = wizardAnswersFor(planId).first().config
         val catalog = catalogFlow.first()
-        return swapInRun(runId, programExerciseId, slot, newExerciseId, seed, config, catalog)
+        return swapInRun(runId, programExerciseId, slot, newExerciseId, seed, config, catalog, expectedExerciseId)
     }
 
     private suspend fun swapInRun(
@@ -1463,6 +1469,7 @@ open class TrackerRepository(
         seed: RunSeed?,
         config: LifterConfig,
         catalog: ExerciseCatalog,
+        expectedExerciseId: String? = null,
     ): Boolean {
         return db.withTransaction {
             val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction false
@@ -1473,6 +1480,7 @@ open class TrackerRepository(
             val active = tracks.firstOrNull {
                 it.programExerciseId == programExerciseId && it.slot == slot && !it.retired
             }
+            if (expectedExerciseId != null && active?.exerciseId != expectedExerciseId) return@withTransaction false
             if (active?.exerciseId == newExerciseId) return@withTransaction true
             val retired = tracks.firstOrNull {
                 it.programExerciseId == programExerciseId && it.slot == slot && it.exerciseId == newExerciseId && it.retired
@@ -1851,6 +1859,20 @@ open class TrackerRepository(
                 )))
             }
         }
+    }
+
+    /** Unticks the open workout's rows, including retired tracks, without changing their values. */
+    suspend fun clearRunChecks(runId: String): Boolean = db.withTransaction {
+        if (runDao.openRun()?.id != runId) return@withTransaction false
+        runDao.tracks(runId).forEach { track ->
+            runDao.updateTrack(track.copy(
+                setsJson = SetJson.encodeSets(SetJson.decodeSets(track.setsJson).map {
+                    it.copy(done = false, startedAtMillis = null, completedAtMillis = null)
+                }),
+                updatedAt = clock.millis(),
+            ))
+        }
+        true
     }
 
     /** Drops actuals, preserving working values and plan edits, and closes the day's identity. */

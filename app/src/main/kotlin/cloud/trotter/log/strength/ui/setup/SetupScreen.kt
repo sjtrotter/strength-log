@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.Switch
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -35,9 +37,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.BuildConfig
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
@@ -77,7 +82,12 @@ import cloud.trotter.log.strength.ui.theme.readableWidth
  * this screen never loses an edit.
  */
 @Composable
-fun SetupScreen(state: SetupUiState, actions: SetupActions, openRestTimer: Boolean = false) {
+fun SetupScreen(
+    state: SetupUiState,
+    actions: SetupActions,
+    openRestTimer: Boolean = false,
+    workoutSetScreen: Boolean = BuildConfig.WORKOUT_SET_SCREEN,
+) {
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
     val accent = accentEmphasis(0)
     val listState = rememberLazyListState()
@@ -119,6 +129,13 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions, openRestTimer: Boole
                         actions,
                         onResetDefaults = { showRestResetConfirm = true },
                     )
+                }
+                if (workoutSetScreen) item {
+                    val label = stringResource(R.string.setup_keep_screen_on)
+                    ListItem(headlineContent = { Text(label) }, trailingContent = {
+                        Switch(state.keepScreenOn, actions.onKeepScreenOnChange,
+                            modifier = Modifier.semantics { contentDescription = label })
+                    })
                 }
                 item { SectionHeader(stringResource(R.string.setup_data_section)) }
                 item { CreateCustomExerciseButton(accent, actions.onCreateCustomExercise) }

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.data.prefs
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import cloud.trotter.log.strength.data.FullSnapshot
 import cloud.trotter.log.strength.data.GlobalLifter
@@ -54,6 +55,7 @@ class RestoreJournal(
          *  a torn stage happens strictly before anything destructive runs and is
          *  discarded by [reconcile] like any other unmatched payload. */
         val NONCE = stringPreferencesKey("restore_nonce")
+        val TODAY_MEMBERSHIP = booleanPreferencesKey("restore_today_membership")
     }
 
     /** Stages [snapshot]'s settings half under [nonce], replacing anything the
@@ -70,7 +72,10 @@ class RestoreJournal(
             supersetHelperSeen = snapshot.supersetHelperSeen,
             themePreference = snapshot.themePreference,
         )
-        dataStore.edit { it[Keys.NONCE] = nonce }
+        dataStore.edit {
+            it[Keys.NONCE] = nonce
+            it[Keys.TODAY_MEMBERSHIP] = true
+        }
     }
 
     suspend fun clear() {
@@ -126,6 +131,7 @@ class RestoreJournal(
             topSetHelperSeen = staged.topSetHelperSeenFlow.first(),
             supersetHelperSeen = staged.supersetHelperSeenFlow.first(),
             themePreference = staged.themePreferenceFlow.first(),
+            onTodayFixupDone = prefs[Keys.TODAY_MEMBERSHIP] == true,
         )
         clear()
         return true

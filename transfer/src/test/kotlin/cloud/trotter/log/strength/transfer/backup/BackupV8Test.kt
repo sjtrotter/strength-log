@@ -38,7 +38,7 @@ class BackupV8Test {
         restSettings = RestSettings(),
         plans = listOf(
             PlanEntity(1, "Maintenance", PlanOrigin.GENERATED.name, 0, 1_000),
-            PlanEntity(2, "Test prep", PlanOrigin.AUTHORED.name, 1, 2_000),
+            PlanEntity(2, "Test prep", PlanOrigin.AUTHORED.name, 1, 2_000, onToday = true),
         ),
         customExercises = emptyList(),
         days = listOf(
@@ -72,6 +72,7 @@ class BackupV8Test {
     private fun FullSnapshot.toV8Document(): BackupDocument = toDocument().let { document ->
         document.copy(
             schemaVersion = 8,
+            plans = document.plans.map { it.copy(onToday = null) },
             settings = document.settings.copy(
                 emphasis = answers.config.emphasis.name,
                 cardioMode = answers.cardio.mode.name,
@@ -304,21 +305,12 @@ class BackupV8Test {
     }
 
     @Test
-    fun `selectedPlanId naming a missing plan is rejected`() {
+    fun `selectedPlanId naming a missing or archived plan uses the first active plan`() {
         val doc = document()
-        val error = assertFailsWith<BackupError.Inconsistent> {
-            decode(doc.copy(settings = doc.settings.copy(selectedPlanId = 99)))
-        }
-        assertTrue("selectedPlanId references unknown plan 99" in error.message.orEmpty())
-    }
-
-    @Test
-    fun `selectedPlanId naming an archived plan is rejected`() {
-        val doc = document()
-        val error = assertFailsWith<BackupError.Inconsistent> {
-            decode(doc.copy(plans = listOf(doc.plans.first(), doc.plans.last().copy(archived = true))))
-        }
-        assertTrue("selectedPlanId references archived plan 2" in error.message.orEmpty())
+        val missing = decode(doc.copy(settings = doc.settings.copy(selectedPlanId = 99))).toSnapshot()
+        assertEquals(listOf(1L), missing.plans.filter { it.onToday }.map { it.id })
+        val archived = decode(doc.copy(plans = listOf(doc.plans.first(), doc.plans.last().copy(archived = true)))).toSnapshot()
+        assertEquals(listOf(1L), archived.plans.filter { it.onToday }.map { it.id })
     }
 
     @Test

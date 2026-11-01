@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Intent
 import android.util.Log
+import androidx.wear.watchface.complications.data.EmptyComplicationData
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
@@ -54,7 +55,7 @@ class DayComplicationService : SuspendingComplicationDataSourceService() {
     }
 
     private fun complicationData(type: ComplicationType, glance: DayGlance): ComplicationData? =
-        when (type) {
+        if (glance.nothingOnToday) EmptyComplicationData() else when (type) {
             ComplicationType.RANGED_VALUE -> RangedValueComplicationData.Builder(
                 glance.rangeValue,
                 0f,

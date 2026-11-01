@@ -103,7 +103,7 @@ class BackupV9Test {
             snapshot.copy(
                 selectedPlanId = 7,
                 suggestedDay = null,
-                plans = listOf(snapshot.plans.first().copy(suggestedDayId = null)),
+                plans = listOf(snapshot.plans.first().copy(suggestedDayId = null, onToday = true)),
                 days = emptyList(),
             )
         }

@@ -709,9 +709,13 @@ class TrackerRepositoryPlanScopeTest {
         val missingId = repo.logCardioSession(cardio.copy(planId = 99, planName = "Archived elsewhere"))
         assertEquals(99L, repo.cardioSession(missingId)?.planId)
         assertEquals("Archived elsewhere", repo.cardioSession(missingId)?.planName)
-        val legacyId = repo.logCardioSession(cardio.copy(planId = null))
-        assertEquals(2L, repo.cardioSession(legacyId)?.planId)
-        assertEquals("Two", repo.cardioSession(legacyId)?.planName)
+        db.planDao().updateSuggestedDay(2, "A")
+        db.programDao().upsertDay(ProgramDayEntity(2, "B", 1, "Next", "", null))
+        val before = db.planDao().allPlans()
+        val legacyId = repo.logCardioSession(cardio.copy(planId = null), finishDay = true)
+        assertNull(repo.cardioSession(legacyId)?.planId)
+        assertNull(repo.cardioSession(legacyId)?.planName)
+        assertEquals(before, db.planDao().allPlans())
     }
 
     private suspend fun insertTwoProgramsAndSelectPlanTwo() {

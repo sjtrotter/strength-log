@@ -56,6 +56,19 @@ class DayGlanceTest {
     )
 
     @Test
+    fun `blank day shows nothing on Today in the tile and an empty complication value`() {
+        val empty = snapshot().copy(day = WatchDay("", "", 0, emptyList()))
+        val glance = DayGlance.of(empty)
+        assertTrue(glance.nothingOnToday)
+        assertEquals("Nothing on Today", glance.titleLine)
+        assertEquals("", glance.shortText)
+        assertEquals("", glance.setLine)
+        assertEquals("", glance.ratioText)
+        assertFalse(glance.hasProgram)
+        assertEquals(0f, glance.rangeValue)
+    }
+
+    @Test
     fun `before the first set it counts the work ahead`() {
         val glance = DayGlance.of(day(done = 0))
 

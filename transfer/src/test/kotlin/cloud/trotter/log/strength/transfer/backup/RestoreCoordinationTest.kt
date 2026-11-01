@@ -102,6 +102,26 @@ class RestoreCoordinationTest {
         service = BackupService(repo, journal)
     }
 
+    @Test
+    fun v15ImportAndInterruptedReplayPreserveAllPaused() = runBlocking {
+        val document = BackupDocument(
+            settings = SettingsBackup(190, 33, "NOVICE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
+            plans = listOf(PlanBackup(1, "Paused", "GENERATED", 1000, onToday = false)),
+        )
+        val text = BackupCodec().encode(document)
+        service.import(text)
+        assertTrue(settings.onTodayFixupDoneFlow.first())
+        assertFalse(db.planDao().plan(1)!!.onToday)
+        val nonce = "membership-replay"
+        journal.stage(repo.exportSnapshot(), nonce)
+        db.restoreMarkerDao().put(cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity(nonce = nonce))
+        service.withRestoreLock {
+            assertTrue(settings.onTodayFixupDoneFlow.first())
+            assertFalse(db.planDao().plan(1)!!.onToday)
+            assertNull(db.restoreMarkerDao().nonce())
+        }
+    }
+
     /** [F] */
     @Test fun `legacy v12 ticks split through importSnapshot by the restore clock date`() = runBlocking {
         val codec = BackupCodec()

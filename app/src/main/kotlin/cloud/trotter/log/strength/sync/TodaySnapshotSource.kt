@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.TodayTarget
+import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.di.CivilDay
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -27,8 +29,8 @@ import kotlinx.coroutines.flow.emitAll
  * renders from it. Neither consumer re-derives "which day is today" or counts
  * sets of its own (glance-surfaces.md §4.2).
  *
- * Null means there is nothing glanceable: no program yet, or the suggested day
- * resolves to no real day.
+ * Null suppresses publication during restore or when no day exists. A blank
+ * day id explicitly clears the watch when all plans are paused.
  *
  * [WatchSnapshot.revision] is a placeholder 0 here — only the publisher stamps a
  * real revision, at publish time, so dedupe upstream compares content alone.
@@ -44,8 +46,19 @@ class TodaySnapshotSource(
     val snapshots: Flow<WatchSnapshot?> = flow {
         repo.runPlanSettingsFixupIfNeeded()
         emitAll(repo.todayTargetFlow.flatMapLatest { target ->
-            val plan = target?.plan
-            val dayId = target?.dayId
+            if (target == TodayTarget.NothingOnToday) return@flatMapLatest combine(
+                repo.unitFlow, cardioAckLog.acksFlow, editAckLog.processedEditsFlow,
+            ) { unit, cardio, edits ->
+                WatchSnapshot(
+                    revision = 0L, suggestedDayId = "", unit = unit.name.lowercase(),
+                    day = WatchDay("", "", 0, emptyList()),
+                    cardioAckStamp = cardio.highest, cardioAckedStamps = cardio.recent,
+                    processedEditStamps = edits,
+                )
+            }
+            val day = target as? TodayTarget.Day
+            val plan = day?.plan
+            val dayId = day?.dayId
             if (plan == null || dayId == null) {
                 flowOf(null)
             } else {

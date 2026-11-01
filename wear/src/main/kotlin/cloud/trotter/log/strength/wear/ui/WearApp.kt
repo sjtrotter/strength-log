@@ -1079,8 +1079,7 @@ internal fun rememberDialCopy(): DialCopy {
     val thenPartner = stringResource(R.string.dial_then_partner)
     val releaseToReturn = stringResource(R.string.dial_release_to_return)
     val queued = stringResource(R.string.dial_queued)
-    val noProgram = stringResource(R.string.dial_no_program)
-    val setUpOnPhone = stringResource(R.string.dial_set_up_on_phone)
+    val nothingOnToday = stringResource(R.string.nothing_on_today)
     val noExercisesYet = stringResource(R.string.dial_no_exercises_yet)
     val rampLabel = stringResource(R.string.dial_ramp_label)
     val topLabel = stringResource(R.string.dial_top_label)
@@ -1120,8 +1119,7 @@ internal fun rememberDialCopy(): DialCopy {
             thenPartner = { name, summary -> thenPartner.format(name, summary) },
             releaseToReturn = releaseToReturn,
             queued = { queued.format(it) },
-            noProgram = noProgram,
-            setUpOnPhone = setUpOnPhone,
+            nothingOnToday = nothingOnToday,
             noExercisesYet = noExercisesYet,
             rampLabel = { rampLabel.format(it) },
             topLabel = topLabel,

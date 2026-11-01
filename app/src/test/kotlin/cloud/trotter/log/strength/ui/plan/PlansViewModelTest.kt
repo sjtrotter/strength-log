@@ -83,6 +83,30 @@ class PlansViewModelTest {
     }
 
     @Test
+    fun `membership actions update rows without changing preferred until use only`() = runTest(dispatcher) {
+        seed()
+        val other = repo.duplicatePlan(1, "Other")
+        val vm = viewModel()
+        vm.useAlongside(other)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.plans.first { it.id == other }.onToday)
+        assertEquals(1L, settings.selectedPlanIdFlow.first())
+        vm.pause(1)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.plans.first { it.id == 1L }.onToday)
+        vm.useOnly(other)
+        advanceUntilIdle()
+        assertEquals(other, settings.selectedPlanIdFlow.first())
+        assertEquals(listOf(other), vm.uiState.value.plans.filter { it.onToday }.map { it.id })
+        vm.pause(other)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.plans.none { it.onToday })
+        vm.select(1)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.plans.first { it.id == 1L }.onToday)
+    }
+
+    @Test
     fun `start empty restores name draft then creates selects and returns once`() = runTest(dispatcher) {
         seed()
         val global = settings.globalLifterFlow.first()

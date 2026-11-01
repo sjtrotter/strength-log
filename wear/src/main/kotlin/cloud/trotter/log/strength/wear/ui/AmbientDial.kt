@@ -55,7 +55,8 @@ fun AmbientDial(
     val dayTemplate = stringResource(R.string.dial_day)
     val progressTemplate = stringResource(R.string.ambient_day_progress)
     val restingText = stringResource(R.string.ambient_resting)
-    val state = remember(ambientTick, snapshot, rest, dayTemplate, progressTemplate, restingText) {
+    val nothingOnTodayText = stringResource(R.string.nothing_on_today)
+    val state = remember(ambientTick, snapshot, rest, dayTemplate, progressTemplate, restingText, nothingOnTodayText) {
         val remaining = rest?.let {
             RestTimer.remainingSeconds(it.deadlineMillis, SystemClock.elapsedRealtime())
         }
@@ -66,6 +67,7 @@ fun AmbientDial(
             dayText = { dayTemplate.format(it) },
             dayProgressText = { day, done, total -> progressTemplate.format(day, done, total) },
             restingText = rest?.ambientLabel ?: restingText,
+            nothingOnTodayText = nothingOnTodayText,
         )
     }
 

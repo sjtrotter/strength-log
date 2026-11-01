@@ -18,8 +18,9 @@ import kotlinx.serialization.Serializable
  * v12 carries cardio activity and per-set results.
  * v13 carries workout runs, each day's run identity, and archived prescriptions.
  * v14 carries each slot's next-time choice and each session's note.
+ * v15 adds each plan’s onToday membership.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 14
+const val CURRENT_SCHEMA_VERSION: Int = 15
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -175,6 +176,7 @@ data class PlanBackup(
     val recipeJson: String? = null,
     /** The plan's rotation position. */
     val suggestedDay: String? = null,
+    val onToday: Boolean? = null,
 )
 
 /** One program day with its ordered exercise slots. */

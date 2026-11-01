@@ -45,7 +45,7 @@ class BackupV11Test {
         suggestedDay = null,
         selectedPlanId = 1,
         restSettings = RestSettings(),
-        plans = listOf(PlanEntity(1, "Running", PlanOrigin.AUTHORED.name, 0, 1_000, suggestedDayId = "A")),
+        plans = listOf(PlanEntity(1, "Running", PlanOrigin.AUTHORED.name, 0, 1_000, suggestedDayId = "A", onToday = true)),
         days = listOf(ProgramDayEntity(1, "A", 0, "Track", "",
             CardioDto.encode(CardioSuggestion("Easy", "Zone 2", false)), kind = "CARDIO",
             cardioBlockJson = CardioBlockJson.encode(block))),

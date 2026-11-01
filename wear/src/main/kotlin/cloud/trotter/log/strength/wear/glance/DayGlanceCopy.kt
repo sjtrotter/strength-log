@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.wear.R
 
 internal fun dayGlanceCopy(context: Context) = DayGlanceCopy(
     noProgram = context.getString(R.string.dial_no_program),
+    nothingOnToday = context.getString(R.string.nothing_on_today),
     setUpOnPhone = context.getString(R.string.glance_set_up_on_phone),
     dayTitle = { day, title -> context.getString(R.string.glance_day_title, day, title) },
     dayOnly = { context.getString(R.string.glance_day_only, it) },

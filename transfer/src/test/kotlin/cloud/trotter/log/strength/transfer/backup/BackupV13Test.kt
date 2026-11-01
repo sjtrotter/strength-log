@@ -113,7 +113,7 @@ class BackupV13Test {
         )))
         assertEquals(blankPreviews, decode(blankPreviews))
         val blankDays = valid.copy(
-            plans = listOf(plan.copy(days = plan.days.map { it.copy(nextRunId = "") })),
+            plans = listOf(plan.copy(onToday = null, days = plan.days.map { it.copy(nextRunId = "") })),
             runs = emptyList(),
         )
         assertEquals(blankDays, decode(blankDays))
@@ -189,7 +189,7 @@ class BackupV13Test {
 /** What a writer before format 14 produced: no next-time choice, no session note. */
 internal fun BackupDocument.withoutV14Fields() = copy(
     plans = plans.map { plan ->
-        plan.copy(days = plan.days.map { day -> day.copy(exercises = day.exercises.map { it.copy(keepToPlan = null) }) })
+        plan.copy(onToday = null, days = plan.days.map { day -> day.copy(exercises = day.exercises.map { it.copy(keepToPlan = null) }) })
     },
     sessions = sessions.map { it.copy(note = "") },
 )

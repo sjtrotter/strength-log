@@ -138,8 +138,7 @@ open class TrackerRepository(
      *  here restarts every plan-scoped Room query downstream. */
     val selectedPlanIdFlow: Flow<Long?> =
         combine(settings.selectedPlanIdFlow, plansFlow) { storedId, plans ->
-            plans.firstOrNull { it.id == storedId && !it.archived }?.id
-                ?: plans.firstOrNull { !it.archived }?.id
+            preferredPlan(plans, storedId)?.id
         }.distinctUntilChanged()
 
     val planSummariesFlow: Flow<List<PlanSummary>> = combine(
@@ -148,8 +147,7 @@ open class TrackerRepository(
         programDao.observeAllDays(),
         sessionDao.lastSessionByPlan(),
     ) { plans, storedId, days, sessions ->
-        val selectedId = plans.firstOrNull { it.id == storedId && !it.archived }?.id
-            ?: plans.firstOrNull { !it.archived }?.id
+        val selectedId = preferredPlan(plans, storedId)?.id
         val daysByPlan = days.groupBy { it.planId }
         val lastByPlan = sessions.associate { it.planId to it.completedAt }
         plans.map { plan ->
@@ -160,6 +158,7 @@ open class TrackerRepository(
                 nextDayTitle = daysByPlan[plan.id]?.firstOrNull { it.dayId == plan.suggestedDayId }?.title,
                 selected = plan.id == selectedId,
                 archived = plan.archived,
+                onToday = plan.onToday,
                 lastSessionAt = lastByPlan[plan.id],
             )
         }
@@ -352,6 +351,7 @@ open class TrackerRepository(
             PlanEntity(
                 id = 0,
                 name = PlanEntity.LEGACY_NAME,
+                onToday = true,
                 origin = PlanOrigin.GENERATED.name,
                 position = position,
                 createdAt = clock.millis(),
@@ -385,7 +385,34 @@ open class TrackerRepository(
     /** Selects an existing active plan without changing any plan's contents. */
     suspend fun selectPlan(id: Long) {
         planSelectionLock.withLock {
-            if (planDao.plan(id)?.archived == false) settings.setSelectedPlanId(id)
+            ensurePlanSettingsMigrated()
+            if (planDao.plan(id)?.archived == false) {
+                planDao.updateOnToday(id, true)
+                settings.setSelectedPlanId(id)
+            }
+        }
+    }
+
+    suspend fun useAlongside(id: Long) = setOnToday(id, true)
+
+    suspend fun pause(id: Long) = setOnToday(id, false)
+
+    private suspend fun setOnToday(id: Long, onToday: Boolean) {
+        planSelectionLock.withLock {
+            ensurePlanSettingsMigrated()
+            if (planDao.plan(id)?.archived == false) planDao.updateOnToday(id, onToday)
+        }
+    }
+
+    suspend fun useOnly(id: Long) {
+        planSelectionLock.withLock {
+            ensurePlanSettingsMigrated()
+            val changed = db.withTransaction {
+                if (planDao.plan(id)?.archived != false) return@withTransaction false
+                planDao.useOnly(id)
+                true
+            }
+            if (changed) settings.setSelectedPlanId(id)
         }
     }
 
@@ -397,8 +424,7 @@ open class TrackerRepository(
             val storedId = settings.selectedPlanIdFlow.first()
             db.withTransaction {
                 val plans = planDao.allPlans()
-                val selected = plans.firstOrNull { it.id == storedId && !it.archived }
-                    ?: plans.firstOrNull { !it.archived }
+                val selected = preferredPlan(plans, storedId)
                 val recipe = PlanRecipeJson.encode(answers)
                 val nextDay = program.strengthDays.firstOrNull()?.id
                 val planId = if (selected != null && programDao.daysForPlan(selected.id).isEmpty()) {
@@ -435,8 +461,10 @@ open class TrackerRepository(
      * under the selection lock. */
     open suspend fun publishCreatedPlan(id: Long, answers: WizardAnswers) {
         planSelectionLock.withLock {
+            val active = planDao.plan(id)?.archived == false
+            if (active) planDao.updateOnToday(id, true)
             settings.setGlobalLifter(GlobalLifter.of(answers.config))
-            if (planDao.plan(id)?.archived == false) settings.setSelectedPlanId(id)
+            if (active) settings.setSelectedPlanId(id)
         }
     }
 
@@ -459,7 +487,10 @@ open class TrackerRepository(
     suspend fun publishCreatedAuthoredPlan(id: Long) {
         planSelectionLock.withLock {
             val plan = planDao.plan(id)
-            if (plan?.origin == PlanOrigin.AUTHORED.name && !plan.archived) settings.setSelectedPlanId(id)
+            if (plan?.origin == PlanOrigin.AUTHORED.name && !plan.archived) {
+                planDao.updateOnToday(id, true)
+                settings.setSelectedPlanId(id)
+            }
         }
     }
 
@@ -594,6 +625,7 @@ open class TrackerRepository(
             id = 0,
             name = name,
             position = source.position + 1,
+            onToday = false,
             createdAt = clock.millis(),
         ))
         programDao.upsertDays(programDao.daysForPlan(id).map { it.copy(planId = copyId).freshRunId() })
@@ -616,16 +648,20 @@ open class TrackerRepository(
     private suspend fun archiveUnlessSelected(id: Long, storedId: Long?): Boolean {
         val plans = planDao.allPlans()
         val active = plans.filterNot { it.archived }
-        val selectedId = active.firstOrNull { it.id == storedId }?.id ?: active.firstOrNull()?.id
+        val selectedId = preferredPlan(plans, storedId)?.id
         if (id == selectedId || active.size <= 1 || active.none { it.id == id }) return false
         planDao.updateArchived(id, true)
+        planDao.updateOnToday(id, false)
         return true
     }
 
     /** Restores an archived plan without selecting it or changing its contents. */
     suspend fun restorePlan(id: Long) {
         planSelectionLock.withLock {
-            db.withTransaction { planDao.updateArchived(id, false) }
+            db.withTransaction {
+                planDao.updateArchived(id, false)
+                planDao.updateOnToday(id, false)
+            }
         }
     }
 
@@ -882,7 +918,7 @@ open class TrackerRepository(
 
     /** A half-done restore's settings are not this device's to copy; reconcile owns them.
      *  Also converts legacy cardio to typed blocks. */
-    private suspend fun ensurePlanSettingsMigrated() {
+    private suspend fun ensurePlanSettingsMigrated(migrateOnToday: Boolean = true) {
         planSettingsMigrationMutex.withLock {
             if (restoreMarkerDao.nonce() != null) return@withLock
             if (!settings.planSettingsFixupDoneFlow.first()) {
@@ -895,14 +931,20 @@ open class TrackerRepository(
                         val plans = planDao.allPlans()
                         plans.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }
                             .forEach { planDao.updateRecipe(it.id, recipe) }
-                        val selected = plans.firstOrNull { it.id == storedId && !it.archived }
-                            ?: plans.firstOrNull { !it.archived }
+                        val selected = preferredPlan(plans, storedId)
                         if (selected != null && selected.suggestedDayId == null) {
                             planDao.updateSuggestedDay(selected.id, suggestedDay)
                         }
                     }
                 }
                 settings.removeLegacyPlanKeys()
+            }
+            if (migrateOnToday && !settings.onTodayFixupDoneFlow.first()) {
+                val storedId = settings.selectedPlanIdFlow.first()
+                db.withTransaction {
+                    preferredPlan(planDao.allPlans(), storedId)?.let { planDao.updateOnToday(it.id, true) }
+                }
+                settings.setOnTodayFixupDone()
             }
             if (legacyCardioConverted) return@withLock
             val global = settings.globalLifterFlow.first()
@@ -1080,8 +1122,8 @@ open class TrackerRepository(
      * staged in UI state. Labels
      * are non-blank and capped at 80 characters; modes are stored by enum name
      * and decoded with [decodedCardioMode] on read. An explicit plan id is
-     * preserved and its current name copied when the plan exists; only a
-     * session without a plan uses the selected plan.
+     * preserved and its current name copied when the plan exists. Sessions
+     * without a plan cannot advance a rotation.
      */
     suspend fun logCardioSession(
         session: CardioSessionEntity,
@@ -1098,7 +1140,7 @@ open class TrackerRepository(
         require(session.activity == null || CardioActivity.entries.any { it.name == session.activity }) {
             "cardio activity must be stored as CardioActivity.name"
         }
-        val ownerId = session.planId ?: selectedPlanId()
+        val ownerId = session.planId
         return db.withTransaction {
             // Read the cursor in the same transaction as the log and guarded advance.
             val plan = ownerId?.let { planDao.plan(it) }
@@ -1270,10 +1312,21 @@ open class TrackerRepository(
         }
     }
 
-    val todayTargetFlow: Flow<TodayTarget?> = combine(selectedPlanFlow, openRunFlow, plansFlow) { selected, open, plans ->
-        val plan = if (open == null) selected else plans.firstOrNull { it.id == open.planId }
-        plan?.let { TodayTarget(it, if (open == null) it.suggestedDayId else open.dayId) }
-    }.distinctUntilChanged()
+    val todayTargetFlow: Flow<TodayTarget?> = flow {
+        ensurePlanSettingsMigrated()
+        emitAll(combine(settings.selectedPlanIdFlow, openRunFlow, plansFlow) { storedId, open, plans ->
+            if (restoreMarkerDao.nonce() != null) return@combine null
+            val running = open?.let { run -> plans.firstOrNull { it.id == run.planId } }
+            val preferred = preferredPlan(plans, storedId)?.takeIf { it.onToday }
+            val plan = running ?: preferred ?: plans.filter { !it.archived && it.onToday }
+                .minWithOrNull(compareBy({ it.position }, { it.id }))
+            when {
+                plan != null -> TodayTarget.Day(plan, if (running != null) open?.dayId else plan.suggestedDayId)
+                plans.isEmpty() -> TodayTarget.NoPlans
+                else -> TodayTarget.NothingOnToday
+            }
+        }.distinctUntilChanged())
+    }
 
     private fun RunTrackEntity.toRunTrack(): RunTrack = RunTrack(
         id, position, programExerciseId, slot, exerciseId, retired,
@@ -1667,8 +1720,7 @@ open class TrackerRepository(
             // Use this same plan list for the legacy settings projection, too.
             // Separate reads could otherwise straddle a restore's Room commit.
             val plans = planDao.allPlans()
-            val selectedPlan = plans.firstOrNull { it.id == selectedPlanId && !it.archived }
-                ?: plans.firstOrNull { !it.archived }
+            val selectedPlan = preferredPlan(plans, selectedPlanId)
             FullSnapshot(
                 answers = answersForPlan(selectedPlan, global),
                 answersCarryRecipe = false,
@@ -1782,6 +1834,7 @@ open class TrackerRepository(
                     PlanEntity(
                         id = PlanEntity.LEGACY_ID,
                         name = PlanEntity.LEGACY_NAME,
+                        onToday = true,
                         origin = PlanOrigin.GENERATED.name,
                         position = 0,
                         createdAt = clock.millis(),
@@ -1793,8 +1846,7 @@ open class TrackerRepository(
                 val plans = planDao.allPlans()
                 plans.filter { it.origin == PlanOrigin.GENERATED.name && it.recipeJson == null }
                     .forEach { planDao.updateRecipe(it.id, recipe) }
-                val selectedId = plans.firstOrNull { it.id == restoredSelectedPlanId && !it.archived }?.id
-                    ?: plans.firstOrNull { !it.archived }?.id
+                val selectedId = preferredPlan(plans, restoredSelectedPlanId)?.id
                 if (selectedId != null && planDao.plan(selectedId)?.suggestedDayId == null) {
                     planDao.updateSuggestedDay(selectedId, snapshot.suggestedDay)
                 }
@@ -1833,6 +1885,7 @@ open class TrackerRepository(
                     topSetHelperSeen = snapshot.topSetHelperSeen,
                     supersetHelperSeen = snapshot.supersetHelperSeen,
                     themePreference = snapshot.themePreference,
+                    onTodayFixupDone = true,
                 )
             } catch (e: IOException) {
                 throw RestoreInterruption.SettingsPending(e)
@@ -1871,6 +1924,7 @@ open class TrackerRepository(
                         PlanEntity(
                             id = PlanEntity.LEGACY_ID,
                             name = PlanEntity.LEGACY_NAME,
+                            onToday = true,
                             origin = PlanOrigin.GENERATED.name,
                             position = 0,
                             createdAt = clock.millis(),
@@ -1882,8 +1936,7 @@ open class TrackerRepository(
                 }
                 plans.filter { it.origin == PlanOrigin.GENERATED.name }
                     .forEach { planDao.updateRecipe(it.id, recipe) }
-                val selected = plans.firstOrNull { it.id == storedId && !it.archived }
-                    ?: plans.firstOrNull { !it.archived }
+                val selected = preferredPlan(plans, storedId)
                 if (selected != null && suggestedDay != null) {
                     planDao.updateSuggestedDay(selected.id, suggestedDay)
                 }
@@ -1892,7 +1945,7 @@ open class TrackerRepository(
         }
         planSettingsMigrationMutex.withLock { legacyCardioConverted = false }
         if (committed != null) restoreMarkerDao.clear()
-        ensurePlanSettingsMigrated()
+        ensurePlanSettingsMigrated(migrateOnToday = false)
         return replayed
     }
 

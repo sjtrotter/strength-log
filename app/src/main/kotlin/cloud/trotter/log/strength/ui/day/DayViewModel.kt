@@ -147,7 +147,8 @@ class DayViewModel @Inject constructor(
 
     private val displayTargetFlow = combine(
         repo.todayTargetFlow, repo.selectedPlanFlow, repo.plansFlow, viewDayOverride,
-    ) { target, selected, plans, override ->
+    ) { display, selected, plans, override ->
+        val target = display as? TodayTarget.Day
         val candidates = if (override?.planId != null) plans.filter { it.id == override.planId }
             else listOfNotNull(target?.plan, selected).distinctBy { it.id }
         Triple(target, candidates, override)
@@ -156,7 +157,7 @@ class DayViewModel @Inject constructor(
             candidates.map { plan -> repo.programFor(plan.id).map { plan to it } },
         ) { programs ->
             programs.firstOrNull { (_, program) -> program.days.any { it.id == override.dayId } }
-                ?.let { (plan, _) -> TodayTarget(plan, override.dayId) } ?: target
+                ?.let { (plan, _) -> TodayTarget.Day(plan, override.dayId) } ?: target
         }
     }.distinctUntilChanged()
 
@@ -167,8 +168,8 @@ class DayViewModel @Inject constructor(
     }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val contextFlow = displayTargetFlow.flatMapLatest { target ->
-        if (target == null) combine(repo.programFlow, repo.configFlow, repo.unitFlow, repo.catalogFlow) {
-                program, cfg, unit, catalog -> DayContext(program, null, null, cfg, unit, catalog)
+        if (target == null) combine(repo.configFlow, repo.unitFlow, repo.catalogFlow) {
+                cfg, unit, catalog -> DayContext(Program(emptyList()), null, null, cfg, unit, catalog)
         }
         else combine(repo.programFor(target.plan.id), repo.wizardAnswersFor(target.plan.id), repo.unitFlow, repo.catalogFlow) {
                 program, answers, unit, catalog ->
@@ -760,7 +761,7 @@ class DayViewModel @Inject constructor(
     private suspend fun showDeferredCardioReceipt() {
         if (executionActive) return
         val run = deferredCardioReceipt.value ?: return
-        val advancedTo = repo.suggestedDayFlow.first()
+        val advancedTo = repo.plansFlow.first().firstOrNull { it.id == run.planId }?.suggestedDayId
         if (executionActive) return
         savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
         _sessionReceipt.value = SessionReceipt(
@@ -1186,12 +1187,12 @@ class DayViewModel @Inject constructor(
             val dayIndex = program.days.indexOfFirst { it.id == day }
             val nextDayId = if (dayIndex >= 0) {
                 Rotation.nextFor(program, day)
-                    ?: repo.suggestedDayFlow.first()
+                    ?: repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             } else null
             val sessionId = repo.finishRun(runId) ?: return@mutate
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_SELECTION] = null
-            val advancedTo = repo.suggestedDayFlow.first()
+            val advancedTo = repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             pinHeldFor = day.takeIf { advancedTo != day && effectiveDayId.value == day }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()

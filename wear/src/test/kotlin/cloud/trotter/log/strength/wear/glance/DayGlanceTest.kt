@@ -72,8 +72,8 @@ class DayGlanceTest {
     fun `before the first set it counts the work ahead`() {
         val glance = DayGlance.of(day(done = 0))
 
-        assertEquals("DAY A · LOWER", glance.titleLine)
-        assertEquals("3 LIFTS · 21 SETS", glance.setLine)
+        assertEquals("Day A, Lower", glance.titleLine)
+        assertEquals("3 lifts, 21 sets", glance.setLine)
         assertEquals("A", glance.shortText)
         assertEquals("0/21", glance.ratioText)
         assertEquals(0f, glance.progress)
@@ -84,7 +84,7 @@ class DayGlanceTest {
     fun `mid session it counts what is logged`() {
         val glance = DayGlance.of(day(done = 12))
 
-        assertEquals("12 / 21 SETS", glance.setLine)
+        assertEquals("12 of 21 sets", glance.setLine)
         assertEquals("12/21", glance.ratioText)
         assertEquals(12f / 21f, glance.progress)
         assertFalse(glance.done)
@@ -94,7 +94,7 @@ class DayGlanceTest {
     fun `a finished day reads DONE and fills the ring`() {
         val glance = DayGlance.of(day(done = 21))
 
-        assertEquals("DONE · 21 SETS", glance.setLine)
+        assertEquals("Done, 21 sets", glance.setLine)
         assertEquals(1f, glance.progress)
         assertEquals(21f, glance.rangeValue)
         assertEquals(21f, glance.rangeMax)
@@ -105,8 +105,8 @@ class DayGlanceTest {
     fun `no snapshot is an em dash and an instruction, never a blank`() {
         val glance = DayGlance.of(null)
 
-        assertEquals("NO PROGRAM", glance.titleLine)
-        assertEquals("SET UP ON YOUR PHONE", glance.setLine)
+        assertEquals("No program", glance.titleLine)
+        assertEquals("Set up on your phone", glance.setLine)
         assertEquals("—", glance.shortText)
         assertEquals("", glance.ratioText)
         assertEquals(0f, glance.progress)
@@ -117,7 +117,7 @@ class DayGlanceTest {
     fun `the day title carries line one, never the five-clause emphasis`() {
         val glance = DayGlance.of(day(done = 0))
 
-        assertEquals("DAY A · LOWER", glance.titleLine)
+        assertEquals("Day A, Lower", glance.titleLine)
         assertEquals("Lower", glance.dayTitle)
     }
 
@@ -127,7 +127,7 @@ class DayGlanceTest {
 
         assertFalse(glance.hasProgram)
         assertEquals(5, glance.accentIndex)
-        assertEquals("NO PROGRAM", glance.titleLine)
+        assertEquals("No program", glance.titleLine)
     }
 
     @Test
@@ -142,15 +142,15 @@ class DayGlanceTest {
     fun `a day without a title is just the day, and one lift is singular`() {
         val glance = DayGlance.of(snapshot("", 0, exercise(1L, List(4) { false })))
 
-        assertEquals("DAY A", glance.titleLine)
-        assertEquals("1 LIFT · 4 SETS", glance.setLine)
+        assertEquals("Day A", glance.titleLine)
+        assertEquals("1 lift, 4 sets", glance.setLine)
     }
 
     @Test
     fun `a single set reads singular too, like the widget`() {
         val glance = DayGlance.of(snapshot("Lower", 0, exercise(1L, listOf(false))))
 
-        assertEquals("1 LIFT · 1 SET", glance.setLine)
+        assertEquals("1 lift, 1 set", glance.setLine)
     }
 
     @Test
@@ -170,7 +170,7 @@ class DayGlanceTest {
 
         assertEquals(4, glance.totalSets)
         assertEquals(2, glance.doneSets)
-        assertEquals("2 / 4 SETS", glance.setLine)
+        assertEquals("2 of 4 sets", glance.setLine)
     }
 
     @Test

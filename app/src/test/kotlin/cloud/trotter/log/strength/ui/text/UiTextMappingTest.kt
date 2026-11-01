@@ -94,6 +94,6 @@ class UiTextMappingTest {
 
     @Test
     fun widget_default_resource_is_the_only_copy() {
-        assertEquals("SET UP YOUR PROGRAM", context.getString(R.string.widget_no_program))
+        assertEquals("Set up a plan", context.getString(R.string.widget_no_program))
     }
 }

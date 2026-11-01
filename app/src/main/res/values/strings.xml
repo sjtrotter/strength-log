@@ -18,9 +18,11 @@
 
     <string name="widget_today_label">Today</string>
     <string name="widget_today_description">Today\'s day, its lifts and how far through the sets you are.</string>
-    <!-- Mirrors TodayWidgetContent's no-program line: the initial layout is
-         inflated by the host before any Kotlin runs, so it can't ask for it. -->
-    <string name="widget_no_program">SET UP YOUR PROGRAM</string>
+    <string name="widget_preview_letter">A</string>
+    <string name="widget_preview_day">Day A, Squat focus</string>
+    <string name="widget_preview_progress">2 of 18 sets</string>
+    <!-- The host uses this before the first data render. -->
+    <string name="widget_no_program">Set up a plan</string>
 <!-- Today -->
 <string name="day_index_description">Day %1$s</string>
 <string name="today_day_label">Day %1$s</string>
@@ -108,8 +110,11 @@
     <string name="rest_skip">Skip</string>
     <string name="rest_over">Rest over</string>
     <string name="rest_channel_name">Rest timer</string>
-    <string name="rest_notification_running">REST · %1$s next</string>
-    <string name="rest_notification_running_no_next">REST</string>
+    <string name="rest_notification_title">Rest</string>
+    <string name="rest_notification_next">Next: %1$s</string>
+    <string name="rest_notification_add">+15 s</string>
+    <string name="rest_notification_skip">Skip rest</string>
+    <string name="rest_over_channel_name">Rest over</string>
 <string name="setup_decrease_rest_description">Decrease %1$s rest</string>
 <string name="setup_increase_rest_description">Increase %1$s rest</string>
 <string name="setup_rest_category_warm_up">Warm-up</string>

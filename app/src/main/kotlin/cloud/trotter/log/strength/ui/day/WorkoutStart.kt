@@ -5,6 +5,9 @@ import cloud.trotter.log.strength.data.OpenRun
 import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
+import cloud.trotter.log.strength.rest.PhoneRestActions
+import cloud.trotter.log.strength.rest.RestRuntime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,6 +26,7 @@ class WorkoutStart(
     private val repo: TrackerRepository,
     private val savedState: SavedStateHandle,
     private val scope: CoroutineScope,
+    private val restRuntime: RestRuntime = NoOpRestRuntime,
 ) {
     private val lock = Mutex()
     private val pending = savedState.getStateFlow<DaySelection?>("start_target", null)
@@ -76,7 +80,9 @@ class WorkoutStart(
         val runId = conflictId.value ?: return
         scope.launch { lock.withLock {
             // Never discard a replacement run if this dialog became stale.
-            if (repo.openRunFlow.first()?.id == runId) repo.discardRun(runId)
+            if (repo.openRunFlow.first()?.id == runId && repo.discardRun(runId)) {
+                PhoneRestActions.skip(repo, restRuntime)
+            }
             startNow(target)
         } }
     }

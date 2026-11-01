@@ -4,6 +4,7 @@ import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.content.Context
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -31,13 +32,19 @@ object AppHaptics {
         view.performHapticFeedback(feedbackConstant(cue))
     }
 
-    fun restComplete(context: Context) {
+    /** [alarm] marks a vibration made from the background, which API 33+ drops without an alarm usage. */
+    fun restComplete(context: Context, alarm: Boolean = false) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
             context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
-        vibrator?.vibrate(VibrationEffect.createOneShot(400L, VibrationEffect.DEFAULT_AMPLITUDE))
+        val effect = VibrationEffect.createOneShot(400L, VibrationEffect.DEFAULT_AMPLITUDE)
+        if (alarm && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            vibrator?.vibrate(effect, VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM))
+        } else {
+            vibrator?.vibrate(effect)
+        }
     }
 }

@@ -148,9 +148,9 @@ class WatchSnapshotBuilderTest {
         assertNull(snapshot.cardioBlock)
 
         val widget = todayWidgetContent(snapshot)
-        assertEquals("DAY C1 · CARDIO + CORE", widget.dayLine)
+        assertEquals("Day C1, Cardio + Core", widget.dayLine)
         assertEquals(TodayWidgetState.BEFORE, widget.state)
-        assertEquals(WidgetStatLine.Data("1 LIFT · 2 SETS"), widget.statLine)
+        assertEquals(WidgetStatLine.Data("1 lift, 2 sets"), widget.statLine)
     }
 
     private fun loggedSlot(id: Long, slot: String, sets: List<LoggedSet>) =

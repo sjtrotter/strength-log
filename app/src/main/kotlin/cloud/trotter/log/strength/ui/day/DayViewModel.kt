@@ -38,7 +38,9 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.PhoneRestTimer
+import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.standards.RestPolicy
+import cloud.trotter.log.strength.rest.PhoneRestActions
 import cloud.trotter.log.strength.rest.RestRuntime
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -51,6 +53,7 @@ import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,6 +72,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -257,10 +261,28 @@ class DayViewModel @Inject constructor(
                 val remaining = PhoneRestTimer.remainingSeconds(rest, now)
                 emit(RestUiState(rest, remaining, PhoneRestTimer.remainingFraction(rest, now), remaining == 0))
                 if (remaining == 0) {
-                    phoneRestRuntime.complete()
-                    delay(REST_OVER_MS)
-                    phoneRestRuntime.cancel()
-                    repo.setPhoneRest(null)
+                    val expired = PhoneRestActions.locked {
+                        val current = repo.phoneRestFlow.first()
+                        if (current == null || current.deadlineEpochMillis != rest.deadlineEpochMillis || current.deadlineEpochMillis > clock.millis()) {
+                            false
+                        } else {
+                            phoneRestRuntime.complete()
+                            true
+                        }
+                    }
+                    if (!expired) break
+                    // The subscription can stop during the grace period; the persisted rest must still clear,
+                    // or a recreated process would complete it a second time.
+                    withContext(NonCancellable) {
+                        delay(REST_OVER_MS)
+                        PhoneRestActions.locked {
+                            val current = repo.phoneRestFlow.first()
+                            if (current != null && current.deadlineEpochMillis == rest.deadlineEpochMillis && current.deadlineEpochMillis <= clock.millis()) {
+                                // complete() already canceled the running alarm; keep the Rest over notification.
+                                repo.setPhoneRest(null)
+                            }
+                        }
+                    }
                     break
                 }
                 delay(REST_TICK_MS)
@@ -434,6 +456,14 @@ class DayViewModel @Inject constructor(
                 ) {
                     state.pages.getOrNull(state.currentPage)?.key?.let { savedState[KEY_SELECTED_PAGE] = it }
                 }
+            }
+        }
+        viewModelScope.launch {
+            var previous: DaySelection? = null
+            displayTargetFlow.collect { target ->
+                val current = target?.dayId?.let { dayId -> DaySelection(target.plan.id, dayId) }
+                if (previous != null && previous != current) PhoneRestActions.skip(repo, phoneRestRuntime)
+                previous = current
             }
         }
         viewModelScope.launch {
@@ -967,11 +997,18 @@ class DayViewModel @Inject constructor(
                     val nextRow = nextCard?.rows?.firstOrNull { !it.complete }
                     val next = if (nextCard != null && nextRow != null) {
                         val title = if (nextRow.nextSlot == Slot.SS) nextCard.partnerTitle.orEmpty() else nextCard.title
-                        "$title ${nextRow.kindLabel}"
+                        val tracking = if (nextRow.nextSlot == Slot.SS) nextCard.partnerTracking ?: TrackingType.WEIGHTED else nextCard.tracking
+                        val nextSet = latest[nextCard.programExerciseId to nextRow.nextSlot]?.sets?.getOrNull(nextRow.index)
+                        val load = nextSet?.let {
+                            SetFormatter.summary(tracking, it.weightLb, it.reps, it.seconds, repo.unitFlow.first(), spaced = true)
+                        }.orEmpty()
+                        listOf(title, load.trim()).filter { it.isNotBlank() }.joinToString(" ")
                     } else ""
                     PhoneRestTimer.start(clock.millis(), seconds, next)?.let { rest ->
-                        repo.setPhoneRest(rest)
-                        phoneRestRuntime.arm(rest)
+                        PhoneRestActions.locked {
+                            repo.setPhoneRest(rest)
+                            phoneRestRuntime.arm(rest)
+                        }
                     }
                 }
             }
@@ -979,13 +1016,10 @@ class DayViewModel @Inject constructor(
     }
 
     fun adjustRest(seconds: Int) = viewModelScope.launch {
-        val current = repo.phoneRestFlow.first() ?: return@launch
-        val adjusted = PhoneRestTimer.adjust(current, clock.millis(), seconds)
-        repo.setPhoneRest(adjusted)
-        if (adjusted == null) phoneRestRuntime.cancel() else phoneRestRuntime.arm(adjusted)
+        PhoneRestActions.adjust(repo, phoneRestRuntime, clock.millis(), seconds)
     }
 
-    fun skipRest() = viewModelScope.launch { repo.setPhoneRest(null); phoneRestRuntime.cancel() }
+    fun skipRest() = viewModelScope.launch { PhoneRestActions.skip(repo, phoneRestRuntime) }
 
     fun addSet(programExerciseId: Long, isSuperset: Boolean) {
         val day = currentDay() ?: return
@@ -1144,6 +1178,7 @@ class DayViewModel @Inject constructor(
         mutate {
             closeUndoWindow()
             if (repo.discardRun(runId)) {
+                PhoneRestActions.skip(repo, phoneRestRuntime)
                 clearTimedRep()
                 seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
             }
@@ -1207,6 +1242,7 @@ class DayViewModel @Inject constructor(
                     ?: repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             } else null
             val sessionId = repo.finishRun(runId) ?: return@mutate
+            PhoneRestActions.skip(repo, phoneRestRuntime)
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_SELECTION] = null
             val advancedTo = repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId

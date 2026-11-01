@@ -14,8 +14,8 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
  *
  * Two facts are borrowed rather than re-decided: progress counts the main track's
  * sets only (the same rule the dial's day ring uses), and the lines come from
- * [GlanceLines] in `:domain`, the same object the phone widget reads, so one day
- * is character for character the same on the wrist and on the home screen.
+ * localized resources that follow [cloud.trotter.log.strength.domain.glance.GlanceLines],
+ * so one day reads the same on the wrist and on the home screen.
  */
 data class DayGlance(
     val hasProgram: Boolean,
@@ -42,22 +42,22 @@ data class DayGlance(
         get() = if (totalSets <= 0) 0f else (doneSets.toFloat() / totalSets).coerceIn(0f, 1f)
 
     /**
-     * "DAY A · LOWER". With no program this is the dial's own wording rather than
-     * the widget's "SET UP YOUR PROGRAM" — that is an instruction you can't follow
+     * "Day A, Lower". With no program this is the dial's own wording rather than
+     * the widget's "Set up a plan" — that is an instruction you can't follow
      * on a watch, and the tile is a mini version of a dial that already says this.
      */
     fun titleLine(copy: DayGlanceCopy): String = if (nothingOnToday) copy.nothingOnToday
-    else if (!hasProgram) copy.noProgram.uppercase()
-    else if (dayTitle.isBlank()) copy.dayOnly(dayLetter).uppercase()
-    else copy.dayTitle(dayLetter, dayTitle).uppercase()
+    else if (!hasProgram) copy.noProgram
+    else if (dayTitle.isBlank()) copy.dayOnly(dayLetter)
+    else copy.dayTitle(dayLetter, dayTitle)
 
-    /** The hero line: "3 LIFTS · 21 SETS", "12 / 21 SETS", "DONE · 21 SETS". */
+    /** The hero line: "3 lifts, 21 sets", "12 of 21 sets", "Done, 21 sets". */
     fun setLine(copy: DayGlanceCopy): String = when {
         nothingOnToday -> ""
-        !hasProgram -> copy.setUpOnPhone.uppercase()
-        done -> copy.doneSets(totalSets).uppercase()
-        doneSets > 0 -> copy.progressSets(doneSets, totalSets).uppercase()
-        else -> copy.liftsSets(exerciseCount, totalSets).uppercase()
+        !hasProgram -> copy.setUpOnPhone
+        done -> copy.doneSets(totalSets)
+        doneSets > 0 -> copy.progressSets(doneSets, totalSets)
+        else -> copy.liftsSets(exerciseCount, totalSets)
     }
 
     /** The complication's short text: the day letter, or an em dash with no program. */

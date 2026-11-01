@@ -22,5 +22,5 @@
     android:widgetCategory="home_screen"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_today"
-    android:previewLayout="@layout/widget_today"
+    android:previewLayout="@layout/widget_today_preview"
     android:description="@string/widget_today_description" />

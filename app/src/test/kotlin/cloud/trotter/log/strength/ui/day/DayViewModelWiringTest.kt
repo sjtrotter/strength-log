@@ -781,7 +781,7 @@ class DayViewModelWiringTest {
 
         assertTrue(repo.sessionSummariesFlow.first().isNotEmpty())
         assertEquals("A", vm.uiState.value.viewDayId)
-        assertEquals("DAY B · DAY B", vm.sessionReceipt.value?.nextDayLine)
+        assertEquals("Day B, Day B", vm.sessionReceipt.value?.nextDayLine)
         assertNull(handle.get<OpenSheet>("day_open_sheet"))
         assertNull(vm.uiState.value.openSheet)
         val pageKey = "exercise:${slotId("ez_curl")}"
@@ -1219,7 +1219,8 @@ class DayViewModelWiringTest {
         assertTrue(track(id, Slot.MAIN)!![0].done)
         assertTrue(track(id, Slot.SS)!![0].done)
         assertEquals(90, armed.single().totalSeconds)
-        assertEquals("${half.partnerTitle} 2", armed.single().nextSetLabel)
+        val partner = half.rows[1].partner!!
+        assertEquals("${half.partnerTitle} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(partner.weightDisplay)} × ${partner.reps}", armed.single().nextSetLabel)
         assertEquals(armed.single(), repo.phoneRestFlow.first())
         repo.setPhoneRest(null)
         advanceUntilIdle()
@@ -1248,7 +1249,33 @@ class DayViewModelWiringTest {
         assertTrue(track(id, Slot.MAIN)!![0].done)
         assertEquals(1, vm.uiState.value.exercises.single().focusIndex)
         assertEquals(90, armed.single().totalSeconds)
-        assertEquals("${vm.uiState.value.exercises.single().title} 2", armed.single().nextSetLabel)
+        val next = vm.uiState.value.exercises.single().rows[1]
+        assertEquals("${vm.uiState.value.exercises.single().title} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(next.weightDisplay)} × ${next.reps}", armed.single().nextSetLabel)
+        repo.setPhoneRest(null)
+        advanceUntilIdle()
+        collect.cancel()
+    }
+
+    @Test
+    fun repsOnlyRestLabelHasOneSpaceBetweenTitleAndLoad() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Push", "", listOf(
+            ProgramExercise("pushup", targetSets = 2),
+        )))))
+        repo.setPhoneRestTimerEnabled(true)
+        val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
+        val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
+            override val available = true
+            override fun arm(rest: cloud.trotter.log.strength.domain.standards.PhoneRest) { armed += rest }
+            override fun cancel() = Unit
+            override fun complete() = false
+        }
+        val vm = newViewModel(restRuntime = runtime)
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.toggleDone(slotId("pushup"), 0, true, Slot.MAIN)
+        runCurrent()
+        val card = vm.uiState.value.exercises.single()
+        assertEquals("${card.title} × ${card.rows[1].reps}", armed.single().nextSetLabel)
         repo.setPhoneRest(null)
         advanceUntilIdle()
         collect.cancel()
@@ -1280,7 +1307,8 @@ class DayViewModelWiringTest {
         vm.toggleDone(id, top, true, Slot.MAIN)
         runCurrent()
         assertEquals(180, armed.single().totalSeconds)
-        assertEquals("${vm.uiState.value.exercises.single().title} R1", armed.single().nextSetLabel)
+        val next = vm.uiState.value.exercises.single().rows[0]
+        assertEquals("${vm.uiState.value.exercises.single().title} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(next.weightDisplay)} × ${next.reps}", armed.single().nextSetLabel)
         repo.setPhoneRest(null)
         advanceUntilIdle()
         collect.cancel()

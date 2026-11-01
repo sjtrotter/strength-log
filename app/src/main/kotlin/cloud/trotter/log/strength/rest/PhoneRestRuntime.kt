@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.rest
 
 import android.Manifest
+import android.app.Notification
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -31,6 +32,7 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
     private val alarms = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     private var foreground = false
     private var armedDeadline: Long? = null
+    private var completedDeadline: Long? = null
     val isForeground: Boolean get() = foreground
 
     init { createChannel(context) }
@@ -42,7 +44,10 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
     }
 
     override fun arm(rest: PhoneRest) {
+        // A queued receiver or onStart can still see the completed rest during its UI grace period.
+        if (rest.deadlineEpochMillis == completedDeadline) return
         alarms.cancel(alarmIntent(context))
+        NotificationManagerCompat.from(context).cancel(OVER_ID)
         armedDeadline = rest.deadlineEpochMillis
         alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, rest.deadlineEpochMillis, alarmIntent(context))
         if (!foreground) showRunning(rest)
@@ -52,31 +57,29 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
         alarms.cancel(alarmIntent(context))
         armedDeadline = null
         NotificationManagerCompat.from(context).cancel(RUNNING_ID)
+        NotificationManagerCompat.from(context).cancel(OVER_ID)
     }
 
     @Synchronized
     override fun complete(): Boolean {
         if (armedDeadline == null) return false
+        completedDeadline = armedDeadline
         cancel()
-        AppHaptics.restComplete(context)
+        if (foreground) {
+            AppHaptics.restComplete(context)
+        } else if (Build.VERSION.SDK_INT < 33 ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        ) {
+            NotificationManagerCompat.from(context).notify(OVER_ID, overNotification())
+        } else {
+            AppHaptics.restComplete(context, alarm = true)
+        }
         return true
     }
 
     private fun showRunning(rest: PhoneRest) {
-        if (!canNotify(context)) return
-        val notification = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_barbell_monochrome)
-            .setContentTitle(
-                if (rest.nextSetLabel.isBlank()) context.getString(R.string.rest_notification_running_no_next)
-                else context.getString(R.string.rest_notification_running, rest.nextSetLabel),
-            )
-            .setWhen(rest.deadlineEpochMillis)
-            .setUsesChronometer(true)
-            .setChronometerCountDown(true)
-            .setOngoing(true)
-            .setSilent(true)
-            .setContentIntent(openAppIntent(context))
-            .build()
+        if (rest.deadlineEpochMillis == completedDeadline || !canNotify(context)) return
+        val notification = runningNotification(rest)
         // Lint wants the permission check beside the call, not behind a helper.
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -84,8 +87,31 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
         NotificationManagerCompat.from(context).notify(RUNNING_ID, notification)
     }
 
+    internal fun runningNotification(rest: PhoneRest): Notification = NotificationCompat.Builder(context, CHANNEL)
+        .setSmallIcon(R.drawable.ic_barbell_monochrome)
+        .setContentTitle(context.getString(R.string.rest_notification_title))
+        .setContentText(rest.nextSetLabel.takeIf { it.isNotBlank() }?.let { context.getString(R.string.rest_notification_next, it) })
+        .setWhen(rest.deadlineEpochMillis)
+        .setUsesChronometer(true)
+        .setChronometerCountDown(true)
+        .setOngoing(true)
+        .setSilent(true)
+        .setContentIntent(openAppIntent(context))
+        .addAction(0, context.getString(R.string.rest_notification_add), actionIntent(context, RestActionReceiver.ADD))
+        .addAction(0, context.getString(R.string.rest_notification_skip), actionIntent(context, RestActionReceiver.SKIP))
+        .build()
+
+    internal fun overNotification(): Notification = NotificationCompat.Builder(context, OVER_CHANNEL)
+        .setSmallIcon(R.drawable.ic_barbell_monochrome)
+        .setContentTitle(context.getString(R.string.rest_over))
+        .setAutoCancel(true)
+        .setDefaults(NotificationCompat.DEFAULT_ALL)
+        .setContentIntent(openAppIntent(context))
+        .build()
+
     companion object {
         const val CHANNEL = "rest"
+        const val OVER_CHANNEL = "rest_over"
         const val RUNNING_ID = 7001
         const val OVER_ID = 7002
         fun canNotify(context: Context) = Build.VERSION.SDK_INT < 33 ||
@@ -97,7 +123,16 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
                     enableVibration(true)
                 },
             )
+            manager.createNotificationChannel(
+                NotificationChannel(OVER_CHANNEL, context.getString(R.string.rest_over_channel_name), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    enableVibration(true)
+                },
+            )
         }
+        private fun actionIntent(context: Context, action: String) = PendingIntent.getBroadcast(
+            context, 0, Intent(context, RestActionReceiver::class.java).setAction(action),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         private fun alarmIntent(context: Context) = PendingIntent.getBroadcast(
             context, 0, Intent(context, RestAlarmReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -129,21 +164,13 @@ class RestAlarmReceiver : BroadcastReceiver() {
         val scope = EntryPointAccessors.fromApplication(context, StrengthLogApp.AppScopeEntryPoint::class.java).appScope()
         scope.launch {
             try {
-                repo.phoneRestFlow.first()?.let(runtime::arm)
-                val delivered = runtime.complete()
-                NotificationManagerCompat.from(context).cancel(PhoneRestRuntime.RUNNING_ID)
-                if (!runtime.isForeground) repo.setPhoneRest(null)
-                if (delivered && !runtime.isForeground && PhoneRestRuntime.canNotify(context)) {
-                    val n = NotificationCompat.Builder(context, PhoneRestRuntime.CHANNEL)
-                        .setSmallIcon(R.drawable.ic_barbell_monochrome)
-                        .setContentTitle(context.getString(R.string.rest_over))
-                        .setAutoCancel(true)
-                        .setDefaults(NotificationCompat.DEFAULT_VIBRATE)
-                        .setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
-                        .build()
-                    if (Build.VERSION.SDK_INT < 33 ||
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-                    ) NotificationManagerCompat.from(context).notify(PhoneRestRuntime.OVER_ID, n)
+                PhoneRestActions.locked {
+                    val rest = repo.phoneRestFlow.first() ?: return@locked
+                    // An alarm already in flight may predate +15 s or a replacement rest.
+                    if (rest.deadlineEpochMillis > System.currentTimeMillis()) return@locked
+                    if (!runtime.isForeground) runtime.arm(rest)
+                    runtime.complete()
+                    if (!runtime.isForeground) repo.setPhoneRest(null)
                 }
             } finally { pending.finish() }
         }

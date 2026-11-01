@@ -391,11 +391,11 @@ class TodaySnapshotSourceRestTest {
             }
         }
 
-        assertEquals("DAY A · SQUAT", awaitDay("DAY A · SQUAT").dayLine)
+        assertEquals("Day A, Squat", awaitDay("Day A, Squat").dayLine)
         repo.selectPlan(secondPlan)
-        assertEquals("DAY B · BENCH", awaitDay("DAY B · BENCH").dayLine)
+        assertEquals("Day B, Bench", awaitDay("Day B, Bench").dayLine)
         repo.selectPlan(firstPlan)
-        assertEquals("DAY A · SQUAT", awaitDay("DAY A · SQUAT").dayLine)
+        assertEquals("Day A, Squat", awaitDay("Day A, Squat").dayLine)
     }
 
     @Test

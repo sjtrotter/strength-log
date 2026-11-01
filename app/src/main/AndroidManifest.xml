@@ -42,19 +42,20 @@
     <application
         android:name=".StrengthLogApp"
         android:label="@string/app_name"
-        android:icon="@mipmap/ic_launcher_day_a"
-        android:roundIcon="@mipmap/ic_launcher_day_a"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.StrengthLog.Starting"
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules">
         <receiver android:name=".rest.RestAlarmReceiver" android:exported="false" />
+        <receiver android:name=".rest.RestActionReceiver" android:exported="false" />
 
         <!--
           MainActivity is never launched directly — only through one of the
           Launcher_Day* aliases below, which is what carries the LAUNCHER
-          intent-filter and the day-specific icon. Unexported so there's no
+          intent-filter and the stable barbell icon. Unexported so there's no
           second, iconless path into the app.
         -->
         <activity
@@ -149,19 +150,17 @@
         </receiver>
 
         <!--
-          Day-swapping launcher icon: one alias per rotation day, one icon
-          each. DayIconManager enables the alias for the current suggested
-          day and disables the rest via PackageManager component toggling —
-          no new permission, no network. Day A ships enabled so a fresh
-          install always shows exactly one icon.
+          Legacy launcher aliases remain so pinned home-screen icons survive
+          upgrades. Every alias uses the same barbell. Day A ships enabled;
+          LauncherAliasMigration repairs interrupted historical switches once.
         -->
         <activity-alias
             android:name=".Launcher_DayA"
             android:targetActivity=".MainActivity"
             android:enabled="true"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_day_a"
-            android:roundIcon="@mipmap/ic_launcher_day_a">
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -172,8 +171,8 @@
             android:targetActivity=".MainActivity"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_day_b"
-            android:roundIcon="@mipmap/ic_launcher_day_b">
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -184,8 +183,8 @@
             android:targetActivity=".MainActivity"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_day_c"
-            android:roundIcon="@mipmap/ic_launcher_day_c">
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -196,8 +195,8 @@
             android:targetActivity=".MainActivity"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_day_d"
-            android:roundIcon="@mipmap/ic_launcher_day_d">
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -208,8 +207,8 @@
             android:targetActivity=".MainActivity"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_day_e"
-            android:roundIcon="@mipmap/ic_launcher_day_e">
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -220,8 +219,8 @@
             android:targetActivity=".MainActivity"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_day_f"
-            android:roundIcon="@mipmap/ic_launcher_day_f">
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -232,8 +231,8 @@
             android:targetActivity=".MainActivity"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_day_g"
-            android:roundIcon="@mipmap/ic_launcher_day_g">
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

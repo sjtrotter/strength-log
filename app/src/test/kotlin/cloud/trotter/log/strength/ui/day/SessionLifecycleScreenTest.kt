@@ -81,7 +81,7 @@ class SessionLifecycleScreenTest {
         composeTestRule.onNodeWithText("DAY A COMPLETE").assertExists()
         composeTestRule.onNodeWithText("18").assertExists()
         composeTestRule.onNodeWithText("235×3").assertExists()
-        composeTestRule.onNodeWithText("DAY B · UPPER").assertExists()
+        composeTestRule.onNodeWithText("Day B, Upper").assertExists()
     }
 
     @Test
@@ -189,7 +189,7 @@ class SessionLifecycleScreenTest {
         totalSetCount = 18,
         setCount = 18,
         strongest = ReceiptLift("Barbell Back Squat", "235×3"),
-        nextDayLine = "DAY B · UPPER",
+        nextDayLine = "Day B, Upper",
     )
 
     private fun dayState(done: Int) = DayUiState(

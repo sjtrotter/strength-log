@@ -7,6 +7,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
+import cloud.trotter.log.strength.icon.LauncherAliasMigration
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.sync.WearSyncPublisher
@@ -43,6 +44,12 @@ class StrengthLogApp : Application() {
     @InstallIn(SingletonComponent::class)
     interface RestRuntimeEntryPoint {
         fun phoneRestRuntime(): PhoneRestRuntime
+    }
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface LauncherEntryPoint {
+        fun launcherAliasMigration(): LauncherAliasMigration
     }
 
     /** The widget's observer rides the same lifetime and the same source as the
@@ -90,6 +97,13 @@ class StrengthLogApp : Application() {
         val repository = EntryPointAccessors
             .fromApplication(this, RepositoryEntryPoint::class.java)
             .trackerRepository()
+
+        appScope.launch {
+            runCatching {
+                EntryPointAccessors.fromApplication(this@StrengthLogApp, LauncherEntryPoint::class.java)
+                    .launcherAliasMigration().runOnce()
+            }.onFailure { Log.e(TAG, "Launcher alias repair failed; will retry next launch", it) }
+        }
 
         // The startup repairs, in order, in one coroutine — genuinely ordered
         // rather than separate launches that would race. Reconciliation goes first

@@ -120,7 +120,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         assertEquals("B", db.planDao().plan(owner)!!.suggestedDayId)
         assertEquals("A", db.planDao().plan(other)!!.suggestedDayId)
-        assertEquals("DAY B · UPPER", vm.sessionReceipt.value?.nextDayLine)
+        assertEquals("Day B, Upper", vm.sessionReceipt.value?.nextDayLine)
         assertEquals(owner, repo.session(vm.sessionReceipt.value!!.sessionId)?.planId)
     }
 
@@ -149,7 +149,7 @@ class DayViewModelReceiptTest {
         assertEquals("Cardio + Core", receipt.dayTitle)
         assertEquals(2, completedSetCount)
         assertEquals(completedSetCount, receipt.setCount)
-        assertEquals("DAY B · UPPER", receipt.nextDayLine)
+        assertEquals("Day B, Upper", receipt.nextDayLine)
         assertEquals("B", repo.suggestedDayFlow.first())
         assertEquals("C", repo.session(receipt.sessionId)?.dayId)
         assertEquals(false, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets.any { it.done })
@@ -170,7 +170,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         completeOneSession(vm)
         assertEquals("B", repo.suggestedDayFlow.first())
-        assertEquals("DAY B · CARDIO", vm.sessionReceipt.value?.nextDayLine)
+        assertEquals("Day B, Cardio", vm.sessionReceipt.value?.nextDayLine)
     }
 
     @Test
@@ -187,7 +187,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         completeOneSession(vm)
         assertEquals("B", repo.suggestedDayFlow.first())
-        assertEquals("DAY B · UPPER", vm.sessionReceipt.value?.nextDayLine)
+        assertEquals("Day B, Upper", vm.sessionReceipt.value?.nextDayLine)
     }
 
     @Test
@@ -213,7 +213,7 @@ class DayViewModelReceiptTest {
         assertNotNull(receipt)
         assertEquals("DAY A COMPLETE", receipt!!.headline)
         assertEquals("Lower", receipt.dayTitle)
-        assertEquals("DAY B · UPPER", receipt.nextDayLine)
+        assertEquals("Day B, Upper", receipt.nextDayLine)
         // The completed day's accent, not the one the pointer now stands on.
         assertEquals(0, receipt.dayIndex)
     }

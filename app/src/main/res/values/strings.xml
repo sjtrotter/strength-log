@@ -728,4 +728,8 @@
     <string name="workout_at_weight">at %1$s %2$s</string>
     <string name="workout_undo">Undo %1$s</string>
     <string name="workout_undo_lift">Undo %1$s %2$s</string>
+    <plurals name="workout_rest_remaining">
+        <item quantity="one">%d minute of rest remaining</item>
+        <item quantity="other">%d minutes of rest remaining</item>
+    </plurals>
 </resources>

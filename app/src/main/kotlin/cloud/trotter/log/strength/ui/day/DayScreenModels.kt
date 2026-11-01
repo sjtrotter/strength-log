@@ -5,7 +5,6 @@ import androidx.compose.runtime.Immutable
 import kotlinx.parcelize.Parcelize
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.text.UiText
@@ -272,6 +271,7 @@ data class ExerciseCardState(
     val summaryLine: String = "",
     val nextSetDisplay: String? = null,
     val partnerTitle: String? = null,
+    val partnerExerciseId: String? = null,
     val equipment: List<Equipment> = emptyList(),
     /** The Add weight / Remove weight menu (§4.2); null when this slot's
      *  exercise has no weighted-pair link at all. */
@@ -352,9 +352,3 @@ data class WeightSwapAffordance(
 data class WorkoutPage(val exerciseId: Long?, val title: String, val done: Int, val total: Int, val allDone: Boolean) {
     val key: String = exerciseId?.let { "exercise:$it" } ?: "cardio"
 }
-
-/** Duplicate custom titles cannot identify a performed partner or an Undo offer. */
-val DayEditUiState.workoutEntriesByTitle: Map<String, ExerciseEntry> get() = catalog.entries
-    .groupBy { it.name }
-    .mapNotNull { (title, entries) -> entries.singleOrNull()?.let { title to it } }
-    .toMap()

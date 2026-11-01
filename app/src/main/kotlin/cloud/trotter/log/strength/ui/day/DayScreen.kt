@@ -108,7 +108,7 @@ fun DayScreen(
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
     standaloneCardio: Boolean = false,
-    setScreenContent: (@Composable (() -> Unit, () -> Unit) -> Unit)? = null,
+    setScreenContent: (@Composable (() -> Unit, () -> Unit, SnackbarHostState) -> Unit)? = null,
 ) {
     val accent = dayAccent(state.dayIndex)
     val onAccent = onDayAccent(state.dayIndex)
@@ -234,6 +234,7 @@ fun DayScreen(
                         actions.onDone()
                     }
                 },
+                snackbarHost,
             )
             if (exercisesOpen) {
                 ExercisesSheet(
@@ -247,12 +248,14 @@ fun DayScreen(
             }
         } else key(state.viewDayId) {
             val pages = if (standaloneCardio) state.pages.filter { it.exerciseId == null } else state.pages
+            val selectedKey = (state.workout?.shown as? WorkoutSelection.Shown.Group)?.key
+            val selectedPage = if (state.workout != null) pages.indexOfFirst { it.key == selectedKey }.coerceAtLeast(0) else state.currentPage
             val pagerState = rememberPagerState(
-                initialPage = if (standaloneCardio) 0 else state.currentPage,
+                initialPage = if (standaloneCardio) 0 else selectedPage,
                 pageCount = { pages.size },
             )
             val latestPages by rememberUpdatedState(pages)
-            val latestSelect by rememberUpdatedState(actions.onSelectPage)
+            val latestSelect by rememberUpdatedState(if (state.workout != null) actions.onSelectWorkoutLift else actions.onSelectPage)
             LaunchedEffect(pagerState) {
                 snapshotFlow { pagerState.settledPage }.collect { page ->
                     latestPages.getOrNull(page)?.key?.let(latestSelect)
@@ -260,8 +263,8 @@ fun DayScreen(
             }
             // The derived page changes only on explicit selection or invalid selection,
             // never on a log once selected; this one-way sync cannot fight the finger.
-            LaunchedEffect(state.currentPage) {
-                val target = if (standaloneCardio) 0 else state.currentPage
+            LaunchedEffect(selectedPage) {
+                val target = if (standaloneCardio) 0 else selectedPage
                 if (pages.isNotEmpty() && target != pagerState.currentPage && !pagerState.isScrollInProgress) {
                     pagerState.scrollToPage(target)
                 }

@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,6 +46,8 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,7 +57,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,8 +73,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import cloud.trotter.log.strength.R
-import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -84,7 +88,6 @@ import cloud.trotter.log.strength.ui.theme.WorkoutRestShape
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import cloud.trotter.log.strength.ui.theme.onDayAccent
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /** M3's fast-effects duration; `MaterialTheme.motionScheme` is internal in this BOM. */
 private const val FAST_EFFECTS_MILLIS = 150
@@ -93,31 +96,18 @@ private const val FAST_EFFECTS_MILLIS = 150
 fun WorkoutSetScreen(
     state: DayUiState,
     actions: DayActions,
-    dayEditState: DayEditUiState,
-    dayEditActions: DayEditActions,
-    cascadeCeremony: CascadeCeremony? = null,
-    onDismissCascade: () -> Unit = {},
-    sessionReceipt: SessionReceipt? = null,
-    onShareSession: () -> Unit = {},
-    onFinishSession: () -> Unit = {},
+    catalog: ExerciseCatalog,
+    onExercises: () -> Unit,
+    onFinish: () -> Unit,
+    snackbarHost: SnackbarHostState,
     onBack: (() -> Unit)? = null,
-    removedSets: List<RemovedSet> = emptyList(),
-    onUndoRemoveSet: () -> Unit = {},
     nowMillis: () -> Long = System::currentTimeMillis,
 ) {
-    val entriesByTitle = remember(dayEditState.catalog) { dayEditState.workoutEntriesByTitle }
-    DayScreen(
-        state, actions, dayEditState, dayEditActions,
-        cascadeCeremony, onDismissCascade, sessionReceipt, onShareSession, onFinishSession,
-        onBack, removedSets, onUndoRemoveSet,
-        setScreenContent = { onExercises, onFinish ->
-            MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(
-                primary = dayAccent(state.dayIndex), onPrimary = onDayAccent(state.dayIndex),
-            )) {
-                WorkoutSetContent(state, actions, entriesByTitle, onExercises, onFinish, onBack, nowMillis)
-            }
-        },
-    )
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(
+        primary = dayAccent(state.dayIndex), onPrimary = onDayAccent(state.dayIndex),
+    )) {
+        WorkoutSetContent(state, actions, catalog, onExercises, onFinish, snackbarHost, onBack, nowMillis)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,9 +115,10 @@ fun WorkoutSetScreen(
 private fun WorkoutSetContent(
     state: DayUiState,
     actions: DayActions,
-    entriesByTitle: Map<String, ExerciseEntry>,
+    catalog: ExerciseCatalog,
     onExercises: () -> Unit,
     onFinish: () -> Unit,
+    snackbarHost: SnackbarHostState,
     onBack: (() -> Unit)?,
     nowMillis: () -> Long,
 ) {
@@ -142,6 +133,7 @@ private fun WorkoutSetContent(
     }
     val reducedMotion = !ValueAnimator.areAnimatorsEnabled()
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.today_day_label, state.viewDayId.orEmpty())) },
@@ -171,7 +163,7 @@ private fun WorkoutSetContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Column(Modifier.widthIn(max = ReadableWidth).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) actionSlot@ {
-                    WorkoutRestBand(state, actions, entriesByTitle)
+                    WorkoutRestBand(state, actions, catalog)
                     val focus = workout.focus
                     val card = state.workoutCard
                     val row = card?.rows?.getOrNull(focus?.index ?: -1)
@@ -202,7 +194,7 @@ private fun WorkoutSetContent(
             val modifier = Modifier.widthIn(max = ReadableWidth).fillMaxSize()
                 .verticalScroll(rememberScrollState()).padding(20.dp)
             if (reducedMotion) {
-                Column(modifier) { WorkoutLift(state, actions, entriesByTitle, reducedMotion) }
+                Column(modifier) { WorkoutLift(state, actions, catalog, reducedMotion) }
             } else {
                 AnimatedContent(
                     targetState = state,
@@ -215,7 +207,7 @@ private fun WorkoutSetContent(
                     modifier = modifier,
                     label = "workoutGroup",
                 ) { shown ->
-                    Column { WorkoutLift(shown, actions, entriesByTitle, reducedMotion) }
+                    Column { WorkoutLift(shown, actions, catalog, reducedMotion) }
                 }
             }
         }
@@ -227,7 +219,7 @@ private fun WorkoutSetContent(
 private fun WorkoutLift(
     state: DayUiState,
     actions: DayActions,
-    entriesByTitle: Map<String, ExerciseEntry>,
+    catalog: ExerciseCatalog,
     reducedMotion: Boolean,
 ) {
     val workout = state.workout ?: return
@@ -295,7 +287,7 @@ private fun WorkoutLift(
                     Text(stringResource(R.string.workout_at_weight, WeightStepper.format(values.weightDisplay), state.unit.name.lowercase()),
                         style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                workoutDetail(card, slot, state.unit, entriesByTitle)?.let {
+                workoutDetail(card, slot, state.unit, catalog)?.let {
                     Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -316,7 +308,6 @@ private fun WorkoutSuperset(
 ) {
     val largeFont = LocalDensity.current.fontScale > 1.3f
     val statusWidth = 56.dp * LocalDensity.current.fontScale
-    val nameLineHeight = MaterialTheme.typography.headlineSmall.lineHeight
     OutlinedCard(border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Text(stringResource(R.string.workout_superset_round, row.index + 1, card.rows.size),
             style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -345,8 +336,8 @@ private fun WorkoutSuperset(
                 },
                 headlineContent = {
                     Crossfade(now, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutEmphasis") { current ->
-                        Text(name.ifBlank { stringResource(R.string.workout_not_available) }, minLines = 2,
-                            style = if (current) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium.copy(lineHeight = nameLineHeight),
+                        Text(name.ifBlank { stringResource(R.string.workout_not_available) },
+                            style = MaterialTheme.typography.titleLarge,
                             color = if (current) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
@@ -382,21 +373,30 @@ private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType) {
         TrackingType.REPS -> stringResource(R.string.unit_reps)
         TrackingType.TIMED -> stringResource(R.string.unit_seconds)
     }
-    Text(
+    BasicText(
         buildAnnotatedString {
             append(primary)
             append(" ")
-            withStyle(MaterialTheme.typography.displayMedium.toSpanStyle().copy(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+            withStyle(MaterialTheme.typography.displayMedium.toSpanStyle().copy(
+                fontSize = (MaterialTheme.typography.displayMedium.fontSize.value / MaterialTheme.typography.displayLarge.fontSize.value).em,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )) {
                 append(secondary)
             }
         },
-        style = MaterialTheme.typography.displayLarge,
-        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.fillMaxWidth().testTag("workout-hero"),
+        style = MaterialTheme.typography.displayLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+        maxLines = 1,
+        softWrap = false,
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = MaterialTheme.typography.displaySmall.fontSize,
+            maxFontSize = MaterialTheme.typography.displayLarge.fontSize,
+        ),
     )
 }
 
 @Composable
-private fun workoutDetail(card: ExerciseCardState, slot: String, unit: WeightUnit, entriesByTitle: Map<String, ExerciseEntry>): String? {
+private fun workoutDetail(card: ExerciseCardState, slot: String, unit: WeightUnit, catalog: ExerciseCatalog): String? {
     if (slot == Slot.MAIN) {
         val target = card.headerTarget as? HeaderTarget.Prescribed
         val eachSide = if (target?.eachSide == true) stringResource(R.string.day_target_each_side) else null
@@ -408,7 +408,7 @@ private fun workoutDetail(card: ExerciseCardState, slot: String, unit: WeightUni
         if (detail != null) return detail
     }
     val plates = if (slot == Slot.MAIN) card.plateLine else {
-        val equipment = card.partnerTitle?.let(entriesByTitle::get)?.equipment.orEmpty()
+        val equipment = card.partnerExerciseId?.let(catalog::find)?.equipment.orEmpty()
         DayScreenBuilder.plateLine(card.rows.mapNotNull { it.partner?.let { partner ->
             LoggedSet(unit.toLb(partner.weightDisplay), partner.reps, SetKind.WORK, done = partner.done, seconds = partner.seconds)
         } }, equipment, unit)
@@ -419,18 +419,27 @@ private fun workoutDetail(card: ExerciseCardState, slot: String, unit: WeightUni
 }
 
 @Composable
-private fun WorkoutRestBand(state: DayUiState, actions: DayActions, entriesByTitle: Map<String, ExerciseEntry>) {
+private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: ExerciseCatalog) {
     val rest = state.rest?.takeUnless { it.over }
     val undo = state.workout?.undo
     if (rest == null && undo == null) return
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = WorkoutRestShape, modifier = Modifier.fillMaxWidth().testTag("workout-rest")) {
+    val minutes = rest?.let { (it.remainingSeconds + 59) / 60 }
+    val announcement = minutes?.let { pluralStringResource(R.plurals.workout_rest_remaining, it, it) }
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = WorkoutRestShape,
+        modifier = Modifier.fillMaxWidth().testTag("workout-rest").semantics {
+            if (announcement != null) {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = announcement
+            }
+        }) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (rest != null) {
                 Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(formatCardioTime(rest.remainingSeconds), style = MaterialTheme.typography.displaySmall)
-                    LinearProgressIndicator(progress = { rest.remainingFraction }, modifier = Modifier.weight(1f),
+                    Text(formatCardioTime(rest.remainingSeconds), style = MaterialTheme.typography.displaySmall,
+                        modifier = Modifier.clearAndSetSemantics { })
+                    LinearProgressIndicator(progress = { rest.remainingFraction }, modifier = Modifier.weight(1f).clearAndSetSemantics { },
                         color = MaterialTheme.colorScheme.onSurface, trackColor = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
@@ -441,7 +450,9 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, entriesByTit
                     val label = if (focus != null && undo.programExerciseId == focus.programExerciseId && undo.slot == focus.slot) {
                         stringResource(R.string.workout_undo, summary)
                     } else {
-                        val shortName = entriesByTitle[undo.title]?.shortName ?: undo.title
+                        val card = state.exercises.firstOrNull { it.programExerciseId == undo.programExerciseId }
+                        val exerciseId = if (undo.slot == Slot.SS) card?.partnerExerciseId else card?.exerciseId
+                        val shortName = exerciseId?.let(catalog::find)?.shortName ?: undo.title
                         stringResource(R.string.workout_undo_lift, shortName, summary)
                     }
                     TextButton(onClick = actions.onUndoLastLog, modifier = Modifier.heightIn(min = 48.dp), colors = neutralTextButtonColors()) { Text(label) }
@@ -463,11 +474,15 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, entriesByTit
 @Composable
 private fun WorkoutAction(label: String, tonal: Boolean, enabled: Boolean, reducedMotion: Boolean, onClick: () -> Unit) {
     var guarded by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    LaunchedEffect(guarded) {
+        if (guarded) {
+            delay(600L)
+            guarded = false
+        }
+    }
     val onTap = {
         if (!guarded) {
             guarded = true
-            scope.launch { delay(600L); guarded = false }
             onClick()
         }
     }

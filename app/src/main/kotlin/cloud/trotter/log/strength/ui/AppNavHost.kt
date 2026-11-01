@@ -540,42 +540,28 @@ internal fun DayRoute(
         onBackCardio = viewModel::backCardioBlock,
         onRemoveCardio = viewModel::removeCardioBlock,
     )
-    if (state.usesWorkoutSetScreen) {
-        WorkoutSetScreen(
-            state = state,
-            actions = actions,
-            dayEditState = dayEditState,
-            dayEditActions = dayEditActions,
-            cascadeCeremony = cascadeCeremony,
-            onDismissCascade = viewModel::dismissCascadeCeremony,
-            sessionReceipt = sessionReceipt,
-            onShareSession = viewModel::shareSession,
-            onFinishSession = {
-                if (viewModel.dismissSessionReceipt()) onFinishSession()
-            },
-            onBack = onBack,
-            removedSets = removedSets,
-            onUndoRemoveSet = viewModel::undoRemoveSet,
-        )
-    } else {
-        DayScreen(
-            state = state,
-            actions = actions,
-            dayEditState = dayEditState,
-            dayEditActions = dayEditActions,
-            cascadeCeremony = cascadeCeremony,
-            onDismissCascade = viewModel::dismissCascadeCeremony,
-            sessionReceipt = sessionReceipt,
-            onShareSession = viewModel::shareSession,
-            onFinishSession = {
-                if (viewModel.dismissSessionReceipt()) onFinishSession()
-            },
-            onBack = onBack,
-            removedSets = removedSets,
-            onUndoRemoveSet = viewModel::undoRemoveSet,
-            standaloneCardio = initialDayId != null && !state.isProgramDay,
-        )
-    }
+    DayScreen(
+        state = state,
+        actions = actions,
+        dayEditState = dayEditState,
+        dayEditActions = dayEditActions,
+        cascadeCeremony = cascadeCeremony,
+        onDismissCascade = viewModel::dismissCascadeCeremony,
+        sessionReceipt = sessionReceipt,
+        onShareSession = viewModel::shareSession,
+        onFinishSession = {
+            if (viewModel.dismissSessionReceipt()) onFinishSession()
+        },
+        onBack = onBack,
+        removedSets = removedSets,
+        onUndoRemoveSet = viewModel::undoRemoveSet,
+        standaloneCardio = initialDayId != null && !state.isProgramDay,
+        setScreenContent = if (state.usesWorkoutSetScreen) {
+            { onExercises, onFinish, snackbarHost ->
+                WorkoutSetScreen(state, actions, dayEditState.catalog, onExercises, onFinish, snackbarHost, onBack)
+            }
+        } else null,
+    )
 }
 
 @Composable

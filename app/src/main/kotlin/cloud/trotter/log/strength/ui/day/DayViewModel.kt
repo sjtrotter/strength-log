@@ -2098,6 +2098,7 @@ class DayViewModel @Inject constructor(
             position = slot.position,
             title = name,
             partnerTitle = partnerEntry?.name ?: partner?.exerciseId,
+            partnerExerciseId = partner?.exerciseId,
             equipment = entry?.equipment.orEmpty(),
             note = pe.note,
             isMain = pe.isMain,

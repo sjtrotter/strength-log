@@ -331,7 +331,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
         wizardComplete = settings.wizardComplete,
         suggestedDay = if (schemaVersion >= 9) null else settings.suggestedDay,
         answersCarryRecipe = schemaVersion < 9,
-        selectedPlanId = preferredPlan(restoredPlans, settings.selectedPlanId)?.id,
+        selectedPlanId = settings.selectedPlanId?.let { preferredPlan(restoredPlans, it)?.id },
         restSettings = RestSettings(
             enabled = settings.restTimerEnabled,
             overrides = settings.restOverrides(),

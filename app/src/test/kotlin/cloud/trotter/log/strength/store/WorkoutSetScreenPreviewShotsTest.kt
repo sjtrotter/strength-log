@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.store
 
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
@@ -127,11 +130,20 @@ class WorkoutSetScreenPreviewShotsTest {
         ))
     }
 
-    private fun render(name: String, state: DayUiState, theme: ThemePreference = ThemePreference.DARK) {
+    @Test fun supersetLargeFont() = render("10-superset-large-font.png", workoutSetSupersetFixture(), fontScale = 2f)
+
+    private fun render(
+        name: String, state: DayUiState, theme: ThemePreference = ThemePreference.DARK, fontScale: Float? = null,
+    ) {
         rule.mainClock.autoAdvance = false
-        rule.setContent { AppTheme(preference = theme) {
-            WorkoutSetHost(state, nowMillis = { rule.mainClock.currentTime })
-        } }
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale ?: density.fontScale)) {
+                AppTheme(preference = theme) {
+                    WorkoutSetHost(state, nowMillis = { rule.mainClock.currentTime })
+                }
+            }
+        }
         rule.mainClock.advanceTimeBy(4_000)
         rule.waitForIdle()
         val root = rule.onAllNodes(isRoot()).onLast()

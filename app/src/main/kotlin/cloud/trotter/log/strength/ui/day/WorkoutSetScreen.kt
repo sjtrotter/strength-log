@@ -529,7 +529,7 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (undo != null) {
                     val summary = SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true)
-                    val focus = state.workout?.focus
+                    val focus = state.workout.focus
                     val label = if (focus != null && undo.programExerciseId == focus.programExerciseId && undo.slot == focus.slot) {
                         stringResource(R.string.workout_undo, summary)
                     } else {

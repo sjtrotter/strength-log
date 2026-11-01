@@ -90,7 +90,7 @@ internal fun DayEditUiState.performedSwapSlot(slot: DayEditSlotState): DayEditSl
 
 internal fun DayEditActions.swapWeight(card: ExerciseCardState, state: DayEditUiState, exerciseId: String) {
     val planned = state.slots.firstOrNull { it.programExerciseId == card.programExerciseId } ?: return
-    if (card.exerciseId != planned.exerciseId) onWorkoutSwap(card.position, exerciseId)
+    if (card.exerciseId.isNotEmpty() && card.exerciseId != planned.exerciseId) onWorkoutSwap(card.position, exerciseId)
     else onSwap(card.position, exerciseId)
 }
 

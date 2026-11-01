@@ -114,6 +114,7 @@ fun DayScreen(
     // The sheet stays inside the day feature; its shared ViewModel restores
     // the open editor and prescription draft after process death.
     val showEditSheet = dayEditState.editorOpen
+    val currentDayEditState = rememberUpdatedState(dayEditState)
     // The page menu reuses the day editor's slot picker.
     var swapCardSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     // Clearing the entire day retains its confirmation; single-set removal offers Undo.
@@ -451,7 +452,9 @@ fun DayScreen(
                                     onAllSets = { actions.onOpenAllSets(card.programExerciseId) },
                                     canSwap = card.programExerciseId in swappableSlotIds,
                                     onSwap = { swapCardSlotId = card.programExerciseId },
-                                    onSwapWeight = { _, exerciseId -> dayEditActions.swapWeight(card, dayEditState, exerciseId) },
+                                    onSwapWeight = remember(card, dayEditActions) {
+                                        { _, exerciseId -> dayEditActions.swapWeight(card, currentDayEditState.value, exerciseId) }
+                                    },
                                     onNote = { noteCardId = card.programExerciseId },
                                     timedRep = state.timedRep,
                                     executionBusy = state.executionBusy,

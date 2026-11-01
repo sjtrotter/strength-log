@@ -131,7 +131,6 @@ class WorkoutSetScreenTest {
 
     @Test fun supersetHalfSwitchFadesInPlaceAndHidesOutgoingTalkBackContent() {
         var state by mutableStateOf(workoutSetSupersetFixture())
-        rule.mainClock.autoAdvance = false
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
         val outgoingName = hasTestTag("workout-now-lift") and hasText("DB Bench Press")
         val incomingName = hasTestTag("workout-now-lift") and hasText("Seated Cable Row")

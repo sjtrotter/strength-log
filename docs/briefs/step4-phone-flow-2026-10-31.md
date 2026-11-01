@@ -293,6 +293,35 @@ action slot. On top of that:
 
 **Skipping a lift or a set (4.4c3, #390).** With the set screen enabled, the Lift sheet offers “Skip for this workout” with Snackbar Undo; skipping either half of a superset leaves a plain lift with rest after every set, and skipping a plain lift moves the workout on. The owner chose the same action for regular lifts and superset halves, with plan changes staying in Edit day and no skip rows in the swap list. A run track's `dropped` flag means the lifter skipped that track for this workout: it is always retired and kept even without done work; skipping MAIN of a pair promotes the partner through the existing workout swap and preserves the displaced MAIN as dropped. The workout resolver clears dropped partners and removes slots with a dropped MAIN and no active MAIN, preserving the remaining positions while plan editors retain the real plan. “Bring back” in the Lift sheet and Snackbar Undo of a half skip restore the captured half and align the pair, including workout-swapped partners. “Skip this set” (or “Skip this round” for a superset) uses the existing remove-set action and Undo, with no new per-set state. “Skip for this workout” is hidden and rejected for the last active strength lift, while either half of an active superset may still be skipped because the other half remains. Bring back on a skipped lift returns it as planned. It clears the slot’s skip state with the plan-edit helper, then explicitly reseeds the slot from the plan, reopening matching retired tracks to preserve done work and aligning the pair. Today’s workout swaps on that slot are not restored. Snackbar Undo of a whole-lift skip uses this same rule; bringing back a single skipped half keeps its precise restore behavior. A plan MAIN swap, partner change, partner removal, or exercise removal during an open run clears that slot’s skip state and retires or deletes its promoted MAIN before applying the plan edit and reseeding, invalidating any saved skip Undo.
 
+**Timed and cardio on the set screen (4.5a).** Behind `WORKOUT_SET_SCREEN`, timed reps use a
+clock hero with “Aim 20” when prescribed, then Start, tonal Cancel while running, and Enter reps
+when the count is pending. Cancel discards the event without logging. The running clock drains a
+bar; only the ready hero opens the set editor. Superset MAIN uses the same clock with its partner
+card below. The event keeps its own set index even if an earlier set is unchecked.
+
+Cardio keeps the activity title and All sets button. The position reads “Work, set 2 of 6” (or
+Recovery or Cool-down). Ready shows the interval’s time or distance target and Aim when supplied;
+time-ended work counts down with a draining bar and tonal Stop. Distance-ended work shows elapsed
+time, “to 400 m”, filled Reached 400 m and outlined Stop beside it. Recovery and cool-down start
+automatically. Done keeps the activity and shows a check, Done and the saved summary (or the frozen
+results while saving), then Next or Finish day A when everything is logged. A cardio-only day keeps
+that done view without an action or “All 0 sets logged”.
+
+All sets opens the Cardio sheet: read-only prescribed sets with Finished, Shortened (including known
+distance), Skipped or Now, unsaved Enter distance rows, and applicable Skip set, Add set and End cardio
+actions. End cardio retains “End block?” and “End and log”. Finishing after all strength rows are
+complete while cardio remains unlogged asks “Finish without Road run?” on the set screen only.
+
+An AssistChip above the sliding content returns to a clock on another group: “Push-Up 0:27”,
+“Push-Up, enter reps” for a pending count, or the cardio activity and its clock. The screen stays on
+while an execution clock runs; clock digits stay outside live regions. Both action buttons share the
+600 ms double-tap guard, also armed after a clock or interval slot changes, including automatic
+recovery, but never on first composition. Every group keeps an error band when a cardio save fails:
+“Couldn’t save the cardio. The sets are still here.” with Retry. Empty days show “No lifts in day A
+yet.” and Edit day. With the flag on, the set screen now renders every workout state without falling
+back to the pager; loading and no-program states keep their shared handling. Flag off keeps the
+pager’s behavior. Redo and the cardio amend remain out of scope.
+
 The owner, looking at the pager's superset page: supersets "almost fade into the same UI as a
 normal exercise". Today the pair shows as one line, "then Seated Cable Row 120 × 10", under
 the first lift's numerals (`ExercisePage.kt:240-252`). Logging per exercise makes this worse:
@@ -453,12 +482,13 @@ One receipt route, with the new-top-set rows inside it.
 | 4.2 | Explicit `startRun` and #362 workout-only swaps: `swapInRun`, the resolver and its readers, the watch's swap check, the swap sheet's choice | L |
 | 4.3 | Today overview, the preview route, tabs Today/Log/Plans, glances, the launcher icon | M |
 | 4.4 | The set screen behind a flag (phase 2) | L |
-| 4.5 | Timed and cardio in the set layout; the flag on and the pager gone (phase 3, without Redo) | M |
+| 4.5a | Timed reps, cardio, clock chip, Cardio sheet and empty day on the set screen, behind the flag; without Redo | M |
+| 4.5b | Turn the set-screen flag on and delete the pager | M |
 | 4.6 | The receipt route with the cascade inside (phase 4) | M |
 | 4.7 | Settings split: app preferences, plan settings on the plan, "You" (phase 7, in part) | M |
 | 4.8 | New plan doors, the three-screen wizard, Start empty with its data design | L |
 
-Each PR leaves the app shippable. 4.4 and 4.5 reach users together.
+Each PR leaves the app shippable. 4.4 and 4.5a–4.5b reach users together.
 
 ## 7. Must not change
 

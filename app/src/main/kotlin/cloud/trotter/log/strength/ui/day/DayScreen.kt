@@ -109,7 +109,7 @@ fun DayScreen(
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
     standaloneCardio: Boolean = false,
-    setScreenContent: (@Composable (() -> Unit, () -> Unit, SnackbarHostState) -> Unit)? = null,
+    setScreenContent: (@Composable (() -> Unit, () -> Unit, SnackbarHostState, () -> Unit) -> Unit)? = null,
 ) {
     val accent = dayAccent(state.dayIndex)
     val onAccent = onDayAccent(state.dayIndex)
@@ -240,7 +240,8 @@ fun DayScreen(
             setScreenContent(
                 actions.onOpenDaySheet,
                 {
-                    if (state.exercises.any { card -> card.rows.any { !it.complete } }) {
+                    if (state.exercises.any { card -> card.rows.any { !it.complete } } ||
+                        state.workout != null && state.cardio?.loggedSeconds == null && state.cardio != null) {
                         confirmingPartialFinish = true
                     } else {
                         AppHaptics.perform(view, AppHaptics.Cue.FINISH)
@@ -248,6 +249,7 @@ fun DayScreen(
                     }
                 },
                 snackbarHost,
+                { dayEditActions.onEditorOpen(true) },
             )
         } else key(state.viewDayId) {
             val pages = if (standaloneCardio) state.pages.filter { it.exerciseId == null } else state.pages
@@ -492,7 +494,7 @@ fun DayScreen(
                                 state.cardio?.let {
                                     CardioPage(
                                         it, state.viewDayId.orEmpty(), accent, actions,
-                                        startEnabled = !state.executionBusy || it.run?.let { run -> !run.running && !run.complete } == true,
+                                        startEnabled = state.cardioStartEnabled,
                                         onEnd = { endingCardioStartedAt = it.run?.startedAt; confirmingEndCardio = true },
                                     )
                                 }
@@ -528,7 +530,12 @@ fun DayScreen(
             onEditDay = { dayEditActions.onEditorOpen(true) },
             onClearChecks = { confirmingUntickChecks = true }, onDismiss = actions.onCloseAllSets,
             onDiscardWorkout = { confirmingClearChecks = true })
-        if (sheet.kind == OpenSheet.Kind.CARDIO_SETS) state.cardio?.let { CardioSetsSheet(it, actions) }
+        if (sheet.kind == OpenSheet.Kind.CARDIO_SETS) state.cardio?.let {
+            if (state.workout != null) WorkoutCardioSheet(it, state.viewDayId.orEmpty(), actions,
+                onEnd = { endingCardioStartedAt = it.run?.startedAt; confirmingEndCardio = true },
+                startEnabled = state.cardioStartEnabled)
+            else CardioSetsSheet(it, actions)
+        }
         if (sheet.kind == OpenSheet.Kind.CARDIO_DISTANCE) state.cardio?.distanceRuns?.firstOrNull { it.runId == sheet.cardioRunId }?.let { CardioDistanceSheet(it, sheet.setIndex, actions) }
         state.exercises.firstOrNull { it.programExerciseId == sheet.programExerciseId }?.let { card ->
             when (sheet.kind) {
@@ -607,6 +614,9 @@ fun DayScreen(
         FinishDayConfirmDialog(
             doneSets = state.doneSets,
             totalSets = state.totalSets,
+            cardioTitle = if (state.workout != null && state.exercises.all { card -> card.rows.all { it.complete } }) {
+                state.cardio?.takeIf { it.loggedSeconds == null }?.block?.activity?.let { cardioActivityName(it) }
+            } else null,
             onConfirm = {
                 confirmingPartialFinish = false
                 AppHaptics.perform(view, AppHaptics.Cue.FINISH)
@@ -750,6 +760,7 @@ internal fun WeightSwapConfirmDialog(swap: WeightSwapAffordance, onConfirm: () -
 private fun FinishDayConfirmDialog(
     doneSets: Int,
     totalSets: Int,
+    cardioTitle: String?,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -757,7 +768,8 @@ private fun FinishDayConfirmDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                if (doneSets == totalSets) stringResource(R.string.day_finish_partner_open_confirm_title)
+                if (cardioTitle != null) stringResource(R.string.day_finish_without_cardio_title, cardioTitle)
+                else if (doneSets == totalSets) stringResource(R.string.day_finish_partner_open_confirm_title)
                 else stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets),
             )
         },

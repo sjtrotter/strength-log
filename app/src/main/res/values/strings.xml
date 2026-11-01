@@ -761,4 +761,16 @@
     <string name="day_skipped">Skipped</string>
     <string name="day_skip_set">Skip this set</string>
     <string name="day_skip_round">Skip this round</string>
+    <string name="workout_clock_chip">%1$s %2$s</string>
+    <string name="workout_clock_chip_enter_reps">%1$s, enter reps</string>
+    <string name="workout_empty_day">No lifts in day %1$s yet.</string>
+    <string name="workout_cardio_position">%1$s, set %2$d of %3$d</string>
+    <string name="workout_cardio_aim">Aim %1$s</string>
+    <string name="workout_cardio_to">to %1$s</string>
+    <string name="workout_aim_reps">Aim %1$d</string>
+    <string name="workout_cardio_save_failed">Couldn’t save the cardio. The sets are still here.</string>
+    <string name="workout_cardio_status_distance">%1$s, %2$d m</string>
+    <string name="workout_end_cardio">End cardio</string>
+    <string name="workout_metres_unit">m</string>
+    <string name="day_finish_without_cardio_title">Finish without %1$s?</string>
 </resources>

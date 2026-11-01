@@ -36,6 +36,8 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -81,6 +83,7 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -104,13 +107,14 @@ fun WorkoutSetScreen(
     onExercises: () -> Unit,
     onFinish: () -> Unit,
     snackbarHost: SnackbarHostState,
+    onEditDay: () -> Unit,
     onBack: (() -> Unit)? = null,
     nowMillis: () -> Long = System::currentTimeMillis,
 ) {
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(
         primary = dayAccent(state.dayIndex), onPrimary = onDayAccent(state.dayIndex),
     )) {
-        WorkoutSetContent(state, actions, catalog, onExercises, onFinish, snackbarHost, onBack, nowMillis)
+        WorkoutSetContent(state, actions, catalog, onExercises, onFinish, snackbarHost, onEditDay, onBack, nowMillis)
     }
 }
 
@@ -123,6 +127,7 @@ private fun WorkoutSetContent(
     onExercises: () -> Unit,
     onFinish: () -> Unit,
     snackbarHost: SnackbarHostState,
+    onEditDay: () -> Unit,
     onBack: (() -> Unit)?,
     nowMillis: () -> Long,
 ) {
@@ -172,55 +177,196 @@ private fun WorkoutSetContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Column(Modifier.widthIn(max = ReadableWidth).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) actionSlot@ {
+                Column(Modifier.widthIn(max = ReadableWidth).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    WorkoutCardioFailedBand(state, actions)
                     WorkoutRestBand(state, actions, catalog)
                     val focus = workout.focus
                     val card = state.workoutCard
-                    val row = card?.rows?.getOrNull(focus?.index ?: -1)
-                    val values = row?.values(focus?.slot ?: Slot.MAIN)
-                    val tracking = card?.tracking(focus?.slot ?: Slot.MAIN)
-                    val label = when {
-                        allLogged -> stringResource(R.string.day_finish_button, state.viewDayId.orEmpty())
-                        workout.completedView -> stringResource(R.string.day_next_exercise, nextTitle.orEmpty())
-                        values != null && tracking != null -> stringResource(R.string.day_log_set, workoutValue(values, tracking))
-                        else -> return@actionSlot
+                    val event = state.timedRep?.takeIf { it.event.programExerciseId == card?.programExerciseId }
+                    val index = event?.event?.setIndex ?: focus?.index ?: -1
+                    val slot = if (event != null) Slot.MAIN else focus?.slot ?: Slot.MAIN
+                    val values = card?.rows?.getOrNull(index)?.values(slot)
+                    val cardio = state.cardio
+                    val cardioShown = (workout.shown as? WorkoutSelection.Shown.Group)?.key == "cardio"
+                    val resting = state.rest?.over == false
+                    val action = when {
+                        allLogged -> if (state.workoutCardioOnlyDone) null else WorkoutActionSpec(
+                            stringResource(R.string.day_finish_button, state.viewDayId.orEmpty()), resting,
+                            state.canFinish && finishArmed, onFinish)
+                        workout.shown == WorkoutSelection.Shown.Empty -> null
+                        cardioShown && cardio != null -> {
+                            val run = cardio.run
+                            val guardKey = run?.let { Triple(it.runId, it.position, it.running) }
+                            val end = cardio.block?.sets?.getOrNull(cardio.position)?.end
+                            when {
+                                cardio.completed || (workout.shown as? WorkoutSelection.Shown.Group)?.complete == true ->
+                                    if (state.totalSets == 0 || nextTitle == null) null else WorkoutActionSpec(
+                                        stringResource(R.string.day_next_exercise, nextTitle.orEmpty()), resting, true,
+                                        actions.onNextWorkoutLift, guardKey = guardKey)
+                                run?.running == true && end is Measure.Distance -> WorkoutActionSpec(
+                                    stringResource(R.string.cardio_reached, end.metres), false, true,
+                                    { actions.onReachCardioTarget(run.action()) },
+                                    stringResource(R.string.day_cardio_stop_button) to { actions.onStopCardio(run.action()) }, guardKey)
+                                run?.running == true -> WorkoutActionSpec(
+                                    stringResource(R.string.day_cardio_stop_button), true, true,
+                                    { actions.onStopCardio(run.action()) }, guardKey = guardKey)
+                                else -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), resting,
+                                    state.cardioStartEnabled, actions.onStartCardio, guardKey = guardKey)
+                            }
+                        }
+                        workout.completedView -> WorkoutActionSpec(
+                            stringResource(R.string.day_next_exercise, nextTitle.orEmpty()), resting, true, actions.onNextWorkoutLift)
+                        card != null && (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN -> {
+                            val guardKey = event?.event?.let { it.wallStart to it.awaitingCount }
+                            when (event?.event?.awaitingCount) {
+                                false -> WorkoutActionSpec(stringResource(R.string.day_cancel_button), true, true,
+                                    actions.onStopTimedRep, guardKey = guardKey)
+                                true -> WorkoutActionSpec(stringResource(R.string.timed_rep_enter_reps), resting, true,
+                                    actions.onRequestTimedRepCount, guardKey = guardKey)
+                                null -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), resting,
+                                    !state.executionBusy && state.timedRep == null,
+                                    { actions.onStartTimedRep(card.programExerciseId, index) })
+                            }
+                        }
+                        values != null && card != null -> WorkoutActionSpec(
+                            stringResource(R.string.day_log_set, workoutValue(values, card.tracking(slot))), resting, true,
+                            actions.onLogFocusedSet)
+                        else -> null
                     }
-                    WorkoutAction(
-                        label = label,
-                        tonal = state.rest?.over == false,
-                        enabled = if (allLogged) state.canFinish && finishArmed else true,
-                        reducedMotion = reducedMotion,
-                        onClick = when {
-                            allLogged -> onFinish
-                            workout.completedView -> actions.onNextWorkoutLift
-                            else -> actions.onLogFocusedSet
-                        },
-                    )
+                    if (action != null) WorkoutAction(action.label, action.tonal, action.enabled, reducedMotion,
+                        action.onClick, action.secondary, action.guardKey)
                 }
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
-            val modifier = Modifier.widthIn(max = ReadableWidth).fillMaxSize()
-            val scrollModifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)
-            if (reducedMotion) {
-                Column(modifier.then(scrollModifier)) { WorkoutLift(state, actions, catalog, reducedMotion) }
-            } else {
-                AnimatedContent(
-                    targetState = state,
-                    contentKey = { (it.workout?.shown as? WorkoutSelection.Shown.Group)?.key ?: "all-logged" },
-                    transitionSpec = {
-                        (slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it / 4 } + fadeIn(tween(300)))
-                            .togetherWith(slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it / 4 } + fadeOut(tween(300)))
-                            .using(null)
-                    },
-                    modifier = modifier,
-                    label = "workoutGroup",
-                ) { shown ->
-                    Column(Modifier.fillMaxSize().then(scrollModifier)) {
-                        WorkoutLift(shown, actions, catalog, reducedMotion)
+        Column(Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
+            WorkoutClockChip(state, actions)
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                val modifier = Modifier.widthIn(max = ReadableWidth).fillMaxSize()
+                val scrollModifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp)
+                if (reducedMotion) {
+                    Column(modifier.then(scrollModifier)) { WorkoutLift(state, actions, catalog, reducedMotion, onEditDay) }
+                } else {
+                    AnimatedContent(
+                        targetState = state,
+                        contentKey = { when (val shown = it.workout?.shown) {
+                            is WorkoutSelection.Shown.Group -> shown.key
+                            WorkoutSelection.Shown.AllLogged -> "all-logged"
+                            else -> "empty"
+                        } },
+                        transitionSpec = {
+                            (slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it / 4 } + fadeIn(tween(300)))
+                                .togetherWith(slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it / 4 } + fadeOut(tween(300)))
+                                .using(null)
+                        },
+                        modifier = modifier,
+                        label = "workoutGroup",
+                    ) { shown ->
+                        Column(Modifier.fillMaxSize().then(scrollModifier)) {
+                            WorkoutLift(shown, actions, catalog, reducedMotion, onEditDay)
+                        }
                     }
                 }
+            }
+        }
+    }
+}
+
+private val DayUiState.workoutCardioOnlyDone: Boolean get() = workout != null && totalSets == 0 &&
+    cardio != null && (cardio.completed || workoutAllLogged)
+
+@Composable
+private fun WorkoutClockChip(state: DayUiState, actions: DayActions) {
+    state.workoutClockChip?.let { chip ->
+        AssistChip(onClick = { actions.onSelectWorkoutLift(chip.key) }, label = { Text(chip.label) },
+            modifier = Modifier.padding(horizontal = 20.dp).testTag("workout-clock-chip"))
+    }
+}
+
+@Composable
+private fun WorkoutClockProgress(fraction: Float) {
+    LinearProgressIndicator(progress = { fraction.coerceIn(0f, 1f) },
+        modifier = Modifier.fillMaxWidth().clearAndSetSemantics { },
+        color = MaterialTheme.colorScheme.onSurface, trackColor = MaterialTheme.colorScheme.outlineVariant)
+}
+
+@Composable
+private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, index: Int, actions: DayActions) {
+    val duration = card.timedRepDurationSeconds ?: return
+    val seconds = if (timed?.event?.awaitingCount == true) 0 else timed?.remainingSeconds ?: duration
+    if (timed == null) {
+        val editLabel = stringResource(R.string.workout_edit_set, index + 1)
+        TextButton(onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
+            colors = neutralTextButtonColors(), contentPadding = PaddingValues(0.dp)) {
+            WorkoutHeroText(formatCardioTime(seconds))
+        }
+    } else {
+        WorkoutHeroText(formatCardioTime(seconds))
+        if (!timed.event.awaitingCount) WorkoutClockProgress(seconds.toFloat() / duration)
+    }
+    card.timedRepAim?.let {
+        Text(stringResource(R.string.workout_aim_reps, it), style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
+    val cardio = state.cardio ?: return
+    val block = cardio.block ?: return
+    val run = cardio.run
+    val done = cardio.completed || state.workoutCardioOnlyDone ||
+        (state.workout?.shown as? WorkoutSelection.Shown.Group)?.complete == true
+    val spec = block.sets.getOrNull(cardio.position)
+    val position = spec?.let { stringResource(R.string.workout_cardio_position, roleName(it.role), cardio.position + 1, block.sets.size) }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        FlowRow(Modifier.fillMaxWidth().semantics {
+            liveRegion = LiveRegionMode.Polite
+            if (position != null) contentDescription = position
+        }, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(cardioActivityName(block.activity), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = actions.onOpenCardioSets, colors = neutralTextButtonColors()) { Text(stringResource(R.string.day_all_sets)) }
+        }
+        if (done) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Check, null)
+                Text(stringResource(R.string.set_edit_done), style = MaterialTheme.typography.titleMedium)
+            }
+            CardioSummary(run?.resultSets ?: cardio.loggedSets, run?.results?.sumOf { it.seconds } ?: cardio.loggedSeconds ?: 0)
+        } else if (spec != null) {
+            Text(position.orEmpty(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            when (val end = spec.end) {
+                is Measure.Time -> {
+                    WorkoutHeroText(formatCardioTime(if (run?.running == true) cardio.stepSecondsLeft else end.seconds))
+                    if (run?.running == true) WorkoutClockProgress(cardio.stepSecondsLeft.toFloat() / end.seconds)
+                }
+                is Measure.Distance -> if (run?.running == true) WorkoutHeroText(formatCardioTime(cardio.elapsedSeconds))
+                    else WorkoutHeroText(end.metres.toString(), stringResource(R.string.workout_metres_unit))
+            }
+            spec.aim?.let {
+                Text(stringResource(R.string.workout_cardio_aim, measureText(it)), style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (spec.end is Measure.Distance && run?.running == true) {
+                Text(stringResource(R.string.workout_cardio_to, measureText(spec.end)), style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutCardioFailedBand(state: DayUiState, actions: DayActions) {
+    val cardio = state.cardio ?: return
+    if (cardio.run?.saveFailed != true && cardio.distanceRuns.none { it.sessionId != null && it.saveFailed }) return
+    Surface(color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = WorkoutRestShape, modifier = Modifier.fillMaxWidth().testTag("workout-cardio-failed")) {
+        Column(Modifier.padding(12.dp)) {
+            Text(stringResource(R.string.workout_cardio_save_failed))
+            TextButton(onClick = actions.onRetryCardioSave,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer)) {
+                Text(stringResource(R.string.cardio_retry))
             }
         }
     }
@@ -233,18 +379,31 @@ private fun WorkoutLift(
     actions: DayActions,
     catalog: ExerciseCatalog,
     reducedMotion: Boolean,
+    onEditDay: () -> Unit,
 ) {
     val workout = state.workout ?: return
-    if (state.workoutAllLogged) {
+    if (state.workoutAllLogged && !state.workoutCardioOnlyDone &&
+        (workout.shown as? WorkoutSelection.Shown.Group)?.key != "cardio") {
         Text(stringResource(R.string.workout_all_logged, state.totalSets), style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         return
     }
+    if (workout.shown == WorkoutSelection.Shown.Empty) {
+        Text(stringResource(R.string.workout_empty_day, state.viewDayId.orEmpty()), style = MaterialTheme.typography.headlineMedium)
+        TextButton(onClick = onEditDay, colors = neutralTextButtonColors()) { Text(stringResource(R.string.day_menu_edit_day)) }
+        return
+    }
+    if ((workout.shown as? WorkoutSelection.Shown.Group)?.key == "cardio" || state.workoutCardioOnlyDone) {
+        WorkoutCardio(state, actions)
+        return
+    }
     val card = state.workoutCard ?: return
     val focus = workout.focus
-    val index = focus?.index ?: card.rows.lastIndex
+    val event = state.timedRep?.takeIf { it.event.programExerciseId == card.programExerciseId }
+    val index = event?.event?.setIndex ?: focus?.index ?: card.rows.lastIndex
     val row = card.rows.getOrNull(index)
-    val slot = focus?.slot ?: Slot.MAIN
+    val slot = if (event != null) Slot.MAIN else focus?.slot ?: Slot.MAIN
+    val timed = (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN && !workout.completedView
     val title = if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title
     if (card.isSuperset) {
         WorkoutSuperset(state, actions, catalog, reducedMotion)
@@ -255,10 +414,14 @@ private fun WorkoutLift(
         else -> stringResource(R.string.workout_announce_set, title, index + 1, card.rows.size)
     }
     Column(
-        Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announcement },
+        Modifier.fillMaxWidth().then(if (timed) Modifier else Modifier.semantics {
+            liveRegion = LiveRegionMode.Polite; contentDescription = announcement
+        }),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        FlowRow(Modifier.fillMaxWidth().then(if (timed) Modifier.semantics {
+            liveRegion = LiveRegionMode.Polite; contentDescription = announcement
+        } else Modifier), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(card.title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             TextButton(onClick = { actions.onOpenLiftSheet(card.programExerciseId, Slot.MAIN) }, colors = neutralTextButtonColors()) {
                 Text(stringResource(R.string.day_all_sets))
@@ -280,18 +443,20 @@ private fun WorkoutLift(
             )
             val values = row.values(slot)
             if (values != null) {
-                val editLabel = stringResource(R.string.workout_edit_set, index + 1)
-                TextButton(
-                    onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
-                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
-                    colors = neutralTextButtonColors(),
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Crossfade(
-                        targetState = values to card.tracking(slot),
-                        animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS),
-                        label = "workoutHero",
-                    ) { (set, tracking) -> WorkoutHero(set, tracking) }
+                if (timed) WorkoutTimedRepHero(card, event, index, actions) else {
+                    val editLabel = stringResource(R.string.workout_edit_set, index + 1)
+                    TextButton(
+                        onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
+                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
+                        colors = neutralTextButtonColors(),
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        Crossfade(
+                            targetState = values to card.tracking(slot),
+                            animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS),
+                            label = "workoutHero",
+                        ) { (set, tracking) -> WorkoutHero(set, tracking) }
+                    }
                 }
                 if (card.tracking(slot) == TrackingType.TIMED && values.weightDisplay > 0.0) {
                     Text(stringResource(R.string.workout_at_weight, WeightStepper.format(values.weightDisplay), state.unit.name.lowercase()),
@@ -315,20 +480,23 @@ private fun WorkoutSuperset(
     val workout = state.workout ?: return
     val card = state.workoutCard ?: return
     val focus = workout.focus
-    val index = focus?.index ?: card.rows.lastIndex
+    val event = state.timedRep?.takeIf { it.event.programExerciseId == card.programExerciseId }
+    val index = event?.event?.setIndex ?: focus?.index ?: card.rows.lastIndex
+    val timed = (card.timedRepDurationSeconds ?: 0) > 0 && (event != null || focus?.slot == Slot.MAIN) && !workout.completedView
     val position = if (workout.completedView) {
         stringResource(R.string.workout_done_rounds, card.rows.size, card.rows.size)
     } else stringResource(R.string.workout_superset_round, index + 1, card.rows.size)
     val currentHalf by rememberUpdatedState(workout.focus to workout.completedView)
     Column(
         Modifier.fillMaxWidth().testTag("workout-superset-content").semantics {
-            liveRegion = LiveRegionMode.Polite
+            if (!timed) liveRegion = LiveRegionMode.Polite
             isTraversalGroup = true
             traversalIndex = 0f
         },
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(position, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(position, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = if (timed) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier)
         AnimatedContent(
             targetState = state,
             contentKey = { it.workout?.focus to it.workout?.completedView },
@@ -366,8 +534,11 @@ private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog:
         return
     }
     val focus = workout.focus ?: return
-    val row = card.rows.getOrNull(focus.index) ?: return
-    val slot = focus.slot
+    val event = state.timedRep?.takeIf { it.event.programExerciseId == card.programExerciseId }
+    val index = event?.event?.setIndex ?: focus.index
+    val row = card.rows.getOrNull(index) ?: return
+    val slot = if (event != null) Slot.MAIN else focus.slot
+    val timed = (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
             style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f).testTag("workout-now-lift"))
@@ -376,14 +547,16 @@ private fun WorkoutSupersetLift(state: DayUiState, actions: DayActions, catalog:
         }
     }
     row.values(slot)?.let { values ->
-        val editLabel = stringResource(R.string.workout_edit_set, focus.index + 1)
-        TextButton(
-            onClick = { actions.onOpenSetEditor(card.programExerciseId, focus.index) },
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
-            colors = neutralTextButtonColors(),
-            contentPadding = PaddingValues(0.dp),
-        ) {
-            WorkoutHero(values, card.tracking(slot))
+        if (timed) WorkoutTimedRepHero(card, event, index, actions) else {
+            val editLabel = stringResource(R.string.workout_edit_set, index + 1)
+            TextButton(
+                onClick = { actions.onOpenSetEditor(card.programExerciseId, index) },
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = editLabel },
+                colors = neutralTextButtonColors(),
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                WorkoutHero(values, card.tracking(slot))
+            }
         }
         if (card.tracking(slot) == TrackingType.TIMED && values.weightDisplay > 0.0) {
             Text(stringResource(R.string.workout_at_weight, WeightStepper.format(values.weightDisplay), state.unit.name.lowercase()),
@@ -460,15 +633,22 @@ private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType) {
         TrackingType.REPS -> stringResource(R.string.unit_reps)
         TrackingType.TIMED -> stringResource(R.string.unit_seconds)
     }
+    WorkoutHeroText(primary, secondary)
+}
+
+@Composable
+private fun WorkoutHeroText(primary: String, secondary: String? = null) {
     BasicText(
         buildAnnotatedString {
             append(primary)
-            append(" ")
-            withStyle(MaterialTheme.typography.displayMedium.toSpanStyle().copy(
-                fontSize = 0.5.em,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )) {
-                append(secondary)
+            if (secondary != null) {
+                append(" ")
+                withStyle(MaterialTheme.typography.displayMedium.toSpanStyle().copy(
+                    fontSize = 0.5.em,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )) {
+                    append(secondary)
+                }
             }
         },
         modifier = Modifier.fillMaxWidth().testTag("workout-hero"),
@@ -557,30 +737,54 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private data class WorkoutActionSpec(
+    val label: String,
+    val tonal: Boolean,
+    val enabled: Boolean,
+    val onClick: () -> Unit,
+    val secondary: Pair<String, () -> Unit>? = null,
+    val guardKey: Any? = null,
+)
+
 @Composable
-private fun WorkoutAction(label: String, tonal: Boolean, enabled: Boolean, reducedMotion: Boolean, onClick: () -> Unit) {
+private fun WorkoutAction(
+    label: String, tonal: Boolean, enabled: Boolean, reducedMotion: Boolean, onClick: () -> Unit,
+    secondary: Pair<String, () -> Unit>? = null, guardKey: Any? = null,
+) {
     var guarded by remember { mutableStateOf(false) }
-    LaunchedEffect(guarded) {
+    var previousKey by remember { mutableStateOf(guardKey) }
+    // Compare during composition so a tap cannot slip through before the effect runs.
+    if (previousKey != guardKey) {
+        previousKey = guardKey
+        guarded = true
+    }
+    LaunchedEffect(guarded, guardKey) {
         if (guarded) {
             delay(600L)
             guarded = false
         }
     }
-    val onTap = {
+    fun guardedTap(action: () -> Unit) {
         if (!guarded) {
             guarded = true
-            onClick()
+            action()
         }
     }
-    val modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).testTag(if (tonal) "workout-action-tonal" else "workout-action-filled")
-    val content: @Composable () -> Unit = {
-        Crossfade(label, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutAction") {
-            Text(it, style = MaterialTheme.typography.titleLarge)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        val modifier = Modifier.weight(1f).heightIn(min = 64.dp).testTag(if (tonal) "workout-action-tonal" else "workout-action-filled")
+        val content: @Composable () -> Unit = {
+            Crossfade(label, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutAction") {
+                Text(it, style = MaterialTheme.typography.titleLarge)
+            }
+        }
+        if (tonal) FilledTonalButton(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
+        else Button(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }
+        secondary?.let { (text, action) ->
+            OutlinedButton(onClick = { guardedTap(action) }, enabled = enabled, modifier = Modifier.heightIn(min = 64.dp)) {
+                Text(text, style = MaterialTheme.typography.titleLarge)
+            }
         }
     }
-    if (tonal) FilledTonalButton(onClick = onTap, enabled = enabled, modifier = modifier) { content() }
-    else Button(onClick = onTap, enabled = enabled, modifier = modifier) { content() }
 }
 
 @Composable

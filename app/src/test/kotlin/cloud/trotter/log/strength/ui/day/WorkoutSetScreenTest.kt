@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.ui.day
 
+import android.view.View
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +23,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -29,8 +33,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -519,20 +521,21 @@ class WorkoutSetScreenTest {
         rule.runOnIdle { assertEquals(0, finishes) }
     }
 
-    @Test fun routingKeepsUnsupportedStatesOnThePager() {
+    @Test fun routingDrawsEveryWorkoutState() {
         val state = workoutSetSingleFixture()
         assertTrue(state.usesWorkoutSetScreen)
+        assertTrue(workoutSetTimedRepRunningFixture().usesWorkoutSetScreen)
         assertFalse(state.copy(workout = null).usesWorkoutSetScreen)
         assertFalse(state.copy(loading = true).usesWorkoutSetScreen)
         assertFalse(state.copy(hasProgram = false).usesWorkoutSetScreen)
-        assertFalse(state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.Empty)).usesWorkoutSetScreen)
-        assertFalse(state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("cardio", false))).usesWorkoutSetScreen)
-        assertFalse(state.copy(cardioRunning = true).usesWorkoutSetScreen)
-        assertFalse(state.copy(exercises = state.exercises.map { it.copy(timedRepDurationSeconds = 40) }).usesWorkoutSetScreen)
+        assertTrue(state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.Empty)).usesWorkoutSetScreen)
+        assertTrue(state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("cardio", false))).usesWorkoutSetScreen)
+        assertTrue(state.copy(cardioRunning = true).usesWorkoutSetScreen)
+        assertTrue(state.copy(exercises = state.exercises.map { it.copy(timedRepDurationSeconds = 40) }).usesWorkoutSetScreen)
         assertTrue(state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.AllLogged)).usesWorkoutSetScreen)
     }
 
-    @Test fun finishConfirmationSurvivesFallbackToPager() {
+    @Test fun finishConfirmationSurvivesSwitchToTimedRepSlot() {
         var state by mutableStateOf(workoutSetSingleFixture())
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
         rule.onNodeWithText("Finish").performClick()
@@ -540,7 +543,7 @@ class WorkoutSetScreenTest {
         rule.runOnIdle {
             state = state.copy(exercises = state.exercises.map { it.copy(timedRepDurationSeconds = 40) })
         }
-        rule.onNodeWithTag("workout-action-filled").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-filled").assertExists()
         rule.onNodeWithText("Finish with 2 of 6 sets?").assertIsDisplayed()
         rule.onNodeWithText("Keep going").performClick()
     }
@@ -564,38 +567,6 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Set removed").assertIsDisplayed()
         rule.onNodeWithText("Undo").assertIsDisplayed().performClick()
         rule.runOnIdle { assertEquals(1, undos) }
-    }
-
-    @Test fun fallbackPagerFollowsWorkoutSelectionAndSwipesSelectWorkoutLift() {
-        val base = workoutSetSingleFixture()
-        val state = base.copy(selectedPageKey = "exercise:1", cardio = CardioCardState("Cardio", "", false, block = CardioBlock(
-            CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(60))),
-        )),
-            workout = base.workout?.copy(shown = WorkoutSelection.Shown.Group("cardio", false), focus = null))
-        val selected = mutableListOf<String>()
-        val oldSelected = mutableListOf<String>()
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(
-            onSelectWorkoutLift = { selected += it }, onSelectPage = { oldSelected += it },
-        )) } }
-        rule.onNodeWithText("Lift 2 of 2").assertIsDisplayed()
-        rule.runOnIdle { assertEquals(listOf("cardio"), selected); assertTrue(oldSelected.isEmpty()) }
-        rule.onNode(hasScrollToIndexAction()).performTouchInput { swipeRight() }
-        rule.waitForIdle()
-        rule.runOnIdle { assertEquals("exercise:1", selected.last()); assertTrue(oldSelected.isEmpty()) }
-    }
-
-    @Test fun fallbackExercisesSheetSelectsWorkoutLift() {
-        val base = workoutSetSingleFixture()
-        val selected = mutableListOf<String>()
-        val state = base.copy(cardio = CardioCardState("Cardio", "", false, block = CardioBlock(
-            CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(60))),
-        )),
-            workout = base.workout?.copy(shown = WorkoutSelection.Shown.Group("cardio", false), focus = null))
-        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onSelectWorkoutLift = { selected += it })) } }
-        rule.onNodeWithText("Lift 2 of 2").performClick()
-        rule.onNode(hasText("Barbell Back Squat") and hasClickAction()).performClick()
-        rule.waitForIdle()
-        rule.runOnIdle { assertEquals("exercise:1", selected.last()) }
     }
 
     @Test fun duplicateTitlesStillResolvePartnerPlatesAndUndoById() {
@@ -647,6 +618,333 @@ class WorkoutSetScreenTest {
         assertEquals("1235 × 12", results.single().layoutInput.text.text)
         assertEquals(1, results.single().lineCount)
         assertFalse(results.single().hasVisualOverflow)
+    }
+
+    @Test fun timedRepReadyShowsClockAimAndStartsItsOwnSet() {
+        var started: Pair<Long, Int>? = null
+        var edited: Pair<Long, Int>? = null
+        show(workoutSetTimedRepFixture(), pagerActions().copy(
+            onStartTimedRep = { id, index -> started = id to index },
+            onOpenSetEditor = { id, index -> edited = id to index },
+        ))
+        rule.onNodeWithText("0:40").assertIsDisplayed()
+        rule.onNodeWithText("Aim 20").assertIsDisplayed()
+        rule.onNodeWithText("Set 1 of 2").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Edit set 1").performClick()
+        rule.onNodeWithText("Start").performClick()
+        rule.runOnIdle { assertEquals(1L to 0, started); assertEquals(1L to 0, edited) }
+    }
+
+    @Test fun timedRepRunningShowsClockAndTonalCancel() {
+        var stops = 0
+        show(workoutSetTimedRepRunningFixture(), pagerActions().copy(onStopTimedRep = { stops++ }))
+        rule.onNodeWithText("0:27").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Edit set 1").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-tonal").performClick()
+        rule.onNodeWithText("Cancel").assertIsDisplayed()
+        rule.runOnIdle { assertEquals(1, stops) }
+    }
+
+    @Test fun timedRepStartThenImmediateCancelIsGuarded() {
+        var state by mutableStateOf(workoutSetTimedRepFixture())
+        var starts = 0
+        var stops = 0
+        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(
+            onStartTimedRep = { _, _ -> starts++; state = workoutSetTimedRepRunningFixture() },
+            onStopTimedRep = { stops++ },
+        )) } }
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithText("Start").performClick()
+        rule.mainClock.advanceTimeBy(180)
+        rule.onNodeWithText("Cancel").performClick()
+        rule.runOnIdle { assertEquals(1, starts); assertEquals(0, stops) }
+    }
+
+    @Test fun dismissedCountCanBeRequestedAgain() {
+        var requests = 0
+        show(workoutSetTimedRepRunningFixture(awaiting = true), pagerActions().copy(onRequestTimedRepCount = { requests++ }))
+        rule.onNodeWithText("0:00").assertIsDisplayed()
+        rule.onNodeWithTag("workout-action-filled").assertIsDisplayed()
+        rule.onNodeWithText("Enter reps").performClick()
+        rule.runOnIdle { assertEquals(1, requests) }
+    }
+
+    @Test fun timedRepOnSecondSetKeepsItsRowAfterEarlierSetUnticked() {
+        val afterUntick = workoutSetTimedRepRunningFixture(index = 1)
+        var state by mutableStateOf(afterUntick.copy(
+            exercises = afterUntick.exercises.map { card -> card.copy(rows = card.rows.map {
+                it.copy(done = it.index == 0)
+            }) }, workout = afterUntick.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 1)),
+        ))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        rule.onNodeWithText("Set 2 of 2").assertIsDisplayed()
+        rule.runOnIdle { state = afterUntick }
+        rule.onNodeWithText("Set 2 of 2").assertIsDisplayed()
+        rule.onNodeWithText("0:27").assertIsDisplayed()
+        rule.onNodeWithText("Cancel").assertIsDisplayed()
+    }
+
+    @Test fun supersetTimedRepMainShowsClockAndPartner() {
+        val base = workoutSetTimedRepFixture()
+        val card = base.exercises.single().copy(isSuperset = true, partnerTitle = "Seated Cable Row",
+            partnerExerciseId = "cable_row", partnerTracking = TrackingType.WEIGHTED,
+            rows = base.exercises.single().rows.map { it.copy(partner = PartnerRowState(120.0, 10)) })
+        show(base.copy(exercises = listOf(card)))
+        rule.onNodeWithText("0:40").assertIsDisplayed()
+        rule.onNodeWithText("Aim 20").assertIsDisplayed()
+        rule.onNodeWithTag("workout-half-${Slot.SS}").assertIsDisplayed()
+        rule.onNodeWithText("Start").assertIsEnabled()
+    }
+
+    @Test fun cardioReadyShowsActivityPositionTargetAndAllSets() {
+        var starts = 0
+        var sheets = 0
+        show(workoutSetCardioFixture(), pagerActions().copy(onStartCardio = { starts++ }, onOpenCardioSets = { sheets++ }))
+        rule.onNodeWithText("Road run").assertIsDisplayed()
+        rule.onNodeWithText("Work, set 1 of 1").assertIsDisplayed()
+        rule.onNodeWithText("5:00").assertIsDisplayed()
+        rule.onNodeWithText("All sets").performClick()
+        rule.onNodeWithText("Start").performClick()
+        rule.runOnIdle { assertEquals(1, starts); assertEquals(1, sheets) }
+    }
+
+    @Test fun cardioRunningTimeShowsCountdownAndStopsItsOwnInterval() {
+        val state = workoutSetCardioRunningFixture()
+        var stopped: CardioSetAction? = null
+        show(state, pagerActions().copy(onStopCardio = { stopped = it }))
+        rule.onNodeWithText("1:00").assertIsDisplayed()
+        rule.onNodeWithTag("workout-action-tonal").performClick()
+        rule.runOnIdle { assertEquals(state.cardio?.run?.action(), stopped) }
+    }
+
+    @Test fun cardioDistanceShowsElapsedAimReachedAndOutlinedStopWithSharedGuard() {
+        val state = workoutSetCardioDistanceFixture()
+        var reached: CardioSetAction? = null
+        var stopped: CardioSetAction? = null
+        show(state, pagerActions().copy(onReachCardioTarget = { reached = it }, onStopCardio = { stopped = it }))
+        rule.onNodeWithText("0:27").assertIsDisplayed()
+        rule.onNodeWithText("Aim 1:45").assertIsDisplayed()
+        rule.onNodeWithText("to 400 m").assertIsDisplayed()
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithText("Reached 400 m").performClick()
+        rule.onNodeWithText("Stop").assertHasClickAction().performClick()
+        rule.runOnIdle { assertEquals(state.cardio?.run?.action(), reached); assertEquals(null, stopped) }
+        rule.mainClock.advanceTimeBy(700)
+        rule.onNodeWithText("Stop").performClick()
+        rule.runOnIdle { assertEquals(state.cardio?.run?.action(), stopped) }
+    }
+
+    @Test fun automaticRecoverySwitchGuardsStopForSixHundredMilliseconds() {
+        val recovery = workoutSetCardioRecoveryFixture()
+        val cardio = requireNotNull(recovery.cardio)
+        val run = requireNotNull(cardio.run)
+        var state by mutableStateOf(recovery.copy(cardio = cardio.copy(run = run.copy(results = emptyList()))))
+        val stops = mutableListOf<CardioSetAction>()
+        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onStopCardio = { stops += it })) } }
+        rule.mainClock.autoAdvance = false
+        rule.runOnIdle { state = recovery }
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithText("Stop").performClick()
+        rule.runOnIdle { assertTrue(stops.isEmpty()) }
+        rule.mainClock.advanceTimeBy(700)
+        rule.onNodeWithText("Recovery, set 2 of 2").assertIsDisplayed()
+        rule.onNodeWithText("Stop").performClick()
+        rule.runOnIdle { assertEquals(listOf(run.action()), stops) }
+    }
+
+    @Test fun cardioDoneShowsSummaryAndNextWhenAnotherLiftRemains() {
+        val done = workoutSetCardioDoneFixture()
+        var nexts = 0
+        show(done.copy(exercises = workoutSetSingleFixture().exercises), pagerActions().copy(onNextWorkoutLift = { nexts++ }))
+        rule.onNodeWithText("Done").assertIsDisplayed()
+        rule.onNodeWithText("Logged 5:00").assertIsDisplayed()
+        rule.onNodeWithText("1 finished · 0 shortened · 0 skipped").assertIsDisplayed()
+        rule.onNodeWithText("Next: Barbell Back Squat").performClick()
+        rule.runOnIdle { assertEquals(1, nexts) }
+    }
+
+    @Test fun cardioDoneWithNothingLeftOffersFinish() {
+        show(workoutSetCardioDoneFixture())
+        rule.onNodeWithText("Done").assertIsDisplayed()
+        rule.onNodeWithText("Logged 5:00").assertIsDisplayed()
+        rule.onNodeWithText("Finish day A").assertIsEnabled()
+        rule.onNodeWithText("Finish").assertDoesNotExist()
+    }
+
+    @Test fun cardioOnlyDoneHasSummaryAndNoActionOrAllZeroLabel() {
+        show(workoutSetCardioDoneFixture().copy(exercises = emptyList()))
+        rule.onNodeWithText("Road run").assertIsDisplayed()
+        rule.onNodeWithText("Done").assertIsDisplayed()
+        rule.onNodeWithText("All 0 sets logged").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-filled").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-tonal").assertDoesNotExist()
+    }
+
+    @Test fun cardioOnlyAllLoggedWithoutSetHistoryShowsDoneSummaryAndNoAction() {
+        val base = workoutSetCardioFixture()
+        show(base.copy(exercises = emptyList(),
+            cardio = requireNotNull(base.cardio).copy(loggedSeconds = 240, loggedSets = emptyList(), run = null),
+            workout = WorkoutState(WorkoutSelection.Shown.AllLogged, null, false, null, null)))
+        rule.onNodeWithText("Road run").assertIsDisplayed()
+        rule.onNodeWithText("Done").assertIsDisplayed()
+        rule.onNodeWithText("Logged 4:00").assertIsDisplayed()
+        rule.onNodeWithText("5:00").assertDoesNotExist()
+        rule.onNodeWithText("All 0 sets logged").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-filled").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-tonal").assertDoesNotExist()
+    }
+
+    @Test fun cardioSaveFailureBandStaysOnEveryGroupAndRetries() {
+        val running = workoutSetCardioRunningFixture()
+        val cardio = requireNotNull(running.cardio)
+        var state by mutableStateOf(running.copy(cardio = cardio.copy(run = cardio.run?.copy(saveFailed = true))))
+        var retries = 0
+        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onRetryCardioSave = { retries++ })) } }
+        rule.onNodeWithText("Couldn’t save the cardio. The sets are still here.").assertIsDisplayed()
+        rule.onNodeWithText("Retry").performClick()
+        rule.runOnIdle { state = state.copy(workout = workoutSetSingleFixture().workout) }
+        rule.onNodeWithTag("workout-cardio-failed").assertIsDisplayed()
+        rule.runOnIdle { assertEquals(1, retries) }
+        rule.runOnIdle { state = state.copy(cardio = cardio.copy(run = null,
+            distanceRuns = listOf(requireNotNull(cardio.run).copy(sessionId = 42L, saveFailed = true)))) }
+        rule.onNodeWithTag("workout-cardio-failed").assertIsDisplayed()
+    }
+
+    @Test fun clockChipReturnsToTimedRepAndReportsPendingCount() {
+        val timed = workoutSetTimedRepRunningFixture()
+        val event = requireNotNull(timed.timedRep)
+        val base = workoutSetSingleFixture()
+        var state by mutableStateOf(base.copy(exercises = base.exercises + timed.exercises.single().copy(programExerciseId = 2L),
+            timedRep = event.copy(event = event.event.copy(programExerciseId = 2L))))
+        val selected = mutableListOf<String>()
+        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onSelectWorkoutLift = { selected += it })) } }
+        rule.onNodeWithText("Push-Up 0:27").performClick()
+        rule.runOnIdle { state = state.copy(timedRep = state.timedRep?.let {
+            it.copy(event = it.event.copy(awaitingCount = true, sheetDismissed = true), remainingSeconds = 0)
+        }) }
+        rule.onNodeWithText("Push-Up, enter reps").performClick()
+        rule.runOnIdle { assertEquals(listOf("exercise:2", "exercise:2"), selected)
+            state = state.copy(workout = state.workout?.copy(shown = WorkoutSelection.Shown.Group("exercise:2", false))) }
+        rule.onNodeWithTag("workout-clock-chip").assertDoesNotExist()
+    }
+
+    @Test fun cardioClockChipRemainsAvailableOnShownTimedRepGroupWithPendingCount() {
+        val timed = workoutSetTimedRepRunningFixture(awaiting = true)
+        val state = timed.copy(cardio = runningCardioFixture(), cardioRunning = true)
+        var selected: String? = null
+        show(state, pagerActions().copy(onSelectWorkoutLift = { selected = it }))
+        rule.onNodeWithText("Road run 1:00").performClick()
+        rule.runOnIdle { assertEquals("cardio", selected) }
+    }
+
+    @Test fun cardioClockChipReturnsToCardioAndHidesOnItsOwnGroup() {
+        val base = workoutSetCardioRunningFixture()
+        var state by mutableStateOf(base.copy(workout = workoutSetSingleFixture().workout))
+        var selected: String? = null
+        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(onSelectWorkoutLift = { selected = it })) } }
+        rule.onNodeWithText("Road run 1:00").performClick()
+        rule.runOnIdle { assertEquals("cardio", selected)
+            state = workoutSetCardioDistanceFixture().copy(workout = workoutSetSingleFixture().workout) }
+        rule.onNodeWithText("Road run 0:27").assertIsDisplayed()
+        rule.runOnIdle { state = base }
+        rule.onNodeWithTag("workout-clock-chip").assertDoesNotExist()
+    }
+
+    @Test fun emptyDayOffersEditDay() {
+        var editing = false
+        rule.setContent { AppTheme { WorkoutSetHost(workoutSetEmptyFixture(),
+            dayEditActions = pagerEditActions().copy(onEditorOpen = { editing = it })) } }
+        rule.onNodeWithText("No lifts in day A yet.").assertIsDisplayed()
+        rule.onNodeWithText("Edit day").performClick()
+        rule.onNodeWithTag("workout-action-filled").assertDoesNotExist()
+        rule.runOnIdle { assertTrue(editing) }
+    }
+
+    @Test fun finishWithOnlyCardioLeftConfirmsWithoutTheActivity() {
+        var finishes = 0
+        show(workoutSetCardioFixture(), pagerActions().copy(onDone = { finishes++ }))
+        rule.onNodeWithText("Finish").performClick()
+        rule.onNodeWithText("Finish without Road run?").assertIsDisplayed()
+        rule.onNode(hasText("Finish") and hasAnyAncestor(isDialog())).performClick()
+        rule.runOnIdle { assertEquals(1, finishes) }
+    }
+
+    @Test fun cardioSheetShowsStatusesAndUnsavedDistanceIdentity() {
+        val base = workoutSetCardioFixture()
+        val block = CardioBlock(CardioActivity.ROAD_RUN, List(4) { CardioSetSpec(CardioRole.WORK, Measure.Time(300)) })
+        val json = CardioBlockJson.encode(block)
+        val run = CardioRun(1L, "Plan", "A", 0, json, json, false, null,
+            results = listOf(SavedCardioResult("FINISHED", 300), SavedCardioResult("SHORTENED", 240, 350), SavedCardioResult("SKIPPED", 0)))
+        val entry = run.copy(drafts = listOf(CardioDistanceDraft(1, true, dismissed = true)))
+        var requested: CardioSetAction? = null
+        var closes = 0
+        show(base.copy(cardio = base.cardio?.copy(block = block, run = run, distanceRuns = listOf(entry)),
+            openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0)), pagerActions().copy(
+                onCloseAllSets = { closes++ }, onRequestCardioDistance = { requested = it }))
+        for (status in listOf("Finished", "Shortened, 350 m", "Skipped", "Now")) {
+            rule.onNodeWithText(status).assertIsDisplayed()
+        }
+        rule.onNodeWithText("Road run · Set 2").assertIsDisplayed()
+        rule.onNodeWithText("Enter distance").performClick()
+        rule.runOnIdle { assertEquals(1, closes); assertEquals(entry.action(1), requested) }
+    }
+
+    @Test fun cardioSheetSkipAddAndEndUseExistingActionsAndConfirmation() {
+        var state by mutableStateOf(workoutSetCardioFixture().copy(openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0)))
+        var skips: CardioSetAction? = null
+        var adds = 0
+        var ends = 0
+        rule.setContent { AppTheme { WorkoutSetHost(state, pagerActions().copy(
+            onCloseAllSets = { state = state.copy(openSheet = null) }, onSkipCardioSet = { skips = it },
+            onAddCardioSet = { adds++ }, onEndCardioBlock = { ends++ },
+        )) } }
+        rule.onNodeWithText("Add set").performClick()
+        rule.onNodeWithText("Skip set").performClick()
+        rule.runOnIdle {
+            assertEquals(1, adds); assertEquals(CardioSetAction("A", null, 0), skips)
+            state = state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0))
+        }
+        rule.onNodeWithText("End cardio").performClick()
+        rule.onNodeWithText("End block?").assertIsDisplayed()
+        rule.onNodeWithText("End and log").performClick()
+        rule.runOnIdle { assertEquals(1, ends) }
+    }
+
+    @Test fun setScreenKeepsScreenOnForTimedRepAndCardioAndClearsOnDisposal() {
+        var state by mutableStateOf(workoutSetTimedRepFixture())
+        var visible by mutableStateOf(true)
+        var view: View? = null
+        rule.setContent {
+            val current = LocalView.current
+            SideEffect { view = current }
+            if (visible) AppTheme { WorkoutSetHost(state) }
+        }
+        rule.runOnIdle { assertFalse(requireNotNull(view).keepScreenOn); state = workoutSetTimedRepRunningFixture() }
+        rule.onNodeWithText("Cancel").assertIsDisplayed()
+        rule.runOnIdle { assertTrue(requireNotNull(view).keepScreenOn); state = workoutSetTimedRepRunningFixture(awaiting = true) }
+        rule.runOnIdle { assertFalse(requireNotNull(view).keepScreenOn); state = workoutSetCardioRunningFixture() }
+        rule.onNodeWithTag("workout-action-tonal").assertIsDisplayed()
+        rule.runOnIdle { assertTrue(requireNotNull(view).keepScreenOn); visible = false }
+        rule.runOnIdle { assertFalse(requireNotNull(view).keepScreenOn) }
+    }
+
+    @Test fun runningClockDigitsStayOutsideLiveRegions() {
+        var state by mutableStateOf(workoutSetTimedRepRunningFixture())
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+        fun assertClockOutsideLiveRegion() {
+            var node: SemanticsNode? = rule.onNodeWithTag("workout-hero", useUnmergedTree = true).fetchSemanticsNode()
+            while (node != null) {
+                assertFalse(node.config.contains(SemanticsProperties.LiveRegion))
+                node = node.parent
+            }
+        }
+        assertClockOutsideLiveRegion()
+        rule.runOnIdle { state = workoutSetCardioRunningFixture() }
+        assertClockOutsideLiveRegion()
+        rule.onNodeWithContentDescription("Work, set 1 of 1")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+        rule.runOnIdle { state = workoutSetCardioRecoveryFixture() }
+        assertClockOutsideLiveRegion()
     }
 
     private fun show(state: DayUiState, actions: DayActions = pagerActions()) {

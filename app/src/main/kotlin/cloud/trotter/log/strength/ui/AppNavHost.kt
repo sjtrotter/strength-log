@@ -569,8 +569,8 @@ internal fun DayRoute(
         onUndoRemoveSet = viewModel::undoRemoveSet,
         standaloneCardio = initialDayId != null && !state.isProgramDay,
         setScreenContent = if (state.usesWorkoutSetScreen) {
-            { onExercises, onFinish, snackbarHost ->
-                WorkoutSetScreen(state, actions, dayEditState.catalog, onExercises, onFinish, snackbarHost, onBack)
+            { onExercises, onFinish, snackbarHost, onEditDay ->
+                WorkoutSetScreen(state, actions, dayEditState.catalog, onExercises, onFinish, snackbarHost, onEditDay, onBack)
             }
         } else null,
     )

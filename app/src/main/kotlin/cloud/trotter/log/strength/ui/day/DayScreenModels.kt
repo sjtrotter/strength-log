@@ -2,6 +2,10 @@ package cloud.trotter.log.strength.ui.day
 
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.model.Measure
 import kotlinx.parcelize.Parcelize
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -113,18 +117,35 @@ data class DayUiState(
     val workoutAllLogged: Boolean get() = workout?.shown == WorkoutSelection.Shown.AllLogged ||
         workout?.completedView == true && workoutNextPage == null
 
-    val usesWorkoutSetScreen: Boolean get() {
-        if (loading || !hasProgram || cardioRunning || timedRep != null) return false
-        val workout = workout ?: return false
-        return when (workout.shown) {
-            WorkoutSelection.Shown.AllLogged -> true
-            is WorkoutSelection.Shown.Group -> workoutCard?.let { card ->
-                workout.focus?.slot == Slot.SS || (card.timedRepDurationSeconds ?: 0) <= 0
-            } == true
-            WorkoutSelection.Shown.Empty -> false
+    val usesWorkoutSetScreen: Boolean get() = !loading && hasProgram && workout != null
+
+    internal val cardioStartEnabled: Boolean get() =
+        !executionBusy || cardio?.run?.let { run -> !run.running && !run.complete } == true
+
+    val workoutClockChip: ClockChip?
+        @Composable get() {
+            val shown = workout?.shown as? WorkoutSelection.Shown.Group
+            if (workout == null) return null
+            timedRep?.let { timed ->
+                val event = timed.event
+                val key = "exercise:${event.programExerciseId}"
+                if (shown?.key == key) return@let
+                val title = exercises.firstOrNull { it.programExerciseId == event.programExerciseId }?.title ?: return null
+                return ClockChip(key, if (event.awaitingCount) {
+                    stringResource(R.string.workout_clock_chip_enter_reps, title)
+                } else stringResource(R.string.workout_clock_chip, title, formatCardioTime(timed.remainingSeconds)))
+            }
+            val cardio = cardio ?: return null
+            val run = cardio.run?.takeIf { it.running } ?: return null
+            if (shown?.key == "cardio") return null
+            val seconds = if (run.block.sets.getOrNull(run.position)?.end is Measure.Time) cardio.stepSecondsLeft else cardio.elapsedSeconds
+            return ClockChip("cardio", stringResource(R.string.workout_clock_chip,
+                cardioActivityName(run.block.activity), formatCardioTime(seconds)))
         }
-    }
 }
+
+@Immutable
+data class ClockChip(val key: String, val label: String)
 
 data class WorkoutFocus(val programExerciseId: Long, val slot: String, val index: Int)
 

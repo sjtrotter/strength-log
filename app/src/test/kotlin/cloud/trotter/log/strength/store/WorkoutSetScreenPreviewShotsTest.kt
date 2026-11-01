@@ -7,6 +7,14 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.ui.day.workoutSetTimedRepFixture
+import cloud.trotter.log.strength.ui.day.workoutSetTimedRepRunningFixture
+import cloud.trotter.log.strength.ui.day.workoutSetCardioFixture
+import cloud.trotter.log.strength.ui.day.workoutSetCardioRunningFixture
+import cloud.trotter.log.strength.ui.day.workoutSetCardioDistanceFixture
+import cloud.trotter.log.strength.ui.day.workoutSetCardioRecoveryFixture
+import cloud.trotter.log.strength.ui.day.workoutSetCardioDoneFixture
+import cloud.trotter.log.strength.ui.day.workoutSetEmptyFixture
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.WorkoutSwapUndo
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -181,6 +189,42 @@ class WorkoutSetScreenPreviewShotsTest {
             swapUndo = WorkoutSwapUndo("A", "drop-preview", 1L, Slot.MAIN, "cable_row", "db_bench",
                 card.partnerTitle.orEmpty(), skippedSlot = Slot.SS)))
     }
+
+    @Test fun timedRepReady() = render("17-timed-rep-ready.png", workoutSetTimedRepFixture())
+
+    @Test fun timedRepRunning() = render("18-timed-rep-running.png", workoutSetTimedRepRunningFixture())
+
+    @Test fun cardioReady() = render("19-cardio-ready.png", workoutSetCardioFixture())
+
+    @Test fun cardioRunningTime() = render("20-cardio-running-time.png", workoutSetCardioRunningFixture())
+
+    @Test fun cardioRunningDistance() = render("21-cardio-running-distance.png", workoutSetCardioDistanceFixture())
+
+    @Test fun cardioRecovery() = render("22-cardio-recovery.png", workoutSetCardioRecoveryFixture())
+
+    @Test fun cardioDone() = render("23-cardio-done.png", workoutSetCardioDoneFixture())
+
+    @Test fun cardioSheet() = render("24-cardio-sheet.png", workoutSetCardioRecoveryFixture().let {
+        it.copy(openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0))
+    })
+
+    @Test fun clockChip() = render("25-clock-chip.png", workoutSetCardioRunningFixture().let {
+        it.copy(workout = workoutSetSingleFixture().workout)
+    })
+
+    @Test fun cardioSaveFailed() = render("26-cardio-save-failed.png", workoutSetCardioDoneFixture().let { done ->
+        val running = requireNotNull(workoutSetCardioRunningFixture().cardio?.run)
+        done.copy(cardio = done.cardio?.copy(loggedSeconds = null, loggedSets = emptyList(),
+            run = running.copy(wallStart = null, results = listOf(
+                cloud.trotter.log.strength.ui.day.SavedCardioResult("FINISHED", 300)), saveFailed = true)),
+            workout = done.workout?.copy(shown = WorkoutSelection.Shown.Group("cardio", false), completedView = false))
+    })
+
+    @Test fun emptyDay() = render("27-empty-day.png", workoutSetEmptyFixture())
+
+    @Test fun cardioRunningLight() = render("28-cardio-running-light.png", workoutSetCardioRunningFixture(), ThemePreference.LIGHT)
+
+    @Test fun timedRepLargeFont() = render("29-timed-rep-large-font.png", workoutSetTimedRepFixture(), fontScale = 2f)
 
     private fun render(
         name: String, state: DayUiState, theme: ThemePreference = ThemePreference.DARK, fontScale: Float? = null,

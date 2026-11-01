@@ -31,8 +31,8 @@ data class LoggedSet(
     val done: Boolean = false, // per-set checkmark, reset daily
     val seconds: Int = 0, // timed hold duration; otherwise 0
     // When the set was started and ticked, in wall-clock millis, as observed by
-    // whichever surface logged it (today: the watch dial). Null = not observed —
-    // every set logged before per-set timing existed, and every phone-side tick.
+    // whichever surface logged it: the watch dial, or phone ticks when the
+    // one-set workout screen is on. Null = not observed, including older ticks.
     // Active time and actual rest are *derived* from these, never stored.
     val startedAtMillis: Long? = null,
     val completedAtMillis: Long? = null,

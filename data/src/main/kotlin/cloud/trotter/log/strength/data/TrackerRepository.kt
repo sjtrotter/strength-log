@@ -33,6 +33,7 @@ import cloud.trotter.log.strength.data.mapping.toEntry
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
+import cloud.trotter.log.strength.data.prefs.WorkoutRecord
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.LegacyCardio
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -216,6 +217,7 @@ open class TrackerRepository(
     val unitFlow: Flow<WeightUnit> = settings.unitFlow
     val restSettingsFlow: Flow<RestSettings> = settings.restSettingsFlow
     val phoneRestTimerEnabledFlow = settings.phoneRestTimerEnabledFlow
+    val workoutRecordFlow = settings.workoutRecordFlow
     val phoneRestFlow = settings.phoneRestFlow
     val phoneRestNotificationAskedFlow = settings.phoneRestNotificationAskedFlow
     /** The keep-screen-on preference. Collected once, by the activity, so
@@ -282,6 +284,7 @@ open class TrackerRepository(
 
     suspend fun setPhoneRestTimerEnabled(enabled: Boolean) = settings.setPhoneRestTimerEnabled(enabled)
     suspend fun setPhoneRest(rest: cloud.trotter.log.strength.domain.standards.PhoneRest?) = settings.setPhoneRest(rest)
+    suspend fun setWorkoutRecord(record: WorkoutRecord?) = settings.setWorkoutRecord(record)
     suspend fun markPhoneRestNotificationAsked() = settings.markPhoneRestNotificationAsked()
 
     /** Writes one per-category rest override from the Setup editor; clamping to

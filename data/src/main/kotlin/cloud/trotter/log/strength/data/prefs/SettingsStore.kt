@@ -79,6 +79,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val REST_WORK_SECONDS = intPreferencesKey("rest_work_seconds")
         val REST_LIGHT_SECONDS = intPreferencesKey("rest_light_seconds")
         val PHONE_REST_TIMER_ENABLED = booleanPreferencesKey("phone_rest_timer_enabled")
+        val WORKOUT_RECORD = stringPreferencesKey("workout_record")
         val PHONE_REST_DEADLINE = longPreferencesKey("phone_rest_deadline")
         val PHONE_REST_TOTAL = intPreferencesKey("phone_rest_total")
         val PHONE_REST_NEXT = stringPreferencesKey("phone_rest_next")
@@ -179,6 +180,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     val phoneRestFlow: Flow<PhoneRest?> = dataStore.data.map { prefs ->
         val deadline = prefs[Keys.PHONE_REST_DEADLINE] ?: return@map null
         PhoneRest(deadline, prefs[Keys.PHONE_REST_TOTAL] ?: 0, prefs[Keys.PHONE_REST_NEXT].orEmpty())
+    }
+    val workoutRecordFlow: Flow<WorkoutRecord?> = dataStore.data.map { prefs ->
+        prefs[Keys.WORKOUT_RECORD]?.let { encoded ->
+            runCatching { Json.decodeFromString<WorkoutRecord>(encoded) }.getOrNull()
+        }
     }
     val phoneRestNotificationAskedFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.PHONE_REST_NOTIFICATION_ASKED] ?: false }
@@ -294,6 +300,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             prefs[Keys.PHONE_REST_TOTAL] = rest.totalSeconds
             prefs[Keys.PHONE_REST_NEXT] = rest.nextSetLabel
         }
+    }
+
+    suspend fun setWorkoutRecord(record: WorkoutRecord?) = dataStore.edit { prefs ->
+        if (record == null) prefs.remove(Keys.WORKOUT_RECORD)
+        else prefs[Keys.WORKOUT_RECORD] = Json.encodeToString(WorkoutRecord.serializer(), record)
     }
 
     suspend fun markPhoneRestNotificationAsked() =

@@ -5,6 +5,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import cloud.trotter.log.strength.data.DayTracks
+import cloud.trotter.log.strength.data.prefs.WorkoutRecord
+import cloud.trotter.log.strength.data.prefs.UndoTarget
+import cloud.trotter.log.strength.data.serialization.SetDto
+import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.RunStartResult
@@ -14,6 +19,7 @@ import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -118,6 +124,7 @@ class DayViewModel @Inject constructor(
     private val phoneRestRuntime: RestRuntime = NoOpRestRuntime,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
     private val watchContinuity: WatchContinuitySource = WatchContinuitySource.None,
+    private val flags: WorkoutFlags = WorkoutFlags(),
 ) : ViewModel() {
 
     private val viewDayOverride = savedState.getStateFlow<DaySelection?>(
@@ -148,6 +155,9 @@ class DayViewModel @Inject constructor(
 
     /** Serializes all read-modify-write log mutations (see class doc). */
     private val mutationLock = Mutex()
+
+    internal var beforeWorkoutUndoWrite: (suspend () -> Unit)? = null
+    internal var afterWorkoutTickWrite: (suspend () -> Unit)? = null
 
     private val displayTargetFlow = combine(
         repo.todayTargetFlow, repo.selectedPlanFlow, repo.plansFlow, viewDayOverride,
@@ -190,15 +200,15 @@ class DayViewModel @Inject constructor(
 
     // Only repository data drives this flow. Saved-selection writes cannot emit
     // an old day's rows back into the pinning collector during a day switch.
-    private val dayState: StateFlow<DayUiState> = contextFlow.flatMapLatest { ctx ->
+    private val committedDayFlow: Flow<CommittedDay> = contextFlow.flatMapLatest { ctx ->
         val dayId = ctx.dayId
         if (dayId == null) {
-            flowOf(noDayState(ctx))
+            flowOf(CommittedDay(noDayState(ctx)))
         } else {
             // Re-fetched when the day's exercise ids or archived history change.
             // Live-set keystrokes still do not touch this path, while a Log edit
             // immediately corrects both "last time" and "Best" on an open day.
-            val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(noDayState(ctx))
+            val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(CommittedDay(noDayState(ctx)))
             val historyKeys = repo.dayHistoryKeys(planId, dayId)
             val slotsWithHistory = historyKeys.flatMapLatest { (slots, performedIds) ->
                 flow {
@@ -208,7 +218,7 @@ class DayViewModel @Inject constructor(
             }
             slotsWithHistory.flatMapLatest { (slots, history) ->
                 combine(repo.dayTracksFlow(planId, dayId), repo.openRunFlow) { tracks, open ->
-                    buildState(ctx, dayId, slots, tracks.tracks.associateBy { it.programExerciseId to it.slot }, history)
+                    val state = buildState(ctx, dayId, slots, tracks.tracks.associateBy { it.programExerciseId to it.slot }, history)
                         .copy(runId = tracks.runId, runOpen = tracks.runOpen,
                             openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle,
                             retiredRoundDoneCount = tracks.retiredRoundsDone,
@@ -218,6 +228,7 @@ class DayViewModel @Inject constructor(
                                     ctx.catalog.find(track.exerciseId)?.name ?: track.exerciseId, doneCount,
                                 )
                             })
+                    CommittedDay(state, tracks)
                 }
             }
                 // flatMapLatest cancels the day the lifter just left, but nothing
@@ -228,9 +239,16 @@ class DayViewModel @Inject constructor(
                 // inside ProgramLoadingState's reveal delay and nothing is drawn,
                 // and on a slow one the lifter waits instead of ticking sets into
                 // the day they walked away from.
-                .onStart { emit(DayUiState(loading = true)) }
+                .onStart { emit(CommittedDay(DayUiState(loading = true))) }
         }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, DayUiState(loading = true))
+    }
+
+    private val committedDayState = if (flags.setScreen) committedDayFlow.stateIn(
+        viewModelScope, SharingStarted.Lazily, CommittedDay(DayUiState(loading = true)),
+    ) else null
+
+    private val dayState = (committedDayState ?: committedDayFlow).map { it.state }
+        .stateIn(viewModelScope, SharingStarted.Lazily, DayUiState(loading = true))
 
     /**
      * Keep-screen-on rides on the outside, not through [contextFlow]: it changes
@@ -298,19 +316,53 @@ class DayViewModel @Inject constructor(
         sessions to sets
     }
 
+    private val workoutRecord: Flow<WorkoutRecord?> =
+        if (flags.setScreen) repo.workoutRecordFlow else flowOf(null)
+
+    private val workoutClock: Flow<Long> = if (!flags.setScreen) flowOf(0L) else combine(
+        requireNotNull(committedDayState).map { day ->
+            day.tracks?.takeIf { it.runOpen }?.runId
+        }.distinctUntilChanged(),
+        workoutRecord,
+        repo.phoneRestFlow,
+    ) { runId, record, rest ->
+        record?.takeIf { it.runId == runId }?.undo?.let { target ->
+            if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + 10_000L
+        }
+    }.distinctUntilChanged().flatMapLatest { deadline ->
+        flow {
+            val now = clock.millis()
+            emit(now)
+            if (deadline != null && deadline > now) {
+                delay(deadline - now)
+                emit(clock.millis())
+            }
+        }
+    }
+
+    private val workoutDay = if (flags.setScreen) combine(
+        requireNotNull(committedDayState), workoutRecord, workoutClock,
+    ) { day, record, now -> Triple(day, record, now) }
+    else dayState.map { Triple(CommittedDay(it), null, 0L) }
+
     private val baseUiState: Flow<DayUiState> =
-        combine(dayState, repo.keepScreenOnFlow, cardioHistory, executionState, phoneRestState) {
-                state, preferences, history, execution, rest ->
+        combine(workoutDay, repo.keepScreenOnFlow, cardioHistory, executionState, phoneRestState) {
+                input, preferences, history, execution, rest ->
+            val (committed, record, now) = input
+            val state = committed.state
             val (run, event) = execution
             val cardio = buildCardioState(state, history.first, history.second, run)
             val timedRep = reconcileTimedRep(state, event)
-            state.copy(
+            val rendered = state.copy(
                 keepScreenOn = preferences,
                 cardio = cardio,
                 timedRep = timedRep,
                 executionBusy = cardioRun.value != null || timedRep?.event?.awaitingCount == false,
                 cardioRunning = cardioRun.value?.running == true,
                 rest = rest,
+            )
+            if (!flags.setScreen) rendered else rendered.copy(
+                workout = buildWorkout(rendered, committed.tracks, record, rest?.rest, now),
             )
         }
 
@@ -927,6 +979,87 @@ class DayViewModel @Inject constructor(
         tickSet(programExerciseId, index, checked, slot)
     }
 
+    fun logFocusedSet() {
+        if (!flags.setScreen) return
+        val state = dayState.value
+        val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
+        val planId = state.planId ?: return
+        val runId = state.runId ?: return
+        mutate {
+            val tracks = repo.dayTracksFlow(planId, day).first()
+            if (tracks.runId != runId || currentDay() != day) return@mutate
+            val projected = projectWorkout(uiState.value, tracks)
+            val record = repo.workoutRecordFlow.first()?.takeIf { tracks.runOpen && it.runId == runId }
+            val shown = WorkoutSelection.shown(workoutGroups(projected), record?.selectedKey)
+            val focus = workoutFocus(projected, shown) ?: return@mutate
+            tickSetLocked(day, runId, focus.programExerciseId, focus.index, true, focus.slot, actionLog = true)
+        }
+    }
+
+    fun selectWorkoutLift(key: String) {
+        if (!flags.setScreen) return
+        updateWorkoutSelection { state, _ -> key.takeIf { candidate -> workoutGroups(state).any { it.key == candidate } } }
+    }
+
+    fun nextWorkoutLift() {
+        if (!flags.setScreen) return
+        updateWorkoutSelection { state, record ->
+            val groups = workoutGroups(state)
+            val shown = WorkoutSelection.shown(groups, record.selectedKey) as? WorkoutSelection.Shown.Group
+            WorkoutSelection.next(groups, shown?.key)
+        }
+    }
+
+    private fun updateWorkoutSelection(selection: (DayUiState, WorkoutRecord) -> String?) {
+        val state = dayState.value
+        val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
+        val planId = state.planId ?: return
+        val runId = state.runId ?: return
+        mutate {
+            val tracks = repo.dayTracksFlow(planId, day).first()
+            if (!tracks.runOpen || tracks.runId != runId || currentDay() != day) return@mutate
+            val record = repo.workoutRecordFlow.first()?.takeIf { it.runId == runId } ?: WorkoutRecord(runId)
+            repo.setWorkoutRecord(record.copy(selectedKey = selection(projectWorkout(uiState.value, tracks), record)))
+        }
+    }
+
+    fun undoLastLog() {
+        if (!flags.setScreen) return
+        val state = dayState.value
+        val day = currentDay()?.takeIf { it == state.viewDayId } ?: return
+        val planId = state.planId ?: return
+        val runId = state.runId ?: return
+        mutate {
+            PhoneRestActions.locked {
+                val tracks = repo.dayTracksFlow(planId, day).first()
+                val record = repo.workoutRecordFlow.first()
+                val target = validUndo(tracks, record, repo.phoneRestFlow.first(), clock.millis()) ?: return@locked
+                if (tracks.runId != runId || currentDay() != day) return@locked
+                val before = runCatching { target.before.toDomain() }.getOrNull() ?: return@locked
+                beforeWorkoutUndoWrite?.invoke()
+                val result = repo.applyToRun(runId, planId, day, listOf(
+                    TrackEdit(target.programExerciseId, target.slot) { current ->
+                        val row = current.getOrNull(target.index)
+                        val after = target.after
+                        if (row == null || !row.done || row.weightLb != after.weightLb ||
+                            row.reps != after.reps || row.seconds != after.seconds ||
+                            row.completedAtMillis != target.loggedAtMillis
+                        ) null else current.mapIndexed { index, set ->
+                            if (index != target.index) set else before.copy(
+                                done = false, startedAtMillis = null, completedAtMillis = null,
+                                // A watch stamp only moves forward, or a replayed watch tick redoes this set.
+                                watchEditedAt = listOfNotNull(before.watchEditedAt, set.watchEditedAt).maxOrNull(),
+                            )
+                        }
+                    },
+                ))
+                if (result !is RunWriteResult.InRun) return@locked
+                PhoneRestActions.skipLocked(repo, phoneRestRuntime)
+                repo.setWorkoutRecord(WorkoutRecord(runId, "exercise:${target.programExerciseId}"))
+            }
+        }
+    }
+
     private fun tickSet(
         programExerciseId: Long,
         index: Int,
@@ -936,79 +1069,132 @@ class DayViewModel @Inject constructor(
     ) {
         val day = currentDay() ?: return
         val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
-        mutate {
-            if (countEvent != null) {
-                if (timedRepEvent.value != countEvent || day != countEvent.dayId ||
-                    !timedRepMatches(dayState.value, countEvent)
-                ) return@mutate
-                val planId = repo.planIdOfSlot(programExerciseId) ?: return@mutate
-                val programSlot = repo.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
-                    ?: return@mutate
-                val track = repo.dayTracksFlow(planId, day).first().tracks.firstOrNull {
-                    it.programExerciseId == programExerciseId && it.slot == Slot.MAIN
-                }
-                val performed = performedExercise(programSlot, track?.exerciseId, repo.catalogFlow.first())
-                val target = performed.prescription?.target as? PrescribedTarget.RepsInTime
-                if (performed.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return@mutate
+        mutate { tickSetLocked(day, runId, programExerciseId, index, checked, slot, countEvent) }
+    }
+
+    private suspend fun tickSetLocked(
+        day: String,
+        runId: String,
+        programExerciseId: Long,
+        index: Int,
+        checked: Boolean,
+        slot: String,
+        countEvent: TimedRepEvent? = null,
+        actionLog: Boolean = false,
+    ) {
+        if (countEvent != null) {
+            if (timedRepEvent.value != countEvent || day != countEvent.dayId ||
+                !timedRepMatches(dayState.value, countEvent)
+            ) return
+            val planId = repo.planIdOfSlot(programExerciseId) ?: return
+            val programSlot = repo.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
+                ?: return
+            val track = repo.dayTracksFlow(planId, day).first().tracks.firstOrNull {
+                it.programExerciseId == programExerciseId && it.slot == Slot.MAIN
             }
-            if (slot != Slot.MAIN && slot != Slot.SS) return@mutate
-            val stored = trackFor(day, programExerciseId, slot)
-            val row = stored.getOrNull(index) ?: return@mutate
-            if (countEvent != null && row.done) return@mutate
-            val updated = stored.mapIndexed { i, set ->
-                if (i != index) set else set.copy(
-                    done = checked,
-                    reps = countEvent?.count ?: set.reps,
-                    seconds = if (countEvent != null) 0 else set.seconds,
-                )
-            }
-            val result = repo.updateSets(runId, day, programExerciseId, slot, updated)
-            if (result == RunWriteResult.Rejected) return@mutate
-            if (countEvent != null) clearTimedRep()
-            val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
-            val planId = repo.planIdOfSlot(programExerciseId) ?: return@mutate
-            val isSuperset = repo.slotsFor(planId, day).first()
-                .firstOrNull { it.programExerciseId == programExerciseId }?.exercise?.superset != null
-            if (checked && isSuperset && !row.done) repo.markSupersetHelperSeen()
-            val main = trackFor(day, programExerciseId, Slot.MAIN)
-            val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS).takeIf { it.isNotEmpty() } else null
-            val roundComplete = main.getOrNull(index)?.done == true &&
-                partner?.getOrNull(index)?.done != false
-            if (checked && roundComplete && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
-                val set = main.getOrNull(index)
-                if (card != null && set != null) {
-                    val settings = repo.restSettingsFlow.first()
-                    val seconds = RestPolicy.effectiveRestSeconds(set.kind, card.tracking, settings.overrides)
-                    val latest = repo.dayTracksFlow(planId, day).first().tracks
-                        .associateBy { it.programExerciseId to it.slot }
-                    val projected = uiState.value.exercises.map { current ->
-                        current.copy(rows = current.rows.map { currentRow ->
-                            currentRow.copy(
-                                done = latest[current.programExerciseId to Slot.MAIN]?.sets
-                                    ?.getOrNull(currentRow.index)?.done == true,
-                                partner = currentRow.partner?.copy(
-                                    done = latest[current.programExerciseId to Slot.SS]?.sets
-                                        ?.getOrNull(currentRow.index)?.done == true,
-                                ),
-                            )
-                        })
-                    }
-                    val nextCard = projected.firstOrNull { it.rows.any { nextRow -> !nextRow.complete } }
-                    val nextRow = nextCard?.rows?.firstOrNull { !it.complete }
-                    val next = if (nextCard != null && nextRow != null) {
-                        val title = if (nextRow.nextSlot == Slot.SS) nextCard.partnerTitle.orEmpty() else nextCard.title
-                        val tracking = if (nextRow.nextSlot == Slot.SS) nextCard.partnerTracking ?: TrackingType.WEIGHTED else nextCard.tracking
-                        val nextSet = latest[nextCard.programExerciseId to nextRow.nextSlot]?.sets?.getOrNull(nextRow.index)
-                        val load = nextSet?.let {
-                            SetFormatter.summary(tracking, it.weightLb, it.reps, it.seconds, repo.unitFlow.first(), spaced = true)
-                        }.orEmpty()
-                        listOf(title, load.trim()).filter { it.isNotBlank() }.joinToString(" ")
-                    } else ""
-                    PhoneRestTimer.start(clock.millis(), seconds, next)?.let { rest ->
-                        PhoneRestActions.locked {
-                            repo.setPhoneRest(rest)
-                            phoneRestRuntime.arm(rest)
+            val performed = performedExercise(programSlot, track?.exerciseId, repo.catalogFlow.first())
+            val target = performed.prescription?.target as? PrescribedTarget.RepsInTime
+            if (performed.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return
+        }
+        if (slot != Slot.MAIN && slot != Slot.SS) return
+        val stored = trackFor(day, programExerciseId, slot)
+        val row = stored.getOrNull(index) ?: return
+        if (countEvent != null && row.done) return
+        if (flags.setScreen && actionLog && row.done) return
+        val loggedAt = if (flags.setScreen) clock.millis() else null
+        val updated = stored.mapIndexed { i, set ->
+            if (i != index) set else set.copy(
+                done = checked,
+                reps = countEvent?.count ?: set.reps,
+                seconds = if (countEvent != null) 0 else set.seconds,
+                startedAtMillis = if (flags.setScreen && !checked) null else set.startedAtMillis,
+                completedAtMillis = if (!flags.setScreen) set.completedAtMillis
+                    else if (!checked) null else if (!set.done) loggedAt else set.completedAtMillis,
+            )
+        }
+        val result = repo.updateSets(runId, day, programExerciseId, slot, updated)
+        if (result == RunWriteResult.Rejected) return
+        if (flags.setScreen) afterWorkoutTickWrite?.invoke()
+        if (countEvent != null) clearTimedRep()
+        val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
+        val planId = repo.planIdOfSlot(programExerciseId) ?: return
+        val isSuperset = repo.slotsFor(planId, day).first()
+            .firstOrNull { it.programExerciseId == programExerciseId }?.exercise?.superset != null
+        if (checked && isSuperset && !row.done) repo.markSupersetHelperSeen()
+        val main = trackFor(day, programExerciseId, Slot.MAIN)
+        val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS).takeIf { it.isNotEmpty() } else null
+        val roundComplete = main.getOrNull(index)?.done == true &&
+            partner?.getOrNull(index)?.done != false
+        if (flags.setScreen) {
+            val latest = repo.dayTracksFlow(planId, day).first()
+            if (!latest.runOpen || latest.runId != runId) return
+            val projected = projectWorkout(uiState.value, latest)
+            val groups = workoutGroups(projected)
+            val loggedKey = "exercise:$programExerciseId"
+            val previous = repo.workoutRecordFlow.first()?.takeIf { it.runId == runId }
+            val recordLog = checked && !row.done && (actionLog || countEvent != null)
+            val selection = if (recordLog) WorkoutSelection.afterActionLog(groups, loggedKey)
+                else previous?.selectedKey
+            PhoneRestActions.locked {
+                var restStarted = false
+                if (checked && !row.done) {
+                    if (projected.exercises.none { current -> current.rows.any { !it.complete } } || !roundComplete) {
+                        PhoneRestActions.skipLocked(repo, phoneRestRuntime)
+                    } else if (phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
+                        val set = main.getOrNull(index)
+                        if (card != null && set != null) {
+                            val settings = repo.restSettingsFlow.first()
+                            val seconds = RestPolicy.effectiveRestSeconds(set.kind, card.tracking, settings.overrides)
+                            val next = workoutNextLabel(projected, latest, selection)
+                            PhoneRestTimer.start(requireNotNull(loggedAt), seconds, next)?.let { rest ->
+                                repo.setPhoneRest(rest)
+                                phoneRestRuntime.arm(rest)
+                                restStarted = true
+                            }
                         }
+                    }
+                }
+                if (recordLog) {
+                    repo.setWorkoutRecord(WorkoutRecord(runId, selection, UndoTarget(
+                        programExerciseId, slot, index, SetDto.of(row), SetDto.of(updated[index]),
+                        requireNotNull(loggedAt), restStarted,
+                    )))
+                }
+            }
+        } else if (checked && roundComplete && phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
+            val set = main.getOrNull(index)
+            if (card != null && set != null) {
+                val settings = repo.restSettingsFlow.first()
+                val seconds = RestPolicy.effectiveRestSeconds(set.kind, card.tracking, settings.overrides)
+                val latest = repo.dayTracksFlow(planId, day).first().tracks
+                    .associateBy { it.programExerciseId to it.slot }
+                val projected = uiState.value.exercises.map { current ->
+                    current.copy(rows = current.rows.map { currentRow ->
+                        currentRow.copy(
+                            done = latest[current.programExerciseId to Slot.MAIN]?.sets
+                                ?.getOrNull(currentRow.index)?.done == true,
+                            partner = currentRow.partner?.copy(
+                                done = latest[current.programExerciseId to Slot.SS]?.sets
+                                    ?.getOrNull(currentRow.index)?.done == true,
+                            ),
+                        )
+                    })
+                }
+                val nextCard = projected.firstOrNull { it.rows.any { nextRow -> !nextRow.complete } }
+                val nextRow = nextCard?.rows?.firstOrNull { !it.complete }
+                val next = if (nextCard != null && nextRow != null) {
+                    val title = if (nextRow.nextSlot == Slot.SS) nextCard.partnerTitle.orEmpty() else nextCard.title
+                    val tracking = if (nextRow.nextSlot == Slot.SS) nextCard.partnerTracking ?: TrackingType.WEIGHTED else nextCard.tracking
+                    val nextSet = latest[nextCard.programExerciseId to nextRow.nextSlot]?.sets?.getOrNull(nextRow.index)
+                    val load = nextSet?.let {
+                        SetFormatter.summary(tracking, it.weightLb, it.reps, it.seconds, repo.unitFlow.first(), spaced = true)
+                    }.orEmpty()
+                    listOf(title, load.trim()).filter { it.isNotBlank() }.joinToString(" ")
+                } else ""
+                PhoneRestTimer.start(clock.millis(), seconds, next)?.let { rest ->
+                    PhoneRestActions.locked {
+                        repo.setPhoneRest(rest)
+                        phoneRestRuntime.arm(rest)
                     }
                 }
             }
@@ -1512,6 +1698,99 @@ class DayViewModel @Inject constructor(
 
     private fun currentDay(): String? = effectiveDayId.value
 
+    private fun workoutGroups(state: DayUiState): List<WorkoutSelection.Group> =
+        state.exercises.map { card ->
+            WorkoutSelection.Group("exercise:${card.programExerciseId}", card.rows.all { it.complete })
+        } + listOfNotNull(state.cardio?.let { WorkoutSelection.Group("cardio", it.loggedSeconds != null) })
+
+    private fun workoutFocus(state: DayUiState, shown: WorkoutSelection.Shown): WorkoutFocus? {
+        val group = shown as? WorkoutSelection.Shown.Group ?: return null
+        if (group.complete) return null
+        val card = state.exercises.firstOrNull { "exercise:${it.programExerciseId}" == group.key } ?: return null
+        val row = card.rows.getOrNull(DayScreenBuilder.focusIndex(card.rows))?.takeUnless { it.complete } ?: return null
+        return WorkoutFocus(card.programExerciseId, row.nextSlot, row.index)
+    }
+
+    private fun projectWorkout(state: DayUiState, tracks: DayTracks): DayUiState {
+        val latest = tracks.tracks.associateBy { it.programExerciseId to it.slot }
+        return state.copy(exercises = state.exercises.map { card ->
+            val main = latest[card.programExerciseId to Slot.MAIN]?.sets.orEmpty()
+            val partner = latest[card.programExerciseId to Slot.SS]?.sets
+            val rows = main.mapIndexed { index, set ->
+                SetRowState(
+                    index = index, kindLabel = "", isTop = set.kind == SetKind.TOP,
+                    weightDisplay = state.unit.fromLb(set.weightLb), reps = set.reps, done = set.done,
+                    seconds = set.seconds, kind = set.kind,
+                    partner = partner?.getOrNull(index)?.let {
+                        PartnerRowState(state.unit.fromLb(it.weightLb), it.reps, it.done, it.seconds)
+                    },
+                )
+            }
+            card.copy(rows = rows, allDone = rows.all { it.complete }, focusIndex = DayScreenBuilder.focusIndex(rows))
+        })
+    }
+
+    private fun runRows(tracks: DayTracks): List<LoggedSet> =
+        tracks.tracks.flatMap { it.sets } + tracks.retired.flatMap { it.sets }
+
+    private fun validUndo(tracks: DayTracks?, record: WorkoutRecord?, rest: PhoneRest?, now: Long): UndoTarget? {
+        if (tracks == null || !tracks.runOpen) return null
+        val target = record?.takeIf { it.runId == tracks.runId }?.undo ?: return null
+        val row = tracks.tracks.firstOrNull {
+            it.programExerciseId == target.programExerciseId && it.slot == target.slot
+        }?.sets?.getOrNull(target.index) ?: return null
+        val after = target.after
+        if (!row.done || row.weightLb != after.weightLb || row.reps != after.reps || row.seconds != after.seconds ||
+            row.completedAtMillis != target.loggedAtMillis
+        ) return null
+        if (runRows(tracks).any { (it.completedAtMillis ?: Long.MIN_VALUE) > target.loggedAtMillis }) return null
+        val deadline = if (target.restStarted) rest?.deadlineEpochMillis ?: return null else target.loggedAtMillis + 10_000L
+        return target.takeIf { now < deadline }
+    }
+
+    private fun buildWorkout(
+        state: DayUiState,
+        tracks: DayTracks?,
+        savedRecord: WorkoutRecord?,
+        rest: PhoneRest?,
+        now: Long,
+    ): WorkoutState {
+        val record = savedRecord?.takeIf { tracks?.runOpen == true && it.runId == tracks.runId }
+        val shown = WorkoutSelection.shown(workoutGroups(state), record?.selectedKey)
+        val undo = validUndo(tracks, record, rest, now)?.let { target ->
+            state.exercises.firstOrNull { it.programExerciseId == target.programExerciseId }?.let { card ->
+                UndoOffer(
+                    target.programExerciseId, target.slot, target.index,
+                    if (target.slot == Slot.SS) card.partnerTitle.orEmpty() else card.title,
+                    requireNotNull(tracks).tracks.first {
+                        it.programExerciseId == target.programExerciseId && it.slot == target.slot
+                    }.sets[target.index],
+                    if (target.slot == Slot.SS) card.partnerTracking ?: TrackingType.WEIGHTED else card.tracking,
+                    state.unit,
+                    if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + 10_000L,
+                )
+            }
+        }
+        return WorkoutState(
+            shown, workoutFocus(state, shown), (shown as? WorkoutSelection.Shown.Group)?.complete == true,
+            undo, tracks?.takeIf { it.runOpen }?.let(::runRows)?.mapNotNull { it.completedAtMillis }?.maxOrNull(),
+        )
+    }
+
+    private suspend fun workoutNextLabel(state: DayUiState, tracks: DayTracks, selectedKey: String?): String {
+        val shown = WorkoutSelection.shown(workoutGroups(state), selectedKey)
+        val focus = workoutFocus(state, shown) ?: return ""
+        val card = state.exercises.first { it.programExerciseId == focus.programExerciseId }
+        val title = if (focus.slot == Slot.SS) card.partnerTitle.orEmpty() else card.title
+        val tracking = if (focus.slot == Slot.SS) card.partnerTracking ?: TrackingType.WEIGHTED else card.tracking
+        val set = tracks.tracks.firstOrNull {
+            it.programExerciseId == focus.programExerciseId && it.slot == focus.slot
+        }?.sets?.getOrNull(focus.index) ?: return ""
+        val load = SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, repo.unitFlow.first(), spaced = true)
+        val label = listOf(title, load.trim()).filter { it.isNotBlank() }.joinToString(" ")
+        return if (card.isSuperset) "Round ${focus.index + 1}, $label" else label
+    }
+
     private suspend fun trackFor(dayId: String, programExerciseId: Long, slot: String): List<LoggedSet> {
         val planId = repo.planIdOfSlot(programExerciseId) ?: return emptyList()
         return repo.dayTracksFlow(planId, dayId).first().tracks
@@ -1877,6 +2156,8 @@ class DayViewModel @Inject constructor(
             catalog = catalog,
         )
     }
+
+    private data class CommittedDay(val state: DayUiState, val tracks: DayTracks? = null)
 
     /** One day's worth of batched history reads (see [fetchDayHistory]): the A1
      *  "last time" chip and the performance-profile "Best" chip share the same

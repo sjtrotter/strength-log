@@ -26,6 +26,10 @@ object PhoneRestActions {
     }
 
     suspend fun skip(repo: TrackerRepository, runtime: RestRuntime) = locked {
+        skipLocked(repo, runtime)
+    }
+
+    internal suspend fun skipLocked(repo: TrackerRepository, runtime: RestRuntime) {
         repo.setPhoneRest(PhoneRestTimer.skip())
         runtime.cancel()
     }

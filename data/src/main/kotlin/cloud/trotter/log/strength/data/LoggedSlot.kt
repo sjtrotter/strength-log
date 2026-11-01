@@ -6,4 +6,5 @@ data class LoggedSlot(
     val programExerciseId: Long,
     val slot: String,
     val sets: List<LoggedSet>,
+    val exerciseId: String? = null,
 )

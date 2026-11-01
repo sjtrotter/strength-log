@@ -4,14 +4,17 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.OpenRun
 import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
@@ -346,5 +349,168 @@ class SetEditApplierRunTest {
         assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(delta(planId, "unknown").copy(done = null, weightLb = 125.0)))
         assertNull(repo.openRunFlow.first())
         assertTrue(repo.dayTracksFlow(planId, "A").first().tracks.isEmpty())
+    }
+
+    @Test fun `run identified swap opens the next run without changing the plan and swapping back restores its rows`() = runTest {
+        val plan = authored()
+        val id = squatId(plan)
+        val runId = db.programDao().day(plan, "A")!!.nextRunId
+        val beforeSlot = db.programDao().exercise(id)
+        val swap = ExerciseSwapDelta(dayId = "A", programExerciseId = id, exerciseId = "hack_squat",
+            exerciseName = "Hack Squat", editedAtMillis = 100, planId = plan, runId = runId)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(swap))
+        assertEquals(beforeSlot, db.programDao().exercise(id))
+        val open = repo.openRunFlow.first()!!
+        assertEquals(runId, open.id)
+        assertTrue(open.tracks.all { track -> track.sets.none { it.done } })
+        val original = open.tracks.single { it.exerciseId == "bb_back_squat" }
+        assertTrue(original.retired)
+        val active = open.tracks.single { it.programExerciseId == id && !it.retired }
+        assertEquals("hack_squat", active.exerciseId)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(swap))
+        assertEquals(open, repo.openRunFlow.first())
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(swap.copy(
+            exerciseId = "bb_back_squat", exerciseName = "Barbell Back Squat", editedAtMillis = 200,
+        )))
+        assertEquals(original.copy(retired = false), repo.openRunFlow.first()!!.tracks.single {
+            it.programExerciseId == id && !it.retired
+        })
+        assertEquals(beforeSlot, db.programDao().exercise(id))
+    }
+
+    @Test fun `run identified swap refuses another open workout without changing anything`() = runTest {
+        val plan = authored()
+        val other = repo.duplicatePlan(plan, "Other")
+        val openId = phoneStart(other)
+        val beforeRun = repo.openRunFlow.first()
+        val beforeSlot = db.programDao().exercise(squatId(plan))
+        assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = squatId(plan), exerciseId = "hack_squat", exerciseName = "Hack Squat",
+            editedAtMillis = 100, planId = plan, runId = db.programDao().day(plan, "A")!!.nextRunId,
+        )))
+        assertEquals(openId, repo.openRunFlow.first()!!.id)
+        assertEquals(beforeRun, repo.openRunFlow.first())
+        assertEquals(beforeSlot, db.programDao().exercise(squatId(plan)))
+    }
+
+    @Test fun `value guards follow the performed substitute instead of the plans rep window`() = runTest {
+        val plan = authored()
+        val id = squatId(plan)
+        repo.setPrescription(id, Prescription(PrescribedTarget.RepsInTime(90, 30)))
+        val runId = db.programDao().day(plan, "A")!!.nextRunId
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
+            editedAtMillis = 100, planId = plan, runId = runId,
+        )))
+        val edit = delta(plan, runId, stamp = 200).copy(exerciseId = "hack_squat", done = null, weightLb = 77.0, reps = 9, seconds = 15)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit))
+        val row = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }.sets.first()
+        assertEquals(77.0, row.weightLb, 0.0)
+        assertEquals(9, row.reps)
+        assertEquals(0, row.seconds)
+    }
+
+    @Test fun `closing the next run during swap validation cannot start its successor`() = runTest {
+        val plan = authored()
+        val runId = db.programDao().day(plan, "A")!!.nextRunId
+        val id = squatId(plan)
+        applier = SetEditApplier(repo, RecordingMarkers {
+            phoneStart(plan)
+            repo.finishRun(runId)
+        }, syncStore)
+        assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
+            editedAtMillis = 100, planId = plan, runId = runId,
+        )))
+        assertNull(repo.openRunFlow.first())
+        assertNotEquals(runId, db.programDao().day(plan, "A")!!.nextRunId)
+        assertEquals("bb_back_squat", db.programDao().exercise(id)!!.exerciseId)
+    }
+    @Test fun `a duplicate next run swap is applied without opening a run or changing working values`() = runTest {
+        val plan = authored()
+        val id = squatId(plan)
+        val seed = seeds(plan).first { it.programExerciseId == id }
+        repo.seedIfEmpty("A", id, Slot.MAIN, seed.sets)
+        val before = db.programDao().logsForDay(plan, "A")
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = id, exerciseId = "bb_back_squat", exerciseName = "Squat",
+            editedAtMillis = 100, planId = plan, runId = next,
+        )))
+        assertNull(repo.openRunFlow.first())
+        assertEquals(before, db.programDao().logsForDay(plan, "A"))
+        assertEquals(next, db.programDao().day(plan, "A")!!.nextRunId)
+    }
+
+    @Test fun `a stale duplicate checks the performed identity after a phone swap during validation`() = runTest {
+        val plan = authored()
+        val id = squatId(plan)
+        val runId = phoneStart(plan)
+        val seed = DayScreenBuilder.swapSeed(repo.slotsFor(plan, "A").first().first(), Slot.MAIN,
+            "hack_squat", emptyMap(), repo.wizardAnswersFor(plan).first().config, repo.catalogFlow.first())!!
+        var afterPhoneSwap: OpenRun? = null
+        val markers = RecordingMarkers {
+            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, seed.sets)))
+            afterPhoneSwap = repo.openRunFlow.first()
+        }
+        markers.markApplied("A|$id|swap", 200)
+        applier = SetEditApplier(repo, markers, syncStore)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
+            editedAtMillis = 100, planId = plan, runId = runId,
+        )))
+        assertEquals(afterPhoneSwap, repo.openRunFlow.first())
+    }
+
+    @Test fun `an old watch swap back reopens the plan exercise without clearing working values`() = runTest {
+        val plan = authored()
+        val id = squatId(plan)
+        val runId = phoneStart(plan)
+        val original = repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id }
+        val logs = db.programDao().logsForDay(plan, "A")
+        val swap = ExerciseSwapDelta(dayId = "A", programExerciseId = id, exerciseId = "hack_squat",
+            exerciseName = "Hack Squat", editedAtMillis = 100, planId = plan, runId = runId)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(swap))
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(swap.copy(
+            exerciseId = "bb_back_squat", exerciseName = "Squat", editedAtMillis = 200, runId = null,
+        )))
+        assertEquals(original, repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired })
+        assertEquals(logs, db.programDao().logsForDay(plan, "A"))
+        assertEquals("bb_back_squat", db.programDao().exercise(id)!!.exerciseId)
+    }
+
+    @Test fun `watch Start seeds a missing SS to its MAIN remembered length`() = runTest {
+        val plan = authored()
+        val curl = repo.slotsFor(plan, "A").first().first { it.exercise.exerciseId == "ez_curl" }
+        val remembered = List(5) { LoggedSet(60.0, 8, SetKind.WORK) }
+        repo.seedIfEmpty("A", curl.programExerciseId, Slot.MAIN, remembered)
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = squatId(plan), exerciseId = "hack_squat", exerciseName = "Hack Squat",
+            editedAtMillis = 100, planId = plan, runId = db.programDao().day(plan, "A")!!.nextRunId,
+        )))
+        val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == curl.programExerciseId }
+        assertEquals(remembered, tracks.single { it.slot == Slot.MAIN }.planned)
+        assertEquals(5, tracks.single { it.slot == Slot.SS }.sets.size)
+    }
+
+    @Test fun `a stale duplicate cannot reopen its target after a phone swap changes the performed identity`() = runTest {
+        val plan = authored()
+        val id = squatId(plan)
+        val runId = phoneStart(plan)
+        val seed = DayScreenBuilder.swapSeed(repo.slotsFor(plan, "A").first().first(), Slot.MAIN,
+            "hack_squat", emptyMap(), repo.wizardAnswersFor(plan).first().config, repo.catalogFlow.first())!!
+        var afterPhoneSwap: OpenRun? = null
+        val markers = RecordingMarkers {
+            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, seed.sets)))
+            afterPhoneSwap = repo.openRunFlow.first()
+        }
+        markers.markApplied("A|$id|swap", 200)
+        applier = SetEditApplier(repo, markers, syncStore)
+        assertEquals(SetEditApplier.Outcome.STALE, applier.apply(ExerciseSwapDelta(
+            dayId = "A", programExerciseId = id, exerciseId = "bb_back_squat", exerciseName = "Squat",
+            editedAtMillis = 100, planId = plan, runId = runId,
+        )))
+        assertEquals(afterPhoneSwap, repo.openRunFlow.first())
+        assertEquals("hack_squat", repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }.exerciseId)
     }
 }

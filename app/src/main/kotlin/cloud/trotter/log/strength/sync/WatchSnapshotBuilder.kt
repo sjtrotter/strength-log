@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.LoggedSlot
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -11,14 +12,12 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.RestPolicy
@@ -158,15 +157,16 @@ object WatchSnapshotBuilder {
         restSettings: RestSettings,
         equipment: Set<Equipment>,
     ): WatchExercise {
-        val pe = slot.exercise
         val id = slot.programExerciseId
-        val entry = catalog.find(pe.exerciseId)
-        val tracking = pe.prescription?.tracking ?: entry?.tracking ?: TrackingType.WEIGHTED
+        val performed = performedExercise(slot, logsByKey[id to Slot.MAIN]?.exerciseId, catalog)
+        val pe = slot.exercise
+        val entry = performed.entry
+        val tracking = performed.tracking
         // Routed through targetFor so a reclassified REPS/TIMED slot never hits
         // goalFor's error() branch. The numeric goal stays canonical lb, including
         // a prescribed hold's added load. goalLabel is the type-safe display groundwork.
-        val target = entry?.let { GoalCalculator.targetFor(it, cfg) }
-        val prescribedTarget = pe.prescription?.target
+        val target = performed.goal(cfg)
+        val prescribedTarget = performed.prescription?.target
         val goalLb = when (prescribedTarget) {
             is PrescribedTarget.LoadReps -> prescribedTarget.lb
             is PrescribedTarget.Hold -> prescribedTarget.addedLb
@@ -177,9 +177,12 @@ object WatchSnapshotBuilder {
                 is GoalTarget.Reps, null -> 0.0
             }
         }
-        val header = DayScreenBuilder.headerTarget(pe, target ?: GoalTarget.Weight(0.0, false), unit)
+        val header = DayScreenBuilder.headerTarget(pe.copy(prescription = performed.prescription), target ?: GoalTarget.Weight(0.0, false), unit)
         val repWindow = prescribedTarget as? PrescribedTarget.RepsInTime
-        val partnerEntry = pe.superset?.let { catalog.find(it.exerciseId) }
+        val partner = pe.superset?.let {
+            performedExercise(slot, logsByKey[id to Slot.SS]?.exerciseId, catalog, Slot.SS)
+        }
+        val partnerEntry = partner?.entry
         val main = logsByKey[id to Slot.MAIN]?.sets
             ?: previewSeeds[id to Slot.MAIN]?.sets
             ?: DayScreenBuilder.previewMainSets(slot, cfg, catalog)
@@ -195,30 +198,32 @@ object WatchSnapshotBuilder {
             // dropped) because the DTO shape is frozen; a future schemaVersion can
             // retire it (see report).
             slot = Slot.MAIN,
-            name = entry?.watchName ?: pe.exerciseId,
+            name = entry?.watchName ?: performed.exerciseId,
             goal = goalLb,
-            goalLabel = if (pe.prescription != null) DayScreenBuilder.headerTargetLabel(header)
+            goalLabel = if (performed.prescription != null) DayScreenBuilder.headerTargetLabel(header)
                 else target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
             targetDetail = DayScreenBuilder.headerTargetDetail(header),
             repWindowSeconds = repWindow?.seconds ?: 0,
             repAim = repWindow?.repAim,
-            prescribed = pe.prescription != null,
+            prescribed = performed.prescription != null,
             // Enum name lowercased; the watch parses it back to pick a per-type control.
             // Unknown/missing entry falls back to "weighted", which older
             // snapshots also assume.
             tracking = tracking.name.lowercase(),
             // Same encoding, for the superset partner (meaningless without one).
-            ssTracking = (partnerEntry?.tracking ?: TrackingType.WEIGHTED).name.lowercase(),
+            ssTracking = (partner?.tracking ?: TrackingType.WEIGHTED).name.lowercase(),
             perHand = entry?.perHand == true,
             supersetPartnerName = partnerEntry?.watchName,
             // Main track carries the round's rest; the partner rows carry 0 so the
             // wire holds exactly one rest per round (the watch never tie-breaks).
             sets = main.map { it.toWatchSet(restAfterSecondsFor(it, tracking, restSettings)) },
             ssSets = ss.map { it.toWatchSet(restAfterSeconds = 0) },
-            alternates = alternatesFor(pe.exerciseId, catalog, equipment),
+            alternates = (listOfNotNull(slot.exercise.exerciseId.takeIf { it != performed.exerciseId }?.let { plannedId ->
+                WatchAlternate(plannedId, catalog.find(plannedId)?.watchName ?: plannedId)
+            }) + alternatesFor(performed.exerciseId, catalog, equipment)).distinctBy { it.exerciseId }.take(MAX_ALTERNATES),
             // The slot's content identity, which is what a swap is acked by — never
             // its display name (see WatchExercise.exerciseId).
-            exerciseId = pe.exerciseId,
+            exerciseId = performed.exerciseId,
         )
     }
 

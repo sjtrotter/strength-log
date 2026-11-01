@@ -607,4 +607,30 @@ class DayScreenBuilderTest {
             DayScreenBuilder.topSetComparison(listOf(top(topLb, 5)), LastPerformed(lastLb, 5), WeightUnit.KG),
         )
     }
+
+    @Test fun `swap seeds drop MAIN prescription and size a new SS from live MAIN without reseeding existing tracks`() {
+        val cfg = LifterConfig()
+        val catalog = ExerciseCatalog.CODE_ONLY
+        val pe = ProgramExercise("bb_back_squat", targetSets = 2,
+            prescription = Prescription(PrescribedTarget.LoadReps(100.0, 5)), superset = SupersetPartner("ez_curl"))
+        val slot = ProgramSlot(1L, 0, pe)
+        val existing = mapOf((1L to Slot.MAIN) to 7, (1L to Slot.SS) to 7)
+        val main = DayScreenBuilder.swapSeed(slot, Slot.MAIN, "hack_squat", existing, cfg, catalog)!!
+        assertEquals(SetSeeder.seed(pe.copy(exerciseId = "hack_squat", prescription = null),
+            GoalCalculator.targetFor(catalog.get("hack_squat"), cfg), cfg), main.sets)
+        val ss = DayScreenBuilder.swapSeed(slot, Slot.SS, "rope_pushdown", existing, cfg, catalog)!!
+        assertEquals(SetSeeder.seedPartner(7, GoalCalculator.targetFor(catalog.get("rope_pushdown"), cfg)), ss.sets)
+        assertTrue(DayScreenBuilder.seedPlan(listOf(slot), existing, cfg, catalog).isEmpty())
+    }
+
+    @Test fun `swap back seeds use the plan prescription while substitute seeds use goal math`() {
+        val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8))
+        val slot = ProgramSlot(1L, 0, ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription))
+        val cfg = LifterConfig()
+        val back = DayScreenBuilder.swapSeed(slot, Slot.MAIN, "bb_back_squat", emptyMap(), cfg, catalog)!!
+        assertEquals(SetSeeder.seedPrescribed(2, prescription), back.sets)
+        val substitute = DayScreenBuilder.swapSeed(slot, Slot.MAIN, "hack_squat", emptyMap(), cfg, catalog)!!
+        val exercise = slot.exercise.copy(exerciseId = "hack_squat", prescription = null)
+        assertEquals(SetSeeder.seed(exercise, GoalCalculator.targetFor(catalog.get("hack_squat"), cfg), cfg), substitute.sets)
+    }
 }

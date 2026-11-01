@@ -114,6 +114,7 @@ fun DayScreen(
     // The sheet stays inside the day feature; its shared ViewModel restores
     // the open editor and prescription draft after process death.
     val showEditSheet = dayEditState.editorOpen
+    val currentDayEditState = rememberUpdatedState(dayEditState)
     // The page menu reuses the day editor's slot picker.
     var swapCardSlotId by rememberSaveable { mutableStateOf<Long?>(null) }
     // Clearing the entire day retains its confirmation; single-set removal offers Undo.
@@ -163,6 +164,13 @@ fun DayScreen(
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val snackbarHost = remember { SnackbarHostState() }
+    val otherWorkoutMessage = stringResource(R.string.day_swap_other_workout_open)
+    LaunchedEffect(dayEditState.otherWorkoutOpenMessage) {
+        if (dayEditState.otherWorkoutOpenMessage) {
+            scope.launch { snackbarHost.showSnackbar(otherWorkoutMessage) }
+            dayEditActions.onMessageShown()
+        }
+    }
     val removedMessage = stringResource(R.string.day_set_removed)
     val undoLabel = stringResource(R.string.day_undo)
     LaunchedEffect(openOffer, removedSets.size) {
@@ -444,7 +452,9 @@ fun DayScreen(
                                     onAllSets = { actions.onOpenAllSets(card.programExerciseId) },
                                     canSwap = card.programExerciseId in swappableSlotIds,
                                     onSwap = { swapCardSlotId = card.programExerciseId },
-                                    onSwapWeight = dayEditActions.onSwap,
+                                    onSwapWeight = remember(card, dayEditActions) {
+                                        { _, exerciseId -> dayEditActions.swapWeight(card, currentDayEditState.value, exerciseId) }
+                                    },
                                     onNote = { noteCardId = card.programExerciseId },
                                     timedRep = state.timedRep,
                                     executionBusy = state.executionBusy,
@@ -536,7 +546,13 @@ fun DayScreen(
         )
     }
 
-    val swapSlot = dayEditState.slots.firstOrNull { it.programExerciseId == swapCardSlotId }
+    val swapSlot = dayEditState.slots.firstOrNull { it.programExerciseId == swapCardSlotId }?.let { planned ->
+        val card = state.exercises.firstOrNull { it.programExerciseId == planned.programExerciseId }
+        val entry = card?.exerciseId?.let(dayEditState.catalog::find)
+        if (card == null || entry == null) planned else planned.copy(
+            exerciseId = card.exerciseId, title = card.title, pattern = entry.pattern,
+        )
+    }
     if (swapSlot != null && swapSlot.pattern != null) {
         SlotSwapSheet(
             slot = swapSlot,
@@ -544,6 +560,7 @@ fun DayScreen(
             state = dayEditState,
             accent = accent,
             onSwap = dayEditActions.onSwap,
+            onWorkoutSwap = dayEditActions.onWorkoutSwap,
             onDismiss = { swapCardSlotId = null },
             onCreateExercise = actions.onCreateExercise,
         )

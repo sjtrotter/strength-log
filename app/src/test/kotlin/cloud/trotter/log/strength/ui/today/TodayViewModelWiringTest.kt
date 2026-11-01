@@ -761,4 +761,17 @@ class TodayViewModelWiringTest {
 
         assertEquals(UiText.TodayProgress(1, 2), today.uiState.value.coachLine)
     }
+
+    @Test fun todayShowsThePerformedLiftAndContinuesAnExplicitlyStartedWorkout() = runVmTest {
+        insertProgram()
+        val today = newTodayViewModel()
+        val day = newDayViewModel()
+        advanceUntilIdle()
+        val slot = day.uiState.value.exercises.first()
+        day.swapWorkoutSlot(slot.position, "hack_squat")
+        advanceUntilIdle()
+        assertEquals("Hack Squat", today.uiState.value.lifts.first().name)
+        assertTrue(repo.openRunFlow.first()!!.tracks.all { track -> track.sets.none { it.done } })
+        assertEquals(TodayScreenBuilder.actionLabel("A", 0, today.uiState.value.lifts.sumOf { it.setCount }, started = true), today.uiState.value.actionLabel)
+    }
 }

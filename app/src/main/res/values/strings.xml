@@ -704,4 +704,8 @@
     <string name="plans_use_alongside">Use alongside</string>
     <string name="plans_use_only">Use only this plan</string>
     <string name="plans_make_preferred">Make preferred</string>
+    <string name="day_swap_this_workout">This workout</string>
+    <string name="day_swap_the_plan">The plan</string>
+    <string name="day_swap_apply">Swap</string>
+    <string name="day_swap_other_workout_open">Another workout is open</string>
 </resources>

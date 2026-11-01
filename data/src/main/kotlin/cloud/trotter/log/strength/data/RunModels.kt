@@ -7,6 +7,15 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 /** Initial working values for a slot with no stored log. */
 data class RunSeed(val programExerciseId: Long, val slot: String, val sets: List<LoggedSet>)
 
+enum class ExerciseSwapResult { CHANGED, ALREADY_THERE, REJECTED }
+
+sealed interface RunStartResult {
+    data class Started(val runId: String) : RunStartResult
+    data class AlreadyOpen(val runId: String) : RunStartResult
+    data class OtherRunOpen(val runId: String, val planId: Long?, val dayId: String?) : RunStartResult
+    data object NoStrengthSlots : RunStartResult
+}
+
 /** An edit addressed to a captured exercise or the current non-retired slot. */
 data class TrackEdit(
     val programExerciseId: Long,

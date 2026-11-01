@@ -62,4 +62,15 @@ class RunReplanTest {
         assertEquals(partner + partnerSeed.last(), result.second)
         assertEquals(seeded(4).mapIndexed { i, row -> row.copy(plannedIndex = i.takeIf { it < 3 }) }, result.first)
     }
+
+    @Test fun `swap alignment pads only the shorter side without replacing any existing row`() {
+        val main = current().mapIndexed { i, row -> row.copy(done = i == 2, watchEditedAt = 123L) }
+        val partner = current().take(1).map { it.copy(done = true, weightLb = 42.0) }
+        val result = RunReplan.alignPaired(main, partner, seeded(3), seeded(3))
+        assertEquals(main, result.first)
+        assertEquals(partner + seeded(2), result.second)
+        val reverse = RunReplan.alignPaired(partner, main, seeded(1), seeded(3))
+        assertEquals(partner + seeded(2), reverse.first)
+        assertEquals(main, reverse.second)
+    }
 }

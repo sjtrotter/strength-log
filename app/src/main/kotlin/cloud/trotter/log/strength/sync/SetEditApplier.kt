@@ -1,13 +1,13 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.performedExercise
+import cloud.trotter.log.strength.data.ExerciseSwapResult
 import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
@@ -57,6 +57,7 @@ class SetEditApplier(
         if (delta.slot == Slot.SS && slot.exercise.superset == null) return Outcome.INVALID
 
         val catalog = repo.catalogFlow.first()
+        val tracks = repo.dayTracksFlow(planId, delta.dayId).first().tracks
         var declined: Outcome? = null
         val edits = mutableListOf<TrackEdit>()
         fun edit(trackSlot: String, values: Boolean): TrackEdit = TrackEdit(
@@ -73,10 +74,10 @@ class SetEditApplier(
                 declined = Outcome.STALE
                 null
             } else {
-                val exerciseId = if (trackSlot == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
-                val prescription = slot.exercise.prescription.takeIf { trackSlot == Slot.MAIN }
-                val tracking = prescription?.tracking ?: exerciseId?.let { catalog.find(it)?.tracking } ?: TrackingType.WEIGHTED
-                val guarded = delta.guardedFor(tracking)
+                val exerciseId = delta.exerciseId?.takeIf { delta.runId != null && values && it.isNotBlank() }
+                    ?: tracks.firstOrNull { it.programExerciseId == slot.programExerciseId && it.slot == trackSlot }?.exerciseId
+                val performed = performedExercise(slot, exerciseId, catalog, trackSlot)
+                val guarded = delta.guardedFor(performed.tracking)
                 var updated = track
                 if (values) {
                     guarded.weightLb?.let { updated = SetEditor.editWeight(updated, delta.setIndex, it) }
@@ -89,7 +90,6 @@ class SetEditApplier(
                 }
             }
         }
-        val tracks = repo.dayTracksFlow(planId, delta.dayId).first().tracks
         val seeds = if (delta.runId == null) emptyList() else {
             val existing = tracks
                 .associate { (it.programExerciseId to it.slot) to it.sets.size }
@@ -120,39 +120,26 @@ class SetEditApplier(
     }
 
     /**
-     * Applies a watch [ExerciseSwapDelta] — "use one of the alternates you prescribed
-     * for this slot" (docs/briefs/wear-dial-v3.md §5). Runs under the same
-     * [mutationLock] as a set edit: a swap clears the slot's log, and it must not
-     * interleave with a delta writing to it.
-     *
-     * The application itself is the phone's existing §8.3 swap and nothing else
-     * ([TrackerRepository.swapExerciseById] — the slot keeps its `programExerciseId`,
-     * its working values are cleared). A swap during a run retires the old track
-     * when it holds done work and seeds the new exercise into the run.
-     *
-     * Validation and reseeding follow the slot's plan, independent of selection.
+     * Applies a watch [ExerciseSwapDelta] under the set edits' [mutationLock].
+     * A run-identified swap changes only the workout, starting the day's next run
+     * if needed. Legacy swaps change the plan; returning to its exercise reopens
+     * the original run track. Validation and seeding follow the slot's owning plan.
      *
      * Guards:
-     *  - **Validation** — the day must hold a slot with this `programExerciseId`.
-     *  - **Already there** — a slot already holding the requested exercise is
-     *    [Outcome.APPLIED] with no write, and it is checked before anything that
-     *    could fall through to one. This is what makes a re-send safe: the watch
-     *    re-sends until a snapshot confirms, and a blind second swap would clear a
-     *    log the lifter has since filled.
-     *  - **Dedupe** — per slot, by `editedAtMillis`, same rule as a set edit. Ahead
-     *    of the authority check because a message we have already answered is not
-     *    worth evaluating, and because a hostile far-future stamp must be rejected
-     *    *without* marking anything: the marker only advances on a real write, so a
-     *    forged stamp can never starve a legitimate swap.
-     *  - **Authority** — the requested exercise must be one of the alternates *this
-     *    phone* would prescribe for the slot right now, re-derived through the same
-     *    [WatchSnapshotBuilder.alternatesFor] that put them on the wire rather than
-     *    trusted from the message. "The watch never invents alternates" (brief §6) is
-     *    an enforced invariant, not a convention, because this arrives through an
-     *    exported service. It also rejects, correctly, a swap chosen against a
-     *    snapshot the phone has since moved past.
-     *  - **Run identity** — validated inside the swap transaction so Finish cannot
-     *    retarget a delayed swap to another run.
+     * - **Validation** — the named slot must belong to this plan and day.
+     * - **Already there** — the repository compares the performed exercise inside
+     *   the swap transaction. A duplicate returns [Outcome.APPLIED] without a write,
+     *   even with a stale stamp; it cannot reopen a retired track or start a run.
+     * - **Dedupe before authority** — only a newer stamp can authorize a change.
+     *   Markers advance only after a committed mutation, so a forged far-future
+     *   stamp on an unauthorized swap cannot starve a legitimate swap.
+     * - **Authority** — targets are the plan exercise and the performed exercise's
+     *   alternates, re-derived through [WatchSnapshotBuilder.alternatesFor] with
+     *   this plan's equipment. The exported service never trusts message names
+     *   or a watch-provided alternates list.
+     * - **Run identity** — checked in the mutation transaction so Finish cannot
+     *   retarget a delayed swap to a successor run. A refusal is acknowledged;
+     *   a thrown transaction leaves its stamp unacknowledged for retry.
      */
     suspend fun apply(swap: ExerciseSwapDelta): Outcome = mutationLock.withLock {
         applySwap(swap).also { ackLog.recordProcessedEdit(swap.editedAtMillis) }
@@ -164,20 +151,41 @@ class SetEditApplier(
         val slot = slots.firstOrNull { it.programExerciseId == swap.programExerciseId }
             ?: return Outcome.INVALID
 
-        if (slot.exercise.exerciseId == swap.exerciseId) return Outcome.APPLIED
-
-        val rowKey = "${swap.dayId}|${swap.programExerciseId}|swap"
-        if (swap.editedAtMillis <= markers.lastApplied(rowKey)) return Outcome.STALE
-
         val catalog = repo.catalogFlow.first()
-        val equipment = repo.wizardAnswersFor(planId).first().equipment
-        val prescribed = WatchSnapshotBuilder.alternatesFor(slot.exercise.exerciseId, catalog, equipment)
-        if (prescribed.none { it.exerciseId == swap.exerciseId }) return Outcome.INVALID
-
-        if (!repo.swapExerciseById(swap.dayId, swap.programExerciseId, swap.exerciseId, swap.runId)) {
-            return Outcome.REJECTED
+        val tracks = repo.dayTracksFlow(planId, swap.dayId).first()
+        val performed = performedExercise(slot, tracks.tracks.firstOrNull {
+            it.programExerciseId == slot.programExerciseId && it.slot == Slot.MAIN
+        }?.exerciseId, catalog)
+        val rowKey = "${swap.dayId}|${swap.programExerciseId}|swap"
+        val stale = swap.editedAtMillis <= markers.lastApplied(rowKey)
+        val answers = repo.wizardAnswersFor(planId).first()
+        val declined = when {
+            stale -> Outcome.STALE
+            swap.exerciseId != slot.exercise.exerciseId && swap.exerciseId != performed.exerciseId &&
+                WatchSnapshotBuilder.alternatesFor(performed.exerciseId, catalog, answers.equipment)
+                    .none { it.exerciseId == swap.exerciseId } -> Outcome.INVALID
+            else -> null
         }
-        seedSwappedSlot(planId, swap.dayId, swap.programExerciseId, catalog)
+        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
+        val runId = swap.runId
+        val seeds = if (runId != null && declined == null) {
+            DayScreenBuilder.seedPlan(slots, existing, answers.config, catalog)
+                .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
+        } else emptyList()
+        val seed = if (runId != null && declined == null) {
+            DayScreenBuilder.swapSeed(slot, Slot.MAIN, swap.exerciseId, existing, answers.config, catalog)
+                ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
+        } else null
+        when (repo.applyExerciseSwap(
+            planId, swap.dayId, slot.programExerciseId, swap.exerciseId, runId, seed, seeds,
+            allowChange = declined == null,
+        )) {
+            ExerciseSwapResult.ALREADY_THERE -> return Outcome.APPLIED
+            ExerciseSwapResult.REJECTED -> return declined ?: Outcome.REJECTED
+            ExerciseSwapResult.CHANGED -> if (runId == null) {
+                seedSwappedSlot(planId, swap.dayId, swap.programExerciseId, catalog)
+            }
+        }
         markers.markApplied(rowKey, swap.editedAtMillis)
         return Outcome.APPLIED
     }
@@ -200,7 +208,7 @@ class SetEditApplier(
     }
 
     /** Writes the watch-observed start/complete millis onto the delta's row. They are
-     *  facts, not tracked fields, so no [TrackingType] strips them ([guardedFor]) and
+     *  facts, not tracked fields, so no tracking guard strips them ([guardedFor]) and
      *  they land whatever else the delta carries — in practice they ride with the
      *  tick that produced them. Null keeps the stored value, the same
      *  "null means unchanged" rule every other delta field follows.

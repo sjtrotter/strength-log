@@ -1,13 +1,12 @@
 package cloud.trotter.log.strength.ui.setup
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,16 +14,28 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.Switch
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,53 +44,30 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
-import cloud.trotter.log.strength.domain.generator.WizardAnswers
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
-import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
-import cloud.trotter.log.strength.ui.components.AppCard
-import cloud.trotter.log.strength.ui.components.BodyweightStepper
-import cloud.trotter.log.strength.ui.components.BodyweightInput
-import cloud.trotter.log.strength.ui.components.BackAction
 import cloud.trotter.log.strength.ui.components.DialogAction
-import cloud.trotter.log.strength.ui.components.SelectionCard
 import cloud.trotter.log.strength.ui.components.Stepper
 import cloud.trotter.log.strength.ui.components.SwitchToggle
-import cloud.trotter.log.strength.ui.components.pressableSelectable
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.ui.theme.Background
 import cloud.trotter.log.strength.ui.theme.Border
-import cloud.trotter.log.strength.ui.theme.DisplayXl
 import cloud.trotter.log.strength.ui.theme.DoneButtonLabel
 import cloud.trotter.log.strength.ui.theme.Error
+import cloud.trotter.log.strength.ui.theme.ReadableWidth
 import cloud.trotter.log.strength.ui.theme.TextPrimary
 import cloud.trotter.log.strength.ui.theme.TextSecondary
-import cloud.trotter.log.strength.ui.theme.accentEmphasis
-import cloud.trotter.log.strength.ui.theme.readableWidth
 
-/**
- * The setup screen (spec §8.4): steppers/selectors for the GOAL inputs, a live
- * preview of the four main-lift GOALs those inputs drive,
- * and the lb/kg display toggle.
- * Stateless: renders [state] and forwards every intent to [SetupActions] —
- * every field commits immediately (no draft, unlike the wizard), so leaving
- * this screen never loses an edit.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetupScreen(
     state: SetupUiState,
@@ -87,118 +75,111 @@ fun SetupScreen(
     openRestTimer: Boolean = false,
 ) {
     var showRestResetConfirm by rememberSaveable { mutableStateOf(false) }
-    val accent = accentEmphasis(0)
+    val rows = listOf("units", "theme", "keep_screen_on", "rest_timer", "custom_exercise", "backup", "licenses")
     val listState = rememberLazyListState()
     LaunchedEffect(openRestTimer) {
-        if (openRestTimer) listState.scrollToItem(11)
+        if (openRestTimer) listState.scrollToItem(rows.indexOf("rest_timer"))
     }
-
-    Box(modifier = Modifier.fillMaxSize().background(Background)) {
-        Column(readableWidth()) {
-            SetupHeader(actions.onBack)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings_title)) },
+                navigationIcon = {
+                    IconButton(onClick = actions.onBack, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.setup_back_description))
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.align(Alignment.TopCenter).widthIn(max = ReadableWidth).fillMaxSize(),
+                // The shortcut must align the section even on a tall screen.
+                contentPadding = PaddingValues(bottom = if (openRestTimer) maxHeight else 24.dp),
             ) {
-                item { Spacer(Modifier.size(4.dp)) }
-                item { SectionHeader(stringResource(R.string.setup_training_section)) }
-                item {
-                    Text(
-                        stringResource(R.string.day_rotation_footer),
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                items(rows, key = { it }) { row ->
+                    when (row) {
+                        "units" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.settings_units)) },
+                            supportingContent = {
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
+                                    WeightUnit.entries.forEachIndexed { index, unit ->
+                                        SegmentedButton(
+                                            selected = state.unit == unit,
+                                            onClick = { actions.onUnitToggle(unit) },
+                                            shape = SegmentedButtonDefaults.itemShape(index, WeightUnit.entries.size),
+                                            modifier = Modifier.heightIn(min = 48.dp),
+                                            icon = {},
+                                        ) { Text(unit.name.lowercase()) }
+                                    }
+                                }
+                            },
+                        )
+                        "theme" -> ListItem(
+                            headlineContent = { Text(stringResource(R.string.setup_theme_label)) },
+                            supportingContent = {
+                                val themes = listOf(
+                                    ThemePreference.SYSTEM to R.string.setup_theme_system_title,
+                                    ThemePreference.DARK to R.string.setup_theme_dark_title,
+                                    ThemePreference.LIGHT to R.string.setup_theme_light_title,
+                                )
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
+                                    themes.forEachIndexed { index, (theme, label) ->
+                                        SegmentedButton(
+                                            selected = state.themePreference == theme,
+                                            onClick = { actions.onThemePreferenceChange(theme) },
+                                            shape = SegmentedButtonDefaults.itemShape(index, themes.size),
+                                            modifier = Modifier.heightIn(min = 48.dp),
+                                            icon = {},
+                                        ) { Text(stringResource(label)) }
+                                    }
+                                }
+                            },
+                        )
+                        "keep_screen_on" -> {
+                            val label = stringResource(R.string.setup_keep_screen_on)
+                            ListItem(headlineContent = { Text(label) }, trailingContent = {
+                                Switch(state.keepScreenOn, actions.onKeepScreenOnChange,
+                                    modifier = Modifier.semantics { contentDescription = label })
+                            })
+                        }
+                        "rest_timer" -> Column(Modifier.padding(horizontal = 16.dp)) {
+                            SectionHeader(stringResource(R.string.setup_rest_timer_section))
+                            RestTimerSection(
+                                state.restTimerEnabled, state.phoneRestTimerEnabled, state.restCategories, actions,
+                                onResetDefaults = { showRestResetConfirm = true },
+                            )
+                        }
+                        "custom_exercise" -> SettingsLink(stringResource(R.string.settings_custom_exercise), actions.onCreateCustomExercise)
+                        "backup" -> SettingsLink(stringResource(R.string.settings_backup), actions.onOpenBackup)
+                        "licenses" -> SettingsLink(stringResource(R.string.settings_licenses), actions.onOpenLicenses)
+                    }
                 }
-                item { GoalPreviewCard(state.goalPreview, accent) }
-                item { BodyweightCard(state.config.bodyweightLb, state.unit, actions.onBodyweightChange) }
-                item { AgeCard(state.config.age, actions.onAgeChange) }
-                item { LevelSection(state.config.level, actions.onLevelChange) }
-                item { EmphasisSection(state.config.emphasis, actions.onEmphasisChange) }
-                item { SectionHeader(stringResource(R.string.setup_display_section)) }
-                item { UnitCard(state.unit, actions.onUnitToggle) }
-                item { ThemeSection(state.themePreference, actions.onThemePreferenceChange) }
-                item { SectionHeader(stringResource(R.string.setup_rest_timer_section)) }
-                item {
-                    RestTimerSection(
-                        state.restTimerEnabled,
-                        state.phoneRestTimerEnabled,
-                        state.restCategories,
-                        actions,
-                        onResetDefaults = { showRestResetConfirm = true },
-                    )
-                }
-                item {
-                    val label = stringResource(R.string.setup_keep_screen_on)
-                    ListItem(headlineContent = { Text(label) }, trailingContent = {
-                        Switch(state.keepScreenOn, actions.onKeepScreenOnChange,
-                            modifier = Modifier.semantics { contentDescription = label })
-                    })
-                }
-                item { SectionHeader(stringResource(R.string.setup_data_section)) }
-                item { CreateCustomExerciseButton(accent, actions.onCreateCustomExercise) }
-                item { DataBackupButton(accent, actions.onOpenBackup) }
-                item { SectionHeader(stringResource(R.string.setup_about_section)) }
-                item { LicensesButton(actions.onOpenLicenses) }
-                item { Spacer(Modifier.size(20.dp)) }
-                item { Spacer(Modifier.size(8.dp)) }
             }
         }
-        if (showRestResetConfirm) {
-            RestDefaultsConfirmDialog(
-                onConfirm = {
-                    showRestResetConfirm = false
-                    actions.onRestOverridesReset()
-                },
-                onDismiss = { showRestResetConfirm = false },
-            )
-        }
+    }
+    if (showRestResetConfirm) {
+        RestDefaultsConfirmDialog(
+            onConfirm = {
+                showRestResetConfirm = false
+                actions.onRestOverridesReset()
+            },
+            onDismiss = { showRestResetConfirm = false },
+        )
     }
 }
 
 @Composable
-private fun ThemeSection(theme: ThemePreference, onChange: (ThemePreference) -> Unit) {
-    val copy = listOf(
-        ThemePreference.SYSTEM to (R.string.setup_theme_system_title to R.string.setup_theme_system_description),
-        ThemePreference.DARK to (R.string.setup_theme_dark_title to R.string.setup_theme_dark_description),
-        ThemePreference.LIGHT to (R.string.setup_theme_light_title to R.string.setup_theme_light_description),
+private fun SettingsLink(label: String, onClick: () -> Unit) {
+    ListItem(
+        headlineContent = { Text(label) },
+        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) },
+        modifier = Modifier.clickable(onClick = onClick),
     )
-    Column(
-        modifier = Modifier.selectableGroup(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(stringResource(R.string.setup_theme_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        copy.forEach { (value, resources) ->
-            SelectionCard(
-                title = stringResource(resources.first),
-                subtitle = stringResource(resources.second),
-                selected = theme == value,
-                onClick = { onChange(value) },
-            )
-        }
-    }
 }
 
-@Composable
-private fun SetupHeader(onBack: () -> Unit) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            BackAction(onBack)
-            Text(stringResource(R.string.setup_title), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-        }
-        HorizontalDivider(thickness = 1.dp, color = Border)
-    }
-}
-
-/**
- * A section rule: caps overline over a hairline, the same editorial divider
- * Today uses between its blocks. Plain text — never interactive, so it adds no
- * touch target to a screen that is otherwise all controls.
- */
 @Composable
 internal fun SectionHeader(label: String) {
     Column(Modifier.fillMaxWidth()) {
@@ -208,133 +189,6 @@ internal fun SectionHeader(label: String) {
         HorizontalDivider(thickness = 1.dp, color = Border)
     }
 }
-
-// --- live GOAL preview (spec §8.4) -------------------------------------------
-
-@Composable
-private fun GoalPreviewCard(items: List<GoalPreviewItem>, accent: Color) {
-    AppCard {
-        Text(stringResource(R.string.setup_goals_title), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        Spacer(Modifier.size(10.dp))
-        items.forEachIndexed { index, item ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(item.name, color = TextPrimary, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(item.display, color = accent, style = DisplayXl)
-                    if (item.perHand) {
-                        Text(stringResource(R.string.setup_per_hand_suffix), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
-            if (index != items.lastIndex) Spacer(Modifier.size(8.dp))
-        }
-    }
-}
-
-// --- bodyweight / age steppers ------------------------------------------------
-
-@Composable
-private fun BodyweightCard(canonicalLb: Int, unit: WeightUnit, onChange: (Double) -> Unit) {
-    RuledGroup {
-        BodyweightStepper(
-            canonicalLb = canonicalLb,
-            unit = unit,
-            label = stringResource(R.string.setup_bodyweight_label, unit.name.lowercase()),
-            decreaseDescription = stringResource(R.string.setup_decrease_bodyweight_description),
-            increaseDescription = stringResource(R.string.setup_increase_bodyweight_description),
-            onCanonicalLbChange = { onChange(BodyweightInput.display(it, unit)) },
-        )
-    }
-}
-
-@Composable
-private fun AgeCard(age: Int, onChange: (Int) -> Unit) {
-    RuledGroup {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.setup_age_label), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.weight(1f))
-            Stepper(
-                value = age.toDouble(),
-                onValueChange = { onChange(it.toInt()) },
-                step = { 1.0 },
-                minValue = 1.0,
-                format = { it.toInt().toString() },
-                decreaseDescription = stringResource(R.string.setup_decrease_age_description),
-                increaseDescription = stringResource(R.string.setup_increase_age_description),
-                inputLabel = stringResource(R.string.stepper_age_label),
-                inputUnit = stringResource(R.string.stepper_years_unit),
-                round = { Math.round(it).toDouble() },
-            )
-        }
-    }
-}
-
-// --- level / emphasis selectors (same copy as the wizard's About-you/Emphasis steps) ---
-
-@Composable
-private fun LevelSection(level: ExperienceLevel, onChange: (ExperienceLevel) -> Unit) {
-    Column(
-        modifier = Modifier.selectableGroup(),
-    ) {
-        Text(stringResource(R.string.setup_experience_level_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        Spacer(Modifier.size(6.dp))
-        RuledGroup {
-            ExperienceLevel.entries.forEachIndexed { index, entry ->
-                InlineChoiceRow(levelLabel(entry), level == entry) { onChange(entry) }
-                if (index != ExperienceLevel.entries.lastIndex) HorizontalDivider(color = Border)
-            }
-        }
-    }
-}
-
-@Composable
-private fun levelLabel(level: ExperienceLevel): String = when (level) {
-    ExperienceLevel.NOVICE -> stringResource(R.string.setup_level_novice)
-    ExperienceLevel.INTERMEDIATE -> stringResource(R.string.setup_level_intermediate)
-    ExperienceLevel.ADVANCED -> stringResource(R.string.setup_level_advanced)
-}
-
-@Composable
-private fun EmphasisSection(emphasis: GoalEmphasis, onChange: (GoalEmphasis) -> Unit) {
-    val options = listOf(
-        GoalEmphasis.STRENGTH to (stringResource(R.string.setup_emphasis_strength_title) to stringResource(R.string.setup_emphasis_strength_description)),
-        GoalEmphasis.BALANCED to (stringResource(R.string.setup_emphasis_balanced_title) to stringResource(R.string.setup_emphasis_balanced_description)),
-        GoalEmphasis.PHYSIQUE to (stringResource(R.string.setup_emphasis_physique_title) to stringResource(R.string.setup_emphasis_physique_description)),
-    )
-    Column(
-        modifier = Modifier.selectableGroup(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(stringResource(R.string.setup_emphasis_label), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        options.forEach { (value, copy) ->
-            SelectionCard(
-                title = copy.first,
-                subtitle = copy.second,
-                selected = emphasis == value,
-                onClick = { onChange(value) },
-            )
-        }
-    }
-}
-
-// --- unit toggle (A5) ---------------------------------------------------------
-
-@Composable
-private fun UnitCard(unit: WeightUnit, onToggle: (WeightUnit) -> Unit) {
-    RuledGroup {
-        SwitchToggle(
-            label = stringResource(R.string.setup_display_kilograms_toggle),
-            checked = unit == WeightUnit.KG,
-            onCheckedChange = { useKg -> onToggle(if (useKg) WeightUnit.KG else WeightUnit.LB) },
-        )
-    }
-}
-
-// --- rest timer (watch W2c: master toggle + per-category overrides) ----------
 
 @Composable
 private fun RestTimerSection(
@@ -412,23 +266,6 @@ private fun RuledGroup(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun InlineChoiceRow(label: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .pressableSelectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, color = if (selected) TextPrimary else TextSecondary, style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.weight(1f))
-        if (selected) {
-            Text("✓", color = accentEmphasis(0), modifier = Modifier.clearAndSetSemantics {})
-        }
-    }
-}
-
-@Composable
 private fun restCategoryLabel(category: RestCategory): String = when (category) {
     RestCategory.RAMP -> stringResource(R.string.setup_rest_category_warm_up)
     RestCategory.TOP -> stringResource(R.string.setup_rest_category_top_set)
@@ -441,48 +278,16 @@ private const val REST_STEP_SECONDS = 15.0
 
 @Composable
 private fun ResetRestDefaultsRow(onClick: () -> Unit) {
-    SetupOutlineAction(stringResource(R.string.setup_reset_defaults_button), TextSecondary, 48, 6, onClick)
-}
-
-// --- create custom exercise (D1: reachable from Setup and the day-edit picker) ---
-
-@Composable
-private fun CreateCustomExerciseButton(accent: Color, onClick: () -> Unit) {
-    SetupOutlineAction(stringResource(R.string.setup_create_custom_exercise_button), accent, 52, 8, onClick)
-}
-
-// --- data / backup (PLAN.md A2, D9) ------------------------------------------
-
-@Composable
-private fun DataBackupButton(accent: Color, onClick: () -> Unit) {
-    SetupOutlineAction(stringResource(R.string.setup_data_backup_button), accent, 52, 8, onClick)
-}
-
-// --- OSS licenses (Barlow Condensed OFL + third-party notices) -------
-
-@Composable
-private fun LicensesButton(onClick: () -> Unit) {
-    SetupOutlineAction(stringResource(R.string.setup_licenses_button), TextSecondary, 52, 6, onClick)
-}
-
-@Composable
-private fun SetupOutlineAction(
-    label: String,
-    color: Color,
-    minHeight: Int,
-    verticalPadding: Int,
-    onClick: () -> Unit,
-) {
     OutlinedButton(
         onClick = onClick,
-        // heightIn(min), not height (A7): long labels may wrap at large font scale.
-        modifier = Modifier.fillMaxWidth().heightIn(min = minHeight.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         shape = MaterialTheme.shapes.large,
-        border = BorderStroke(1.dp, color),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = color),
-        contentPadding = PaddingValues(vertical = verticalPadding.dp),
+        border = BorderStroke(1.dp, TextSecondary),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+        contentPadding = PaddingValues(vertical = 6.dp),
     ) {
-        Text(label, style = DoneButtonLabel, textAlign = TextAlign.Center, maxLines = 2)
+        Text(stringResource(R.string.setup_reset_defaults_button), style = DoneButtonLabel,
+            textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 
@@ -518,12 +323,9 @@ private fun SetupScreenPreviewContent(theme: ThemePreference) {
     AppTheme(preference = theme) {
         SetupScreen(
             state = SetupStateBuilder.buildUiState(
-                cfg = LifterConfig(),
                 unit = WeightUnit.LB,
-                answers = WizardAnswers(),
             ),
             actions = SetupActions(
-                onBodyweightChange = {}, onAgeChange = {}, onLevelChange = {}, onEmphasisChange = {},
                 onUnitToggle = {}, onRestTimerEnabledChange = {}, onRestOverrideChange = { _, _ -> },
                 onThemePreferenceChange = {},
                 onRestOverridesReset = {}, onCreateCustomExercise = {}, onOpenBackup = {},

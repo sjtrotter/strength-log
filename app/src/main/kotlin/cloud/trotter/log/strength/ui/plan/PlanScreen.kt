@@ -1,31 +1,32 @@
 package cloud.trotter.log.strength.ui.plan
 
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
-import cloud.trotter.log.strength.ui.day.DaySelection
-
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import cloud.trotter.log.strength.ui.components.AppAlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,12 +36,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
+import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
 import cloud.trotter.log.strength.ui.components.NoProgramState
 import cloud.trotter.log.strength.ui.components.ProgramLoadingState
+import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.cardioActivityName
+import cloud.trotter.log.strength.ui.setup.SectionHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +81,24 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                 if (state.days.count { it.kind == ProgramDayKind.STRENGTH } < 7) {
                     item(key = "add_day") {
                         TextButton(onClick = actions.onAddDay) { Text(stringResource(R.string.plan_add_day)) }
+                    }
+                }
+                if (state.emphasis != null) {
+                    item(key = "goals_header") {
+                        Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goals)) }
+                    }
+                    itemsIndexed(state.goals, key = { _, goal -> "goal_${goal.name}" }) { _, goal ->
+                        ListItem(
+                            headlineContent = { Text(goal.name) },
+                            trailingContent = {
+                                val suffix = if (goal.perHand) stringResource(R.string.setup_per_hand_suffix) else ""
+                                Text(goal.display + suffix, style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onSurface)
+                            },
+                        )
+                    }
+                    item(key = "emphasis") {
+                        EmphasisSection(state.emphasis, actions.onEmphasisChange)
                     }
                 }
             }
@@ -155,4 +181,28 @@ private fun PlanDayItem(day: PlanDay, state: PlanUiState, actions: PlanActions) 
             trailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
     )
+}
+
+@Composable
+private fun EmphasisSection(emphasis: GoalEmphasis, onChange: (GoalEmphasis) -> Unit) {
+    val options = listOf(
+        GoalEmphasis.STRENGTH to (R.string.setup_emphasis_strength_title to R.string.setup_emphasis_strength_description),
+        GoalEmphasis.BALANCED to (R.string.setup_emphasis_balanced_title to R.string.setup_emphasis_balanced_description),
+        GoalEmphasis.PHYSIQUE to (R.string.setup_emphasis_physique_title to R.string.setup_emphasis_physique_description),
+    )
+    Column(Modifier.selectableGroup()) {
+        Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_emphasis)) }
+        options.forEach { (value, copy) ->
+            ListItem(
+                headlineContent = { Text(stringResource(copy.first)) },
+                supportingContent = { Text(stringResource(copy.second)) },
+                leadingContent = { RadioButton(selected = emphasis == value, onClick = null) },
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = emphasis == value,
+                    role = Role.RadioButton,
+                    onClick = { onChange(value) },
+                ),
+            )
+        }
+    }
 }

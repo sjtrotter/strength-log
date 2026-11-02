@@ -6,10 +6,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
+import cloud.trotter.log.strength.rest.RestRuntime
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.model.ExperienceLevel
-import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
@@ -38,13 +38,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Wiring tests for [SetupViewModel]: every setter commits straight through
- * [TrackerRepository] (no draft, unlike the wizard — spec §8.4/A6), the
- * bodyweight setter converts through the *current* display unit before
- * storing (A5, [SetupStateBuilder.bodyweightLb]), and configuration writes
- * never touch the program (GOAL-vs-ACTUAL, spec §8.4).
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -114,55 +107,34 @@ class SetupViewModelWiringTest {
     }
 
     @Test
-    fun setBodyweight_persists_in_canonical_lb_regardless_of_display_unit() = runVmTest {
-        repo.setUnit(WeightUnit.KG)
+    fun appPreferencesPersistImmediatelyThroughTheRepository() = runVmTest {
         val vm = newViewModel()
         advanceUntilIdle()
-
-        // 100 kg display -> canonical lb via WeightUnit (A5's one conversion point).
-        vm.setBodyweight(100.0)
-        advanceUntilIdle()
-
-        val expectedLb = WeightUnit.KG.toLb(100.0).let(Math::round).toInt()
-        assertEquals(expectedLb, repo.configFlow.first().bodyweightLb)
-    }
-
-    @Test
-    fun everySetter_persists_immediately_through_the_repository() = runVmTest {
-        val vm = newViewModel()
-        advanceUntilIdle()
-
-        vm.setAge(28)
-        vm.setLevel(ExperienceLevel.ADVANCED)
-        vm.setEmphasis(GoalEmphasis.PHYSIQUE)
-
         vm.setUnit(WeightUnit.KG)
         vm.setThemePreference(ThemePreference.LIGHT)
         advanceUntilIdle()
-
-        val cfg = repo.configFlow.first()
-        assertEquals(28, cfg.age)
-        assertEquals(ExperienceLevel.ADVANCED, cfg.level)
-        assertEquals(GoalEmphasis.PHYSIQUE, cfg.emphasis)
-
         assertEquals(WeightUnit.KG, repo.unitFlow.first())
         assertEquals(ThemePreference.LIGHT, repo.themePreferenceFlow.first())
     }
 
-    @Test
-    fun configChanges_never_touch_the_program_GOAL_vs_ACTUAL() = runVmTest {
-        val vm = newViewModel()
-        advanceUntilIdle()
-        val programBefore = repo.programFlow.first()
-
-        vm.setAge(50)
-        vm.setEmphasis(GoalEmphasis.STRENGTH)
-        advanceUntilIdle()
-
-        assertEquals(programBefore, repo.programFlow.first())
-    }
-
     // --- rest-timer setters (watch W2c) ---------------------------------------
+
+    @Test
+    fun disablingThePhoneTimerCancelsItsRuntime() = runVmTest {
+        var cancellations = 0
+        val runtime = object : RestRuntime by NoOpRestRuntime {
+            override fun cancel() { cancellations++ }
+        }
+        val vm = SetupViewModel(repo, runtime).also { vms += it }
+        vm.setPhoneRestTimerEnabled(false)
+        advanceUntilIdle()
+        assertEquals(false, repo.phoneRestTimerEnabledFlow.first())
+        assertEquals(1, cancellations)
+        vm.setPhoneRestTimerEnabled(true)
+        advanceUntilIdle()
+        assertEquals(true, repo.phoneRestTimerEnabledFlow.first())
+        assertEquals(1, cancellations)
+    }
 
     @Test
     fun setRestTimerEnabled_persists_the_master_toggle_immediately() = runVmTest {

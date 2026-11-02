@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.ui.plan
 
 import cloud.trotter.log.strength.data.PlanSummary
 
+data class YouSummary(val bodyweightDisplay: String, val age: Int, val level: String)
+
 data class PlansUiState(
     val plans: List<PlanSummary> = emptyList(),
     val menuPlanId: Long? = null,
@@ -10,12 +12,14 @@ data class PlansUiState(
     val newPlanPage: String? = null,
     val newPlanName: String = "",
     val creating: Boolean = false,
+    val you: YouSummary? = null,
 )
 
 data class PlansActions(
     val onNewPlan: () -> Unit,
     val onOpenPlan: (Long) -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    val onOpenYou: () -> Unit = {},
     val onSelect: (Long) -> Unit,
     val onMenu: (Long?) -> Unit,
     val onRename: (Long) -> Unit,

@@ -90,7 +90,11 @@ android {
             // A hung test fails in minutes and, on CI, names itself instead of
             // holding the job to GitHub's six-hour limit (#310).
             it.timeout.set(Duration.ofMinutes(20))
-            if (providers.environmentVariable("CI").isPresent) it.testLogging.events("started", "failed")
+            if (providers.environmentVariable("CI").isPresent) {
+                it.testLogging.events("started", "failed")
+                // A timed-out task writes no XML report, so the log is the only place a failure's message survives.
+                it.testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            }
         }
         unitTests.isIncludeAndroidResources = true // Robolectric
     }

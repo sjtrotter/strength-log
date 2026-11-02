@@ -6,8 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
+import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.ui.setup.SetupStateBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,8 +43,20 @@ class PlansViewModel @Inject constructor(
     private val existingState = combine(repo.planSummariesFlow, menuPlanId, renamePlanId, renameDraft) { plans, menu, rename, draft ->
         PlansUiState(plans, menu, rename, draft)
     }
-    val uiState = combine(existingState, newPlanState) { state, new ->
-        state.copy(newPlanPage = new.first, newPlanName = new.second, creating = new.third)
+    private val you = combine(repo.configFlow, repo.unitFlow) { config, unit ->
+        val levelLabel = when (config.level) {
+            ExperienceLevel.NOVICE -> R.string.setup_level_novice
+            ExperienceLevel.INTERMEDIATE -> R.string.setup_level_intermediate
+            ExperienceLevel.ADVANCED -> R.string.setup_level_advanced
+        }
+        YouSummary(
+            "${WeightStepper.format(SetupStateBuilder.bodyweightDisplay(config, unit))} ${unit.name.lowercase(Locale.ROOT)}",
+            config.age,
+            context.getString(levelLabel).lowercase(Locale.ROOT),
+        )
+    }
+    val uiState = combine(existingState, newPlanState, you) { state, new, summary ->
+        state.copy(newPlanPage = new.first, newPlanName = new.second, creating = new.third, you = summary)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PlansUiState())
 
     fun showNewPlan() { savedState[NEW_PAGE] = "choice" }

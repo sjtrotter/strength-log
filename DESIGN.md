@@ -41,7 +41,7 @@ widened this user.
 
 A single activity with a Today / History / Plans `NavigationBar`, icon-only (30 dp Material
 Symbols, filled when selected), with each tab's title in its top bar (`ui/navigation/`,
-`ui/AppNavHost.kt`). The workout, receipt, wizard and settings screens hide the bar.
+`ui/AppNavHost.kt`). The workout, receipt, wizard, Settings and You screens hide the bar.
 
 | Surface | Code | Moment | One job |
 |---|---|---|---|
@@ -56,8 +56,10 @@ Symbols, filled when selected), with each tab's title in its top bar (`ui/naviga
 | Receipt | `ui/day/SessionReceiptScreen.kt` | After Finish | Confirm the session saved, show a new top set, say what comes next |
 | Share card | `ui/log/share/` | By explicit tap only | Make an image of one session |
 | History | `ui/log/LogScreen.kt`, `JournalSections.kt` | At home, later | Show what I did |
-| Plan and Plans | `ui/plan/PlanScreen.kt`, `PlansScreen.kt` | At home, or when the program changes | See and change the rotation; pick a plan |
-| Setup (settings) | `ui/setup/SetupScreen.kt` | Rarely | Two jobs today (training inputs and preferences); phase 2 splits it |
+| Plans | `ui/plan/PlansScreen.kt` | At home, or when the program changes | Pick a plan; open You to edit lifter facts |
+| Plan | `ui/plan/PlanScreen.kt` | When the plan changes | See and change its days; generated plans also show goals and let the lifter set emphasis |
+| Settings | `ui/setup/SetupScreen.kt` | Rarely | App preferences: units, theme, keep screen on and rest timer; open custom exercises, backup and licenses |
+| You | `ui/you/YouScreen.kt` | When lifter facts change | Edit bodyweight, age and experience level, which generated plans use for goals |
 | Backup | `ui/backup/BackupScreen.kt` | Rarely, often anxious | Know the data is safe; move it in or out |
 | Custom exercise | `ui/customexercise/` | Catalog lacks a movement | Add one exercise |
 | Wizard | `ui/wizard/WizardScreen.kt` | First run, or a new plan | Produce a rotation the lifter accepts |
@@ -177,7 +179,7 @@ Condensed with tabular figures; body text is the platform sans. Corners are 4, 8
 ### Phone
 
 The phone follows the system by default (`ThemePreference.SYSTEM`; Dark and Light are
-explicit choices in Setup). Dark is the character the store screenshots show: near-black
+explicit choices in Settings). Dark is the character the store screenshots show: near-black
 `#0D0D0F`, surface `#16161A`, hairline `#2A2A30`. Light is warm paper (`#F1EFEA`, surface
 `#FAF9F6`, ink `#1B1B1E`), a light expression of the same identity rather than an inversion
 (`docs/briefs/light-theme.md`).
@@ -299,7 +301,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 
 ## Open questions
 
-1. Phase 2 build: receipt, Log, Plan goals, Settings and the wizard reveal have a target in
+1. Phase 2 build: receipt, Log and the wizard reveal have a target in
    `fable-mock.html` but no handoff, and still carry the pre-redesign caps style.
 2. What `primary` holds on the phone: a day-scoped scheme on the workout with a neutral
    primary elsewhere (the audit's proposal), or a neutral primary everywhere with the accent
@@ -308,7 +310,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
    roles only, fully, or not at all?
 4. Light mode gaps: a light widget, a splash that follows the in-app choice, the share card
    still dark? Error text on near-black needs a foreground variant or a rule against it.
-5. Health Connect in Settings (#320): Setup has no row to grant or review permissions.
+5. Health Connect in Settings (#320): Settings has no row to grant or review permissions.
 6. Wear Material 3: move `:wear` to `compose-material3`? The direct cost is small (theme and
    `Text`); the question is whether any of its components fit the dial, and whether the tile
    should use the protolayout Material layer.

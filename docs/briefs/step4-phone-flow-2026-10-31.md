@@ -138,7 +138,8 @@ lists them.
 | The deferred cardio receipt's `advancedTo` (`DayViewModel.kt:763`) | the run's plan |
 | `logCardioSession` with no `planId` (very old watches) | log the session without a plan and never advance a rotation: what that watch showed can't be known |
 | Plan tab / `PlanViewModel` | the plan being viewed, from the Plans list |
-| Setup's training writes | the preferred plan until PR 4.7, then the plan being viewed |
+| You's lifter writes | global lifter, with the preferred plan's config kept in step |
+| Plan emphasis writes | the plan being viewed |
 | Log (`programFlow` for main lifts, `hasProgram`) | the union of plans on Today, else the preferred plan |
 | Wizard prefill | the preferred plan |
 | Backup export | `onToday` per plan, plus `selectedPlanId` |
@@ -482,7 +483,7 @@ One receipt route, with the new-top-set rows inside it.
 | 4.5a | Timed reps, cardio, clock chip, Cardio sheet and empty day on the set screen, initially behind a flag; without Redo | M |
 | 4.5b | **Done:** removed the build flag and pager; the set screen is the only workout UI. | M |
 | 4.6 | **Done:** one opaque receipt with new top sets inside, retained through process death (phase 4). | M |
-| 4.7 | Settings split: app preferences, plan settings on the plan, "You" (phase 7, in part) | M |
+| 4.7 | **Done:** Settings holds app preferences; You holds bodyweight, age and level; goals and emphasis on generated plans. Deferred: Health Connect status in Settings, editing a plan's equipment, the rest-timer sub-screen. | M |
 | 4.8 | New plan doors, the three-screen wizard, Start empty with its data design | L |
 
 Each PR leaves the app shippable. 4.4 and 4.5a–4.5b reach users together.

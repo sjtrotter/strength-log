@@ -14,26 +14,9 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.components.BodyweightInput
 
-/**
- * Pure decision logic behind the setup screen (spec §8.4): the live main-lift
- * GOAL preview and the unit-aware bodyweight display. Kept free of Android/Hilt
- * so it is unit-testable on the JVM; [SetupViewModel] only wires this to
- * repository flows and writes.
- *
- * No goal math is reimplemented here (SSOT) — every GOAL comes straight from
- * `:domain`'s [GoalCalculator], the same function [cloud.trotter.log.strength.ui.day.DayViewModel]
- * calls for the day screen's GOAL block.
- */
+/** Goal math and anchor selection stay in :domain. */
 object SetupStateBuilder {
 
-    /**
-     * The four main-lift GOALs for the stored wizard [answers]' anchor scheme
-     * and deadlift variant (spec §11's squat/bench/deadlift/accessory numbers),
-     * recomputed against [cfg] and formatted for [unit]. Setup doesn't let the
-     * lifter change which lifts anchor the program — only the wizard does that
-     * (D1) — so the ids come straight from [ProgramGenerator.anchorIds], the
-     * same four lifts the generated program itself uses.
-     */
     fun goalPreview(cfg: LifterConfig, answers: WizardAnswers, unit: WeightUnit): List<GoalPreviewItem> =
         ProgramGenerator.anchorIds(answers).map { id ->
             val entry = ExerciseLibrary.get(id)
@@ -70,19 +53,14 @@ object SetupStateBuilder {
     fun restTimerLabel(seconds: Int): String =
         if (seconds == 0) "OFF" else SecondsStepper.format(seconds)
 
-    /** Assembles the screen's full render state off the current config/prefs/answers. */
+    /** Assembles Settings from app preferences. */
     fun buildUiState(
-        cfg: LifterConfig,
         unit: WeightUnit,
-        answers: WizardAnswers,
         restSettings: RestSettings = RestSettings(),
         phoneRestTimerEnabled: Boolean = true,
         themePreference: ThemePreference = ThemePreference.SYSTEM,
     ): SetupUiState = SetupUiState(
-        config = cfg,
         unit = unit,
-        bodyweightDisplay = bodyweightDisplay(cfg, unit),
-        goalPreview = goalPreview(cfg, answers, unit),
         restTimerEnabled = restSettings.enabled,
         phoneRestTimerEnabled = phoneRestTimerEnabled,
         restCategories = restCategoryRows(restSettings),

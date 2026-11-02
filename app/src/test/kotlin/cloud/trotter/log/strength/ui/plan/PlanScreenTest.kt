@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -11,6 +12,8 @@ import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -35,6 +38,35 @@ class PlanScreenTest {
         },
     )
     private fun actions() = PlanActions(onOpenDay = {}, onOpenPlans = {}, onSetUpProgram = {})
+
+    @Test
+    fun generatedGoalsAndEmphasisAreVisibleAndTheWholeRowSelects() {
+        var emphasis: GoalEmphasis? = null
+        rule.setContent { AppTheme {
+            PlanScreen(state().copy(
+                goals = listOf(GoalPreviewItem("Barbell Back Squat", "235", false)),
+                emphasis = GoalEmphasis.BALANCED,
+            ), actions().copy(onEmphasisChange = { emphasis = it }))
+        } }
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Goals"))
+        rule.onNodeWithText("Goals").assertExists()
+        rule.onNodeWithText("235").assertExists()
+        list.performScrollToNode(hasText("Physique-leaning"))
+        rule.onNodeWithText("Strength-leaning").assertExists()
+        rule.onNodeWithText("Balanced strength + muscle").assertIsSelected()
+        rule.onNodeWithText("Physique-leaning").assertExists()
+        rule.onNodeWithText("Strength-leaning").performClick()
+        assertEquals(GoalEmphasis.STRENGTH, emphasis)
+    }
+
+    @Test
+    fun authoredPlansHaveNoGoalsOrEmphasis() {
+        rule.setContent { AppTheme { PlanScreen(state(), actions()) } }
+        rule.onNodeWithText("Goals").assertDoesNotExist()
+        rule.onNodeWithText("Emphasis").assertDoesNotExist()
+        rule.onNodeWithText("Strength-leaning").assertDoesNotExist()
+    }
 
     @Test
     fun dayRowCarriesTheDisplayedPlanAndDay() {

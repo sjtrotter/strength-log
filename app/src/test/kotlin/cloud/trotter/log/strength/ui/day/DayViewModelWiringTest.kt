@@ -21,7 +21,6 @@ import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import kotlinx.coroutines.flow.emitAll
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
@@ -269,7 +268,7 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Day A", "", listOf(
             ProgramExercise("pushup"), ProgramExercise("plank"), ProgramExercise("bb_back_squat"),
         )))))
-        repo.setConfig(LifterConfig(bodyweightLb = 185, age = 45))
+        repo.updateLifter { it.copy(bodyweightLb = 185, age = 45) }
         val plan = repo.selectedPlanIdFlow.first()!!
         val config = repo.wizardAnswersFor(plan).first().config
         val catalog = repo.catalogFlow.first()
@@ -429,7 +428,7 @@ class DayViewModelWiringTest {
         assertFalse(vm.dayEditState.value.canResetToTemplate)
         val authored = repo.createAuthoredPlan("Authored", "Day A")
         repo.publishCreatedAuthoredPlan(authored)
-        repo.setConfig(repo.configFlow.first())
+        repo.setWizardAnswers(repo.wizardAnswersFlow.first())
         vm.selectDay(DaySelection(authored, "A"))
         advanceUntilIdle()
         assertFalse(vm.dayEditState.value.canResetToTemplate)

@@ -211,8 +211,8 @@ class DestructiveActionsTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions(onRestOverridesReset = { reset++ })) }
         }
 
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("RESET DEFAULTS"))
-        composeTestRule.onNodeWithText("RESET DEFAULTS").performClick()
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Reset to defaults"))
+        composeTestRule.onNodeWithText("Reset to defaults").performClick()
         composeTestRule.onNodeWithText("Reset").assertIsDisplayed()
 
         composeTestRule.runOnIdle { (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed() }
@@ -220,7 +220,7 @@ class DestructiveActionsTest {
         assertEquals(0, reset)
         composeTestRule.onNodeWithText("Reset").assertDoesNotExist()
         // The screen behind it is still the screen, not a popped route.
-        composeTestRule.onNodeWithText("RESET DEFAULTS").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Reset to defaults").assertIsDisplayed()
     }
 
     // --- rest-timer RESET DEFAULTS (setup) ------------------------------------
@@ -232,8 +232,8 @@ class DestructiveActionsTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions(onRestOverridesReset = { reset++ })) }
         }
 
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("RESET DEFAULTS"))
-        composeTestRule.onNodeWithText("RESET DEFAULTS").performClick()
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Reset to defaults"))
+        composeTestRule.onNodeWithText("Reset to defaults").performClick()
         assertEquals("the row tap must only open the dialog", 0, reset)
 
         composeTestRule.onNodeWithText("Reset").performClick()
@@ -247,8 +247,8 @@ class DestructiveActionsTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions(onRestOverridesReset = { reset++ })) }
         }
 
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("RESET DEFAULTS"))
-        composeTestRule.onNodeWithText("RESET DEFAULTS").performClick()
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Reset to defaults"))
+        composeTestRule.onNodeWithText("Reset to defaults").performClick()
         composeTestRule.onNodeWithText("Cancel").performClick()
 
         assertEquals(0, reset)
@@ -361,10 +361,6 @@ class DestructiveActionsTest {
     )
 
     private fun setupActions(onRestOverridesReset: () -> Unit) = SetupActions(
-        onBodyweightChange = {},
-        onAgeChange = {},
-        onLevelChange = {},
-        onEmphasisChange = {},
         onUnitToggle = {},
         onRestTimerEnabledChange = {},
         onRestOverrideChange = { _, _ -> },

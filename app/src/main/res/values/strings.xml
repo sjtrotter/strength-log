@@ -68,15 +68,19 @@
     <item quantity="other">%d sets</item>
 </plurals>
 
-<!-- Setup -->
-<string name="setup_title">SETUP</string>
+<!-- Settings and lifter preferences -->
+<string name="settings_title">Settings</string>
+<string name="settings_units">Units</string>
+<string name="settings_custom_exercise">Create custom exercise</string>
+<string name="settings_backup">Backup</string>
+<string name="settings_licenses">Licenses</string>
+<string name="you_title">You</string>
+<string name="you_goals_note">Generated plans set their goals from these.</string>
+<string name="plans_you_summary">%1$s, age %2$d, %3$s</string>
+<string name="plan_goals">Goals</string>
+<string name="plan_emphasis">Emphasis</string>
 <string name="setup_back_description">Back</string>
-<string name="setup_training_section">TRAINING</string>
-<string name="setup_display_section">DISPLAY</string>
-    <string name="setup_rest_timer_section">REST TIMER</string>
-<string name="setup_data_section">DATA</string>
-<string name="setup_about_section">ABOUT</string>
-<string name="setup_goals_title">YOUR MAIN-LIFT GOALS</string>
+    <string name="setup_rest_timer_section">Rest timer</string>
 <string name="setup_per_hand_suffix">/hand</string>
 <string name="setup_bodyweight_label">Bodyweight (%1$s)</string>
 <string name="setup_decrease_bodyweight_description">Decrease bodyweight</string>
@@ -88,21 +92,16 @@
 <string name="setup_level_novice">Novice</string>
 <string name="setup_level_intermediate">Intermediate</string>
 <string name="setup_level_advanced">Advanced</string>
-<string name="setup_emphasis_label">Training emphasis</string>
 <string name="setup_emphasis_strength_title">Strength-leaning</string>
 <string name="setup_emphasis_strength_description">Fewer reps, more weight on the mains.</string>
 <string name="setup_emphasis_balanced_title">Balanced strength + muscle</string>
 <string name="setup_emphasis_balanced_description">Even mix of heavy work and volume.</string>
 <string name="setup_emphasis_physique_title">Physique-leaning</string>
 <string name="setup_emphasis_physique_description">More volume and isolation work.</string>
-<string name="setup_display_kilograms_toggle">Display weights in kilograms</string>
 <string name="setup_theme_label">Theme</string>
 <string name="setup_theme_system_title">System</string>
-<string name="setup_theme_system_description">Match this phone.</string>
 <string name="setup_theme_dark_title">Dark</string>
-<string name="setup_theme_dark_description">Keep the lights low.</string>
 <string name="setup_theme_light_title">Light</string>
-<string name="setup_theme_light_description">Warm paper and ink.</string>
     <string name="setup_rest_timer_toggle">Rest timer on watch</string>
     <string name="setup_phone_rest_timer_toggle">Rest timer on phone</string>
     <string name="rest_over">Rest over</string>
@@ -118,11 +117,8 @@
 <string name="setup_rest_category_top_set">Top set</string>
 <string name="setup_rest_category_back_off">Back-off</string>
 <string name="setup_rest_category_accessory">Accessory work</string>
-<string name="setup_rest_category_bodyweight">Bodyweight · timed</string>
-<string name="setup_reset_defaults_button">RESET DEFAULTS</string>
-<string name="setup_create_custom_exercise_button">+ CREATE CUSTOM EXERCISE</string>
-<string name="setup_data_backup_button">DATA / BACKUP</string>
-<string name="setup_licenses_button">OSS LICENSES</string>
+<string name="setup_rest_category_bodyweight">Bodyweight and timed</string>
+<string name="setup_reset_defaults_button">Reset to defaults</string>
 <string name="setup_cancel_button">Cancel</string>
 <string name="setup_rest_reset_confirm_title">Reset rest timers?</string>
 <string name="setup_rest_reset_confirm_message">Every per-category rest length goes back to the built-in default. The rest timer stays on.</string>
@@ -382,7 +378,6 @@
 <string name="day_finish_partial_confirm_body">The day is recorded as it stands and the rotation moves on.</string>
 <string name="day_finish_partial_confirm_button">Finish</string>
 <string name="day_finish_partial_dismiss_button">Keep going</string>
-<string name="day_rotation_footer">Rotation, not calendar — days advance when you finish them, not on a schedule. The weights you log are your living record; GOALs are a reference, not a rule.</string>
 <string name="day_clear_checks_confirm_title">Discard this workout?</string>
 <string name="day_clear_checks_confirm_body">Everything you logged in this workout is dropped, including weight and rep changes.</string>
 <string name="day_clear_checks_confirm_button">Discard</string>

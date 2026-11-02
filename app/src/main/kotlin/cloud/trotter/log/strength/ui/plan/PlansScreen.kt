@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.filled.MoreVert
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
@@ -62,6 +63,17 @@ fun PlansScreen(state: PlansUiState, actions: PlansActions) {
         },
     ) { padding ->
         LazyColumn(contentPadding = padding) {
+            state.you?.let { you ->
+                item(key = "you") {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.you_title)) },
+                        supportingContent = { Text(stringResource(R.string.plans_you_summary, you.bodyweightDisplay, you.age, you.level)) },
+                        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) },
+                        modifier = Modifier.clickable(onClick = actions.onOpenYou),
+                    )
+                    HorizontalDivider()
+                }
+            }
             items(active, key = { it.id }) { plan ->
                 PlanRow(plan, state.menuPlanId == plan.id, active.size > 1, actions)
                 HorizontalDivider()

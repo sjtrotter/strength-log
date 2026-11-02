@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithContentDescription
 import cloud.trotter.log.strength.domain.theme.ThemePreference
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Rule
 import org.junit.Test
@@ -22,12 +23,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Setup's controls sit under five overlines. Pinned here so a later edit can't
- * quietly lose one of them, and so a section rule stays a section rule — a
- * heading that grew a click action would be a phantom target on a screen that
- * is otherwise all controls.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class SetupSectionsTest {
@@ -36,28 +31,46 @@ class SetupSectionsTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun everySectionHeaderIsPresentAndInert() {
+    fun settingsContainsOnlyAppPreferences() {
         composeTestRule.setContent {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
         val list = composeTestRule.onNode(hasScrollAction())
         while (true) {
-            composeTestRule.onNodeWithText("Cardio").assertDoesNotExist()
-            composeTestRule.onNodeWithText("Outdoor run").assertDoesNotExist()
+            listOf("Bodyweight (", "Age", "Experience level", "Training emphasis", "Emphasis",
+                "Strength-leaning", "Balanced strength + muscle", "Physique-leaning", "Novice", "Intermediate", "Advanced").forEach { label ->
+                composeTestRule.onNodeWithText(label, substring = true).assertDoesNotExist()
+            }
             val node = list.fetchSemanticsNode()
             val scroll = node.config[SemanticsProperties.VerticalScrollAxisRange]
             if (scroll.value() >= scroll.maxValue()) break
             list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, node.size.height / 2f) }
         }
 
-        // The list virtualizes, so each header has to be scrolled into range
-        // before it exists at all. Exact (not substring) text matching keeps
-        // "DATA" off the DATA / BACKUP button and "DISPLAY" off the unit switch.
-        listOf("TRAINING", "DISPLAY", "REST TIMER", "DATA", "ABOUT").forEach { label ->
-            composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
-            composeTestRule.onNodeWithText(label).assertExists().assertHasNoClickAction()
+        listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer",
+            "Rest timer on watch", "Rest timer on phone", "Create custom exercise", "Backup", "Licenses").forEach { label ->
+            list.performScrollToNode(hasText(label))
+            composeTestRule.onNodeWithText(label).assertIsDisplayed()
         }
+        list.performScrollToNode(hasText("Rest timer"))
+        composeTestRule.onNodeWithText("Rest timer").assertHasNoClickAction()
+    }
+
+    @Test
+    fun backupRowAndUnitSegmentsForwardTheirActions() {
+        var backups = 0
+        var unit: WeightUnit? = null
+        composeTestRule.setContent { AppTheme {
+            SetupScreen(SetupUiState(), setupActions().copy(
+                onOpenBackup = { backups++ }, onUnitToggle = { unit = it },
+            ))
+        } }
+        composeTestRule.onNodeWithText("kg").performClick()
+        assertEquals(WeightUnit.KG, unit)
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Backup"))
+        composeTestRule.onNodeWithText("Backup").performClick()
+        assertEquals(1, backups)
     }
 
     @Test
@@ -65,11 +78,11 @@ class SetupSectionsTest {
         composeTestRule.setContent {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions(), openRestTimer = true) }
         }
-        composeTestRule.onNodeWithText("REST TIMER").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Rest timer").assertIsDisplayed()
     }
 
     @Test
-    fun themeIsAResourcedRadioTrio() {
+    fun themeIsAResourcedSegmentedTrio() {
         var chosen: ThemePreference? = null
         composeTestRule.setContent {
             AppTheme {
@@ -98,10 +111,6 @@ class SetupSectionsTest {
     }
 
     private fun setupActions() = SetupActions(
-        onBodyweightChange = {},
-        onAgeChange = {},
-        onLevelChange = {},
-        onEmphasisChange = {},
         onUnitToggle = {},
         onRestTimerEnabledChange = {},
         onRestOverrideChange = { _, _ -> },

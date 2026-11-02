@@ -16,6 +16,7 @@ class TopLevelDestinationTest {
         assertFalse(TopLevelDestination.showsBarOn("day"))
         assertFalse(TopLevelDestination.showsBarOn("day/B"))
         assertFalse(TopLevelDestination.showsBarOn("setup?rest=true"))
+        assertFalse(TopLevelDestination.showsBarOn("you"))
         assertFalse(TopLevelDestination.showsBarOn(null))
     }
 }

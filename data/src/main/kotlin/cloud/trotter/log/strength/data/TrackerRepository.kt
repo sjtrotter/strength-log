@@ -58,6 +58,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -236,16 +237,24 @@ open class TrackerRepository(
     // Block bodies, not expression form: DataStore's Preferences (SettingsStore's
     // setter return type) must not leak into this public surface via inference —
     // it is a :data-internal detail and consumers don't compile against DataStore.
-    suspend fun setConfig(config: LifterConfig) {
+    /** Plan recipes hold only emphasis, so lifter edits write the global lifter alone. */
+    suspend fun updateLifter(transform: (GlobalLifter) -> GlobalLifter) {
         ensurePlanSettingsMigrated()
-        val planId = selectedPlanId()
-        settings.setGlobalLifter(GlobalLifter.of(config))
-        if (planId == null) return
+        settings.updateGlobalLifter(transform)
+    }
+
+    open suspend fun setPlanEmphasis(planId: Long, emphasis: GoalEmphasis) {
+        ensurePlanSettingsMigrated()
+        // Read DataStore before the transaction: suspending on it inside one can deadlock.
+        val global = settings.globalLifterFlow.first()
         db.withTransaction {
             val plan = planDao.plan(planId) ?: return@withTransaction
-            val answers = plan.recipeJson?.let { PlanRecipeJson.decode(it, GlobalLifter.of(config)) }
-                ?: WizardAnswers(config = GlobalLifter.of(config).toConfig())
-            planDao.updateRecipe(planId, PlanRecipeJson.encode(answers.copy(config = config)))
+            val recipe = plan.recipeJson ?: return@withTransaction
+            val answers = PlanRecipeJson.decode(recipe, global)
+            planDao.updateRecipe(
+                planId,
+                PlanRecipeJson.encode(answers.copy(config = answers.config.copy(emphasis = emphasis))),
+            )
         }
     }
 
@@ -294,7 +303,7 @@ open class TrackerRepository(
         settings.setRestOverride(category, seconds)
     }
 
-    /** The Setup "RESET DEFAULTS" affordance: reverts every rest category to its
+    /** The Settings "Reset to defaults" affordance: reverts every rest category to its
      *  RestPolicy default. */
     suspend fun clearRestOverrides() {
         settings.clearRestOverrides()

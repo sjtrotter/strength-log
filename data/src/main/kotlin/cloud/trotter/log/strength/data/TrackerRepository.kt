@@ -43,7 +43,7 @@ import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.seeding.RunReplan
-import cloud.trotter.log.strength.domain.seeding.SetSeeder
+import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
@@ -65,7 +65,6 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import java.io.IOException
 import java.time.Clock
 import java.time.Instant
@@ -512,7 +511,7 @@ open class TrackerRepository(
                 val main = tracks.firstOrNull { it.slot == Slot.MAIN && it.exerciseId == row.exerciseId }
                 if (main != null && main.canReplan(prescription.tracking == TrackingType.TIMED)) {
                     val current = SetJson.decodeSets(main.setsJson)
-                    val seeded = SetSeeder.seedPrescribed(count, prescription)
+                    val seeded = SlotSeeds.prescribed(count, prescription)
                     val partner = tracks.firstOrNull { it.slot == Slot.SS }
                     val mainRows = if (partner == null) RunReplan.represcribe(current, seeded) else if (
                         partner.exerciseId != row.exerciseIdFor(Slot.SS)
@@ -527,7 +526,7 @@ open class TrackerRepository(
                         val entry = catalog.find(partner.exerciseId)
                         if (entry == null) RunReplan.represcribe(current, seeded) else {
                             val config = answersForPlan(planDao.plan(row.planId), global).config
-                            val partnerSeed = SetSeeder.seedPartner(count, GoalCalculator.targetFor(entry, config))
+                            val partnerSeed = requireNotNull(SlotSeeds.partner(entry, count, config))
                             val paired = RunReplan.represcribePaired(
                                 current, SetJson.decodeSets(partner.setsJson), seeded, partnerSeed,
                             )
@@ -1436,14 +1435,13 @@ open class TrackerRepository(
             val seeds = if (open != null) emptyList() else programDao.exercisesForDay(planId, dayId).flatMap { seedRow ->
                 val seedSlot = ProgramSlot(seedRow.id, seedRow.position, seedRow.toDomain())
                 val main = performedExercise(seedSlot, null, catalog)
-                val mainSeed = main.prescription?.let { SetSeeder.seedPrescribed(seedRow.targetSets, it) }
-                    ?: main.goal(config)?.let { SetSeeder.seed(seedSlot.exercise, it, config) }
+                val mainSeed = SlotSeeds.main(seedSlot.exercise, main.entry, config)
                     ?: return@flatMap emptyList()
                 val mainCount = programDao.logForSlot(planId, dayId, seedRow.id, Slot.MAIN)
                     ?.let { SetJson.decodeSets(it.setsJson).size } ?: mainSeed.size
                 val partnerSeed = seedSlot.exercise.superset?.let {
-                    performedExercise(seedSlot, null, catalog, Slot.SS).goal(config)
-                        ?.let { goal -> RunSeed(seedRow.id, Slot.SS, SetSeeder.seedPartner(mainCount, goal)) }
+                    SlotSeeds.partner(performedExercise(seedSlot, null, catalog, Slot.SS).entry, mainCount, config)
+                        ?.let { RunSeed(seedRow.id, Slot.SS, it) }
                 }
                 listOfNotNull(RunSeed(seedRow.id, Slot.MAIN, mainSeed), partnerSeed)
             }
@@ -1466,10 +1464,11 @@ open class TrackerRepository(
             }
             val keptSeed = if (keep == Slot.SS) {
                 val performed = performedExercise(programSlot, partner.exerciseId, catalog)
-                val goal = performed.goal(config) ?: return@withTransaction RunWriteResult.Rejected
-                RunSeed(row.id, Slot.MAIN, SetSeeder.seed(
-                    programSlot.exercise.copy(exerciseId = partner.exerciseId, prescription = null, superset = null), goal, config,
-                ))
+                val sets = SlotSeeds.main(
+                    programSlot.exercise.copy(exerciseId = partner.exerciseId, prescription = null, superset = null),
+                    performed.entry, config,
+                ) ?: return@withTransaction RunWriteResult.Rejected
+                RunSeed(row.id, Slot.MAIN, sets)
             } else null
             if (open == null) startRun(day, tracks)
             val capturedPartner = runDao.tracks(runId).first { it.programExerciseId == row.id && it.slot == Slot.SS && !it.retired }
@@ -1599,12 +1598,11 @@ open class TrackerRepository(
                 val programSlot = ProgramSlot(row.id, row.position, row.toDomain())
                 val performed = performedExercise(programSlot, partner.exerciseId, catalog, otherSlot)
                 val otherSeed = if (otherSlot == Slot.SS) {
-                    performed.goal(config)?.let { SetSeeder.seedPartner(count, it) }
+                    SlotSeeds.partner(performed.entry, count, config)
                 } else {
-                    performed.prescription?.let { SetSeeder.seedPrescribed(row.targetSets, it) }
-                        ?: performed.goal(config)?.let {
-                            SetSeeder.seed(programSlot.exercise.copy(exerciseId = performed.exerciseId, prescription = null), it, config)
-                        }
+                    SlotSeeds.main(programSlot.exercise.copy(
+                        exerciseId = performed.exerciseId, prescription = performed.prescription,
+                    ), performed.entry, config)
                 }?.takeIf { it.isNotEmpty() } ?: SetJson.decodeSets(partner.plannedJson)
                 if ((swappedRows.size < count && swappedSeed.isEmpty()) ||
                     (otherRows.size < count && otherSeed.isEmpty())) return@withTransaction false

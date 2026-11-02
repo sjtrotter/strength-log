@@ -1,6 +1,6 @@
 # Design brief: the workout receipt, v4
 
-Read-only on the repo (/home/betty/Projects/strength.log, main). Do not edit the repo, commit, run builds,
+Read-only on the repo (main). Do not edit the repo, commit, run builds,
 or start subagents. American English. Write your files only into your own output directory named below.
 
 ## The product and the moment
@@ -19,10 +19,10 @@ components themed, no baseline purple, no emoji, no gradients, no wall-of-cards.
 
 ## Where v3 landed (read both, they are the starting point)
 
-- Opus v3 (the owner's preferred base): plan /tmp/claude-1000/-home-betty-Projects-strength-log/1010bc9d-b050-4516-a3e5-76158e4e091d/scratchpad/receipt-v3/opus/plan.md,
-  mockup /tmp/claude-1000/-home-betty-Projects-strength-log/1010bc9d-b050-4516-a3e5-76158e4e091d/scratchpad/receipt-v3/opus/mockup.html
-- Sol v3: /tmp/claude-1000/-home-betty-Projects-strength-log/1010bc9d-b050-4516-a3e5-76158e4e091d/scratchpad/receipt-v3/sol/plan.md and mockup.html
-- Research: /tmp/claude-1000/-home-betty-Projects-strength-log/1010bc9d-b050-4516-a3e5-76158e4e091d/scratchpad/receipt-research/findings.md
+- Opus v3 (the owner's preferred base): plan `v3-opus-plan.md`,
+  mockup `v3-opus-mockup.html`
+- Sol v3: `v3-sol-plan.md` and `v3-sol-mockup.html`
+- Research: `research-findings.md`
 
 ## The owner's feedback on v3 (verbatim, lightly trimmed)
 

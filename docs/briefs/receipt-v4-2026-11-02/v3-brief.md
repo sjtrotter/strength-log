@@ -1,6 +1,6 @@
 # Design brief: the workout receipt, v3
 
-Read-only on the repo (/home/betty/Projects/strength.log, main). Do not edit the repo, commit, run builds,
+Read-only on the repo (main). Do not edit the repo, commit, run builds,
 or start subagents. American English. Write your files only into your own output directory named below.
 
 ## The product and the moment
@@ -41,11 +41,11 @@ wall-of-cards.
   for a set time. A lift's first session and ties are never PRs. Warmups never count. No e1RM, no volume.
 - Skipped lifts stay on the receipt, muted. Rows are frozen at Finish. TalkBack must still hear "up from 235 × 5".
   One success haptic when any PR lands.
-- Research findings: /tmp/claude-1000/-home-betty-Projects-strength-log/1010bc9d-b050-4516-a3e5-76158e4e091d/scratchpad/receipt-research/findings.md
+- Research findings: `research-findings.md`
   (A1/A2 is the lifter convention for supersets; apps name the PR kind in a word; Hevy marks the exact PR set;
   M3 Badge is a count/dot and chips are interactive; material3 here is 1.4.0, so an expandable row is
   `ListItem` + `AnimatedVisibility`, announcing expanded/collapsed).
-- Earlier council (v2) files, for what was already argued: /tmp/claude-1000/-home-betty-Projects-strength-log/1010bc9d-b050-4516-a3e5-76158e4e091d/scratchpad/council8/
+- Earlier council (v2) files, for what was already argued: the v2 council notes (not archived)
 
 ## The sample session (use these exact numbers)
 

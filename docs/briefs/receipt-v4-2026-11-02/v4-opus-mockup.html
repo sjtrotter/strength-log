@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<title>Receipt v4, Opus seat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Roboto:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D0D0F; --surface: #16161A; --rule: #3A3A42;
+    --on: #F2F2F0; --var: #9A9AA2; --done: #3E8E5A;
+  }
+  .dayA { --accent: #C1440E; --bright: #D2815D; --tag: #3C2017; --onAccent: #F2F2F0; }
+  .dayB { --accent: #2D5A3D; --bright: #728F7C; --tag: #1A2620; --onAccent: #F2F2F0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #050506; color: var(--on); font-family: Roboto, system-ui, sans-serif; padding: 32px; }
+  .page-note { color: var(--var); font-size: 14px; max-width: 1340px; margin-bottom: 24px; line-height: 1.5; }
+  .frames { display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; }
+  figure { width: 412px; }
+  figcaption { color: var(--var); font-size: 13px; line-height: 18px; margin-bottom: 10px; min-height: 36px; }
+  .stack { display: flex; flex-direction: column; gap: 28px; }
+  .phone {
+    width: 412px; height: 915px; background: var(--bg); border-radius: 28px; overflow: hidden;
+    display: flex; flex-direction: column; outline: 1px solid #222228;
+  }
+  .phone.part { height: auto; border-radius: 16px; }
+  .part-label { font-size: 12px; color: var(--var); padding: 12px 16px 4px; }
+  .status { height: 24px; flex: none; font-size: 12px; color: var(--var); padding: 4px 20px; display: flex; justify-content: space-between; }
+  .appbar { height: 64px; flex: none; display: flex; justify-content: flex-end; align-items: center; padding: 0 4px; }
+  .icon-btn { width: 48px; height: 48px; display: grid; place-items: center; color: var(--on); }
+  .ms { font-family: 'Material Symbols Outlined'; font-size: 24px; line-height: 1; font-weight: normal; font-style: normal; }
+  .scroll { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+  .head { padding: 0 16px 16px; }
+  .headline { font-size: 36px; line-height: 44px; font-weight: 400; }
+  .plan { font-size: 16px; line-height: 24px; font-weight: 500; margin-top: 4px; }
+  .meta { font-size: 16px; line-height: 24px; color: var(--var); }
+  .activity { font-size: 16px; line-height: 24px; font-weight: 500; padding: 8px 16px 4px; }
+
+  /* One list row = M3 ListItem: content, trailing value, chevron slot (kept empty on static rows so values align). */
+  .row { --pl: 16px; display: grid; grid-template-columns: auto 1fr auto 24px; align-items: center;
+    padding: 8px 16px 8px var(--pl); min-height: 72px; }
+  .row.one { min-height: 56px; }
+  .in > .item > .row { --pl: 0px; }
+  .item.tap > .row { cursor: pointer; }
+  .gut { font-size: 14px; font-weight: 500; color: var(--var); width: 28px; }
+  .gut:empty { width: 0; }
+  .name { font-size: 16px; line-height: 24px; }
+  .sup { font-size: 14px; line-height: 20px; color: var(--var); display: flex; gap: 8px; align-items: center; margin-top: 2px; }
+  .tag { display: inline-block; background: var(--tag); color: var(--bright); font-size: 12px; line-height: 16px; font-weight: 500;
+    padding: 2px 6px; border-radius: 4px; letter-spacing: .3px; }
+  .trail { display: flex; align-items: baseline; gap: 10px; padding-left: 12px; white-space: nowrap; }
+  .old { color: var(--var); text-decoration: line-through; text-decoration-thickness: 1.5px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 19px; }
+  .num { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 24px; font-variant-numeric: tabular-nums; }
+  .num.pr { color: var(--bright); }
+  .chev { color: var(--var); transition: transform 200ms cubic-bezier(.2,0,0,1); text-align: right; }
+  .item.open > .row .chev { transform: rotate(180deg); }
+  .muted .name { color: var(--var); }
+  .skipword { font-size: 14px; color: var(--var); }
+
+  /* Children of a heading: indented one step (24 dp) behind a VerticalDivider in outlineVariant. */
+  .in { margin-left: calc(var(--pl, 16px) + 8px); border-left: 1px solid var(--rule); padding-left: 15px; }
+  .kids { display: none; margin-bottom: 8px; }
+  .item.open > .kids { display: block; }
+  .group > .in { margin-bottom: 4px; }
+  .in .in { --pl: 0px; }
+  .set { display: grid; grid-template-columns: 24px auto 1fr; align-items: baseline; column-gap: 0; min-height: 32px; padding-top: 4px; }
+  .set .g { font-size: 14px; font-weight: 500; color: var(--var); }
+  .set .v { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .set .v.pr { color: var(--bright); }
+  .prnote { font-size: 12px; font-weight: 500; color: var(--bright); margin-left: 12px; letter-spacing: .2px; }
+  .after { font-size: 14px; color: var(--var); height: 30px; line-height: 30px; }
+
+  .note-btn { margin: 4px 0 16px 4px; height: 40px; padding: 0 12px; display: inline-flex; align-items: center;
+    color: var(--bright); font-size: 14px; font-weight: 500; letter-spacing: .1px; border-radius: 20px; }
+
+  /* Scaffold bottomBar: HorizontalDivider, then the reminder, then Done. */
+  .bottom { flex: none; border-top: 1px solid var(--rule); padding: 12px 16px; background: var(--bg); }
+  .bar-label { font-size: 14px; font-weight: 500; color: var(--var); margin-bottom: 4px; }
+  .next { display: flex; justify-content: space-between; align-items: baseline; height: 28px; }
+  .next .s { font-size: 16px; font-weight: 500; }
+  .next .p { font-size: 14px; color: var(--var); }
+  .allset { display: flex; align-items: center; gap: 12px; height: 40px; font-size: 16px; }
+  .allset .ms { color: var(--done); }
+  .done { margin-top: 12px; height: 48px; border-radius: 24px; background: var(--accent); color: var(--onAccent);
+    display: grid; place-items: center; font-size: 14px; font-weight: 500; letter-spacing: .1px; cursor: pointer; }
+  .bottom > .done:first-child { margin-top: 0; }
+  .gesture { height: 24px; flex: none; display: grid; place-items: center; }
+  .gesture::after { content: ""; width: 108px; height: 4px; border-radius: 2px; background: #5A5A60; }
+  @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+</style>
+</head>
+<body>
+<p class="page-note">Opus seat, receipt v4. Tap any row with a chevron to open or close it; rows without one have nothing more to show. Everything a row opens sits one step in, behind a thin rule. Main lift and cardio work block are the only rows with the strike-through ceremony. Strength day uses the Day A accent; the 5K build cardio frames use Day B.</p>
+<div class="frames" id="frames"></div>
+
+<script>
+'use strict';
+const ms = n => `<span class="ms">${n}</span>`;
+const chev = '<span class="ms chev">expand_more</span>';
+const tag = t => ` <span class="tag">${t}</span>`;
+
+/** One row. kind: 'tap' (chevron, opens kids) or 'static'. */
+function row({ gut = '', name, sup = '', trail = '', kids = '', open = false, muted = false, one = false, k = '' }) {
+  const tap = !!kids;
+  return `<div class="item${tap ? ' tap' : ''}${open ? ' open' : ''}${muted ? ' muted' : ''}" data-k="${k}">
+    <div class="row${one ? ' one' : ''}"><span class="gut">${gut}</span>
+      <div><div class="name">${name}</div>${sup ? `<div class="sup">${sup}</div>` : ''}</div>
+      <div class="trail">${trail}</div>${tap ? chev : '<span></span>'}</div>
+    ${tap ? `<div class="kids in">${kids}</div>` : ''}
+  </div>`;
+}
+const set = (g, v, pr = '') => `<div class="set"><span class="g">${g}</span><span class="v${pr ? ' pr' : ''}">${v}</span>${pr ? `<span class="prnote">${pr}</span>` : '<span></span>'}</div>`;
+const after = t => `<div class="after">${t}</div>`;
+const num = (v, pr) => `<span class="num${pr ? ' pr' : ''}">${v}</span>`;
+const strike = (o, n) => `<span class="old">${o}</span>${num(n, true)}`;
+
+/* Exercise types, sample session. v2 = 'sup' | 'expand' | '' */
+const squat = () => row({ name: 'Barbell Back Squat', sup: 'Top set' + tag('Weight PR'), trail: strike('235 × 5', '245 × 5') });
+const squatNoPr = () => row({ name: 'Barbell Back Squat', sup: 'Top set', trail: num('240 × 5') });
+
+function curl({ open = false, v2 = '' } = {}) {
+  return row({ k: 'curl', name: 'Dumbbell Curl', open,
+    sup: (v2 === 'sup' ? '3 sets, 3 × 8-12 planned' : '3 sets') + tag('Rep PR'),
+    trail: num('35 × 10, 10, 8'),
+    kids: set('1', '35 × 10', 'PR, up from 35 × 9') + set('2', '35 × 10') + set('3', '35 × 8')
+      + (v2 === 'expand' ? after('Planned 3 × 8-12') : '') });
+}
+function superset({ open = false, v2 = '' } = {}) {
+  const partner = (g, name, trail, sets, plan) => row({ gut: g, name, open, one: v2 !== 'sup',
+    sup: v2 === 'sup' ? `${plan} planned` : '', trail: num(trail),
+    kids: sets + (v2 === 'expand' ? after(`Planned ${plan}`) : '') });
+  return `<div class="group">
+    ${row({ name: 'Superset', sup: '3 rounds' })}
+    <div class="in">
+      ${partner('A1', 'Barbell Bench Press', '185 × 5, 5, 4', set('1', '185 × 5') + set('2', '185 × 5') + set('3', '185 × 4'), '3 × 5')}
+      ${partner('A2', 'Barbell Row', '155 × 8, 8, 8', set('1', '155 × 8') + set('2', '155 × 8') + set('3', '155 × 8'), '3 × 8')}
+    </div></div>`;
+}
+const pullup = () => row({ name: 'Pull-up', sup: '3 sets', trail: num('12, 10, 9'),
+  kids: set('1', '12') + set('2', '10') + set('3', '9') });
+const plank = () => row({ name: 'Plank', sup: '2 holds' + tag('Hold PR'), trail: num('1:15, 1:10'),
+  kids: set('1', '1:15', 'PR, up from 1:10') + set('2', '1:10') });
+const facePull = (v2 = false) => row({ name: 'Face Pull', muted: true, one: !v2, sup: v2 ? '3 × 12-15 planned' : '',
+  trail: '<span class="skipword">Skipped</span>' });
+const note = '<div class="note-btn">Add a note</div>';
+
+/* Bottom bars */
+const barLeft = `<div class="bottom"><div class="bar-label">Left for today</div>
+  <div class="next"><span class="s">Intervals</span><span class="p">5K build</span></div><div class="done">Done</div></div>`;
+const barAllDone = `<div class="bottom"><div class="allset">${ms('check_circle')}<span>All plans done for today.</span></div><div class="done">Done</div></div>`;
+const barDoneOnly = `<div class="bottom"><div class="done">Done</div></div>`;
+
+function phone({ day, time = '6:42', share = true, head, body, bar }) {
+  return `<div class="phone ${day}">
+    <div class="status"><span>${time}</span><span>100%</span></div>
+    <div class="appbar">${share ? `<div class="icon-btn" aria-label="Share">${ms('share')}</div>` : ''}</div>
+    <div class="scroll"><div class="head">${head}</div>${body}</div>
+    ${bar}<div class="gesture"></div></div>`;
+}
+const strengthHead = `<div class="headline">Squat focus, done.</div><div class="plan">Four-day strength</div><div class="meta">Monday, Nov 2, 58 min</div>`;
+const strengthBody = o => squat() + superset(o) + curl(o) + pullup() + plank() + facePull() + note;
+const part = (day, label, body) => `<div class="phone part ${day}"><div class="part-label">${label}</div>${body}</div>`;
+const fig = (cap, inner) => `<figure><figcaption>${cap}</figcaption>${inner}</figure>`;
+
+/* Cardio */
+const intervals = row({ name: '6 × 400 m', sup: 'Fastest of 6' + tag('Faster PR'), trail: strike('1:42', '1:38'), open: true,
+  kids: set('1', '1:41') + set('2', '1:38', 'PR, up from 1:42') + set('3', '1:44') + set('4', '1:40') + set('5', '1:39') + set('6', '1:45')
+    + after('Recovery 1:30 each') });
+const cardioBody = `<div class="activity">Track run</div>`
+  + row({ name: 'Warm-up', one: true, trail: num('10:00') }) + intervals
+  + row({ name: 'Cool-down', one: true, trail: num('5:00') }) + note;
+const easyRun = `<div class="head" style="padding-top:4px"><div class="headline">Easy run, done.</div><div class="plan">5K build</div><div class="meta">Wednesday, Nov 4, 30 min</div></div>
+  <div class="activity">Road run</div>`
+  + row({ name: '30:00', sup: 'Distance' + tag('Farther PR'), trail: strike('5.4 km', '5.6 km') }) + note;
+
+document.getElementById('frames').innerHTML = [
+  fig('(a) Strength, collapsed. V1 (no plan reference) and W2 (one plan left today: Mobility finished this morning, so only 5K build shows).',
+    phone({ day: 'dayA', head: strengthHead, body: strengthBody({}), bar: barLeft })),
+  fig('(b) The superset halves, Curl and Plank open. Squat has nothing to open: the top set is the whole story. Scroll to see the list pass under the bar.',
+    phone({ day: 'dayA', head: strengthHead, body: squat() + superset({ open: true }) + curl({ open: true })
+      + pullup() + row({ name: 'Plank', sup: '2 holds' + tag('Hold PR'), trail: num('1:15, 1:10'), open: true,
+        kids: set('1', '1:15', 'PR, up from 1:10') + set('2', '1:10') }) + facePull() + note, bar: barLeft })),
+  fig('(c) V2, two ways to show the plan without judging it. Recommended: V2b, the plan only on expand.',
+    `<div class="stack">
+      ${part('dayA', 'V2a: planned target in the supporting line, always visible', superset({ v2: 'sup' }) + curl({ v2: 'sup' }) + facePull(true))}
+      ${part('dayA', 'V2b: planned target as the last line of the open row', superset({ v2: 'expand', open: true }) + curl({ v2: 'expand', open: true }) + facePull(true))}
+    </div>`),
+  fig('(d) Bottom bar. W1: Done alone. W2 with nothing left today: a circled check in done green. Last: a main lift on a day without a PR.',
+    `<div class="stack">
+      ${part('dayA', 'W1: no reminder', note + barDoneOnly)}
+      ${part('dayA', 'W2: every plan on Today has a finished session today', note + barAllDone)}
+      ${part('dayA', 'Main lift, no PR: the top set alone, no comparison', squatNoPr())}
+    </div>`),
+  fig('(e) Cardio: warm-up, work block, cool-down; the intervals open. Third session of the day, so W2 shows the completion line. Below: a distance-run block.',
+    `<div class="stack">
+      ${phone({ day: 'dayB', time: '7:15', head: `<div class="headline">Intervals, done.</div><div class="plan">5K build</div><div class="meta">Monday, Nov 2, 34 min</div>`, body: cardioBody, bar: barAllDone })}
+      ${part('dayB', 'Distance run (time target, farther PR)', easyRun)}
+    </div>`),
+].join('');
+
+document.querySelectorAll('.item.tap > .row').forEach(r =>
+  r.addEventListener('click', () => r.parentElement.classList.toggle('open')));
+</script>
+</body>
+</html>

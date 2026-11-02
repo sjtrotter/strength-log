@@ -29,3 +29,9 @@ issue label) → adversarial review (Opus agent) → fix round (same
 implementation agent) → verify pass (same reviewer) → merge on clean verdict
 + green CI. Local machines never run adb/connected/install tasks — CI's
 emulator executes instrumented tests.
+
+## 2026-11-02
+
+- `codebase-audit-2026-11-02.md` — the first structural audit (deep modules, seams, duplicated rules); tracking issue #418.
+- `personal-bests-2026-11-02.md` — the one personal-best rule (step 1 shipped in #402; receipt #416, cardio records #417).
+- `receipt-v4-2026-11-02/` — receipt design rounds v3 and v4, both seats; on hold for set structures (#415).

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Receipt v3, Opus seat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Roboto:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D0D0F; --surface: #16161A; --hairline: #2A2A30;
+    --on: #F2F2F0; --var: #9A9AA2;
+  }
+  .dayA { --accent: #C1440E; --bright: #D2815D; --tag: #3C2017; --onAccent: #F2F2F0; }
+  .dayB { --accent: #2D5A3D; --bright: #728F7C; --tag: #1A2220; --onAccent: #F2F2F0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #050506; color: var(--on); font-family: Roboto, system-ui, sans-serif; padding: 32px; }
+  .page-note { color: var(--var); font-size: 14px; max-width: 1300px; margin-bottom: 24px; line-height: 1.5; }
+  .frames { display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; }
+  figure { width: 412px; }
+  figcaption { color: var(--var); font-size: 13px; margin-bottom: 10px; }
+  .phone {
+    width: 412px; height: 915px; background: var(--bg); border-radius: 28px; overflow: hidden;
+    display: flex; flex-direction: column; outline: 1px solid #222228;
+  }
+  .status { height: 24px; flex: none; font-size: 12px; color: var(--var); padding: 4px 20px; display: flex; justify-content: space-between; }
+  .appbar { height: 64px; flex: none; display: flex; justify-content: flex-end; align-items: center; padding: 0 4px; }
+  .icon-btn { width: 48px; height: 48px; display: grid; place-items: center; color: var(--on); }
+  .ms { font-family: 'Material Symbols Outlined'; font-size: 24px; line-height: 1; font-weight: normal; font-style: normal; }
+  .scroll { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+  .head { padding: 0 16px 16px; }
+  .headline { font-size: 36px; line-height: 44px; font-weight: 400; }
+  .plan { font-size: 16px; line-height: 24px; font-weight: 500; margin-top: 4px; }
+  .meta { font-size: 16px; line-height: 24px; color: var(--var); }
+  .activity { font-size: 16px; line-height: 24px; font-weight: 500; padding: 8px 16px 4px 56px; }
+
+  .item { cursor: pointer; }
+  .item.static { cursor: default; }
+  .row { display: grid; grid-template-columns: 40px 1fr auto 24px; column-gap: 0; align-items: center; padding: 10px 16px; min-height: 72px; }
+  .row.one { min-height: 56px; }
+  .gut { font-size: 14px; font-weight: 500; color: var(--var); letter-spacing: .1px; }
+  .name { font-size: 16px; line-height: 24px; }
+  .sup { font-size: 14px; line-height: 20px; color: var(--var); display: flex; gap: 8px; align-items: center; margin-top: 2px; }
+  .tag { display: inline-block; background: var(--tag); color: var(--bright); font-size: 12px; line-height: 16px; font-weight: 500; padding: 2px 6px; border-radius: 4px; letter-spacing: .3px; }
+  .trail { display: flex; align-items: baseline; gap: 10px; padding-left: 12px; }
+  .old { color: var(--var); text-decoration: line-through; text-decoration-thickness: 1.5px; font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 19px; }
+  .num { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 24px; font-variant-numeric: tabular-nums; }
+  .num.pr { color: var(--bright); }
+  .chev { color: var(--var); transition: transform 200ms cubic-bezier(.2,0,0,1); text-align: right; }
+  .item.open .chev { transform: rotate(180deg); }
+  .muted .name, .muted .num-txt { color: var(--var); }
+  .skipword { font-size: 14px; color: var(--var); }
+
+  .sets { display: none; padding: 0 16px 12px; }
+  .item.open .sets { display: block; }
+  .set { display: grid; grid-template-columns: 40px auto 1fr; align-items: baseline; height: 32px; }
+  .set .v { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .set.ramp .v { color: var(--var); }
+  .set .v.pr { color: var(--bright); }
+  .prword { font-size: 12px; font-weight: 500; color: var(--bright); margin-left: 10px; letter-spacing: .3px; }
+  .rounds .set { grid-template-columns: 40px 110px 110px; }
+  .rounds .colhead { font-size: 14px; font-weight: 500; color: var(--var); height: 24px; }
+  .after { font-size: 14px; color: var(--var); padding-left: 40px; height: 28px; line-height: 28px; }
+
+  .note-btn { margin: 4px 0 16px 44px; height: 40px; padding: 0 12px; display: inline-flex; align-items: center;
+    color: var(--bright); font-size: 14px; font-weight: 500; letter-spacing: .1px; border-radius: 20px; }
+
+  .bottom { flex: none; border-top: 1px solid var(--hairline); padding: 12px 16px 12px; background: var(--bg); }
+  .bottom.flat { border-top-color: transparent; }
+  .upnext-label { font-size: 14px; font-weight: 500; color: var(--var); margin-bottom: 6px; }
+  .next { display: flex; justify-content: space-between; align-items: baseline; height: 28px; }
+  .next .s { font-size: 16px; font-weight: 500; }
+  .next .p { font-size: 14px; color: var(--var); }
+  .done { margin-top: 12px; height: 48px; border-radius: 24px; background: var(--accent); color: var(--onAccent);
+    display: grid; place-items: center; font-size: 14px; font-weight: 500; letter-spacing: .1px; }
+  .gesture { height: 24px; flex: none; display: grid; place-items: center; }
+  .gesture::after { content: ""; width: 108px; height: 4px; border-radius: 2px; background: #5A5A60; }
+  @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+</style>
+</head>
+<body>
+<p class="page-note">Opus seat, receipt v3. Three 412 x 915 frames. Tap any lift to open or close it. Up next and Done are pinned; the list scrolls under them (frame b). Cardio frame assumes "Intervals" is the 5K build plan's second day, so it carries the day B accent.</p>
+<div class="frames">
+
+<!-- (a) strength, all collapsed -->
+<figure class="dayA">
+  <figcaption>(a) Strength, all collapsed</figcaption>
+  <div class="phone">
+    <div class="status"><span>6:42</span><span>100%</span></div>
+    <div class="appbar"><div class="icon-btn" aria-label="Share"><span class="ms">share</span></div></div>
+    <div class="scroll">
+      <div class="head">
+        <div class="headline">Squat focus, done.</div>
+        <div class="plan">Four-day strength</div>
+        <div class="meta">Monday, Nov 2, 58 min</div>
+      </div>
+      <!--LIST-->
+    </div>
+    <div class="bottom flat">
+      <div class="upnext-label">Up next</div>
+      <div class="next"><span class="s">Upper</span><span class="p">Four-day strength</span></div>
+      <div class="next"><span class="s">Intervals</span><span class="p">5K build</span></div>
+      <div class="done">Done</div>
+    </div>
+    <div class="gesture"></div>
+  </div>
+</figure>
+
+<!-- (b) strength, squat and superset open -->
+<figure class="dayA">
+  <figcaption>(b) Squat and the superset open; the list scrolls under Up next</figcaption>
+  <div class="phone">
+    <div class="status"><span>6:42</span><span>100%</span></div>
+    <div class="appbar"><div class="icon-btn" aria-label="Share"><span class="ms">share</span></div></div>
+    <div class="scroll">
+      <div class="head">
+        <div class="headline">Squat focus, done.</div>
+        <div class="plan">Four-day strength</div>
+        <div class="meta">Monday, Nov 2, 58 min</div>
+      </div>
+      <!--LIST-OPEN-->
+    </div>
+    <div class="bottom">
+      <div class="upnext-label">Up next</div>
+      <div class="next"><span class="s">Upper</span><span class="p">Four-day strength</span></div>
+      <div class="next"><span class="s">Intervals</span><span class="p">5K build</span></div>
+      <div class="done">Done</div>
+    </div>
+    <div class="gesture"></div>
+  </div>
+</figure>
+
+<!-- (c) cardio -->
+<figure class="dayB">
+  <figcaption>(c) Cardio, the intervals open</figcaption>
+  <div class="phone">
+    <div class="status"><span>7:15</span><span>100%</span></div>
+    <div class="appbar"></div>
+    <div class="scroll">
+      <div class="head">
+        <div class="headline">Intervals, done.</div>
+        <div class="plan">5K build</div>
+        <div class="meta">Monday, Nov 2, 34 min</div>
+      </div>
+      <div class="activity">Track run</div>
+      <div class="item static">
+        <div class="row one"><span class="gut"></span><div><div class="name">Warm-up</div></div>
+          <div class="trail"><span class="num">10:00</span></div><span></span></div>
+      </div>
+      <div class="item open">
+        <div class="row"><span class="gut"></span>
+          <div><div class="name">6 × 400 m</div><div class="sup">Fastest of 6 <span class="tag">Pace PR</span></div></div>
+          <div class="trail"><span class="old">1:42</span><span class="num pr">1:38</span></div>
+          <span class="ms chev">expand_more</span></div>
+        <div class="sets">
+          <div class="set"><span class="gut">1</span><span class="v">1:41</span></div>
+          <div class="set"><span class="gut">2</span><span><span class="v pr">1:38</span><span class="prword">PR</span></span></div>
+          <div class="set"><span class="gut">3</span><span class="v">1:44</span></div>
+          <div class="set"><span class="gut">4</span><span class="v">1:40</span></div>
+          <div class="set"><span class="gut">5</span><span class="v">1:39</span></div>
+          <div class="set"><span class="gut">6</span><span class="v">1:45</span></div>
+          <div class="after">Recovery 1:30 each</div>
+        </div>
+      </div>
+      <div class="item static">
+        <div class="row one"><span class="gut"></span><div><div class="name">Cool-down</div></div>
+          <div class="trail"><span class="num">5:00</span></div><span></span></div>
+      </div>
+      <div class="note-btn">Add a note</div>
+    </div>
+    <div class="bottom flat">
+      <div class="upnext-label">Up next</div>
+      <div class="next"><span class="s">Long run</span><span class="p">5K build</span></div>
+      <div class="next"><span class="s">Upper</span><span class="p">Four-day strength</span></div>
+      <div class="done">Done</div>
+    </div>
+    <div class="gesture"></div>
+  </div>
+</figure>
+
+</div>
+
+<template id="list">
+  <div class="item" data-k="squat">
+    <div class="row"><span class="gut"></span>
+      <div><div class="name">Barbell Back Squat</div><div class="sup">Best of 3 sets <span class="tag">Weight PR</span></div></div>
+      <div class="trail"><span class="old">235 × 5</span><span class="num pr">245 × 5</span></div>
+      <span class="ms chev">expand_more</span></div>
+    <div class="sets">
+      <div class="set ramp"><span class="gut">R1</span><span class="v">135 × 5</span></div>
+      <div class="set ramp"><span class="gut">R2</span><span class="v">165 × 3</span></div>
+      <div class="set ramp"><span class="gut">R3</span><span class="v">190 × 2</span></div>
+      <div class="set ramp"><span class="gut">R4</span><span class="v">210 × 1</span></div>
+      <div class="set"><span class="gut">TOP</span><span><span class="v pr">245 × 5</span><span class="prword">PR</span></span></div>
+      <div class="set"><span class="gut">B/O</span><span class="v">185 × 8</span></div>
+      <div class="set"><span class="gut">B/O</span><span class="v">185 × 8</span></div>
+    </div>
+  </div>
+  <div class="item" data-k="ss">
+    <div class="row"><span class="gut">A1</span>
+      <div><div class="name">Barbell Bench Press</div><div class="sup">Best of 3 sets</div></div>
+      <div class="trail"><span class="num">185 × 5</span></div>
+      <span class="ms chev">expand_more</span></div>
+    <div class="row"><span class="gut">A2</span>
+      <div><div class="name">Barbell Row</div><div class="sup">Best of 3 sets</div></div>
+      <div class="trail"><span class="num">155 × 8</span></div><span></span></div>
+    <div class="sets rounds">
+      <div class="set colhead"><span></span><span>A1</span><span>A2</span></div>
+      <div class="set"><span class="gut">1</span><span class="v">185 × 5</span><span class="v">155 × 8</span></div>
+      <div class="set"><span class="gut">2</span><span class="v">185 × 5</span><span class="v">155 × 8</span></div>
+      <div class="set"><span class="gut">3</span><span class="v">185 × 4</span><span class="v">155 × 8</span></div>
+    </div>
+  </div>
+  <div class="item" data-k="curl">
+    <div class="row"><span class="gut"></span>
+      <div><div class="name">Dumbbell Curl</div><div class="sup">Best of 3 sets <span class="tag">Rep PR</span></div></div>
+      <div class="trail"><span class="old">35 × 9</span><span class="num pr">35 × 10</span></div>
+      <span class="ms chev">expand_more</span></div>
+    <div class="sets">
+      <div class="set"><span class="gut">1</span><span><span class="v pr">35 × 10</span><span class="prword">PR</span></span></div>
+      <div class="set"><span class="gut">2</span><span class="v">35 × 10</span></div>
+      <div class="set"><span class="gut">3</span><span class="v">35 × 8</span></div>
+    </div>
+  </div>
+  <div class="item" data-k="plank">
+    <div class="row"><span class="gut"></span>
+      <div><div class="name">Plank</div><div class="sup">Best of 2 sets <span class="tag">Hold PR</span></div></div>
+      <div class="trail"><span class="old">1:10</span><span class="num pr">1:15</span></div>
+      <span class="ms chev">expand_more</span></div>
+    <div class="sets">
+      <div class="set"><span class="gut">1</span><span><span class="v pr">1:15</span><span class="prword">PR</span></span></div>
+      <div class="set"><span class="gut">2</span><span class="v">1:10</span></div>
+    </div>
+  </div>
+  <div class="item static muted">
+    <div class="row"><span class="gut"></span>
+      <div><div class="name">Face Pull</div><div class="sup">3 sets planned</div></div>
+      <div class="trail"><span class="skipword">Skipped</span></div><span></span></div>
+  </div>
+  <div class="note-btn">Add a note</div>
+</template>
+
+<script>
+  const html = document.getElementById('list').innerHTML;
+  document.body.innerHTML = document.body.innerHTML
+    .replace('<!--LIST-->', html)
+    .replace('<!--LIST-OPEN-->', html
+      .replace('class="item" data-k="squat"', 'class="item open" data-k="squat"')
+      .replace('class="item" data-k="ss"', 'class="item open" data-k="ss"'));
+  document.querySelectorAll('.item:not(.static)').forEach(item => {
+    item.addEventListener('click', () => item.classList.toggle('open'));
+  });
+</script>
+</body>
+</html>

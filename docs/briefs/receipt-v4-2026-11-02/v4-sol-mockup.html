@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The workout receipt / v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0D0D0F; --surface: #16161A; --line: #2A2A30;
+  --text: #F2F2F0; --secondary: #9A9AA2;
+  --day-a: #C1440E; --day-b: #2D5A3D; --day-c: #B8860B; --day-d: #1F4E5F;
+  --accent: var(--day-a); --bright: #D2815D; --tonal: #3C2017;
+  --complete: #3E8E5A;
+  --body: Roboto, system-ui, sans-serif;
+  --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #070708; color: var(--text); font: 400 16px/1.5 var(--body); }
+button, textarea { font: inherit; }
+button { cursor: pointer; }
+button, summary { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, summary:focus-visible, textarea:focus-visible, .scroll:focus-visible {
+  outline: 2px solid var(--text); outline-offset: -2px;
+}
+.study { max-width: 1388px; padding: 32px 24px 64px; margin: auto; }
+.intro { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px; }
+h1 { margin: 0; font: 500 30px/1.2 var(--display); }
+.version { color: var(--secondary); font-size: 14px; }
+.gallery { display: grid; grid-template-columns: repeat(3, 412px); gap: 28px; align-items: start; margin-bottom: 40px; }
+.gallery.pair { grid-template-columns: repeat(2, 412px); }
+figure { margin: 0; width: 412px; }
+figcaption { font-size: 13px; line-height: 20px; color: var(--secondary); margin: 0 0 12px 2px; white-space: nowrap; }
+.phone { width: 412px; height: 1000px; display: flex; flex-direction: column; background: var(--bg); border-radius: 28px;
+  overflow: hidden; outline: 1px solid var(--line); }
+.phone.cardio { --accent: var(--day-b); --bright: #728F7C; --tonal: #1A2220; }
+.phone.partial { height: auto; }
+.phone.rows-only { padding: 16px 0; }
+.rows-only > .units { margin: 0 24px 8px; }
+.topbar { height: 64px; flex: none; display: flex; justify-content: flex-end; align-items: center; padding: 8px 8px 0; }
+.icon-button { border: 0; width: 48px; height: 48px; border-radius: 24px; background: none; color: var(--text); display: grid; place-items: center; }
+.icon-button svg { fill: currentColor; width: 24px; height: 24px; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.head { padding: 0 24px 18px; }
+.headline { font: 400 36px/44px var(--body); margin: 0 0 5px; letter-spacing: -.8px; }
+.plan { margin: 0; font-size: 16px; line-height: 24px; font-weight: 500; }
+.meta { color: var(--secondary); font-size: 14px; line-height: 22px; margin: 0; }
+.units { color: var(--secondary); font-size: 12px; line-height: 18px; margin: 3px 0 0; }
+.exercise { margin: 0; padding: 0 24px; }
+summary { list-style: none; cursor: pointer; min-height: 64px; padding: 10px 0; }
+summary::-webkit-details-marker { display: none; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 24px; }
+.name { font-size: 16px; line-height: 24px; font-weight: 400; }
+.chevron { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--secondary); stroke-width: 1.7; transition: transform 180ms cubic-bezier(.2,0,0,1); }
+details[open] > summary .chevron, .group.open > .group-control .chevron { transform: rotate(180deg); }
+.trailing { display: inline-flex; gap: 8px; align-items: center; flex: none; }
+.num { font: 500 24px/28px var(--display); font-variant-numeric: tabular-nums; }
+.num.record { color: var(--bright); }
+.support { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--secondary); font-size: 14px; line-height: 20px; margin-top: 2px; }
+.sequence { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 2px; }
+.sequence .num { font-size: 22px; line-height: 26px; }
+.tag { display: inline-block; border-radius: 4px; background: var(--tonal); color: var(--bright); font: 500 12px/16px var(--body); padding: 2px 6px; white-space: nowrap; }
+.detail { margin: 0 0 12px 16px; padding: 4px 0 4px 16px; border-left: 1px solid var(--line); }
+.set { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; min-height: 30px; }
+.set-label { font-size: 14px; line-height: 22px; color: var(--secondary); }
+.set .num { font-size: 22px; line-height: 28px; }
+.record-detail { margin: 1px 0 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.previous { color: var(--secondary); font-size: 12px; line-height: 18px; }
+.last { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+.last .set-label { max-width: 160px; }
+.planned { margin: 0 0 6px; font-size: 14px; line-height: 20px; color: var(--secondary); }
+.group { padding: 0 24px; margin: 3px 0 5px; }
+.group-control { width: 100%; min-height: 48px; display: flex; justify-content: space-between; align-items: center; padding: 0; background: none; border: 0; color: var(--text); text-align: left; }
+.group-control .name { font-weight: 500; }
+.round-count { color: var(--secondary); font-size: 14px; }
+.partners { padding-left: 24px; }
+.partner { padding: 3px 0 8px; }
+.partner-heading { display: flex; align-items: baseline; gap: 8px; }
+.notation { font-size: 14px; line-height: 22px; color: var(--secondary); width: 22px; flex: none; }
+.partner .name { margin: 0; }
+.partner .sequence { margin-left: 30px; }
+.partner .detail { margin-left: 46px; }
+.skipped { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; min-height: 48px; padding: 12px 24px; color: var(--secondary); font-size: 14px; }
+.skipped .name { color: var(--secondary); }
+.note-area { padding: 4px 24px 12px; }
+.note { background: none; border: 0; border-radius: 24px; color: var(--bright); font-size: 14px; font-weight: 500; min-height: 48px; padding: 0 12px; margin-left: -12px; }
+.note-preview { font-size: 14px; line-height: 22px; color: var(--secondary); margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bottom { flex: none; border-top: 1px solid var(--line); padding: 12px 24px 0; background: var(--bg); }
+.still { color: var(--secondary); font-size: 14px; line-height: 20px; margin: 0 0 4px; }
+.next { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; min-height: 26px; }
+.next .session { font-size: 16px; line-height: 24px; }
+.next .next-plan { font-size: 14px; color: var(--secondary); }
+.complete { display: flex; align-items: center; gap: 10px; min-height: 32px; font-size: 14px; }
+.complete svg { stroke: var(--complete); fill: none; stroke-width: 1.8; width: 24px; height: 24px; flex: none; }
+.done { width: 100%; height: 48px; border: 0; border-radius: 24px; margin-top: 12px; background: var(--accent); color: var(--text); font-size: 14px; font-weight: 500; }
+.bottom.only-done .done { margin-top: 0; }
+.gesture { height: 30px; flex: none; display: grid; place-items: center; }
+.gesture::after { content: ''; display: block; width: 108px; height: 4px; background: #5A5A60; border-radius: 2px; }
+.partial .note-area { padding-top: 16px; }
+.activity { margin: 4px 24px 6px; font-size: 16px; line-height: 24px; font-weight: 500; }
+.static-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; min-height: 56px; }
+.recovery { margin: 6px 0 0; color: var(--secondary); font-size: 14px; line-height: 22px; }
+.distance .detail { margin-bottom: 20px; }
+.distance .head { padding-top: 22px; }
+.distance .measure { display: flex; gap: 10px; align-items: baseline; }
+.distance .measure .num { font-size: 26px; }
+button:hover, summary:hover { background-color: #F2F2F008; }
+.done:hover { background: var(--accent); filter: brightness(1.1); }
+dialog { width: 364px; max-width: calc(100vw - 32px); border: 1px solid var(--line); border-radius: 28px; background: var(--surface); color: var(--text); padding: 24px; }
+dialog::backdrop { background: #0009; }
+dialog h2 { font-size: 24px; line-height: 32px; font-weight: 400; margin: 0 0 16px; }
+dialog label { display: block; color: var(--secondary); font-size: 14px; margin-bottom: 8px; }
+textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--secondary); border-radius: 4px; color: var(--text); padding: 12px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.dialog-actions button { min-height: 48px; min-width: 64px; border: 0; border-radius: 24px; padding: 0 16px; background: none; color: var(--text); }
+.dialog-actions .save { background: var(--text); color: var(--bg); }
+.study-status { color: var(--secondary); font-size: 14px; min-height: 22px; margin: 0; }
+@media (max-width: 1370px) { .gallery { grid-template-columns: repeat(2, 412px); } }
+@media (max-width: 900px) { .study { width: max-content; min-width: 100%; padding: 24px 16px; } .gallery, .gallery.pair { grid-template-columns: 412px; } }
+@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } }
+</style>
+</head>
+<body>
+<main class="study">
+  <header class="intro"><h1>The workout receipt</h1><span class="version">v4</span></header>
+  <div class="gallery" id="strength-gallery"></div>
+  <div class="gallery pair" id="bottom-gallery"></div>
+  <div class="gallery pair" id="cardio-gallery"></div>
+  <p class="study-status" id="study-status" role="status"></p>
+</main>
+<dialog id="note-dialog" aria-labelledby="note-title">
+  <form id="note-form">
+    <h2 id="note-title">Workout note</h2><label for="note-input">Note</label><textarea id="note-input"></textarea>
+    <div class="dialog-actions"><button type="button" id="cancel-note">Cancel</button><button class="save" type="submit">Save</button></div>
+  </form>
+</dialog>
+<script>
+'use strict';
+// Local design artifact. Native counterparts: ListItem + AnimatedVisibility,
+// passive tonal Surface, NoteSheet, and Scaffold.bottomBar. No networked app data.
+const chevron = '<svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const share = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.1c-.76 0-1.44.3-1.96.77L8.91 12.7a3.8 3.8 0 0 0 0-1.4l7.05-4.12A3 3 0 1 0 15 5c0 .24.03.47.08.69L8.04 9.8a3 3 0 1 0 0 4.4l7.12 4.16A3 3 0 1 0 18 16.1Z"/></svg>';
+const check = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m7.5 12 3 3 6-6"/></svg>';
+const tag = text => `<span class="tag">${text}</span>`;
+const num = (value, record = false) => `<span class="num${record ? ' record' : ''}">${value}</span>`;
+const set = (label, value, record = '', old = '') => `<div class="set"><span class="set-label">${label}</span>${num(value, !!record)}</div>${record ? `<div class="record-detail">${tag(record)}<span class="previous">up from ${old}</span></div>` : ''}`;
+function detailRow({key, name, sequence, support = '', record = '', trailing = '', body, speech, open = false}) {
+  return `<details class="exercise" data-key="${key}" ${open ? 'open' : ''}>
+    <summary aria-label="${speech}"><div class="heading"><span class="name">${name}</span><span class="trailing">${trailing ? num(trailing, !!record) : ''}${chevron}</span></div>
+      ${sequence ? `<div class="sequence">${num(sequence)}${record ? tag(record) : ''}</div>` : `<div class="support">${support}${record ? tag(record) : ''}</div>`}
+    </summary><div class="detail">${body}</div></details>`;
+}
+function squat(open) {
+  return detailRow({ key: 'squat', name: 'Barbell Back Squat', support: 'Top set', record: 'Weight PR', trailing: '245 × 5', open,
+    speech: 'Barbell Back Squat. Top set, 245 pounds for 5 reps. Weight PR, up from 235 pounds for 5 reps.',
+    body: set('Top set', '245 × 5', 'Weight PR', '235 × 5') + '<div class="last">' + set('Last session’s top set', '240 × 5') + '</div>' });
+}
+function superset(id, open, planned) {
+  const partners = [
+    {code: 'A1', name: 'Barbell Bench Press', sequence: '185 × 5, 5, 4', target: '3 × 5 planned', reps: [5,5,4]},
+    {code: 'A2', name: 'Barbell Row', sequence: '155 × 8, 8, 8', target: '3 × 8 planned', reps: [8,8,8]}
+  ];
+  return `<section class="group${open ? ' open' : ''}" data-key="superset">
+    <button type="button" class="group-control" aria-expanded="${open}" aria-controls="${id}-bench ${id}-row" aria-label="Superset, 3 rounds. A one, Barbell Bench Press, 185 pounds for 5, 5, and 4 reps. A two, Barbell Row, 155 pounds for 8, 8, and 8 reps.">
+      <span class="name">Superset</span><span class="trailing"><span class="round-count">3 rounds</span>${chevron}</span>
+    </button><div class="partners">${partners.map((p, i) => `<section class="partner" aria-label="${p.name}">
+      <div class="partner-heading"><span class="notation">${p.code}</span><h3 class="name">${p.name}</h3></div><div class="sequence">${num(p.sequence)}</div>
+      <div class="detail" id="${id}-${i ? 'row' : 'bench'}" ${open ? '' : 'hidden'}>${planned ? `<p class="planned">${p.target}</p>` : ''}${p.reps.map((r, j) => set(`Round ${j+1}`, `${i ? 155 : 185} × ${r}`)).join('')}</div>
+    </section>`).join('')}</div></section>`;
+}
+function curl(open, planned) {
+  return detailRow({ key: 'curl', name: 'Dumbbell Curl', sequence: '35 × 10, 10, 8', record: 'Rep PR', open,
+    speech: 'Dumbbell Curl. 35 pounds for 10, 10, and 8 reps. Rep PR, up from 35 pounds for 9 reps.',
+    body: (planned ? '<p class="planned">3 × 8–12 planned</p>' : '') + set('Set 1', '35 × 10', 'Rep PR', '35 × 9') + set('Set 2', '35 × 10') + set('Set 3', '35 × 8') });
+}
+function pullup() {
+  return detailRow({key: 'pullup', name: 'Pull-up', sequence: '12, 10, 9 reps', speech: 'Pull-up. 12, 10, and 9 reps.',
+    body: set('Set 1', '12 reps') + set('Set 2', '10 reps') + set('Set 3', '9 reps')});
+}
+function plank() {
+  return detailRow({key: 'plank', name: 'Plank', sequence: '1:15, 1:10', record: 'Hold PR', speech: 'Plank. Holds of 1 minute 15 seconds and 1 minute 10 seconds. Hold PR, up from 1 minute 10 seconds.',
+    body: set('Hold 1', '1:15', 'Hold PR', '1:10') + set('Hold 2', '1:10')});
+}
+const skipped = '<div class="skipped"><span class="name">Face Pull</span><span>Skipped</span></div>';
+function note() { return '<div class="note-area"><p class="note-preview" hidden></p><button class="note" type="button">Add a note</button></div>'; }
+function bottom(state) {
+  return `<footer class="bottom${state === 'w1' ? ' only-done' : ''}">${state === 'left' ? '<p class="still">Still today</p><div class="next"><span class="session">Intervals</span><span class="next-plan">5K build</span></div>' : state === 'complete' ? `<div class="complete" aria-label="All plans done for today.">${check}<span>All plans done for today.</span></div>` : ''}<button class="done" type="button">Done</button><div class="gesture" aria-hidden="true"></div></footer>`;
+}
+function head(title, plan, meta, weights = false) {
+  return `<header class="head"><h2 class="headline">${title}, done.</h2><p class="plan">${plan}</p><p class="meta">${meta}</p>${weights ? '<p class="units">Weights in lb</p>' : ''}</header>`;
+}
+const topbar = `<div class="topbar"><button type="button" class="icon-button share" aria-label="Share workout">${share}</button></div>`;
+function figure(id, caption, content, classes = '', noteKey = 'strength') {
+  return `<figure><figcaption id="${id}-caption">${caption}</figcaption><article id="${id}" class="phone ${classes}" data-note-key="${noteKey}" aria-labelledby="${id}-caption">${content}</article></figure>`;
+}
+function strength(id, open) {
+  return `${topbar}<div class="scroll" tabindex="0" aria-label="Squat focus receipt">${head('Squat focus', 'Four-day strength', 'Monday, Nov 2, 58 min', true)}${squat(open)}${superset(id, open, false)}${curl(open, false)}${pullup()}${plank()}${skipped}${note()}</div>${bottom('left')}`;
+}
+document.getElementById('strength-gallery').innerHTML =
+  figure('a', '(a) V1 + W2, one plan left', strength('a', false)) +
+  figure('b', '(b) V1, top set and sets open', strength('b', true)) +
+  figure('c', '(c) V2, plan reference on expand', '<p class="units">Weights in lb</p>' + superset('c', true, true) + curl(true, true), 'partial rows-only');
+document.getElementById('bottom-gallery').innerHTML =
+  figure('d1', '(d1) W1, Done only', note() + bottom('w1'), 'partial') +
+  figure('d2', '(d2) W2, all plans done today', note() + bottom('complete'), 'partial');
+function intervals() {
+  const times = ['1:41','1:38','1:44','1:40','1:39','1:45'];
+  const work = detailRow({ key: 'work', name: '6 × 400 m', trailing: '1:38', support: 'Fastest of 6', record: 'Faster PR', open: true,
+    speech: '6 by 400 meters. Fastest of 6, 1 minute 38 seconds. Faster PR, up from 1 minute 42 seconds.',
+    body: times.map((t, i) => set(`Interval ${i+1}`, t, i === 1 ? 'Faster PR' : '', i === 1 ? '1:42' : '')).join('') + '<p class="recovery">Recovery 1:30 each</p>' });
+  return `${topbar}<div class="scroll" tabindex="0" aria-label="Intervals receipt">${head('Intervals', '5K build', 'Monday, Nov 2, 34 min')}<h3 class="activity">Track run</h3>
+    <div class="static-row"><span class="name">Warm-up</span>${num('10:00')}</div>${work}<div class="static-row"><span class="name">Cool-down</span>${num('5:00')}</div>${note()}</div>${bottom('w1')}`;
+}
+const distance = head('Easy run', '5K build', 'Monday, Nov 2') + detailRow({key: 'distance', name: '30:00 run', trailing: '5.6 km', support: '', record: 'Farther PR', open: true,
+  speech: '30-minute run. 5.6 kilometers. Farther PR, up from 5.4 kilometers in a 30-minute run.',
+  body: '<p class="planned">30:00 planned</p>' + set('30:00 run', '5.6 km', 'Farther PR', '5.4 km in 30:00')});
+document.getElementById('cardio-gallery').innerHTML =
+  figure('e1', '(e1) Intervals, work block open', intervals(), 'cardio', 'intervals') +
+  figure('e2', '(e2) Easy run, distance in 30:00', distance, 'cardio partial distance', 'distance');
+
+// Several rows stay open together. Group expansion inserts each partner's
+// rounds directly beneath that partner, rather than a detached round matrix.
+document.querySelectorAll('.group-control').forEach(button => button.addEventListener('click', () => {
+  const open = button.getAttribute('aria-expanded') !== 'true';
+  button.setAttribute('aria-expanded', String(open));
+  button.closest('.group').classList.toggle('open', open);
+  button.getAttribute('aria-controls').split(' ').forEach(id => { document.getElementById(id).hidden = !open; });
+}));
+document.querySelectorAll('details').forEach(details => {
+  const sync = () => details.querySelector('summary').setAttribute('aria-expanded', String(details.open));
+  sync(); details.addEventListener('toggle', sync);
+});
+const notes = { strength: '', intervals: '', distance: '' };
+const dialog = document.getElementById('note-dialog');
+const input = document.getElementById('note-input');
+let activeKey = 'strength';
+document.querySelectorAll('.note').forEach(button => button.addEventListener('click', () => {
+  activeKey = button.closest('.phone').dataset.noteKey;
+  input.value = notes[activeKey]; dialog.showModal(); input.focus();
+}));
+document.getElementById('cancel-note').addEventListener('click', () => dialog.close());
+document.getElementById('note-form').addEventListener('submit', event => {
+  event.preventDefault(); notes[activeKey] = input.value.trim();
+  document.querySelectorAll('.phone').forEach(phone => {
+    if (phone.dataset.noteKey !== activeKey) return;
+    const preview = phone.querySelector('.note-preview');
+    if (!preview) return;
+    preview.textContent = notes[activeKey]; preview.hidden = !notes[activeKey];
+    phone.querySelector('.note').textContent = notes[activeKey] ? 'Edit note' : 'Add a note';
+  }); dialog.close();
+});
+const status = document.getElementById('study-status');
+document.querySelectorAll('.done').forEach(button => button.addEventListener('click', () => { status.textContent = 'Prototype: Done returns to Today.'; }));
+document.querySelectorAll('.share').forEach(button => button.addEventListener('click', () => { status.textContent = 'Prototype: Share opens the Android share sheet.'; }));
+</script>
+</body>
+</html>

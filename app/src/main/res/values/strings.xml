@@ -3,7 +3,7 @@
     <string name="note_done">DONE</string>
     <string name="note_add_action">Add a note</string>
     <string name="note_action">NOTE</string>
-    <string name="app_name">strength.log</string>
+    <string name="app_name">exercise.log</string>
     <string name="stepper_type_action">Type %1$s</string>
     <string name="stepper_value_label">value</string>
     <string name="stepper_valid_range">Valid range: %1$s–%2$s</string>
@@ -263,8 +263,8 @@
 <string name="backup_error_restore_not_started">Couldn\'t start the restore. Nothing changed — try again.</string>
 <string name="backup_error_settings_pending">Your data restored, but your settings didn\'t. Reopen the app and it\'ll finish.</string>
 <string name="backup_error_cleanup_pending">Backup restored. A bit of tidying up is left; the app will finish it.</string>
-<string name="backup_error_too_large">That file is too large to be a strength-log backup (%1$s bytes).</string>
-<string name="backup_error_malformed">That file isn\'t a strength-log backup (not valid JSON, or the wrong shape).</string>
+<string name="backup_error_too_large">That file is too large to be an exercise.log backup (%1$s bytes).</string>
+<string name="backup_error_malformed">That file isn\'t an exercise.log backup (not valid JSON, or the wrong shape).</string>
 <string name="backup_error_unsupported_schema">That backup was written by a version of the app this build can\'t read.</string>
 <string name="backup_error_invalid_payload">That backup contains data this build can\'t decode — it may be corrupt.</string>
 <string name="backup_error_dangling_exercise">That backup references an exercise (%1$s) it doesn\'t define.</string>
@@ -492,7 +492,7 @@
 
     <!-- Health rationale -->
     <string name="health_rationale_title">Health Connect</string>
-    <string name="health_rationale_body">strength.log uses Health Connect only on this device — it needs no internet access. You choose which of these to allow, and the app works fully without any of them:</string>
+    <string name="health_rationale_body">exercise.log uses Health Connect only on this device — it needs no internet access. You choose which of these to allow, and the app works fully without any of them:</string>
     <string name="health_rationale_write_workouts_bullet">Write your completed workouts, so other fitness apps can see them.</string>
     <string name="health_rationale_write_calories_bullet">Write an estimate of the calories burned in each strength workout, when your bodyweight is recorded.</string>
     <string name="health_rationale_read_sessions_bullet">Read strength sessions from other apps, to list them in your History.</string>

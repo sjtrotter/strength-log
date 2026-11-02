@@ -2,13 +2,13 @@
 
 **Last updated: October 13, 2026**
 
-strength.log is a strength-training tracker for Android and Wear OS. This
+exercise.log is a strength-training tracker for Android and Wear OS. This
 page explains what the app does and doesn't do with your data. It's short
 because there isn't much to say: the app doesn't collect anything.
 
 ## The short version
 
-- strength.log has no accounts, no ads, and no analytics.
+- exercise.log has no accounts, no ads, and no analytics.
 - The app does not request the Android INTERNET permission, so it cannot
   send data over the internet, to us or to anyone else.
 - Everything you enter — your program, your workout history, your custom
@@ -32,7 +32,7 @@ nothing to the developer or to any server.
 
 ## Health Connect
 
-If you choose to connect strength.log to Health Connect (Android's on-device
+If you choose to connect exercise.log to Health Connect (Android's on-device
 health data broker), you do it from the "Connect Health Connect" card in the
 History screen. The app then asks for four permissions in one system dialog, and
 you can allow or deny each one separately:
@@ -59,7 +59,7 @@ access at any time from Health Connect's own settings.
 
 ## Backups and exports
 
-strength.log can export a full backup (JSON) or your workout history (CSV).
+exercise.log can export a full backup (JSON) or your workout history (CSV).
 Both are created only when you tap the export button, and both go exactly
 where you tell them to via Android's share sheet / Storage Access
 Framework — your device storage, a cloud drive you've connected, wherever
@@ -73,7 +73,7 @@ If you turn on automatic backup, the app writes its backup file to a folder you 
 same Storage Access Framework grant. It is one file, overwritten each time,
 roughly once a day; Android schedules it, so not at a fixed time. What happens to that folder is between you and whatever
 owns it — if you picked a folder that a cloud app syncs, that app's rules
-apply, not ours; strength.log itself still cannot send anything over the internet. Turning
+apply, not ours; exercise.log itself still cannot send anything over the internet. Turning
 automatic backup off (or revoking the folder) stops the writing.
 
 ## Sharing a workout
@@ -81,7 +81,7 @@ automatic backup off (or revoking the folder) stops the writing.
 Finishing a day offers a share card: an image rendered entirely on your
 device. It shows the date, the day's letter and title, up to six lifts with
 the heaviest set of each, total sets, duration (if recorded), total volume, and
-the strength.log wordmark. It does not include your bodyweight, goals or
+the exercise.log wordmark. It does not include your bodyweight, goals or
 notes. You can also make one from any past session in History. Tapping share hands that image to Android's share sheet, and *you* choose
 where it goes: a messaging app, your photos, nowhere. The app draws the
 picture; the sending is done by the app you pick, under that app's policies.
@@ -97,7 +97,7 @@ you saved elsewhere are yours to delete.
 
 ## Children's privacy
 
-strength.log doesn't collect any data from anyone, so there's nothing to say
+exercise.log doesn't collect any data from anyone, so there's nothing to say
 here beyond that: the app is not directed at children and does not collect
 personal information from any user, of any age.
 

@@ -104,7 +104,7 @@ object ShareCardPainter {
         }
 
         canvas.drawText(content.footerLine, left, FOOTER_Y, textPaint(semibold, FOOTER_SIZE, DarkTextSecondary.toArgb()))
-        canvas.drawText("strength.log", left, WORDMARK_Y, textPaint(medium, WORDMARK_SIZE, DarkTextSecondary.toArgb()))
+        canvas.drawText(context.getString(R.string.app_name), left, WORDMARK_Y, textPaint(medium, WORDMARK_SIZE, DarkTextSecondary.toArgb()))
 
         return bitmap
     }

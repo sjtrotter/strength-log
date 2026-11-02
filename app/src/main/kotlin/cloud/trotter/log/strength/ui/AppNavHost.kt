@@ -636,9 +636,9 @@ private fun BackupRoute(onBack: () -> Unit, viewModel: BackupViewModel = hiltVie
             onAutomaticBackupChange = { enabled ->
                 if (enabled) automaticBackupFolderLauncher.launch(null) else viewModel.disableAutomaticBackup()
             },
-            onExportBackupClick = { exportBackupLauncher.launch("strength-log-backup-$today.json") },
+            onExportBackupClick = { exportBackupLauncher.launch("exercise-log-backup-$today.json") },
             onImportBackupClick = { importBackupLauncher.launch(arrayOf("application/json")) },
-            onExportCsvClick = { exportCsvLauncher.launch("strength-log-history-$today.csv") },
+            onExportCsvClick = { exportCsvLauncher.launch("exercise-log-history-$today.csv") },
             onImportCsvClick = { importCsvLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain")) },
             onConfirmRestore = viewModel::confirmRestore,
             onCancelRestore = viewModel::cancelRestore,

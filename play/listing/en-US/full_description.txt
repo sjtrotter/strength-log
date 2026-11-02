@@ -1,4 +1,4 @@
-strength.log is a strength-training tracker that keeps your data on your phone. No account, no ads, no internet permission. You pay once.
+exercise.log is a strength-training tracker that keeps your data on your phone. No account, no ads, no internet permission. You pay once.
 
 A short setup wizard asks about your training emphasis, how many days a week you want (two to six), your split, anchor lifts, equipment, and a few things about you: bodyweight, age and experience. From that it builds a rotation with calculated goal loads for the main lifts. Goals are read-only and change when your bodyweight, age or level does.
 

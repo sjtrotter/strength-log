@@ -75,10 +75,10 @@ class PhoneRestController @Inject constructor(
         }
     }
 
-    suspend fun expireFromAlarm(now: Long) = locked {
+    suspend fun expireFromAlarm(now: () -> Long) = locked {
         val rest = current() ?: return@locked
         // An alarm already in flight may predate +15 s or a replacement rest.
-        if (rest.deadlineEpochMillis > now) return@locked
+        if (rest.deadlineEpochMillis > now()) return@locked
         if (!runtime.isForeground) runtime.arm(rest)
         runtime.complete()
         if (!runtime.isForeground) settings.setPhoneRest(null)

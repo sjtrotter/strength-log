@@ -91,7 +91,7 @@ class PhoneRestControllerTest {
         val extended = controller.state.first()
         runtime.events.clear()
 
-        controller.expireFromAlarm(now = 60_000)
+        controller.expireFromAlarm { 60_000 }
 
         assertEquals(extended, controller.state.first())
         assertTrue(runtime.events.isEmpty())
@@ -101,7 +101,7 @@ class PhoneRestControllerTest {
         val rest = PhoneRest(60_000, 60, "Squat")
         settings.setPhoneRest(rest)
 
-        controller.expireFromAlarm(now = 60_000)
+        controller.expireFromAlarm { 60_000 }
 
         assertEquals(listOf(rest), runtime.armed)
         assertEquals(listOf("arm", "complete"), runtime.events)
@@ -114,7 +114,7 @@ class PhoneRestControllerTest {
         runtime.isForeground = true
         runtime.events.clear()
 
-        controller.expireFromAlarm(now = 60_000)
+        controller.expireFromAlarm { 60_000 }
 
         assertEquals(listOf("complete"), runtime.events)
         assertEquals(rest, controller.state.first())
@@ -156,7 +156,7 @@ class PhoneRestControllerTest {
         controller.skip()
         runtime.events.clear()
         controller.expireForeground(deadline = 60_000) { 60_000 }
-        controller.expireFromAlarm(now = 60_000)
+        controller.expireFromAlarm { 60_000 }
         assertTrue(runtime.events.isEmpty())
     }
 
@@ -177,12 +177,37 @@ class PhoneRestControllerTest {
         assertEquals(listOf("complete", "arm"), runtime.events)
     }
 
+    @Test fun alarmReadsTheClockAfterTakingTheLock() = runTest(dispatcher) {
+        val rest = PhoneRest(60_000, 60, "Squat")
+        controller.locked { start(rest) }
+        runtime.events.clear()
+        var clock = 59_000L
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val holder = launch {
+            controller.locked {
+                entered.complete(Unit)
+                release.await()
+            }
+        }
+        entered.await()
+        val alarm = launch { controller.expireFromAlarm { clock } }
+        runCurrent()
+        clock = 60_000L
+        release.complete(Unit)
+        holder.join()
+        alarm.join()
+
+        assertEquals(listOf("arm", "complete"), runtime.events)
+        assertNull(controller.state.first())
+    }
+
     @Test fun lockedWritesSerializeControlsAndExpiry() = runTest(dispatcher) {
         val rest = PhoneRest(60_000, 60, "Squat")
         val mutations: List<suspend () -> Unit> = listOf(
             { controller.adjust(now = 0, seconds = 15) },
             { controller.skip() },
-            { controller.expireFromAlarm(now = 60_000) },
+            { controller.expireFromAlarm { 60_000 } },
             { controller.expireForeground(deadline = 60_000) { 60_000 } },
         )
         for (mutate in mutations) {

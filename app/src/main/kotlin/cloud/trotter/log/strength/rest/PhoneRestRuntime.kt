@@ -163,7 +163,7 @@ class RestAlarmReceiver : BroadcastReceiver() {
         val scope = EntryPointAccessors.fromApplication(context, StrengthLogApp.AppScopeEntryPoint::class.java).appScope()
         scope.launch {
             try {
-                rest.expireFromAlarm(System.currentTimeMillis())
+                rest.expireFromAlarm(System::currentTimeMillis)
             } finally { pending.finish() }
         }
     }

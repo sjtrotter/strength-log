@@ -1900,7 +1900,7 @@ class DayViewModel @Inject constructor(
         tracks.tracks.flatMap { it.sets } + tracks.retired.flatMap { it.sets }
 
     private fun undoDeadline(target: UndoTarget, rest: PhoneRest?): Long? =
-        if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + UNDO_WINDOW_MS
+        if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + LOG_UNDO_WINDOW_MS
 
     private fun matchesUndo(row: LoggedSet, target: UndoTarget): Boolean {
         val after = target.after
@@ -2371,7 +2371,8 @@ class DayViewModel @Inject constructor(
 
     private companion object {
         const val REST_TICK_MS = 250L
-        const val UNDO_WINDOW_MS = 10_000L
+        /** How long a logged set stays undoable when no rest started after it. */
+        const val LOG_UNDO_WINDOW_MS = 10_000L
         const val KEY_PRESCRIPTION_DRAFT = "day_prescription_draft"
         const val KEY_CARDIO_DRAFT = "day_cardio_block_draft"
         const val KEY_DAY_EDITOR_OPEN = "day_editor_open"

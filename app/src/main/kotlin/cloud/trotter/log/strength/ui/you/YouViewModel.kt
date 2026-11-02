@@ -12,29 +12,34 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 @HiltViewModel
 class YouViewModel @Inject constructor(private val repo: TrackerRepository) : ViewModel() {
+    // Steppers send absolute values; a fair lock keeps two quick taps committing in tap order.
+    private val writeOrder = Mutex()
+
     val uiState = combine(repo.configFlow, repo.unitFlow) { config, unit ->
         YouUiState(config, unit, SetupStateBuilder.bodyweightDisplay(config, unit))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), YouUiState())
 
     fun setBodyweight(displayValue: Double) {
-        viewModelScope.launch {
+        update {
             val unit = repo.unitFlow.first()
             repo.updateLifter { it.copy(bodyweightLb = SetupStateBuilder.bodyweightLb(displayValue, unit)) }
         }
     }
 
     fun setAge(age: Int) {
-        viewModelScope.launch {
-            repo.updateLifter { it.copy(age = age.coerceAtLeast(1)) }
-        }
+        update { repo.updateLifter { it.copy(age = age.coerceAtLeast(1)) } }
     }
 
     fun setLevel(level: ExperienceLevel) {
-        viewModelScope.launch {
-            repo.updateLifter { it.copy(level = level) }
-        }
+        update { repo.updateLifter { it.copy(level = level) } }
+    }
+
+    private fun update(write: suspend () -> Unit) {
+        viewModelScope.launch { writeOrder.withLock { write() } }
     }
 }

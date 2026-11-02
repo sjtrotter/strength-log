@@ -22,8 +22,6 @@ object SecondsStepper {
     /** Formats a hold/carry duration: "45s" under [MINUTE_THRESHOLD], "1:30" at or above. */
     fun format(seconds: Int): String {
         if (seconds < MINUTE_THRESHOLD) return "${seconds}s"
-        val minutes = seconds / 60
-        val remainderSeconds = seconds % 60
-        return "$minutes:${remainderSeconds.toString().padStart(2, '0')}"
+        return ClockText.minutesSeconds(seconds)
     }
 }

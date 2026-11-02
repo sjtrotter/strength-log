@@ -58,6 +58,16 @@ class WatchUiModelsTest {
     }
 
     @Test
+    fun `unknown wire kinds use their one based position`() {
+        val exercise = squat.copy(sets = squat.sets.mapIndexed { index, set ->
+            if (index == 2) set.copy(kind = "FOO") else set
+        })
+        val stream = exercise.toStreamUiState(WeightUnit.LB, dayId = "A", accentIndex = 0)
+
+        assertEquals("3", stream.rounds[2].kindLabel)
+    }
+
+    @Test
     fun `GOAL and round weights convert from canonical lb to the display unit`() {
         val stream = squat.toStreamUiState(WeightUnit.KG, dayId = "A", accentIndex = 0)
         assertEquals(WeightUnit.KG.fromLb(235.0), stream.rounds.single { it.kindLabel == "TOP" }.weightDisplay)

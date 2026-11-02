@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.availableWith
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioPlacement
@@ -358,7 +359,7 @@ object ProgramGenerator {
      *  fallbacks use this; accessories go through [pickAccessory]. */
     private fun pick(pattern: MovementPattern, equip: Set<Equipment>): ExerciseEntry {
         val ranked = ExerciseLibrary.byPattern(pattern)
-        return ranked.firstOrNull { available(it, equip) } ?: ranked.first()
+        return ranked.firstOrNull { it.availableWith(equip) } ?: ranked.first()
     }
 
     /** Accessory pick: like [pick], but skips Std-sourced (main-capable) entries
@@ -376,13 +377,10 @@ object ProgramGenerator {
 
     private fun bestAccessory(ranked: List<ExerciseEntry>, equip: Set<Equipment>): ExerciseEntry {
         val nonStd = ranked.filter { it.goal !is GoalSource.Std }
-        return nonStd.firstOrNull { available(it, equip) }
+        return nonStd.firstOrNull { it.availableWith(equip) }
             ?: nonStd.firstOrNull()
             ?: ranked.first() // never leave a hole
     }
-
-    private fun available(entry: ExerciseEntry, equip: Set<Equipment>): Boolean =
-        entry.equipment.all { it in equip }
 
     /** Exactly one warm-up hint per day: the first accessory that loads a new
      *  pattern after the main (spec §12 warm-ups). */

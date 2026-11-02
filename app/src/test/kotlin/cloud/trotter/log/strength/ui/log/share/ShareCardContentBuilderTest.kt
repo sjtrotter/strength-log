@@ -98,14 +98,14 @@ class ShareCardContentBuilderTest {
     }
 
     @Test
-    fun mixedTrackingUsesTheFirstQualifyingSet() {
+    fun mixedTrackingUsesTheNewestCountingType() {
         val sets = listOf(
             weightedSet("plank", "Plank / Side Plank", 25.0, 5).copy(kind = SetKind.RAMP.name),
             repsSet("plank", "Plank / Side Plank", 60),
             timedSet("plank", "Plank / Side Plank", 90),
         )
         val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
-        assertEquals("×60", content.liftLines.single().value)
+        assertEquals("1:30", content.liftLines.single().value)
     }
 
     @Test

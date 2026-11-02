@@ -10,7 +10,8 @@ enum class PrKind { WEIGHT, REPS, HOLD }
 /**
  * Single source for personal bests read by the receipt, History, share card and Best chip.
  * Only done, non-RAMP sets with a positive weight, rep count or duration count.
- * Tracking comes from values; mixed groups use their first qualifying set's tracking type.
+ * Tracking comes from values; oldest-first groups use their newest counting set's tracking type.
+ * A lift retyped back to an earlier type keeps that type's older history.
  * Rank WEIGHTED by weight then reps, REPS by reps, and TIMED by seconds then added weight.
  * A PR strictly beats a non-null standing best of the same type; first times and ties are not PRs.
  */
@@ -33,16 +34,20 @@ object PersonalBests {
         }
     }
 
-    fun best(sets: List<LoggedSet>): LoggedSet? {
-        var standing: LoggedSet? = null
-        for (set in sets) {
-            if (!counts(set)) continue
-            if (standing == null || (tracking(set) == tracking(standing) && compare(set, standing) > 0)) {
-                standing = set
+    fun bestIndex(sets: List<LoggedSet>): Int? {
+        val type = sets.lastOrNull(::counts)?.let(::tracking) ?: return null
+        var bestIndex: Int? = null
+        for ((index, set) in sets.withIndex()) {
+            if (!counts(set) || tracking(set) != type) continue
+            val current = bestIndex
+            if (current == null || compare(set, sets[current]) > 0) {
+                bestIndex = index
             }
         }
-        return standing
+        return bestIndex
     }
+
+    fun best(sets: List<LoggedSet>): LoggedSet? = bestIndex(sets)?.let(sets::get)
 
     fun prKind(candidate: LoggedSet, standing: LoggedSet?): PrKind? {
         if (!counts(candidate) || standing == null ||

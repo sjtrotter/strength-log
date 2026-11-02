@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.PersonalBests
+import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.log.LogScreenBuilder
@@ -102,16 +103,8 @@ object ShareCardContentBuilder {
         return when (PersonalBests.tracking(best)) {
             TrackingType.WEIGHTED -> "${WeightStepper.format(unit.fromLb(best.weightLb))} × ${best.reps}"
             TrackingType.REPS -> "×${best.reps}"
-            TrackingType.TIMED -> minutesSeconds(best.seconds)
+            TrackingType.TIMED -> ClockText.minutesSeconds(best.seconds)
         }
-    }
-
-    /** Always m:ss (unlike [cloud.trotter.log.strength.domain.units.SecondsStepper.format]'s
-     *  under-a-minute "45s" shape) — the card reads like a workout clock, per §2's "0:45". */
-    private fun minutesSeconds(seconds: Int): String {
-        val minutes = seconds / 60
-        val remainder = seconds % 60
-        return "$minutes:${remainder.toString().padStart(2, '0')}"
     }
 
     /**

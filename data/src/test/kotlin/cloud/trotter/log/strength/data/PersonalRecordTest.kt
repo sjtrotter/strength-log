@@ -42,7 +42,7 @@ class PersonalRecordTest {
     }
 
     @Test
-    fun `a change of tracking type starts the record over in the newer type`() {
+    fun `a change of tracking type uses the newest type`() {
         val rows = listOf(
             PersonalRecordRow("cable_crunch", 0.0, 20, 1_000L, SetKind.WORK.name),
             PersonalRecordRow("cable_crunch", 45.0, 8, 2_000L, SetKind.WORK.name),
@@ -50,6 +50,20 @@ class PersonalRecordTest {
         )
         assertEquals(
             PersonalRecord("cable_crunch", 45.0, 8, 2_000L),
+            rows.toPersonalRecordsByExercise()["cable_crunch"],
+        )
+    }
+
+    @Test
+    fun `returning to a tracking type keeps its older best and date`() {
+        val rows = listOf(
+            PersonalRecordRow("cable_crunch", 50.0, 8, 1_000L, SetKind.WORK.name),
+            PersonalRecordRow("cable_crunch", 0.0, 20, 2_000L, SetKind.WORK.name),
+            PersonalRecordRow("cable_crunch", 45.0, 10, 3_000L, SetKind.WORK.name),
+        )
+
+        assertEquals(
+            PersonalRecord("cable_crunch", 50.0, 8, 1_000L),
             rows.toPersonalRecordsByExercise()["cable_crunch"],
         )
     }
@@ -102,7 +116,7 @@ class PersonalRecordTest {
     }
 
     @Test
-    fun `mixed history keeps the first qualifying tracking type`() {
+    fun `mixed history uses the newest counting tracking type`() {
         val rows = listOf(
             PersonalRecordRow("plank", 25.0, 0, 1_000L, SetKind.RAMP.name, seconds = 60),
             PersonalRecordRow("plank", 0.0, 45, 1_000L, SetKind.WORK.name),

@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.sync.WatchCardioBlock
 import cloud.trotter.log.strength.domain.sync.WatchCardioSetResult
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
+import cloud.trotter.log.strength.domain.units.ClockText
 
 /** Frozen prescription and device-local anchors. A snapshot never starts execution. */
 data class CardioSetState(
@@ -196,7 +197,7 @@ internal fun newCardioSetState(
 internal fun cardioActivityLabel(activity: String): String = activity.lowercase(java.util.Locale.ROOT)
     .replace('_', ' ').replaceFirstChar { it.titlecase() }
 
-internal fun cardioSetTime(seconds: Int): String = "%d:%02d".format(seconds / 60, seconds % 60)
+internal fun cardioSetTime(seconds: Int): String = ClockText.minutesSeconds(seconds)
 
 internal val cardioSetStateSaver = mapSaver<CardioSetState?>(
     save = { run ->

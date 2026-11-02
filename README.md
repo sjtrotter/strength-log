@@ -1,4 +1,4 @@
-# strength.log
+# exercise.log
 
 A local-first strength-training tracker for Android and Wear OS. A short setup
 wizard builds a training plan around your bodyweight, age and experience, and
@@ -42,5 +42,5 @@ Pure-Kotlin `:domain` module with pinned verification tests.
 Copyright © 2026 Stephen Trotter. GPL-3.0-or-later — see [`LICENSE`](LICENSE).
 Fork it, build it, learn from it; derivatives stay under the same license.
 
-The strength.log name and launcher icon are not part of the license grant. If
+The exercise.log name and launcher icon are not part of the license grant. If
 you distribute a fork, give it its own name and icon.

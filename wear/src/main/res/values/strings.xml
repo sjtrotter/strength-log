@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">strength.log</string>
+    <string name="app_name">exercise.log</string>
 
     <!-- How the two glance surfaces name themselves in the complication picker and
          the tile carousel — what they show, not who ships them. -->

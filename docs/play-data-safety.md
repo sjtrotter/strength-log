@@ -9,7 +9,7 @@ privacy policy is the one Play links to and users actually read.
 
 **No.**
 
-strength.log does not request the INTERNET permission, has no backend, no analytics SDK, and no
+exercise.log does not request the INTERNET permission, has no backend, no analytics SDK, and no
 third-party SDKs that collect data. (Libraries such as WorkManager add
 ACCESS_NETWORK_STATE, RECEIVE_BOOT_COMPLETED, WAKE_LOCK and FOREGROUND_SERVICE;
 the app never opens a network connection.) Phone-to-watch sync uses Google Play
@@ -43,12 +43,12 @@ Per-category form answers, for reference:
 | Device or other IDs | No | No | — |
 
 \* "Collected" in Play's sense means transmitted off-device to the developer
-or a third party. strength.log never does this. See the next section for
+or a third party. exercise.log never does this. See the next section for
 what actually happens with health data.
 
 ## Health Connect (declared separately, per Play's Health Connect policy)
 
-strength.log integrates with Health Connect, Android's on-device health data
+exercise.log integrates with Health Connect, Android's on-device health data
 broker, for four permissions. They are requested together in one system dialog
 from the "Connect Health Connect" card in the Log screen, and the user can
 allow or deny each one individually:
@@ -65,7 +65,7 @@ allow or deny each one individually:
   past year; if it differs, the Log offers to update the user's bodyweight and
   recompute goals, and nothing changes until the user taps.
 
-None of this data leaves the device through strength.log. Health Connect
+None of this data leaves the device through exercise.log. Health Connect
 itself is on-device IPC (not a network service), and the user grants or
 revokes each permission independently from Health Connect's own settings at
 any time. The app remains fully functional with none, some, or all of these

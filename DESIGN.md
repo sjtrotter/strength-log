@@ -1,6 +1,6 @@
 # DESIGN.md
 
-Project direction for the `ux-design` skill and any agent designing strength.log's phone or
+Project direction for the `ux-design` skill and any agent designing exercise.log's phone or
 watch interface. It points at the documents that hold the detail. `docs/PLAN.md` beats
 `STRENGTH_TRACKER_SPEC.md`, and a later brief beats an earlier one it names.
 
@@ -9,7 +9,7 @@ Only "Hard constraints" is fixed. Everything else, including the palette, the di
 
 ## Product and user
 
-strength.log is a paid, local-first strength tracker for Android phones with a Wear OS
+exercise.log is a paid, local-first strength tracker for Android phones with a Wear OS
 companion: no account, no ads, no network permission (spec §1, PLAN "Locked decisions"). The
 reference user is about forty and trains for maintenance and health, not records. Their
 schedule is unreliable and sessions get missed. They train in a gym, usually alone. During a

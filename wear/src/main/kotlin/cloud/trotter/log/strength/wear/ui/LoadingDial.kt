@@ -81,7 +81,7 @@ internal fun LoadingDial(
         if (state == LoadingDialState.LOADING) {
             Box(contentAlignment = Alignment.Center) {
                 Row {
-                    Text("strength", style = type.band, color = TextSecondary, maxLines = 1)
+                    Text("exercise", style = type.band, color = TextSecondary, maxLines = 1)
                     Text(".", style = type.band, color = accent, maxLines = 1)
                     Text("log", style = type.band, color = TextSecondary, maxLines = 1)
                 }

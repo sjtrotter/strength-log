@@ -70,4 +70,7 @@ interface WatchTrackerClient {
      * Failure means the completion is still local and the caller can retry.
      */
     fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit, onFailure: () -> Unit)
+
+    /** Queues a completed cardio session when the caller needs neither the stamp nor the failure. */
+    fun sendCardio(delta: CardioDelta) = sendCardio(delta, onQueued = {}, onFailure = {})
 }

@@ -5,11 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
-import cloud.trotter.log.strength.rest.NoOpRestRuntime
-import cloud.trotter.log.strength.rest.RestRuntime
+import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.ui.day.WorkoutStart
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,10 +27,9 @@ class TodayViewModel @Inject constructor(
     repo: TrackerRepository,
     civilTimeSource: CivilTimeSource,
     private val savedState: SavedStateHandle,
-    restRuntime: RestRuntime = NoOpRestRuntime,
-    private val settings: SettingsStore,
+    phoneRest: PhoneRestController,
 ) : ViewModel() {
-    val workoutStart = WorkoutStart(repo, savedState, viewModelScope, restRuntime, settings)
+    val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
     private val expanded = savedState.getStateFlow("today_other_days", false)
     // The branch owns both the program reads and the history identity. A delayed
     // membership switch keeps the previous complete overview until all new data arrives.

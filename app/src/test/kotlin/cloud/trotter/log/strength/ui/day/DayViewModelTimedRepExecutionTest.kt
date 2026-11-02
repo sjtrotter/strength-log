@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.rest.RestRuntime
+import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
@@ -98,7 +99,7 @@ class DayViewModelTimedRepExecutionTest {
     private fun test(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
-        repo, SessionPublisher.NoOp, share, handle, clock, alarm, rest,
+        repo, SessionPublisher.NoOp, share, handle, clock, alarm, PhoneRestController(settings, rest),
         settings = settings,
     ).also { vms += it }
 

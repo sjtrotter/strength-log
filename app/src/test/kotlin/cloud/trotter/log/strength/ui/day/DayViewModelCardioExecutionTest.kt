@@ -8,6 +8,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.rest.PhoneRestController
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -111,7 +113,7 @@ class DayViewModelCardioExecutionTest {
     private fun test(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
-        repo, publisher, share, handle, clock, alarm,
+        repo, publisher, share, handle, clock, alarm, PhoneRestController(settings, NoOpRestRuntime),
         settings = settings,
     ).also { vms += it }
 

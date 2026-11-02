@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.rest.PhoneRestController
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.ProgramDao
@@ -99,7 +101,7 @@ open class OverviewFixture {
         val vm = TodayViewModel(repo, object : CivilTimeSource {
             override val civilTime = flowOf(CivilTime(instant, zone, instant.atZone(zone).toLocalDate()))
             override fun refresh() = Unit
-        }, handle, settings = settings)
+        }, handle, phoneRest = PhoneRestController(settings, NoOpRestRuntime))
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         observeStart(vm, vm.workoutStart)
@@ -107,7 +109,7 @@ open class OverviewFixture {
     }
 
     protected fun preview(planId: Long, dayId: String): PreviewViewModel {
-        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)), settings = settings)
+        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)), PhoneRestController(settings, NoOpRestRuntime), settings = settings)
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         observeStart(vm, vm.workoutStart)
@@ -115,7 +117,7 @@ open class OverviewFixture {
     }
 
     protected fun day(handle: SavedStateHandle = SavedStateHandle()): DayViewModel {
-        val vm = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), handle, FixedCardioClock(), InertCardioAlarm, settings = settings)
+        val vm = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings)
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         vm.viewModelScope.launch { vm.dayEditState.collect {} }

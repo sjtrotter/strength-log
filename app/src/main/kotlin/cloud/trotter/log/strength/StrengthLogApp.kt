@@ -7,14 +7,13 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
-import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.icon.LauncherAliasMigration
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.sync.WearSyncPublisher
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.widget.TodayWidgetUpdater
-import cloud.trotter.log.strength.rest.PhoneRestRuntime
+import cloud.trotter.log.strength.rest.PhoneRestController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -43,14 +42,8 @@ class StrengthLogApp : Application() {
 
     @EntryPoint
     @InstallIn(SingletonComponent::class)
-    interface SettingsEntryPoint {
-        fun settingsStore(): SettingsStore
-    }
-
-    @EntryPoint
-    @InstallIn(SingletonComponent::class)
-    interface RestRuntimeEntryPoint {
-        fun phoneRestRuntime(): PhoneRestRuntime
+    interface PhoneRestEntryPoint {
+        fun phoneRestController(): PhoneRestController
     }
 
     @EntryPoint

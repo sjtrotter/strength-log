@@ -24,6 +24,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.rest.PhoneRestController
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -146,7 +148,7 @@ class DayRouteNavigationTest {
             todayViewModel = TodayViewModel(repo, object : CivilTimeSource {
                 override val civilTime = flowOf(CivilTime.now())
                 override fun refresh() = Unit
-            }, SavedStateHandle(), settings = settings)
+            }, SavedStateHandle(), phoneRest = PhoneRestController(settings, NoOpRestRuntime))
         }
         rule.setContent { AppTheme {
             navController = rememberNavController()
@@ -175,7 +177,7 @@ class DayRouteNavigationTest {
                                 SavedStateHandle(mapOf(
                                     Routes.DAY_ID_ARG to entry.arguments?.getString(Routes.DAY_ID_ARG),
                                     Routes.DAY_PLAN_ID_ARG to entry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
-                                )), FixedClock, alarm, settings = settings)
+                                )), FixedClock, alarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings)
                         }
                         DayRoute(
                             onCreateExercise = {}, onSetUpProgram = {},
@@ -222,7 +224,7 @@ class DayRouteNavigationTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             viewModel = DayViewModel(
                 repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
-                FixedClock, alarm,
+                FixedClock, alarm, PhoneRestController(settings, NoOpRestRuntime),
                 settings = settings,
             )
         }

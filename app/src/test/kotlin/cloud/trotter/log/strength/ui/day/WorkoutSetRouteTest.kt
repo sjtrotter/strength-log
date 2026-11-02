@@ -11,6 +11,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.rest.PhoneRestController
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -76,7 +78,7 @@ class WorkoutSetRouteTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         rule.runOnUiThread {
             viewModel = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
-                TestClock, SilentAlarm, settings = settings)
+                TestClock, SilentAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings)
         }
         rule.setContent { AppTheme {
             DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = {}, viewModel = viewModel)

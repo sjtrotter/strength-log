@@ -22,8 +22,8 @@ data class PersonalRecord(
 
 /**
  * Reduces the oldest-first [cloud.trotter.log.strength.data.db.dao.SessionDao.personalRecordRows]
- * into records in first-seen exercise order. Only a strictly better set of the
- * first qualifying tracking type replaces a record, preserving its earliest date.
+ * into records in first-seen exercise order. A strictly better set replaces a record,
+ * so the record keeps its earliest date; a set of another tracking type starts it over.
  * Exercises without a counting set are absent; unknown set kinds are skipped.
  */
 fun List<PersonalRecordRow>.toPersonalRecordsByExercise(): Map<String, PersonalRecord> {
@@ -39,10 +39,11 @@ fun List<PersonalRecordRow>.toPersonalRecordsByExercise(): Map<String, PersonalR
             }
             val candidate = LoggedSet(row.weightLb, row.reps, kind, done = true, seconds = row.seconds)
             if (!PersonalBests.counts(candidate)) continue
-            if (standing != null) {
-                if (PersonalBests.tracking(candidate) != PersonalBests.tracking(standing)) continue
-                if (PersonalBests.compare(candidate, standing) <= 0) continue
-            }
+            // A change of tracking type (a custom exercise retyped) starts the record over in the newer type.
+            val current = standing
+            if (current != null && PersonalBests.tracking(candidate) == PersonalBests.tracking(current) &&
+                PersonalBests.compare(candidate, current) <= 0
+            ) continue
             standing = candidate
             bestRow = row
         }

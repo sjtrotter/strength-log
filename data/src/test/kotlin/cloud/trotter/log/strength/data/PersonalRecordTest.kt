@@ -10,8 +10,9 @@ class PersonalRecordTest {
     @Test
     fun `ramps cannot replace a record and equal performances keep the earliest date`() {
         val rows = listOf(
+            // Oldest first, so the old first-row-wins reducer would have returned this warmup.
+            PersonalRecordRow("bb_back_squat", 250.0, 1, 500L, SetKind.RAMP.name),
             PersonalRecordRow("bb_back_squat", 235.0, 5, 1_000L, SetKind.TOP.name),
-            PersonalRecordRow("bb_back_squat", 250.0, 1, 2_000L, SetKind.RAMP.name),
             PersonalRecordRow("bb_back_squat", 225.0, 5, 2_000L, SetKind.WORK.name),
             PersonalRecordRow("bb_back_squat", 235.0, 5, 3_000L, SetKind.TOP.name),
         )
@@ -38,6 +39,19 @@ class PersonalRecordTest {
         assertEquals(listOf("bb_back_squat", "bb_bench"), result.keys.toList())
         assertEquals(PersonalRecord("bb_back_squat", 245.0, 5, 3_000L), result["bb_back_squat"])
         assertEquals(PersonalRecord("bb_bench", 185.0, 8, 3_000L), result["bb_bench"])
+    }
+
+    @Test
+    fun `a change of tracking type starts the record over in the newer type`() {
+        val rows = listOf(
+            PersonalRecordRow("cable_crunch", 0.0, 20, 1_000L, SetKind.WORK.name),
+            PersonalRecordRow("cable_crunch", 45.0, 8, 2_000L, SetKind.WORK.name),
+            PersonalRecordRow("cable_crunch", 40.0, 10, 3_000L, SetKind.WORK.name),
+        )
+        assertEquals(
+            PersonalRecord("cable_crunch", 45.0, 8, 2_000L),
+            rows.toPersonalRecordsByExercise()["cable_crunch"],
+        )
     }
 
     @Test

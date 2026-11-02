@@ -119,7 +119,7 @@ object JournalBuilder {
             points = points,
             goalValue = goal,
             goalLabel = "GOAL ${WeightStepper.format(unit.fromLb(lift.goalLb))}",
-            goalMet = high >= lift.goalLb,
+            goalMet = rows.maxOf { it.topWeightLb } >= lift.goalLb,
             latestLabel = WeightStepper.format(unit.fromLb(rows.last().topWeightLb)),
             caption = "${rows.size} $sessionWord · SINCE ${since.uppercase(Locale.US)}",
             axisMin = axisBound(values, goal, low = true),

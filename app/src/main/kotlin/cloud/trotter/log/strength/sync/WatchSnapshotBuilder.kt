@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.sync
 
-import cloud.trotter.log.strength.data.RunSeed
+import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.LoggedSlot
@@ -92,12 +92,12 @@ object WatchSnapshotBuilder {
 
         val workoutSlots = slots.forRun(droppedPartners, skippedLifts)
         val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
-        val previewSeeds = DayScreenBuilder.seedPlan(
+        val previewSeeds = DaySeeds.plan(
             slots = workoutSlots,
             existing = logsByKey.mapValues { it.value.sets.size },
-            cfg = cfg,
+            config = cfg,
             catalog = catalog,
-        ).associateBy { it.programExerciseId to it.slot }
+        )
         val exercises = workoutSlots.map { slot ->
             buildExercise(slot, logsByKey, previewSeeds, cfg, catalog, unit, restSettings, equipment)
         }
@@ -155,7 +155,7 @@ object WatchSnapshotBuilder {
     private fun buildExercise(
         slot: ProgramSlot,
         logsByKey: Map<Pair<Long, String>, LoggedSlot>,
-        previewSeeds: Map<Pair<Long, String>, RunSeed>,
+        previewSeeds: Map<Pair<Long, String>, List<LoggedSet>>,
         cfg: LifterConfig,
         catalog: ExerciseCatalog,
         unit: WeightUnit,
@@ -189,10 +189,10 @@ object WatchSnapshotBuilder {
         }
         val partnerEntry = partner?.entry
         val main = logsByKey[id to Slot.MAIN]?.sets
-            ?: previewSeeds[id to Slot.MAIN]?.sets
-            ?: DayScreenBuilder.previewMainSets(slot, cfg, catalog)
+            ?: previewSeeds[id to Slot.MAIN]
+            ?: DaySeeds.previewMain(slot, cfg, catalog)
         val ss = pe.superset?.let {
-            logsByKey[id to Slot.SS]?.sets ?: previewSeeds[id to Slot.SS]?.sets
+            logsByKey[id to Slot.SS]?.sets ?: previewSeeds[id to Slot.SS]
         }.orEmpty()
 
         return WatchExercise(

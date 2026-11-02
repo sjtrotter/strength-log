@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.data.LoggedSlot
@@ -32,7 +33,6 @@ import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.widget.TodayWidgetState
 import cloud.trotter.log.strength.widget.WidgetStatLine
 import cloud.trotter.log.strength.widget.todayWidgetContent
@@ -264,7 +264,7 @@ class WatchSnapshotBuilderTest {
         )
 
         // Today counts this shared preview policy; the snapshot must carry it verbatim.
-        val todayCount = DayScreenBuilder.previewMainSets(slot, cfg, catalog).size
+        val todayCount = DaySeeds.previewMain(slot, cfg, catalog).size
         val sets = WatchSnapshotBuilder.build(
             unresolvedProgram, "A", listOf(slot), emptyList(), cfg, catalog, WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single().sets

@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.RunWriteResult
@@ -1141,9 +1142,9 @@ class DayViewModelWorkoutTest {
         runCurrent()
         val offer = requireNotNull(vm.uiState.value.swapUndo)
         val slots = repo.slotsFor(requireNotNull(vm.uiState.value.planId), "A").first()
-        val seed = DayScreenBuilder.swapSeed(slots.single(), Slot.MAIN, "bb_bench", emptyMap(),
+        val seed = DaySeeds.swap(slots.single(), Slot.MAIN, "bb_bench", emptyMap(),
             repo.wizardAnswersFor(requireNotNull(vm.uiState.value.planId)).first().config, repo.catalogFlow.first())!!
-        repo.swapInRun(offer.runId, offer.programExerciseId, Slot.MAIN, "bb_bench", RunSeed(seed.programExerciseId, seed.slot, seed.sets))
+        repo.swapInRun(offer.runId, offer.programExerciseId, Slot.MAIN, "bb_bench", RunSeed(slots.single().programExerciseId, Slot.MAIN, seed))
         runCurrent()
         assertNull(vm.uiState.value.swapUndo)
         repo.swapInRun(offer.runId, offer.programExerciseId, Slot.MAIN, "db_bench", null)

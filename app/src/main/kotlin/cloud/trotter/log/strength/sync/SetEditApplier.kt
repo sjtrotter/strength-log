@@ -1,10 +1,12 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.isSlotSkipped
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.ExerciseSwapResult
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunWriteResult
+import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -14,7 +16,6 @@ import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.guardedFor
-import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -97,7 +98,8 @@ class SetEditApplier(
             val existing = tracks
                 .associate { (it.programExerciseId to it.slot) to it.sets.size }
             val cfg = repo.wizardAnswersFor(planId).first().config
-            DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
+            DaySeeds.plan(slots, existing, cfg, catalog)
+                .map { (key, sets) -> RunSeed(key.first, key.second, sets) }
         }
         edits.add(edit(delta.slot, true))
         if (delta.done != null) {
@@ -171,10 +173,12 @@ class SetEditApplier(
         val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
         val runId = swap.runId
         val seeds = if (runId != null && declined == null) {
-            DayScreenBuilder.seedPlan(slots, existing, answers.config, catalog)
+            DaySeeds.plan(slots, existing, answers.config, catalog)
+                .map { (key, sets) -> RunSeed(key.first, key.second, sets) }
         } else emptyList()
         val seed = if (runId != null && declined == null) {
-            DayScreenBuilder.swapSeed(slot, Slot.MAIN, swap.exerciseId, existing, answers.config, catalog)
+            DaySeeds.swap(slot, Slot.MAIN, swap.exerciseId, existing, answers.config, catalog)
+                ?.let { RunSeed(slot.programExerciseId, Slot.MAIN, it) }
         } else null
         when (repo.applyExerciseSwap(
             planId, swap.dayId, slot.programExerciseId, swap.exerciseId, runId, seed, seeds,
@@ -197,8 +201,9 @@ class SetEditApplier(
         val tracks = repo.dayTracksFlow(planId, dayId).first()
         val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
         val cfg = repo.wizardAnswersFor(planId).first().config
-        val seeds = DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
-            .filter { it.programExerciseId == programExerciseId }
+        val seeds = DaySeeds.plan(slots, existing, cfg, catalog)
+            .filterKeys { it.first == programExerciseId }
+            .map { (key, sets) -> RunSeed(key.first, key.second, sets) }
         val runId = tracks.runId
         if (tracks.runOpen && runId != null) {
             repo.seedRunTracksIfMissing(runId, seeds)

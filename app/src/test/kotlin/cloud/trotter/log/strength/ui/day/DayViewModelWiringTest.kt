@@ -10,6 +10,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -452,7 +453,7 @@ class DayViewModelWiringTest {
         val slot = repo.slotsFor(plan, "A").first().single()
         assertEquals(3, slot.exercise.targetSets)
         assertNull(slot.exercise.prescription)
-        assertEquals(DayScreenBuilder.previewMainSets(slot, repo.configFlow.first(), repo.catalogFlow.first()),
+        assertEquals(DaySeeds.previewMain(slot, repo.configFlow.first(), repo.catalogFlow.first()),
             track(slot.programExerciseId, Slot.MAIN))
         collectEdit.cancel()
         collectUi.cancel()
@@ -2698,8 +2699,8 @@ class DayViewModelWiringTest {
         val catalog = repo.catalogFlow.first()
         val goal = GoalCalculator.targetFor(catalog.get("hack_squat"), cfg)
         assertEquals(HeaderTarget.Goal(GoalFormatter.label(goal, WeightUnit.LB)), card.headerTarget)
-        assertEquals(DayScreenBuilder.swapSeed(repo.slotsFor(plan, "A").first().single(), Slot.MAIN,
-            "hack_squat", emptyMap(), cfg, catalog)!!.sets,
+        assertEquals(DaySeeds.swap(repo.slotsFor(plan, "A").first().single(), Slot.MAIN,
+            "hack_squat", emptyMap(), cfg, catalog)!!,
             repo.openRunFlow.first()!!.tracks.single { !it.retired }.planned)
         assertTrue(card.rows.none { it.done })
         assertFalse(vm.uiState.value.canFinish)

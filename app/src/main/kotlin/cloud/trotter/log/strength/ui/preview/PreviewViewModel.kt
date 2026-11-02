@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.preview
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.performedExercise
@@ -51,8 +52,7 @@ class PreviewViewModel @Inject constructor(
         combine(history, repo.dayTracksFlow(planId, dayId), repo.plansFlow) { (slots, last), tracks, plans ->
             val day = ctx.program.days.firstOrNull { it.id == dayId }
             val stored = tracks.tracks.associateBy { it.programExerciseId to it.slot }
-            val seeds = DayScreenBuilder.seedPlan(slots, stored.mapValues { it.value.sets.size }, ctx.config, ctx.catalog)
-                .associateBy { it.programExerciseId to it.slot }
+            val seeds = DaySeeds.plan(slots, stored.mapValues { it.value.sets.size }, ctx.config, ctx.catalog)
             PreviewUiState(
                 loading = false, selection = selection,
                 planName = plans.firstOrNull { it.id == planId }?.name.orEmpty(),
@@ -66,7 +66,7 @@ class PreviewViewModel @Inject constructor(
                     }
                     val working = trackSlots.mapIndexedNotNull { index, trackSlot ->
                         val key = slot.programExerciseId to trackSlot
-                        val sets = stored[key]?.sets ?: seeds[key]?.sets.orEmpty()
+                        val sets = stored[key]?.sets ?: seeds[key].orEmpty()
                         sets.firstOrNull { it.kind != SetKind.RAMP }?.let { set ->
                             SetFormatter.summary(performed[index].tracking, set.weightLb, set.reps, set.seconds, ctx.unit, spaced = true).trim()
                         }

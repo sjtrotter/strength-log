@@ -8,6 +8,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.rest.PhoneRestController
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.SessionDao
@@ -435,7 +437,7 @@ class DayViewModelReceiptTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, settings = settings).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings).also { vms += it }
 
     /** [DayViewModel.uiState] is `WhileSubscribed`: without a live collector its
      *  `.value` never leaves the initial state, and the header count would read

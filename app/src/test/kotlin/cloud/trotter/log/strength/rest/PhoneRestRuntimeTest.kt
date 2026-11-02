@@ -65,12 +65,10 @@ import org.robolectric.annotation.Config
 
 /** A real receiver graph without starting the production app's background observers. */
 class RestTestApplication : Application(), GeneratedComponent,
-    StrengthLogApp.SettingsEntryPoint, StrengthLogApp.RestRuntimeEntryPoint, StrengthLogApp.AppScopeEntryPoint {
-    lateinit var settings: SettingsStore
-    lateinit var runtime: PhoneRestRuntime
+    StrengthLogApp.PhoneRestEntryPoint, StrengthLogApp.AppScopeEntryPoint {
+    lateinit var rest: PhoneRestController
     lateinit var scope: CoroutineScope
-    override fun settingsStore() = settings
-    override fun phoneRestRuntime() = runtime
+    override fun phoneRestController() = rest
     override fun appScope() = scope
 }
 
@@ -84,6 +82,7 @@ class PhoneRestRuntimeTest {
     private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var runtime: PhoneRestRuntime
+    private lateinit var rest: PhoneRestController
     private lateinit var scope: CoroutineScope
     private val models = mutableListOf<ViewModel>()
     private val notifications get() = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -99,8 +98,8 @@ class PhoneRestRuntimeTest {
         settings = SettingsStore(store)
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
         runtime = PhoneRestRuntime(context)
-        context.settings = settings
-        context.runtime = runtime
+        rest = PhoneRestController(settings, runtime)
+        context.rest = rest
         context.scope = scope
     }
 
@@ -200,7 +199,7 @@ class PhoneRestRuntimeTest {
         advanceUntilIdle()
         assertNotNull(settings.phoneRestFlow.first())
         assertNull(shadowOf(notifications).getNotification(PhoneRestRuntime.OVER_ID))
-        PhoneRestActions.skip(settings, runtime)
+        rest.skip()
         context.sendBroadcast(Intent(context, RestAlarmReceiver::class.java))
         shadowOf(Looper.getMainLooper()).idle()
         advanceUntilIdle()
@@ -221,10 +220,7 @@ class PhoneRestRuntimeTest {
         collector.cancel()
         runtime.setForeground(false, null)
         val expired = PhoneRest(System.currentTimeMillis() - 1, 60, "Squat 190 × 5")
-        PhoneRestActions.locked {
-            settings.setPhoneRest(expired)
-            runtime.arm(expired)
-        }
+        rest.locked { start(expired) }
         runCurrent()
         val over = shadowOf(notifications).getNotification(PhoneRestRuntime.OVER_ID)
         assertNotNull(over)
@@ -248,7 +244,7 @@ class PhoneRestRuntimeTest {
         val vm = newDayModel(Clock.fixed(Instant.ofEpochMilli(now), ZoneOffset.UTC))
         advanceUntilIdle()
         val release = CompletableDeferred<Unit>()
-        val holder = launch { PhoneRestActions.locked { release.await() } }
+        val holder = launch { rest.locked { release.await() } }
         runCurrent()
         val expired = PhoneRest(now - 1, 60, "Squat 190 × 5")
         settings.setPhoneRest(expired)
@@ -278,7 +274,7 @@ class PhoneRestRuntimeTest {
         startRest()
         val preview = PreviewViewModel(repo, SavedStateHandle(mapOf(
             Routes.PLAN_ID_ARG to plan.toString(), Routes.DAY_ID_ARG to "B",
-        )), runtime, settings = settings).also { models += it }
+        )), rest, settings = settings).also { models += it }
         preview.start()
         advanceUntilIdle()
         preview.workoutStart.confirmDiscard()
@@ -301,7 +297,7 @@ class PhoneRestRuntimeTest {
 
     private fun newDayModel(clock: Clock = Clock.systemUTC()) =
         DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
-            FixedCardioClock(), InertCardioAlarm, runtime, clock, settings = settings).also { models += it }
+            FixedCardioClock(), InertCardioAlarm, rest, clock, settings = settings).also { models += it }
 
     private fun checkDayAction(action: (DayViewModel) -> Unit) = runTest(dispatcher) {
         insertProgram()

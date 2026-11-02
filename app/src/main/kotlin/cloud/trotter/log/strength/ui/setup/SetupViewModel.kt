@@ -6,8 +6,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.rest.NoOpRestRuntime
-import cloud.trotter.log.strength.rest.RestRuntime
+import cloud.trotter.log.strength.rest.PhoneRestController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,7 +18,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val settings: SettingsStore,
-    private val restRuntime: RestRuntime = NoOpRestRuntime,
+    private val phoneRest: PhoneRestController,
 ) : ViewModel() {
 
     private val preferences = combine(
@@ -49,8 +48,10 @@ class SetupViewModel @Inject constructor(
     }
     fun setPhoneRestTimerEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            settings.setPhoneRestTimerEnabled(enabled)
-            if (!enabled) restRuntime.cancel()
+            phoneRest.locked {
+                settings.setPhoneRestTimerEnabled(enabled)
+                if (!enabled) skip()
+            }
         }
     }
 

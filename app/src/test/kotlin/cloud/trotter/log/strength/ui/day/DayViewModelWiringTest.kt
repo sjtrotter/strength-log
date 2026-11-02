@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.flow.map
 import android.content.Context
@@ -155,7 +156,7 @@ class DayViewModelWiringTest {
         publisher: SessionPublisher = SessionPublisher.NoOp,
         restRuntime: cloud.trotter.log.strength.rest.RestRuntime = cloud.trotter.log.strength.rest.NoOpRestRuntime,
     ): DayViewModel =
-        DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, restRuntime, settings = settings).also { vms += it }
+        DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, restRuntime), settings = settings).also { vms += it }
 
     @Test
     fun authoredCardioDraftAndSetPageSurviveParcelRecreationAndSaveImmediately() = runVmTest {

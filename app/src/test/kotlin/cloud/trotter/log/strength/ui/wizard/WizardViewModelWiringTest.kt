@@ -11,6 +11,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.rest.PhoneRestController
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.FlakyDataStore
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -673,7 +675,7 @@ class WizardViewModelWiringTest {
         vm.onNext() // last step -> finish(): ProgramGenerator -> replaceProgram
         advanceUntilIdle()
 
-        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(), FixedCardioClock(), InertCardioAlarm, settings = settings)
+        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings)
             .also { vms += it }
         advanceUntilIdle() // constructing the VM triggers the day-A seed pass
 

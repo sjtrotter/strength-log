@@ -31,6 +31,7 @@ import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.rest.RestRuntime
+import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.sync.SetEditApplier
 import cloud.trotter.log.strength.sync.WearSyncStore
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -137,7 +138,7 @@ class DayViewModelWorkoutTest {
         savedState: SavedStateHandle = SavedStateHandle(),
     ): DayViewModel {
         val vm = DayViewModel(
-            repo, SessionPublisher.NoOp, share, savedState, clock, InertAlarm, runtime,
+            repo, SessionPublisher.NoOp, share, savedState, clock, InertAlarm, PhoneRestController(settings, runtime),
             clock = clock,
             settings = settings,
         ).also { vms += it }

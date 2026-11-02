@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.rest.RestRuntime
+import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
@@ -87,7 +88,7 @@ class SetupViewModelWiringTest {
     }
 
     private fun newViewModel(): SetupViewModel =
-        SetupViewModel(settings).also { vm ->
+        SetupViewModel(settings, PhoneRestController(settings, NoOpRestRuntime)).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -125,7 +126,7 @@ class SetupViewModelWiringTest {
         val runtime = object : RestRuntime by NoOpRestRuntime {
             override fun cancel() { cancellations++ }
         }
-        val vm = SetupViewModel(settings, runtime).also { vms += it }
+        val vm = SetupViewModel(settings, PhoneRestController(settings, runtime)).also { vms += it }
         vm.setPhoneRestTimerEnabled(false)
         advanceUntilIdle()
         assertEquals(false, settings.phoneRestTimerEnabledFlow.first())

@@ -15,9 +15,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.ui.AppNavHost
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import cloud.trotter.log.strength.rest.PhoneRestActions
+import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.rest.PhoneRestRuntime
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -33,6 +32,7 @@ class MainActivity : ComponentActivity() {
     lateinit var settings: SettingsStore
 
     @Inject lateinit var phoneRestRuntime: PhoneRestRuntime
+    @Inject lateinit var phoneRest: PhoneRestController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         if (!isChangingConfigurations) {
             lifecycleScope.launch {
-                PhoneRestActions.locked { phoneRestRuntime.setForeground(false, settings.phoneRestFlow.first()) }
+                phoneRest.locked { phoneRestRuntime.setForeground(false, current()) }
             }
         }
     }
@@ -75,8 +75,8 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         lifecycleScope.launch {
-            PhoneRestActions.locked {
-                val rest = settings.phoneRestFlow.first()
+            phoneRest.locked {
+                val rest = current()
                 phoneRestRuntime.setForeground(true, rest)
                 rest?.let(phoneRestRuntime::arm)
             }

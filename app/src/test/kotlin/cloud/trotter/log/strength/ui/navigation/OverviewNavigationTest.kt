@@ -32,6 +32,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.rest.PhoneRestController
+import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -135,7 +137,7 @@ class OverviewNavigationTest {
                         val vm = remember { keep(TodayViewModel(repo, object : CivilTimeSource {
                             override val civilTime = flowOf(CivilTime.now())
                             override fun refresh() = Unit
-                        }, SavedStateHandle(), settings = settings)) }
+                        }, SavedStateHandle(), phoneRest = PhoneRestController(settings, NoOpRestRuntime))) }
                         TodayRoute(
                             onStart = { nav.navigate(Routes.day(it.dayId, it.planId)) { launchSingleTop = true } },
                             onOpenCardio = { nav.navigate(Routes.day(it.dayId, it.planId)) },
@@ -171,7 +173,7 @@ class OverviewNavigationTest {
                         val vm = remember(previewEntry) { keep(PreviewViewModel(repo, SavedStateHandle(mapOf(
                             Routes.PLAN_ID_ARG to previewEntry.arguments?.getString(Routes.PLAN_ID_ARG),
                             Routes.DAY_ID_ARG to previewEntry.arguments?.getString(Routes.DAY_ID_ARG),
-                        )), settings = settings)) }
+                        )), PhoneRestController(settings, NoOpRestRuntime), settings = settings)) }
                         PreviewRoute(onBack = { nav.popBackStack() }, onOpenDay = { selection, edit ->
                             nav.navigate(Routes.day(selection.dayId, selection.planId, edit))
                         }, viewModel = vm)
@@ -187,7 +189,7 @@ class OverviewNavigationTest {
                                     Routes.DAY_PLAN_ID_ARG to dayEntry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
                                     Routes.DAY_ID_ARG to dayEntry.arguments?.getString(Routes.DAY_ID_ARG),
                                     Routes.DAY_EDITOR_ARG to dayEntry.arguments?.getBoolean(Routes.DAY_EDITOR_ARG),
-                                )), FixedCardioClock(), InertCardioAlarm, settings = settings)) }
+                                )), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings)) }
                             DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = { nav.finishWorkout() },
                                 onBack = { nav.popBackStack() },
                                 viewModel = dayVm)

@@ -22,7 +22,6 @@ import cloud.trotter.log.strength.ui.components.AppHaptics
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,7 +32,7 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
     private var foreground = false
     private var armedDeadline: Long? = null
     private var completedDeadline: Long? = null
-    val isForeground: Boolean get() = foreground
+    override val isForeground: Boolean get() = foreground
 
     init { createChannel(context) }
 
@@ -143,6 +142,7 @@ class PhoneRestRuntime @Inject constructor(@ApplicationContext private val conte
 }
 
 interface RestRuntime {
+    val isForeground: Boolean get() = false
     val available: Boolean
     fun arm(rest: PhoneRest)
     fun cancel()
@@ -159,19 +159,11 @@ object NoOpRestRuntime : RestRuntime {
 class RestAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val pending = goAsync()
-        val settings = EntryPointAccessors.fromApplication(context, StrengthLogApp.SettingsEntryPoint::class.java).settingsStore()
-        val runtime = EntryPointAccessors.fromApplication(context, StrengthLogApp.RestRuntimeEntryPoint::class.java).phoneRestRuntime()
+        val rest = EntryPointAccessors.fromApplication(context, StrengthLogApp.PhoneRestEntryPoint::class.java).phoneRestController()
         val scope = EntryPointAccessors.fromApplication(context, StrengthLogApp.AppScopeEntryPoint::class.java).appScope()
         scope.launch {
             try {
-                PhoneRestActions.locked {
-                    val rest = settings.phoneRestFlow.first() ?: return@locked
-                    // An alarm already in flight may predate +15 s or a replacement rest.
-                    if (rest.deadlineEpochMillis > System.currentTimeMillis()) return@locked
-                    if (!runtime.isForeground) runtime.arm(rest)
-                    runtime.complete()
-                    if (!runtime.isForeground) settings.setPhoneRest(null)
-                }
+                rest.expireFromAlarm(System::currentTimeMillis)
             } finally { pending.finish() }
         }
     }

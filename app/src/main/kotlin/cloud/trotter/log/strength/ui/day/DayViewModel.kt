@@ -51,9 +51,7 @@ import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.PhoneRestTimer
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.standards.RestPolicy
-import cloud.trotter.log.strength.rest.PhoneRestActions
-import cloud.trotter.log.strength.rest.RestRuntime
-import cloud.trotter.log.strength.rest.NoOpRestRuntime
+import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
@@ -64,7 +62,6 @@ import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,7 +80,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -125,7 +121,7 @@ class DayViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     private val cardioClock: CardioClock,
     private val cardioAlarm: CardioAlarm,
-    private val phoneRestRuntime: RestRuntime = NoOpRestRuntime,
+    private val phoneRest: PhoneRestController,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
     private val watchContinuity: WatchContinuitySource = WatchContinuitySource.None,
     private val settings: SettingsStore,
@@ -289,35 +285,14 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    private val phoneRestState: Flow<RestUiState?> = settings.phoneRestFlow.flatMapLatest { rest ->
+    private val phoneRestState: Flow<RestUiState?> = phoneRest.state.flatMapLatest { rest ->
         if (rest == null) flowOf(null) else flow {
             while (true) {
                 val now = clock.millis()
                 val remaining = PhoneRestTimer.remainingSeconds(rest, now)
                 emit(RestUiState(rest, remaining, PhoneRestTimer.remainingFraction(rest, now), remaining == 0))
                 if (remaining == 0) {
-                    val expired = PhoneRestActions.locked {
-                        val current = settings.phoneRestFlow.first()
-                        if (current == null || current.deadlineEpochMillis != rest.deadlineEpochMillis || current.deadlineEpochMillis > clock.millis()) {
-                            false
-                        } else {
-                            phoneRestRuntime.complete()
-                            true
-                        }
-                    }
-                    if (!expired) break
-                    // The subscription can stop during the grace period; the persisted rest must still clear,
-                    // or a recreated process would complete it a second time.
-                    withContext(NonCancellable) {
-                        delay(REST_OVER_MS)
-                        PhoneRestActions.locked {
-                            val current = settings.phoneRestFlow.first()
-                            if (current != null && current.deadlineEpochMillis == rest.deadlineEpochMillis && current.deadlineEpochMillis <= clock.millis()) {
-                                // complete() already canceled the running alarm; keep the Rest over notification.
-                                settings.setPhoneRest(null)
-                            }
-                        }
-                    }
+                    phoneRest.expireForeground(rest.deadlineEpochMillis, clock::millis)
                     break
                 }
                 delay(REST_TICK_MS)
@@ -341,10 +316,10 @@ class DayViewModel @Inject constructor(
             day.tracks?.takeIf { it.runOpen }?.runId
         }.distinctUntilChanged(),
         workoutRecord,
-        settings.phoneRestFlow,
+        phoneRest.state,
     ) { runId, record, rest ->
         record?.takeIf { it.runId == runId }?.undo?.let { target ->
-            if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + 10_000L
+            undoDeadline(target, rest)
         }
     }.distinctUntilChanged().flatMapLatest { deadline ->
         flow {
@@ -385,7 +360,7 @@ class DayViewModel @Inject constructor(
     private val restHintUiState = combine(
         baseUiState, settings.phoneRestTimerEnabledFlow, settings.restSettingsFlow,
     ) { state, phoneEnabled, settings ->
-        state.withWorkoutRestHint(phoneEnabled && phoneRestRuntime.available, settings.overrides)
+        state.withWorkoutRestHint(phoneEnabled && phoneRest.available, settings.overrides)
     }
 
     private val sheetUiState = combine(restHintUiState, selectedPage, openSheet, swapUndo, pendingPlanSwap) { state, selection, savedSheet, undo, pending ->
@@ -565,7 +540,7 @@ class DayViewModel @Inject constructor(
             var previous: DaySelection? = null
             displayTargetFlow.collect { target ->
                 val current = target?.dayId?.let { dayId -> DaySelection(target.plan.id, dayId) }
-                if (previous != null && previous != current) PhoneRestActions.skip(settings, phoneRestRuntime)
+                if (previous != null && previous != current) phoneRest.skip()
                 previous = current
             }
         }
@@ -1087,21 +1062,17 @@ class DayViewModel @Inject constructor(
         val planId = state.planId ?: return
         val runId = state.runId ?: return
         mutate {
-            PhoneRestActions.locked {
+            phoneRest.locked {
                 val tracks = repo.dayTracksFlow(planId, day).first()
                 val record = settings.workoutRecordFlow.first()
-                val target = validUndo(tracks, record, settings.phoneRestFlow.first(), clock.millis()) ?: return@locked
+                val target = validUndo(tracks, record, current(), clock.millis()) ?: return@locked
                 if (tracks.runId != runId || currentDay() != day) return@locked
                 val before = runCatching { target.before.toDomain() }.getOrNull() ?: return@locked
                 beforeWorkoutUndoWrite?.invoke()
                 val result = repo.applyToRun(runId, planId, day, listOf(
                     TrackEdit(target.programExerciseId, target.slot) { current ->
                         val row = current.getOrNull(target.index)
-                        val after = target.after
-                        if (row == null || !row.done || row.weightLb != after.weightLb ||
-                            row.reps != after.reps || row.seconds != after.seconds ||
-                            row.completedAtMillis != target.loggedAtMillis
-                        ) null else current.mapIndexed { index, set ->
+                        if (row == null || !matchesUndo(row, target)) null else current.mapIndexed { index, set ->
                             if (index != target.index) set else before.copy(
                                 done = false, startedAtMillis = null, completedAtMillis = null,
                                 // A watch stamp only moves forward, or a replayed watch tick redoes this set.
@@ -1111,7 +1082,7 @@ class DayViewModel @Inject constructor(
                     },
                 ))
                 if (result !is RunWriteResult.InRun) return@locked
-                PhoneRestActions.skipLocked(settings, phoneRestRuntime)
+                skip()
                 settings.setWorkoutRecord(WorkoutRecord(runId, "exercise:${target.programExerciseId}"))
             }
         }
@@ -1193,20 +1164,19 @@ class DayViewModel @Inject constructor(
         val recordLog = checked && !row.done && (actionLog || countEvent != null)
         val selection = if (recordLog) WorkoutSelection.afterActionLog(groups, loggedKey)
             else if (previous != null) previous.selectedKey else selectedPage.value
-        PhoneRestActions.locked {
+        phoneRest.locked {
             var restStarted = false
             if (checked && !row.done) {
                 if (projected.exercises.none { current -> current.rows.any { !it.complete } } || !roundComplete) {
-                    PhoneRestActions.skipLocked(settings, phoneRestRuntime)
-                } else if (phoneRestRuntime.available && settings.phoneRestTimerEnabledFlow.first()) {
+                    skip()
+                } else if (phoneRest.available && settings.phoneRestTimerEnabledFlow.first()) {
                     val set = main.getOrNull(index)
                     if (card != null && set != null) {
                         val restSettings = settings.restSettingsFlow.first()
                         val seconds = RestPolicy.effectiveRestSeconds(set.kind, card.tracking, restSettings.overrides)
                         val next = workoutNextLabel(projected, latest, selection)
                         PhoneRestTimer.start(loggedAt, seconds, next)?.let { rest ->
-                            settings.setPhoneRest(rest)
-                            phoneRestRuntime.arm(rest)
+                            start(rest)
                             restStarted = true
                         }
                     }
@@ -1224,10 +1194,10 @@ class DayViewModel @Inject constructor(
     }
 
     fun adjustRest(seconds: Int) = viewModelScope.launch {
-        PhoneRestActions.adjust(settings, phoneRestRuntime, clock.millis(), seconds)
+        phoneRest.adjust(clock.millis(), seconds)
     }
 
-    fun skipRest() = viewModelScope.launch { PhoneRestActions.skip(settings, phoneRestRuntime) }
+    fun skipRest() = viewModelScope.launch { phoneRest.skip() }
 
     fun addSet(programExerciseId: Long, isSuperset: Boolean) {
         val day = currentDay() ?: return
@@ -1424,7 +1394,7 @@ class DayViewModel @Inject constructor(
                 closeUndoWindow()
                 dismissSwapUndo()
                 settings.setWorkoutRecord(settings.workoutRecordFlow.first()?.takeIf { it.runId == runId }?.copy(undo = null))
-                PhoneRestActions.skip(settings, phoneRestRuntime)
+                phoneRest.skip()
                 clearTimedRep()
             }
         }
@@ -1438,7 +1408,7 @@ class DayViewModel @Inject constructor(
         mutate {
             closeUndoWindow()
             if (repo.discardRun(runId)) {
-                PhoneRestActions.skip(settings, phoneRestRuntime)
+                phoneRest.skip()
                 clearTimedRep()
                 seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
             }
@@ -1499,7 +1469,7 @@ class DayViewModel @Inject constructor(
                     ?: repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             } else null
             val sessionId = repo.finishRun(runId) ?: return@mutate
-            PhoneRestActions.skip(settings, phoneRestRuntime)
+            phoneRest.skip()
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_SELECTION] = null
             val advancedTo = repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
@@ -1929,18 +1899,24 @@ class DayViewModel @Inject constructor(
     private fun runRows(tracks: DayTracks): List<LoggedSet> =
         tracks.tracks.flatMap { it.sets } + tracks.retired.flatMap { it.sets }
 
+    private fun undoDeadline(target: UndoTarget, rest: PhoneRest?): Long? =
+        if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + LOG_UNDO_WINDOW_MS
+
+    private fun matchesUndo(row: LoggedSet, target: UndoTarget): Boolean {
+        val after = target.after
+        return row.done && row.weightLb == after.weightLb && row.reps == after.reps && row.seconds == after.seconds &&
+            row.completedAtMillis == target.loggedAtMillis
+    }
+
     private fun validUndo(tracks: DayTracks?, record: WorkoutRecord?, rest: PhoneRest?, now: Long): UndoTarget? {
         if (tracks == null || !tracks.runOpen) return null
         val target = record?.takeIf { it.runId == tracks.runId }?.undo ?: return null
         val row = tracks.tracks.firstOrNull {
             it.programExerciseId == target.programExerciseId && it.slot == target.slot
         }?.sets?.getOrNull(target.index) ?: return null
-        val after = target.after
-        if (!row.done || row.weightLb != after.weightLb || row.reps != after.reps || row.seconds != after.seconds ||
-            row.completedAtMillis != target.loggedAtMillis
-        ) return null
+        if (!matchesUndo(row, target)) return null
         if (runRows(tracks).any { (it.completedAtMillis ?: Long.MIN_VALUE) > target.loggedAtMillis }) return null
-        val deadline = if (target.restStarted) rest?.deadlineEpochMillis ?: return null else target.loggedAtMillis + 10_000L
+        val deadline = undoDeadline(target, rest) ?: return null
         return target.takeIf { now < deadline }
     }
 
@@ -1965,7 +1941,7 @@ class DayViewModel @Inject constructor(
                     }.sets[target.index],
                     if (target.slot == Slot.SS) card.partnerTracking ?: TrackingType.WEIGHTED else card.tracking,
                     state.unit,
-                    if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + 10_000L,
+                    undoDeadline(target, rest),
                 )
             }
         }
@@ -2395,7 +2371,8 @@ class DayViewModel @Inject constructor(
 
     private companion object {
         const val REST_TICK_MS = 250L
-        const val REST_OVER_MS = 2_000L
+        /** How long a logged set stays undoable when no rest started after it. */
+        const val LOG_UNDO_WINDOW_MS = 10_000L
         const val KEY_PRESCRIPTION_DRAFT = "day_prescription_draft"
         const val KEY_CARDIO_DRAFT = "day_cardio_block_draft"
         const val KEY_DAY_EDITOR_OPEN = "day_editor_open"

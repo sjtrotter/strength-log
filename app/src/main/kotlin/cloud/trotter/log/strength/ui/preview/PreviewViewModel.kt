@@ -9,8 +9,7 @@ import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
-import cloud.trotter.log.strength.rest.NoOpRestRuntime
-import cloud.trotter.log.strength.rest.RestRuntime
+import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.DaySelection
@@ -34,13 +33,13 @@ import kotlinx.coroutines.flow.stateIn
 class PreviewViewModel @Inject constructor(
     repo: TrackerRepository,
     savedState: SavedStateHandle,
-    restRuntime: RestRuntime = NoOpRestRuntime,
+    phoneRest: PhoneRestController,
     private val settings: SettingsStore,
 ) : ViewModel() {
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
     private val dayId = checkNotNull(savedState.get<String>(Routes.DAY_ID_ARG))
     val selection = DaySelection(planId, dayId)
-    val workoutStart = WorkoutStart(repo, savedState, viewModelScope, restRuntime, settings)
+    val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
     private val context = combine(
         repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow, settings.unitFlow,
     ) { program, answers, catalog, unit -> PreviewContext(program, answers.config, catalog, unit) }.distinctUntilChanged()

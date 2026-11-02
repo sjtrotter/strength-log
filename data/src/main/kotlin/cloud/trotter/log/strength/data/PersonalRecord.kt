@@ -23,31 +23,26 @@ data class PersonalRecord(
 /**
  * Reduces the oldest-first [cloud.trotter.log.strength.data.db.dao.SessionDao.personalRecordRows]
  * into records in first-seen exercise order. A strictly better set replaces a record,
- * so the record keeps its earliest date; a set of another tracking type starts it over.
+ * so the record keeps its earliest date. The newest counting set's tracking type wins;
+ * a lift retyped back to an earlier type keeps that type's older history.
  * Exercises without a counting set are absent; unknown set kinds are skipped.
  */
 fun List<PersonalRecordRow>.toPersonalRecordsByExercise(): Map<String, PersonalRecord> {
     val result = LinkedHashMap<String, PersonalRecord>()
     for ((exerciseId, rows) in groupBy { it.exerciseId }) {
-        var standing: LoggedSet? = null
-        var bestRow: PersonalRecordRow? = null
+        val sets = mutableListOf<LoggedSet>()
+        val knownRows = mutableListOf<PersonalRecordRow>()
         for (row in rows) {
             val kind = try {
                 SetKind.valueOf(row.kind)
             } catch (_: IllegalArgumentException) {
                 continue
             }
-            val candidate = LoggedSet(row.weightLb, row.reps, kind, done = true, seconds = row.seconds)
-            if (!PersonalBests.counts(candidate)) continue
-            // A change of tracking type (a custom exercise retyped) starts the record over in the newer type.
-            val current = standing
-            if (current != null && PersonalBests.tracking(candidate) == PersonalBests.tracking(current) &&
-                PersonalBests.compare(candidate, current) <= 0
-            ) continue
-            standing = candidate
-            bestRow = row
+            sets += LoggedSet(row.weightLb, row.reps, kind, done = true, seconds = row.seconds)
+            knownRows += row
         }
-        bestRow?.let { row ->
+        PersonalBests.bestIndex(sets)?.let { index ->
+            val row = knownRows[index]
             result[exerciseId] = PersonalRecord(exerciseId, row.weightLb, row.reps, row.completedAt, row.seconds)
         }
     }

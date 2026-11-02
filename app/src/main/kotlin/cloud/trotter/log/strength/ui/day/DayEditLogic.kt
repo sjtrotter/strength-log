@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.minExercisesPerDay
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.domain.library.availableWith
 import cloud.trotter.log.strength.domain.model.Equipment
 
 /**
@@ -15,10 +16,7 @@ object ExercisePicker {
 
     /**
      * [query] matches a case-insensitive substring of the entry's name (blank
-     * query matches everything). [equipment] matches when every piece of gear
-     * the entry needs is in the set — the same all-of rule
-     * `ProgramGenerator.available` uses for generator picks, so "what this
-     * lifter owns" means one thing across the app.
+     * query matches everything). [equipment] uses [availableWith].
      */
     fun filter(
         candidates: List<ExerciseEntry>,
@@ -26,14 +24,11 @@ object ExercisePicker {
         equipment: Set<Equipment>,
     ): List<ExerciseEntry> {
         val q = query.trim()
-        return candidates.filter { entry -> matchesQuery(entry, q) && matchesEquipment(entry, equipment) }
+        return candidates.filter { entry -> matchesQuery(entry, q) && entry.availableWith(equipment) }
     }
 
     private fun matchesQuery(entry: ExerciseEntry, query: String): Boolean =
         query.isEmpty() || entry.name.contains(query, ignoreCase = true)
-
-    private fun matchesEquipment(entry: ExerciseEntry, equipment: Set<Equipment>): Boolean =
-        entry.equipment.all { it in equipment }
 }
 
 object DayEditRules {

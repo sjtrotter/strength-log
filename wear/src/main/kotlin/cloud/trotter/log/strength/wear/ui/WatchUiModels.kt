@@ -1,6 +1,9 @@
 package cloud.trotter.log.strength.wear.ui
 
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetLabel
+import cloud.trotter.log.strength.domain.model.SetLabels
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSet
@@ -130,15 +133,15 @@ fun watchTracking(tracking: String): TrackingType = TrackingType.entries.firstOr
     it.name.equals(tracking, ignoreCase = true)
 } ?: TrackingType.WEIGHTED
 
-/** Per-round kind labels: R1…, TOP, B/O, or a plain 1-based number — mirrors the phone's DayScreenBuilder. */
+/** Per-round kind labels rendered with [DialCopy] from the rule in [SetLabels]. */
 private fun kindLabels(sets: List<WatchSet>, copy: DialCopy): List<String> {
-    var ramp = 0
-    return sets.mapIndexed { index, s ->
-        when (s.kind) {
-            "RAMP" -> copy.rampLabel(++ramp)
-            "TOP" -> copy.topLabel
-            "BACKOFF" -> copy.backoffLabel
-            else -> "${index + 1}"
+    val kinds = sets.map { s -> SetKind.entries.firstOrNull { it.name == s.kind } ?: SetKind.WORK }
+    return SetLabels.of(kinds).map { label ->
+        when (label) {
+            is SetLabel.Ramp -> copy.rampLabel(label.number)
+            SetLabel.Top -> copy.topLabel
+            SetLabel.Backoff -> copy.backoffLabel
+            is SetLabel.Ordinal -> "${label.number}"
         }
     }
 }

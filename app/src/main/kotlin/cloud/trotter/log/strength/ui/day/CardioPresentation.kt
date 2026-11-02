@@ -32,6 +32,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 
 /** History's stored label is a title-cased activity, independent of the former interval labels. */
@@ -74,7 +75,7 @@ internal fun measureText(measure: Measure): String = when (measure) {
     is Measure.Distance -> stringResource(R.string.cardio_metres, measure.metres)
 }
 
-internal fun formatCardioTime(seconds: Int): String = "%d:%02d".format(seconds / 60, seconds % 60)
+internal fun formatCardioTime(seconds: Int): String = ClockText.minutesSeconds(seconds)
 
 internal fun CardioBlock.plannedTimeDetail(): String {
     if (sets.any { it.end !is Measure.Time }) return ""

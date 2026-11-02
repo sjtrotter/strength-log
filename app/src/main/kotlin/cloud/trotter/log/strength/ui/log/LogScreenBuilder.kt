@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.decodedCardioMode
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
+import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
@@ -63,8 +64,6 @@ object LogScreenBuilder {
         null -> session.mode.replace('_', ' ')
     }
 
-    fun durationDisplay(seconds: Int): String = "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
-
     fun interleave(
         strength: List<SessionListItem>,
         cardio: List<SessionListItem>,
@@ -74,7 +73,7 @@ object LogScreenBuilder {
         session: CardioSessionEntity,
         sets: List<cloud.trotter.log.strength.domain.model.CardioSetResult> = emptyList(),
     ): SessionListItem {
-        val duration = durationDisplay(session.seconds)
+        val duration = ClockText.minutesSeconds(session.seconds)
         return SessionListItem(
             sessionId = session.id,
             dateDisplay = dateDisplay(session.completedAt),

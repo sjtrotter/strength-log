@@ -123,12 +123,37 @@ class PersonalBestsTest {
     }
 
     @Test
-    fun `mixed best uses the first qualifying tracking type`() {
+    fun `mixed best uses the newest counting tracking type`() {
         val reps = set(reps = 60)
         val hold = set(seconds = 90)
         val ramp = set(250.0, 1, SetKind.RAMP)
-        assertEquals(reps, PersonalBests.best(listOf(ramp, set(), reps, hold)))
-        assertEquals(hold, PersonalBests.best(listOf(ramp, hold, reps)))
+        assertEquals(hold, PersonalBests.best(listOf(ramp, set(), reps, hold)))
+        assertEquals(reps, PersonalBests.best(listOf(ramp, hold, reps)))
+    }
+
+    @Test
+    fun `weighted best replaces an earlier reps tracking type`() {
+        val weighted = set(45.0, 8)
+        val sets = listOf(set(reps = 20), weighted)
+
+        assertEquals(1, PersonalBests.bestIndex(sets))
+        assertEquals(weighted, PersonalBests.best(sets))
+    }
+
+    @Test
+    fun `best index keeps the earliest tied performance`() {
+        val sets = listOf(set(245.0, 5, SetKind.TOP), set(245.0, 5, SetKind.TOP))
+
+        assertEquals(0, PersonalBests.bestIndex(sets))
+    }
+
+    @Test
+    fun `returning to a tracking type includes its older history`() {
+        val earlierWeighted = set(50.0, 8)
+        val sets = listOf(earlierWeighted, set(reps = 20), set(45.0, 10))
+
+        assertEquals(0, PersonalBests.bestIndex(sets))
+        assertEquals(earlierWeighted, PersonalBests.best(sets))
     }
 
     @Test

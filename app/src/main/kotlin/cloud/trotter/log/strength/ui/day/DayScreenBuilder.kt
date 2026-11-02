@@ -14,11 +14,14 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetLabel
+import cloud.trotter.log.strength.domain.model.SetLabels
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.SetFormatter
+import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.PlateMath
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -39,13 +42,12 @@ object DayScreenBuilder {
         val prescription = exercise.prescription
             ?: return HeaderTarget.Goal(GoalFormatter.label(generatedGoal, unit))
         fun load(lb: Double): String = "${WeightStepper.format(unit.fromLb(lb))} ${unit.name.lowercase(Locale.ROOT)}"
-        fun clock(seconds: Int): String = "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
         val display = when (val target = prescription.target) {
             is PrescribedTarget.LoadReps -> "${exercise.targetSets} × ${target.reps} · ${load(target.lb)}"
             is PrescribedTarget.Reps -> "${exercise.targetSets} × ${target.reps}"
-            is PrescribedTarget.Hold -> "${exercise.targetSets} × ${clock(target.seconds)}" +
+            is PrescribedTarget.Hold -> "${exercise.targetSets} × ${ClockText.minutesSeconds(target.seconds)}" +
                 if (target.addedLb > 0.0) " · ${load(target.addedLb)}" else ""
-            is PrescribedTarget.RepsInTime -> clock(target.seconds)
+            is PrescribedTarget.RepsInTime -> ClockText.minutesSeconds(target.seconds)
         }
         return HeaderTarget.Prescribed(
             display = display,
@@ -187,22 +189,13 @@ object DayScreenBuilder {
     /** Per-row kind labels: R1…, TOP, B/O, or a plain 1-based number for WORK/EXTRA. */
     fun kindLabels(sets: List<LoggedSet>): List<String> = kindLabelsForKinds(sets.map { it.kind })
 
-    /**
-     * The same per-row label rule as [kindLabels], taken straight from a list of
-     * [SetKind] — the SSOT the Log screen's history grouping reuses instead of
-     * re-deriving "R1/TOP/B/O/plain number" from [SessionSetEntity][
-     * cloud.trotter.log.strength.data.db.entity.SessionSetEntity]'s stored kind
-     * name.
-     */
-    fun kindLabelsForKinds(kinds: List<SetKind>): List<String> {
-        var ramp = 0
-        return kinds.mapIndexed { index, kind ->
-            when (kind) {
-                SetKind.RAMP -> "R${++ramp}"
-                SetKind.TOP -> "TOP"
-                SetKind.BACKOFF -> "B/O"
-                SetKind.WORK, SetKind.EXTRA -> "${index + 1}"
-            }
+    /** Phone rendering of [SetLabels], also used by the Log screen's history grouping. */
+    fun kindLabelsForKinds(kinds: List<SetKind>): List<String> = SetLabels.of(kinds).map { label ->
+        when (label) {
+            is SetLabel.Ramp -> "R${label.number}"
+            SetLabel.Top -> "TOP"
+            SetLabel.Backoff -> "B/O"
+            is SetLabel.Ordinal -> "${label.number}"
         }
     }
 

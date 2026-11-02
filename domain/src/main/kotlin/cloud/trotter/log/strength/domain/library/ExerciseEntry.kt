@@ -74,3 +74,6 @@ data class ExerciseEntry(
      */
     val shortName: String? = null,
 )
+
+fun ExerciseEntry.availableWith(equipment: Set<Equipment>): Boolean =
+    this.equipment.all { it in equipment }

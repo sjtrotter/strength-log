@@ -44,6 +44,8 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetLabel
+import cloud.trotter.log.strength.domain.model.SetLabels
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.PhoneRestTimer
@@ -2271,13 +2273,13 @@ class DayViewModel @Inject constructor(
         val partnerSets = pe.superset?.let { logsByKey[id to Slot.SS]?.sets }
 
         val labels = DayScreenBuilder.kindLabels(main)
-        var rampIndex = 0
+        val setLabels = SetLabels.of(main.map { it.kind })
         val rows = main.mapIndexed { i, s ->
             SetRowState(
                 index = i,
                 kindLabel = labels.getOrElse(i) { "" },
                 kind = s.kind,
-                rampIndex = if (s.kind == SetKind.RAMP) ++rampIndex else 0,
+                rampIndex = (setLabels[i] as? SetLabel.Ramp)?.number ?: 0,
                 isTop = s.kind == SetKind.TOP,
                 weightDisplay = unit.fromLb(s.weightLb),
                 reps = s.reps,

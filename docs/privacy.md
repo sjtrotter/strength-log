@@ -34,7 +34,7 @@ nothing to the developer or to any server.
 
 If you choose to connect strength.log to Health Connect (Android's on-device
 health data broker), you do it from the "Connect Health Connect" card in the
-Log screen. The app then asks for four permissions in one system dialog, and
+History screen. The app then asks for four permissions in one system dialog, and
 you can allow or deny each one separately:
 
 - **Write exercise sessions**: each workout you finish is added to Health
@@ -43,9 +43,9 @@ you can allow or deny each one separately:
   session, calculated as 5 MET x bodyweight x duration. It is only written if
   a bodyweight and a start time are recorded.
 - **Read exercise sessions**: strength sessions other apps wrote in the past
-  year, which are listed in your Log.
+  year, which are listed in your History.
 - **Read weight**: your latest bodyweight from the past year. If it differs
-  from the one in the app, the Log offers to update it and recompute your
+  from the one in the app, History offers to update it and recompute your
   goals. Nothing changes until you tap.
 
 Deleting a session in the app also removes the Health Connect records it
@@ -82,7 +82,7 @@ Finishing a day offers a share card: an image rendered entirely on your
 device. It shows the date, the day's letter and title, up to six lifts with
 the heaviest set of each, total sets, duration (if recorded), total volume, and
 the strength.log wordmark. It does not include your bodyweight, goals or
-notes. You can also make one from any past session in the Log. Tapping share hands that image to Android's share sheet, and *you* choose
+notes. You can also make one from any past session in History. Tapping share hands that image to Android's share sheet, and *you* choose
 where it goes: a messaging app, your photos, nowhere. The app draws the
 picture; the sending is done by the app you pick, under that app's policies.
 Nothing is shared unless you tap share, and the card contains only what you

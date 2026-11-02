@@ -9,10 +9,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -141,7 +143,7 @@ class OverviewNavigationTest {
                             onOpenPlans = { nav.navigateToTopLevel(TopLevelDestination.PLANS) }, viewModel = vm,
                         )
                     }
-                    composable(Routes.LOG) { Text("Log contents") }
+                    composable(Routes.LOG) { Text("History contents") }
                     composable(Routes.PLANS) {
                         val vm = remember { keep(PlansViewModel(repo, SavedStateHandle(), context)) }
                         val state by vm.uiState.collectAsStateWithLifecycle()
@@ -197,7 +199,7 @@ class OverviewNavigationTest {
     }
 
     private fun openOtherPreview() {
-        rule.onNodeWithText("Plans").performClick()
+        rule.onNodeWithContentDescription("Plans").performClick()
         rule.waitUntil(5_000) { rule.onAllNodes(androidx.compose.ui.test.hasText("Other")).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("Other").performClick()
         rule.waitUntil(5_000) { rule.onAllNodes(androidx.compose.ui.test.hasText("Rehab")).fetchSemanticsNodes().isNotEmpty() }
@@ -205,12 +207,12 @@ class OverviewNavigationTest {
         rule.waitUntil(5_000) { rule.onAllNodes(androidx.compose.ui.test.hasText("Start day A")).fetchSemanticsNodes().isNotEmpty() }
     }
 
-    @Test fun tabsShowTodayLogPlansAndPlanDayOpensThatPlansPreview() {
+    @Test fun tabsShowTodayHistoryPlansAndPlanDayOpensThatPlansPreview() {
         render()
-        rule.onNodeWithText("Today").assertExists()
-        rule.onNodeWithText("Log").assertExists()
-        rule.onNodeWithText("Plans").assertExists()
-        rule.onNodeWithText("Plan").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Today").assertExists()
+        rule.onNodeWithContentDescription("History").assertExists()
+        rule.onNodeWithContentDescription("Plans").assertExists()
+        rule.onNodeWithContentDescription("Plan").assertDoesNotExist()
         assertNotEquals(TopLevelDestination.LOG.icon, TopLevelDestination.PLANS.icon)
         openOtherPreview()
         rule.runOnIdle {
@@ -220,6 +222,16 @@ class OverviewNavigationTest {
         rule.onNodeWithText("Rehab").assertExists()
         rule.onNodeWithText("Other").assertExists()
         assertEquals(preferred, runBlocking { repo.selectedPlanIdFlow.first() })
+    }
+
+    @Test fun tabsHaveContentDescriptionsAndNoText() {
+        rule.setContent { AppTheme {
+            AppNavigationBar(selectedRoute = Routes.TODAY, onSelect = {})
+        } }
+        listOf("Today", "History", "Plans").forEach { label ->
+            rule.onNodeWithContentDescription(label).assertExists()
+            rule.onAllNodesWithText(label, useUnmergedTree = true).assertCountEquals(0)
+        }
     }
 
     @Test fun todayStartCreatesRunThenNavigatesToDay() {

@@ -43,7 +43,7 @@ import cloud.trotter.log.strength.ui.theme.onDayAccent
 fun TodayScreen(state: TodayUiState, actions: TodayActions) {
     Scaffold(
         contentWindowInsets = WindowInsets(0),
-        topBar = { TopAppBar(title = {}, actions = {
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_today)) }, actions = {
             IconButton(onClick = actions.onOpenSettings) {
                 Icon(Icons.Outlined.Settings, stringResource(R.string.today_settings_description))
             }

@@ -1,22 +1,19 @@
 package cloud.trotter.log.strength.ui.navigation
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.ui.graphics.vector.ImageVector
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.Routes
 
 enum class TopLevelDestination(
     val route: String,
     @StringRes val label: Int,
-    val icon: ImageVector,
+    @DrawableRes val icon: Int,
+    @DrawableRes val selectedIcon: Int,
 ) {
-    TODAY(Routes.TODAY, R.string.nav_today, Icons.Outlined.Home),
-    LOG(Routes.LOG, R.string.nav_log, Icons.AutoMirrored.Outlined.List),
-    PLANS(Routes.PLANS, R.string.nav_plans, Icons.Outlined.DateRange),
+    TODAY(Routes.TODAY, R.string.nav_today, R.drawable.ic_nav_home_outlined, R.drawable.ic_nav_home_filled),
+    LOG(Routes.LOG, R.string.nav_log, R.drawable.ic_nav_history_outlined, R.drawable.ic_nav_history_filled),
+    PLANS(Routes.PLANS, R.string.nav_plans, R.drawable.ic_nav_event_repeat_outlined, R.drawable.ic_nav_event_repeat_filled),
     ;
 
     companion object {

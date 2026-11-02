@@ -34,7 +34,7 @@
 
 <!-- Top-level navigation -->
 <string name="nav_today">Today</string>
-<string name="nav_log">Log</string>
+<string name="nav_log">History</string>
 <string name="nav_plans">Plans</string>
 
 <!-- Plan -->
@@ -285,7 +285,7 @@
 <string name="transfer_error_permission">No permission to access that file anymore.</string>
 
 <!-- Log -->
-<string name="log_title">Log</string>
+<string name="log_title">History</string>
 <string name="log_trajectory_header">TRAJECTORY</string>
 <string name="log_volume_header">VOLUME</string>
 <string name="log_calendar_header">CALENDAR</string>
@@ -500,7 +500,7 @@
     <string name="health_rationale_body">strength.log uses Health Connect only on this device — it needs no internet access. You choose which of these to allow, and the app works fully without any of them:</string>
     <string name="health_rationale_write_workouts_bullet">Write your completed workouts, so other fitness apps can see them.</string>
     <string name="health_rationale_write_calories_bullet">Write an estimate of the calories burned in each strength workout, when your bodyweight is recorded.</string>
-    <string name="health_rationale_read_sessions_bullet">Read strength sessions from other apps, to list them in your Log.</string>
+    <string name="health_rationale_read_sessions_bullet">Read strength sessions from other apps, to list them in your History.</string>
     <string name="health_rationale_read_bodyweight_bullet">Read your latest bodyweight, to offer to update your training GOALs.</string>
     <string name="day_next_exercise">Next: %1$s</string>
     <string name="day_set_of">Set %1$d of %2$d</string>

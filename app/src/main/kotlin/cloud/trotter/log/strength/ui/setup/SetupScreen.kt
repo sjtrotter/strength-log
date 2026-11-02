@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -104,8 +103,8 @@ fun SetupScreen(
                     when (row) {
                         "units" -> ListItem(
                             headlineContent = { Text(stringResource(R.string.settings_units)) },
-                            trailingContent = {
-                                SingleChoiceSegmentedButtonRow(Modifier.width(136.dp), space = 0.dp) {
+                            supportingContent = {
+                                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth(), space = 0.dp) {
                                     WeightUnit.entries.forEachIndexed { index, unit ->
                                         SegmentedButton(
                                             selected = state.unit == unit,

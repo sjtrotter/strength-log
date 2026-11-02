@@ -74,6 +74,7 @@ class LogViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<LogViewModel>()
@@ -90,12 +91,13 @@ class LogViewModelTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("log-vm-settings", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
     }
 
@@ -195,14 +197,14 @@ class LogViewModelTest {
         CivilTime.now(Instant.parse("2026-07-15T12:00:00Z"), ZoneOffset.UTC),
     )
 
-    private val shareCardService by lazy { ShareCardService(ApplicationProvider.getApplicationContext(), repo) }
+    private val shareCardService by lazy { ShareCardService(ApplicationProvider.getApplicationContext(), repo, settings = settings) }
 
     private fun newViewModel(
         handle: SavedStateHandle = SavedStateHandle(),
         reader: HealthConnectReader = healthReader,
         publisher: SessionPublisher = SessionPublisher.NoOp,
     ): LogViewModel =
-        LogViewModel(repo, reader, publisher, shareCardService, handle, civilTime).also { vms += it }
+        LogViewModel(repo, reader, publisher, shareCardService, handle, civilTime, settings = settings).also { vms += it }
 
     private fun session(dayId: String, dayTitle: String, completedAt: Long) =
         WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
@@ -748,7 +750,7 @@ class LogViewModelTest {
         advanceUntilIdle()
 
         assertEquals(cloud.trotter.log.strength.ui.text.UiText.LogBackfill(running = false, count = 2), vm.uiState.value.health.backfill?.label)
-        assertFalse(repo.healthBackfillDoneFlow.first())
+        assertFalse(settings.healthBackfillDoneFlow.first())
         collect.cancel()
     }
 

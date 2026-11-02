@@ -33,7 +33,6 @@ import cloud.trotter.log.strength.data.mapping.toEntry
 import cloud.trotter.log.strength.data.migration.reinterpretRepsAsSeconds
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
-import cloud.trotter.log.strength.data.prefs.WorkoutRecord
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.LegacyCardio
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -67,9 +66,6 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
-import cloud.trotter.log.strength.domain.standards.RestCategory
-import cloud.trotter.log.strength.domain.standards.RestSettings
-import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.io.IOException
 import java.time.Clock
 import java.time.Instant
@@ -91,7 +87,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * The single data-layer entry point (spec §7 surface, extended by PLAN.md
+ * Program, workout and history access (spec §7 surface, extended by PLAN.md
  * A1/A4/A6). Every read is a [Flow] off Room/DataStore; every mutation is a
  * suspend call that commits immediately, so no working truth ever lives only in
  * memory. Cross-table mutations run in one Room transaction.
@@ -112,9 +108,6 @@ open class TrackerRepository(
     private val clock: Clock = Clock.systemDefaultZone(),
     private val mintRunId: () -> String = { UUID.randomUUID().toString() },
 ) {
-
-    /** Clock-backed compatibility reading for non-app composition and tests. */
-    fun currentDate(): LocalDate = LocalDate.now(clock)
 
     /** Taken off [db] rather than injected like the other DAOs on purpose: the
      *  restore marker is this class's own crash bookkeeping — never data a
@@ -215,28 +208,7 @@ open class TrackerRepository(
         ensurePlanSettingsMigrated()
         emitAll(planAnswersFlow.map { it.config }.distinctUntilChanged())
     }
-    val unitFlow: Flow<WeightUnit> = settings.unitFlow
-    val restSettingsFlow: Flow<RestSettings> = settings.restSettingsFlow
-    val phoneRestTimerEnabledFlow = settings.phoneRestTimerEnabledFlow
-    val workoutRecordFlow = settings.workoutRecordFlow
-    val phoneRestFlow = settings.phoneRestFlow
-    val phoneRestNotificationAskedFlow = settings.phoneRestNotificationAskedFlow
-    /** The keep-screen-on preference. Collected once, by the activity, so
-     *  the wake follows the app rather than whichever screen happens to be
-     *  composed — see `MainActivity`. */
-    val keepScreenOnFlow: Flow<Boolean> = settings.keepScreenOnFlow
-    val topSetHelperSeenFlow: Flow<Boolean> = settings.topSetHelperSeenFlow
-    val supersetHelperSeenFlow: Flow<Boolean> = settings.supersetHelperSeenFlow
-    val themePreferenceFlow = settings.themePreferenceFlow
-    val wizardCompleteFlow: Flow<Boolean> = settings.wizardCompleteFlow
 
-    /** Whether the one-shot Health Connect backfill has run — the Log
-     *  screen's offer hides itself once it has. */
-    val healthBackfillDoneFlow: Flow<Boolean> = settings.healthBackfillDoneFlow
-
-    // Block bodies, not expression form: DataStore's Preferences (SettingsStore's
-    // setter return type) must not leak into this public surface via inference —
-    // it is a :data-internal detail and consumers don't compile against DataStore.
     /** Plan recipes hold only emphasis, so lifter edits write the global lifter alone. */
     suspend fun updateLifter(transform: (GlobalLifter) -> GlobalLifter) {
         ensurePlanSettingsMigrated()
@@ -256,61 +228,6 @@ open class TrackerRepository(
                 PlanRecipeJson.encode(answers.copy(config = answers.config.copy(emphasis = emphasis))),
             )
         }
-    }
-
-    suspend fun setUnit(unit: WeightUnit) {
-        settings.setUnit(unit)
-    }
-
-    /** Flips the keep-screen-on preference (the day screen's bottom-bar switch). */
-    suspend fun setKeepScreenOn(on: Boolean) {
-        settings.setKeepScreenOn(on)
-    }
-
-    suspend fun markTopSetHelperSeen() {
-        settings.markTopSetHelperSeen()
-    }
-
-    suspend fun markSupersetHelperSeen() {
-        settings.markSupersetHelperSeen()
-    }
-
-    suspend fun setThemePreference(theme: cloud.trotter.log.strength.domain.theme.ThemePreference) {
-        settings.setThemePreference(theme)
-    }
-
-    /** Records that the one-shot Health Connect backfill published the history
-     *  that predated the grant. Only ever written after a backfill that
-     *  reported every session published. */
-    suspend fun setHealthBackfillDone() {
-        settings.setHealthBackfillDone()
-    }
-
-    /** Flips the master rest-timer gate (Setup's "Rest timer on watch" toggle). */
-    suspend fun setRestTimerEnabled(enabled: Boolean) {
-        settings.setRestTimerEnabled(enabled)
-    }
-
-    suspend fun setPhoneRestTimerEnabled(enabled: Boolean) = settings.setPhoneRestTimerEnabled(enabled)
-    suspend fun setPhoneRest(rest: cloud.trotter.log.strength.domain.standards.PhoneRest?) = settings.setPhoneRest(rest)
-    suspend fun setWorkoutRecord(record: WorkoutRecord?) = settings.setWorkoutRecord(record)
-    suspend fun markPhoneRestNotificationAsked() = settings.markPhoneRestNotificationAsked()
-
-    /** Writes one per-category rest override from the Setup editor; clamping to
-     *  [cloud.trotter.log.strength.domain.standards.RestPolicy]'s bounds is
-     *  [SettingsStore]'s job (SSOT). */
-    suspend fun setRestOverride(category: RestCategory, seconds: Int) {
-        settings.setRestOverride(category, seconds)
-    }
-
-    /** The Settings "Reset to defaults" affordance: reverts every rest category to its
-     *  RestPolicy default. */
-    suspend fun clearRestOverrides() {
-        settings.clearRestOverrides()
-    }
-
-    open suspend fun setWizardComplete(complete: Boolean) {
-        settings.setWizardComplete(complete)
     }
 
     /** Persists the wizard inputs so a single day can later be regenerated

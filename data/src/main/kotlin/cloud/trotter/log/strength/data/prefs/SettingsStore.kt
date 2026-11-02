@@ -190,7 +190,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.data.map { it[Keys.PHONE_REST_NOTIFICATION_ASKED] ?: false }
 
     /** Whether the screen is held awake while the app is in front.
-     *  Defaults off — the wake costs battery, so it is opt-in. */
+     *  Defaults off — the wake costs battery, so it is opt-in. Collected once by
+     *  MainActivity so the wake follows the app across screens. */
     val keepScreenOnFlow: Flow<Boolean> =
         dataStore.data.map { it[Keys.KEEP_SCREEN_ON] ?: false }
 
@@ -226,7 +227,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     // --- writes --------------------------------------------------------------
 
-    suspend fun setGlobalLifter(global: GlobalLifter) = dataStore.edit { it.writeGlobalLifter(global) }
+    suspend fun setGlobalLifter(global: GlobalLifter) {
+        dataStore.edit { it.writeGlobalLifter(global) }
+    }
 
     suspend fun updateGlobalLifter(transform: (GlobalLifter) -> GlobalLifter) = dataStore.edit { prefs ->
         prefs.writeGlobalLifter(transform(prefs.readGlobalLifter()))
@@ -236,8 +239,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.ON_TODAY_FIXUP_DONE] = true }
     }
 
-    suspend fun setPlanSettingsFixupDone() =
+    suspend fun setPlanSettingsFixupDone() {
         dataStore.edit { it[Keys.PLAN_SETTINGS_FIXUP_DONE] = true }
+    }
 
     suspend fun removeLegacyPlanKeys() = dataStore.edit { prefs ->
         legacyPlanKeys.forEach { prefs.remove(it) }
@@ -245,13 +249,15 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
     }
 
     /** Marks the one-shot legacy-TIMED fixup as done so it never runs again. */
-    suspend fun setLegacyTimedFixupDone() =
+    suspend fun setLegacyTimedFixupDone() {
         dataStore.edit { it[Keys.LEGACY_TIMED_FIXUP_DONE] = true }
+    }
 
     /** Marks the one-shot Health Connect backfill as done so the offer never
      *  returns. Written only after a backfill that published every session. */
-    suspend fun setHealthBackfillDone() =
+    suspend fun setHealthBackfillDone() {
         dataStore.edit { it[Keys.HEALTH_BACKFILL_DONE] = true }
+    }
 
     suspend fun enableAutoBackup(treeUri: String, folderName: String) = dataStore.edit { prefs ->
         prefs[Keys.AUTO_BACKUP_TREE_URI] = treeUri
@@ -281,38 +287,48 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = true
     }
 
-    suspend fun markAutoBackupPermissionLost() = dataStore.edit { prefs ->
-        prefs.remove(Keys.AUTO_BACKUP_ENABLED)
-        prefs.remove(Keys.AUTO_BACKUP_TREE_URI)
-        prefs.remove(Keys.AUTO_BACKUP_CADENCE_HOURS)
-        prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = true
-        prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = true
-    }
-
-    /** Flips the master rest-timer gate. */
-    suspend fun setRestTimerEnabled(enabled: Boolean) =
-        dataStore.edit { it[Keys.REST_TIMER_ENABLED] = enabled }
-
-    suspend fun setPhoneRestTimerEnabled(enabled: Boolean) = dataStore.edit {
-        it[Keys.PHONE_REST_TIMER_ENABLED] = enabled
-        if (!enabled) clearPhoneRest(it)
-    }
-
-    suspend fun setPhoneRest(rest: PhoneRest?) = dataStore.edit { prefs ->
-        if (rest == null) clearPhoneRest(prefs) else {
-            prefs[Keys.PHONE_REST_DEADLINE] = rest.deadlineEpochMillis
-            prefs[Keys.PHONE_REST_TOTAL] = rest.totalSeconds
-            prefs[Keys.PHONE_REST_NEXT] = rest.nextSetLabel
+    suspend fun markAutoBackupPermissionLost() {
+        dataStore.edit { prefs ->
+            prefs.remove(Keys.AUTO_BACKUP_ENABLED)
+            prefs.remove(Keys.AUTO_BACKUP_TREE_URI)
+            prefs.remove(Keys.AUTO_BACKUP_CADENCE_HOURS)
+            prefs[Keys.AUTO_BACKUP_LAST_ATTEMPT_FAILED] = true
+            prefs[Keys.AUTO_BACKUP_PERMISSION_LOST] = true
         }
     }
 
-    suspend fun setWorkoutRecord(record: WorkoutRecord?) = dataStore.edit { prefs ->
-        if (record == null) prefs.remove(Keys.WORKOUT_RECORD)
-        else prefs[Keys.WORKOUT_RECORD] = Json.encodeToString(WorkoutRecord.serializer(), record)
+    /** Flips the master rest-timer gate. */
+    suspend fun setRestTimerEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.REST_TIMER_ENABLED] = enabled }
     }
 
-    suspend fun markPhoneRestNotificationAsked() =
+    suspend fun setPhoneRestTimerEnabled(enabled: Boolean) {
+        dataStore.edit {
+            it[Keys.PHONE_REST_TIMER_ENABLED] = enabled
+            if (!enabled) clearPhoneRest(it)
+        }
+    }
+
+    suspend fun setPhoneRest(rest: PhoneRest?) {
+        dataStore.edit { prefs ->
+            if (rest == null) clearPhoneRest(prefs) else {
+                prefs[Keys.PHONE_REST_DEADLINE] = rest.deadlineEpochMillis
+                prefs[Keys.PHONE_REST_TOTAL] = rest.totalSeconds
+                prefs[Keys.PHONE_REST_NEXT] = rest.nextSetLabel
+            }
+        }
+    }
+
+    suspend fun setWorkoutRecord(record: WorkoutRecord?) {
+        dataStore.edit { prefs ->
+            if (record == null) prefs.remove(Keys.WORKOUT_RECORD)
+            else prefs[Keys.WORKOUT_RECORD] = Json.encodeToString(WorkoutRecord.serializer(), record)
+        }
+    }
+
+    suspend fun markPhoneRestNotificationAsked() {
         dataStore.edit { it[Keys.PHONE_REST_NOTIFICATION_ASKED] = true }
+    }
 
     private fun clearPhoneRest(prefs: androidx.datastore.preferences.core.MutablePreferences) {
         prefs.remove(Keys.PHONE_REST_DEADLINE)
@@ -324,39 +340,48 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
      *  a stored value can never exceed what the resolver accepts. Writing a value
      *  equal to the default is fine — it just freezes that bucket at that number,
      *  which is what "I set it" means. */
-    suspend fun setRestOverride(category: RestCategory, seconds: Int) =
+    suspend fun setRestOverride(category: RestCategory, seconds: Int) {
         dataStore.edit { it[restOverrideKeys.getValue(category)] = seconds.coerceIn(0, RestPolicy.MAX_REST_SECONDS) }
+    }
 
     /** The RESET affordance: removes the five override keys so every bucket reverts
      *  to its [RestPolicy] default. Leaves the master gate untouched. */
-    suspend fun clearRestOverrides() =
+    suspend fun clearRestOverrides() {
         dataStore.edit { prefs -> restOverrideKeys.values.forEach { prefs.remove(it) } }
+    }
 
-    suspend fun setSelectedPlanId(id: Long) =
+    suspend fun setSelectedPlanId(id: Long) {
         dataStore.edit { it[Keys.SELECTED_PLAN_ID] = id }
+    }
 
-    suspend fun setWizardComplete(complete: Boolean) =
+    suspend fun setWizardComplete(complete: Boolean) {
         dataStore.edit { it[Keys.WIZARD_COMPLETE] = complete }
+    }
 
-    suspend fun setUnit(unit: WeightUnit) =
+    suspend fun setUnit(unit: WeightUnit) {
         dataStore.edit { it[Keys.WEIGHT_UNIT] = unit.name }
+    }
 
     /** Flips the keep-screen-on preference (the day screen's bottom-bar switch). */
-    suspend fun setKeepScreenOn(on: Boolean) =
+    suspend fun setKeepScreenOn(on: Boolean) {
         dataStore.edit { it[Keys.KEEP_SCREEN_ON] = on }
+    }
 
-    suspend fun markTopSetHelperSeen() =
+    suspend fun markTopSetHelperSeen() {
         dataStore.edit { it[Keys.TOP_SET_HELPER_SEEN] = true }
+    }
 
-    suspend fun markSupersetHelperSeen() =
+    suspend fun markSupersetHelperSeen() {
         dataStore.edit { it[Keys.SUPERSET_HELPER_SEEN] = true }
+    }
 
     suspend fun removeLegacySessionNotes() {
         dataStore.edit { it.remove(Keys.SESSION_NOTES) }
     }
 
-    suspend fun setThemePreference(theme: ThemePreference) =
+    suspend fun setThemePreference(theme: ThemePreference) {
         dataStore.edit { it[Keys.THEME] = theme.name }
+    }
 
     suspend fun takeLegacySessionStart(): SessionStartStamp? {
         var stamp: SessionStartStamp? = null

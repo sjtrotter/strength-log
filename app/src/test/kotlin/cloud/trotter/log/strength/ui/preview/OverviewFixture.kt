@@ -50,6 +50,7 @@ import org.junit.Before
 open class OverviewFixture {
     protected val dispatcher = StandardTestDispatcher()
     protected lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     protected lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private lateinit var context: Context
@@ -64,7 +65,7 @@ open class OverviewFixture {
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
             .allowMainThreadQueries().setQueryCoroutineContext(dispatcher).build()
         storeScope = CoroutineScope(dispatcher + Job())
-        val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+        settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("overview-vm", ".preferences_pb")
         })
         repo = TrackerRepository(db, object : ProgramDao by db.programDao() {
@@ -98,7 +99,7 @@ open class OverviewFixture {
         val vm = TodayViewModel(repo, object : CivilTimeSource {
             override val civilTime = flowOf(CivilTime(instant, zone, instant.atZone(zone).toLocalDate()))
             override fun refresh() = Unit
-        }, handle)
+        }, handle, settings = settings)
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         observeStart(vm, vm.workoutStart)
@@ -106,7 +107,7 @@ open class OverviewFixture {
     }
 
     protected fun preview(planId: Long, dayId: String): PreviewViewModel {
-        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)))
+        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)), settings = settings)
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         observeStart(vm, vm.workoutStart)
@@ -114,7 +115,7 @@ open class OverviewFixture {
     }
 
     protected fun day(handle: SavedStateHandle = SavedStateHandle()): DayViewModel {
-        val vm = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo), handle, FixedCardioClock(), InertCardioAlarm)
+        val vm = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), handle, FixedCardioClock(), InertCardioAlarm, settings = settings)
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         vm.viewModelScope.launch { vm.dayEditState.collect {} }

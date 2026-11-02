@@ -98,14 +98,14 @@ class YouViewModelTest {
     }
 
     private fun newViewModel(): YouViewModel =
-        YouViewModel(repo).also { vm ->
+        YouViewModel(repo, settings = settings).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
 
     @Test
     fun setBodyweight_persists_in_canonical_lb_regardless_of_display_unit() = runVmTest {
-        repo.setUnit(WeightUnit.KG)
+        settings.setUnit(WeightUnit.KG)
         val vm = newViewModel()
         advanceUntilIdle()
 

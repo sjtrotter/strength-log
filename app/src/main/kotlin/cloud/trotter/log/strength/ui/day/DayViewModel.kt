@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import cloud.trotter.log.strength.data.isSlotSkipped
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.DayTracks
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.prefs.WorkoutRecord
 import cloud.trotter.log.strength.data.prefs.UndoTarget
 import cloud.trotter.log.strength.data.serialization.SetDto
@@ -15,7 +16,6 @@ import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.RunStartResult
-import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
@@ -126,6 +126,7 @@ class DayViewModel @Inject constructor(
     private val phoneRestRuntime: RestRuntime = NoOpRestRuntime,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
     private val watchContinuity: WatchContinuitySource = WatchContinuitySource.None,
+    private val settings: SettingsStore,
 ) : ViewModel() {
 
     private val viewDayOverride = savedState.getStateFlow<DaySelection?>(
@@ -185,10 +186,10 @@ class DayViewModel @Inject constructor(
     }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val contextFlow = displayTargetFlow.flatMapLatest { target ->
-        if (target == null) combine(repo.configFlow, repo.unitFlow, repo.catalogFlow) {
+        if (target == null) combine(repo.configFlow, settings.unitFlow, repo.catalogFlow) {
                 cfg, unit, catalog -> DayContext(Program(emptyList()), null, null, cfg, unit, catalog)
         }
-        else combine(repo.programFor(target.plan.id), repo.wizardAnswersFor(target.plan.id), repo.unitFlow, repo.catalogFlow) {
+        else combine(repo.programFor(target.plan.id), repo.wizardAnswersFor(target.plan.id), settings.unitFlow, repo.catalogFlow) {
                 program, answers, unit, catalog ->
             DayContext(program, target.plan.suggestedDayId, resolveDay(program, target.dayId),
                 answers.config, unit, catalog, plan = target.plan)
@@ -286,7 +287,7 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    private val phoneRestState: Flow<RestUiState?> = repo.phoneRestFlow.flatMapLatest { rest ->
+    private val phoneRestState: Flow<RestUiState?> = settings.phoneRestFlow.flatMapLatest { rest ->
         if (rest == null) flowOf(null) else flow {
             while (true) {
                 val now = clock.millis()
@@ -294,7 +295,7 @@ class DayViewModel @Inject constructor(
                 emit(RestUiState(rest, remaining, PhoneRestTimer.remainingFraction(rest, now), remaining == 0))
                 if (remaining == 0) {
                     val expired = PhoneRestActions.locked {
-                        val current = repo.phoneRestFlow.first()
+                        val current = settings.phoneRestFlow.first()
                         if (current == null || current.deadlineEpochMillis != rest.deadlineEpochMillis || current.deadlineEpochMillis > clock.millis()) {
                             false
                         } else {
@@ -308,10 +309,10 @@ class DayViewModel @Inject constructor(
                     withContext(NonCancellable) {
                         delay(REST_OVER_MS)
                         PhoneRestActions.locked {
-                            val current = repo.phoneRestFlow.first()
+                            val current = settings.phoneRestFlow.first()
                             if (current != null && current.deadlineEpochMillis == rest.deadlineEpochMillis && current.deadlineEpochMillis <= clock.millis()) {
                                 // complete() already canceled the running alarm; keep the Rest over notification.
-                                repo.setPhoneRest(null)
+                                settings.setPhoneRest(null)
                             }
                         }
                     }
@@ -331,14 +332,14 @@ class DayViewModel @Inject constructor(
     }
 
     private val workoutRecord: Flow<WorkoutRecord?> =
-        repo.workoutRecordFlow
+        settings.workoutRecordFlow
 
     private val workoutClock: Flow<Long> = combine(
         committedDayState.map { day ->
             day.tracks?.takeIf { it.runOpen }?.runId
         }.distinctUntilChanged(),
         workoutRecord,
-        repo.phoneRestFlow,
+        settings.phoneRestFlow,
     ) { runId, record, rest ->
         record?.takeIf { it.runId == runId }?.undo?.let { target ->
             if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + 10_000L
@@ -359,7 +360,7 @@ class DayViewModel @Inject constructor(
     ) { day, record, now, _ -> Triple(day, record, now) }
 
     private val baseUiState: Flow<DayUiState> =
-        combine(workoutDay, repo.keepScreenOnFlow, cardioHistory, executionState, phoneRestState) {
+        combine(workoutDay, settings.keepScreenOnFlow, cardioHistory, executionState, phoneRestState) {
                 input, preferences, history, execution, rest ->
             val (committed, record, now) = input
             val state = committed.state
@@ -380,7 +381,7 @@ class DayViewModel @Inject constructor(
         }
 
     private val restHintUiState = combine(
-        baseUiState, repo.phoneRestTimerEnabledFlow, repo.restSettingsFlow,
+        baseUiState, settings.phoneRestTimerEnabledFlow, settings.restSettingsFlow,
     ) { state, phoneEnabled, settings ->
         state.withWorkoutRestHint(phoneEnabled && phoneRestRuntime.available, settings.overrides)
     }
@@ -454,7 +455,7 @@ class DayViewModel @Inject constructor(
     )
     private val cardioDraft = savedState.getStateFlow<CardioBlockDraft?>(KEY_CARDIO_DRAFT, null)
     private val prescriptionEditState = combine(
-        editProgramState, repo.unitFlow, prescriptionDraft, dayEditorOpen,
+        editProgramState, settings.unitFlow, prescriptionDraft, dayEditorOpen,
     ) { state, unit, draft, editorOpen ->
         state.copy(
             unit = unit, editorOpen = editorOpen,
@@ -475,10 +476,10 @@ class DayViewModel @Inject constructor(
         }, otherWorkoutOpenMessage = message)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DayEditUiState())
 
-    val notificationPermissionAsked = repo.phoneRestNotificationAskedFlow
+    val notificationPermissionAsked = settings.phoneRestNotificationAskedFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
 
-    fun markNotificationPermissionAsked() = viewModelScope.launch { repo.markPhoneRestNotificationAsked() }
+    fun markNotificationPermissionAsked() = viewModelScope.launch { settings.markPhoneRestNotificationAsked() }
 
     /**
      * The finished session's receipt, with its new-top-set rows frozen at
@@ -562,7 +563,7 @@ class DayViewModel @Inject constructor(
             var previous: DaySelection? = null
             displayTargetFlow.collect { target ->
                 val current = target?.dayId?.let { dayId -> DaySelection(target.plan.id, dayId) }
-                if (previous != null && previous != current) PhoneRestActions.skip(repo, phoneRestRuntime)
+                if (previous != null && previous != current) PhoneRestActions.skip(settings, phoneRestRuntime)
                 previous = current
             }
         }
@@ -992,12 +993,12 @@ class DayViewModel @Inject constructor(
         val day = currentDay() ?: return
         val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
         mutate {
-            val unit = repo.unitFlow.first()
+            val unit = settings.unitFlow.first()
             val sets = trackFor(day, programExerciseId, slot)
             if (index !in sets.indices) return@mutate
             val updated = SetEditor.editWeight(sets, index, unit.toLb(newDisplayWeight))
             repo.updateSets(runId, day, programExerciseId, slot, updated)
-            if (sets[index].kind == SetKind.TOP && updated != sets) repo.markTopSetHelperSeen()
+            if (sets[index].kind == SetKind.TOP && updated != sets) settings.markTopSetHelperSeen()
         }
     }
 
@@ -1009,7 +1010,7 @@ class DayViewModel @Inject constructor(
             if (index !in sets.indices) return@mutate
             val updated = SetEditor.editReps(sets, index, newReps)
             repo.updateSets(runId, day, programExerciseId, slot, updated)
-            if (sets[index].kind == SetKind.TOP && updated != sets) repo.markTopSetHelperSeen()
+            if (sets[index].kind == SetKind.TOP && updated != sets) settings.markTopSetHelperSeen()
         }
     }
 
@@ -1039,7 +1040,7 @@ class DayViewModel @Inject constructor(
             val tracks = repo.dayTracksFlow(planId, day).first()
             if (tracks.runId != runId || currentDay() != day) return@mutate
             val projected = projectWorkout(uiState.value, tracks)
-            val record = repo.workoutRecordFlow.first()?.takeIf { tracks.runOpen && it.runId == runId }
+            val record = settings.workoutRecordFlow.first()?.takeIf { tracks.runOpen && it.runId == runId }
             val selection = if (record != null) record.selectedKey else selectedPage.value
             val shown = WorkoutSelection.shown(workoutGroups(projected), selection)
             val focus = workoutFocus(projected, shown) ?: return@mutate
@@ -1071,9 +1072,9 @@ class DayViewModel @Inject constructor(
             if (!tracks.runOpen) {
                 savedState[KEY_SELECTED_PAGE] = selection(projected, selectedPage.value)
             } else {
-                val record = repo.workoutRecordFlow.first()?.takeIf { it.runId == runId }
+                val record = settings.workoutRecordFlow.first()?.takeIf { it.runId == runId }
                     ?: WorkoutRecord(requireNotNull(runId), selectedPage.value)
-                repo.setWorkoutRecord(record.copy(selectedKey = selection(projected, record.selectedKey)))
+                settings.setWorkoutRecord(record.copy(selectedKey = selection(projected, record.selectedKey)))
             }
         }
     }
@@ -1086,8 +1087,8 @@ class DayViewModel @Inject constructor(
         mutate {
             PhoneRestActions.locked {
                 val tracks = repo.dayTracksFlow(planId, day).first()
-                val record = repo.workoutRecordFlow.first()
-                val target = validUndo(tracks, record, repo.phoneRestFlow.first(), clock.millis()) ?: return@locked
+                val record = settings.workoutRecordFlow.first()
+                val target = validUndo(tracks, record, settings.phoneRestFlow.first(), clock.millis()) ?: return@locked
                 if (tracks.runId != runId || currentDay() != day) return@locked
                 val before = runCatching { target.before.toDomain() }.getOrNull() ?: return@locked
                 beforeWorkoutUndoWrite?.invoke()
@@ -1108,8 +1109,8 @@ class DayViewModel @Inject constructor(
                     },
                 ))
                 if (result !is RunWriteResult.InRun) return@locked
-                PhoneRestActions.skipLocked(repo, phoneRestRuntime)
-                repo.setWorkoutRecord(WorkoutRecord(runId, "exercise:${target.programExerciseId}"))
+                PhoneRestActions.skipLocked(settings, phoneRestRuntime)
+                settings.setWorkoutRecord(WorkoutRecord(runId, "exercise:${target.programExerciseId}"))
             }
         }
     }
@@ -1176,7 +1177,7 @@ class DayViewModel @Inject constructor(
             planSlots.forRun(it.droppedPartners, it.skippedLifts)
         }
         val isSuperset = workoutSlots.firstOrNull { it.programExerciseId == programExerciseId }?.exercise?.superset != null
-        if (checked && isSuperset && !row.done) repo.markSupersetHelperSeen()
+        if (checked && isSuperset && !row.done) settings.markSupersetHelperSeen()
         val main = trackFor(day, programExerciseId, Slot.MAIN)
         val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS).takeIf { it.isNotEmpty() } else null
         val roundComplete = main.getOrNull(index)?.done == true &&
@@ -1186,7 +1187,7 @@ class DayViewModel @Inject constructor(
         val projected = projectWorkout(uiState.value, latest)
         val groups = workoutGroups(projected)
         val loggedKey = "exercise:$programExerciseId"
-        val previous = repo.workoutRecordFlow.first()?.takeIf { it.runId == runId }
+        val previous = settings.workoutRecordFlow.first()?.takeIf { it.runId == runId }
         val recordLog = checked && !row.done && (actionLog || countEvent != null)
         val selection = if (recordLog) WorkoutSelection.afterActionLog(groups, loggedKey)
             else if (previous != null) previous.selectedKey else selectedPage.value
@@ -1194,15 +1195,15 @@ class DayViewModel @Inject constructor(
             var restStarted = false
             if (checked && !row.done) {
                 if (projected.exercises.none { current -> current.rows.any { !it.complete } } || !roundComplete) {
-                    PhoneRestActions.skipLocked(repo, phoneRestRuntime)
-                } else if (phoneRestRuntime.available && repo.phoneRestTimerEnabledFlow.first()) {
+                    PhoneRestActions.skipLocked(settings, phoneRestRuntime)
+                } else if (phoneRestRuntime.available && settings.phoneRestTimerEnabledFlow.first()) {
                     val set = main.getOrNull(index)
                     if (card != null && set != null) {
-                        val settings = repo.restSettingsFlow.first()
-                        val seconds = RestPolicy.effectiveRestSeconds(set.kind, card.tracking, settings.overrides)
+                        val restSettings = settings.restSettingsFlow.first()
+                        val seconds = RestPolicy.effectiveRestSeconds(set.kind, card.tracking, restSettings.overrides)
                         val next = workoutNextLabel(projected, latest, selection)
                         PhoneRestTimer.start(loggedAt, seconds, next)?.let { rest ->
-                            repo.setPhoneRest(rest)
+                            settings.setPhoneRest(rest)
                             phoneRestRuntime.arm(rest)
                             restStarted = true
                         }
@@ -1210,21 +1211,21 @@ class DayViewModel @Inject constructor(
                 }
             }
             if (recordLog) {
-                repo.setWorkoutRecord(WorkoutRecord(runId, selection, UndoTarget(
+                settings.setWorkoutRecord(WorkoutRecord(runId, selection, UndoTarget(
                     programExerciseId, slot, index, SetDto.of(row), SetDto.of(updated[index]),
                     loggedAt, restStarted,
                 )))
             } else if (previous == null) {
-                repo.setWorkoutRecord(WorkoutRecord(runId, selection))
+                settings.setWorkoutRecord(WorkoutRecord(runId, selection))
             }
         }
     }
 
     fun adjustRest(seconds: Int) = viewModelScope.launch {
-        PhoneRestActions.adjust(repo, phoneRestRuntime, clock.millis(), seconds)
+        PhoneRestActions.adjust(settings, phoneRestRuntime, clock.millis(), seconds)
     }
 
-    fun skipRest() = viewModelScope.launch { PhoneRestActions.skip(repo, phoneRestRuntime) }
+    fun skipRest() = viewModelScope.launch { PhoneRestActions.skip(settings, phoneRestRuntime) }
 
     fun addSet(programExerciseId: Long, isSuperset: Boolean) {
         val day = currentDay() ?: return
@@ -1360,8 +1361,8 @@ class DayViewModel @Inject constructor(
     }
 
     private suspend fun clearLogUndo() {
-        val record = repo.workoutRecordFlow.first() ?: return
-        if (record.runId == uiState.value.runId) repo.setWorkoutRecord(record.copy(undo = null))
+        val record = settings.workoutRecordFlow.first() ?: return
+        if (record.runId == uiState.value.runId) settings.setWorkoutRecord(record.copy(undo = null))
     }
 
     fun dismissSwapUndo() { savedState[KEY_SWAP_UNDO] = null }
@@ -1386,7 +1387,6 @@ class DayViewModel @Inject constructor(
             val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
             val seed = DayScreenBuilder.swapSeed(slot, offer.slot, offer.previousExerciseId, existing,
                 repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first())
-                ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
             repo.swapInRun(offer.runId, offer.programExerciseId, offer.slot, offer.previousExerciseId, seed,
                 expectedExerciseId = offer.exerciseId)
             dismissSwapUndo()
@@ -1411,7 +1411,7 @@ class DayViewModel @Inject constructor(
      *  [SavedStateHandle], so it outlives the process the way every other thing
      *  the user chose does — and the activity, not this screen, applies it. */
     fun setKeepScreenOn(on: Boolean) {
-        viewModelScope.launch { repo.setKeepScreenOn(on) }
+        viewModelScope.launch { settings.setKeepScreenOn(on) }
     }
 
     fun clearTodayChecks() {
@@ -1421,8 +1421,8 @@ class DayViewModel @Inject constructor(
             if (repo.clearRunChecks(runId)) {
                 closeUndoWindow()
                 dismissSwapUndo()
-                repo.setWorkoutRecord(repo.workoutRecordFlow.first()?.takeIf { it.runId == runId }?.copy(undo = null))
-                PhoneRestActions.skip(repo, phoneRestRuntime)
+                settings.setWorkoutRecord(settings.workoutRecordFlow.first()?.takeIf { it.runId == runId }?.copy(undo = null))
+                PhoneRestActions.skip(settings, phoneRestRuntime)
                 clearTimedRep()
             }
         }
@@ -1436,7 +1436,7 @@ class DayViewModel @Inject constructor(
         mutate {
             closeUndoWindow()
             if (repo.discardRun(runId)) {
-                PhoneRestActions.skip(repo, phoneRestRuntime)
+                PhoneRestActions.skip(settings, phoneRestRuntime)
                 clearTimedRep()
                 seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
             }
@@ -1497,14 +1497,14 @@ class DayViewModel @Inject constructor(
                     ?: repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             } else null
             val sessionId = repo.finishRun(runId) ?: return@mutate
-            PhoneRestActions.skip(repo, phoneRestRuntime)
+            PhoneRestActions.skip(settings, phoneRestRuntime)
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_SELECTION] = null
             val advancedTo = repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             pinHeldFor = day.takeIf { advancedTo != day && effectiveDayId.value == day }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
-            val unit = repo.unitFlow.first()
+            val unit = settings.unitFlow.first()
             val sessionSets = repo.sessionSets(sessionId)
             val session = repo.session(sessionId)
             val newTopSets = CascadeCeremonyBuilder.from(
@@ -1718,7 +1718,7 @@ class DayViewModel @Inject constructor(
             val key = if (card.isSuperset) "exercise:$programExerciseId" else
                 WorkoutSelection.next(workoutGroups(state), "exercise:$programExerciseId")
             savedState[KEY_SELECTED_PAGE] = key
-            repo.setWorkoutRecord(WorkoutRecord(result.runId, key))
+            settings.setWorkoutRecord(WorkoutRecord(result.runId, key))
             val keptId = if (half == Slot.MAIN && card.isSuperset) card.partnerExerciseId.orEmpty() else card.exerciseId
             savedState[KEY_SWAP_UNDO] = WorkoutSwapUndo(day, result.runId, programExerciseId, Slot.MAIN,
                 skippedId, keptId, repo.catalogFlow.first().find(skippedId)?.name ?: skippedId,
@@ -1746,7 +1746,7 @@ class DayViewModel @Inject constructor(
         // Clearing a whole skip leaves no active identity change to trigger dayHistoryKeys.
         val slots = repo.slotsFor(planId, dayId).first().filter { it.programExerciseId == programExerciseId }
         val seeds = repo.daySeeds(planId, dayId, slots)
-        repo.seedRunTracksIfMissing(runId, seeds.map { RunSeed(it.programExerciseId, it.slot, it.sets) }, alignPairs = true)
+        repo.seedRunTracksIfMissing(runId, seeds, alignPairs = true)
     }
 
     fun skipNowSet(programExerciseId: Long, half: String) {
@@ -1769,7 +1769,6 @@ class DayViewModel @Inject constructor(
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
             if (half == Slot.SS && slot.exercise.superset == null) return@mutate
             val seeds = repo.daySeeds(planId, day, slots)
-                .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
             val runId = when (val result = repo.startRun(planId, day, seeds)) {
                 is RunStartResult.Started -> result.runId
                 is RunStartResult.AlreadyOpen -> result.runId
@@ -1787,7 +1786,6 @@ class DayViewModel @Inject constructor(
             val cfg = repo.wizardAnswersFor(planId).first().config
             val catalog = repo.catalogFlow.first()
             val seed = DayScreenBuilder.swapSeed(slot, half, newExerciseId, existing, cfg, catalog)
-                ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
             val swapped = repo.swapInRun(runId, slot.programExerciseId, half, newExerciseId, seed)
             if (swapped) {
                 clearLogUndo()
@@ -1871,7 +1869,7 @@ class DayViewModel @Inject constructor(
         val seeds = repo.daySeeds(planId, dayId, slots, tracks)
         val runId = tracks.runId
         if (tracks.runOpen && runId != null) {
-            repo.seedRunTracksIfMissing(runId, seeds.map { RunSeed(it.programExerciseId, it.slot, it.sets) })
+            repo.seedRunTracksIfMissing(runId, seeds)
         } else {
             seeds.forEach { repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets) }
         }
@@ -1984,7 +1982,7 @@ class DayViewModel @Inject constructor(
         val set = tracks.tracks.firstOrNull {
             it.programExerciseId == focus.programExerciseId && it.slot == focus.slot
         }?.sets?.getOrNull(focus.index) ?: return ""
-        val load = SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, repo.unitFlow.first(), spaced = true)
+        val load = SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, settings.unitFlow.first(), spaced = true)
         val label = listOf(title, load.trim()).filter { it.isNotBlank() }.joinToString(" ")
         return if (card.isSuperset) "Round ${focus.index + 1}, $label" else label
     }

@@ -508,7 +508,7 @@ class PlanSettingsTest {
         assertEquals(answers, answersFor(PlanEntity.LEGACY_ID))
         assertEquals(answers, repo.wizardAnswersFlow.first())
         assertTrue(repo.programFlow.first().days.isEmpty())
-        assertFalse(repo.wizardCompleteFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
         val generated = ProgramGenerator.generate(answers)
         repo.replaceProgram(generated)
         assertEquals(1, db.planDao().allPlans().size)

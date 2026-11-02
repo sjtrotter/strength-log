@@ -31,7 +31,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dagger.hilt.android.lifecycle.HiltViewModel
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.backup.BackupActions
 import cloud.trotter.log.strength.ui.backup.BackupScreen
@@ -143,7 +143,7 @@ object Routes {
 
 /**
  * Resolves whether the app opens on [Routes.WIZARD] or [Routes.TODAY] from
- * [TrackerRepository.wizardCompleteFlow] (D1). `null` means "not resolved
+ * [SettingsStore.wizardCompleteFlow] (D1). `null` means "not resolved
  * yet" — [AppNavHost] draws
  * [cloud.trotter.log.strength.ui.components.ProgramLoadingState] until then, so
  * the graph is never built with the wrong start destination and then
@@ -163,8 +163,8 @@ object Routes {
  * double-navigation D1 warns against.
  */
 @HiltViewModel
-class StartDestinationViewModel @Inject constructor(repo: TrackerRepository) : ViewModel() {
-    val startDestination: StateFlow<String?> = repo.wizardCompleteFlow
+class StartDestinationViewModel @Inject constructor(settings: SettingsStore) : ViewModel() {
+    val startDestination: StateFlow<String?> = settings.wizardCompleteFlow
         .map { complete -> if (complete) Routes.TODAY else Routes.WIZARD }
         .take(1)
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)

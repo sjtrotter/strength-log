@@ -192,7 +192,7 @@ class DataLayerWatchClientTest {
             seconds = 60, stepsCompleted = 1, stamp = 61_000L, planId = 9L,
             activity = "TRACK_RUN", sets = listOf(WatchCardioSetResult(spec, "FINISHED", 60)))
         val issued = CompletableDeferred<Long>()
-        client.sendCardio(event) { issued.complete(it) }
+        client.sendCardio(event, onQueued = { issued.complete(it) }, onFailure = {})
         val stamp = withTimeout(5_000) { issued.await() }
         assertEquals(previousStamp + 1, stamp)
         assertEquals(event.copy(stamp = stamp), queue.allCardio().single())

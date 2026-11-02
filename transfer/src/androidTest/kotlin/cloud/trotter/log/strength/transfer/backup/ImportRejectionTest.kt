@@ -34,7 +34,7 @@ class ImportRejectionTest : BackupTestHarness() {
     )
 
     private suspend fun seed() {
-        repository.setUnit(WeightUnit.LB)
+        settings.setUnit(WeightUnit.LB)
         repository.addCustomExercise("Cable Hack Squat", MovementPattern.SQUAT_BILATERAL, listOf(Equipment.MACHINE), false, 80.0)
         val day = ProgramDay(
             id = "A",
@@ -52,7 +52,7 @@ class ImportRejectionTest : BackupTestHarness() {
         program = repository.programFlow.first(),
         sessions = repository.sessionsFlow.first(),
         catalog = repository.catalogFlow.first().entries,
-        unit = repository.unitFlow.first(),
+        unit = settings.unitFlow.first(),
         suggestedDay = repository.suggestedDayFlow.first(),
     )
 

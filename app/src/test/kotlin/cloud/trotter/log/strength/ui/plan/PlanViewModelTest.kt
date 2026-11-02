@@ -49,6 +49,7 @@ import org.robolectric.annotation.Config
 class PlanViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var context: Context
     private lateinit var storeScope: CoroutineScope
@@ -61,7 +62,7 @@ class PlanViewModelTest {
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
             .allowMainThreadQueries().setQueryCoroutineContext(dispatcher).build()
         storeScope = CoroutineScope(dispatcher + Job())
-        val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+        settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("plan-days-vm", ".preferences_pb")
         })
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
@@ -77,7 +78,7 @@ class PlanViewModelTest {
 
     private suspend fun viewModel(handle: SavedStateHandle = SavedStateHandle()): PlanViewModel {
         if (!handle.contains(Routes.PLAN_ID_ARG)) handle[Routes.PLAN_ID_ARG] = repo.selectedPlanIdFlow.first()!!.toString()
-        return PlanViewModel(repo, handle, context).also { vm ->
+        return PlanViewModel(repo, handle, context, settings = settings).also { vm ->
             viewModels += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -100,7 +101,7 @@ class PlanViewModelTest {
         assertEquals(GoalEmphasis.BALANCED, repo.wizardAnswersFor(preferred).first().config.emphasis)
         assertEquals(preferred, repo.selectedPlanIdFlow.first())
         val pounds = vm.uiState.value.goals
-        repo.setUnit(WeightUnit.KG)
+        settings.setUnit(WeightUnit.KG)
         advanceUntilIdle()
         assertEquals(false, pounds == vm.uiState.value.goals)
         assertEquals(tapped, vm.uiState.value.planId)

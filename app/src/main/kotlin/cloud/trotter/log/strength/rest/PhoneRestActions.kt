@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import cloud.trotter.log.strength.StrengthLogApp
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.standards.PhoneRestTimer
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.first
@@ -18,19 +18,19 @@ object PhoneRestActions {
 
     internal suspend fun <T> locked(block: suspend () -> T): T = lock.withLock { block() }
 
-    suspend fun adjust(repo: TrackerRepository, runtime: RestRuntime, now: Long, seconds: Int) = locked {
-        val current = repo.phoneRestFlow.first() ?: return@locked
+    suspend fun adjust(settings: SettingsStore, runtime: RestRuntime, now: Long, seconds: Int) = locked {
+        val current = settings.phoneRestFlow.first() ?: return@locked
         val adjusted = PhoneRestTimer.adjust(current, now, seconds)
-        repo.setPhoneRest(adjusted)
+        settings.setPhoneRest(adjusted)
         if (adjusted == null) runtime.cancel() else runtime.arm(adjusted)
     }
 
-    suspend fun skip(repo: TrackerRepository, runtime: RestRuntime) = locked {
-        skipLocked(repo, runtime)
+    suspend fun skip(settings: SettingsStore, runtime: RestRuntime) = locked {
+        skipLocked(settings, runtime)
     }
 
-    internal suspend fun skipLocked(repo: TrackerRepository, runtime: RestRuntime) {
-        repo.setPhoneRest(PhoneRestTimer.skip())
+    internal suspend fun skipLocked(settings: SettingsStore, runtime: RestRuntime) {
+        settings.setPhoneRest(null)
         runtime.cancel()
     }
 }
@@ -40,14 +40,14 @@ class RestActionReceiver : BroadcastReceiver() {
         val action = intent.action
         if (action != ADD && action != SKIP) return
         val pending = goAsync()
-        val repo = EntryPointAccessors.fromApplication(context, StrengthLogApp.RepositoryEntryPoint::class.java).trackerRepository()
+        val settings = EntryPointAccessors.fromApplication(context, StrengthLogApp.SettingsEntryPoint::class.java).settingsStore()
         val runtime = EntryPointAccessors.fromApplication(context, StrengthLogApp.RestRuntimeEntryPoint::class.java).phoneRestRuntime()
         val scope = EntryPointAccessors.fromApplication(context, StrengthLogApp.AppScopeEntryPoint::class.java).appScope()
         scope.launch {
             try {
                 when (action) {
-                    ADD -> PhoneRestActions.adjust(repo, runtime, System.currentTimeMillis(), 15)
-                    SKIP -> PhoneRestActions.skip(repo, runtime)
+                    ADD -> PhoneRestActions.adjust(settings, runtime, System.currentTimeMillis(), 15)
+                    SKIP -> PhoneRestActions.skip(settings, runtime)
                 }
             } finally {
                 pending.finish()

@@ -159,18 +159,18 @@ object NoOpRestRuntime : RestRuntime {
 class RestAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val pending = goAsync()
-        val repo = EntryPointAccessors.fromApplication(context, StrengthLogApp.RepositoryEntryPoint::class.java).trackerRepository()
+        val settings = EntryPointAccessors.fromApplication(context, StrengthLogApp.SettingsEntryPoint::class.java).settingsStore()
         val runtime = EntryPointAccessors.fromApplication(context, StrengthLogApp.RestRuntimeEntryPoint::class.java).phoneRestRuntime()
         val scope = EntryPointAccessors.fromApplication(context, StrengthLogApp.AppScopeEntryPoint::class.java).appScope()
         scope.launch {
             try {
                 PhoneRestActions.locked {
-                    val rest = repo.phoneRestFlow.first() ?: return@locked
+                    val rest = settings.phoneRestFlow.first() ?: return@locked
                     // An alarm already in flight may predate +15 s or a replacement rest.
                     if (rest.deadlineEpochMillis > System.currentTimeMillis()) return@locked
                     if (!runtime.isForeground) runtime.arm(rest)
                     runtime.complete()
-                    if (!runtime.isForeground) repo.setPhoneRest(null)
+                    if (!runtime.isForeground) settings.setPhoneRest(null)
                 }
             } finally { pending.finish() }
         }

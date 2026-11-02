@@ -40,6 +40,7 @@ import org.robolectric.annotation.Config
 class WorkoutSetRouteTest {
     @get:Rule val rule = createComposeRule()
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private lateinit var viewModel: DayViewModel
@@ -51,7 +52,8 @@ class WorkoutSetRouteTest {
         val preferences = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("set-screen-route", ".preferences_pb")
         }
-        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), SettingsStore(preferences))
+        settings = SettingsStore(preferences)
+        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
         runBlocking {
             repo.replaceProgram(Program(listOf(ProgramDay("A", "Strength", "", listOf(ProgramExercise("bb_back_squat"))))))
         }
@@ -73,8 +75,8 @@ class WorkoutSetRouteTest {
     private fun show() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         rule.runOnUiThread {
-            viewModel = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle(),
-                TestClock, SilentAlarm)
+            viewModel = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
+                TestClock, SilentAlarm, settings = settings)
         }
         rule.setContent { AppTheme {
             DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = {}, viewModel = viewModel)

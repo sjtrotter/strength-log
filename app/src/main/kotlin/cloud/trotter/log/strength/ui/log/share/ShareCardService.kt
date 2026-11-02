@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
@@ -27,13 +28,14 @@ import kotlinx.coroutines.withContext
 class ShareCardService @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repo: TrackerRepository,
+    private val settings: SettingsStore,
 ) {
 
     /** Null if [sessionId] no longer resolves to a session — nothing to share. */
     suspend fun buildShareIntent(sessionId: Long): Intent? = withContext(Dispatchers.IO) {
         val session = repo.session(sessionId) ?: return@withContext null
         val sets = repo.sessionSets(sessionId)
-        val unit = repo.unitFlow.first()
+        val unit = settings.unitFlow.first()
 
         val content = ShareCardContentBuilder.build(session, sets, unit)
         val bitmap = ShareCardPainter.render(context, content)

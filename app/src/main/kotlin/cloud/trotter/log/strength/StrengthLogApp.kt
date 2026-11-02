@@ -7,6 +7,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.icon.LauncherAliasMigration
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.di.ApplicationScope
@@ -38,6 +39,12 @@ class StrengthLogApp : Application() {
     @InstallIn(SingletonComponent::class)
     interface RepositoryEntryPoint {
         fun trackerRepository(): TrackerRepository
+    }
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface SettingsEntryPoint {
+        fun settingsStore(): SettingsStore
     }
 
     @EntryPoint

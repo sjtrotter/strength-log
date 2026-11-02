@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.performedExercise
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
@@ -34,13 +35,14 @@ class PreviewViewModel @Inject constructor(
     repo: TrackerRepository,
     savedState: SavedStateHandle,
     restRuntime: RestRuntime = NoOpRestRuntime,
+    private val settings: SettingsStore,
 ) : ViewModel() {
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
     private val dayId = checkNotNull(savedState.get<String>(Routes.DAY_ID_ARG))
     val selection = DaySelection(planId, dayId)
-    val workoutStart = WorkoutStart(repo, savedState, viewModelScope, restRuntime)
+    val workoutStart = WorkoutStart(repo, savedState, viewModelScope, restRuntime, settings)
     private val context = combine(
-        repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow, repo.unitFlow,
+        repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow, settings.unitFlow,
     ) { program, answers, catalog, unit -> PreviewContext(program, answers.config, catalog, unit) }.distinctUntilChanged()
 
     val uiState = context.flatMapLatest { ctx ->

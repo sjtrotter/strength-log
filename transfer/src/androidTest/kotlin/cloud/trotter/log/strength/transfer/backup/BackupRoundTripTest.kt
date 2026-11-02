@@ -63,12 +63,12 @@ class BackupRoundTripTest : BackupTestHarness() {
     fun export_wipe_import_reproduces_every_piece_of_state() = runTest {
         // --- build a rich, realistic state -----------------------------------
         repository.setWizardAnswers(wizardAnswers)
-        repository.setWizardComplete(true)
-        repository.setUnit(WeightUnit.KG)
-        repository.setRestTimerEnabled(false)
-        repository.setRestOverride(RestCategory.TOP, 210)
-        repository.setRestOverride(RestCategory.LIGHT, 30)
-        repository.setKeepScreenOn(true)
+        settings.setWizardComplete(true)
+        settings.setUnit(WeightUnit.KG)
+        settings.setRestTimerEnabled(false)
+        settings.setRestOverride(RestCategory.TOP, 210)
+        settings.setRestOverride(RestCategory.LIGHT, 30)
+        settings.setKeepScreenOn(true)
 
         val customId = repository.addCustomExercise(
             name = "Cable Hack Squat",
@@ -142,10 +142,10 @@ class BackupRoundTripTest : BackupTestHarness() {
         assertEquals(null, repository.suggestedDayFlow.first())
         // The wipe backup predates nothing — it simply carries no rest keys, so
         // the tuned buckets must fall back to RestPolicy's defaults, not linger.
-        assertEquals(RestSettings(), repository.restSettingsFlow.first())
+        assertEquals(RestSettings(), settings.restSettingsFlow.first())
         // Same story for keep-screen-on: the empty backup carries no key, so the
         // restore must land on the absent-means-off default.
-        assertEquals(false, repository.keepScreenOnFlow.first())
+        assertEquals(false, settings.keepScreenOnFlow.first())
 
         // --- import the real backup and compare deep-equal --------------------
         service.import(backup)
@@ -163,8 +163,8 @@ class BackupRoundTripTest : BackupTestHarness() {
 
         // Spot-check a couple of load-bearing details beyond structural equality.
         assertEquals("C", repository.suggestedDayFlow.first())
-        assertEquals(WeightUnit.KG, repository.unitFlow.first())
-        assertEquals(true, repository.keepScreenOnFlow.first())
+        assertEquals(WeightUnit.KG, settings.unitFlow.first())
+        assertEquals(true, settings.keepScreenOnFlow.first())
         val squatLog = db.programDao().allLogs().first { it.planId == PlanEntity.LEGACY_ID && it.programExerciseId == squatId }
         assertEquals(listOf(LoggedSet(250.0, 5, SetKind.TOP)), SetJson.decodeSets(squatLog.setsJson))
     }
@@ -197,11 +197,11 @@ class BackupRoundTripTest : BackupTestHarness() {
             sessionSets = sessions.associate { it.id to db.sessionDao().setsForSession(it.id) },
             catalog = repository.catalogFlow.first().entries,
             answers = repository.wizardAnswersFlow.first(),
-            unit = repository.unitFlow.first(),
-            wizardComplete = repository.wizardCompleteFlow.first(),
+            unit = settings.unitFlow.first(),
+            wizardComplete = settings.wizardCompleteFlow.first(),
             suggestedDay = repository.suggestedDayFlow.first(),
-            restSettings = repository.restSettingsFlow.first(),
-            keepScreenOn = repository.keepScreenOnFlow.first(),
+            restSettings = settings.restSettingsFlow.first(),
+            keepScreenOn = settings.keepScreenOnFlow.first(),
         )
     }
 }

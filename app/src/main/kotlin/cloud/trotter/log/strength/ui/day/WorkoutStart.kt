@@ -2,9 +2,9 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.lifecycle.SavedStateHandle
 import cloud.trotter.log.strength.data.OpenRun
-import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.rest.PhoneRestActions
 import cloud.trotter.log.strength.rest.RestRuntime
@@ -27,6 +27,7 @@ class WorkoutStart(
     private val savedState: SavedStateHandle,
     private val scope: CoroutineScope,
     private val restRuntime: RestRuntime = NoOpRestRuntime,
+    private val settings: SettingsStore,
 ) {
     private val lock = Mutex()
     private val pending = savedState.getStateFlow<DaySelection?>("start_target", null)
@@ -45,7 +46,7 @@ class WorkoutStart(
     private suspend fun startNow(target: DaySelection) {
         val planId = target.planId ?: return
         val slots = repo.slotsFor(planId, target.dayId).first()
-        val seeds = repo.daySeeds(planId, target.dayId, slots).map { RunSeed(it.programExerciseId, it.slot, it.sets) }
+        val seeds = repo.daySeeds(planId, target.dayId, slots)
         when (val result = repo.startRun(planId, target.dayId, seeds)) {
             is RunStartResult.OtherRunOpen -> {
                 savedState["start_target"] = target
@@ -81,7 +82,7 @@ class WorkoutStart(
         scope.launch { lock.withLock {
             // Never discard a replacement run if this dialog became stale.
             if (repo.openRunFlow.first()?.id == runId && repo.discardRun(runId)) {
-                PhoneRestActions.skip(repo, restRuntime)
+                PhoneRestActions.skip(settings, restRuntime)
             }
             startNow(target)
         } }

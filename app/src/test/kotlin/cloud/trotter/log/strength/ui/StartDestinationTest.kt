@@ -1,12 +1,7 @@
 package cloud.trotter.log.strength.ui
 
-import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.viewModelScope
-import androidx.room.Room
-import androidx.test.core.app.ApplicationProvider
-import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -34,8 +29,7 @@ import org.robolectric.annotation.Config
  * the ViewModel itself — the start destination is resolved exactly once per
  * process so a first-run `finish()` (wizardComplete false -> true) can't
  * rebuild the NavHost's start destination out from under an explicit
- * navigation already in flight. Same Robolectric + in-memory Room + temp
- * DataStore fixture as the day/wizard wiring tests.
+ * navigation already in flight. Uses Robolectric and a temp-file DataStore.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -43,36 +37,23 @@ import org.robolectric.annotation.Config
 class StartDestinationTest {
 
     private val dispatcher = StandardTestDispatcher()
-    private lateinit var db: StrengthDatabase
-    private lateinit var repo: TrackerRepository
+    private lateinit var settings: SettingsStore
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<StartDestinationViewModel>()
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
-            .allowMainThreadQueries()
-            .setQueryCoroutineContext(dispatcher)
-            .build()
         storeScope = CoroutineScope(dispatcher + Job())
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("start-destination-vm-settings", ".preferences_pb")
         }
-        repo = TrackerRepository(
-            db = db,
-            programDao = db.programDao(),
-            sessionDao = db.sessionDao(),
-            customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
-        )
+        settings = SettingsStore(dataStore)
     }
 
     @After
     fun tearDown() {
         vms.forEach { it.viewModelScope.cancel() }
-        db.close()
         storeScope.cancel()
         Dispatchers.resetMain()
     }
@@ -80,7 +61,7 @@ class StartDestinationTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(): StartDestinationViewModel =
-        StartDestinationViewModel(repo).also { vms += it }
+        StartDestinationViewModel(settings).also { vms += it }
 
     @Test
     fun freshInstall_resolvesToTheWizard() = runVmTest {
@@ -93,7 +74,7 @@ class StartDestinationTest {
     @Test
     fun completedWizard_resolvesToTodayNotDay() = runVmTest {
         // A completed wizard starts on TODAY, not DAY.
-        repo.setWizardComplete(true)
+        settings.setWizardComplete(true)
 
         val vm = newViewModel()
         advanceUntilIdle()
@@ -113,7 +94,7 @@ class StartDestinationTest {
         advanceUntilIdle()
         assertEquals(Routes.WIZARD, vm.startDestination.value)
 
-        repo.setWizardComplete(true)
+        settings.setWizardComplete(true)
         advanceUntilIdle()
 
         assertEquals(Routes.WIZARD, vm.startDestination.value)

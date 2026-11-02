@@ -3,7 +3,6 @@ package cloud.trotter.log.strength.sync
 import cloud.trotter.log.strength.data.isSlotSkipped
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.ExerciseSwapResult
-import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.forRun
@@ -99,7 +98,6 @@ class SetEditApplier(
                 .associate { (it.programExerciseId to it.slot) to it.sets.size }
             val cfg = repo.wizardAnswersFor(planId).first().config
             DayScreenBuilder.seedPlan(slots, existing, cfg, catalog)
-                .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
         }
         edits.add(edit(delta.slot, true))
         if (delta.done != null) {
@@ -174,11 +172,9 @@ class SetEditApplier(
         val runId = swap.runId
         val seeds = if (runId != null && declined == null) {
             DayScreenBuilder.seedPlan(slots, existing, answers.config, catalog)
-                .map { RunSeed(it.programExerciseId, it.slot, it.sets) }
         } else emptyList()
         val seed = if (runId != null && declined == null) {
             DayScreenBuilder.swapSeed(slot, Slot.MAIN, swap.exerciseId, existing, answers.config, catalog)
-                ?.let { RunSeed(it.programExerciseId, it.slot, it.sets) }
         } else null
         when (repo.applyExerciseSwap(
             planId, swap.dayId, slot.programExerciseId, swap.exerciseId, runId, seed, seeds,
@@ -205,7 +201,7 @@ class SetEditApplier(
             .filter { it.programExerciseId == programExerciseId }
         val runId = tracks.runId
         if (tracks.runOpen && runId != null) {
-            repo.seedRunTracksIfMissing(runId, seeds.map { RunSeed(it.programExerciseId, it.slot, it.sets) })
+            repo.seedRunTracksIfMissing(runId, seeds)
         } else {
             seeds.forEach { repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets) }
         }

@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.time.CivilTimeSource
@@ -74,6 +75,7 @@ class LogViewModel @Inject constructor(
     private val shareCardService: ShareCardService,
     private val savedState: SavedStateHandle,
     private val civilTimeSource: CivilTimeSource,
+    private val settings: SettingsStore,
 ) : ViewModel() {
 
     private val expandedSessionId: StateFlow<Long?> = savedState.getStateFlow(KEY_EXPANDED, null)
@@ -112,7 +114,7 @@ class LogViewModel @Inject constructor(
 
     private val ownSessions = combine(
         summariesWithNotes,
-        repo.unitFlow,
+        settings.unitFlow,
         expandedSessionId,
         expandedSets,
         editingSessionId,
@@ -142,7 +144,7 @@ class LogViewModel @Inject constructor(
         repo.topSetHistoryFlow,
         repo.sessionTonnageFlow,
         repo.sessionSummariesFlow,
-        repo.unitFlow,
+        settings.unitFlow,
         repo.cardioSessionsFlow,
         ::JournalHistory,
     )
@@ -171,7 +173,7 @@ class LogViewModel @Inject constructor(
     private val healthUi = combine(
         healthData,
         repo.configFlow,
-        repo.unitFlow,
+        settings.unitFlow,
         bodyweightDismissed,
     ) { health, config, unit, dismissed -> buildHealthUi(health, config.bodyweightLb, unit, dismissed) }
 
@@ -179,7 +181,7 @@ class LogViewModel @Inject constructor(
      *  program the journal needs — not the program itself. */
     private val hasProgram = repo.programFlow.map { it.days.isNotEmpty() }.distinctUntilChanged()
 
-    private val backfillState = combine(repo.healthBackfillDoneFlow, backfillRunning, ::BackfillState)
+    private val backfillState = combine(settings.healthBackfillDoneFlow, backfillRunning, ::BackfillState)
 
     val uiState: StateFlow<LogUiState> = combine(
         historyItems,
@@ -240,7 +242,7 @@ class LogViewModel @Inject constructor(
 
     fun updateSessionSetWeight(sessionId: Long, setId: Long, displayWeight: Double) {
         viewModelScope.launch {
-            val unit = repo.unitFlow.first()
+            val unit = settings.unitFlow.first()
             updateSessionSet(sessionId, setId) { it.copy(weightLb = unit.toLb(displayWeight)) }
         }
     }
@@ -379,7 +381,7 @@ class LogViewModel @Inject constructor(
                 val cardioIds = repo.cardioSessionsFlow.first().map { it.id }
                 val strengthPublished = sessionPublisher.publishAll(sessionIds)
                 val cardioPublished = sessionPublisher.publishAllCardio(cardioIds)
-                if (strengthPublished && cardioPublished) repo.setHealthBackfillDone()
+                if (strengthPublished && cardioPublished) settings.setHealthBackfillDone()
             } finally {
                 backfillRunning.value = false
             }

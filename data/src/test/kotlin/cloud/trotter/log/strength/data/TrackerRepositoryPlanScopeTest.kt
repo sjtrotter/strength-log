@@ -46,6 +46,7 @@ import cloud.trotter.log.strength.domain.standards.SetFormatter
 import java.io.File
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -75,6 +76,7 @@ class TrackerRepositoryPlanScopeTest {
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
     private lateinit var journal: RestoreJournal
+    private val clock = Clock.fixed(Instant.parse("2026-10-19T12:00:00Z"), ZoneOffset.UTC)
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
 
@@ -100,7 +102,7 @@ class TrackerRepositoryPlanScopeTest {
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
-            clock = Clock.fixed(Instant.parse("2026-10-19T12:00:00Z"), ZoneOffset.UTC),
+            clock = clock,
         )
     }
 
@@ -687,7 +689,7 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(null, repo.planIdOfSlot(99))
         assertEquals(11L, repo.slotsFor(1, "A").first().single().programExerciseId)
         assertEquals(emptyList<ProgramSlot>(), repo.slotsFor(1, "missing").first())
-        val today = kotlinx.coroutines.flow.MutableStateFlow(repo.currentDate())
+        val today = kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock))
         val log = repo.dayTracksFlow(1, "A").map { it.tracks }.first().single()
         assertEquals(11L, log.programExerciseId)
         assertFalse(log.sets.single().done)

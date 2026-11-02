@@ -36,7 +36,7 @@ object DaySeeds {
 }
 ```
 
-This is `DayScreenBuilder.seedPlan` (143-160) moved verbatim, returning a map instead of `List<RunSeed>` (every caller immediately `associateBy`s it). It lives in `:data`, not `:domain`, because `ProgramSlot` and `ExerciseCatalog` are `:data` types. `swapSeed` becomes a private repository function (nobody else needs it after step 2).
+This is `DayScreenBuilder.seedPlan` (143-160) moved verbatim, returning a map instead of `List<RunSeed>`: the read-side callers (preview, watch snapshot) look seeds up by key, while the repository writers convert the map back to an ordered `List<RunSeed>` until PR 2 removes those parameters. It lives in `:data`, not `:domain`, because `ProgramSlot` and `ExerciseCatalog` are `:data` types. `swapSeed` becomes a private repository function (nobody else needs it after step 2).
 
 ### `TrackerRepository` — public surface after both issues
 
@@ -69,7 +69,7 @@ data class SetEdit(val weightLb: Double? = null, val reps: Int? = null, val seco
 object SetEditor { fun edit(sets: List<LoggedSet>, index: Int, edit: SetEdit): List<LoggedSet> }
 ```
 
-`edit` = `editWeight` (cascade) / `editReps` / `editSeconds` for the value fields, then the stamp rule that today lives only in `SEA.stamped` (223-240) plus the `done` line (SEA:91): `done == false` clears both stamps; `done == true` on an already-done row fills only missing stamps; otherwise a given stamp overrides. `watchEditedAt` is written when given. The phone's tick (DVM:1156-1170) is a special case of that rule: `SetEdit(done = checked, reps = count, seconds = 0 if counted, completedAtMillis = loggedAt if checked)` produces byte-identical rows. The issue's seven-command sealed hierarchy is more than needed: the repository already has a command primitive (`TrackEdit.transform`), and the only rule written twice is the row edit.
+`edit` = `editWeight` (cascade) / `editReps` / `editSeconds` for the value fields, then the stamp rule that today lives only in `SEA.stamped` (223-240) plus the `done` line (SEA:91): `done == false` clears both stamps; `done == true` on an already-done row fills only missing stamps; otherwise a given stamp overrides. `watchEditedAt` is written when given. The phone's tick (DVM:1156-1170) is a special case, with one difference to keep: the phone supplies `completedAtMillis = loggedAt` only when the row it reads inside the transaction goes from not done to done. A re-tick of an already-done row with a null `completedAtMillis` keeps it null on the phone (DVM:1141), while the watch's fill-missing rule fills it. So the phone builds `SetEdit(done = checked, reps = count, seconds = 0 if counted, completedAtMillis = loggedAt if the current row is not done)` from the transaction's row, and the watch keeps fill-missing; a test pins each. The issue's seven-command sealed hierarchy is more than needed: the repository already has a command primitive (`TrackEdit.transform`), and the only rule written twice is the row edit.
 
 Add/remove/insert stay `SetEditor.addSet/removeSet/insertSet`; the paired variants (SetEditor:97-117) go because pairing is now the transaction: two `TrackEdit`s in one `applyToRun`, and the MAIN transform returning `null` when it refuses (`size <= 1`) leaves the whole group unwritten, which `seeded edit tracks commit only after every transform accepts` (RunTest:714) already pins.
 

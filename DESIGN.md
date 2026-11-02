@@ -39,7 +39,8 @@ widened this user.
 
 ### Phone (`app/src/main/kotlin/cloud/trotter/log/strength/`)
 
-A single activity with a Today / Log / Plan `NavigationBar` (`ui/navigation/`,
+A single activity with a Today / History / Plans `NavigationBar`, icon-only (30 dp Material
+Symbols, filled when selected), with each tab's title in its top bar (`ui/navigation/`,
 `ui/AppNavHost.kt`). The workout, receipt, wizard and settings screens hide the bar.
 
 | Surface | Code | Moment | One job |
@@ -54,7 +55,7 @@ A single activity with a Today / Log / Plan `NavigationBar` (`ui/navigation/`,
 | Day edit and swap | `ui/day/DayEditSheet.kt` | Station taken, equipment missing | Change what today's day contains |
 | Receipt | `ui/day/SessionReceiptScreen.kt` | After Finish | Confirm the session saved, show a new top set, say what comes next |
 | Share card | `ui/log/share/` | By explicit tap only | Make an image of one session |
-| Log | `ui/log/LogScreen.kt`, `JournalSections.kt` | At home, later | Show what I did |
+| History | `ui/log/LogScreen.kt`, `JournalSections.kt` | At home, later | Show what I did |
 | Plan and Plans | `ui/plan/PlanScreen.kt`, `PlansScreen.kt` | At home, or when the program changes | See and change the rotation; pick a plan |
 | Setup (settings) | `ui/setup/SetupScreen.kt` | Rarely | Two jobs today (training inputs and preferences); phase 2 splits it |
 | Backup | `ui/backup/BackupScreen.kt` | Rarely, often anxious | Know the data is safe; move it in or out |

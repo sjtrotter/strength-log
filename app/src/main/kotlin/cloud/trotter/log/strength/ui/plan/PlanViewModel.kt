@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -40,10 +41,9 @@ class PlanViewModel @Inject constructor(
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
     private val programState = repo.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
         .flatMapLatest { plan -> combine(
-            repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow,
-        ) { program, answers, catalog ->
-            val days = PlanScreenBuilder.days(program, plan?.suggestedDayId, answers.config, catalog)
-            PlanUiState(name = plan?.name, hasProgram = days.isNotEmpty(), days = days, planId = planId)
+            repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow, repo.unitFlow,
+        ) { program, answers, catalog, unit ->
+            PlanScreenBuilder.buildUiState(plan, program, answers, catalog, unit)
         } }
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState) { program, draft ->
         program.copy(
@@ -51,6 +51,10 @@ class PlanViewModel @Inject constructor(
             dialogDayId = draft.dialogDayId, dayTitleDraft = draft.dayTitleDraft,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PlanUiState(loading = true))
+
+    fun setEmphasis(emphasis: GoalEmphasis) {
+        viewModelScope.launch { repo.setPlanEmphasis(planId, emphasis) }
+    }
 
     fun openDayMenu(dayId: String?) { savedState[MENU] = dayId }
 

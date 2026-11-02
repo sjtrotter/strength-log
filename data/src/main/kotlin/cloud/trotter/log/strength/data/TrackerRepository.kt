@@ -58,6 +58,7 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.Prescription
@@ -249,6 +250,19 @@ open class TrackerRepository(
         }
     }
 
+    open suspend fun setPlanEmphasis(planId: Long, emphasis: GoalEmphasis) {
+        ensurePlanSettingsMigrated()
+        db.withTransaction {
+            val plan = planDao.plan(planId) ?: return@withTransaction
+            val recipe = plan.recipeJson ?: return@withTransaction
+            val answers = PlanRecipeJson.decode(recipe, settings.globalLifterFlow.first())
+            planDao.updateRecipe(
+                planId,
+                PlanRecipeJson.encode(answers.copy(config = answers.config.copy(emphasis = emphasis))),
+            )
+        }
+    }
+
     suspend fun setUnit(unit: WeightUnit) {
         settings.setUnit(unit)
     }
@@ -294,7 +308,7 @@ open class TrackerRepository(
         settings.setRestOverride(category, seconds)
     }
 
-    /** The Setup "RESET DEFAULTS" affordance: reverts every rest category to its
+    /** The Settings "Reset to defaults" affordance: reverts every rest category to its
      *  RestPolicy default. */
     suspend fun clearRestOverrides() {
         settings.clearRestOverrides()

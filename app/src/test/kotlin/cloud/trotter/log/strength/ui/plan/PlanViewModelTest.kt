@@ -14,6 +14,8 @@ import cloud.trotter.log.strength.domain.generator.WizardAnswers
 import cloud.trotter.log.strength.domain.model.CardioPrefs
 import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.ui.Routes
@@ -79,6 +81,29 @@ class PlanViewModelTest {
             viewModels += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
+    }
+
+    @Test
+    fun `emphasis edits and unit changes update the viewed generated plan`() = runTest(dispatcher) {
+        val answers = WizardAnswers()
+        val program = ProgramGenerator.generate(answers)
+        val preferred = repo.createGeneratedPlan("Preferred", answers, program)
+        repo.publishCreatedPlan(preferred, answers)
+        val tapped = repo.createGeneratedPlan("Viewed", answers, program)
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to tapped.toString())))
+        advanceUntilIdle()
+        assertEquals("235", vm.uiState.value.goals.first().display)
+        assertEquals(GoalEmphasis.BALANCED, vm.uiState.value.emphasis)
+        vm.setEmphasis(GoalEmphasis.STRENGTH)
+        advanceUntilIdle()
+        assertEquals(GoalEmphasis.STRENGTH, vm.uiState.value.emphasis)
+        assertEquals(GoalEmphasis.BALANCED, repo.wizardAnswersFor(preferred).first().config.emphasis)
+        assertEquals(preferred, repo.selectedPlanIdFlow.first())
+        val pounds = vm.uiState.value.goals
+        repo.setUnit(WeightUnit.KG)
+        advanceUntilIdle()
+        assertEquals(false, pounds == vm.uiState.value.goals)
+        assertEquals(tapped, vm.uiState.value.planId)
     }
 
     @Test

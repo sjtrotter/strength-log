@@ -2,6 +2,9 @@ package cloud.trotter.log.strength.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performScrollToNode
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.TouchTargets.assertEveryTouchTargetIsAtLeast48dp
@@ -60,8 +63,13 @@ class ChromeTouchTargetTest {
             AppTheme { SetupScreen(state = SetupUiState(), actions = setupActions()) }
         }
 
-        composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
-        composeTestRule.assertNoOverlappingTouchTargets()
+        listOf("Units", "Theme", "Keep screen on during workouts", "Rest timer on watch",
+            "Rest timer on phone", "Warm-up", "Top set", "Back-off", "Accessory work",
+            "Bodyweight and timed", "Reset to defaults", "Create custom exercise", "Backup", "Licenses").forEach { label ->
+            composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
+            composeTestRule.assertEveryTouchTargetIsAtLeast48dp()
+            composeTestRule.assertNoOverlappingTouchTargets()
+        }
     }
 
     @Test
@@ -148,10 +156,6 @@ class ChromeTouchTargetTest {
     )
 
     private fun setupActions() = SetupActions(
-        onBodyweightChange = {},
-        onAgeChange = {},
-        onLevelChange = {},
-        onEmphasisChange = {},
         onUnitToggle = {},
         onRestTimerEnabledChange = {},
         onRestOverrideChange = { _, _ -> },

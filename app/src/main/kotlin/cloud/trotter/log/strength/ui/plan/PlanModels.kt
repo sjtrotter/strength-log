@@ -1,9 +1,11 @@
 package cloud.trotter.log.strength.ui.plan
 
 import androidx.compose.runtime.Immutable
-import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.ui.day.DaySelection
+import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
 
 @Immutable
 data class PlanUiState(
@@ -16,6 +18,8 @@ data class PlanUiState(
     val dialog: String? = null,
     val dialogDayId: String? = null,
     val dayTitleDraft: String = "",
+    val goals: List<GoalPreviewItem> = emptyList(),
+    val emphasis: GoalEmphasis? = null,
 )
 
 data class PlanDay(
@@ -34,6 +38,7 @@ data class PlanActions(
     val onOpenDay: (DaySelection) -> Unit,
     val onOpenPlans: () -> Unit,
     val onSetUpProgram: () -> Unit,
+    val onEmphasisChange: (GoalEmphasis) -> Unit = {},
     val onAddDay: () -> Unit = {},
     val onDayMenu: (String?) -> Unit = {},
     val onRenameDay: (String) -> Unit = {},

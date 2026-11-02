@@ -1,6 +1,12 @@
 package cloud.trotter.log.strength.ui.plan
 
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.PlanOrigin
+import cloud.trotter.log.strength.domain.generator.WizardAnswers
+import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.ui.setup.GoalPreviewItem
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -8,6 +14,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -91,6 +98,36 @@ class PlanScreenBuilderTest {
         assertEquals(listOf(0, 1), rows.filter { it.kind == ProgramDayKind.STRENGTH }.map { it.dayIndex })
         assertEquals(program.days.map { it.kind }, rows.map { it.kind })
         assertEquals(listOf("B"), rows.filter { it.isNext }.map { it.dayId })
+    }
+
+    @Test
+    fun generatedPlansShowTheFourPinnedGoalsAndTheirEmphasis() {
+        val plan = PlanEntity(1, "Generated", PlanOrigin.GENERATED.name, 0, 0)
+        val state = PlanScreenBuilder.buildUiState(
+            plan, Program(listOf(day("A", "Day A"))), WizardAnswers(), catalog, WeightUnit.LB,
+        )
+        assertEquals(listOf(
+            GoalPreviewItem("Barbell Back Squat", "235", false),
+            GoalPreviewItem("Barbell Bench Press", "195", false),
+            GoalPreviewItem("Trap-Bar Deadlift", "255", false),
+            GoalPreviewItem("Incline DB Press", "75", true),
+        ), state.goals)
+        assertEquals(GoalEmphasis.BALANCED, state.emphasis)
+    }
+
+    @Test
+    fun authoredAndEmptyGeneratedPlansHideGoalsAndEmphasis() {
+        val plan = PlanEntity(1, "Authored", PlanOrigin.AUTHORED.name, 0, 0)
+        val authored = PlanScreenBuilder.buildUiState(
+            plan, Program(listOf(day("A", "Day A"))), WizardAnswers(), catalog, WeightUnit.LB,
+        )
+        assertTrue(authored.goals.isEmpty())
+        assertNull(authored.emphasis)
+        val empty = PlanScreenBuilder.buildUiState(
+            plan.copy(origin = PlanOrigin.GENERATED.name), Program(emptyList()), WizardAnswers(), catalog, WeightUnit.LB,
+        )
+        assertTrue(empty.goals.isEmpty())
+        assertNull(empty.emphasis)
     }
 
     private fun day(id: String, title: String, vararg rounds: Int) = ProgramDay(

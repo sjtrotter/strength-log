@@ -513,6 +513,47 @@ class PlanSettingsTest {
         assertEquals(snapshot.plans, db.planDao().allPlans())
     }
 
+    @Test
+    fun `setPlanEmphasis changes only the viewed recipe and preserves global lifter`() = runTest {
+        db.planDao().insertPlans(listOf(plan(1, WizardAnswers()), plan(2, WizardAnswers())))
+        settings.setSelectedPlanId(1)
+        val global = GlobalLifter(210, 42, ExperienceLevel.ADVANCED)
+        settings.setGlobalLifter(global)
+        repo.runPlanSettingsFixupIfNeeded()
+        val one = db.planDao().plan(1)
+        val two = db.planDao().plan(2)!!
+        val prefs = store.data.first()
+
+        repo.setPlanEmphasis(2, GoalEmphasis.STRENGTH)
+
+        assertEquals(GoalEmphasis.STRENGTH, repo.wizardAnswersFor(2).first().config.emphasis)
+        assertEquals(GoalEmphasis.BALANCED, repo.wizardAnswersFor(1).first().config.emphasis)
+        assertEquals(one, db.planDao().plan(1))
+        assertEquals(two.copy(recipeJson = PlanRecipeJson.encode(WizardAnswers(
+            config = global.toConfig().copy(emphasis = GoalEmphasis.STRENGTH),
+        ))), db.planDao().plan(2))
+        assertEquals(global, settings.globalLifterFlow.first())
+        assertEquals(prefs, store.data.first())
+    }
+
+    @Test
+    fun `setPlanEmphasis ignores missing plans and null recipes`() = runTest {
+        db.planDao().insertPlan(plan(1, WizardAnswers()))
+        repo.runPlanSettingsFixupIfNeeded()
+        val before = db.planDao().allPlans()
+        val prefs = store.data.first()
+
+        repo.setPlanEmphasis(3, GoalEmphasis.STRENGTH)
+
+        assertEquals(before, db.planDao().allPlans())
+        val authored = plan(3).copy(origin = PlanOrigin.AUTHORED.name)
+        db.planDao().insertPlan(authored)
+        repo.setPlanEmphasis(3, GoalEmphasis.STRENGTH)
+
+        assertEquals(before + authored, db.planDao().allPlans())
+        assertEquals(prefs, store.data.first())
+    }
+
     private suspend fun assertSelected(answers: WizardAnswers, suggestedDay: String) {
         assertEquals(answers.config, repo.configFlow.first())
         assertEquals(answers.cardio, repo.wizardAnswersFlow.first().cardio)

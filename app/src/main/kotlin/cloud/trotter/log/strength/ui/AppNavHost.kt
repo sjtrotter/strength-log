@@ -68,6 +68,9 @@ import cloud.trotter.log.strength.ui.plan.PlansScreen
 import cloud.trotter.log.strength.ui.plan.PlansViewModel
 import cloud.trotter.log.strength.ui.plan.PlanViewModel
 import cloud.trotter.log.strength.ui.setup.SetupActions
+import cloud.trotter.log.strength.ui.you.YouActions
+import cloud.trotter.log.strength.ui.you.YouScreen
+import cloud.trotter.log.strength.ui.you.YouViewModel
 import cloud.trotter.log.strength.ui.setup.SetupScreen
 import cloud.trotter.log.strength.ui.setup.SetupViewModel
 import cloud.trotter.log.strength.ui.today.TodayActions
@@ -110,6 +113,7 @@ object Routes {
     fun day(dayId: String, planId: Long? = null, openEditor: Boolean = false) =
         if (planId == null) "$DAY/$dayId" else "dayplan/$planId/$dayId" + if (openEditor) "/edit" else ""
     const val WIZARD = "wizard"
+    const val YOU = "you"
     const val SETUP = "setup"
     const val SETUP_REST = "setup?rest=true"
     const val LOG = "log"
@@ -316,8 +320,10 @@ fun AppNavHost(startViewModel: StartDestinationViewModel = hiltViewModel()) {
                 onOpenDay = { selection, edit -> navController.navigate(Routes.day(selection.dayId, selection.planId, edit)) { launchSingleTop = true } },
             )
         }
+        composable(Routes.YOU) { YouRoute(onBack = { navController.popBackStack() }) }
         composable(Routes.PLANS) {
             PlansRoute(
+                onOpenYou = { navController.navigate(Routes.YOU) },
                 onOpenPlan = { navController.navigate(Routes.plan(it)) },
                 onOpenSettings = { navController.navigate(Routes.SETUP) },
                 onNewPlan = { navController.navigate(Routes.WIZARD) },
@@ -372,6 +378,7 @@ internal fun PreviewRoute(
 
 @Composable
 private fun PlansRoute(
+    onOpenYou: () -> Unit,
     onOpenPlan: (Long) -> Unit,
     onOpenSettings: () -> Unit,
     onNewPlan: () -> Unit,
@@ -382,6 +389,7 @@ private fun PlansRoute(
     PlansScreen(
         state,
         PlansActions(
+            onOpenYou = onOpenYou,
             onOpenPlan = onOpenPlan, onOpenSettings = onOpenSettings,
             onNewPlan = onNewPlan,
             onSelect = viewModel::select,
@@ -419,6 +427,7 @@ private fun PlanRoute(
             onOpenDay = onOpenDay,
             onOpenPlans = onOpenPlans,
             onSetUpProgram = onSetUpProgram,
+            onEmphasisChange = viewModel::setEmphasis,
             onAddDay = viewModel::addDay,
             onDayMenu = viewModel::openDayMenu,
             onRenameDay = viewModel::renameDay,
@@ -555,6 +564,17 @@ internal fun DayRoute(
 }
 
 @Composable
+private fun YouRoute(onBack: () -> Unit, viewModel: YouViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    YouScreen(state, YouActions(
+        onBodyweightChange = viewModel::setBodyweight,
+        onAgeChange = viewModel::setAge,
+        onLevelChange = viewModel::setLevel,
+        onBack = onBack,
+    ))
+}
+
+@Composable
 private fun SetupRoute(
     openRestTimer: Boolean = false,
     onBack: () -> Unit,
@@ -568,10 +588,6 @@ private fun SetupRoute(
         state = state,
         openRestTimer = openRestTimer,
         actions = SetupActions(
-            onBodyweightChange = viewModel::setBodyweight,
-            onAgeChange = viewModel::setAge,
-            onLevelChange = viewModel::setLevel,
-            onEmphasisChange = viewModel::setEmphasis,
             onUnitToggle = viewModel::setUnit,
             onThemePreferenceChange = viewModel::setThemePreference,
             onRestTimerEnabledChange = viewModel::setRestTimerEnabled,

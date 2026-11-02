@@ -10,6 +10,9 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ExperienceLevel
+import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -80,6 +83,20 @@ class PlansViewModelTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             id = "A", title = "Day A", emphasisLine = "", exercises = emptyList(),
         ))))
+    }
+
+    @Test
+    fun `you summary follows lifter facts and the display unit`() = runTest(dispatcher) {
+        seed()
+        val vm = viewModel()
+        assertNull(vm.uiState.value.you)
+        advanceUntilIdle()
+        assertEquals(YouSummary("235 lb", 40, "intermediate"), vm.uiState.value.you)
+        repo.setConfig(repo.configFlow.first().copy(bodyweightLb = 220, age = 41, level = ExperienceLevel.ADVANCED))
+        repo.setUnit(WeightUnit.KG)
+        advanceUntilIdle()
+        val weight = WeightStepper.format(WeightUnit.KG.fromLb(220.0))
+        assertEquals(YouSummary("$weight kg", 41, "advanced"), vm.uiState.value.you)
     }
 
     @Test

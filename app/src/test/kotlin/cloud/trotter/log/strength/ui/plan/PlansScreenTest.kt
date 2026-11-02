@@ -28,6 +28,24 @@ class PlansScreenTest {
     )
 
     @Test
+    fun youRowShowsTheLifterAndOpensYou() {
+        var opened = 0
+        composeTestRule.setContent { AppTheme {
+            PlansScreen(PlansUiState(you = YouSummary("235 lb", 40, "intermediate")),
+                actions().copy(onOpenYou = { opened++ }))
+        } }
+        composeTestRule.onNodeWithText("235 lb, age 40, intermediate").assertExists()
+        composeTestRule.onNodeWithText("You").performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun youRowIsAbsentUntilTheLifterEmits() {
+        composeTestRule.setContent { AppTheme { PlansScreen(PlansUiState(you = null), actions()) } }
+        composeTestRule.onNodeWithText("You").assertDoesNotExist()
+    }
+
+    @Test
     fun settingsGearOpensSettings() {
         var opened = false
         composeTestRule.setContent { AppTheme {

@@ -119,14 +119,10 @@ class SetupStateBuilderTest {
     // --- buildUiState wires everything together -------------------------------
 
     @Test
-    fun buildUiState_assembles_config_unit_and_preview() {
-        val cfg = LifterConfig(bodyweightLb = 235, age = 40)
-        val state = SetupStateBuilder.buildUiState(cfg, WeightUnit.LB, WizardAnswers())
+    fun buildUiState_assembles_app_preferences() {
+        val state = SetupStateBuilder.buildUiState(WeightUnit.LB)
 
-        assertEquals(cfg, state.config)
         assertEquals(WeightUnit.LB, state.unit)
-        assertEquals(235.0, state.bodyweightDisplay)
-        assertEquals(4, state.goalPreview.size)
     }
 
     // --- rest-timer editor state mapping (watch W2c) --------------------------
@@ -167,10 +163,9 @@ class SetupStateBuilderTest {
 
     @Test
     fun buildUiState_wires_restSettings_into_restTimerEnabled_and_restCategories() {
-        val cfg = LifterConfig(bodyweightLb = 235, age = 40)
         val restSettings = RestSettings(enabled = false, overrides = mapOf(RestCategory.WORK to 45))
 
-        val state = SetupStateBuilder.buildUiState(cfg, WeightUnit.LB, WizardAnswers(), restSettings)
+        val state = SetupStateBuilder.buildUiState(WeightUnit.LB, restSettings)
 
         assertEquals(false, state.restTimerEnabled)
         assertEquals(45, state.restCategories.first { it.category == RestCategory.WORK }.seconds)
@@ -178,8 +173,7 @@ class SetupStateBuilderTest {
 
     @Test
     fun buildUiState_defaults_restSettings_to_enabled_with_no_overrides() {
-        val cfg = LifterConfig(bodyweightLb = 235, age = 40)
-        val state = SetupStateBuilder.buildUiState(cfg, WeightUnit.LB, WizardAnswers())
+        val state = SetupStateBuilder.buildUiState(WeightUnit.LB)
 
         assertEquals(true, state.restTimerEnabled)
         RestCategory.entries.forEach { category ->

@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
@@ -127,8 +128,8 @@ class WizardViewModelWiringTest {
         sessionDao: cloud.trotter.log.strength.data.db.dao.SessionDao,
         customExerciseDao: cloud.trotter.log.strength.data.db.dao.CustomExerciseDao,
         settings: SettingsStore,
+        val calls: MutableList<String>,
     ) : TrackerRepository(db, programDao, sessionDao, customExerciseDao, settings) {
-        val calls = mutableListOf<String>()
         var createGate: CompletableDeferred<Unit>? = null
 
         override suspend fun createGeneratedPlan(name: String, answers: WizardAnswers, program: Program): Long {
@@ -153,36 +154,39 @@ class WizardViewModelWiringTest {
         }
     }
 
-    private var writesUntilCompletionFailure: Int? = null
-    private val completionHadProgram = mutableListOf<Boolean>()
+    /** The cross-store write order [WizardViewModel.finish] makes: the recording
+     *  repository's calls plus every completion write the settings store sees. */
+    private val calls = mutableListOf<String>()
+    private val WIZARD_COMPLETE = booleanPreferencesKey("wizard_complete")
+    private var failNextCompletion = false
 
-    private fun newRecordingRepo(): RecordingRepository {
-        settings = SettingsStore(object : DataStore<Preferences> {
-            override val data = dataStore.data
+    /** Records each write that sets `wizard_complete` as "setWizardComplete" (the
+     *  failing attempt too), and fails the next one on request. */
+    private inner class CompletionRecordingStore(
+        private val delegate: DataStore<Preferences>,
+    ) : DataStore<Preferences> {
+        override val data = delegate.data
 
-            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
-                writesUntilCompletionFailure?.let { remaining ->
-                    writesUntilCompletionFailure = (remaining - 1).takeIf { it > 0 }
-                    if (remaining == 1) throw IOException("completion write failed")
-                }
-                return dataStore.updateData { before ->
-                    transform(before).also { after ->
-                        val key = booleanPreferencesKey("wizard_complete")
-                        if (before[key] != true && after[key] == true) {
-                            completionHadProgram += db.planDao().allPlans().any { plan ->
-                                db.programDao().daysForPlan(plan.id).isNotEmpty()
-                            }
-                        }
+        override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+            delegate.updateData { before ->
+                if (transform(emptyPreferences())[WIZARD_COMPLETE] == true) {
+                    calls += "setWizardComplete"
+                    if (failNextCompletion) {
+                        failNextCompletion = false
+                        throw IOException("completion write failed")
                     }
                 }
+                transform(before)
             }
-        })
-        return RecordingRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+    }
+
+    private fun newRecordingRepo(store: DataStore<Preferences> = dataStore): RecordingRepository {
+        settings = SettingsStore(CompletionRecordingStore(store))
+        return RecordingRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, calls)
     }
 
     private fun failCompletionWrite() {
-        // Publication writes global lifter and selection, then the VM writes unit and completion.
-        writesUntilCompletionFailure = 4
+        failNextCompletion = true
     }
 
     /** Stands in for whatever a restore put in Room: one day the generator would
@@ -434,7 +438,7 @@ class WizardViewModelWiringTest {
         advanceUntilIdle()
 
         assertEquals(2, db.planDao().allPlans().size)
-        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan"), recording.calls)
+        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "setWizardComplete"), recording.calls)
         assertTrue(settings.wizardCompleteFlow.first())
         assertTrue(vm.uiState.value.isComplete)
         assertFalse(vm.uiState.value.finishInFlight)
@@ -457,10 +461,8 @@ class WizardViewModelWiringTest {
         // Wrap the already initialized store so updates 1 and 2 are precisely
         // publication's global-lifter and selection writes, respectively.
         val failingStore = FlakyDataStore(dataStore)
-        val failingSettings = SettingsStore(failingStore)
-        val recording = RecordingRepository(
-            db, db.programDao(), db.sessionDao(), db.customExerciseDao(), failingSettings,
-        )
+        val recording = newRecordingRepo(failingStore)
+        val failingSettings = settings
         val handle = SavedStateHandle()
         val vm = newViewModel(handle, recording, preferences = failingSettings)
         advanceUntilIdle()
@@ -486,7 +488,7 @@ class WizardViewModelWiringTest {
 
         assertEquals(plans, db.planDao().allPlans())
         assertEquals(
-            listOf("createGeneratedPlan", "publishCreatedPlan", "publishCreatedPlan"),
+            listOf("createGeneratedPlan", "publishCreatedPlan", "publishCreatedPlan", "setWizardComplete"),
             recording.calls,
         )
         assertEquals(plans.last().id, settings.selectedPlanIdFlow.first())
@@ -561,7 +563,7 @@ class WizardViewModelWiringTest {
         advanceUntilIdle()
 
         assertEquals(plans, db.planDao().allPlans())
-        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "publishCreatedPlan"), recording.calls)
+        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "setWizardComplete", "publishCreatedPlan", "setWizardComplete"), recording.calls)
         assertEquals(plans.last().id, settings.selectedPlanIdFlow.first())
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertTrue(settings.wizardCompleteFlow.first())
@@ -593,7 +595,7 @@ class WizardViewModelWiringTest {
         advanceUntilIdle()
 
         assertEquals(plans, db.planDao().allPlans())
-        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "publishCreatedPlan"), recording.calls)
+        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "setWizardComplete", "publishCreatedPlan", "setWizardComplete"), recording.calls)
         assertTrue(settings.wizardCompleteFlow.first())
         assertTrue(revived.uiState.value.isComplete)
     }
@@ -612,8 +614,7 @@ class WizardViewModelWiringTest {
         vm.onNext() // last step -> finish()
         advanceUntilIdle()
 
-        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan"), recording.calls)
-        assertEquals(listOf(true), completionHadProgram)
+        assertEquals(listOf("createGeneratedPlan", "publishCreatedPlan", "setWizardComplete"), recording.calls)
         assertTrue(settings.wizardCompleteFlow.first())
     }
 

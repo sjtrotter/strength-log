@@ -192,7 +192,9 @@ class SessionLifecycleScreenTest {
         composeTestRule.mainClock.advanceTimeBy(160)
         assertEquals(listOf(HapticFeedbackType.Confirm), feedback)
 
-        // A paused clock never recomposes the restored tree; let it run from here.
+        // A paused test clock never recomposes the restored content, so the clock
+        // runs from here. The saved `played` flag gates both the haptic and the
+        // animation, so a single haptic after restore also means no replay.
         composeTestRule.mainClock.autoAdvance = true
         restoration.emulateSavedInstanceStateRestore()
 

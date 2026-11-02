@@ -906,7 +906,7 @@ class DayViewModel @Inject constructor(
         val run = deferredCardioReceipt.value ?: return
         val advancedTo = repo.plansFlow.first().firstOrNull { it.id == run.planId }?.suggestedDayId
         val sessionId = requireNotNull(run.sessionId)
-        val completedAt = repo.session(sessionId)?.completedAt ?: cardioClock.wallMillis()
+        val completedAt = repo.cardioSession(sessionId)?.completedAt ?: cardioClock.wallMillis()
         if (executionActive) return
         savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
         savedState[KEY_SESSION_RECEIPT] = SessionReceipt(

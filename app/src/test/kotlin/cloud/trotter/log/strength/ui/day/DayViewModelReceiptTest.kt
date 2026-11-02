@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import kotlinx.coroutines.flow.map
 import android.content.Context
+import android.os.Parcel
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -9,6 +10,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
+import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.glance.DayProgress
@@ -19,7 +21,6 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SupersetPartner
-import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
@@ -29,6 +30,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -40,6 +42,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,8 +51,8 @@ import org.robolectric.annotation.Config
 
 /**
  * The session receipt's *wiring*: that it comes off the DONE-advance
- * transition, reports the session that transition just committed, and dies the
- * way a moment dies. [SessionReceiptBuilderTest] pins what it contains.
+ * transition, reports the committed session and survives process death until
+ * dismissed. [SessionReceiptBuilderTest] pins what it contains.
  *
  * The SHARE render itself is not re-tested here. [ShareCardService] hops onto
  * `Dispatchers.IO` for the Canvas work, which this class's virtual-time
@@ -69,6 +72,7 @@ class DayViewModelReceiptTest {
     private lateinit var repo: TrackerRepository
     private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
+    private var topSetHistoryReads = 0
     private val vms = mutableListOf<DayViewModel>()
 
     @Before
@@ -86,7 +90,10 @@ class DayViewModelReceiptTest {
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
-            sessionDao = db.sessionDao(),
+            sessionDao = object : SessionDao by db.sessionDao() {
+                override fun observeTopSets(topKind: String) = db.sessionDao().observeTopSets(topKind)
+                    .onStart { topSetHistoryReads++ }
+            },
             customExerciseDao = db.customExerciseDao(),
             settings = SettingsStore(dataStore),
         )
@@ -146,7 +153,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
 
         val receipt = vm.sessionReceipt.value!!
-        assertEquals("Cardio + Core", receipt.dayTitle)
+        assertEquals("C", receipt.dayId)
         assertEquals(2, completedSetCount)
         assertEquals(completedSetCount, receipt.setCount)
         assertEquals("Day B, Upper", receipt.nextDayLine)
@@ -211,8 +218,8 @@ class DayViewModelReceiptTest {
 
         val receipt = vm.sessionReceipt.value
         assertNotNull(receipt)
-        assertEquals("DAY A COMPLETE", receipt!!.headline)
-        assertEquals("Lower", receipt.dayTitle)
+        assertEquals("A", receipt!!.dayId)
+        assertEquals(repo.session(receipt.sessionId)?.completedAt, receipt.completedAt)
         assertEquals("Day B, Upper", receipt.nextDayLine)
         // The completed day's accent, not the one the pointer now stands on.
         assertEquals(0, receipt.dayIndex)
@@ -227,21 +234,6 @@ class DayViewModelReceiptTest {
         completeOneSession(vm)
 
         assertEquals(rows, vm.sessionReceipt.value?.setCount)
-    }
-
-    /** Derived from the live log rather than a hard-coded number: this test
-     *  pins the wiring, and §11's seeded weights are pinned where they belong. */
-    @Test
-    fun namesTheHeaviestSetTheSessionRecorded() = runVmTest {
-        insertProgram()
-        val vm = newViewModel()
-        advanceUntilIdle()
-        val heaviest = mainTrack().maxByOrNull { it.weightLb }!!
-        completeOneSession(vm)
-
-        val receipt = vm.sessionReceipt.value
-        assertEquals("Barbell Back Squat", receipt?.strongest?.name)
-        assertEquals("${WeightStepper.format(heaviest.weightLb)}×${heaviest.reps}", receipt?.strongest?.value)
     }
 
     /**
@@ -318,26 +310,21 @@ class DayViewModelReceiptTest {
         assertEquals(repo.sessionsFlow.first().single().id, vm.sessionReceipt.value?.sessionId)
     }
 
-    /** Both post-DONE surfaces come off one read of the committed session, so
-     *  they can never describe different workouts. */
+    /** One Finish captures the new top set inside the committed day's receipt. */
     @Test
-    fun theCascadeAndTheReceiptDescribeTheSameCompletedDay() = runVmTest {
+    fun theReceiptCarriesTheNewTopSetFromTheCompletedDay() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         advanceUntilIdle()
-        // A first session establishes the standing high; a second one at a
-        // heavier TOP is what makes the cascade fire alongside the receipt.
         completeOneSession(vm)
-        vm.dismissCascadeCeremony()
         vm.dismissSessionReceipt()
         raiseTopSet(vm)
         completeOneSession(vm)
 
-        val cascade = vm.cascadeCeremony.value
-        val receipt = vm.sessionReceipt.value
-        assertNotNull("the heavier TOP should have cascaded", cascade)
-        assertNotNull(receipt)
-        assertEquals(cascade!!.dayIndex, receipt!!.dayIndex)
+        val receipt = requireNotNull(vm.sessionReceipt.value)
+        assertEquals("A", receipt.dayId)
+        assertEquals(0, receipt.dayIndex)
+        assertEquals(listOf(CascadeLift("Barbell Back Squat", "235", "245")), receipt.newTopSets)
     }
 
     // --- and it goes ---------------------------------------------------------
@@ -345,13 +332,16 @@ class DayViewModelReceiptTest {
     @Test
     fun dismissingItClearsIt() = runVmTest {
         insertProgram()
-        val vm = newViewModel()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
         advanceUntilIdle()
         completeOneSession(vm)
+        assertNotNull(handle.get<SessionReceipt>("day_session_receipt"))
 
-        vm.dismissSessionReceipt()
+        assertTrue(vm.dismissSessionReceipt())
 
         assertNull(vm.sessionReceipt.value)
+        assertNull(handle.get<SessionReceipt>("day_session_receipt"))
     }
 
     /** A configuration change keeps the ViewModel, so it keeps the receipt. */
@@ -368,21 +358,60 @@ class DayViewModelReceiptTest {
         assertNotNull(vm.sessionReceipt.value)
     }
 
-    /** Process death does not. A restored ViewModel comes back to a saved
-     *  workout and no summary of it — the same rule the cascade follows. */
+    /** Restoring a frozen receipt must not re-read history to derive its top sets. */
     @Test
-    fun doesNotComeBackFromProcessDeath() = runVmTest {
+    fun aNewViewModelKeepsTheReceiptAndTopSetsFromTheSameHandleWithoutReadingHistory() = runVmTest {
         insertProgram()
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         advanceUntilIdle()
         completeOneSession(vm)
-        assertNotNull(vm.sessionReceipt.value)
+        vm.dismissSessionReceipt()
+        raiseTopSet(vm)
+        completeOneSession(vm)
+        val receipt = requireNotNull(vm.sessionReceipt.value)
+        assertEquals(listOf(CascadeLift("Barbell Back Squat", "235", "245")), receipt.newTopSets)
+        vm.viewModelScope.cancel()
+        val readsAtFinish = topSetHistoryReads
+        assertTrue("the counter must observe Finish's history fetch", readsAtFinish > 0)
 
         val restored = newViewModel(handle)
+        assertEquals(receipt, restored.sessionReceipt.value)
         advanceUntilIdle()
 
-        assertNull(restored.sessionReceipt.value)
+        assertEquals(receipt, restored.sessionReceipt.value)
+        assertEquals("restore must not derive new top sets", readsAtFinish, topSetHistoryReads)
+    }
+
+    @Test
+    fun theWholeReceiptSurvivesAParcelRoundTrip() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        completeOneSession(vm)
+        vm.dismissSessionReceipt()
+        raiseTopSet(vm)
+        completeOneSession(vm)
+        vm.setReceiptNote("  Felt steady  ")
+        advanceUntilIdle()
+        val receipt = requireNotNull(vm.sessionReceipt.value)
+        assertEquals("Felt steady", receipt.note)
+        assertEquals(receipt.note, repo.session(receipt.sessionId)?.note)
+        vm.viewModelScope.cancel()
+        val parcel = Parcel.obtain()
+        val restoredHandle = try {
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.setDataPosition(0)
+            SavedStateHandle.createHandle(parcel.readBundle(SessionReceipt::class.java.classLoader), null)
+        } finally {
+            parcel.recycle()
+        }
+
+        val restored = newViewModel(restoredHandle)
+        advanceUntilIdle()
+        assertEquals(receipt, restored.sessionReceipt.value)
+        assertEquals(receipt, restoredHandle.get<SessionReceipt>("day_session_receipt"))
     }
 
     // --- share ---------------------------------------------------------------

@@ -1,10 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,7 +40,7 @@ import cloud.trotter.log.strength.ui.theme.LocalAppPalette
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import kotlinx.coroutines.launch
 
-/** Shared workout sheets, confirmations, and session overlays around the set screen. */
+/** Hosts the receipt or the workout with its sheets and confirmations. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayScreen(
@@ -53,8 +48,6 @@ fun DayScreen(
     actions: DayActions,
     dayEditState: DayEditUiState,
     dayEditActions: DayEditActions,
-    cascadeCeremony: CascadeCeremony? = null,
-    onDismissCascade: () -> Unit = {},
     sessionReceipt: SessionReceipt? = null,
     onShareSession: () -> Unit = {},
     onFinishSession: () -> Unit = {},
@@ -63,6 +56,17 @@ fun DayScreen(
     onUndoRemoveSet: () -> Unit = {},
     nowMillis: () -> Long = System::currentTimeMillis,
 ) {
+    // A receipt replaces the workout, including its back handler and auto-sheet
+    // effects. No workout nodes or sheet requests survive underneath it.
+    if (sessionReceipt != null) {
+        SessionReceiptScreen(
+            receipt = sessionReceipt,
+            onShare = onShareSession,
+            onFinishSession = onFinishSession,
+            onSetReceiptNote = actions.onSetSessionNote,
+        )
+        return
+    }
     val accent = dayAccent(state.dayIndex)
     // The sheet stays inside the day feature; its shared ViewModel restores
     // the open editor and prescription draft after process death.
@@ -72,21 +76,20 @@ fun DayScreen(
     var confirmingClearChecks by rememberSaveable { mutableStateOf(false) }
     var confirmingEndCardio by rememberSaveable(state.viewDayId) { mutableStateOf(false) }
     var endingCardioStartedAt by rememberSaveable(state.viewDayId) { mutableStateOf<Long?>(null) }
-    LaunchedEffect(state.cardio?.run, sessionReceipt) {
-        if (state.cardio?.run?.complete == true || sessionReceipt != null ||
+    LaunchedEffect(state.cardio?.run) {
+        if (state.cardio?.run?.complete == true ||
             (endingCardioStartedAt != null && state.cardio?.run?.startedAt != endingCardioStartedAt)) {
             confirmingEndCardio = false
         }
     }
     var confirmingPartialFinish by rememberSaveable { mutableStateOf(false) }
     var noteCardId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var receiptNoteOpen by rememberSaveable { mutableStateOf(false) }
     // Only the newest removal can be undone against the current row indices.
     val openOffer = removedSets.lastOrNull()
     val openSheet = state.openSheet
     val countHostFree = !showEditSheet && openSheet == null &&
-        noteCardId == null && !receiptNoteOpen &&
-        !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null && cascadeCeremony == null && sessionReceipt == null
+        noteCardId == null &&
+        !confirmingEndCardio && !confirmingPartialFinish && !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null
     LaunchedEffect(state.timedRep?.requestsSheet, countHostFree) {
         if (state.timedRep?.requestsSheet == true && countHostFree) actions.onOpenTimedRepCount()
     }
@@ -99,9 +102,7 @@ fun DayScreen(
         enabled = onBack != null &&
             !showEditSheet && openSheet == null && !confirmingEndCardio &&
             noteCardId == null && !confirmingPartialFinish &&
-            !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null &&
-            cascadeCeremony == null &&
-            sessionReceipt == null,
+            !confirmingClearChecks && !confirmingUntickChecks && state.pendingPlanSwap == null,
         onBack = { onBack?.invoke() },
     )
     val view = LocalView.current
@@ -339,50 +340,6 @@ fun DayScreen(
         if (card != null) {
             NoteSheet(card.note, { actions.onSetExerciseNote(id, it) }, { noteCardId = null })
         } else noteCardId = null
-    }
-
-    if (receiptNoteOpen) {
-        NoteSheet(sessionReceipt?.note.orEmpty(), actions.onSetSessionNote) { receiptNoteOpen = false }
-    }
-
-    // The finished session's receipt, over a day screen that has already
-    // advanced — but only once the cascade has been read. One DONE can raise
-    // both, and the order they arrive in is a composition rule, not a drawing
-    // one: a receipt merely painted *under* the scrim is still in the semantics
-    // tree, so TalkBack could reach BACK TO TODAY through the celebration and
-    // pop the route out from under it. Gating on the cascade keeps the
-    // experienced order — the news the session made, then the ledger of it,
-    // then the way out — and keeps it true after a rotation restores both.
-    var renderedReceipt by remember { mutableStateOf<SessionReceipt?>(null) }
-    val receiptVisible = cascadeCeremony == null && sessionReceipt != null
-    if (receiptVisible) renderedReceipt = sessionReceipt
-    val receiptVisibility = remember { MutableTransitionState(false) }
-    receiptVisibility.targetState = receiptVisible
-    val receiptBackProgress = rememberBackGestureProgress(enabled = receiptVisible, onBack = onFinishSession)
-    AnimatedVisibility(visibleState = receiptVisibility, enter = fadeIn(tween(260)), exit = fadeOut(tween(160))) {
-        renderedReceipt?.let {
-            SessionReceiptScrim(
-                receipt = it,
-                onShare = onShareSession,
-                onFinish = onFinishSession,
-                onEditNote = { receiptNoteOpen = true },
-                modifier = Modifier.backGesturePreview { receiptBackProgress.value },
-            )
-        }
-    }
-
-    // Above everything, including the edit sheet: the cascade only ever arrives
-    // straight off a DONE, when nothing else is open (journal brief §2).
-    var renderedCascade by remember { mutableStateOf<CascadeCeremony?>(null) }
-    if (cascadeCeremony != null) renderedCascade = cascadeCeremony
-    val cascadeVisible = cascadeCeremony != null
-    val cascadeVisibility = remember { MutableTransitionState(false) }
-    cascadeVisibility.targetState = cascadeVisible
-    val cascadeBackProgress = rememberBackGestureProgress(enabled = cascadeVisible, onBack = onDismissCascade)
-    AnimatedVisibility(visibleState = cascadeVisibility, enter = fadeIn(tween(260)), exit = fadeOut(tween(160))) {
-        renderedCascade?.let {
-            CascadeScrim(it, onDismissCascade, Modifier.backGesturePreview { cascadeBackProgress.value })
-        }
     }
 }
 

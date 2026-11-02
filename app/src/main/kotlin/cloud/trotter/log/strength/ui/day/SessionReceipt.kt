@@ -1,118 +1,70 @@
 package cloud.trotter.log.strength.ui.day
 
+import android.os.Parcelable
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.glance.GlanceLines
-import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.standards.SetFormatter
-import cloud.trotter.log.strength.domain.units.WeightUnit
+import kotlinx.parcelize.Parcelize
+import kotlin.math.roundToInt
 
 /**
- * The session's receipt: what the lifter just did, read back to them once
- * DONE has already committed it. It sits between the advance and landing on
- * Today.
+ * A frozen receipt of the session Finish already committed. Saved in
+ * [androidx.lifecycle.SavedStateHandle], including the new top sets computed
+ * once at Finish, so rotation and process death keep the moment without ever
+ * recomputing it from history. Dismissing it leaves the saved session intact.
  *
- * Everything here is a read of the session row that [cloud.trotter.log.strength
- * .data.TrackerRepository.finishRun] has already written, so the receipt is
- * post-commit UI over persisted data: dismissing it, backing out of it, or
- * losing the process to a kill all leave exactly the same saved session behind.
- * Like [CascadeCeremony] it is therefore a moment and not data — a plain
- * ViewModel field, so it survives rotation and dies with the process rather
- * than reappearing over a workout the lifter already walked away from.
- *
- * [sessionId] is the receipt's only live handle: SHARE hands it to the same
- * [cloud.trotter.log.strength.ui.log.share.ShareCardService] the Log screen
- * uses, so there is still exactly one place a share Intent gets built
- * (session-share brief §4).
+ * [sessionId] is the live handle for the shared
+ * [cloud.trotter.log.strength.ui.log.share.ShareCardService] and session note.
  */
+@Parcelize
 data class SessionReceipt(
     val sessionId: Long,
-    /** The *completed* day's index — the receipt wears the accent of the day it
-     *  reports on, not of the one the rotation has already moved to. */
+    val dayId: String,
+    /** The completed day's accent, even after the rotation advances. */
     val dayIndex: Int,
-    /** "DAY A COMPLETE". */
-    val headline: String,
-    /** The completed day's title ("LOWER"); blank when the day has none. */
-    val dayTitle: String,
+    val completedAt: Long,
+    val minutes: Int?,
+    /** Rounds actually ticked, matching the workout header ([Slot.isRound]). */
+    val setCount: Int,
     val completedSetCount: Int,
     val totalSetCount: Int,
-    /** Rounds actually ticked — the count the header was showing a moment ago
-     *  (see [Slot.isRound]), not a second way of counting the same day. */
-    val setCount: Int,
-    /** The session's heaviest completed set; null when nothing weighted was
-     *  completed (see [SessionReceiptBuilder.from]). */
-    val strongest: ReceiptLift?,
-    /** "DAY B · UPPER" — where the rotation now stands; null at the end of a
-     *  program with no successor. */
+    val newTopSets: List<CascadeLift>,
+    /** Next day's letter and title as authored; absent when no successor resolves. */
     val nextDayLine: String?,
     val note: String = "",
     val cardio: CardioRun? = null,
-)
-
-/** The strongest-set row: the lift's name and its set, already formatted. */
-data class ReceiptLift(val name: String, val value: String)
+) : Parcelable
 
 object SessionReceiptBuilder {
 
     /**
-     * Builds the receipt for a session [finishRun][cloud.trotter.log.strength
-     * .data.TrackerRepository.finishRun] has just written. [sessionSets] is the
-     * same list the cascade check reads — one fetch serves both, so the two
-     * post-DONE surfaces can never disagree about what the session contained.
-     *
-     * The set count is *rounds* ([Slot.isRound]) — the number the day header was
-     * showing a second before this surface replaced it. Counting a superset
-     * partner's row as well would double a superset day's total against the
-     * header, Today and the watch, which all count the round the single tick
-     * covered.
-     *
-     * "Strongest" deliberately does not narrow that way: it is the heaviest
-     * *loaded* set of the session, partner tracks included, because a partner
-     * set is still weight the lifter moved. Sets are classified by their own
-     * logged values ([SetFormatter.trackingOfValues], the legacy-history rule
-     * the whole app shares) and only weighted ones are ranked, heaviest first
-     * and reps breaking the tie. A day of holds and bodyweight reps has no
-     * strongest set and simply shows no such line — a plank is not a number to
-     * beat, and inventing one would be the fake trophy this receipt exists to
-     * avoid.
-     *
-     * [nextDayId] is null only in the guard case where the completed day is no
-     * longer in the program by the time the advance lands (a wizard re-run
-     * racing a DONE); the rotation itself always wraps and always has a next.
+     * Reads back the committed session. [sessionSets] is the same fetch used to
+     * compute [newTopSets]. Counting completed rounds ([Slot.isRound]) keeps
+     * supersets consistent with the workout header, Today and the watch.
+     * [nextDayId] may be absent if the completed day left the program at Finish.
      */
     fun from(
         sessionId: Long,
         dayId: String,
         dayIndex: Int,
-        dayTitle: String,
+        startedAt: Long?,
+        completedAt: Long,
         completedSetCount: Int,
         totalSetCount: Int,
         sessionSets: List<SessionSetEntity>,
+        newTopSets: List<CascadeLift>,
         nextDayId: String?,
         nextDayTitle: String,
-        unit: WeightUnit,
-    ): SessionReceipt {
-        val done = sessionSets.filter { it.done }
-        val strongest = done
-            .filter { SetFormatter.trackingOfValues(it.weightLb, it.reps, it.seconds) == TrackingType.WEIGHTED }
-            .filter { it.weightLb > 0.0 }
-            .maxWithOrNull(compareBy({ it.weightLb }, { it.reps }))
-        return SessionReceipt(
-            sessionId = sessionId,
-            dayIndex = dayIndex,
-            headline = if (completedSetCount == totalSetCount) {
-                "DAY ${dayId.uppercase()} COMPLETE"
-            } else {
-                "DAY ${dayId.uppercase()} ENDED · $completedSetCount OF $totalSetCount"
-            },
-            dayTitle = dayTitle,
-            completedSetCount = completedSetCount,
-            totalSetCount = totalSetCount,
-            setCount = done.count { Slot.isRound(it.slot) },
-            strongest = strongest?.let {
-                ReceiptLift(it.exerciseName, SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit))
-            },
-            nextDayLine = nextDayId?.let { GlanceLines.dayLine(it, nextDayTitle) },
-        )
-    }
+    ): SessionReceipt = SessionReceipt(
+        sessionId = sessionId,
+        dayId = dayId,
+        dayIndex = dayIndex,
+        completedAt = completedAt,
+        minutes = startedAt?.let { ((completedAt - it) / 60_000.0).roundToInt().coerceAtLeast(1) },
+        setCount = sessionSets.count { it.done && Slot.isRound(it.slot) },
+        completedSetCount = completedSetCount,
+        totalSetCount = totalSetCount,
+        newTopSets = newTopSets,
+        nextDayLine = nextDayId?.let { GlanceLines.dayLine(it, nextDayTitle) },
+    )
 }

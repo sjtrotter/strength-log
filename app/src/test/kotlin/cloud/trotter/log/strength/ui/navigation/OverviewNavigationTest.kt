@@ -284,8 +284,8 @@ class OverviewNavigationTest {
         rule.waitUntil(5_000) { rule.runOnIdle { dayVm.uiState.value.doneSets > 0 } }
         rule.runOnIdle { dayVm.completeDay() }
         rule.waitUntil(5_000) { rule.runOnIdle { dayVm.sessionReceipt.value != null } }
-        rule.waitUntil(5_000) { rule.onAllNodes(hasText("BACK TO TODAY")).fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithText("BACK TO TODAY").performClick()
+        rule.waitUntil(5_000) { rule.onAllNodes(hasText("Done")).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText("Done").performClick()
         rule.waitUntil(5_000) { rule.runOnIdle { nav.currentDestination?.route == Routes.TODAY } }
         rule.runOnIdle {
             assertEquals(Routes.TODAY, nav.currentDestination?.route)

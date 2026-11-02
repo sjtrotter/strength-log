@@ -51,6 +51,8 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Before
@@ -359,6 +361,15 @@ class DayViewModelCardioExecutionTest {
         assertEquals(2, repo.cardioSessionsFlow.first().size)
         assertEquals(first.sessionId, vm.sessionReceipt.value?.sessionId)
         assertEquals(first.runId, vm.sessionReceipt.value?.cardio?.runId)
+        assertNotNull(vm.sessionReceipt.value?.cardio)
+        assertNull(vm.sessionReceipt.value?.minutes)
+        assertEquals(emptyList<CascadeLift>(), vm.sessionReceipt.value?.newTopSets)
+        assertEquals(0, vm.sessionReceipt.value?.setCount)
+        // Dated by the cardio row, not by when the deferred receipt finally showed.
+        val firstCompletedAt = requireNotNull(repo.cardioSession(requireNotNull(first.sessionId))).completedAt
+        assertEquals(firstCompletedAt, vm.sessionReceipt.value?.completedAt)
+        assertNotEquals(clock.wallMillis(), firstCompletedAt)
+        assertEquals("Day B, Run B", vm.sessionReceipt.value?.nextDayLine)
         assertTrue(vm.dismissSessionReceipt())
         runCurrent()
         assertNull(vm.sessionReceipt.value)

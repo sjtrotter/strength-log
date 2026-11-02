@@ -1,7 +1,7 @@
 <resources>
     <string name="note_label">NOTE</string>
     <string name="note_done">DONE</string>
-    <string name="note_add_action">ADD A NOTE</string>
+    <string name="note_add_action">Add a note</string>
     <string name="note_action">NOTE</string>
     <string name="app_name">strength.log</string>
     <string name="stepper_type_action">Type %1$s</string>
@@ -433,16 +433,20 @@
 <string name="day_edit_pattern_core_flex">Core flex</string>
 <string name="day_edit_pattern_cardio">Cardio</string>
 
-<!-- Cascade -->
-<string name="cascade_dismiss_action">Dismiss</string>
-<string name="cascade_new_ramp_label">NEW RAMP</string>
-
 <!-- Session receipt -->
-<string name="receipt_sets_label">SETS</string>
-<string name="receipt_strongest_label">STRONGEST</string>
-<string name="receipt_next_label">NEXT</string>
-<string name="receipt_share_button">SHARE</string>
-<string name="receipt_back_to_today_button">BACK TO TODAY</string>
+<string name="receipt_headline">Day %1$s, done.</string>
+<plurals name="receipt_sets">
+    <item quantity="one">%d set</item>
+    <item quantity="other">%d sets</item>
+</plurals>
+<string name="receipt_sets_partial">%1$d of %2$d sets</string>
+<string name="receipt_sets_in_minutes">%1$s in %2$d min</string>
+<string name="receipt_new_top_set">New top set</string>
+<string name="receipt_top_set_description">%1$s, new top set %2$s, up from %3$s</string>
+<string name="receipt_next">Next</string>
+<string name="receipt_done">Done</string>
+<string name="note_edit_action">Edit note</string>
+<string name="receipt_share_button">Share</string>
 
 <!-- Custom exercise -->
 <string name="custom_exercise_title">New exercise</string>
@@ -609,9 +613,6 @@
 <string name="cardio_keep_going">Keep going</string>
 <string name="cardio_end_log">End and log</string>
 <string name="cardio_retry">Retry</string>
-<string name="cardio_receipt_headline">Day %1$s, done.</string>
-<string name="cardio_receipt_next">Next: %1$s</string>
-<string name="cardio_back_today">Back to Today</string>
 <string name="day_edit_add_cardio">Add cardio</string>
 <string name="day_edit_edit_cardio">Edit cardio</string>
 <string name="day_edit_remove_cardio">Remove cardio</string>

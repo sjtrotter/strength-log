@@ -360,9 +360,9 @@ data class SetRowState(
  * The removed round retained while the Snackbar offers Undo. [DayViewModel]
  * restores its tracks at [index], rather than appending a fresh copy.
  *
- * Deliberately not persisted (same reasoning as [CascadeCeremony]): a
- * five-second courtesy is not user data, and an offer that came back from the
- * dead after process death would be a worse bug than the one it fixes.
+ * Deliberately not persisted: a five-second courtesy is not user data, and an
+ * offer that came back after process death would restore a round to a workout
+ * the lifter may already have left.
  */
 data class RemovedSet(
     val programExerciseId: Long,

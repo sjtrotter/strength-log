@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui
 
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -9,9 +12,9 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.day.DayScreen
-import cloud.trotter.log.strength.ui.day.ReceiptLift
+import cloud.trotter.log.strength.ui.day.CascadeLift
 import cloud.trotter.log.strength.ui.day.SessionReceipt
-import cloud.trotter.log.strength.ui.day.SessionReceiptScrim
+import cloud.trotter.log.strength.ui.day.SessionReceiptScreen
 import cloud.trotter.log.strength.ui.day.workoutActions
 import cloud.trotter.log.strength.ui.day.workoutEditActions
 import cloud.trotter.log.strength.ui.day.workoutDayFixture
@@ -66,40 +69,40 @@ class WindowSizeTest {
     }
 
     /**
-     * The two post-DONE surfaces cover the whole window on purpose — they are
-     * hiding one — but their content is a column of text like any other, so it
-     * is capped at [ReadableWidth], even on a tablet.
-     *
-     * Coverage is asserted alongside the cap, so the cap can't be met by
-     * shrinking the scrim.
+     * The opaque receipt fills the window while its scrollable content keeps
+     * the centred [ReadableWidth] cap, even on a tablet.
      */
     @Test
     @Config(qualifiers = "w1280dp-h800dp")
-    fun theReceiptCoversTheWindowButItsLedgerKeepsTheReadableCap() {
+    fun theReceiptCoversTheWindowButItsContentKeepsTheReadableCap() {
         composeTestRule.setContent {
             AppTheme {
-                SessionReceiptScrim(
+                SessionReceiptScreen(
                     receipt = SessionReceipt(
                         sessionId = 1L,
                         dayIndex = 0,
-                        headline = "DAY A COMPLETE",
-                        dayTitle = "Lower — squat focus",
+                        dayId = "A",
+                        completedAt = 1_793_361_600_000L,
+                        minutes = 52,
                         completedSetCount = 18,
                         totalSetCount = 18,
                         setCount = 18,
-                        strongest = ReceiptLift("Barbell Back Squat", "235×3"),
+                        newTopSets = listOf(CascadeLift("Barbell Back Squat", "235", "245")),
                         nextDayLine = "Day B, Upper",
                     ),
                     onShare = {},
-                    onFinish = {},
+                    onFinishSession = {},
+                    modifier = Modifier.testTag("receipt"),
                 )
             }
         }
 
         val root = composeTestRule.onRoot().fetchSemanticsNode().size
+        assertEquals("the receipt must cover the whole window", root,
+            composeTestRule.onNodeWithTag("receipt").fetchSemanticsNode().size)
         val readable = with(composeTestRule.density) { ReadableWidth.toPx() }
-        val headline = composeTestRule.onNodeWithText("DAY A COMPLETE").fetchSemanticsNode().boundsInRoot
-        val back = composeTestRule.onNodeWithText("BACK TO TODAY").fetchSemanticsNode().boundsInRoot
+        val headline = composeTestRule.onNodeWithText("Day A, done.").fetchSemanticsNode().boundsInRoot
+        val back = composeTestRule.onNodeWithText("Done").fetchSemanticsNode().boundsInRoot
 
         assertTrue(
             "the ledger is ${back.right - headline.left}px wide, past the $readable px cap",
@@ -110,14 +113,6 @@ class WindowSizeTest {
             abs(headline.left - (root.width - back.right)) <= 2f,
         )
     }
-
-    // CascadeScrim takes the same cap, and is not pinned here. Its column wraps
-    // its content instead of filling the width, so the only thing that could push
-    // it past 600dp is a long lift name — and Robolectric has no real font
-    // metrics, so it measures every string at a fraction of its true width. A
-    // test on that number would be green whether the cap existed or not. The
-    // receipt above is layout-driven (a fillMaxWidth column, a weighted row) and
-    // so measures the band for real; it is the pin for both.
 
     /**
      * The screen-level assertion below passes either way — it is a sanity check

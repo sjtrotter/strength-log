@@ -245,10 +245,12 @@ open class TrackerRepository(
 
     open suspend fun setPlanEmphasis(planId: Long, emphasis: GoalEmphasis) {
         ensurePlanSettingsMigrated()
+        // Read DataStore before the transaction: suspending on it inside one can deadlock.
+        val global = settings.globalLifterFlow.first()
         db.withTransaction {
             val plan = planDao.plan(planId) ?: return@withTransaction
             val recipe = plan.recipeJson ?: return@withTransaction
-            val answers = PlanRecipeJson.decode(recipe, settings.globalLifterFlow.first())
+            val answers = PlanRecipeJson.decode(recipe, global)
             planDao.updateRecipe(
                 planId,
                 PlanRecipeJson.encode(answers.copy(config = answers.config.copy(emphasis = emphasis))),

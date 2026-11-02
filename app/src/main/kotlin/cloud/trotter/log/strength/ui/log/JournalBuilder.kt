@@ -76,7 +76,7 @@ object JournalBuilder {
      * flat [topSets] history (oldest first). A point is a [TrajectoryPoint.newHigh]
      * when it beats every top set before it — the first one included, since it is
      * the all-time high the moment it lands. (The cascade ceremony uses a stricter
-     * rule: see `CascadeCeremony`, which needs a *previous* high to beat.)
+     * rule: see `CascadeCeremonyBuilder`, which needs a *previous* high to beat.)
      */
     fun trajectories(
         mains: List<MainLift>,

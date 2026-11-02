@@ -37,14 +37,13 @@ import cloud.trotter.log.strength.ui.day.DayEditSlotState
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.day.DayScreen
-import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.ExerciseCardState
 import cloud.trotter.log.strength.ui.day.OpenSheet
 import cloud.trotter.log.strength.ui.day.PartnerRowState
-import cloud.trotter.log.strength.ui.day.ReceiptLift
+import cloud.trotter.log.strength.ui.day.CascadeLift
 import cloud.trotter.log.strength.ui.day.SessionReceipt
 import cloud.trotter.log.strength.ui.day.SetRowState
 import cloud.trotter.log.strength.ui.log.JournalUiState
@@ -239,14 +238,21 @@ class StoreScreenshotsTest {
             SessionReceipt(
                 sessionId = 1L,
                 dayIndex = day.dayIndex,
-                headline = "DAY A COMPLETE",
-                dayTitle = day.dayTitle,
-                completedSetCount = day.doneSets,
-                totalSetCount = day.totalSets,
-                setCount = day.doneSets,
-                strongest = ReceiptLift(catalog.get("bb_back_squat").name, "235 × 5"),
+                dayId = "A",
+                completedAt = Instant.parse("2026-10-30T18:00:00Z").toEpochMilli(),
+                minutes = 52,
+                completedSetCount = 18,
+                totalSetCount = 18,
+                setCount = 18,
+                newTopSets = listOf(CascadeLift("Barbell Back Squat", "235", "245")),
                 nextDayLine = "Day B, Upper",
             ),
+            // render() advances 2 s: the 300 ms strike and 500 ms roll are finished.
+            beforeCapture = {
+                composeTestRule.onNodeWithText("235", useUnmergedTree = true).assertExists()
+                composeTestRule.onNodeWithText("245", useUnmergedTree = true).assertExists()
+                composeTestRule.onNodeWithText("18 sets in 52 min").assertIsDisplayed()
+            },
         )
     }
 

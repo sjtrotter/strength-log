@@ -30,6 +30,7 @@ import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -480,27 +481,12 @@ class DayViewModel @Inject constructor(
     fun markNotificationPermissionAsked() = viewModelScope.launch { repo.markPhoneRestNotificationAsked() }
 
     /**
-     * The cascade scrim (journal brief §2). Intentionally a bare ViewModel field
-     * and NOT [SavedStateHandle] — the one piece of UI state in this app that
-     * must *not* survive process death (CLAUDE.md's rule guards state the user
-     * would lose; this is a moment they already had). It is written only by
-     * [completeDay]'s before/after comparison, so no restore, re-collection, or
-     * re-entry can produce it.
+     * The finished session's receipt, with its new-top-set rows frozen at
+     * Finish. It lives in saved state until Done, so rotation and process death
+     * keep it; history is never read again to rebuild it. A deferred cardio
+     * receipt waits under its own key until no execution owns the screen.
      */
-    private val _cascadeCeremony = MutableStateFlow<CascadeCeremony?>(null)
-    val cascadeCeremony: StateFlow<CascadeCeremony?> = _cascadeCeremony.asStateFlow()
-
-    /**
-     * The session receipt — the same bare-field treatment as [_cascadeCeremony],
-     * and for the same reason: everything it reports is already committed to
-     * Room by the time it exists, so losing it to process death costs the lifter
-     * nothing, while restoring it would drop a finished workout's summary over
-     * whatever they came back to. Rotation keeps it, because a ViewModel
-     * outlives a configuration change. A cardio receipt held for an execution
-     * that still owns the screen is saved separately until it can be presented.
-     */
-    private val _sessionReceipt = MutableStateFlow<SessionReceipt?>(null)
-    val sessionReceipt: StateFlow<SessionReceipt?> = _sessionReceipt.asStateFlow()
+    val sessionReceipt = savedState.getStateFlow<SessionReceipt?>(KEY_SESSION_RECEIPT, null)
 
     /**
      * The receipt's SHARE payoff, built by the one service that builds share
@@ -518,10 +504,9 @@ class DayViewModel @Inject constructor(
      * against the current list, so only the last entry can be taken; popping it
      * makes the one beneath it current again.
      *
-     * A bare field for the same reason as [_cascadeCeremony]: this is a
-     * [UNDO_WINDOW_MS]-long courtesy, not user data, and an offer restored
-     * after process death would put a row back into a workout the user had
-     * already moved on from. One shared window covers the whole stack; it
+     * A bare field because this is a [UNDO_WINDOW_MS]-long courtesy, not user
+     * data, and an offer restored after process death would put a row back
+     * into a workout the user had already moved on from. One shared window covers the whole stack; it
      * restarts whenever the stack changes, and running out clears all of it.
      * A day switch or a DONE clears it outright.
      */
@@ -642,7 +627,7 @@ class DayViewModel @Inject constructor(
         if (currentDay() != dayId || dayState.value.planId != plan.id) return null
         val json = CardioBlockJson.encode(block)
         return CardioRun(plan.id, plan.name, dayId, program.days.indexOf(day), json, json,
-            day.exercises.isEmpty(), next?.title)
+            day.exercises.isEmpty(), next?.let { GlanceLines.dayLine(it.id, it.title) })
     }
 
     private fun saveCardioRun(run: CardioRun) {
@@ -920,11 +905,14 @@ class DayViewModel @Inject constructor(
         if (executionActive) return
         val run = deferredCardioReceipt.value ?: return
         val advancedTo = repo.plansFlow.first().firstOrNull { it.id == run.planId }?.suggestedDayId
+        val sessionId = requireNotNull(run.sessionId)
+        val completedAt = repo.session(sessionId)?.completedAt ?: cardioClock.wallMillis()
         if (executionActive) return
         savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
-        _sessionReceipt.value = SessionReceipt(
-            sessionId = requireNotNull(run.sessionId), dayIndex = run.dayIndex, headline = "", dayTitle = "",
-            completedSetCount = 0, totalSetCount = 0, setCount = 0, strongest = null,
+        savedState[KEY_SESSION_RECEIPT] = SessionReceipt(
+            sessionId = sessionId, dayId = run.dayId, dayIndex = run.dayIndex,
+            completedAt = completedAt, minutes = null,
+            completedSetCount = 0, totalSetCount = 0, setCount = 0, newTopSets = emptyList(),
             nextDayLine = run.nextDayTitle, cardio = run,
         )
         if (currentDay() == run.dayId) {
@@ -1460,11 +1448,13 @@ class DayViewModel @Inject constructor(
     }
 
     fun setReceiptNote(text: String) {
-        val sessionId = _sessionReceipt.value?.sessionId ?: return
+        val sessionId = sessionReceipt.value?.sessionId ?: return
         val clean = text.trim().take(120)
         viewModelScope.launch {
             repo.setSessionNote(sessionId, clean)
-            _sessionReceipt.update { it?.takeIf { receipt -> receipt.sessionId == sessionId }?.copy(note = clean) }
+            sessionReceipt.value?.takeIf { it.sessionId == sessionId }?.let {
+                savedState[KEY_SESSION_RECEIPT] = it.copy(note = clean)
+            }
         }
     }
 
@@ -1476,15 +1466,10 @@ class DayViewModel @Inject constructor(
      *
      *  The all-time top-set highs are read *before* the advance appends to
      *  history; comparing them with what the session actually recorded is the
-     *  whole cascade-ceremony trigger (journal brief §2). Nothing about the
-     *  ceremony is stored, so it can only ever fire on this transition.
-     *
-     *  Both post-DONE surfaces are raised here off ONE read of the just-written
-     *  session's sets: the cascade says what moved, the receipt says what was
-     *  done. Reading twice would let them describe different sessions if a watch
-     *  delta landed in between. The completed day's id, index and title are all
-     *  captured before [TrackerRepository.finishRun] moves the pointer, because
-     *  from the next line on "the current day" means the next one. */
+     *  new-top-set trigger. Those rows are frozen in saved state with the
+     *  receipt, from one fetch of the committed session's sets. The completed
+     *  day's id and index are captured before [TrackerRepository.finishRun]
+     *  moves the pointer, when "the current day" becomes the next one. */
     fun completeDay() {
         val day = currentDay() ?: return
         val state = dayState.value.takeIf { it.viewDayId == day && it.runOpen } ?: return
@@ -1521,37 +1506,33 @@ class DayViewModel @Inject constructor(
             closeSheet()
             val unit = repo.unitFlow.first()
             val sessionSets = repo.sessionSets(sessionId)
-            _cascadeCeremony.value = CascadeCeremonyBuilder.from(
+            val session = repo.session(sessionId)
+            val newTopSets = CascadeCeremonyBuilder.from(
                 previousHighs = previousHighs,
                 sessionSets = sessionSets,
-                dayIndex = dayIndex.coerceAtLeast(0),
                 unit = unit,
             )
-            _sessionReceipt.value = SessionReceiptBuilder.from(
+            savedState[KEY_SESSION_RECEIPT] = SessionReceiptBuilder.from(
                 sessionId = sessionId,
                 dayId = day,
                 dayIndex = dayIndex.coerceAtLeast(0),
-                dayTitle = program.days.firstOrNull { it.id == day }?.title.orEmpty(),
+                startedAt = session?.startedAt,
+                completedAt = session?.completedAt ?: cardioClock.wallMillis(),
                 completedSetCount = completedSetCount,
                 totalSetCount = totalSetCount,
                 sessionSets = sessionSets,
+                newTopSets = newTopSets,
                 nextDayId = nextDayId,
                 nextDayTitle = program.days.firstOrNull { it.id == nextDayId }?.title.orEmpty(),
-                unit = unit,
             )
             viewModelScope.launch { sessionPublisher.publish(sessionId) }
         }
     }
 
-    /** Dismisses the scrim (tap anywhere, or back). */
-    fun dismissCascadeCeremony() {
-        _cascadeCeremony.value = null
-    }
-
     /** Returns whether the receipt closed and navigation back to Today is safe. */
     fun dismissSessionReceipt(): Boolean {
-        if (executionActive || _sessionReceipt.value == null) return false
-        _sessionReceipt.value = null
+        if (executionActive || sessionReceipt.value == null) return false
+        savedState[KEY_SESSION_RECEIPT] = null
         return true
     }
 
@@ -1559,7 +1540,7 @@ class DayViewModel @Inject constructor(
      *  [ShareCardService]; a session that somehow no longer resolves simply
      *  produces no intent and no chooser. */
     fun shareSession() {
-        val sessionId = _sessionReceipt.value?.sessionId ?: return
+        val sessionId = sessionReceipt.value?.sessionId ?: return
         viewModelScope.launch {
             shareCardService.buildShareIntent(sessionId)?.let { _pendingShare.value = it }
         }
@@ -2427,6 +2408,7 @@ class DayViewModel @Inject constructor(
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"
         const val KEY_CARDIO_RUN = "day_cardio_run"
         const val KEY_CARDIO_DISTANCES = "day_cardio_distances"
+        const val KEY_SESSION_RECEIPT = "day_session_receipt"
         const val KEY_DEFERRED_CARDIO_RECEIPT = "day_deferred_cardio_receipt"
         const val STOP_TIMEOUT_MS = 5_000L
         const val CARDIO_TICK_MS = 1_000L

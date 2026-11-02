@@ -8,7 +8,6 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 /**
  * The cascade ceremony's derivation (docs/briefs/journal.md §2): a lift's
@@ -33,7 +32,7 @@ class CascadeCeremonyTest {
     private fun ceremony(
         previousHighs: Map<String, Double>,
         sets: List<SessionSetEntity>,
-    ) = CascadeCeremonyBuilder.from(previousHighs, sets, dayIndex = 0, unit = WeightUnit.LB)
+    ) = CascadeCeremonyBuilder.from(previousHighs, sets, unit = WeightUnit.LB)
 
     // --- the moment -----------------------------------------------------------
 
@@ -51,11 +50,10 @@ class CascadeCeremonyTest {
             ),
         )
 
-        val lift = event.lifts.single()
+        val lift = event.single()
         assertEquals("Barbell Back Squat", lift.name)
         assertEquals("235", lift.metDisplay)
         assertEquals("245", lift.newDisplay)
-        assertEquals(0, event.dayIndex)
     }
 
     @Test
@@ -70,7 +68,7 @@ class CascadeCeremonyTest {
             ),
         )
 
-        assertEquals(listOf("Barbell Bench Press", "Barbell Row"), event.lifts.map { it.name })
+        assertEquals(listOf("Barbell Bench Press", "Barbell Row"), event.map { it.name })
     }
 
     @Test
@@ -79,19 +77,19 @@ class CascadeCeremonyTest {
             CascadeCeremonyBuilder.from(
                 previousHighs = mapOf("bb_back_squat" to 220.462),
                 sessionSets = listOf(set("bb_back_squat", "Barbell Back Squat", SetKind.TOP, 231.485)),
-                dayIndex = 2,
                 unit = WeightUnit.KG,
             ),
         )
-        assertEquals("100", event.lifts.single().metDisplay)
-        assertEquals("105", event.lifts.single().newDisplay)
+        assertEquals("100", event.single().metDisplay)
+        assertEquals("105", event.single().newDisplay)
     }
 
     // --- the silences ---------------------------------------------------------
 
     @Test
     fun stays_silent_when_the_top_set_only_matched_the_standing_high() {
-        assertNull(
+        assertEquals(
+            emptyList<CascadeLift>(),
             ceremony(
                 mapOf("bb_back_squat" to 235.0),
                 listOf(set("bb_back_squat", "Barbell Back Squat", SetKind.TOP, 235.0)),
@@ -103,14 +101,16 @@ class CascadeCeremonyTest {
     fun stays_silent_on_a_lift_s_very_first_session() {
         // An all-time high with nothing behind it is a starting point, not a
         // progression — the journal marks it, the app doesn't celebrate it.
-        assertNull(
+        assertEquals(
+            emptyList<CascadeLift>(),
             ceremony(emptyMap(), listOf(set("bb_back_squat", "Barbell Back Squat", SetKind.TOP, 245.0))),
         )
     }
 
     @Test
     fun stays_silent_when_the_heavier_top_set_was_never_ticked() {
-        assertNull(
+        assertEquals(
+            emptyList<CascadeLift>(),
             ceremony(
                 mapOf("bb_back_squat" to 235.0),
                 listOf(set("bb_back_squat", "Barbell Back Squat", SetKind.TOP, 245.0, done = false)),
@@ -120,7 +120,8 @@ class CascadeCeremonyTest {
 
     @Test
     fun stays_silent_for_accessories_however_heavy() {
-        assertNull(
+        assertEquals(
+            emptyList<CascadeLift>(),
             ceremony(
                 mapOf("db_curl" to 30.0),
                 listOf(set("db_curl", "Dumbbell Curl", SetKind.WORK, 45.0)),
@@ -141,7 +142,7 @@ class CascadeCeremonyTest {
                 ),
             ),
         )
-        assertEquals("245", event.lifts.single().newDisplay)
+        assertEquals("245", event.single().newDisplay)
     }
 
     // --- the before-picture ---------------------------------------------------

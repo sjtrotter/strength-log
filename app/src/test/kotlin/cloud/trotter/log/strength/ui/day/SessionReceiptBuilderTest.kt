@@ -3,35 +3,30 @@ package cloud.trotter.log.strength.ui.day
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.SetKind
-import cloud.trotter.log.strength.domain.units.WeightUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/**
- * What the session receipt contains. [DayViewModelReceiptTest] pins when it
- * exists; this pins what it says — and, mostly, what it refuses to say: an
- * unfinished set is not a set the lifter did, and a day with nothing loaded in
- * it has no strongest set to name.
- */
+/** Pins the receipt's saved facts and round counting. */
 class SessionReceiptBuilderTest {
 
     @Test
     fun readsBackTheCompletedDayAndWhereTheRotationNowStands() {
         val receipt = build(sets = listOf(set(weightLb = 225.0, reps = 5, done = true)))
 
-        assertEquals("DAY A COMPLETE", receipt.headline)
-        assertEquals("Lower", receipt.dayTitle)
+        assertEquals("A", receipt.dayId)
+        assertEquals(52, receipt.minutes)
+        assertEquals(3_120_000L, receipt.completedAt)
+        assertEquals(1, receipt.setCount)
         assertEquals("Day B, Upper", receipt.nextDayLine)
         assertEquals(0, receipt.dayIndex)
         assertEquals(7L, receipt.sessionId)
     }
 
     @Test
-    fun partialDayUsesEndedHeadlineWithProgress() {
+    fun partialDayKeepsCompletedAndTotalCounts() {
         val receipt = build(sets = listOf(set(done = true)), completedSetCount = 7, totalSetCount = 18)
 
-        assertEquals("DAY A ENDED · 7 OF 18", receipt.headline)
         assertEquals(7, receipt.completedSetCount)
         assertEquals(18, receipt.totalSetCount)
     }
@@ -84,101 +79,50 @@ class SessionReceiptBuilderTest {
         assertEquals(rounds, receipt.setCount)
     }
 
-    /** Counting narrows to rounds; "strongest" does not. A partner set is still
-     *  weight the lifter moved, and hiding it would understate the session. */
     @Test
-    fun stillRanksASupersetPartnersSetAsTheStrongest() {
-        val receipt = build(
-            sets = listOf(
-                set(name = "Barbell Curl", weightLb = 60.0, reps = 10, done = true, slot = Slot.MAIN),
-                set(name = "Weighted Dip", weightLb = 90.0, reps = 8, done = true, slot = Slot.SS),
-            ),
-        )
-
-        assertEquals("Weighted Dip", receipt.strongest?.name)
-        assertEquals(1, receipt.setCount)
+    fun unknownStartOmitsMinutes() {
+        assertNull(build(sets = listOf(set(done = true)), startedAt = null).minutes)
     }
 
     @Test
-    fun namesTheHeaviestCompletedSetOfTheWholeSession() {
-        val receipt = build(
-            sets = listOf(
-                set(name = "Barbell Back Squat", weightLb = 235.0, reps = 3, done = true),
-                set(name = "Romanian Deadlift", weightLb = 205.0, reps = 8, done = true),
-            ),
-        )
-
-        assertEquals("Barbell Back Squat", receipt.strongest?.name)
-        assertEquals("235×3", receipt.strongest?.value)
-    }
-
-    /** A set the lifter set up but never performed is not a set they did. */
-    @Test
-    fun ignoresHeavierSetsThatWereNeverTicked() {
-        val receipt = build(
-            sets = listOf(
-                set(name = "Barbell Back Squat", weightLb = 235.0, reps = 3, done = false),
-                set(name = "Barbell Back Squat", weightLb = 190.0, reps = 5, done = true),
-            ),
-        )
-
-        assertEquals("190×5", receipt.strongest?.value)
+    fun twentySecondsStillReportsOneMinute() {
+        assertEquals(1, build(sets = listOf(set(done = true)), completedAt = 20_000L).minutes)
     }
 
     @Test
-    fun breaksATieOnTheSameWeightWithReps() {
-        val receipt = build(
-            sets = listOf(
-                set(weightLb = 200.0, reps = 5, done = true),
-                set(weightLb = 200.0, reps = 8, done = true),
-            ),
-        )
-
-        assertEquals("200×8", receipt.strongest?.value)
-    }
-
-    /** Holds and bodyweight reps carry no load to rank, so a day made of them
-     *  simply has no strongest-set line rather than a fabricated one. */
-    @Test
-    fun hasNoStrongestSetWhenNothingLoadedWasCompleted() {
-        val receipt = build(
-            sets = listOf(
-                set(name = "Plank", weightLb = 0.0, reps = 0, seconds = 60, done = true),
-                set(name = "Push-up", weightLb = 0.0, reps = 20, done = true),
-            ),
-        )
-
-        assertNull(receipt.strongest)
-        assertEquals(2, receipt.setCount)
+    fun roundsElapsedMinutesToTheNearestMinute() {
+        assertEquals(53, build(sets = listOf(set(done = true)), completedAt = 3_150_000L).minutes)
     }
 
     @Test
-    fun formatsTheStrongestSetInTheLiftersUnit() {
-        val receipt = build(
-            sets = listOf(set(weightLb = 220.5, reps = 5, done = true)),
-            unit = WeightUnit.KG,
-        )
-
-        assertEquals("100.02×5", receipt.strongest?.value)
+    fun preservesTheFrozenTopSetsAndTheAuthoredNextTitle() {
+        val topSets = listOf(CascadeLift("Barbell Back Squat", "235", "245"))
+        val receipt = build(sets = listOf(set(done = true)), newTopSets = topSets, nextDayTitle = "Upper body")
+        assertEquals(topSets, receipt.newTopSets)
+        assertEquals("Day B, Upper body", receipt.nextDayLine)
     }
 
     private fun build(
         sets: List<SessionSetEntity>,
         nextDayId: String? = "B",
-        unit: WeightUnit = WeightUnit.LB,
+        startedAt: Long? = 0L,
+        completedAt: Long = 3_120_000L,
+        newTopSets: List<CascadeLift> = emptyList(),
+        nextDayTitle: String = "Upper",
         completedSetCount: Int = sets.count { it.done && Slot.isRound(it.slot) },
         totalSetCount: Int = sets.count { Slot.isRound(it.slot) },
     ): SessionReceipt = SessionReceiptBuilder.from(
         sessionId = 7L,
         dayId = "A",
         dayIndex = 0,
-        dayTitle = "Lower",
+        startedAt = startedAt,
+        completedAt = completedAt,
         completedSetCount = completedSetCount,
         totalSetCount = totalSetCount,
         sessionSets = sets,
         nextDayId = nextDayId,
-        nextDayTitle = "Upper",
-        unit = unit,
+        nextDayTitle = nextDayTitle,
+        newTopSets = newTopSets,
     )
 
     private fun set(

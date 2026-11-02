@@ -52,8 +52,7 @@ A single activity with a Today / Log / Plan `NavigationBar` (`ui/navigation/`,
 | Timed-rep count and cardio distance | `ui/day/TimedRepCountSheet.kt`, `CardioExecution.kt` | The moment a timer ends | Record the count or distance just done |
 | Cardio page | `ui/day/CardioPresentation.kt` | Treadmill or road, between intervals | Run the current cardio set |
 | Day edit and swap | `ui/day/DayEditSheet.kt` | Station taken, equipment missing | Change what today's day contains |
-| Cascade | `ui/day/CascadeScrim.kt` | After Finish, only when a top set moved the goal | Say that a lift progressed |
-| Receipt | `ui/day/SessionReceiptScrim.kt` | After Finish | Confirm the session saved and say what comes next |
+| Receipt | `ui/day/SessionReceiptScreen.kt` | After Finish | Confirm the session saved, show a new top set, say what comes next |
 | Share card | `ui/log/share/` | By explicit tap only | Make an image of one session |
 | Log | `ui/log/LogScreen.kt`, `JournalSections.kt` | At home, later | Show what I did |
 | Plan and Plans | `ui/plan/PlanScreen.kt`, `PlansScreen.kt` | At home, or when the program changes | See and change the rotation; pick a plan |
@@ -212,7 +211,7 @@ a change and says why.
 Both surfaces:
 - Color means one thing. The day accent identifies the day and its one primary action;
   green marks completed work; accent text uses the derived foreground, raw accents are fills.
-- No emoji, confetti, streaks, badges or gradients. The cascade is the one ceremony.
+- No emoji, confetti, streaks, badges or gradients. The new top set on the receipt is the one ceremony.
 - A missing value shows as missing: blank distance means unknown (`cardio-sets.md` §3); plate
   math says nothing rather than something wrong (`plate-math.md`).
 

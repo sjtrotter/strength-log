@@ -481,7 +481,7 @@ One receipt route, with the new-top-set rows inside it.
 | 4.4 | The set screen, initially behind a flag (phase 2) | L |
 | 4.5a | Timed reps, cardio, clock chip, Cardio sheet and empty day on the set screen, initially behind a flag; without Redo | M |
 | 4.5b | **Done:** removed the build flag and pager; the set screen is the only workout UI. | M |
-| 4.6 | The receipt route with the cascade inside (phase 4) | M |
+| 4.6 | **Done:** one opaque receipt with new top sets inside, retained through process death (phase 4). | M |
 | 4.7 | Settings split: app preferences, plan settings on the plan, "You" (phase 7, in part) | M |
 | 4.8 | New plan doors, the three-screen wizard, Start empty with its data design | L |
 

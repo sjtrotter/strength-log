@@ -440,7 +440,6 @@ internal fun DayRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
-    val cascadeCeremony by viewModel.cascadeCeremony.collectAsStateWithLifecycle()
     val sessionReceipt by viewModel.sessionReceipt.collectAsStateWithLifecycle()
     val removedSets by viewModel.removedSets.collectAsStateWithLifecycle()
     // The receipt's SHARE, launched exactly the way the Log screen's is
@@ -544,8 +543,6 @@ internal fun DayRoute(
         actions = actions,
         dayEditState = dayEditState,
         dayEditActions = dayEditActions,
-        cascadeCeremony = cascadeCeremony,
-        onDismissCascade = viewModel::dismissCascadeCeremony,
         sessionReceipt = sessionReceipt,
         onShareSession = viewModel::shareSession,
         onFinishSession = {

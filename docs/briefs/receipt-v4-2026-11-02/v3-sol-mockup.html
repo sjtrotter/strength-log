@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>exercise.log — Workout receipt v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0D0D0F; --surface: #16161A; --line: #2A2A30;
+  --text: #F2F2F0; --secondary: #9A9AA2;
+  --day-a: #C1440E; --day-b: #2D5A3D; --day-c: #B8860B;
+  --day-d: #1F4E5F; --day-e: #3C4E78; --day-f: #8B4356; --day-g: #6B6A2C;
+  --accent: var(--day-a); --emphasis: #D2815D;
+  --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #202024; color: var(--text); font-family: var(--body); font-size: 14px; }
+button, textarea { font: inherit; }
+button, summary { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+button:focus-visible, summary:focus-visible, textarea:focus-visible, .scroll:focus-visible {
+  outline: 2px solid var(--text); outline-offset: 3px;
+}
+.presentation { max-width: 1364px; margin: auto; padding: 40px 32px 32px; }
+.intro { display: flex; justify-content: space-between; gap: 24px; align-items: baseline; margin-bottom: 32px; }
+.intro h1 { font: 600 30px/1.1 var(--display); margin: 0 0 8px; }
+.intro p { color: #B9B9C1; margin: 0; line-height: 1.6; }
+.version { color: #B9B9C1; white-space: nowrap; }
+.gallery { display: grid; grid-template-columns: repeat(3, 412px); gap: 28px; align-items: start; }
+figure { margin: 0; }
+figcaption { font-size: 14px; margin: 0 0 14px 3px; color: #CECED4; }
+.phone {
+  width: 412px; height: 1000px; border-radius: 28px; overflow: hidden;
+  background: var(--bg); border: 1px solid #434349;
+  display: flex; flex-direction: column; position: relative;
+  box-shadow: 0 10px 30px #0004;
+}
+.phone.cardio { --accent: #F2F2F0; --emphasis: #F2F2F0; }
+.topbar { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; height: 64px; padding: 8px 12px 0 24px; }
+.topbar h2 { margin: 0; font: 600 22px/27px var(--display); }
+.icon-button { border: 0; border-radius: 50%; background: none; color: var(--text); width: 48px; height: 48px; display: grid; place-items: center; }
+.icon-button:hover { background: #F2F2F012; }
+.icon-button svg { width: 24px; height: 24px; fill: currentColor; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #44444C transparent; }
+.hero { padding: 12px 24px 20px; }
+.plan { color: var(--secondary); font-size: 14px; line-height: 20px; margin: 0 0 3px; }
+.title-line { display: flex; align-items: center; gap: 12px; }
+.day { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 48px; height: 42px; border-left: 3px solid var(--accent); background: var(--surface); font: 600 17px/21px var(--display); }
+.hero h3 { font: 700 34px/38px var(--display); margin: 0; }
+.stats { display: flex; justify-content: space-between; align-items: baseline; margin-top: 13px; }
+.duration { font: 600 28px/32px var(--display); font-variant-numeric: tabular-nums; }
+.records { color: var(--secondary); font-size: 14px; }
+.units { padding: 0 24px 6px; font-size: 12px; line-height: 16px; color: var(--secondary); }
+.list { margin: 0 24px; }
+details { border-bottom: 1px solid var(--line); }
+summary { list-style: none; cursor: pointer; padding: 8px 0; min-height: 48px; }
+summary::-webkit-details-marker { display: none; }
+summary:hover { background: #F2F2F006; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.exercise-name { font: 600 17px/21px var(--display); margin: 0; }
+.chevron { width: 20px; height: 20px; fill: none; stroke: var(--secondary); stroke-width: 2; flex-shrink: 0; transition: transform 180ms ease; }
+details[open] > summary > .heading > .chevron { transform: rotate(180deg); }
+.count { font-size: 14px; line-height: 20px; color: var(--secondary); margin-top: 0; }
+.result-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 2px; }
+.best { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.result-label { font-size: 12px; line-height: 16px; color: var(--secondary); }
+.number { font: 700 22px/27px var(--display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.number .unit { font: 400 12px/16px var(--body); color: var(--secondary); }
+.pr { display: inline-block; flex-shrink: 0; padding: 3px 7px; border-radius: 4px; background: #30221C; color: var(--emphasis); font: 500 14px/18px var(--display); white-space: nowrap; }
+.cardio .pr { background: #2A2A30; }
+.superset > summary { padding-bottom: 10px; }
+.superset .group-title { margin-bottom: 8px; }
+.partners { border-left: 1px solid #45454D; padding-left: 12px; }
+.partner + .partner { margin-top: 10px; }
+.partner-name { display: flex; align-items: baseline; gap: 8px; }
+.notation { font: 600 15px/19px var(--display); color: var(--secondary); width: 20px; flex-shrink: 0; }
+.partner .count { margin-left: 28px; }
+.partner .best { margin-left: 28px; margin-top: 1px; }
+.partner .number { font-size: 22px; }
+.skipped { padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--secondary); }
+.skipped .heading { justify-content: flex-start; gap: 8px; }
+.skipped .status { margin-left: auto; font-size: 14px; }
+.skipped .count { margin-top: 3px; }
+.set-detail { padding: 0 0 14px; }
+.set-table { width: 100%; border-collapse: collapse; }
+.set-table caption { text-align: left; color: var(--secondary); font-size: 14px; line-height: 20px; padding: 8px 0 4px; }
+.set-table th { font-size: 12px; line-height: 16px; color: var(--secondary); text-align: left; font-weight: 400; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.set-table th:last-child { text-align: right; }
+.set-table td { padding: 7px 10px; vertical-align: top; border-bottom: 1px solid #2A2A3066; }
+.set-table td:first-child { width: 80px; font: 500 15px/26px var(--display); color: var(--secondary); }
+.set-table td:last-child { text-align: right; }
+.set-table .number { font-size: 22px; line-height: 26px; }
+.set-table .record-row { background: var(--surface); }
+.set-table .record-row td:first-child { box-shadow: inset 3px 0 var(--accent); color: var(--text); }
+.record-detail { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; padding-top: 6px; }
+.previous { font: 400 12px/16px var(--body); color: var(--secondary); }
+.round { font: 600 15px/19px var(--display); color: var(--secondary); padding: 12px 0 6px; }
+.round-sets { background: var(--surface); padding: 2px 10px; }
+.round-set { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+.round-set + .round-set { border-top: 1px solid var(--line); }
+.recovery { color: var(--secondary); font: 400 12px/16px var(--body); margin-top: 4px; }
+.interval-kind { display: block; font: 500 15px/20px var(--display); color: var(--secondary); }
+.distance { display: block; font: 400 12px/16px var(--body); color: var(--secondary); margin-top: 1px; }
+.after { padding: 4px 24px 20px; }
+.note-button { display: inline-flex; align-items: center; min-height: 48px; border: 0; background: none; color: var(--emphasis); padding: 8px 0; font: 500 17px/21px var(--display); }
+.note-button:hover { text-decoration: underline; }
+.note-preview { font-size: 14px; line-height: 20px; color: var(--secondary); margin: 12px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.next { border-top: 1px solid var(--line); padding-top: 11px; }
+.next-label { margin: 0 0 3px; font-size: 12px; line-height: 16px; color: var(--secondary); }
+.next-value { margin: 0; font: 600 22px/27px var(--display); }
+.footer { padding: 12px 24px 0; flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--line); }
+.done { width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: var(--accent); color: #FFF; font: 600 18px/22px var(--display); }
+.done:hover { filter: brightness(1.1); }
+.cardio .done { color: var(--bg); }
+.navigation-inset { height: 24px; display: grid; place-items: center; }
+.navigation-inset::after { content: ''; width: 108px; height: 4px; border-radius: 4px; background: #9A9AA2; }
+.frame-note { color: #B9B9C1; font-size: 12px; line-height: 19px; max-width: 412px; margin: 12px 3px 0; }
+.prototype-status { min-height: 24px; color: #CECED4; margin-top: 24px; font-size: 14px; }
+dialog { color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 28px; padding: 24px; width: min(364px, calc(100vw - 32px)); }
+dialog::backdrop { background: #0009; }
+dialog h2 { font: 700 24px/28px var(--display); margin: 0 0 20px; }
+dialog label { display: block; color: var(--secondary); margin-bottom: 8px; }
+textarea { width: 100%; min-height: 120px; resize: vertical; color: var(--text); background: var(--bg); border: 1px solid #777780; border-radius: 4px; padding: 12px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.dialog-actions button { min-height: 48px; min-width: 64px; background: none; color: var(--text); border: 0; border-radius: 8px; }
+.dialog-actions .save { background: var(--text); color: var(--bg); padding: 0 18px; }
+@media (max-width: 1360px) { .gallery { gap: 20px; } .presentation { padding-left: 20px; padding-right: 20px; } }
+@media (max-width: 700px) { .gallery { grid-template-columns: 412px; gap: 32px; } .intro { display: block; } .version { margin-top: 12px; } .presentation { padding: 24px 12px; width: max-content; min-width: 100%; } .intro p { max-width: 390px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+@media print { body { background: white; } .presentation { padding: 0; } .intro, .frame-note, .prototype-status { color: #333; } .gallery { gap: 16px; } .phone { height: auto; min-height: 1000px; break-inside: avoid; box-shadow: none; print-color-adjust: exact; } .scroll { overflow: visible; } }
+</style>
+</head>
+<body>
+<main class="presentation">
+  <header class="intro">
+    <div><h1>exercise.log / Workout receipt</h1><p>Recognize the work. Open the details. Know what comes next.</p></div>
+    <div class="version">Design study, v3</div>
+  </header>
+  <div class="gallery" id="gallery"></div>
+  <p class="prototype-status" id="prototype-status" aria-live="polite">Interactive study: expand an exercise or add a note. Each phone scrolls above Done.</p>
+</main>
+<dialog id="note-dialog" aria-labelledby="note-title">
+  <form id="note-form">
+    <h2 id="note-title">Workout note</h2>
+    <label for="note-input">Note</label>
+    <textarea id="note-input" rows="5"></textarea>
+    <div class="dialog-actions"><button type="button" id="cancel-note">Cancel</button><button type="submit" class="save">Save</button></div>
+  </form>
+</dialog>
+<script>
+'use strict';
+// HTML study only. Native implementation: themed M3 ListItem + AnimatedVisibility,
+// passive Surface/Text annotations, NoteSheet, and Scaffold.bottomBar.
+const chevron = '<svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const share = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.1c-.76 0-1.44.3-1.96.77L8.91 12.7a3.8 3.8 0 0 0 0-1.4l7.05-4.12A3 3 0 1 0 15 5c0 .24.03.47.08.69L8.04 9.8a3 3 0 1 0 0 4.4l7.12 4.16A3 3 0 1 0 18 16.1Z"/></svg>';
+const pr = label => `<span class="pr">${label}</span>`;
+const weight = value => `<span class="number">${value} <span class="unit">lb</span></span>`;
+const time = value => `<span class="number">${value}</span>`;
+const best = (label, value) => `<span class="best"><span class="result-label">${label}</span>${value}</span>`;
+const setRow = (kind, result, record = '', previous = '', spoken = '') => `
+  <tr class="${record ? 'record-row' : ''}" ${spoken ? `aria-label="${spoken}"` : ''}>
+    <td>${kind}</td><td>${result}${record ? `<div class="record-detail">${pr(record)}<span class="previous">${previous}</span></div>` : ''}</td>
+  </tr>`;
+const table = rows => `<div class="set-detail"><table class="set-table"><thead><tr><th scope="col">Set</th><th scope="col">Result</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+function exercise({ name, count, label = 'Best set', result, record = '', rows, spoken, open = false }) {
+  return `<details class="exercise" ${open ? 'open' : ''}>
+    <summary aria-label="${spoken}"><div class="heading"><span class="exercise-name">${name}</span>${chevron}</div>
+      <div class="count">${count}</div><div class="result-line">${best(label, result)}${record ? pr(record) : ''}</div>
+    </summary>${table(rows)}</details>`;
+}
+function squat(open) {
+  return exercise({ name: 'Barbell Back Squat', count: '3 work sets + 4 warmups', result: weight('245 × 5'), record: 'Weight PR', open,
+    spoken: 'Barbell Back Squat. 3 work sets and 4 warmups. Best set 245 pounds for 5 reps. Weight PR, up from 235 × 5.',
+    rows: setRow('R1', weight('135 × 5')) + setRow('R2', weight('165 × 3')) + setRow('R3', weight('190 × 2')) + setRow('R4', weight('210 × 1')) +
+      setRow('TOP', weight('245 × 5'), 'Weight PR', 'Up from 235 × 5 lb', 'Top set, 245 pounds for 5 reps. Weight PR, up from 235 × 5.') +
+      setRow('B/O 1', weight('185 × 8')) + setRow('B/O 2', weight('185 × 8')) });
+}
+function partner(code, name, result) {
+  return `<div class="partner"><div class="partner-name"><span class="notation">${code}</span><span class="exercise-name">${name}</span></div>
+    <div class="count">3 work sets</div>${best('Best set', weight(result))}</div>`;
+}
+function superset(open) {
+  const rounds = [5, 5, 4].map((reps, i) => `<section aria-label="Round ${i+1}"><div class="round">Round ${i+1}</div>
+    <div class="round-sets"><div class="round-set" aria-label="A one, Barbell Bench Press, 185 pounds for ${reps} reps"><span class="notation">A1</span>${weight(`185 × ${reps}`)}</div>
+    <div class="round-set" aria-label="A two, Barbell Row, 155 pounds for 8 reps"><span class="notation">A2</span>${weight('155 × 8')}</div></div></section>`).join('');
+  return `<details class="superset" ${open ? 'open' : ''}>
+    <summary aria-label="Superset, 3 rounds completed. A one, Barbell Bench Press, 3 work sets, best set 185 pounds for 5 reps. A two, Barbell Row, 3 work sets, best set 155 pounds for 8 reps.">
+      <div class="heading"><span class="exercise-name">Superset</span>${chevron}</div><div class="count group-title">3 rounds completed</div>
+      <div class="partners">${partner('A1', 'Barbell Bench Press', '185 × 5')}${partner('A2', 'Barbell Row', '155 × 8')}</div>
+    </summary><div class="set-detail">${rounds}</div></details>`;
+}
+function curl() {
+  return exercise({ name: 'Dumbbell Curl', count: '3 work sets', result: weight('35 × 10'), record: 'Rep PR',
+    spoken: 'Dumbbell Curl. 3 work sets. Best set 35 pounds for 10 reps. Rep PR, up from 35 × 9.',
+    rows: setRow('1', weight('35 × 10'), 'Rep PR', 'Up from 35 × 9 lb', 'Set 1, 35 pounds for 10 reps. Rep PR, up from 35 × 9.') + setRow('2', weight('35 × 10')) + setRow('3', weight('35 × 8')) });
+}
+function plank() {
+  return exercise({ name: 'Plank', count: '2 holds', label: 'Best hold', result: time('1:15'), record: 'Longer hold PR',
+    spoken: 'Plank. 2 holds. Best hold 1 minute 15 seconds. Longer hold PR, up from 1 minute 10 seconds.',
+    rows: setRow('1', time('1:15'), 'Longer hold PR', 'Up from 1:10', 'Hold 1, 1 minute 15 seconds. Longer hold PR, up from 1 minute 10 seconds.') + setRow('2', time('1:10')) });
+}
+function strength(open) {
+  return `<div class="units">Weights in lb</div><div class="list">${squat(open)}${superset(open)}${curl()}${plank()}
+    <div class="skipped" aria-label="Face Pull. Skipped, 3 sets planned."><div class="heading"><span class="exercise-name">Face Pull</span><span class="status">Skipped</span></div><div class="count">3 sets planned</div></div></div>`;
+}
+function run() {
+  const intervals = ['1:41', '1:38', '1:44', '1:40', '1:39', '1:45'].map((value, i) => {
+    const record = i === 1;
+    const [minutes, seconds] = value.split(':');
+    const speech = `Work interval ${i+1}, 400 meters in ${Number(minutes)} minute ${Number(seconds)} seconds.${record ? ' Faster PR, up from 1 minute 42 seconds.' : ''} Recovery 1 minute 30 seconds.`;
+    return setRow(`<span class="interval-kind">WORK ${i+1}</span><span class="distance">400 m</span>`, time(value) + '<div class="recovery">Recovery 1:30</div>', record ? 'Faster PR' : '', record ? 'Up from 1:42 / 400 m' : '', speech);
+  }).join('');
+  return `<div class="list">${exercise({name: 'Track run', count: '6 work intervals', label: 'Fastest', result: '<span class="number">1:38 <span class="unit">/ 400 m</span></span>', record: 'Faster PR', open: true,
+    spoken: 'Track run. 6 work intervals. Fastest 400 meters, 1 minute 38 seconds. Faster PR, up from 1 minute 42 seconds.',
+    rows: setRow('Warmup', time('10:00'), '', '', 'Warmup, 10 minutes.') + intervals + setRow('Cooldown', time('5:00'), '', '', 'Cooldown, 5 minutes.')
+  })}</div>`;
+}
+const frames = [
+  { id: 'strength-collapsed', caption: 'a / Strength — collapsed', plan: 'Four-day strength', title: 'Squat focus', day: 'Day A', minutes: 58, records: '3 personal records', content: strength(false), next: 'Four-day strength: Upper', note: 'Every exercise stays on the receipt. Tap a heading to see every set.' },
+  { id: 'strength-expanded', caption: 'b / Strength — Squat + superset expanded', plan: 'Four-day strength', title: 'Squat focus', day: 'Day A', minutes: 58, records: '3 personal records', content: strength(true), next: 'Four-day strength: Upper', note: 'Scroll this phone: the squat’s record is on TOP; the paired lifts unfold by round. Done stays in reach.' },
+  { id: 'cardio', caption: 'c / Cardio — interval details', plan: '5K build', title: 'Intervals', minutes: 34, records: '1 personal record', content: run(), next: '5K build: Long run', note: 'Six 400 m efforts, all six recoveries, warmup, and cooldown. The fastest effort carries its own record label.' }
+];
+document.getElementById('gallery').innerHTML = frames.map(f => `<figure>
+  <figcaption id="${f.id}-caption">${f.caption}</figcaption>
+  <article class="phone ${f.id === 'cardio' ? 'cardio' : ''}" id="${f.id}" aria-labelledby="${f.id}-caption">
+    <header class="topbar"><h2>Workout saved</h2><button class="icon-button share" type="button" aria-label="Share workout">${share}</button></header>
+    <div class="scroll" tabindex="0" aria-label="${f.title} receipt">
+      <header class="hero"><p class="plan">${f.plan}</p><div class="title-line">${f.day ? `<span class="day">${f.day}</span>` : ''}<h3>${f.title}</h3></div>
+        <div class="stats"><span class="duration">${f.minutes} min</span><span class="records">${f.records}</span></div></header>
+      ${f.content}
+      <div class="after"><p class="note-preview" hidden></p><button class="note-button" type="button">Add a note</button>
+        <div class="next"><p class="next-label">Next workout</p><p class="next-value">${f.next}</p></div></div>
+    </div>
+    <footer class="footer"><button class="done" type="button">Done</button><div class="navigation-inset" aria-hidden="true"></div></footer>
+  </article><p class="frame-note">${f.note}</p></figure>`).join('');
+
+// Native details provides expanded/collapsed semantics and keyboard interaction.
+document.querySelectorAll('summary').forEach(summary => {
+  const details = summary.parentElement;
+  const sync = () => summary.setAttribute('title', details.open ? 'Collapse sets' : 'Expand sets');
+  sync(); details.addEventListener('toggle', sync);
+});
+const dialog = document.getElementById('note-dialog');
+const input = document.getElementById('note-input');
+const status = document.getElementById('prototype-status');
+let activePhone = null;
+const notes = { strength: '', cardio: '' };
+const noteKey = phone => phone.id === 'cardio' ? 'cardio' : 'strength';
+document.querySelectorAll('.note-button').forEach(button => button.addEventListener('click', () => {
+  activePhone = button.closest('.phone'); input.value = notes[noteKey(activePhone)]; dialog.showModal(); input.focus();
+}));
+document.getElementById('cancel-note').addEventListener('click', () => dialog.close());
+document.getElementById('note-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const key = noteKey(activePhone); notes[key] = input.value.trim();
+  document.querySelectorAll('.phone').forEach(phone => {
+    if (noteKey(phone) !== key) return;
+    const preview = phone.querySelector('.note-preview');
+    preview.textContent = notes[key]; preview.hidden = !notes[key];
+    phone.querySelector('.note-button').textContent = notes[key] ? 'Edit note' : 'Add a note';
+  });
+  dialog.close();
+});
+document.querySelectorAll('.done').forEach(button => button.addEventListener('click', () => {
+  status.textContent = 'Prototype: Done returns to Today. This workout is already saved.';
+}));
+document.querySelectorAll('.share').forEach(button => button.addEventListener('click', () => {
+  status.textContent = 'Prototype: Share opens the Android share sheet for this saved workout.';
+}));
+</script>
+</body>
+</html>

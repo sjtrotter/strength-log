@@ -92,7 +92,7 @@ class PlansViewModelTest {
         assertNull(vm.uiState.value.you)
         advanceUntilIdle()
         assertEquals(YouSummary("235 lb", 40, "intermediate"), vm.uiState.value.you)
-        repo.setConfig(repo.configFlow.first().copy(bodyweightLb = 220, age = 41, level = ExperienceLevel.ADVANCED))
+        repo.updateLifter { it.copy(bodyweightLb = 220, age = 41, level = ExperienceLevel.ADVANCED) }
         repo.setUnit(WeightUnit.KG)
         advanceUntilIdle()
         val weight = WeightStepper.format(WeightUnit.KG.fromLb(220.0))

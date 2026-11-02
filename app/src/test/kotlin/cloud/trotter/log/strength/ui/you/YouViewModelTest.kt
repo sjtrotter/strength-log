@@ -144,12 +144,27 @@ class YouViewModelTest {
 
     @Test
     fun configChangesKeepTheSelectedRecipeAndProgram() = runVmTest {
-        repo.setConfig(repo.configFlow.first().copy(emphasis = GoalEmphasis.STRENGTH))
+        repo.setWizardAnswers(repo.wizardAnswersFlow.first())
+        repo.setPlanEmphasis(repo.selectedPlanFlow.first()!!.id, GoalEmphasis.STRENGTH)
         val vm = newViewModel()
         val programBefore = repo.programFlow.first()
         vm.setAge(50)
         advanceUntilIdle()
         assertEquals(GoalEmphasis.STRENGTH, repo.configFlow.first().emphasis)
         assertEquals(programBefore, repo.programFlow.first())
+    }
+
+    @Test
+    fun levelChangesKeepTheSelectedPlanEmphasis() = runVmTest {
+        repo.setWizardAnswers(repo.wizardAnswersFlow.first())
+        val selectedPlanId = repo.selectedPlanFlow.first()!!.id
+        repo.setPlanEmphasis(selectedPlanId, GoalEmphasis.STRENGTH)
+        val vm = newViewModel()
+
+        vm.setLevel(ExperienceLevel.ADVANCED)
+        advanceUntilIdle()
+
+        assertEquals(ExperienceLevel.ADVANCED, repo.configFlow.first().level)
+        assertEquals(GoalEmphasis.STRENGTH, repo.wizardAnswersFor(selectedPlanId).first().config.emphasis)
     }
 }

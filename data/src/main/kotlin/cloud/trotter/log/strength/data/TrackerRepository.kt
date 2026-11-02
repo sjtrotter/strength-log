@@ -237,17 +237,10 @@ open class TrackerRepository(
     // Block bodies, not expression form: DataStore's Preferences (SettingsStore's
     // setter return type) must not leak into this public surface via inference —
     // it is a :data-internal detail and consumers don't compile against DataStore.
-    suspend fun setConfig(config: LifterConfig) {
+    /** Plan recipes hold only emphasis, so lifter edits write the global lifter alone. */
+    suspend fun updateLifter(transform: (GlobalLifter) -> GlobalLifter) {
         ensurePlanSettingsMigrated()
-        val planId = selectedPlanId()
-        settings.setGlobalLifter(GlobalLifter.of(config))
-        if (planId == null) return
-        db.withTransaction {
-            val plan = planDao.plan(planId) ?: return@withTransaction
-            val answers = plan.recipeJson?.let { PlanRecipeJson.decode(it, GlobalLifter.of(config)) }
-                ?: WizardAnswers(config = GlobalLifter.of(config).toConfig())
-            planDao.updateRecipe(planId, PlanRecipeJson.encode(answers.copy(config = config)))
-        }
+        settings.updateGlobalLifter(transform)
     }
 
     open suspend fun setPlanEmphasis(planId: Long, emphasis: GoalEmphasis) {

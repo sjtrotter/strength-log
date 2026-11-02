@@ -228,6 +228,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setGlobalLifter(global: GlobalLifter) = dataStore.edit { it.writeGlobalLifter(global) }
 
+    suspend fun updateGlobalLifter(transform: (GlobalLifter) -> GlobalLifter) = dataStore.edit { prefs ->
+        prefs.writeGlobalLifter(transform(prefs.readGlobalLifter()))
+    }
+
     suspend fun setOnTodayFixupDone() {
         dataStore.edit { it[Keys.ON_TODAY_FIXUP_DONE] = true }
     }

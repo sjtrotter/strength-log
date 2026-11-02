@@ -10,7 +10,6 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -146,7 +145,7 @@ class TrackerRepositoryAuthoredPlanTest {
     @Test
     fun `create and publish an empty authored plan preserve the global lifter and existing selection`() = runTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList()))))
-        repo.setConfig(LifterConfig(bodyweightLb = 193, age = 47))
+        repo.updateLifter { it.copy(bodyweightLb = 193, age = 47) }
         val global = settings.globalLifterFlow.first()
         val selected = settings.selectedPlanIdFlow.first()
         val id = repo.createAuthoredPlan("  Physio  ", "Day A")

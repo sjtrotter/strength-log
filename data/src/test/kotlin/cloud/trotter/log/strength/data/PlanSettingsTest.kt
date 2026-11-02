@@ -216,7 +216,7 @@ class PlanSettingsTest {
         db.planDao().insertPlan(plan(1))
         writeLegacy(strengthAnswers(), "B")
 
-        repo.setConfig(strengthAnswers().config.copy(emphasis = GoalEmphasis.PHYSIQUE))
+        repo.setPlanEmphasis(1, GoalEmphasis.PHYSIQUE)
 
         assertEquals(GoalEmphasis.PHYSIQUE, repo.configFlow.first().emphasis)
         repo.runPlanSettingsFixupIfNeeded()
@@ -247,9 +247,9 @@ class PlanSettingsTest {
 
         assertEquals(GoalEmphasis.STRENGTH, observed.receive())
         startup.join()
-        // A later plan-row update makes the same live collector observe Room
-        // again after key retirement, rather than stopping at its first value.
-        repo.setConfig(strengthAnswers().config.copy(age = 41))
+        // A later lifter edit makes the same live collector emit again after
+        // key retirement, rather than stopping at its first value.
+        repo.updateLifter { it.copy(age = 41) }
         observed.receive()
         collector.cancelAndJoin()
         assertTrue(emissions.isNotEmpty())
@@ -292,13 +292,14 @@ class PlanSettingsTest {
     }
 
     @Test
-    fun `setConfig shares global lifter while updating only selected emphasis`() = runTest {
+    fun `lifter edits are shared while emphasis updates affect only the selected plan`() = runTest {
         val one = strengthAnswers()
         val two = physiqueAnswers()
         db.planDao().insertPlans(listOf(plan(1, one), plan(2, two)))
         val changed = one.config.copy(bodyweightLb = 210, age = 31, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.BALANCED)
 
-        repo.setConfig(changed)
+        repo.updateLifter { it.copy(bodyweightLb = changed.bodyweightLb, age = changed.age, level = changed.level) }
+        repo.setPlanEmphasis(repo.selectedPlanFlow.first()!!.id, changed.emphasis)
 
         assertEquals(changed, repo.configFlow.first())
         assertEquals(one.copy(config = changed), repo.wizardAnswersFlow.first())
@@ -306,6 +307,21 @@ class PlanSettingsTest {
         assertEquals(changed.copy(emphasis = GoalEmphasis.PHYSIQUE), repo.configFlow.first())
         assertEquals(PlanRecipeJson.encode(two), db.planDao().plan(2)!!.recipeJson)
         assertLegacyKeysGone()
+    }
+
+    @Test
+    fun `lifter edit preserves the latest emphasis and leaves the recipe byte identical`() = runTest {
+        db.planDao().insertPlan(plan(1, WizardAnswers()))
+        settings.setSelectedPlanId(1)
+        assertEquals(GoalEmphasis.BALANCED, repo.configFlow.first().emphasis)
+        repo.setPlanEmphasis(1, GoalEmphasis.STRENGTH)
+        val recipeBefore = db.planDao().plan(1)!!.recipeJson!!
+
+        repo.updateLifter { it.copy(bodyweightLb = 205) }
+
+        assertEquals(GoalEmphasis.STRENGTH, repo.wizardAnswersFor(1).first().config.emphasis)
+        assertEquals(205, repo.configFlow.first().bodyweightLb)
+        assertEquals(recipeBefore, db.planDao().plan(1)!!.recipeJson)
     }
 
     @Test
@@ -320,8 +336,9 @@ class PlanSettingsTest {
         assertEquals(one.copy(cardio = prefs), repo.wizardAnswersFlow.first())
         assertEquals(PlanRecipeJson.encode(two), db.planDao().plan(2)!!.recipeJson)
         settings.setSelectedPlanId(3)
-        repo.setConfig(one.config.copy(bodyweightLb = 205))
+        repo.updateLifter { it.copy(bodyweightLb = 205) }
         repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
+        repo.setPlanEmphasis(3, one.config.emphasis)
         assertEquals(one.config.copy(bodyweightLb = 205), repo.configFlow.first())
         assertEquals(prefs, answersFor(3).cardio)
         repo.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
@@ -334,7 +351,7 @@ class PlanSettingsTest {
     }
 
     @Test
-    fun `authored emphasis creates a recipe sticks and changes standard lift goals`() = runTest {
+    fun `authored emphasis sticks in a seeded recipe and changes standard lift goals`() = runTest {
         val plan = repo.createAuthoredPlan("Strength", "Day A")
         repo.publishCreatedAuthoredPlan(plan)
         val original = repo.configFlow.first()
@@ -342,7 +359,8 @@ class PlanSettingsTest {
         val entry = repo.catalogFlow.first().get("bb_back_squat")
         val before = GoalCalculator.targetFor(entry, original)
         val changed = original.copy(emphasis = GoalEmphasis.STRENGTH)
-        repo.setConfig(changed)
+        repo.setWizardAnswers(repo.wizardAnswersFlow.first())
+        repo.setPlanEmphasis(plan, changed.emphasis)
         assertEquals(changed, repo.configFlow.first())
         assertEquals(changed, repo.wizardAnswersFor(plan).first().config)
         assertEquals(changed, answersFor(plan).config)

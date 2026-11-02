@@ -388,12 +388,12 @@ class LogViewModel @Inject constructor(
 
     /** Applies the Health Connect bodyweight to the app's config (the user's
      *  explicit choice — never automatic). Updates config via the repository's
-     *  SettingsStore surface, exactly as the Setup screen does. */
+     *  SettingsStore surface, as the You screen does. */
     fun applyBodyweightPrompt() {
         viewModelScope.launch {
             val config = repo.configFlow.first()
             val data = BodyweightPrompt.evaluate(healthData.value.latestWeightLb, config.bodyweightLb) ?: return@launch
-            repo.setConfig(config.copy(bodyweightLb = BodyweightPrompt.appliedBodyweightLb(data)))
+            repo.updateLifter { it.copy(bodyweightLb = BodyweightPrompt.appliedBodyweightLb(data)) }
             savedState[KEY_BW_DISMISSED] = true
         }
     }

@@ -16,8 +16,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
-import cloud.trotter.log.strength.domain.seeding.SetSeeder
-import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -117,13 +116,10 @@ object DayScreenBuilder {
     }
 
     /** Complete unopened-main preview policy shared by Today and snapshots. */
-    fun previewMainSets(slot: ProgramSlot, cfg: LifterConfig, catalog: ExerciseCatalog): List<LoggedSet> {
-        slot.exercise.prescription?.let { return SetSeeder.seedPrescribed(slot.exercise.targetSets, it) }
-        val entry = catalog.find(slot.exercise.exerciseId)
+    fun previewMainSets(slot: ProgramSlot, cfg: LifterConfig, catalog: ExerciseCatalog): List<LoggedSet> =
+        SlotSeeds.main(slot.exercise, catalog.find(slot.exercise.exerciseId), cfg)
             // Preserve the authored count without inventing a load or prescription.
-            ?: return List(slot.exercise.targetSets) { LoggedSet(0.0, 0, SetKind.WORK, done = false) }
-        return SetSeeder.seed(slot.exercise, GoalCalculator.targetFor(entry, cfg), cfg)
-    }
+            ?: List(slot.exercise.targetSets) { LoggedSet(0.0, 0, SetKind.WORK, done = false) }
 
     /**
      * Which slots still need their ACTUAL log seeded from GOAL — every slot whose
@@ -145,21 +141,18 @@ object DayScreenBuilder {
         val writes = mutableListOf<RunSeed>()
         for (slot in slots) {
             val pe = slot.exercise
-            val mainSeed = pe.prescription?.let { SetSeeder.seedPrescribed(pe.targetSets, it) } ?: run {
-                val entry = catalog.find(pe.exerciseId) ?: return@run null
-                SetSeeder.seed(pe, GoalCalculator.targetFor(entry, cfg), cfg)
-            } ?: continue
+            val mainSeed = SlotSeeds.main(pe, catalog.find(pe.exerciseId), cfg) ?: continue
             if (slot.programExerciseId to Slot.MAIN !in existing) {
                 writes += RunSeed(slot.programExerciseId, Slot.MAIN, mainSeed)
             }
             val partner = pe.superset
             if (partner != null && slot.programExerciseId to Slot.SS !in existing) {
-                val partnerEntry = catalog.find(partner.exerciseId) ?: continue
                 val rows = existing[slot.programExerciseId to Slot.MAIN] ?: mainSeed.size
+                val partnerSeed = SlotSeeds.partner(catalog.find(partner.exerciseId), rows, cfg) ?: continue
                 writes += RunSeed(
                     slot.programExerciseId,
                     Slot.SS,
-                    SetSeeder.seedPartner(rows, GoalCalculator.targetFor(partnerEntry, cfg)),
+                    partnerSeed,
                 )
             }
         }

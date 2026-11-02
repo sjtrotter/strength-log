@@ -4,7 +4,9 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.library.TrackingType
-import cloud.trotter.log.strength.domain.standards.SetFormatter
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.records.PersonalBests
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.log.LogScreenBuilder
@@ -31,7 +33,7 @@ data class ShareCardContent(
     val footerLine: String,
 )
 
-/** One lift's row on the card: its name and its heaviest done set's value, already formatted. */
+/** One lift's row on the card: its name and its best qualifying set's value, already formatted. */
 data class ShareLiftLine(val name: String, val value: String)
 
 /**
@@ -79,38 +81,25 @@ object ShareCardContentBuilder {
     /**
      * One line per exercise, first-appearance order, preserving the same
      * grouping shape as [LogScreenBuilder.groupByExercise] but over done sets
-     * only — an exercise nothing was completed for has no "heaviest done set"
+     * only — an exercise without a qualifying set has no best
      * to show and is left off the card entirely.
      */
     private fun liftLines(doneSets: List<SessionSetEntity>, unit: WeightUnit): List<ShareLiftLine> {
         val byExercise = LinkedHashMap<String, MutableList<SessionSetEntity>>()
         for (set in doneSets) byExercise.getOrPut(set.exerciseId) { mutableListOf() }.add(set)
 
-        return byExercise.values.map { group ->
-            ShareLiftLine(group.first().exerciseName.uppercase(Locale.US), heaviestSetDisplay(group, unit))
+        return byExercise.values.mapNotNull { group ->
+            val value = bestSetDisplay(group, unit) ?: return@mapNotNull null
+            ShareLiftLine(group.first().exerciseName.uppercase(Locale.US), value)
         }
     }
 
-    /**
-     * The group's heaviest set, formatted per §2's three shapes. Tracking type
-     * is read from the *values* of the group's first set ([SetFormatter
-     * .trackingOfValues], SSOT with the legacy-history rule the Log screen
-     * already applies) rather than the exercise's current catalog entry, then
-     * every set in the group is ranked the same way — a session never mixes
-     * tracks within one exercise, and only sets of the first set's shape are
-     * ranked in case legacy data does.
-     */
-    private fun heaviestSetDisplay(group: List<SessionSetEntity>, unit: WeightUnit): String {
-        val tracking = SetFormatter.trackingOfValues(group.first().weightLb, group.first().reps, group.first().seconds)
-        val candidates = group.filter { SetFormatter.trackingOfValues(it.weightLb, it.reps, it.seconds) == tracking }
+    private fun bestSetDisplay(group: List<SessionSetEntity>, unit: WeightUnit): String? {
+        val best = PersonalBests.best(group.map {
+            LoggedSet(it.weightLb, it.reps, SetKind.valueOf(it.kind), done = true, seconds = it.seconds)
+        }) ?: return null
 
-        val best = when (tracking) {
-            TrackingType.WEIGHTED -> candidates.maxWith(compareBy({ it.weightLb }, { it.reps }))
-            TrackingType.TIMED -> candidates.maxWith(compareBy({ it.seconds }, { it.weightLb }))
-            TrackingType.REPS -> candidates.maxWith(compareBy { it.reps })
-        }
-
-        return when (tracking) {
+        return when (PersonalBests.tracking(best)) {
             TrackingType.WEIGHTED -> "${WeightStepper.format(unit.fromLb(best.weightLb))} × ${best.reps}"
             TrackingType.REPS -> "×${best.reps}"
             TrackingType.TIMED -> minutesSeconds(best.seconds)

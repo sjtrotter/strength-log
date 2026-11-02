@@ -6,7 +6,10 @@ import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.records.PersonalBests
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -75,8 +78,7 @@ object JournalBuilder {
      * One card per lift in [mains] that has been trained at least once, from the
      * flat [topSets] history (oldest first). A point is a [TrajectoryPoint.newHigh]
      * when it beats every top set before it — the first one included, since it is
-     * the all-time high the moment it lands. (The cascade ceremony uses a stricter
-     * rule: see `CascadeCeremonyBuilder`, which needs a *previous* high to beat.)
+     * the all-time high the moment it lands.
      */
     fun trajectories(
         mains: List<MainLift>,
@@ -98,10 +100,12 @@ object JournalBuilder {
         unit: WeightUnit,
         zone: ZoneId,
     ): TrajectoryCard {
-        var high = Double.NEGATIVE_INFINITY
+        var standing: LoggedSet? = null
         val points = rows.map { row ->
-            val newHigh = row.topWeightLb > high
-            if (newHigh) high = row.topWeightLb
+            val candidate = LoggedSet(row.topWeightLb, 0, SetKind.TOP, done = true)
+            // The chart marks a lift's first session even though first times are not PRs.
+            val newHigh = standing == null || PersonalBests.prKind(candidate, standing) != null
+            if (newHigh) standing = candidate
             TrajectoryPoint(unit.fromLb(row.topWeightLb).toFloat(), newHigh)
         }
         val goal = unit.fromLb(lift.goalLb).toFloat()
@@ -115,7 +119,7 @@ object JournalBuilder {
             points = points,
             goalValue = goal,
             goalLabel = "GOAL ${WeightStepper.format(unit.fromLb(lift.goalLb))}",
-            goalMet = high >= lift.goalLb,
+            goalMet = rows.maxOf { it.topWeightLb } >= lift.goalLb,
             latestLabel = WeightStepper.format(unit.fromLb(rows.last().topWeightLb)),
             caption = "${rows.size} $sessionWord · SINCE ${since.uppercase(Locale.US)}",
             axisMin = axisBound(values, goal, low = true),

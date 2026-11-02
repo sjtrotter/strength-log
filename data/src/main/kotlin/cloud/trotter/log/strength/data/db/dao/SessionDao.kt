@@ -43,6 +43,7 @@ data class PersonalRecordRow(
     val weightLb: Double,
     val reps: Int,
     val completedAt: Long,
+    val kind: String,
     val seconds: Int = 0,
 )
 
@@ -152,21 +153,18 @@ interface SessionDao {
     suspend fun lastPerformedDates(exerciseIds: List<String>): List<LastPerformedDateRow>
 
     /**
-     * Every completed set ever logged for any of [exerciseIds], heaviest weight
-     * first (ties broken by more reps, then by which was achieved earliest) —
-     * the profile "Best" chip (performance-profile.md Phase 1). One query for a
-     * whole day's worth of exercise ids, same batching shape as
-     * [lastPerformedRows]; see
-     * [cloud.trotter.log.strength.data.TrackerRepository.personalRecords]
-     * for how the flat result collapses to one row per exercise.
+     * Every done set for [exerciseIds], oldest first, for the profile "Best" chip.
+     * Ranking lives in [cloud.trotter.log.strength.domain.records.PersonalBests].
+     * One query for a whole day's exercise ids, like [lastPerformedRows]; see
+     * [cloud.trotter.log.strength.data.TrackerRepository.personalRecords] for the reduction.
      */
     @Query(
         """
-        SELECT ss.exerciseId AS exerciseId, ss.weightLb AS weightLb, ss.reps AS reps, ws.completedAt AS completedAt, ss.seconds AS seconds
+        SELECT ss.exerciseId AS exerciseId, ss.weightLb AS weightLb, ss.reps AS reps, ws.completedAt AS completedAt, ss.kind AS kind, ss.seconds AS seconds
         FROM session_set ss
         INNER JOIN workout_session ws ON ws.id = ss.sessionId
         WHERE ss.exerciseId IN (:exerciseIds) AND ss.done = 1
-        ORDER BY ss.weightLb DESC, ss.reps DESC, ss.seconds DESC, ws.completedAt ASC
+        ORDER BY ws.completedAt ASC, ss.id ASC
         """,
     )
     suspend fun personalRecordRows(exerciseIds: List<String>): List<PersonalRecordRow>

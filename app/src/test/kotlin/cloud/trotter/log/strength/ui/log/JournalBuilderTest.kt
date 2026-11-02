@@ -116,6 +116,18 @@ class JournalBuilderTest {
     }
 
     @Test
+    fun trajectory_marks_only_strict_weight_improvements_after_the_first_session() {
+        val weights = listOf(225.0, 235.0, 230.0, 235.0, 245.0)
+        val rows = weights.mapIndexed { index, weight ->
+            top("bb_back_squat", today.minusDays((weights.lastIndex - index).toLong()), weight)
+        }
+        val card = JournalBuilder.trajectories(listOf(squat), rows, WeightUnit.LB, zone).single()
+
+        assertEquals(listOf(225f, 235f, 230f, 235f, 245f), card.points.map { it.value })
+        assertEquals(listOf(true, true, false, false, true), card.points.map { it.newHigh })
+    }
+
+    @Test
     fun changed_archived_top_set_changes_the_trajectory_point() {
         val date = today.minusDays(3)
         val before = JournalBuilder.trajectories(

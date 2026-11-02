@@ -1,13 +1,14 @@
 package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.dao.PersonalRecordRow
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.records.PersonalBests
 
 /**
- * One exercise's all-time-best completed performance — the day-card "Best"
- * chip (performance-profile.md Phase 1: derived from session history, never
- * stored). [achievedAtMillis] is the session's `completedAt` the record was
- * first set at, kept for a future profile surface even though Phase 1 only
- * renders the weight/reps.
+ * One exercise's all-time best under [PersonalBests], derived from session history
+ * for the day-card "Best" chip. [achievedAtMillis] is the first session's
+ * `completedAt` that reached this performance.
  */
 data class PersonalRecord(
     val exerciseId: String,
@@ -20,19 +21,34 @@ data class PersonalRecord(
 )
 
 /**
- * Reduces [cloud.trotter.log.strength.data.db.dao.SessionDao.personalRecordRows]'
- * flat result into one [PersonalRecord] per exercise id — the first row seen
- * for an id is its record because the query already orders by heaviest weight
- * (ties broken by more reps, then by which was achieved earliest). An id with
- * no rows is simply absent (never performed). Kept pure and Android-free so
- * the reduction is unit-testable without Room, mirroring
- * [toLastPerformedByExercise].
+ * Reduces the oldest-first [cloud.trotter.log.strength.data.db.dao.SessionDao.personalRecordRows]
+ * into records in first-seen exercise order. A strictly better set replaces a record,
+ * so the record keeps its earliest date; a set of another tracking type starts it over.
+ * Exercises without a counting set are absent; unknown set kinds are skipped.
  */
 fun List<PersonalRecordRow>.toPersonalRecordsByExercise(): Map<String, PersonalRecord> {
     val result = LinkedHashMap<String, PersonalRecord>()
-    for (row in this) {
-        result.getOrPut(row.exerciseId) {
-            PersonalRecord(row.exerciseId, row.weightLb, row.reps, row.completedAt, row.seconds)
+    for ((exerciseId, rows) in groupBy { it.exerciseId }) {
+        var standing: LoggedSet? = null
+        var bestRow: PersonalRecordRow? = null
+        for (row in rows) {
+            val kind = try {
+                SetKind.valueOf(row.kind)
+            } catch (_: IllegalArgumentException) {
+                continue
+            }
+            val candidate = LoggedSet(row.weightLb, row.reps, kind, done = true, seconds = row.seconds)
+            if (!PersonalBests.counts(candidate)) continue
+            // A change of tracking type (a custom exercise retyped) starts the record over in the newer type.
+            val current = standing
+            if (current != null && PersonalBests.tracking(candidate) == PersonalBests.tracking(current) &&
+                PersonalBests.compare(candidate, current) <= 0
+            ) continue
+            standing = candidate
+            bestRow = row
+        }
+        bestRow?.let { row ->
+            result[exerciseId] = PersonalRecord(exerciseId, row.weightLb, row.reps, row.completedAt, row.seconds)
         }
     }
     return result

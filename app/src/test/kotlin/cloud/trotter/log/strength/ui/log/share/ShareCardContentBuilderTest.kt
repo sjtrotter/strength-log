@@ -79,6 +79,36 @@ class ShareCardContentBuilderTest {
     }
 
     @Test
+    fun aLiftWithOnlyDoneRampsHasNoLine() {
+        val sets = listOf(
+            weightedSet("bb_back_squat", "Barbell Back Squat", 250.0, 1).copy(kind = SetKind.RAMP.name),
+        )
+        val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
+        assertEquals(emptyList(), content.liftLines)
+    }
+
+    @Test
+    fun aHeavierRampDoesNotReplaceTheBestQualifyingSet() {
+        val sets = listOf(
+            weightedSet("bb_back_squat", "Barbell Back Squat", 250.0, 1).copy(kind = SetKind.RAMP.name),
+            weightedSet("bb_back_squat", "Barbell Back Squat", 245.0, 5).copy(kind = SetKind.TOP.name),
+        )
+        val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
+        assertEquals(listOf(ShareLiftLine("BARBELL BACK SQUAT", "245 × 5")), content.liftLines)
+    }
+
+    @Test
+    fun mixedTrackingUsesTheFirstQualifyingSet() {
+        val sets = listOf(
+            weightedSet("plank", "Plank / Side Plank", 25.0, 5).copy(kind = SetKind.RAMP.name),
+            repsSet("plank", "Plank / Side Plank", 60),
+            timedSet("plank", "Plank / Side Plank", 90),
+        )
+        val content = ShareCardContentBuilder.build(session(), sets, WeightUnit.LB, ZoneOffset.UTC)
+        assertEquals("×60", content.liftLines.single().value)
+    }
+
+    @Test
     fun weightedTieBreaksOnReps() {
         val sets = listOf(
             weightedSet("bb_bench", "Barbell Bench Press", 185.0, 5),

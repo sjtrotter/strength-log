@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.DayTracks
@@ -24,7 +25,8 @@ suspend fun TrackerRepository.daySeeds(
     val dayTracks = tracks ?: dayTracksFlow(planId, dayId).first()
     val existing = dayTracks.tracks
         .associate { (it.programExerciseId to it.slot) to it.sets.size }
-    return DayScreenBuilder.seedPlan(slots.forRun(dayTracks.droppedPartners, dayTracks.skippedLifts), existing, wizardAnswersFor(planId).first().config, catalogFlow.first())
+    return DaySeeds.plan(slots.forRun(dayTracks.droppedPartners, dayTracks.skippedLifts), existing, wizardAnswersFor(planId).first().config, catalogFlow.first())
+        .map { (key, sets) -> RunSeed(key.first, key.second, sets) }
 }
 
 /** History follows performed identities, including independently swapped partners. */

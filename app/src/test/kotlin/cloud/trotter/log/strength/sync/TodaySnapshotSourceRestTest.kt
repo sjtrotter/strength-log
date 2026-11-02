@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.DaySeeds
+import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -26,7 +28,6 @@ import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
-import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.widget.TodayWidgetContent
 import cloud.trotter.log.strength.widget.todayWidgetContent
 import java.io.File
@@ -540,11 +541,11 @@ class TodaySnapshotSourceRestTest {
         repo.updateSets(runId, "A", slot, Slot.MAIN, List(3) { index -> LoggedSet(135.0, 5, SetKind.WORK, index < 2) })
         val alternate = repo.catalogFlow.first().substitutionsFor("bb_bench").first().id
         repo.swapExerciseById("A", slot, alternate)
-        val seeds = DayScreenBuilder.seedPlan(
+        val seeds = DaySeeds.plan(
             repo.slotsFor(planId, "A").first(), emptyMap(),
             repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first(),
         )
-        repo.seedRunTracksIfMissing(runId, seeds)
+        repo.seedRunTracksIfMissing(runId, seeds.map { (key, sets) -> RunSeed(key.first, key.second, sets) })
         val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
         val snapshot = source.snapshots.publishableSnapshots().first()
         assertEquals(2, snapshot.retiredRoundsDone)

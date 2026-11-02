@@ -1,22 +1,17 @@
 package cloud.trotter.log.strength.ui.day
 
-import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
-import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
-import cloud.trotter.log.strength.domain.seeding.SlotSeeds
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -28,10 +23,9 @@ import java.util.Locale
 
 /**
  * The pure §8.2 decision logic behind the day screen: set-row labels, the
- * workout selection and summary formats, the seeding-once
- * plan, and per-exercise focus. Kept free of Android and coroutines so
- * every behavior in the contract is unit-testable on the JVM; [DayViewModel] only
- * wires these to flows and repository writes.
+ * workout selection and summary formats, and per-exercise focus. Kept free of
+ * Android and coroutines so every behavior in the contract is unit-testable on
+ * the JVM; [DayViewModel] only wires these to flows and repository writes.
  *
  * All weights arrive canonical (lb) and are converted to [unit] for display here
  * (SSOT via [WeightUnit]/[WeightStepper]); nothing downstream does lb/kg math.
@@ -113,70 +107,6 @@ object DayScreenBuilder {
         if (firstUndone == null && exercises.all { it.rows.isEmpty() }) return 0
         val fallback = firstUndone ?: exercises.lastOrNull()
         return fallback?.let { pageKeys.indexOf("exercise:${it.programExerciseId}").coerceAtLeast(0) } ?: 0
-    }
-
-    /** Complete unopened-main preview policy shared by Today and snapshots. */
-    fun previewMainSets(slot: ProgramSlot, cfg: LifterConfig, catalog: ExerciseCatalog): List<LoggedSet> =
-        SlotSeeds.main(slot.exercise, catalog.find(slot.exercise.exerciseId), cfg)
-            // Preserve the authored count without inventing a load or prescription.
-            ?: List(slot.exercise.targetSets) { LoggedSet(0.0, 0, SetKind.WORK, done = false) }
-
-    /**
-     * Which slots still need their ACTUAL log seeded from GOAL — every slot whose
-     * (id, track) pair isn't already a key of [existing]. "Seeded once, then
-     * persists": a slot with a stored log is never reseeded, so a changed GOAL
-     * never rewrites a lifter's living record (spec principle 2).
-     *
-     * [existing] maps each stored track to its current row count, which the
-     * partner path needs: a partner added to a lived-in slot must seed
-     * row-aligned to the LIVE main track — the lifter may have added EXTRA sets
-     * to it — not to the freshly computed seed.
-     */
-    fun seedPlan(
-        slots: List<ProgramSlot>,
-        existing: Map<Pair<Long, String>, Int>,
-        cfg: LifterConfig,
-        catalog: ExerciseCatalog,
-    ): List<RunSeed> {
-        val writes = mutableListOf<RunSeed>()
-        for (slot in slots) {
-            val pe = slot.exercise
-            val mainSeed = SlotSeeds.main(pe, catalog.find(pe.exerciseId), cfg) ?: continue
-            if (slot.programExerciseId to Slot.MAIN !in existing) {
-                writes += RunSeed(slot.programExerciseId, Slot.MAIN, mainSeed)
-            }
-            val partner = pe.superset
-            if (partner != null && slot.programExerciseId to Slot.SS !in existing) {
-                val rows = existing[slot.programExerciseId to Slot.MAIN] ?: mainSeed.size
-                val partnerSeed = SlotSeeds.partner(catalog.find(partner.exerciseId), rows, cfg) ?: continue
-                writes += RunSeed(
-                    slot.programExerciseId,
-                    Slot.SS,
-                    partnerSeed,
-                )
-            }
-        }
-        return writes
-    }
-
-    fun swapSeed(
-        slot: ProgramSlot,
-        trackSlot: String,
-        newExerciseId: String,
-        existing: Map<Pair<Long, String>, Int>,
-        cfg: LifterConfig,
-        catalog: ExerciseCatalog,
-    ): RunSeed? {
-        val exercise = when (trackSlot) {
-            Slot.MAIN -> slot.exercise.copy(
-                exerciseId = newExerciseId,
-                prescription = slot.exercise.prescription.takeIf { newExerciseId == slot.exercise.exerciseId },
-            )
-            Slot.SS -> slot.exercise.copy(superset = requireNotNull(slot.exercise.superset).copy(exerciseId = newExerciseId))
-            else -> return null
-        }
-        return seedPlan(listOf(slot.copy(exercise = exercise)), existing - (slot.programExerciseId to trackSlot), cfg, catalog)
-            .firstOrNull { it.slot == trackSlot }
     }
 
     /** Per-row kind labels: R1…, TOP, B/O, or a plain 1-based number for WORK/EXTRA. */

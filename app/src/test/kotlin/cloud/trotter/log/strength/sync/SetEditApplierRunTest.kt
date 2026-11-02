@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.OpenRun
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.RunSeed
@@ -19,7 +20,6 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
-import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -111,10 +111,10 @@ class SetEditApplierRunTest {
     private suspend fun squatId(planId: Long): Long = repo.slotsFor(planId, "A").first()
         .first { it.exercise.exerciseId == "bb_back_squat" }.programExerciseId
 
-    private suspend fun seeds(planId: Long): List<RunSeed> = DayScreenBuilder.seedPlan(
+    private suspend fun seeds(planId: Long): List<RunSeed> = DaySeeds.plan(
         repo.slotsFor(planId, "A").first(), emptyMap(),
         repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first(),
-    )
+    ).map { (key, sets) -> RunSeed(key.first, key.second, sets) }
 
     private suspend fun phoneStart(planId: Long): String {
         val seeds = seeds(planId)
@@ -447,11 +447,11 @@ class SetEditApplierRunTest {
         val plan = authored()
         val id = squatId(plan)
         val runId = phoneStart(plan)
-        val seed = DayScreenBuilder.swapSeed(repo.slotsFor(plan, "A").first().first(), Slot.MAIN,
+        val seed = DaySeeds.swap(repo.slotsFor(plan, "A").first().first(), Slot.MAIN,
             "hack_squat", emptyMap(), repo.wizardAnswersFor(plan).first().config, repo.catalogFlow.first())!!
         var afterPhoneSwap: OpenRun? = null
         val markers = RecordingMarkers {
-            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, seed.sets)))
+            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, seed)))
             afterPhoneSwap = repo.openRunFlow.first()
         }
         markers.markApplied("A|$id|swap", 200)
@@ -498,11 +498,11 @@ class SetEditApplierRunTest {
         val plan = authored()
         val id = squatId(plan)
         val runId = phoneStart(plan)
-        val seed = DayScreenBuilder.swapSeed(repo.slotsFor(plan, "A").first().first(), Slot.MAIN,
+        val seed = DaySeeds.swap(repo.slotsFor(plan, "A").first().first(), Slot.MAIN,
             "hack_squat", emptyMap(), repo.wizardAnswersFor(plan).first().config, repo.catalogFlow.first())!!
         var afterPhoneSwap: OpenRun? = null
         val markers = RecordingMarkers {
-            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, seed.sets)))
+            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, seed)))
             afterPhoneSwap = repo.openRunFlow.first()
         }
         markers.markApplied("A|$id|swap", 200)

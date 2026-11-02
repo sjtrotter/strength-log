@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.isSlotSkipped
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.DayTracks
@@ -16,6 +17,7 @@ import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.RunStartResult
+import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
@@ -1357,8 +1359,9 @@ class DayViewModel @Inject constructor(
                 it.programExerciseId == offer.programExerciseId && it.slot == offer.slot && it.exerciseId == offer.exerciseId
             }) return@mutate
             val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
-            val seed = DayScreenBuilder.swapSeed(slot, offer.slot, offer.previousExerciseId, existing,
+            val seed = DaySeeds.swap(slot, offer.slot, offer.previousExerciseId, existing,
                 repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first())
+                ?.let { RunSeed(slot.programExerciseId, offer.slot, it) }
             repo.swapInRun(offer.runId, offer.programExerciseId, offer.slot, offer.previousExerciseId, seed,
                 expectedExerciseId = offer.exerciseId)
             dismissSwapUndo()
@@ -1757,7 +1760,8 @@ class DayViewModel @Inject constructor(
             val existing = tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
             val cfg = repo.wizardAnswersFor(planId).first().config
             val catalog = repo.catalogFlow.first()
-            val seed = DayScreenBuilder.swapSeed(slot, half, newExerciseId, existing, cfg, catalog)
+            val seed = DaySeeds.swap(slot, half, newExerciseId, existing, cfg, catalog)
+                ?.let { RunSeed(slot.programExerciseId, half, it) }
             val swapped = repo.swapInRun(runId, slot.programExerciseId, half, newExerciseId, seed)
             if (swapped) {
                 clearLogUndo()

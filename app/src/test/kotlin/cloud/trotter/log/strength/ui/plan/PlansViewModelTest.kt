@@ -74,7 +74,7 @@ class PlansViewModelTest {
     }
 
     private fun viewModel(handle: SavedStateHandle = SavedStateHandle()): PlansViewModel =
-        PlansViewModel(repo, handle, context).also { vm ->
+        PlansViewModel(repo, handle, context, settings = settings).also { vm ->
             viewModels += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -93,7 +93,7 @@ class PlansViewModelTest {
         advanceUntilIdle()
         assertEquals(YouSummary("235 lb", 40, "intermediate"), vm.uiState.value.you)
         repo.updateLifter { it.copy(bodyweightLb = 220, age = 41, level = ExperienceLevel.ADVANCED) }
-        repo.setUnit(WeightUnit.KG)
+        settings.setUnit(WeightUnit.KG)
         advanceUntilIdle()
         val weight = WeightStepper.format(WeightUnit.KG.fromLb(220.0))
         assertEquals(YouSummary("$weight kg", 41, "advanced"), vm.uiState.value.you)

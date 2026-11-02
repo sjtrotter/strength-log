@@ -12,7 +12,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import dagger.hilt.android.AndroidEntryPoint
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.ui.AppNavHost
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.rest.PhoneRestActions
@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     @Inject
-    lateinit var repository: TrackerRepository
+    lateinit var settings: SettingsStore
 
     @Inject lateinit var phoneRestRuntime: PhoneRestRuntime
 
@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val themePreference by repository.themePreferenceFlow.collectAsStateWithLifecycle(
+            val themePreference by settings.themePreferenceFlow.collectAsStateWithLifecycle(
                 initialValue = cloud.trotter.log.strength.domain.theme.ThemePreference.SYSTEM,
             )
             AppTheme(preference = themePreference) {
@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
         // applies while this window is visible.
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                repository.keepScreenOnFlow.collect { on ->
+                settings.keepScreenOnFlow.collect { on ->
                     if (on) {
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     } else {
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         if (!isChangingConfigurations) {
             lifecycleScope.launch {
-                PhoneRestActions.locked { phoneRestRuntime.setForeground(false, repository.phoneRestFlow.first()) }
+                PhoneRestActions.locked { phoneRestRuntime.setForeground(false, settings.phoneRestFlow.first()) }
             }
         }
     }
@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         lifecycleScope.launch {
             PhoneRestActions.locked {
-                val rest = repository.phoneRestFlow.first()
+                val rest = settings.phoneRestFlow.first()
                 phoneRestRuntime.setForeground(true, rest)
                 rest?.let(phoneRestRuntime::arm)
             }

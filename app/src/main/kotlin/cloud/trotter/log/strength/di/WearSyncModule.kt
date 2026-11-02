@@ -12,6 +12,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.sync.SetEditApplier
 import cloud.trotter.log.strength.sync.CardioDeltaApplier
 import cloud.trotter.log.strength.sync.CardioAckLog
@@ -84,7 +85,8 @@ object WearSyncModule {
         @CivilDay today: Flow<LocalDate>,
         ackLog: CardioAckLog,
         editAckLog: EditAckLog,
-    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog)
+        settings: SettingsStore,
+    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog, settings)
 
     @Provides
     @Singleton

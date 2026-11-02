@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -38,6 +39,7 @@ import kotlinx.coroutines.launch
 class CustomExerciseViewModel @Inject constructor(
     private val repo: TrackerRepository,
     private val savedState: SavedStateHandle,
+    private val settings: SettingsStore,
 ) : ViewModel() {
 
     private object Keys {
@@ -106,7 +108,7 @@ class CustomExerciseViewModel @Inject constructor(
             )
         }
     private val displayGroup: Flow<DisplayGroup> =
-        combine(equipment, repo.unitFlow) { equip, unit ->
+        combine(equipment, settings.unitFlow) { equip, unit ->
             DisplayGroup(equip.mapNotNull { name -> Equipment.entries.firstOrNull { it.name == name } }.toSet(), unit)
         }
 
@@ -152,7 +154,7 @@ class CustomExerciseViewModel @Inject constructor(
      *  lb before storage, mirroring [cloud.trotter.log.strength.ui.day.DayViewModel.changeWeight]. */
     fun setWeightDisplay(newDisplayWeight: Double) {
         viewModelScope.launch {
-            val unit = repo.unitFlow.first()
+            val unit = settings.unitFlow.first()
             savedState[Keys.WEIGHT_LB] = unit.toLb(newDisplayWeight)
         }
     }
@@ -168,7 +170,7 @@ class CustomExerciseViewModel @Inject constructor(
     /** TIMED's optional added load — same unit-aware storage as [setWeightDisplay]. */
     fun setAddedWeightDisplay(newDisplayWeight: Double) {
         viewModelScope.launch {
-            val unit = repo.unitFlow.first()
+            val unit = settings.unitFlow.first()
             savedState[Keys.ADDED_WEIGHT_LB] = unit.toLb(newDisplayWeight)
         }
     }

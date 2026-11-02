@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.ProgramSlot
@@ -113,13 +114,6 @@ object DayScreenBuilder {
         return fallback?.let { pageKeys.indexOf("exercise:${it.programExerciseId}").coerceAtLeast(0) } ?: 0
     }
 
-    /** One log write emitted by [seedPlan]. */
-    data class SeedWrite(
-        val programExerciseId: Long,
-        val slot: String,
-        val sets: List<LoggedSet>,
-    )
-
     /** Complete unopened-main preview policy shared by Today and snapshots. */
     fun previewMainSets(slot: ProgramSlot, cfg: LifterConfig, catalog: ExerciseCatalog): List<LoggedSet> {
         slot.exercise.prescription?.let { return SetSeeder.seedPrescribed(slot.exercise.targetSets, it) }
@@ -145,8 +139,8 @@ object DayScreenBuilder {
         existing: Map<Pair<Long, String>, Int>,
         cfg: LifterConfig,
         catalog: ExerciseCatalog,
-    ): List<SeedWrite> {
-        val writes = mutableListOf<SeedWrite>()
+    ): List<RunSeed> {
+        val writes = mutableListOf<RunSeed>()
         for (slot in slots) {
             val pe = slot.exercise
             val mainSeed = pe.prescription?.let { SetSeeder.seedPrescribed(pe.targetSets, it) } ?: run {
@@ -154,13 +148,13 @@ object DayScreenBuilder {
                 SetSeeder.seed(pe, GoalCalculator.targetFor(entry, cfg), cfg)
             } ?: continue
             if (slot.programExerciseId to Slot.MAIN !in existing) {
-                writes += SeedWrite(slot.programExerciseId, Slot.MAIN, mainSeed)
+                writes += RunSeed(slot.programExerciseId, Slot.MAIN, mainSeed)
             }
             val partner = pe.superset
             if (partner != null && slot.programExerciseId to Slot.SS !in existing) {
                 val partnerEntry = catalog.find(partner.exerciseId) ?: continue
                 val rows = existing[slot.programExerciseId to Slot.MAIN] ?: mainSeed.size
-                writes += SeedWrite(
+                writes += RunSeed(
                     slot.programExerciseId,
                     Slot.SS,
                     SetSeeder.seedPartner(rows, GoalCalculator.targetFor(partnerEntry, cfg)),
@@ -177,7 +171,7 @@ object DayScreenBuilder {
         existing: Map<Pair<Long, String>, Int>,
         cfg: LifterConfig,
         catalog: ExerciseCatalog,
-    ): SeedWrite? {
+    ): RunSeed? {
         val exercise = when (trackSlot) {
             Slot.MAIN -> slot.exercise.copy(
                 exerciseId = newExerciseId,

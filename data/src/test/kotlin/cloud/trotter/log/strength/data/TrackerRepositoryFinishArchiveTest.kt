@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.File
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -174,12 +175,12 @@ class TrackerRepositoryFinishArchiveTest {
     fun finishAcrossMidnightKeepsTheTickAndItsTiming() = runTest {
         val ids = seedTracks()
         clock.instant = Instant.parse("2026-07-06T23:40:00Z")
-        assertEquals("2026-07-06", repo.currentDate().toString())
+        assertEquals("2026-07-06", LocalDate.now(clock).toString())
         tickSets(ids.first(), setOf(0))
         val ticked = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.programExerciseId == ids.first() }.sets.first()
 
         clock.instant = Instant.parse("2026-07-07T00:20:00Z")
-        assertEquals("2026-07-07", repo.currentDate().toString())
+        assertEquals("2026-07-07", LocalDate.now(clock).toString())
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
         val archived = repo.sessionSets(sessionId).single { it.exerciseId == "bb_back_squat" && it.setIndex == 0 }

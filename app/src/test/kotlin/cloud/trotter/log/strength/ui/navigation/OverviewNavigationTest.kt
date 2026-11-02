@@ -85,6 +85,7 @@ class OverviewNavigationTest {
     @get:Rule val rule = createComposeRule()
     private lateinit var context: Context
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private lateinit var nav: NavHostController
@@ -97,7 +98,7 @@ class OverviewNavigationTest {
         context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java).allowMainThreadQueries().build()
         storeScope = CoroutineScope(Dispatchers.IO + Job())
-        val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
+        settings = SettingsStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("overview-nav", ".preferences_pb")
         })
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
@@ -134,7 +135,7 @@ class OverviewNavigationTest {
                         val vm = remember { keep(TodayViewModel(repo, object : CivilTimeSource {
                             override val civilTime = flowOf(CivilTime.now())
                             override fun refresh() = Unit
-                        }, SavedStateHandle())) }
+                        }, SavedStateHandle(), settings = settings)) }
                         TodayRoute(
                             onStart = { nav.navigate(Routes.day(it.dayId, it.planId)) { launchSingleTop = true } },
                             onOpenCardio = { nav.navigate(Routes.day(it.dayId, it.planId)) },
@@ -145,7 +146,7 @@ class OverviewNavigationTest {
                     }
                     composable(Routes.LOG) { Text("History contents") }
                     composable(Routes.PLANS) {
-                        val vm = remember { keep(PlansViewModel(repo, SavedStateHandle(), context)) }
+                        val vm = remember { keep(PlansViewModel(repo, SavedStateHandle(), context, settings = settings)) }
                         val state by vm.uiState.collectAsStateWithLifecycle()
                         PlansScreen(state, PlansActions(
                             onNewPlan = {}, onSelect = vm::select, onMenu = vm::openMenu,
@@ -157,7 +158,7 @@ class OverviewNavigationTest {
                     composable(Routes.PLAN_IN_PLANS, arguments = listOf(navArgument(Routes.PLAN_ID_ARG) { type = NavType.StringType })) { planEntry ->
                         val vm = remember(planEntry) { keep(PlanViewModel(repo, SavedStateHandle(mapOf(
                             Routes.PLAN_ID_ARG to planEntry.arguments?.getString(Routes.PLAN_ID_ARG),
-                        )), context)) }
+                        )), context, settings = settings)) }
                         val state by vm.uiState.collectAsStateWithLifecycle()
                         PlanScreen(state, PlanActions(
                             onOpenDay = { nav.navigate(Routes.preview(it)) }, onOpenPlans = { nav.popBackStack() }, onSetUpProgram = {},
@@ -170,7 +171,7 @@ class OverviewNavigationTest {
                         val vm = remember(previewEntry) { keep(PreviewViewModel(repo, SavedStateHandle(mapOf(
                             Routes.PLAN_ID_ARG to previewEntry.arguments?.getString(Routes.PLAN_ID_ARG),
                             Routes.DAY_ID_ARG to previewEntry.arguments?.getString(Routes.DAY_ID_ARG),
-                        )))) }
+                        )), settings = settings)) }
                         PreviewRoute(onBack = { nav.popBackStack() }, onOpenDay = { selection, edit ->
                             nav.navigate(Routes.day(selection.dayId, selection.planId, edit))
                         }, viewModel = vm)
@@ -181,12 +182,12 @@ class OverviewNavigationTest {
                             navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
                             navArgument(Routes.DAY_EDITOR_ARG) { type = NavType.BoolType; defaultValue = route == Routes.DAY_EDIT_IN_PLAN },
                         )) { dayEntry ->
-                            dayVm = remember(dayEntry) { keep(DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo),
+                            dayVm = remember(dayEntry) { keep(DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings),
                                 SavedStateHandle(mapOf(
                                     Routes.DAY_PLAN_ID_ARG to dayEntry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
                                     Routes.DAY_ID_ARG to dayEntry.arguments?.getString(Routes.DAY_ID_ARG),
                                     Routes.DAY_EDITOR_ARG to dayEntry.arguments?.getBoolean(Routes.DAY_EDITOR_ARG),
-                                )), FixedCardioClock(), InertCardioAlarm)) }
+                                )), FixedCardioClock(), InertCardioAlarm, settings = settings)) }
                             DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = { nav.finishWorkout() },
                                 onBack = { nav.popBackStack() },
                                 viewModel = dayVm)

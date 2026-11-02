@@ -73,6 +73,7 @@ class PersistenceProcessDeathTest {
 
     private lateinit var db: StrengthDatabase
     private lateinit var dataStoreScope: CoroutineScope
+    private lateinit var settings: SettingsStore
     private lateinit var repository: TrackerRepository
 
     @Before
@@ -109,12 +110,13 @@ class PersistenceProcessDeathTest {
             scope = dataStoreScope,
             produceFile = { context().preferencesDataStoreFile(prefsName) },
         )
+        settings = SettingsStore(dataStore)
         repository = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
     }
 
@@ -140,8 +142,8 @@ class PersistenceProcessDeathTest {
     fun every_mutation_survives_closing_and_reopening_the_database_and_datastore() = runTest {
         // --- settings: wizard answers, completion flag, display unit ----------
         repository.setWizardAnswers(wizardAnswers)
-        repository.setWizardComplete(true)
-        repository.setUnit(WeightUnit.KG)
+        settings.setWizardComplete(true)
+        settings.setUnit(WeightUnit.KG)
 
         // --- a user-created exercise ------------------------------------------
         val customId = repository.addCustomExercise(
@@ -239,8 +241,8 @@ class PersistenceProcessDeathTest {
         // Settings: rotation pointer, wizard state, unit, custom exercise.
         assertEquals("B", repository.suggestedDayFlow.first()) // advanced past A
         assertEquals(wizardAnswers, repository.wizardAnswersFlow.first())
-        assertTrue(repository.wizardCompleteFlow.first())
-        assertEquals(WeightUnit.KG, repository.unitFlow.first())
+        assertTrue(settings.wizardCompleteFlow.first())
+        assertEquals(WeightUnit.KG, settings.unitFlow.first())
         val customEntry = repository.catalogFlow.first().get(customId)
         assertEquals("Cable Hack Squat", customEntry.name)
         assertEquals(GoalSource.Flat(80.0), customEntry.goal)

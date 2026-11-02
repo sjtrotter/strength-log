@@ -57,6 +57,7 @@ import org.robolectric.annotation.Config
 class DayViewModelTimedRepExecutionTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var share: ShareCardService
     private lateinit var storeScope: CoroutineScope
@@ -75,14 +76,15 @@ class DayViewModelTimedRepExecutionTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("timed-rep-vm", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
-        share = ShareCardService(context, repo)
+        share = ShareCardService(context, repo, settings = settings)
     }
 
     @After
@@ -97,6 +99,7 @@ class DayViewModelTimedRepExecutionTest {
 
     private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
         repo, SessionPublisher.NoOp, share, handle, clock, alarm, rest,
+        settings = settings,
     ).also { vms += it }
 
     private suspend fun prepare() {
@@ -147,7 +150,7 @@ class DayViewModelTimedRepExecutionTest {
         prepare()
         val id = repo.daySlotsFlow("A").first().single().programExerciseId
         repo.setSupersetPartner("A", id, "rope_pushdown")
-        repo.setPhoneRestTimerEnabled(true)
+        settings.setPhoneRestTimerEnabled(true)
         val vm = readyVm()
         vm.start()
         runCurrent()
@@ -162,7 +165,7 @@ class DayViewModelTimedRepExecutionTest {
         assertFalse(half.rows[0].partner!!.done)
         assertEquals(0, half.focusIndex)
         assertNull(vm.uiState.value.timedRep)
-        assertNull(repo.phoneRestFlow.first())
+        assertNull(settings.phoneRestFlow.first())
         assertTrue(rest.armed.isEmpty())
         vm.toggleDone(id, 0, true, Slot.SS)
         runCurrent()
@@ -246,7 +249,7 @@ class DayViewModelTimedRepExecutionTest {
         assertFalse(vm.uiState.value.executionKeepsScreenOn)
         assertEquals(seeded, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first())
         assertNull(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first())
-        assertNull(repo.phoneRestFlow.first())
+        assertNull(settings.phoneRestFlow.first())
         assertNull(alarm.deadline)
         assertEquals(0, alarm.buzzes)
     }
@@ -429,7 +432,7 @@ class DayViewModelTimedRepExecutionTest {
     @Test
     fun logCountUsesRoundTickAndStartsUsualRestWithNoLoggedSeconds() = test {
         val vm = awaitingVm()
-        repo.setPhoneRestTimerEnabled(true)
+        settings.setPhoneRestTimerEnabled(true)
         vm.openTimedRepCount()
         vm.changeTimedRepDraft("38")
         vm.logTimedRepCount()
@@ -444,7 +447,7 @@ class DayViewModelTimedRepExecutionTest {
         assertNull(vm.uiState.value.timedRep)
         assertNull(vm.uiState.value.openSheet)
         assertTrue(repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.selectedPlanIdFlow.first()!! }?.startedAt }.first() != null)
-        assertTrue(repo.phoneRestFlow.first() != null)
+        assertTrue(settings.phoneRestFlow.first() != null)
         assertEquals(1, rest.armed.size)
     }
 

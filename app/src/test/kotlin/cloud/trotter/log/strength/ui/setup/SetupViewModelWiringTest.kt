@@ -87,7 +87,7 @@ class SetupViewModelWiringTest {
     }
 
     private fun newViewModel(): SetupViewModel =
-        SetupViewModel(repo).also { vm ->
+        SetupViewModel(settings).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -99,9 +99,9 @@ class SetupViewModelWiringTest {
         assertEquals(false, vm.uiState.value.keepScreenOn)
         vm.setKeepScreenOn(true)
         advanceUntilIdle()
-        assertEquals(true, repo.keepScreenOnFlow.first())
+        assertEquals(true, settings.keepScreenOnFlow.first())
         assertEquals(true, vm.uiState.value.keepScreenOn)
-        repo.setKeepScreenOn(false)
+        settings.setKeepScreenOn(false)
         advanceUntilIdle()
         assertEquals(false, vm.uiState.value.keepScreenOn)
     }
@@ -113,8 +113,8 @@ class SetupViewModelWiringTest {
         vm.setUnit(WeightUnit.KG)
         vm.setThemePreference(ThemePreference.LIGHT)
         advanceUntilIdle()
-        assertEquals(WeightUnit.KG, repo.unitFlow.first())
-        assertEquals(ThemePreference.LIGHT, repo.themePreferenceFlow.first())
+        assertEquals(WeightUnit.KG, settings.unitFlow.first())
+        assertEquals(ThemePreference.LIGHT, settings.themePreferenceFlow.first())
     }
 
     // --- rest-timer setters (watch W2c) ---------------------------------------
@@ -125,14 +125,14 @@ class SetupViewModelWiringTest {
         val runtime = object : RestRuntime by NoOpRestRuntime {
             override fun cancel() { cancellations++ }
         }
-        val vm = SetupViewModel(repo, runtime).also { vms += it }
+        val vm = SetupViewModel(settings, runtime).also { vms += it }
         vm.setPhoneRestTimerEnabled(false)
         advanceUntilIdle()
-        assertEquals(false, repo.phoneRestTimerEnabledFlow.first())
+        assertEquals(false, settings.phoneRestTimerEnabledFlow.first())
         assertEquals(1, cancellations)
         vm.setPhoneRestTimerEnabled(true)
         advanceUntilIdle()
-        assertEquals(true, repo.phoneRestTimerEnabledFlow.first())
+        assertEquals(true, settings.phoneRestTimerEnabledFlow.first())
         assertEquals(1, cancellations)
     }
 
@@ -143,11 +143,11 @@ class SetupViewModelWiringTest {
 
         vm.setRestTimerEnabled(false)
         advanceUntilIdle()
-        assertEquals(false, repo.restSettingsFlow.first().enabled)
+        assertEquals(false, settings.restSettingsFlow.first().enabled)
 
         vm.setRestTimerEnabled(true)
         advanceUntilIdle()
-        assertEquals(true, repo.restSettingsFlow.first().enabled)
+        assertEquals(true, settings.restSettingsFlow.first().enabled)
     }
 
     @Test
@@ -158,7 +158,7 @@ class SetupViewModelWiringTest {
         vm.setRestOverride(RestCategory.TOP, 210)
         advanceUntilIdle()
 
-        assertEquals(210, repo.restSettingsFlow.first().overrides[RestCategory.TOP])
+        assertEquals(210, settings.restSettingsFlow.first().overrides[RestCategory.TOP])
     }
 
     @Test
@@ -169,7 +169,7 @@ class SetupViewModelWiringTest {
         vm.setRestOverride(RestCategory.LIGHT, RestPolicy.MAX_REST_SECONDS + 100)
         advanceUntilIdle()
 
-        assertEquals(RestPolicy.MAX_REST_SECONDS, repo.restSettingsFlow.first().overrides[RestCategory.LIGHT])
+        assertEquals(RestPolicy.MAX_REST_SECONDS, settings.restSettingsFlow.first().overrides[RestCategory.LIGHT])
     }
 
     @Test
@@ -185,8 +185,8 @@ class SetupViewModelWiringTest {
         vm.clearRestOverrides()
         advanceUntilIdle()
 
-        val settings = repo.restSettingsFlow.first()
-        assertEquals(true, settings.overrides.isEmpty())
-        assertEquals(false, settings.enabled)
+        val restSettings = settings.restSettingsFlow.first()
+        assertEquals(true, restSettings.overrides.isEmpty())
+        assertEquals(false, restSettings.enabled)
     }
 }

@@ -133,10 +133,6 @@ class DataLayerWatchClient(
         sendSwapMessage(stamped)
     }
 
-    override fun sendCardio(delta: CardioDelta) = sendCardio(delta) {}
-
-    override fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit) = sendCardio(delta, onQueued) {}
-
     override fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit, onFailure: () -> Unit) =
         launchSend("sending cardio") {
             val stamped = try {

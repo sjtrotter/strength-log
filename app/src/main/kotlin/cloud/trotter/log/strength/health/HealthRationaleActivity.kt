@@ -21,7 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cloud.trotter.log.strength.R
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.theme.Background
@@ -44,12 +44,12 @@ import javax.inject.Inject
 class HealthRationaleActivity : ComponentActivity() {
 
     @Inject
-    lateinit var repository: TrackerRepository
+    lateinit var settings: SettingsStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val themePreference by repository.themePreferenceFlow.collectAsStateWithLifecycle(
+            val themePreference by settings.themePreferenceFlow.collectAsStateWithLifecycle(
                 initialValue = ThemePreference.SYSTEM,
             )
             AppTheme(preference = themePreference) { RationaleScreen() }

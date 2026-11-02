@@ -63,7 +63,8 @@ class FakeWatchClient : WatchTrackerClient {
         }
     }
 
-    override fun sendCardio(delta: CardioDelta) {
+    override fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit, onFailure: () -> Unit) {
+        onQueued(delta.stamp)
         state.update { snapshot ->
             snapshot.copy(
                 revision = snapshot.revision + 1,

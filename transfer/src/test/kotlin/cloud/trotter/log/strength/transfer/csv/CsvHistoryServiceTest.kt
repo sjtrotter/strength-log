@@ -50,6 +50,7 @@ import org.robolectric.annotation.Config
 class CsvHistoryServiceTest {
 
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var service: CsvHistoryService
     private lateinit var storeScope: CoroutineScope
@@ -64,12 +65,13 @@ class CsvHistoryServiceTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("csv-service-settings", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
         service = CsvHistoryService(repo)
     }
@@ -247,7 +249,7 @@ class CsvHistoryServiceTest {
 
     @Test
     fun `kg weights round-trip export to import to export byte-identical`() = runTest {
-        repo.setUnit(WeightUnit.KG)
+        settings.setUnit(WeightUnit.KG)
         // Canonical storage is lb; these are exactly toLb(100 / 102.5 / 42.5 kg).
         val kgValues = listOf(100.0, 102.5, 42.5)
         val sets = kgValues.mapIndexed { index, kg ->
@@ -279,7 +281,7 @@ class CsvHistoryServiceTest {
         val freshRepo = TrackerRepository(freshDb, freshDb.programDao(), freshDb.sessionDao(), freshDb.customExerciseDao(), SettingsStore(freshStore))
         val freshService = CsvHistoryService(freshRepo)
         try {
-            freshRepo.setUnit(WeightUnit.KG)
+            SettingsStore(freshStore).setUnit(WeightUnit.KG)
             freshService.commit(freshService.preview(ByteArrayInputStream(csvA.toByteArray())))
             val outB = ByteArrayOutputStream()
             freshService.exportTo(outB)

@@ -36,7 +36,7 @@ import org.junit.runner.RunWith
 class ImportedHistoryBackupTest : BackupTestHarness() {
 
     private suspend fun seedOneLoggedSession() {
-        repository.setUnit(WeightUnit.LB)
+        settings.setUnit(WeightUnit.LB)
         val day = ProgramDay(
             id = "A",
             title = "Day A",

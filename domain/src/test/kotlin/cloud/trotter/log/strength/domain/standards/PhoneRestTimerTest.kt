@@ -23,8 +23,4 @@ class PhoneRestTimerTest {
         assertNull(PhoneRestTimer.adjust(rest, 1_000L, -15))
         assertEquals(25_000L, PhoneRestTimer.adjust(rest, 0L, 15)!!.deadlineEpochMillis)
     }
-
-    @Test fun `skip clears`() {
-        assertNull(PhoneRestTimer.skip())
-    }
 }

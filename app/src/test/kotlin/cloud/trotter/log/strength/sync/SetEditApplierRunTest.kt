@@ -114,7 +114,7 @@ class SetEditApplierRunTest {
     private suspend fun seeds(planId: Long): List<RunSeed> = DayScreenBuilder.seedPlan(
         repo.slotsFor(planId, "A").first(), emptyMap(),
         repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first(),
-    ).map { RunSeed(it.programExerciseId, it.slot, it.sets) }
+    )
 
     private suspend fun phoneStart(planId: Long): String {
         val seeds = seeds(planId)

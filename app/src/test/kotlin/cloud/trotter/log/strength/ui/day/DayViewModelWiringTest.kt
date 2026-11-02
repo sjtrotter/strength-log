@@ -86,6 +86,7 @@ class DayViewModelWiringTest {
 
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
@@ -108,6 +109,7 @@ class DayViewModelWiringTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("day-vm-settings", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = object : TrackerRepository(
             db = db,
             programDao = object : ProgramDao by db.programDao() {
@@ -128,14 +130,14 @@ class DayViewModelWiringTest {
                 }
             },
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         ) {
             override suspend fun lastPerformed(exerciseIds: List<String>): Map<String, LastPerformed> {
                 historyGate?.await()
                 return super.lastPerformed(exerciseIds)
             }
         }
-        shareCardService = ShareCardService(context, repo)
+        shareCardService = ShareCardService(context, repo, settings = settings)
     }
 
     @After
@@ -153,7 +155,7 @@ class DayViewModelWiringTest {
         publisher: SessionPublisher = SessionPublisher.NoOp,
         restRuntime: cloud.trotter.log.strength.rest.RestRuntime = cloud.trotter.log.strength.rest.NoOpRestRuntime,
     ): DayViewModel =
-        DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, restRuntime).also { vms += it }
+        DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, restRuntime, settings = settings).also { vms += it }
 
     @Test
     fun authoredCardioDraftAndSetPageSurviveParcelRecreationAndSaveImmediately() = runVmTest {
@@ -479,7 +481,7 @@ class DayViewModelWiringTest {
             WeightUnit.KG to listOf("3 × 10 · 43.09 kg", "3 × 12", "3 × 0:45", "3 × 0:45 · 11.34 kg", "2:00", "2:00"),
         )
         for ((unit, displays) in expected) {
-            repo.setUnit(unit)
+            settings.setUnit(unit)
             advanceUntilIdle()
             val cards = vm.uiState.value.exercises
             assertEquals(
@@ -950,12 +952,12 @@ class DayViewModelWiringTest {
         val squatId = slotId("bb_back_squat")
         val topIndex = track(squatId, Slot.MAIN)!!.indexOfFirst { it.kind == SetKind.TOP }
 
-        assertFalse(repo.topSetHelperSeenFlow.first())
+        assertFalse(settings.topSetHelperSeenFlow.first())
 
         vm.changeWeight(squatId, Slot.MAIN, topIndex, newDisplayWeight = 245.0)
         advanceUntilIdle()
 
-        assertTrue(repo.topSetHelperSeenFlow.first())
+        assertTrue(settings.topSetHelperSeenFlow.first())
         collect.cancel()
     }
 
@@ -1169,7 +1171,7 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Arms", "", listOf(
             ProgramExercise("ez_curl", targetSets = 2, superset = SupersetPartner("rope_pushdown")),
         )))))
-        repo.setPhoneRestTimerEnabled(true)
+        settings.setPhoneRestTimerEnabled(true)
         val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
         val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
             override val available = true
@@ -1185,7 +1187,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertTrue(track(id, Slot.MAIN)!![0].done)
         assertFalse(track(id, Slot.SS)!![0].done)
-        assertNull(repo.phoneRestFlow.first())
+        assertNull(settings.phoneRestFlow.first())
         assertTrue(armed.isEmpty())
         val half = vm.uiState.value.exercises.single()
         assertEquals(0, half.focusIndex)
@@ -1200,8 +1202,8 @@ class DayViewModelWiringTest {
         assertEquals(90, armed.single().totalSeconds)
         val partner = half.rows[1].partner!!
         assertEquals("Round 2, ${half.partnerTitle} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(partner.weightDisplay)} × ${partner.reps}", armed.single().nextSetLabel)
-        assertEquals(armed.single(), repo.phoneRestFlow.first())
-        repo.setPhoneRest(null)
+        assertEquals(armed.single(), settings.phoneRestFlow.first())
+        settings.setPhoneRest(null)
         advanceUntilIdle()
         collect.cancel()
     }
@@ -1211,7 +1213,7 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Arms", "", listOf(
             ProgramExercise("ez_curl", targetSets = 2),
         )))))
-        repo.setPhoneRestTimerEnabled(true)
+        settings.setPhoneRestTimerEnabled(true)
         val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
         val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
             override val available = true
@@ -1230,7 +1232,7 @@ class DayViewModelWiringTest {
         assertEquals(90, armed.single().totalSeconds)
         val next = vm.uiState.value.exercises.single().rows[1]
         assertEquals("${vm.uiState.value.exercises.single().title} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(next.weightDisplay)} × ${next.reps}", armed.single().nextSetLabel)
-        repo.setPhoneRest(null)
+        settings.setPhoneRest(null)
         advanceUntilIdle()
         collect.cancel()
     }
@@ -1240,7 +1242,7 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Push", "", listOf(
             ProgramExercise("pushup", targetSets = 2),
         )))))
-        repo.setPhoneRestTimerEnabled(true)
+        settings.setPhoneRestTimerEnabled(true)
         val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
         val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
             override val available = true
@@ -1255,7 +1257,7 @@ class DayViewModelWiringTest {
         runCurrent()
         val card = vm.uiState.value.exercises.single()
         assertEquals("${card.title} × ${card.rows[1].reps}", armed.single().nextSetLabel)
-        repo.setPhoneRest(null)
+        settings.setPhoneRest(null)
         advanceUntilIdle()
         collect.cancel()
     }
@@ -1265,7 +1267,7 @@ class DayViewModelWiringTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(
             ProgramExercise("bb_back_squat", isMain = true, superset = SupersetPartner("rope_pushdown")),
         )))))
-        repo.setPhoneRestTimerEnabled(true)
+        settings.setPhoneRestTimerEnabled(true)
         val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
         val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
             override val available = true
@@ -1280,15 +1282,15 @@ class DayViewModelWiringTest {
         val top = track(id, Slot.MAIN)!!.indexOfFirst { it.kind == SetKind.TOP }
         vm.toggleDone(id, top, true, Slot.SS)
         advanceUntilIdle()
-        assertTrue(repo.supersetHelperSeenFlow.first())
-        assertNull(repo.phoneRestFlow.first())
+        assertTrue(settings.supersetHelperSeenFlow.first())
+        assertNull(settings.phoneRestFlow.first())
         assertTrue(armed.isEmpty())
         vm.toggleDone(id, top, true, Slot.MAIN)
         runCurrent()
         assertEquals(180, armed.single().totalSeconds)
         val next = vm.uiState.value.exercises.single().rows[0]
         assertEquals("Round 1, ${vm.uiState.value.exercises.single().title} ${cloud.trotter.log.strength.domain.units.WeightStepper.format(next.weightDisplay)} × ${next.reps}", armed.single().nextSetLabel)
-        repo.setPhoneRest(null)
+        settings.setPhoneRest(null)
         advanceUntilIdle()
         collect.cancel()
     }
@@ -1388,7 +1390,7 @@ class DayViewModelWiringTest {
     @Test
     fun supersetTickWithMissingPartnerTrackWritesMainOnlyAndStartsRest() = runVmTest {
         insertProgram()
-        repo.setPhoneRestTimerEnabled(true)
+        settings.setPhoneRestTimerEnabled(true)
         val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
         val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
             override val available = true
@@ -1408,8 +1410,8 @@ class DayViewModelWiringTest {
         // No junk empty SS row: the partner side must stay unseeded.
         assertNull(track(lateralId, Slot.SS))
         assertEquals(90, armed.single().totalSeconds)
-        assertEquals(armed.single(), repo.phoneRestFlow.first())
-        repo.setPhoneRest(null)
+        assertEquals(armed.single(), settings.phoneRestFlow.first())
+        settings.setPhoneRest(null)
         advanceUntilIdle()
         collect.cancel()
     }
@@ -1865,7 +1867,7 @@ class DayViewModelWiringTest {
     @Test
     fun tickingWithPhoneRestTimerDisabledStartsNothing() = runVmTest {
         insertProgram()
-        repo.setPhoneRestTimerEnabled(false)
+        settings.setPhoneRestTimerEnabled(false)
         val runtime = object : cloud.trotter.log.strength.rest.RestRuntime {
             override val available = true
             override fun arm(rest: cloud.trotter.log.strength.domain.standards.PhoneRest) = Unit
@@ -1879,7 +1881,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(slotId("bb_back_squat"), index = 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
 
-        assertNull(repo.phoneRestFlow.first())
+        assertNull(settings.phoneRestFlow.first())
         collect.cancel()
     }
 
@@ -2000,17 +2002,17 @@ class DayViewModelWiringTest {
         insertProgram()
         val vm = newViewModel()
         advanceUntilIdle()
-        assertFalse("absent means off", repo.keepScreenOnFlow.first())
+        assertFalse("absent means off", settings.keepScreenOnFlow.first())
 
         vm.setKeepScreenOn(true)
         advanceUntilIdle()
 
-        assertTrue(repo.keepScreenOnFlow.first())
+        assertTrue(settings.keepScreenOnFlow.first())
 
         vm.setKeepScreenOn(false)
         advanceUntilIdle()
 
-        assertFalse(repo.keepScreenOnFlow.first())
+        assertFalse(settings.keepScreenOnFlow.first())
     }
 
     @Test

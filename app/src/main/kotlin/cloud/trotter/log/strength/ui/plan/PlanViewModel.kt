@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
@@ -29,6 +30,7 @@ class PlanViewModel @Inject constructor(
     private val repo: TrackerRepository,
     private val savedState: SavedStateHandle,
     @ApplicationContext private val context: Context,
+    private val settings: SettingsStore,
 ) : ViewModel() {
     private val mutationLock = Mutex()
     private val dialog = savedState.getStateFlow<String?>(DIALOG, null)
@@ -41,7 +43,7 @@ class PlanViewModel @Inject constructor(
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
     private val programState = repo.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
         .flatMapLatest { plan -> combine(
-            repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow, repo.unitFlow,
+            repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow, settings.unitFlow,
         ) { program, answers, catalog, unit ->
             PlanScreenBuilder.buildUiState(plan, program, answers, catalog, unit)
         } }

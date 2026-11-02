@@ -50,6 +50,7 @@ import org.robolectric.annotation.Config
 class TrackerRepositorySessionHistoryImportTest {
 
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
 
@@ -63,12 +64,13 @@ class TrackerRepositorySessionHistoryImportTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("csv-import-settings", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
     }
 
@@ -211,7 +213,7 @@ class TrackerRepositorySessionHistoryImportTest {
 
     @Test
     fun exportSessionHistoryReadsBackTheCurrentUnitAndAllSessions() = runTest {
-        repo.setUnit(cloud.trotter.log.strength.domain.units.WeightUnit.KG)
+        settings.setUnit(cloud.trotter.log.strength.domain.units.WeightUnit.KG)
         val imported = ImportedSession(session("Day A", 1_000L), listOf(set("bb_back_squat", "Barbell Back Squat", 0)))
         repo.importSessionHistory(listOf(imported), newCustomExercises = emptyList())
 

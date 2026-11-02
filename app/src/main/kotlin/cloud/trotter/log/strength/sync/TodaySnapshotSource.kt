@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.TodayTarget
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.sync.WatchDay
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.di.CivilDay
@@ -41,13 +42,14 @@ class TodaySnapshotSource(
     @CivilDay private val today: Flow<LocalDate>,
     private val cardioAckLog: CardioAckLog,
     private val editAckLog: EditAckLog,
+    private val settings: SettingsStore,
 ) {
 
     val snapshots: Flow<WatchSnapshot?> = flow {
         repo.runPlanSettingsFixupIfNeeded()
         emitAll(repo.todayTargetFlow.flatMapLatest { target ->
             if (target == TodayTarget.NothingOnToday) return@flatMapLatest combine(
-                repo.unitFlow, cardioAckLog.acksFlow, editAckLog.processedEditsFlow,
+                settings.unitFlow, cardioAckLog.acksFlow, editAckLog.processedEditsFlow,
             ) { unit, cardio, edits ->
                 WatchSnapshot(
                     revision = 0L, suggestedDayId = "", unit = unit.name.lowercase(),
@@ -76,8 +78,8 @@ class TodaySnapshotSource(
                 val context = combine(
                     repo.wizardAnswersFor(plan.id),
                     repo.catalogFlow,
-                    repo.unitFlow,
-                    repo.restSettingsFlow,
+                    settings.unitFlow,
+                    settings.restSettingsFlow,
                 ) { answers, catalog, unit, rest ->
                     Context(answers.config, catalog, unit, rest, answers.equipment)
                 }

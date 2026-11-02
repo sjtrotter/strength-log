@@ -67,6 +67,7 @@ import org.robolectric.annotation.Config
 class DayViewModelCardioExecutionTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var share: ShareCardService
     private lateinit var storeScope: CoroutineScope
@@ -88,14 +89,15 @@ class DayViewModelCardioExecutionTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("cardio-vm", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
-        share = ShareCardService(context, repo)
+        share = ShareCardService(context, repo, settings = settings)
     }
 
     @After
@@ -110,6 +112,7 @@ class DayViewModelCardioExecutionTest {
 
     private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
         repo, publisher, share, handle, clock, alarm,
+        settings = settings,
     ).also { vms += it }
 
     private suspend fun prepare(fiveK: Boolean = true) {

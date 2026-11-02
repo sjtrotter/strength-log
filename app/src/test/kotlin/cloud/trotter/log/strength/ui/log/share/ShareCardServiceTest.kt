@@ -59,6 +59,7 @@ import org.robolectric.annotation.Config
 class ShareCardServiceTest {
 
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var service: ShareCardService
     private lateinit var context: Context
@@ -72,14 +73,15 @@ class ShareCardServiceTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("share-service-settings", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
-        service = ShareCardService(context, repo)
+        service = ShareCardService(context, repo, settings = settings)
     }
 
     @After

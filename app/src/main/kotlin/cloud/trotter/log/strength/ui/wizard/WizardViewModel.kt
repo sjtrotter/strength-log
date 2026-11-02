@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.domain.generator.AnchorScheme
 import cloud.trotter.log.strength.domain.generator.DeadliftVariant
@@ -66,6 +67,7 @@ class WizardViewModel @Inject constructor(
     private val backupService: BackupService,
     @ApplicationScope private val appScope: CoroutineScope,
     private val deviceWeightUnitProvider: DeviceWeightUnitProvider,
+    private val settings: SettingsStore,
 ) : ViewModel() {
 
     private object Keys {
@@ -210,9 +212,9 @@ class WizardViewModel @Inject constructor(
         if (savedState.get<Boolean>(Keys.INITIALIZED) != true) {
             viewModelScope.launch {
                 applyAnswers(repo.wizardAnswersFlow.first())
-                val isFirstRun = !repo.wizardCompleteFlow.first()
+                val isFirstRun = !settings.wizardCompleteFlow.first()
                 savedState[Keys.FIRST_RUN] = isFirstRun
-                savedState[Keys.UNIT] = if (isFirstRun) deviceWeightUnitProvider.defaultUnit().name else repo.unitFlow.first().name
+                savedState[Keys.UNIT] = if (isFirstRun) deviceWeightUnitProvider.defaultUnit().name else settings.unitFlow.first().name
                 if (stepIndex.value == WizardStep.ROTATION.ordinal) {
                     previewProgram.value = generatePreview(currentAnswers())
                 }
@@ -345,7 +347,7 @@ class WizardViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 backupService.withRestoreLock {
-                    if (firstRun.value && repo.wizardCompleteFlow.first()) return@withRestoreLock
+                    if (firstRun.value && settings.wizardCompleteFlow.first()) return@withRestoreLock
                     val answers = currentAnswers()
                     val rememberedId = savedState.get<Long>(Keys.CREATED_PLAN_ID)
                     val planId = if (rememberedId != null && repo.planHasDays(rememberedId)) {
@@ -366,8 +368,8 @@ class WizardViewModel @Inject constructor(
                         createdId
                     }
                     repo.publishCreatedPlan(planId, answers)
-                    repo.setUnit(enumOf(unit.value, WeightUnit.LB))
-                    repo.setWizardComplete(true)
+                    settings.setUnit(enumOf(unit.value, WeightUnit.LB))
+                    settings.setWizardComplete(true)
                 }
                 // Either branch leaves the device set up, so the wizard leaves.
                 isComplete.value = true
@@ -422,7 +424,7 @@ class WizardViewModel @Inject constructor(
                 // Discard the retry id only once Room has been replaced.
                 savedState.remove<Long>(Keys.CREATED_PLAN_ID)
                 applyAnswers(repo.wizardAnswersFlow.first())
-                if (repo.wizardCompleteFlow.first()) {
+                if (settings.wizardCompleteFlow.first()) {
                     // Leaving for the day screen; a leftover cleanup note goes
                     // with it. Nothing is owed the user — the app finishes the
                     // tidying itself at the next launch.

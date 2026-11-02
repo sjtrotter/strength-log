@@ -78,6 +78,7 @@ class DayRouteNavigationTest {
     @get:Rule val rule = createComposeRule()
 
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private lateinit var viewModel: DayViewModel
@@ -96,7 +97,8 @@ class DayRouteNavigationTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("day-route", ".preferences_pb")
         }
-        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), SettingsStore(dataStore))
+        settings = SettingsStore(dataStore)
+        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
     }
 
     @After
@@ -144,7 +146,7 @@ class DayRouteNavigationTest {
             todayViewModel = TodayViewModel(repo, object : CivilTimeSource {
                 override val civilTime = flowOf(CivilTime.now())
                 override fun refresh() = Unit
-            }, SavedStateHandle())
+            }, SavedStateHandle(), settings = settings)
         }
         rule.setContent { AppTheme {
             navController = rememberNavController()
@@ -169,11 +171,11 @@ class DayRouteNavigationTest {
                     )) { entry ->
                         val context = ApplicationProvider.getApplicationContext<Context>()
                         viewModel = remember(entry) {
-                            DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo),
+                            DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings),
                                 SavedStateHandle(mapOf(
                                     Routes.DAY_ID_ARG to entry.arguments?.getString(Routes.DAY_ID_ARG),
                                     Routes.DAY_PLAN_ID_ARG to entry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
-                                )), FixedClock, alarm)
+                                )), FixedClock, alarm, settings = settings)
                         }
                         DayRoute(
                             onCreateExercise = {}, onSetUpProgram = {},
@@ -219,8 +221,9 @@ class DayRouteNavigationTest {
         rule.runOnUiThread {
             val context = ApplicationProvider.getApplicationContext<Context>()
             viewModel = DayViewModel(
-                repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle(),
+                repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
                 FixedClock, alarm,
+                settings = settings,
             )
         }
         rule.setContent {

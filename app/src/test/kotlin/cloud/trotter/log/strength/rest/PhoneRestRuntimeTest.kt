@@ -65,11 +65,11 @@ import org.robolectric.annotation.Config
 
 /** A real receiver graph without starting the production app's background observers. */
 class RestTestApplication : Application(), GeneratedComponent,
-    StrengthLogApp.RepositoryEntryPoint, StrengthLogApp.RestRuntimeEntryPoint, StrengthLogApp.AppScopeEntryPoint {
-    lateinit var repository: TrackerRepository
+    StrengthLogApp.SettingsEntryPoint, StrengthLogApp.RestRuntimeEntryPoint, StrengthLogApp.AppScopeEntryPoint {
+    lateinit var settings: SettingsStore
     lateinit var runtime: PhoneRestRuntime
     lateinit var scope: CoroutineScope
-    override fun trackerRepository() = repository
+    override fun settingsStore() = settings
     override fun phoneRestRuntime() = runtime
     override fun appScope() = scope
 }
@@ -81,6 +81,7 @@ class PhoneRestRuntimeTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var context: RestTestApplication
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var runtime: PhoneRestRuntime
     private lateinit var scope: CoroutineScope
@@ -95,9 +96,10 @@ class PhoneRestRuntimeTest {
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
             .allowMainThreadQueries().setQueryCoroutineContext(dispatcher).build()
         val store = PreferenceDataStoreFactory.create(scope = scope) { File.createTempFile("rest", ".preferences_pb") }
-        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), SettingsStore(store))
+        settings = SettingsStore(store)
+        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
         runtime = PhoneRestRuntime(context)
-        context.repository = repo
+        context.settings = settings
         context.runtime = runtime
         context.scope = scope
     }
@@ -111,7 +113,7 @@ class PhoneRestRuntimeTest {
 
     private suspend fun startRest(): PhoneRest {
         val rest = PhoneRest(System.currentTimeMillis() + 60_000, 60, "Barbell Back Squat 190 × 5")
-        repo.setPhoneRest(rest)
+        settings.setPhoneRest(rest)
         runtime.arm(rest)
         return rest
     }
@@ -142,7 +144,7 @@ class PhoneRestRuntimeTest {
         notification.actions[0].actionIntent.send()
         shadowOf(Looper.getMainLooper()).idle()
         advanceUntilIdle()
-        assertEquals(original.deadlineEpochMillis + 15_000, repo.phoneRestFlow.first()!!.deadlineEpochMillis)
+        assertEquals(original.deadlineEpochMillis + 15_000, settings.phoneRestFlow.first()!!.deadlineEpochMillis)
         assertEquals(1, alarms.scheduledAlarms.size)
         notification.actions[1].actionIntent.send()
         shadowOf(Looper.getMainLooper()).idle()
@@ -180,12 +182,12 @@ class PhoneRestRuntimeTest {
 
     @Test fun alarmPostsRestOverAndClearsPersistedRestAndAlarm() = runTest(dispatcher) {
         val expired = PhoneRest(System.currentTimeMillis() - 1, 60, "Squat 190 × 5")
-        repo.setPhoneRest(expired)
+        settings.setPhoneRest(expired)
         runtime.arm(expired)
         context.sendBroadcast(Intent(context, RestAlarmReceiver::class.java))
         shadowOf(Looper.getMainLooper()).idle()
         advanceUntilIdle()
-        assertNull(repo.phoneRestFlow.first())
+        assertNull(settings.phoneRestFlow.first())
         assertTrue(alarms.scheduledAlarms.isEmpty())
         assertNull(shadowOf(notifications).getNotification(PhoneRestRuntime.RUNNING_ID))
         assertEquals(PhoneRestRuntime.OVER_CHANNEL, shadowOf(notifications).getNotification(PhoneRestRuntime.OVER_ID).channelId)
@@ -196,9 +198,9 @@ class PhoneRestRuntimeTest {
         context.sendBroadcast(Intent(context, RestAlarmReceiver::class.java))
         shadowOf(Looper.getMainLooper()).idle()
         advanceUntilIdle()
-        assertNotNull(repo.phoneRestFlow.first())
+        assertNotNull(settings.phoneRestFlow.first())
         assertNull(shadowOf(notifications).getNotification(PhoneRestRuntime.OVER_ID))
-        PhoneRestActions.skip(repo, runtime)
+        PhoneRestActions.skip(settings, runtime)
         context.sendBroadcast(Intent(context, RestAlarmReceiver::class.java))
         shadowOf(Looper.getMainLooper()).idle()
         advanceUntilIdle()
@@ -220,7 +222,7 @@ class PhoneRestRuntimeTest {
         runtime.setForeground(false, null)
         val expired = PhoneRest(System.currentTimeMillis() - 1, 60, "Squat 190 × 5")
         PhoneRestActions.locked {
-            repo.setPhoneRest(expired)
+            settings.setPhoneRest(expired)
             runtime.arm(expired)
         }
         runCurrent()
@@ -236,7 +238,7 @@ class PhoneRestRuntimeTest {
         }
         advanceUntilIdle()
         assertSame(over, shadowOf(notifications).getNotification(PhoneRestRuntime.OVER_ID))
-        assertNull(repo.phoneRestFlow.first())
+        assertNull(settings.phoneRestFlow.first())
         assertFalse(runtime.complete())
     }
 
@@ -249,7 +251,7 @@ class PhoneRestRuntimeTest {
         val holder = launch { PhoneRestActions.locked { release.await() } }
         runCurrent()
         val expired = PhoneRest(now - 1, 60, "Squat 190 × 5")
-        repo.setPhoneRest(expired)
+        settings.setPhoneRest(expired)
         runtime.arm(expired)
         vm.adjustRest(15)
         runCurrent()
@@ -261,7 +263,7 @@ class PhoneRestRuntimeTest {
         release.complete(Unit)
         holder.join()
         runCurrent()
-        assertEquals(now + 15_000, repo.phoneRestFlow.first()!!.deadlineEpochMillis)
+        assertEquals(now + 15_000, settings.phoneRestFlow.first()!!.deadlineEpochMillis)
         assertEquals(now + 15_000, alarms.scheduledAlarms.single().triggerAtTime)
         assertNotNull(shadowOf(notifications).getNotification(PhoneRestRuntime.RUNNING_ID))
         assertNull(shadowOf(notifications).getNotification(PhoneRestRuntime.OVER_ID))
@@ -276,7 +278,7 @@ class PhoneRestRuntimeTest {
         startRest()
         val preview = PreviewViewModel(repo, SavedStateHandle(mapOf(
             Routes.PLAN_ID_ARG to plan.toString(), Routes.DAY_ID_ARG to "B",
-        )), runtime).also { models += it }
+        )), runtime, settings = settings).also { models += it }
         preview.start()
         advanceUntilIdle()
         preview.workoutStart.confirmDiscard()
@@ -298,8 +300,8 @@ class PhoneRestRuntimeTest {
     }
 
     private fun newDayModel(clock: Clock = Clock.systemUTC()) =
-        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo), SavedStateHandle(),
-            FixedCardioClock(), InertCardioAlarm, runtime, clock).also { models += it }
+        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
+            FixedCardioClock(), InertCardioAlarm, runtime, clock, settings = settings).also { models += it }
 
     private fun checkDayAction(action: (DayViewModel) -> Unit) = runTest(dispatcher) {
         insertProgram()
@@ -307,7 +309,7 @@ class PhoneRestRuntimeTest {
         val collector = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         // Log with rest disabled, then arm it without collecting the foreground ticker.
-        repo.setPhoneRestTimerEnabled(false)
+        settings.setPhoneRestTimerEnabled(false)
         val slot = repo.daySlotsFlow("A").first().first()
         vm.toggleDone(slot.programExerciseId, 0, true, Slot.MAIN)
         advanceUntilIdle()
@@ -323,7 +325,7 @@ class PhoneRestRuntimeTest {
     }
 
     private suspend fun assertCleared() {
-        assertNull(repo.phoneRestFlow.first())
+        assertNull(settings.phoneRestFlow.first())
         assertTrue(alarms.scheduledAlarms.isEmpty())
         assertNull(shadowOf(notifications).getNotification(PhoneRestRuntime.RUNNING_ID))
         assertNull(shadowOf(notifications).getNotification(PhoneRestRuntime.OVER_ID))

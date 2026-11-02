@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.ui.setup.SetupStateBuilder
@@ -27,6 +28,7 @@ class PlansViewModel @Inject constructor(
     private val repo: TrackerRepository,
     private val savedState: SavedStateHandle,
     @ApplicationContext private val context: Context,
+    private val settings: SettingsStore,
 ) : ViewModel() {
     private val menuPlanId = MutableStateFlow<Long?>(null)
     private val renamePlanId = savedState.getStateFlow<Long?>(RENAME_ID, null)
@@ -43,7 +45,7 @@ class PlansViewModel @Inject constructor(
     private val existingState = combine(repo.planSummariesFlow, menuPlanId, renamePlanId, renameDraft) { plans, menu, rename, draft ->
         PlansUiState(plans, menu, rename, draft)
     }
-    private val you = combine(repo.configFlow, repo.unitFlow) { config, unit ->
+    private val you = combine(repo.configFlow, settings.unitFlow) { config, unit ->
         val levelLabel = when (config.level) {
             ExperienceLevel.NOVICE -> R.string.setup_level_novice
             ExperienceLevel.INTERMEDIATE -> R.string.setup_level_intermediate

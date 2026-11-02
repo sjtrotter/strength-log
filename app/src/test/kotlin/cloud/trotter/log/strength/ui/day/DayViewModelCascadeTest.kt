@@ -54,6 +54,7 @@ class DayViewModelCascadeTest {
 
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
+    private lateinit var settings: SettingsStore
     private lateinit var repo: TrackerRepository
     private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
@@ -71,14 +72,15 @@ class DayViewModelCascadeTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("cascade-vm-settings", ".preferences_pb")
         }
+        settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
-        shareCardService = ShareCardService(context, repo)
+        shareCardService = ShareCardService(context, repo, settings = settings)
     }
 
     @After
@@ -92,7 +94,7 @@ class DayViewModelCascadeTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, settings = settings).also { vms += it }
 
     private suspend fun insertProgram() {
         repo.replaceProgram(

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.LoggedSlot
@@ -154,7 +155,7 @@ object WatchSnapshotBuilder {
     private fun buildExercise(
         slot: ProgramSlot,
         logsByKey: Map<Pair<Long, String>, LoggedSlot>,
-        previewSeeds: Map<Pair<Long, String>, DayScreenBuilder.SeedWrite>,
+        previewSeeds: Map<Pair<Long, String>, RunSeed>,
         cfg: LifterConfig,
         catalog: ExerciseCatalog,
         unit: WeightUnit,

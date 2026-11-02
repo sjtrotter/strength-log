@@ -146,7 +146,7 @@ class WizardRestoreWiringTest {
     }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): WizardViewModel =
-        WizardViewModel(repo, handle, context, service, appScope, DeviceWeightUnitProvider { cloud.trotter.log.strength.domain.units.WeightUnit.LB }).also { vms += it }
+        WizardViewModel(repo, handle, context, service, appScope, DeviceWeightUnitProvider { cloud.trotter.log.strength.domain.units.WeightUnit.LB }, settings = settings).also { vms += it }
 
     /** A minimal but valid backup: one day, one real catalog exercise, and the
      *  wizard flag the test is about. */
@@ -204,7 +204,7 @@ class WizardRestoreWiringTest {
         assertNotNull(created)
         assertEquals(created, db.planDao().allPlans().single().id)
         assertTrue(repo.programFlow.first().days.isNotEmpty())
-        assertFalse(repo.wizardCompleteFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
 
         repeat(WizardStep.ROTATION.ordinal) { vm.onBack() }
         vm.restoreFromBackup(uri)
@@ -214,7 +214,7 @@ class WizardRestoreWiringTest {
         assertFalse(rejected.isComplete)
         assertEquals(created, handle.get<Long>("wizard_created_plan_id"))
         assertEquals(created, db.planDao().allPlans().single().id)
-        assertFalse(repo.wizardCompleteFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
 
         repeat(WizardStep.entries.size) { vm.onNext() }
         val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
@@ -224,7 +224,7 @@ class WizardRestoreWiringTest {
         assertEquals(created, handle.get<Long>("wizard_created_plan_id"))
         assertTrue(db.programDao().daysForPlan(plan.id).isNotEmpty())
         assertEquals(plan.id, settings.selectedPlanIdFlow.first())
-        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(settings.wizardCompleteFlow.first())
         assertNull(completed.finishError)
         return rejected.restore.error
     }
@@ -267,7 +267,7 @@ class WizardRestoreWiringTest {
 
         // isComplete is what AppNavHost's WizardRoute watches to call onFinished.
         withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
-        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(190, repo.wizardAnswersFlow.first().config.bodyweightLb)
         assertEquals(1, repo.programFlow.first().days.size)
     }
@@ -299,7 +299,7 @@ class WizardRestoreWiringTest {
 
         val state = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
         assertNull(state.restore.error)
-        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(settings.wizardCompleteFlow.first())
         val plans = db.planDao().allPlans()
         assertEquals(listOf(7L, 42L), plans.map { it.id })
         assertEquals(listOf("Maintenance", "Test prep"), plans.map { it.name })
@@ -332,7 +332,7 @@ class WizardRestoreWiringTest {
         assertEquals(null, state.restore.error)
         assertEquals(190, state.answers.config.bodyweightLb)
         assertEquals(33, state.answers.config.age)
-        assertFalse(repo.wizardCompleteFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
     }
 
     @Test
@@ -354,7 +354,7 @@ class WizardRestoreWiringTest {
         assertEquals(state.answers, repo.wizardAnswersFlow.first())
         assertEquals(1, db.planDao().allPlans().size)
         assertTrue(repo.programFlow.first().days.isEmpty())
-        assertFalse(repo.wizardCompleteFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
     }
 
     @Test
@@ -372,7 +372,7 @@ class WizardRestoreWiringTest {
         val created = handle.get<Long>("wizard_created_plan_id")
         assertNotNull(created)
         assertTrue(repo.programFlow.first().days.isNotEmpty())
-        assertFalse(repo.wizardCompleteFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
 
         repeat(WizardStep.ROTATION.ordinal) { vm.onBack() }
         vm.restoreFromBackup(uri)
@@ -383,7 +383,7 @@ class WizardRestoreWiringTest {
         assertNull(restored.restore.error)
         assertNull(handle.get<Long>("wizard_created_plan_id"))
         assertTrue(repo.programFlow.first().days.isEmpty())
-        assertFalse(repo.wizardCompleteFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
 
         repeat(WizardStep.entries.size) { vm.onNext() }
         val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
@@ -393,7 +393,7 @@ class WizardRestoreWiringTest {
         assertTrue(db.programDao().daysForPlan(plan.id).isNotEmpty())
         assertEquals(plan.id, settings.selectedPlanIdFlow.first())
         assertEquals(3, repo.programFlow.first().strengthDays.size)
-        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(settings.wizardCompleteFlow.first())
         assertNull(completed.finishError)
     }
 
@@ -430,7 +430,7 @@ class WizardRestoreWiringTest {
         assertNotNull(state.restore.error)
         assertFalse(state.restore.inFlight)
         assertFalse(state.isComplete)
-        assertFalse(repo.wizardCompleteFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
         assertTrue(repo.programFlow.first().days.isEmpty())
     }
 
@@ -450,7 +450,7 @@ class WizardRestoreWiringTest {
         assertEquals(PlanEntity.LEGACY_ID, restoredPlan.id)
         assertEquals(PlanRecipeJson.encode(stagedAnswers), restoredPlan.recipeJson)
         assertEquals(stagedAnswers, repo.wizardAnswersFlow.first())
-        assertTrue("wizardComplete must retain the staged value", repo.wizardCompleteFlow.first())
+        assertTrue("wizardComplete must retain the staged value", settings.wizardCompleteFlow.first())
         assertTrue(repo.programFlow.first().days.isEmpty())
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(service.reconcilePendingRestore())
@@ -478,7 +478,7 @@ class WizardRestoreWiringTest {
         assertEquals(6, program.days.size)
         assertEquals(ProgramGenerator.generate(answers), program)
         assertEquals(PlanRecipeJson.encode(answers), db.planDao().allPlans().single().recipeJson)
-        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(settings.wizardCompleteFlow.first())
         assertNull(db.restoreMarkerDao().nonce())
     }
 
@@ -501,7 +501,7 @@ class WizardRestoreWiringTest {
         assertNull(state.restore.error)
         assertFalse(state.restore.inFlight)
         assertFalse(state.isComplete)
-        assertFalse(repo.wizardCompleteFlow.first())
+        assertFalse(settings.wizardCompleteFlow.first())
         assertEquals(before, repo.exportSnapshot())
         assertNotNull(db.restoreMarkerDao().nonce())
 
@@ -509,7 +509,7 @@ class WizardRestoreWiringTest {
         val completed = withTimeout(TIMEOUT_MS) { vm.uiState.first { it.isComplete } }
         assertNull(completed.finishError)
         assertNull(completed.restore.error)
-        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
         assertEquals(190, repo.configFlow.first().bodyweightLb)
         assertNull(db.restoreMarkerDao().nonce())
@@ -524,7 +524,7 @@ class WizardRestoreWiringTest {
         settingsStore.failOnUpdate = 1
         runCatching { service.import(BackupCodec().encode(backup(wizardComplete = true))) }
         assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
-        assertFalse("the flag the wizard reads is still the old one", repo.wizardCompleteFlow.first())
+        assertFalse("the flag the wizard reads is still the old one", settings.wizardCompleteFlow.first())
 
         val vm = newViewModel()
         vm.awaitOffered() // the wizard has latched firstRun = true
@@ -554,7 +554,7 @@ class WizardRestoreWiringTest {
             listOf("A"),
             repo.programFlow.first().days.map { it.id },
         )
-        assertTrue(repo.wizardCompleteFlow.first())
+        assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(190, repo.configFlow.first().bodyweightLb)
     }
 

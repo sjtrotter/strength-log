@@ -33,6 +33,4 @@ object PhoneRestTimer {
             totalSeconds = ((adjusted + 999L) / 1_000L).toInt(),
         )
     }
-
-    fun skip(): PhoneRest? = null
 }

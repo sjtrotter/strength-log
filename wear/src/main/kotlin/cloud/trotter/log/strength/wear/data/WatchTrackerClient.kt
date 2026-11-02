@@ -9,9 +9,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * The seam the watch UI codes against, never a transport.
  * [DataLayerWatchClient] implements it over the Wearable Data Layer
- * (`DataClient` for [snapshotFlow], `MessageClient` for [sendEdit]);
- * [FakeWatchClient] implements it for standalone runs and the store
- * screenshots.
+ * (`DataClient` for [snapshotFlow], `MessageClient` for [sendEdit]).
  */
 interface WatchTrackerClient {
 
@@ -66,18 +64,10 @@ interface WatchTrackerClient {
      */
     fun sendSwap(swap: ExerciseSwapDelta)
 
-    /** Queues a completed cardio session until its LOGGED snapshot acknowledgement. */
-    fun sendCardio(delta: CardioDelta)
-
-    /** Receipt observes the issued queue stamp; settlement rules stay phone-owned. */
-    fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit) {
-        sendCardio(delta)
-        onQueued(delta.stamp)
-    }
-
-    /** Failure means the completion is still local and the caller can retry. */
-    fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit, onFailure: () -> Unit) {
-        // Older implementations cannot confirm a durable enqueue. Fail closed.
-        onFailure()
-    }
+    /**
+     * Queues a completed cardio session until its LOGGED snapshot acknowledgement.
+     * Receipt observes the issued queue stamp; settlement rules stay phone-owned.
+     * Failure means the completion is still local and the caller can retry.
+     */
+    fun sendCardio(delta: CardioDelta, onQueued: (Long) -> Unit, onFailure: () -> Unit)
 }

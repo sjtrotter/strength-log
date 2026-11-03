@@ -771,8 +771,11 @@ class TrackerRepositoryRunTest {
         repo.replaceProgram(generated())
         val plan = repo.plansFlow.first().single().id
         val slots = db.programDao().exercisesForDay(plan, "A")
+        // Remembered, so finishing would carry the removed slot forward if deleting it did not stop that.
+        repo.setKeepToPlan(slots.last().id, false)
         val id = day(plan).nextRunId
         repo.applyToRun(id, plan, "A", listOf(tick(slots.first().id)))
+        assertTrue(db.runDao().tracks(id).any { it.programExerciseId == slots.last().id })
         repo.swapExerciseById("A", slots.first().id, "bb_bench")
         db.programDao().deleteExercise(slots.last().id)
         repo.finishRun(id)
@@ -780,6 +783,7 @@ class TrackerRepositoryRunTest {
         val logs = db.programDao().logsForDay(plan, "A")
         assertTrue(logs.none { it.programExerciseId == slots.first().id && it.slot == Slot.MAIN })
         assertTrue(logs.none { it.programExerciseId == slots.last().id })
+        assertTrue(logs.any { it.programExerciseId == slots.first().id && it.slot == Slot.SS })
     }
 
     @Test fun `kept slot without a prescription clears working values and next read seeds goal math`() = runTest {

@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.wear.ui
 
 import androidx.compose.runtime.saveable.mapSaver
+import cloud.trotter.log.strength.domain.cardio.BootAnchor
+import cloud.trotter.log.strength.domain.cardio.Clocks
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
@@ -28,12 +30,11 @@ data class TimedRepState(
     val count: Int = 0,
 ) {
     fun deadline(nowElapsedMillis: Long, nowWallMillis: Long, nowBootCount: Int): Long =
-        if (nowBootCount == bootCount) {
-            RestTimer.deadlineFrom(startedAtElapsedMillis, totalSeconds)
-        } else {
-            nowElapsedMillis + (totalSeconds * 1_000L -
-                (nowWallMillis - startedAtWallMillis).coerceAtLeast(0L)).coerceAtLeast(0L)
-        }
+        BootAnchor(startedAtWallMillis, startedAtElapsedMillis, bootCount).deadlineElapsedMillis(
+            totalSeconds.coerceAtLeast(0) * 1_000L,
+            Clocks(nowWallMillis, nowElapsedMillis, nowBootCount),
+            clampAfterReboot = true,
+        )
 
     /** Re-entry after expiry advances silently; arming a past boundary must never buzz. */
     fun resume(

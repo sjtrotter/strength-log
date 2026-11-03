@@ -1,14 +1,20 @@
 package cloud.trotter.log.strength.wear.ui
 
 import androidx.compose.runtime.saveable.mapSaver
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.BootAnchor
+import cloud.trotter.log.strength.domain.cardio.CardioExecution
+import cloud.trotter.log.strength.domain.cardio.Clocks
+import cloud.trotter.log.strength.domain.cardio.cardioActivityLabel as activityLabel
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.WatchCardioBlock
 import cloud.trotter.log.strength.domain.sync.WatchCardioSetResult
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.sync.acknowledgesCardio
+import cloud.trotter.log.strength.domain.sync.toWatch
 import cloud.trotter.log.strength.domain.units.ClockText
 
 /** Frozen prescription and device-local anchors. A snapshot never starts execution. */
@@ -47,73 +53,71 @@ data class CardioSetState(
         return takeIf { logged == null || logged == startedAt }
     }
 
-    fun elapsed(nowElapsed: Long, nowWall: Long, boot: Int): Int {
-        val anchor = active ?: return 0
-        val millis = if (anchor.bootCount == boot) nowElapsed - anchor.startedAtElapsedMillis
-            else nowWall - anchor.startedAtWallMillis
-        return (millis.coerceIn(0L, Int.MAX_VALUE * 1_000L) / 1_000L).toInt()
-    }
+    private val execution: CardioExecution get() = CardioExecution(
+        block = block.toDomain(),
+        results = results.map { it.toDomain() },
+        startedAt = startedAt,
+        anchor = active?.let { BootAnchor(it.startedAtWallMillis, it.startedAtElapsedMillis, it.bootCount) },
+        completedAt = completedAt,
+        distanceEntries = entries,
+    )
+
+    private fun withExecution(next: CardioExecution): CardioSetState = copy(
+        results = next.results.map { result ->
+            WatchCardioSetResult(result.spec.toWatch(), result.status.name, result.elapsedSeconds,
+                result.metres, result.distanceSource?.name)
+        },
+        startedAt = next.startedAt,
+        active = next.anchor?.let {
+            CardioAnchors(it.wallMillis, requireNotNull(it.elapsedMillis), requireNotNull(it.bootCount), planId)
+        },
+        completedAt = next.completedAt,
+        entries = next.distanceEntries,
+        peekIndex = if (next.position != position) null else peekIndex,
+        options = if (next.position != position) false else options,
+        confirmingEnd = if (next.position != position) false else confirmingEnd,
+    )
+
+    fun elapsed(nowElapsed: Long, nowWall: Long, boot: Int): Int =
+        execution.elapsedSeconds(Clocks(nowWall, nowElapsed, boot))
 
     fun deadline(nowElapsed: Long, nowWall: Long, boot: Int): Long? {
-        val anchor = active ?: return null
-        val spec = block.sets.getOrNull(position) ?: return null
-        if (spec.endKind != "TIME") return null
-        return if (anchor.bootCount == boot) anchor.startedAtElapsedMillis + spec.endValue * 1_000L
-            else nowElapsed + anchor.startedAtWallMillis + spec.endValue * 1_000L - nowWall
+        val run = execution
+        val end = run.block.sets.getOrNull(run.position)?.end as? Measure.Time ?: return null
+        return run.anchor?.deadlineElapsedMillis(end.seconds * 1_000L, Clocks(nowWall, nowElapsed, boot))
     }
 
     fun start(nowWall: Long, nowElapsed: Long, boot: Int, finishesDay: Boolean = this.finishesDay): CardioSetState {
         if (complete || active != null || entries.isNotEmpty() || options || confirmingEnd) return this
-        return copy(startedAt = startedAt ?: nowWall,
-            finishesDay = if (startedAt == null) finishesDay else this.finishesDay,
-            active = CardioAnchors(nowWall, nowElapsed, boot, planId), peekIndex = null)
+        return withExecution(execution.start(Clocks(nowWall, nowElapsed, boot))).copy(
+            finishesDay = if (startedAt == null) finishesDay else this.finishesDay, peekIndex = null)
     }
 
-    /** Reconcile missed automatic boundaries silently, at their deadlines. */
     fun resume(nowWall: Long, nowElapsed: Long, boot: Int): CardioSetState {
-        var run = this
-        while (run.active != null) {
-            val spec = run.block.sets[run.position]
-            val deadline = run.deadline(nowElapsed, nowWall, boot) ?: break
-            if (nowElapsed < deadline) break
-            val boundaryWall = requireNotNull(run.active).startedAtWallMillis + spec.endValue * 1_000L
-            run = run.finish("FINISHED", spec.endValue, boundaryWall, deadline, boot, autoStart = true)
-        }
-        return run
+        val now = Clocks(nowWall, nowElapsed, boot)
+        val next = execution.reconcile(now)
+        if (next.position == position) return this
+        // Watch saved anchors adopt the current boot only after crossing a set boundary.
+        return withExecution(next.copy(anchor = next.anchor?.rebase(now)))
     }
 
     fun reached(nowWall: Long, nowElapsed: Long, boot: Int): CardioSetState {
         val current = resume(nowWall, nowElapsed, boot)
-        val spec = current.block.sets.getOrNull(current.position) ?: return current
-        if (current.active == null || spec.endKind != "DISTANCE" || current.entries.isNotEmpty()) return current
-        return current.finish("FINISHED", current.elapsed(nowElapsed, nowWall, boot),
-            nowWall, nowElapsed, boot, autoStart = true, metres = spec.endValue)
+        if (current.entries.isNotEmpty()) return current
+        return current.withExecution(current.execution.reachTarget(Clocks(nowWall, nowElapsed, boot)))
     }
 
     fun stop(nowWall: Long, nowElapsed: Long, boot: Int): CardioSetState {
         // A hold retained across a boundary must never stop the next set.
         val current = resume(nowWall, nowElapsed, boot)
         if (current.position != position || current.active == null) return current
-        return current.finish("SHORTENED", current.elapsed(nowElapsed, nowWall, boot),
-            nowWall, nowElapsed, boot, autoStart = false)
+        return current.finish(CardioSetStatus.SHORTENED, current.elapsed(nowElapsed, nowWall, boot),
+            nowWall, nowElapsed, boot)
     }
 
     private fun finish(
-        status: String, seconds: Int, wall: Long, elapsed: Long, boot: Int,
-        autoStart: Boolean, metres: Int? = null,
-    ): CardioSetState {
-        val spec = block.sets[position]
-        val entry = status == "SHORTENED" || (status == "FINISHED" && spec.aimKind == "DISTANCE")
-        val next = copy(results = results + WatchCardioSetResult(spec, status, seconds, metres,
-            metres?.let { "MANUAL" }), active = null,
-            entries = if (entry) entries + position else entries, peekIndex = null,
-            options = false, confirmingEnd = false)
-        if (next.complete) return next.copy(completedAt = wall)
-        val role = block.sets[next.position].role
-        return if (autoStart && (role == "RECOVERY" || role == "COOLDOWN")) {
-            next.copy(active = CardioAnchors(wall, elapsed, boot, planId))
-        } else next
-    }
+        status: CardioSetStatus, seconds: Int, wall: Long, elapsed: Long, boot: Int,
+    ): CardioSetState = withExecution(execution.finishStep(status, seconds, Clocks(wall, elapsed, boot)))
 
     fun openOptions(): CardioSetState = if (!complete && active == null && entries.isEmpty()) {
         copy(options = true, selection = 0, peekIndex = null)
@@ -138,14 +142,11 @@ data class CardioSetState(
     fun tap(nowWall: Long, nowElapsed: Long, boot: Int, finishesDay: Boolean = this.finishesDay): CardioSetState = when {
         complete && queuedStamp == null && saveFailed -> copy(saveFailed = false)
         entries.isNotEmpty() -> {
-            val index = entries.first()
-            copy(results = results.mapIndexed { i, result ->
-                if (i == index) result.copy(metres = draftMetres, distanceSource = draftMetres?.let { "MANUAL" }) else result
-            }, entries = entries.drop(1), draftMetres = null)
+            withExecution(execution.enterDistance(entries.first(), draftMetres)).copy(draftMetres = null)
         }
         confirmingEnd -> if (selection == 0) copy(confirmingEnd = false) else end(nowWall, nowElapsed, boot)
         options -> when (selection) {
-            0 -> finish("SKIPPED", 0, nowWall, nowElapsed, boot, autoStart = false)
+            0 -> finish(CardioSetStatus.SKIPPED, 0, nowWall, nowElapsed, boot)
             1 -> copy(options = false, confirmingEnd = true, selection = 0)
             else -> copy(options = false)
         }
@@ -157,24 +158,23 @@ data class CardioSetState(
     fun end(nowWall: Long, nowElapsed: Long, boot: Int): CardioSetState {
         var next = resume(nowWall, nowElapsed, boot)
         if (next.active != null) next = next.stop(nowWall, nowElapsed, boot)
-        while (!next.complete) next = next.finish("SKIPPED", 0, nowWall, nowElapsed, boot, autoStart = false)
+        while (!next.complete) next = next.finish(CardioSetStatus.SKIPPED, 0, nowWall, nowElapsed, boot)
         return next.copy(options = false, confirmingEnd = false)
     }
 
     fun delta(): CardioDelta? {
         if (!complete || entries.isNotEmpty()) return null
         val start = startedAt ?: return null // Skipping everything never logs or advances.
-        val mode = CardioActivity.entries.find { it.name == block.activity }
-            ?.let { CardioBlocks.legacyModeOf(it).name } ?: "LOW_IMPACT"
+        val summary = execution.summary()
         val end = requireNotNull(completedAt).coerceAtLeast(start + 1L)
-        return CardioDelta(dayId = dayId, mode = mode, hard = block.sets.any { it.role == "WORK" && it.hard },
-            label = cardioActivityLabel(block.activity), startedAt = start, completedAt = end,
-            seconds = results.sumOf { it.elapsedSeconds }, stepsCompleted = results.count { it.status == "FINISHED" },
+        return CardioDelta(dayId = dayId, mode = summary.mode.name, hard = summary.hard,
+            label = summary.label, startedAt = start, completedAt = end,
+            seconds = summary.seconds, stepsCompleted = summary.stepsCompleted,
             stamp = end, planId = planId, activity = block.activity, sets = results, finishesDay = finishesDay)
     }
 
     fun receipt(snapshot: WatchSnapshot): String = when {
-        queuedStamp != null && snapshot.acknowledgesCardio(queuedStamp) -> "Logged ${cardioSetTime(results.sumOf { it.elapsedSeconds })}"
+        queuedStamp != null && snapshot.acknowledgesCardio(queuedStamp) -> "Logged ${cardioSetTime(execution.summary().seconds)}"
         queuedStamp != null -> "Saved on watch"
         saveFailed -> "Couldn't save"
         else -> "Saving…"
@@ -194,8 +194,7 @@ internal fun newCardioSetState(
     return CardioSetState(snapshot.planId, snapshot.day.dayId, block)
 }
 
-internal fun cardioActivityLabel(activity: String): String = activity.lowercase(java.util.Locale.ROOT)
-    .replace('_', ' ').replaceFirstChar { it.titlecase() }
+internal fun cardioActivityLabel(activity: String): String = activityLabel(CardioActivity.valueOf(activity))
 
 internal fun cardioSetTime(seconds: Int): String = ClockText.minutesSeconds(seconds)
 

@@ -15,9 +15,22 @@ data class Clocks(val wallMillis: Long, val elapsedMillis: Long, val bootCount: 
 
 data class BootAnchor(val wallMillis: Long, val elapsedMillis: Long?, val bootCount: Int?) {
     fun elapsedSince(now: Clocks): Long =
-        (if (bootCount != null && bootCount == now.bootCount && elapsedMillis != null) {
-            now.elapsedMillis - elapsedMillis
+        (if (usesElapsedClock(now)) {
+            now.elapsedMillis - requireNotNull(elapsedMillis)
         } else now.wallMillis - wallMillis).coerceAtLeast(0L)
+
+    fun deadlineElapsedMillis(durationMillis: Long, now: Clocks, clampAfterReboot: Boolean = false): Long =
+        if (usesElapsedClock(now)) {
+            requireNotNull(elapsedMillis) + durationMillis
+        } else if (clampAfterReboot) {
+            now.elapsedMillis + (durationMillis - elapsedSince(now)).coerceAtLeast(0L)
+        } else now.elapsedMillis + wallMillis + durationMillis - now.wallMillis
+
+    fun rebase(now: Clocks): BootAnchor =
+        BootAnchor(wallMillis, deadlineElapsedMillis(0L, now), now.bootCount)
+
+    private fun usesElapsedClock(now: Clocks): Boolean =
+        bootCount != null && bootCount == now.bootCount && elapsedMillis != null
 }
 
 data class CardioSummary(

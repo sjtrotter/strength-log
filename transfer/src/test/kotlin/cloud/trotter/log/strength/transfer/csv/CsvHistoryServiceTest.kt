@@ -73,7 +73,7 @@ class CsvHistoryServiceTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        service = CsvHistoryService(repo, catalog = repo.catalog)
+        service = CsvHistoryService(repo.history, catalog = repo.catalog)
     }
 
     @After
@@ -89,7 +89,7 @@ class CsvHistoryServiceTest {
                 SessionSetEntity(0, 0, exerciseId, exerciseName, Slot.MAIN, 0, SetKind.WORK.name, weightLb, reps, done = true),
             ),
         )
-        repo.importSessionHistory(listOf(imported), emptyList())
+        repo.history.importSessionHistory(listOf(imported), emptyList())
     }
 
     @Test
@@ -108,14 +108,14 @@ class CsvHistoryServiceTest {
         )
         val session = CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = true, label = "Run",
             startedAt = 1_000, completedAt = 91_000, seconds = 90, stepsCompleted = 1, activity = "ROAD_RUN")
-        repo.importSessionHistory(emptyList(), emptyList(), listOf(ImportedCardioSession(session, sets)))
+        repo.history.importSessionHistory(emptyList(), emptyList(), listOf(ImportedCardioSession(session, sets)))
         val out = ByteArrayOutputStream()
         service.exportTo(out)
         val preview = service.preview(ByteArrayInputStream(out.toByteArray()))
         assertEquals(3, Csv.parse(out.toString(Charsets.UTF_8.name())).size)
         assertEquals(sets, preview.cardioSessions.single().sets)
         service.commit(preview)
-        assertEquals(1, repo.exportSessionHistory().cardioSessions.size)
+        assertEquals(1, repo.history.exportSessionHistory().cardioSessions.size)
 
         db.openHelper.writableDatabase.execSQL("UPDATE cardio_set_result SET status = 'UNKNOWN' WHERE position = 1")
         out.reset()
@@ -147,15 +147,15 @@ class CsvHistoryServiceTest {
             File.createTempFile("csv-service-fresh-settings", ".preferences_pb")
         }
         val freshRepo = TrackerRepository(freshDb, freshDb.programDao(), freshDb.sessionDao(), freshDb.customExerciseDao(), SettingsStore(freshStore))
-        val freshService = CsvHistoryService(freshRepo, catalog = freshRepo.catalog)
+        val freshService = CsvHistoryService(freshRepo.history, catalog = freshRepo.catalog)
         try {
             val preview = freshService.preview(ByteArrayInputStream(out.toByteArray()))
             assertTrue(preview.isFullyMatched)
             freshService.commit(preview)
 
-            val sessions = freshRepo.sessionsFlow.first().sortedBy { it.completedAt }
+            val sessions = freshRepo.history.sessionsFlow.first().sortedBy { it.completedAt }
             assertEquals(listOf("Day A", "Day B"), sessions.map { it.dayTitle })
-            val history = freshRepo.exportSessionHistory()
+            val history = freshRepo.history.exportSessionHistory()
             assertEquals(
                 setOf("Barbell Back Squat" to 225.0, "Barbell Bench Press" to 185.0),
                 history.sessionSets.map { it.exerciseName to it.weightLb }.toSet(),
@@ -174,9 +174,9 @@ class CsvHistoryServiceTest {
         val preview = service.preview(ByteArrayInputStream(text.toByteArray()))
 
         service.commit(preview)
-        val firstImport = repo.exportSessionHistory()
+        val firstImport = repo.history.exportSessionHistory()
         service.commit(preview)
-        val secondImport = repo.exportSessionHistory()
+        val secondImport = repo.history.exportSessionHistory()
 
         assertEquals(1, secondImport.sessions.size)
         assertEquals(2, secondImport.sessionSets.size)
@@ -212,14 +212,14 @@ class CsvHistoryServiceTest {
                 ),
             ),
         )
-        repo.importSessionHistory(listOf(nativeSession), emptyList())
-        val before = repo.exportSessionHistory()
+        repo.history.importSessionHistory(listOf(nativeSession), emptyList())
+        val before = repo.history.exportSessionHistory()
 
         val out = ByteArrayOutputStream()
         service.exportTo(out)
         service.commit(service.preview(ByteArrayInputStream(out.toByteArray())))
 
-        assertEquals(before, repo.exportSessionHistory())
+        assertEquals(before, repo.history.exportSessionHistory())
     }
 
     @Test
@@ -232,11 +232,11 @@ class CsvHistoryServiceTest {
             first.copy(setIndex = 1, weightLb = 230.0, done = false),
             first.copy(setIndex = 2, weightLb = 235.0, reps = 3),
         )
-        repo.importSessionHistory(
+        repo.history.importSessionHistory(
             listOf(ImportedSession(WorkoutSessionEntity(0, "A", "Day A", null, 1_720_000_900_789L, 180), sets)),
             emptyList(),
         )
-        val before = repo.exportSessionHistory()
+        val before = repo.history.exportSessionHistory()
         val out = ByteArrayOutputStream()
 
         service.exportTo(out)
@@ -244,7 +244,7 @@ class CsvHistoryServiceTest {
         assertEquals(2, preview.sessions.single().sets.size)
         service.commit(preview)
 
-        assertEquals(before, repo.exportSessionHistory())
+        assertEquals(before, repo.history.exportSessionHistory())
     }
 
     @Test
@@ -255,7 +255,7 @@ class CsvHistoryServiceTest {
         val sets = kgValues.mapIndexed { index, kg ->
             SessionSetEntity(0, 0, "bb_back_squat", "Barbell Back Squat", Slot.MAIN, index, SetKind.WORK.name, WeightUnit.KG.toLb(kg), 5, done = true)
         }
-        repo.importSessionHistory(
+        repo.history.importSessionHistory(
             listOf(ImportedSession(WorkoutSessionEntity(0, "csv:Day KG", "Day KG", null, 1_720_000_000_000L, null), sets)),
             emptyList(),
         )
@@ -279,7 +279,7 @@ class CsvHistoryServiceTest {
             File.createTempFile("csv-service-kg-settings", ".preferences_pb")
         }
         val freshRepo = TrackerRepository(freshDb, freshDb.programDao(), freshDb.sessionDao(), freshDb.customExerciseDao(), SettingsStore(freshStore))
-        val freshService = CsvHistoryService(freshRepo, catalog = freshRepo.catalog)
+        val freshService = CsvHistoryService(freshRepo.history, catalog = freshRepo.catalog)
         try {
             SettingsStore(freshStore).setUnit(WeightUnit.KG)
             freshService.commit(freshService.preview(ByteArrayInputStream(csvA.toByteArray())))
@@ -299,16 +299,16 @@ class CsvHistoryServiceTest {
 
         val preview = service.preview(ByteArrayInputStream(text.toByteArray()))
         assertEquals(listOf("Mystery Move"), preview.unmatchedNames.map { it.name })
-        assertEquals(0, repo.sessionsFlow.first().size)
+        assertEquals(0, repo.history.sessionsFlow.first().size)
 
         // Committing without an approval throws and writes nothing.
         assertThrowsMissingApproval { service.commit(preview) }
-        assertEquals(0, repo.sessionsFlow.first().size)
+        assertEquals(0, repo.history.sessionsFlow.first().size)
         assertEquals(0, repo.catalog.catalogFlow.first().entries.count { it.id.startsWith("custom_") })
 
         // Confirming creates the custom exercise and commits the session.
         service.commit(preview, mapOf("Mystery Move" to MovementPattern.H_PULL))
-        assertEquals(1, repo.sessionsFlow.first().size)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
         assertTrue(repo.catalog.catalogFlow.first().entries.any { it.name == "Mystery Move" })
     }
 
@@ -316,7 +316,7 @@ class CsvHistoryServiceTest {
     fun `a malformed CSV is rejected and the database stays empty`() = runTest {
         val badText = "Date,Workout Name,Exercise Name,Weight,Weight Unit,Reps\nnot-a-date,Day A,Squat,225,lb,5\n"
         assertThrowsMalformedRow { service.preview(ByteArrayInputStream(badText.toByteArray())) }
-        assertEquals(0, repo.sessionsFlow.first().size)
+        assertEquals(0, repo.history.sessionsFlow.first().size)
     }
 
     private suspend fun assertThrowsMissingApproval(block: suspend () -> Unit) {

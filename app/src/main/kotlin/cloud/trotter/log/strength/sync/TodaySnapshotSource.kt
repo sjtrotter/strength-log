@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TodayTarget
@@ -42,6 +43,7 @@ class TodaySnapshotSource(
     private val editAckLog: EditAckLog,
     private val settings: SettingsStore,
     private val plans: PlanRepository,
+    private val historyRepository: HistoryRepository,
 ) {
 
     val snapshots: Flow<WatchSnapshot?> = flow {
@@ -75,7 +77,7 @@ class TodaySnapshotSource(
                     Context(unit, rest, cardio, edits)
                 }
                 combine(
-                    repo.observeDay(plan.id, dayId), repo.openRunFlow, context, repo.cardioSessionsFlow, today,
+                    repo.observeDay(plan.id, dayId), repo.openRunFlow, context, historyRepository.cardioSessionsFlow, today,
                 ) { performedDay, open, ctx, cardioHistory, civilDate ->
                     val loggedCardio = cardioHistory.firstOrNull { session ->
                         session.planId == plan.id && session.dayId == dayId &&

@@ -35,9 +35,10 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class TrackerRepositoryNotesTest {
+class HistoryRepositoryNotesTest {
     private lateinit var db: StrengthDatabase
-    private lateinit var repo: TrackerRepository
+    private lateinit var repo: HistoryRepository
+    private lateinit var tracker: TrackerRepository
     private lateinit var scope: CoroutineScope
     private lateinit var store: DataStore<Preferences>
     private lateinit var settings: SettingsStore
@@ -48,16 +49,18 @@ class TrackerRepositoryNotesTest {
         scope = CoroutineScope(Dispatchers.IO + Job())
         store = PreferenceDataStoreFactory.create(scope = scope) { File.createTempFile("notes", ".preferences_pb") }
         settings = SettingsStore(store)
-        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+        val plans = PlanRepository(db, settings)
+        repo = HistoryRepository(db, settings, plans)
+        tracker = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, plans = plans, history = repo)
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }
 
     @Test fun exerciseNoteRoundTripsThroughRoom() = runTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "LOWER", "", listOf(ProgramExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF, 4))))))
-        val slot = repo.plans.daySlotsFlow("A").first().single()
-        repo.setExerciseNote(slot.programExerciseId, "Belt on top")
-        assertEquals("Belt on top", repo.plans.daySlotsFlow("A").first().single().exercise.note)
+        tracker.replaceProgram(Program(listOf(ProgramDay("A", "LOWER", "", listOf(ProgramExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF, 4))))))
+        val slot = tracker.plans.daySlotsFlow("A").first().single()
+        tracker.setExerciseNote(slot.programExerciseId, "Belt on top")
+        assertEquals("Belt on top", tracker.plans.daySlotsFlow("A").first().single().exercise.note)
     }
 
     @Test fun sessionNoteRoundTripsThroughRoom() = runTest {
@@ -121,7 +124,7 @@ class TrackerRepositoryNotesTest {
     @Test fun exportWaitsForTheLegacyNotesMove() = runTest {
         insertSession(11)
         store.edit { it[stringPreferencesKey("session_notes")] = """{"11":"Export me"}""" }
-        assertEquals("Export me", repo.exportSnapshot().sessions.single().note)
+        assertEquals("Export me", tracker.exportSnapshot().sessions.single().note)
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
     }
 

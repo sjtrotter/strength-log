@@ -8,7 +8,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.ImportedSession
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -60,7 +61,7 @@ class ShareCardServiceTest {
 
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
-    private lateinit var repo: TrackerRepository
+    private lateinit var repo: HistoryRepository
     private lateinit var service: ShareCardService
     private lateinit var context: Context
     private lateinit var storeScope: CoroutineScope
@@ -74,12 +75,12 @@ class ShareCardServiceTest {
             File.createTempFile("share-service-settings", ".preferences_pb")
         }
         settings = SettingsStore(dataStore)
-        repo = TrackerRepository(
+        repo = HistoryRepository(
             db = db,
-            programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
+            plans = PlanRepository(db, settings),
         )
         service = ShareCardService(context, repo, settings = settings)
     }

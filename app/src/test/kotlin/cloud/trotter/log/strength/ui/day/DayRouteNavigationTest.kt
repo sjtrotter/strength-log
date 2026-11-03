@@ -152,6 +152,7 @@ class DayRouteNavigationTest {
                 override fun refresh() = Unit
             }, SavedStateHandle(), phoneRest = PhoneRestController(settings, NoOpRestRuntime),
                 plans = repo.plans,
+                historyRepository = repo.history,
             )
         }
         rule.setContent { AppTheme {
@@ -177,13 +178,14 @@ class DayRouteNavigationTest {
                     )) { entry ->
                         val context = ApplicationProvider.getApplicationContext<Context>()
                         viewModel = remember(entry) {
-                            DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings),
+                            DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo.history, settings = settings),
                                 SavedStateHandle(mapOf(
                                     Routes.DAY_ID_ARG to entry.arguments?.getString(Routes.DAY_ID_ARG),
                                     Routes.DAY_PLAN_ID_ARG to entry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
                                 )), FixedClock, alarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings,
                                 plans = repo.plans,
                                 catalog = repo.catalog,
+                                historyRepository = repo.history,
                             )
                         }
                         DayRoute(
@@ -230,11 +232,12 @@ class DayRouteNavigationTest {
         rule.runOnUiThread {
             val context = ApplicationProvider.getApplicationContext<Context>()
             viewModel = DayViewModel(
-                repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
+                repo, SessionPublisher.NoOp, ShareCardService(context, repo.history, settings = settings), SavedStateHandle(),
                 FixedClock, alarm, PhoneRestController(settings, NoOpRestRuntime),
                 settings = settings,
                 plans = repo.plans,
                 catalog = repo.catalog,
+                historyRepository = repo.history,
             )
         }
         rule.setContent {

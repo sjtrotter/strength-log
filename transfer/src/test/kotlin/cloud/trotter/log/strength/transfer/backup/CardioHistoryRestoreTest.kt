@@ -69,7 +69,7 @@ class CardioHistoryRestoreTest {
     @Test fun `a zero second cardio row imported from csv survives a backup round trip`() = runTest {
         val zero = session.copy(seconds = 0, startedAt = 61_000, completedAt = 61_000)
         val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC, listOf(zero))
-        val csvService = CsvHistoryService(repository, catalog = repository.catalog)
+        val csvService = CsvHistoryService(repository.history, catalog = repository.catalog)
         csvService.commit(csvService.preview(csv.byteInputStream()))
         val imported = db.cardioSessionDao().all().single()
         assertTrue(imported.startedAt < imported.completedAt)
@@ -87,7 +87,7 @@ class CardioHistoryRestoreTest {
         service.import(backup)
         assertEquals(before.cardioSessions, db.cardioSessionDao().all())
         assertEquals(before.cardioSetResults, db.cardioSetResultDao().all())
-        assertEquals(sets, repository.cardioSetsFor(id))
+        assertEquals(sets, repository.history.cardioSetsFor(id))
         assertEquals(backup, service.export())
     }
 
@@ -126,7 +126,7 @@ class CardioHistoryRestoreTest {
         assertEquals(listOf(-1L, -1L), rows.map { it.cardioSessionId })
         assertEquals(listOf(0, 1), rows.map { it.position })
         assertEquals(rows, db.cardioSetResultDao().forSession(-1))
-        assertEquals(expectedSets, repository.cardioSetsFor(-1))
+        assertEquals(expectedSets, repository.history.cardioSetsFor(-1))
     }
 
     @Test fun `v12 service restores a twenty second shortened cardio session`() = runTest {
@@ -151,7 +151,7 @@ class CardioHistoryRestoreTest {
 
         assertEquals(before.cardioSessions, db.cardioSessionDao().all())
         assertEquals(before.cardioSetResults, db.cardioSetResultDao().all())
-        assertEquals(shortSets, repository.cardioSetsFor(id))
+        assertEquals(shortSets, repository.history.cardioSetsFor(id))
         assertEquals(backup, service.export())
     }
 
@@ -169,8 +169,8 @@ class CardioHistoryRestoreTest {
         val legacy = BackupCodec().encode(document).replace(",\"activity\":null", "").replace(",\"sets\":[]", "")
         service.import(legacy)
         assertEquals(document.toSnapshot().cardioSessions, db.cardioSessionDao().all())
-        assertNull(repository.cardioSession(7)!!.activity)
-        assertTrue(repository.cardioSetsFor(7).isEmpty())
+        assertNull(repository.history.cardioSession(7)!!.activity)
+        assertTrue(repository.history.cardioSetsFor(7).isEmpty())
         assertTrue(db.cardioSetResultDao().all().isEmpty())
     }
 }

@@ -143,7 +143,7 @@ class DayViewModelWiringTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        shareCardService = ShareCardService(context, repo, settings = settings)
+        shareCardService = ShareCardService(context, repo.history, settings = settings)
     }
 
     @After
@@ -161,7 +161,7 @@ class DayViewModelWiringTest {
         publisher: SessionPublisher = SessionPublisher.NoOp,
         restRuntime: cloud.trotter.log.strength.rest.RestRuntime = cloud.trotter.log.strength.rest.NoOpRestRuntime,
     ): DayViewModel =
-        DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, restRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
+        DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, restRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
 
     @Test
     fun authoredCardioDraftAndSetPageSurviveParcelRecreationAndSaveImmediately() = runVmTest {
@@ -880,7 +880,7 @@ class DayViewModelWiringTest {
         finishReadGate!!.complete(Unit)
         advanceUntilIdle()
 
-        assertTrue(repo.sessionSummariesFlow.first().isNotEmpty())
+        assertTrue(repo.history.sessionSummariesFlow.first().isNotEmpty())
         assertEquals("A", vm.uiState.value.viewDayId)
         assertEquals("Day B, Day B", vm.sessionReceipt.value?.nextDayLine)
         assertNull(handle.get<OpenSheet>("day_open_sheet"))
@@ -1426,7 +1426,7 @@ class DayViewModelWiringTest {
             val receipt = requireNotNull(vm.sessionReceipt.value)
             assertEquals(0, receipt.setCount)
             assertEquals(0, receipt.completedSetCount)
-            assertTrue(repo.sessionSets(receipt.sessionId).any { it.slot == Slot.SS && it.done })
+            assertTrue(repo.history.sessionSets(receipt.sessionId).any { it.slot == Slot.SS && it.done })
             collect.cancel()
             vm.viewModelScope.cancel()
         }
@@ -1952,7 +1952,7 @@ class DayViewModelWiringTest {
         vm.completeDay()
         advanceUntilIdle()
 
-        assertTrue(repo.sessionSummariesFlow.first().isEmpty())
+        assertTrue(repo.history.sessionSummariesFlow.first().isEmpty())
         assertEquals("A", repo.plans.suggestedDayFlow.first())
         assertNull(vm.sessionReceipt.value)
         collect.cancel()
@@ -1980,7 +1980,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
 
         // Exactly the session finishRun just wrote is handed to the publisher.
-        val sessionId = repo.sessionSummariesFlow.first().first().session.id
+        val sessionId = repo.history.sessionSummariesFlow.first().first().session.id
         assertEquals(listOf(sessionId), published)
         collect.cancel()
     }
@@ -2097,7 +2097,7 @@ class DayViewModelWiringTest {
         vm.completeDay()
         advanceUntilIdle()
 
-        val session = repo.sessionSummariesFlow.first().first().session
+        val session = repo.history.sessionSummariesFlow.first().first().session
         assertEquals(stampedAt, session.startedAt)
         assertNull("Finish must close the run", repo.openRunFlow.map { it?.takeIf { run -> run.planId == repo.plans.selectedPlanIdFlow.first()!! }?.startedAt }.first())
         collect.cancel()
@@ -2526,7 +2526,7 @@ class DayViewModelWiringTest {
         assertEquals(2, receipt.completedSetCount)
         assertEquals(total, receipt.totalSetCount)
         assertEquals(2, receipt.setCount)
-        val archived = repo.sessionSets(receipt.sessionId)
+        val archived = repo.history.sessionSets(receipt.sessionId)
         val completed = archived.filter { it.done }
         assertEquals(2, completed.size)
         assertTrue(completed.all { it.exerciseId == "bb_bench" })
@@ -2856,7 +2856,7 @@ class DayViewModelWiringTest {
         assertFalse(vm.uiState.value.canFinish)
         vm.completeDay()
         advanceUntilIdle()
-        assertTrue(repo.sessionsFlow.first().isEmpty())
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
         assertTrue(vm.uiState.value.runOpen)
         vm.discardWorkout()
         advanceUntilIdle()
@@ -2921,7 +2921,7 @@ class DayViewModelWiringTest {
         val card = vm.uiState.value.exercises.single()
         assertEquals("35 × 8", card.lastTimeDisplay)
         assertEquals("45×8", card.personalRecordDisplay)
-        repo.updateSessionSet(repo.sessionSets(recent).single().copy(weightLb = 40.0))
+        repo.history.updateSessionSet(repo.history.sessionSets(recent).single().copy(weightLb = 40.0))
         advanceUntilIdle()
         assertEquals("40 × 8", vm.uiState.value.exercises.single().lastTimeDisplay)
         assertEquals("45×8", vm.uiState.value.exercises.single().personalRecordDisplay)

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.HistoryRepository
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -43,7 +44,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The A1 bonus "last time" chip end to end: [DayViewModel] batches
- * [TrackerRepository.lastPerformed] for a whole day's exercises into
+ * [HistoryRepository.lastPerformed] for a whole day's exercises into
  * [ExerciseCardState.lastTimeDisplay].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -79,7 +80,7 @@ class DayViewModelLastPerformedTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        shareCardService = ShareCardService(context, repo, settings = settings)
+        shareCardService = ShareCardService(context, repo.history, settings = settings)
     }
 
     @After
@@ -93,7 +94,7 @@ class DayViewModelLastPerformedTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
 
     private suspend fun insertSingleDayProgram() {
         repo.replaceProgram(

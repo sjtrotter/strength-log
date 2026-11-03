@@ -6,7 +6,7 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 
 /**
- * One workout to append to history via [TrackerRepository.importSessionHistory]
+ * One workout to append to history via [HistoryRepository.importSessionHistory]
  * (CSV import). [session]'s id and each set's `id`/`sessionId` are ignored on
  * the way in — Room assigns the session its id on insert and that id is stamped
  * onto every set before the sets are written, so the caller (`:transfer`) never

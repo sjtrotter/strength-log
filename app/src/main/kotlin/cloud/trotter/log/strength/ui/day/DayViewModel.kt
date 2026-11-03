@@ -21,6 +21,7 @@ import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.PerformedSlot
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.PlanRepository
@@ -122,6 +123,7 @@ class DayViewModel @Inject constructor(
     private val settings: SettingsStore,
     private val plans: PlanRepository,
     private val catalog: CatalogRepository,
+    private val historyRepository: HistoryRepository,
 ) : ViewModel() {
 
     private val viewDayOverride = savedState.getStateFlow<DaySelection?>(
@@ -203,7 +205,7 @@ class DayViewModel @Inject constructor(
             // A reset replaces slot ids even when the program and history ids stay equal.
             // Those rows must be seeded before observing the replacement day.
             val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(CommittedDay(noDayState(ctx)))
-            val historyKeys = combine(plans.slotsFor(planId, dayId), dayHistoryKeys(repo.observeDay(planId, dayId), repo.sessionSummariesFor(planId))) { slots, ids ->
+            val historyKeys = combine(plans.slotsFor(planId, dayId), dayHistoryKeys(repo.observeDay(planId, dayId), historyRepository.sessionSummariesFor(planId))) { slots, ids ->
                 slots to ids
             }
             // One flatMapLatest per slot emission: a reset cancels the old observer at once, so the
@@ -299,7 +301,7 @@ class DayViewModel @Inject constructor(
         cardioRun, cardioTick, cardioSecondTicker, timedRepEvent,
     ) { run, _, _, reps -> run to reps }.combine(pendingCardioDistances) { execution, _ -> execution }
 
-    private val cardioHistory = combine(repo.cardioSessionsFlow, repo.cardioSetResultsFlow) { sessions, sets ->
+    private val cardioHistory = combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
         sessions to sets
     }
 
@@ -805,7 +807,7 @@ class DayViewModel @Inject constructor(
                 mutationLock.withLock {
                     val id = requireNotNull(pending.sessionId)
                     pending.drafts.filter { it.saved && !it.amended }.forEach { draft ->
-                        repo.amendCardioSetDistance(id, draft.position, draft.metres)
+                        historyRepository.amendCardioSetDistance(id, draft.position, draft.metres)
                         val latest = pendingCardioDistances.value.firstOrNull { it.runId == pending.runId } ?: return@withLock
                         saveDistanceRun(latest.copy(drafts = latest.drafts.map {
                             if (it.position == draft.position && it.saved && it.text == draft.text) it.copy(amended = true) else it
@@ -845,7 +847,7 @@ class DayViewModel @Inject constructor(
         val run = deferredCardioReceipt.value ?: return
         val advancedTo = plans.plansFlow.first().firstOrNull { it.id == run.planId }?.suggestedDayId
         val sessionId = requireNotNull(run.sessionId)
-        val completedAt = repo.cardioSession(sessionId)?.completedAt ?: cardioClock.wallMillis()
+        val completedAt = historyRepository.cardioSession(sessionId)?.completedAt ?: cardioClock.wallMillis()
         if (executionActive) return
         savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
         savedState[KEY_SESSION_RECEIPT] = SessionReceipt(
@@ -1382,7 +1384,7 @@ class DayViewModel @Inject constructor(
         val sessionId = sessionReceipt.value?.sessionId ?: return
         val clean = text.trim().take(120)
         viewModelScope.launch {
-            repo.setSessionNote(sessionId, clean)
+            historyRepository.setSessionNote(sessionId, clean)
             sessionReceipt.value?.takeIf { it.sessionId == sessionId }?.let {
                 savedState[KEY_SESSION_RECEIPT] = it.copy(note = clean)
             }
@@ -1421,7 +1423,7 @@ class DayViewModel @Inject constructor(
                 tracks.retired.none { track -> track.sets.any { it.done } }
             ) return@mutate
             val program = plans.programFor(planId).first()
-            val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
+            val previousHighs = CascadeCeremonyBuilder.allTimeHighs(historyRepository.topSetHistoryFlow.first())
             val dayPosition = program.days.indexOfFirst { it.id == day }
             val nextDayId = if (dayPosition >= 0) {
                 Rotation.nextFor(program, day)
@@ -1436,8 +1438,8 @@ class DayViewModel @Inject constructor(
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
             val unit = settings.unitFlow.first()
-            val sessionSets = repo.sessionSets(sessionId)
-            val session = repo.session(sessionId)
+            val sessionSets = historyRepository.sessionSets(sessionId)
+            val session = historyRepository.session(sessionId)
             val newTopSets = CascadeCeremonyBuilder.from(
                 previousHighs = previousHighs,
                 sessionSets = sessionSets,
@@ -1708,8 +1710,8 @@ class DayViewModel @Inject constructor(
      *  bonus) AND its "Best" profile chips (performance-profile.md Phase 1)
      *  — never one query per exercise for either. */
     private suspend fun fetchDayHistory(ids: List<String>): DayHistory {
-        return DayHistory(repo.lastPerformed(ids), repo.personalRecords(ids),
-            repo.lastPerformedDates(ids))
+        return DayHistory(historyRepository.lastPerformed(ids), historyRepository.personalRecords(ids),
+            historyRepository.lastPerformedDates(ids))
     }
 
     private fun buildState(

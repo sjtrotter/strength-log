@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -15,6 +16,7 @@ class CardioDeltaApplier(
     private val repo: TrackerRepository,
     private val ackLog: CardioAckLog,
     private val sessionPublisher: SessionPublisher,
+    private val historyRepository: HistoryRepository,
 ) {
     enum class Outcome { APPLIED, DUPLICATE, INVALID }
     private val lock = Mutex()
@@ -43,7 +45,7 @@ class CardioDeltaApplier(
             return Outcome.INVALID
         }
 
-        val duplicate = repo.cardioSessionsFlow.first().any {
+        val duplicate = historyRepository.cardioSessionsFlow.first().any {
             it.dayId == delta.dayId && it.startedAt == delta.startedAt
         }
         if (!duplicate) {

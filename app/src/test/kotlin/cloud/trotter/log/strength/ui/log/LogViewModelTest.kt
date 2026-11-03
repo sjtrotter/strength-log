@@ -198,14 +198,14 @@ class LogViewModelTest {
         CivilTime.now(Instant.parse("2026-07-15T12:00:00Z"), ZoneOffset.UTC),
     )
 
-    private val shareCardService by lazy { ShareCardService(ApplicationProvider.getApplicationContext(), repo, settings = settings) }
+    private val shareCardService by lazy { ShareCardService(ApplicationProvider.getApplicationContext(), repo.history, settings = settings) }
 
     private fun newViewModel(
         handle: SavedStateHandle = SavedStateHandle(),
         reader: HealthConnectReader = healthReader,
         publisher: SessionPublisher = SessionPublisher.NoOp,
     ): LogViewModel =
-        LogViewModel(repo, reader, publisher, shareCardService, handle, civilTime, settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
+        LogViewModel(repo.history, reader, publisher, shareCardService, handle, civilTime, settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
 
     private fun session(dayId: String, dayTitle: String, completedAt: Long) =
         WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)
@@ -216,7 +216,7 @@ class LogViewModelTest {
     )
 
     private suspend fun seedTwoSessions() {
-        repo.importSessionHistory(
+        repo.history.importSessionHistory(
             listOf(
                 ImportedSession(session("A", "Lower", 1_000L), listOf(set("bb_back_squat", "Barbell Back Squat"))),
                 ImportedSession(session("B", "Upper", 2_000L), listOf(set("bb_bench", "Barbell Bench Press"), set("bb_row", "Barbell Row"))),
@@ -429,7 +429,7 @@ class LogViewModelTest {
     private suspend fun seedSquatHistory() {
         val july1 = 1_782_907_200_000L // 2026-07-01T12:00:00Z
         val july8 = 1_783_512_000_000L // 2026-07-08T12:00:00Z
-        repo.importSessionHistory(
+        repo.history.importSessionHistory(
             listOf(
                 ImportedSession(session("A", "Lower", july1), listOf(topSet(225.0))),
                 ImportedSession(session("A", "Lower", july8), listOf(topSet(235.0))),

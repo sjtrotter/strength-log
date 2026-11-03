@@ -44,6 +44,7 @@ class TrackerRepositoryCardioSetsTest {
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
     private lateinit var repo: TrackerRepository
+    private lateinit var history: HistoryRepository
     private lateinit var journal: RestoreJournal
     private val snapshotReads = Collections.synchronizedList(mutableListOf<Pair<String, Int?>>())
     private val snapshotQueries = listOf(
@@ -96,37 +97,39 @@ class TrackerRepositoryCardioSetsTest {
         journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-sets-journal", ".preferences_pb")
         }, settings)
-        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+        val plans = PlanRepository(db, settings)
+        history = HistoryRepository(db, settings, plans)
+        repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, plans = plans, history = history)
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }
 
     @Test fun `three results round trip in order with null skipped distance`() = runTest {
         val id = repo.logCardioSession(session, sets)
-        assertEquals(session.copy(id = id), repo.cardioSession(id))
-        assertEquals(sets, repo.cardioSetsFor(id))
+        assertEquals(session.copy(id = id), history.cardioSession(id))
+        assertEquals(sets, history.cardioSetsFor(id))
         assertEquals(listOf(0, 1, 2), db.cardioSetResultDao().forSession(id).map { it.position })
     }
 
     @Test fun `distance amendment preserves the session identity prescription and other results`() = runTest {
         val id = repo.logCardioSession(session, sets)
-        val header = repo.cardioSession(id)
+        val header = history.cardioSession(id)
         val before = db.cardioSetResultDao().forSession(id)
-        repo.amendCardioSetDistance(id, 1, 400)
-        assertEquals(header, repo.cardioSession(id))
-        assertEquals(sets[1].copy(metres = 400), repo.cardioSetsFor(id)[1])
+        history.amendCardioSetDistance(id, 1, 400)
+        assertEquals(header, history.cardioSession(id))
+        assertEquals(sets[1].copy(metres = 400), history.cardioSetsFor(id)[1])
         assertEquals(before[0], db.cardioSetResultDao().forSession(id)[0])
         assertEquals(before[2], db.cardioSetResultDao().forSession(id)[2])
-        repo.amendCardioSetDistance(id, 1, null)
-        assertNull(repo.cardioSetsFor(id)[1].metres)
-        assertNull(repo.cardioSetsFor(id)[1].distanceSource)
+        history.amendCardioSetDistance(id, 1, null)
+        assertNull(history.cardioSetsFor(id)[1].metres)
+        assertNull(history.cardioSetsFor(id)[1].distanceSource)
     }
 
     @Test fun `set aware retry uses the existing day and start identity without appending results`() = runTest {
         val id = repo.logCardioSession(session, sets)
         assertEquals(id, repo.logCardioSession(session.copy(completedAt = 999_000), sets))
         assertEquals(1, db.cardioSessionDao().all().size)
-        assertEquals(sets, repo.cardioSetsFor(id))
+        assertEquals(sets, history.cardioSetsFor(id))
     }
 
     @Test fun `cardio completion advances the originating authored plan once even if another plan is selected`() = runTest {
@@ -142,8 +145,8 @@ class TrackerRepositoryCardioSetsTest {
         val id = repo.logCardioSession(origin, sets, finishDay = true)
         assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
         assertEquals("A", db.planDao().plan(otherPlan)?.suggestedDayId)
-        assertEquals(planId, repo.cardioSession(id)?.planId)
-        assertEquals("Running", repo.cardioSession(id)?.planName)
+        assertEquals(planId, history.cardioSession(id)?.planId)
+        assertEquals("Running", history.cardioSession(id)?.planName)
         assertEquals(id, repo.logCardioSession(origin, sets, finishDay = true))
         assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
     }
@@ -189,7 +192,7 @@ class TrackerRepositoryCardioSetsTest {
                 listOf(sets[0].toEntity(id, 0), sets[1].toEntity(id, invalidRows.size + 1)),
         )
 
-        assertEquals(sets, repo.cardioSetsFor(id))
+        assertEquals(sets, history.cardioSetsFor(id))
         assertEquals(invalidRows.size + sets.size, db.cardioSetResultDao().forSession(id).size)
     }
 
@@ -212,24 +215,24 @@ class TrackerRepositoryCardioSetsTest {
         val legacy = session.copy(activity = null)
         val id = repo.logCardioSession(legacy)
         assertEquals(listOf(legacy.copy(id = id)), db.cardioSessionDao().all())
-        assertEquals(emptyList<CardioSetResult>(), repo.cardioSetsFor(id))
-        assertNull(repo.cardioSession(id)?.activity)
+        assertEquals(emptyList<CardioSetResult>(), history.cardioSetsFor(id))
+        assertNull(history.cardioSession(id)?.activity)
     }
 
     @Test fun `delete and undo carry exact rows without touching another session`() = runTest {
         val id = repo.logCardioSession(session, sets)
         val other = repo.logCardioSession(session.copy(startedAt = 2_000), sets)
         val originalRows = db.cardioSetResultDao().forSession(id)
-        val deleted = checkNotNull(repo.deleteCardioSession(id))
+        val deleted = checkNotNull(history.deleteCardioSession(id))
         assertEquals(originalRows, deleted.sets)
-        assertNull(repo.cardioSession(id))
-        assertEquals(emptyList<CardioSetResult>(), repo.cardioSetsFor(id))
-        assertEquals(sets, repo.cardioSetsFor(other))
-        assertNull(repo.deleteCardioSession(id))
-        repo.restoreCardioSession(deleted)
-        assertEquals(deleted.session, repo.cardioSession(id))
+        assertNull(history.cardioSession(id))
+        assertEquals(emptyList<CardioSetResult>(), history.cardioSetsFor(id))
+        assertEquals(sets, history.cardioSetsFor(other))
+        assertNull(history.deleteCardioSession(id))
+        history.restoreCardioSession(deleted)
+        assertEquals(deleted.session, history.cardioSession(id))
         assertEquals(originalRows, db.cardioSetResultDao().forSession(id))
-        assertEquals(sets, repo.cardioSetsFor(id))
+        assertEquals(sets, history.cardioSetsFor(id))
     }
 
     @Test fun `full restore replaces sets and restores their original ids`() = runTest {
@@ -239,10 +242,10 @@ class TrackerRepositoryCardioSetsTest {
         repo.importSnapshot(snapshot, journal)
         assertEquals(snapshot.cardioSessions, db.cardioSessionDao().all())
         assertEquals(snapshot.cardioSetResults, db.cardioSetResultDao().all())
-        assertEquals(sets, repo.cardioSetsFor(id))
+        assertEquals(sets, history.cardioSetsFor(id))
         repo.importSnapshot(snapshot.copy(cardioSetResults = emptyList()), journal)
         assertEquals(snapshot.cardioSessions, db.cardioSessionDao().all())
-        assertEquals(emptyList<CardioSetResult>(), repo.cardioSetsFor(id))
+        assertEquals(emptyList<CardioSetResult>(), history.cardioSetsFor(id))
         assertTrue(db.cardioSetResultDao().all().isEmpty())
     }
 

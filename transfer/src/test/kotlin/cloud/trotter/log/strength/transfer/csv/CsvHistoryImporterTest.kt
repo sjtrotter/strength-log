@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
 /** The commit half of the preview/confirm model
  *  (docs/briefs/m4-transfer.md, "#16 CSV history export/import"):
  *  building the entities
- *  [cloud.trotter.log.strength.data.TrackerRepository.importSessionHistory]
+ *  [cloud.trotter.log.strength.data.HistoryRepository.importSessionHistory]
  *  writes, once the caller has supplied an approved pattern per unmatched
  *  name. No repository/Room involved — purely a mapping test. */
 class CsvHistoryImporterTest {

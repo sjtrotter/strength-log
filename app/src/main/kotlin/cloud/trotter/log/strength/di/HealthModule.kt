@@ -6,7 +6,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.transfer.health.DefaultHealthConnectClientProvider
 import cloud.trotter.log.strength.transfer.health.HealthConnectClientProvider
 import cloud.trotter.log.strength.transfer.health.HealthConnectPublisher
@@ -36,7 +36,7 @@ object HealthModule {
     @Singleton
     fun sessionPublisher(
         clientProvider: HealthConnectClientProvider,
-        repository: TrackerRepository,
+        repository: HistoryRepository,
     ): SessionPublisher = HealthConnectPublisher(clientProvider, repository)
 
     @Provides

@@ -97,7 +97,7 @@ class DayViewModelDaySwitchTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        shareCardService = ShareCardService(context, repo, settings = settings)
+        shareCardService = ShareCardService(context, repo.history, settings = settings)
     }
 
     @After
@@ -111,7 +111,7 @@ class DayViewModelDaySwitchTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, SavedStateHandle(), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, SavedStateHandle(), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
 
     private suspend fun insertTwoDayProgram() {
         repo.replaceProgram(

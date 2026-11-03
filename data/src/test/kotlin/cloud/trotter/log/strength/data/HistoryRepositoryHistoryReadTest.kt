@@ -29,18 +29,18 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [TrackerRepository.sessionSummariesFlow] and [TrackerRepository.lastPerformed]
+ * [HistoryRepository.sessionSummariesFlow] and [HistoryRepository.lastPerformed]
  * serve the Log screen + day-card "last time" chip through [SessionDao]'s
  * queries. Robolectric + in-memory Room, same pattern as
- * [TrackerRepositorySessionHistoryImportTest] — the query is the thing under
+ * [HistoryRepositorySessionHistoryImportTest] — the query is the thing under
  * test, not the reduction (that's [LastPerformedTest]).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class TrackerRepositoryHistoryReadTest {
+class HistoryRepositoryHistoryReadTest {
 
     private lateinit var db: StrengthDatabase
-    private lateinit var repo: TrackerRepository
+    private lateinit var repo: HistoryRepository
     private lateinit var storeScope: CoroutineScope
 
     @Before
@@ -53,12 +53,13 @@ class TrackerRepositoryHistoryReadTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("history-read-settings", ".preferences_pb")
         }
-        repo = TrackerRepository(
+        val settings = SettingsStore(dataStore)
+        repo = HistoryRepository(
             db = db,
-            programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
+            plans = PlanRepository(db, settings),
         )
     }
 

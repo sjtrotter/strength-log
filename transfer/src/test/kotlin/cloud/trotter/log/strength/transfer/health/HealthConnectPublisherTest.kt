@@ -7,7 +7,8 @@ import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.ImportedSession
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -47,7 +48,7 @@ import org.robolectric.annotation.Config
 class HealthConnectPublisherTest {
 
     private lateinit var db: StrengthDatabase
-    private lateinit var repo: TrackerRepository
+    private lateinit var repo: HistoryRepository
     private lateinit var storeScope: CoroutineScope
 
     @Before
@@ -60,12 +61,13 @@ class HealthConnectPublisherTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("hc-publisher-settings", ".preferences_pb")
         }
-        repo = TrackerRepository(
+        val settings = SettingsStore(dataStore)
+        repo = HistoryRepository(
             db = db,
-            programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
+            plans = PlanRepository(db, settings),
         )
     }
 

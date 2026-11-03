@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.csv
 
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.ImportedSession
 import cloud.trotter.log.strength.data.ImportedCardioSession
 import cloud.trotter.log.strength.data.SessionHistorySnapshot
@@ -16,7 +17,7 @@ import java.util.UUID
 
 /**
  * Turns a confirmed [CsvImportPreview] into the entities
- * [cloud.trotter.log.strength.data.TrackerRepository.importSessionHistory]
+ * [cloud.trotter.log.strength.data.HistoryRepository.importSessionHistory]
  * writes. Pure: no repository, no suspend — [CsvHistoryService] calls this
  * and then hands the result to the repository in one transaction.
  */
@@ -79,7 +80,7 @@ object CsvHistoryImporter {
                         ?: customIdByNormalizedName.getValue(normalizeExerciseName(set.exerciseName))
                     SessionSetEntity(
                         id = 0,
-                        sessionId = 0, // stamped by TrackerRepository.importSessionHistory
+                        sessionId = 0, // stamped by HistoryRepository.importSessionHistory
                         exerciseId = exerciseId,
                         exerciseName = set.exerciseName,
                         slot = Slot.MAIN,

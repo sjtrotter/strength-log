@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.TodayTarget
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.domain.model.Program
@@ -30,6 +31,7 @@ class TodayViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     phoneRest: PhoneRestController,
     private val plans: PlanRepository,
+    private val historyRepository: HistoryRepository,
 ) : ViewModel() {
     val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
     private val expanded = savedState.getStateFlow("today_other_days", false)
@@ -46,7 +48,7 @@ class TodayViewModel @Inject constructor(
         ) { it.toMap() }
         // todayPlans uses the shared display ordering: preferred on Today, else first.
         val factPlanId = run?.planId ?: plans.firstOrNull()?.id
-        val lastSession = factPlanId?.let(repo::lastSessionAtFor) ?: flowOf(null)
+        val lastSession = factPlanId?.let(historyRepository::lastSessionAtFor) ?: flowOf(null)
         combine(programs, lastSession, civilTimeSource.civilTime) { byPlan, last, now ->
             val days = plans.flatMap { plan ->
                 val program = byPlan.getValue(plan.id)

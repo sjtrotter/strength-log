@@ -46,8 +46,8 @@ data class PerformedDay(
     val catalog: ExerciseCatalog,
     val tracks: DayTracks,
     val slots: List<PerformedSlot>,
-    /** Every planned slot's performed exercises, skipped lifts and dropped partners included, so
-     *  skipping or restoring one in a run does not change which history the day reads. */
+    /** Every planned slot's performed exercises, skipped lifts and dropped partners included:
+     *  the day reads history for the whole plan, not only what is left to do. */
     val historyExerciseIds: List<String>,
 ) {
 

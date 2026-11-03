@@ -68,15 +68,15 @@ class CardioDeltaApplierTest {
     )
 
     @Test fun `structured run logs activity and sets and advances its originating plan once`() = runTest {
-        val planId = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val spec = WatchCardioSetSpec("WORK", "TIME", 60)
         val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
             ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
-        val other = repo.createAuthoredPlan("Other", "Other day")
-        repo.publishCreatedAuthoredPlan(other)
+        val other = repo.plans.createAuthoredPlan("Other", "Other day")
+        repo.plans.publishCreatedAuthoredPlan(other)
         val result = WatchCardioSetResult(spec, "FINISHED", 60, 200, "MANUAL")
         val event = delta().copy(planId = planId, activity = "TRACK_RUN", sets = listOf(result), stepsCompleted = 1, finishesDay = true)
         val applier = CardioDeltaApplier(repo, ackLog, publisher)
@@ -97,8 +97,8 @@ class CardioDeltaApplierTest {
     }
 
     @Test fun `old watch retains summary logging without set rows or rotation`() = runTest {
-        val planId = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val block = WatchCardioBlock("TRACK_RUN", listOf(WatchCardioSetSpec("WORK", "TIME", 60))).toDomain()
         repo.replaceProgram(Program(listOf("A", "B").map {
             ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
@@ -114,8 +114,8 @@ class CardioDeltaApplierTest {
     }
 
     @Test fun `start eligibility survives edits from cardio-only to mixed and from mixed to cardio-only`() = runTest {
-        val planId = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val spec = WatchCardioSetSpec("WORK", "TIME", 60)
         val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
         val cardioOnly = Program(listOf("A", "B").map {
@@ -139,8 +139,8 @@ class CardioDeltaApplierTest {
     }
 
     @Test fun `structured old-watch completion without eligibility logs sets without finishing the day`() = runTest {
-        val planId = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val spec = WatchCardioSetSpec("WORK", "TIME", 60)
         val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
         repo.replaceProgram(Program(listOf("A", "B").map {
@@ -155,8 +155,8 @@ class CardioDeltaApplierTest {
     }
 
     @Test fun `offline A delivered after phone finishes B logs without rewinding C`() = runTest {
-        val planId = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val spec = WatchCardioSetSpec("WORK", "TIME", 60)
         val block = WatchCardioBlock("TRACK_RUN", listOf(spec)).toDomain()
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
@@ -239,10 +239,10 @@ class CardioDeltaApplierTest {
 
     @Test fun `explicit-plan cardio stays with its plan and old-watch cardio has no plan or rotation`() = runTest {
         repo.replaceProgram(Program(listOf("A", "B").map { ProgramDay(it, "Test $it", "", emptyList()) }))
-        val planP = repo.selectedPlanIdFlow.first()!!
-        repo.renamePlan(planP, "Strength")
-        val planQ = repo.duplicatePlan(planP, "Running")
-        repo.selectPlan(planQ)
+        val planP = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.renamePlan(planP, "Strength")
+        val planQ = repo.plans.duplicatePlan(planP, "Running")
+        repo.plans.selectPlan(planQ)
         val applier = CardioDeltaApplier(repo, ackLog, publisher)
 
         assertEquals(CardioDeltaApplier.Outcome.APPLIED, applier.apply(delta().copy(planId = planP)))

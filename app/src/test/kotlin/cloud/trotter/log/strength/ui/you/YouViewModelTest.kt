@@ -98,7 +98,7 @@ class YouViewModelTest {
     }
 
     private fun newViewModel(): YouViewModel =
-        YouViewModel(repo, settings = settings).also { vm ->
+        YouViewModel(repo.plans, settings = settings).also { vm ->
             vms += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -114,7 +114,7 @@ class YouViewModelTest {
         advanceUntilIdle()
 
         val expectedLb = WeightUnit.KG.toLb(100.0).let(Math::round).toInt()
-        assertEquals(expectedLb, repo.configFlow.first().bodyweightLb)
+        assertEquals(expectedLb, repo.plans.configFlow.first().bodyweightLb)
     }
 
     @Test
@@ -123,8 +123,8 @@ class YouViewModelTest {
         vm.setAge(0)
         vm.setLevel(ExperienceLevel.ADVANCED)
         advanceUntilIdle()
-        assertEquals(1, repo.configFlow.first().age)
-        assertEquals(ExperienceLevel.ADVANCED, repo.configFlow.first().level)
+        assertEquals(1, repo.plans.configFlow.first().age)
+        assertEquals(ExperienceLevel.ADVANCED, repo.plans.configFlow.first().level)
         assertEquals(1, vm.uiState.value.config.age)
     }
 
@@ -136,35 +136,35 @@ class YouViewModelTest {
         vm.setBodyweight(245.0)
         vm.setAge(41)
         advanceUntilIdle()
-        assertEquals(245, repo.configFlow.first().bodyweightLb)
-        assertEquals(41, repo.configFlow.first().age)
+        assertEquals(245, repo.plans.configFlow.first().bodyweightLb)
+        assertEquals(41, repo.plans.configFlow.first().age)
         assertEquals(listOf(240, 245, 245), writtenBodyweights)
         assertEquals(listOf(40, 40, 41), writtenAges)
     }
 
     @Test
     fun configChangesKeepTheSelectedRecipeAndProgram() = runVmTest {
-        repo.setWizardAnswers(repo.wizardAnswersFlow.first())
-        repo.setPlanEmphasis(repo.selectedPlanFlow.first()!!.id, GoalEmphasis.STRENGTH)
+        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first())
+        repo.plans.setPlanEmphasis(repo.plans.selectedPlanFlow.first()!!.id, GoalEmphasis.STRENGTH)
         val vm = newViewModel()
-        val programBefore = repo.programFlow.first()
+        val programBefore = repo.plans.programFlow.first()
         vm.setAge(50)
         advanceUntilIdle()
-        assertEquals(GoalEmphasis.STRENGTH, repo.configFlow.first().emphasis)
-        assertEquals(programBefore, repo.programFlow.first())
+        assertEquals(GoalEmphasis.STRENGTH, repo.plans.configFlow.first().emphasis)
+        assertEquals(programBefore, repo.plans.programFlow.first())
     }
 
     @Test
     fun levelChangesKeepTheSelectedPlanEmphasis() = runVmTest {
-        repo.setWizardAnswers(repo.wizardAnswersFlow.first())
-        val selectedPlanId = repo.selectedPlanFlow.first()!!.id
-        repo.setPlanEmphasis(selectedPlanId, GoalEmphasis.STRENGTH)
+        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first())
+        val selectedPlanId = repo.plans.selectedPlanFlow.first()!!.id
+        repo.plans.setPlanEmphasis(selectedPlanId, GoalEmphasis.STRENGTH)
         val vm = newViewModel()
 
         vm.setLevel(ExperienceLevel.ADVANCED)
         advanceUntilIdle()
 
-        assertEquals(ExperienceLevel.ADVANCED, repo.configFlow.first().level)
-        assertEquals(GoalEmphasis.STRENGTH, repo.wizardAnswersFor(selectedPlanId).first().config.emphasis)
+        assertEquals(ExperienceLevel.ADVANCED, repo.plans.configFlow.first().level)
+        assertEquals(GoalEmphasis.STRENGTH, repo.plans.wizardAnswersFor(selectedPlanId).first().config.emphasis)
     }
 }

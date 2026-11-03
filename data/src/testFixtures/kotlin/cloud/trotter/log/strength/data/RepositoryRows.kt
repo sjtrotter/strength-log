@@ -45,7 +45,7 @@ suspend fun TrackerRepository.writeTestRows(
     slot: String,
     sets: List<LoggedSet>,
 ): RunWriteResult {
-    val planId = planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
+    val planId = plans.planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
     return applyToRun(runId, planId, dayId, listOf(
         TrackEdit(programExerciseId, slot, createsMissing = true) { sets },
     ))
@@ -58,7 +58,7 @@ suspend fun TrackerRepository.writeTestRowsPaired(
     main: List<LoggedSet>,
     ss: List<LoggedSet>,
 ): RunWriteResult {
-    val planId = planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
+    val planId = plans.planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
     return applyToRun(runId, planId, dayId, listOf(
         TrackEdit(programExerciseId, Slot.MAIN, createsMissing = true) { main },
         TrackEdit(programExerciseId, Slot.SS, createsMissing = true) { ss },

@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
@@ -49,6 +51,8 @@ internal class DayEditor(
     private val clearLogUndo: suspend () -> Unit,
     private val dismissSwapUndo: () -> Unit,
     otherWorkoutOpenMessage: Flow<Boolean>,
+    private val plans: PlanRepository,
+    private val catalog: CatalogRepository,
 ) {
     val pendingPlanSwap = savedState.getStateFlow<PendingPlanSwap?>(KEY_PENDING_PLAN_SWAP, null)
 
@@ -59,7 +63,7 @@ internal class DayEditor(
         val dayId = ctx.dayId
         val plan = ctx.plan
         if (dayId == null || plan == null) flowOf(DayEditUiState()) else combine(
-            repo.slotsFor(plan.id, dayId), repo.wizardAnswersFor(plan.id),
+            plans.slotsFor(plan.id, dayId), plans.wizardAnswersFor(plan.id),
             // Set ticks and edits re-emit the tracks; only the run and performed identities matter here.
             repo.dayTracksFlow(plan.id, dayId).map { tracks ->
                 Pair(tracks.runOpen, tracks.tracks
@@ -197,7 +201,7 @@ internal class DayEditor(
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
-            val slot = repo.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
+            val slot = plans.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
 
             val tracks = repo.dayTracksFlow(planId, day).first()
             val doneCount = planSwapDoneCount(slot, tracks, half, exerciseId)
@@ -205,7 +209,7 @@ internal class DayEditor(
             if (doneCount > 0) {
                 savedState[KEY_PENDING_PLAN_SWAP] = PendingPlanSwap(
                     day, planId, slot.programExerciseId, half, exerciseId,
-                    oldId?.let { repo.catalogFlow.first().find(it)?.name ?: it }.orEmpty(), doneCount,
+                    oldId?.let { catalog.catalogFlow.first().find(it)?.name ?: it }.orEmpty(), doneCount,
                 )
             } else applyPlanSwap(day, slot.programExerciseId, half, exerciseId)
         }
@@ -234,7 +238,7 @@ internal class DayEditor(
     private suspend fun reconcilePlanSwap(pending: PendingPlanSwap, confirmed: Boolean = false) {
         if (pendingPlanSwap.value != pending || dayState.value.planId != pending.planId ||
             currentDay() != pending.dayId) return
-        val slot = repo.slotsFor(pending.planId, pending.dayId).first().firstOrNull {
+        val slot = plans.slotsFor(pending.planId, pending.dayId).first().firstOrNull {
             it.programExerciseId == pending.programExerciseId
         }
         if (slot == null) {
@@ -263,7 +267,7 @@ internal class DayEditor(
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
-            val entry = repo.catalogFlow.first().find(exerciseId)
+            val entry = catalog.catalogFlow.first().find(exerciseId)
             val structure = entry?.let { SetStructure.defaultFor(it) } ?: SetStructure.STRAIGHT
             repo.addExercise(day, ProgramExercise(exerciseId, structure = structure), targetPlanId = planId)
         }
@@ -274,7 +278,7 @@ internal class DayEditor(
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
-            val slots = repo.slotsFor(planId, day).first()
+            val slots = plans.slotsFor(planId, day).first()
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
             repo.removeExercise(slot.programExerciseId)
         }
@@ -315,7 +319,7 @@ internal class DayEditor(
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
-            val slot = repo.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
+            val slot = plans.slotsFor(planId, day).first().firstOrNull { it.position == position } ?: return@mutate
             repo.removeSupersetPartner(day, slot.programExerciseId)
         }
     }

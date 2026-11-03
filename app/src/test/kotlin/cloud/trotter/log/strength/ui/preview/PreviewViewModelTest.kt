@@ -37,8 +37,8 @@ import org.robolectric.annotation.Config
 class PreviewViewModelTest : OverviewFixture() {
     @Test fun aGapInDayLettersKeepsTheThirdAccentInPreview() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
-        val program = repo.programFor(plan).first()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val program = repo.plans.programFor(plan).first()
         repo.replaceProgram(Program(listOf(program.days[0], program.days[1].copy(id = "C"))))
         val vm = preview(plan, "C")
         advanceUntilIdle()
@@ -49,7 +49,7 @@ class PreviewViewModelTest : OverviewFixture() {
 
     @Test fun unopenedPreviewUsesTheWorkoutSeedWithoutWritingWorkingValues() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = preview(plan, "A")
         advanceUntilIdle()
         assertEquals("235 × 5", vm.uiState.value.lifts.single().working)
@@ -69,8 +69,8 @@ class PreviewViewModelTest : OverviewFixture() {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Push", "", listOf(
             ProgramExercise("bb_bench"), ProgramExercise("pushup"),
         )))))
-        val plan = repo.selectedPlanIdFlow.first()!!
-        val skipped = repo.slotsFor(plan, "A").first().first()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val skipped = repo.plans.slotsFor(plan, "A").first().first()
         repo.startRun(plan, "A")
         val vm = preview(plan, "A")
         advanceUntilIdle()
@@ -81,13 +81,13 @@ class PreviewViewModelTest : OverviewFixture() {
 
         assertTrue(repo.dayTracksFlow(plan, "A").first().runOpen)
         assertEquals(setOf(skipped.programExerciseId), repo.dayTracksFlow(plan, "A").first().skippedLifts)
-        assertEquals(listOf(repo.catalogFlow.first().get("pushup").name), vm.uiState.value.lifts.map { it.name })
+        assertEquals(listOf(repo.catalog.catalogFlow.first().get("pushup").name), vm.uiState.value.lifts.map { it.name })
     }
 
     @Test fun repsOnlyWorkingValueHasNoLeadingSpace() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Push", "", listOf(ProgramExercise("pushup"))))))
-        val plan = repo.selectedPlanIdFlow.first()!!
-        val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
         db.storeTestRows("A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 8, SetKind.WORK)))
         val vm = preview(plan, "A")
         advanceUntilIdle()
@@ -96,8 +96,8 @@ class PreviewViewModelTest : OverviewFixture() {
 
     @Test fun previewUsesStoredFirstWorkingValuesRatherThanTheGoalOrRamp() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
-        val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
         db.storeTestRows("A", slot, Slot.MAIN, listOf(
             LoggedSet(100.0, 5, SetKind.RAMP), LoggedSet(225.0, 7, SetKind.TOP), LoggedSet(175.0, 8, SetKind.BACKOFF),
         ))
@@ -113,8 +113,8 @@ class PreviewViewModelTest : OverviewFixture() {
 
     @Test fun performedNameLoadAndLastFollowTheRunSwapAndHistoryEdits() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
-        val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
         val started = repo.startRun(plan, "A") as RunStartResult.Started
         assertTrue(repo.swapInRun(started.runId, slot, Slot.MAIN, "hack_squat"))
         db.storeTestRows("A", slot, Slot.MAIN, listOf(LoggedSet(180.0, 8, SetKind.WORK)), started.runId)
@@ -128,20 +128,20 @@ class PreviewViewModelTest : OverviewFixture() {
             SetKind.WORK.name, 170.0, 9, true)))
         advanceUntilIdle()
         assertEquals("170 × 9", vm.uiState.value.lifts.single().last)
-        assertEquals("bb_back_squat", repo.slotsFor(plan, "A").first().single().exercise.exerciseId)
+        assertEquals("bb_back_squat", repo.plans.slotsFor(plan, "A").first().single().exercise.exerciseId)
     }
 
     @Test fun supersetJoinsBothPerformedNamesAndValues() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = preview(plan, "B")
         advanceUntilIdle()
-        val catalog = repo.catalogFlow.first()
+        val catalog = repo.catalog.catalogFlow.first()
         assertEquals("${catalog.find("ez_curl")!!.name} + ${catalog.find("rope_pushdown")!!.name}", vm.uiState.value.lifts.single().name)
         assertTrue(vm.uiState.value.lifts.single().working!!.contains(" + "))
         vm.start()
         advanceUntilIdle()
-        val slot = repo.slotsFor(plan, "B").first().single().programExerciseId
+        val slot = repo.plans.slotsFor(plan, "B").first().single().programExerciseId
         repo.swapInRun(repo.openRunFlow.first()!!.id, slot, Slot.SS, "bb_bench")
         advanceUntilIdle()
         assertEquals("${catalog.find("ez_curl")!!.name} + ${catalog.find("bb_bench")!!.name}", vm.uiState.value.lifts.single().name)
@@ -149,9 +149,9 @@ class PreviewViewModelTest : OverviewFixture() {
 
     @Test fun previewStartSeedsBothTracksAndEmitsItsOwnPlanAndDay() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
-        val other = repo.duplicatePlan(plan, "Preferred")
-        repo.selectPlan(other)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val other = repo.plans.duplicatePlan(plan, "Preferred")
+        repo.plans.selectPlan(other)
         val vm = preview(plan, "B")
         advanceUntilIdle()
         vm.start()
@@ -164,8 +164,8 @@ class PreviewViewModelTest : OverviewFixture() {
     }
 
     @Test fun cardioOnlyPreviewNavigatesToTheExistingDayScreenWithoutAStrengthRun() = runTest(dispatcher) {
-        val plan = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(plan)
+        val plan = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(plan)
         repo.setCardioBlock(plan, "A", CardioBlock(CardioActivity.ROAD_RUN, listOf(
             CardioSetSpec(CardioRole.WORK, Measure.Time(120)),
         )))
@@ -180,7 +180,7 @@ class PreviewViewModelTest : OverviewFixture() {
 
     @Test fun conflictingPreviewStartUsesTheSharedConfirmationPolicy() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         repo.startRun(plan, "B")
         val vm = preview(plan, "A")
         advanceUntilIdle()
@@ -196,7 +196,7 @@ class PreviewViewModelTest : OverviewFixture() {
 
     @Test fun editArgumentOpensEditorOnceAndDismissalSurvivesRecreation() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         val handle = SavedStateHandle(mapOf(Routes.DAY_PLAN_ID_ARG to plan.toString(), Routes.DAY_ID_ARG to "B", Routes.DAY_EDITOR_ARG to true))
         val vm = day(handle)
         advanceUntilIdle()

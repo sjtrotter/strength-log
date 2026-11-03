@@ -128,7 +128,7 @@ class PlanSettingsTest {
         val writeOpen = CompletableDeferred<Unit>()
         store.gateOnUpdate = 2
         store.gate = writeOpen
-        val fixup = launch { repository.runPlanSettingsFixupIfNeeded() }
+        val fixup = launch { repository.plans.runPlanSettingsFixupIfNeeded() }
         readReached.await()
         val importing = launch { repository.importSnapshot(snapshot, journal) }
         try {
@@ -154,9 +154,9 @@ class PlanSettingsTest {
         val authored = plan(2).copy(origin = PlanOrigin.AUTHORED.name)
         db.planDao().insertPlans(listOf(plan(1), authored, plan(3), existing))
         writeLegacy(legacy, "B")
-        val before = repo.configFlow.first()
+        val before = repo.plans.configFlow.first()
 
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
 
         assertEquals(legacy, answersFor(1))
         assertEquals(legacy, answersFor(3))
@@ -164,13 +164,13 @@ class PlanSettingsTest {
         assertNull(db.planDao().plan(3)!!.suggestedDayId)
         assertEquals(authored, db.planDao().plan(2))
         assertEquals(existing, db.planDao().plan(4))
-        assertEquals(before, repo.configFlow.first())
+        assertEquals(before, repo.plans.configFlow.first())
         assertLegacyKeysGone()
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         val plans = db.planDao().allPlans()
         val prefs = store.data.first()
 
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
 
         assertEquals(plans, db.planDao().allPlans())
         assertEquals(prefs, store.data.first())
@@ -182,7 +182,7 @@ class PlanSettingsTest {
         writeLegacy(strengthAnswers(), "B")
         store.failOnUpdate = 2
 
-        val failure = runCatching { repo.runPlanSettingsFixupIfNeeded() }.exceptionOrNull()
+        val failure = runCatching { repo.plans.runPlanSettingsFixupIfNeeded() }.exceptionOrNull()
 
         assertTrue(failure is IOException)
         assertEquals(strengthAnswers(), answersFor(1))
@@ -192,10 +192,10 @@ class PlanSettingsTest {
         db.planDao().updateRecipe(1, PlanRecipeJson.encode(physiqueAnswers()))
         db.planDao().updateSuggestedDay(1, "C")
 
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
 
         assertEquals(physiqueAnswers(), answersFor(1))
-        assertEquals("C", repo.suggestedDayFlow.first())
+        assertEquals("C", repo.plans.suggestedDayFlow.first())
         assertLegacyKeysGone()
         assertTrue(settings.planSettingsFixupDoneFlow.first())
     }
@@ -204,10 +204,10 @@ class PlanSettingsTest {
     fun `empty legacy store is retired without manufacturing recipes`() = runTest {
         db.planDao().insertPlan(plan(1))
 
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
 
         assertNull(db.planDao().plan(1)!!.recipeJson)
-        assertEquals(WizardAnswers(), repo.wizardAnswersFlow.first())
+        assertEquals(WizardAnswers(), repo.plans.wizardAnswersFlow.first())
         assertTrue(settings.planSettingsFixupDoneFlow.first())
     }
 
@@ -216,11 +216,11 @@ class PlanSettingsTest {
         db.planDao().insertPlan(plan(1))
         writeLegacy(strengthAnswers(), "B")
 
-        repo.setPlanEmphasis(1, GoalEmphasis.PHYSIQUE)
+        repo.plans.setPlanEmphasis(1, GoalEmphasis.PHYSIQUE)
 
-        assertEquals(GoalEmphasis.PHYSIQUE, repo.configFlow.first().emphasis)
-        repo.runPlanSettingsFixupIfNeeded()
-        assertEquals(GoalEmphasis.PHYSIQUE, repo.configFlow.first().emphasis)
+        assertEquals(GoalEmphasis.PHYSIQUE, repo.plans.configFlow.first().emphasis)
+        repo.plans.runPlanSettingsFixupIfNeeded()
+        assertEquals(GoalEmphasis.PHYSIQUE, repo.plans.configFlow.first().emphasis)
         assertEquals(GoalEmphasis.PHYSIQUE, answersFor(1).config.emphasis)
     }
 
@@ -234,12 +234,12 @@ class PlanSettingsTest {
         val emissions = mutableListOf<GoalEmphasis>()
         val observed = Channel<GoalEmphasis>(Channel.UNLIMITED)
         val collector = backgroundScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            repo.configFlow.collect {
+            repo.plans.configFlow.collect {
                 emissions += it.emphasis
                 observed.send(it.emphasis)
             }
         }
-        val startup = launch { repo.runPlanSettingsFixupIfNeeded() }
+        val startup = launch { repo.plans.runPlanSettingsFixupIfNeeded() }
         store.gateReached.await()
         assertTrue(emissions.isEmpty())
 
@@ -249,7 +249,7 @@ class PlanSettingsTest {
         startup.join()
         // A later lifter edit makes the same live collector emit again after
         // key retirement, rather than stopping at its first value.
-        repo.updateLifter { it.copy(age = 41) }
+        repo.plans.updateLifter { it.copy(age = 41) }
         observed.receive()
         collector.cancelAndJoin()
         assertTrue(emissions.isNotEmpty())
@@ -263,13 +263,13 @@ class PlanSettingsTest {
         settings.setGlobalLifter(global)
         val prefs = CardioPrefs(CardioMode.LOW_IMPACT, CardioPlacement.BOTH, false)
 
-        repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
+        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first().copy(cardio = prefs))
 
         assertEquals(WizardAnswers(config = global.toConfig(), cardio = prefs), answersFor(1))
         settings.setSelectedPlanId(2)
-        repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
+        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first().copy(cardio = prefs))
         assertEquals(WizardAnswers(config = global.toConfig(), cardio = prefs), answersFor(2))
-        assertEquals(WizardAnswers(config = global.toConfig(), cardio = prefs), repo.wizardAnswersFlow.first())
+        assertEquals(WizardAnswers(config = global.toConfig(), cardio = prefs), repo.plans.wizardAnswersFlow.first())
     }
 
     @Test
@@ -279,7 +279,7 @@ class PlanSettingsTest {
         db.planDao().insertPlans(listOf(plan(1, one, "B"), plan(2, two, "D")))
         val emissions = Channel<LifterConfig>(Channel.UNLIMITED)
         val collector = backgroundScope.launch {
-            repo.configFlow.collect { emissions.send(it) }
+            repo.plans.configFlow.collect { emissions.send(it) }
         }
         assertEquals(one.config, emissions.receive())
         assertSelected(one, "B")
@@ -298,13 +298,13 @@ class PlanSettingsTest {
         db.planDao().insertPlans(listOf(plan(1, one), plan(2, two)))
         val changed = one.config.copy(bodyweightLb = 210, age = 31, level = ExperienceLevel.ADVANCED, emphasis = GoalEmphasis.BALANCED)
 
-        repo.updateLifter { it.copy(bodyweightLb = changed.bodyweightLb, age = changed.age, level = changed.level) }
-        repo.setPlanEmphasis(repo.selectedPlanFlow.first()!!.id, changed.emphasis)
+        repo.plans.updateLifter { it.copy(bodyweightLb = changed.bodyweightLb, age = changed.age, level = changed.level) }
+        repo.plans.setPlanEmphasis(repo.plans.selectedPlanFlow.first()!!.id, changed.emphasis)
 
-        assertEquals(changed, repo.configFlow.first())
-        assertEquals(one.copy(config = changed), repo.wizardAnswersFlow.first())
+        assertEquals(changed, repo.plans.configFlow.first())
+        assertEquals(one.copy(config = changed), repo.plans.wizardAnswersFlow.first())
         settings.setSelectedPlanId(2)
-        assertEquals(changed.copy(emphasis = GoalEmphasis.PHYSIQUE), repo.configFlow.first())
+        assertEquals(changed.copy(emphasis = GoalEmphasis.PHYSIQUE), repo.plans.configFlow.first())
         assertEquals(PlanRecipeJson.encode(two), db.planDao().plan(2)!!.recipeJson)
         assertLegacyKeysGone()
     }
@@ -313,14 +313,14 @@ class PlanSettingsTest {
     fun `lifter edit preserves the latest emphasis and leaves the recipe byte identical`() = runTest {
         db.planDao().insertPlan(plan(1, WizardAnswers()))
         settings.setSelectedPlanId(1)
-        assertEquals(GoalEmphasis.BALANCED, repo.configFlow.first().emphasis)
-        repo.setPlanEmphasis(1, GoalEmphasis.STRENGTH)
+        assertEquals(GoalEmphasis.BALANCED, repo.plans.configFlow.first().emphasis)
+        repo.plans.setPlanEmphasis(1, GoalEmphasis.STRENGTH)
         val recipeBefore = db.planDao().plan(1)!!.recipeJson!!
 
-        repo.updateLifter { it.copy(bodyweightLb = 205) }
+        repo.plans.updateLifter { it.copy(bodyweightLb = 205) }
 
-        assertEquals(GoalEmphasis.STRENGTH, repo.wizardAnswersFor(1).first().config.emphasis)
-        assertEquals(205, repo.configFlow.first().bodyweightLb)
+        assertEquals(GoalEmphasis.STRENGTH, repo.plans.wizardAnswersFor(1).first().config.emphasis)
+        assertEquals(205, repo.plans.configFlow.first().bodyweightLb)
         assertEquals(recipeBefore, db.planDao().plan(1)!!.recipeJson)
     }
 
@@ -331,52 +331,52 @@ class PlanSettingsTest {
         db.planDao().insertPlans(listOf(plan(1, one), plan(2, two), plan(3).copy(origin = PlanOrigin.AUTHORED.name)))
         val prefs = CardioPrefs(CardioMode.LOW_IMPACT, CardioPlacement.BOTH, false)
 
-        repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
+        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first().copy(cardio = prefs))
 
-        assertEquals(one.copy(cardio = prefs), repo.wizardAnswersFlow.first())
+        assertEquals(one.copy(cardio = prefs), repo.plans.wizardAnswersFlow.first())
         assertEquals(PlanRecipeJson.encode(two), db.planDao().plan(2)!!.recipeJson)
         settings.setSelectedPlanId(3)
-        repo.updateLifter { it.copy(bodyweightLb = 205) }
-        repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = prefs))
-        repo.setPlanEmphasis(3, one.config.emphasis)
-        assertEquals(one.config.copy(bodyweightLb = 205), repo.configFlow.first())
+        repo.plans.updateLifter { it.copy(bodyweightLb = 205) }
+        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first().copy(cardio = prefs))
+        repo.plans.setPlanEmphasis(3, one.config.emphasis)
+        assertEquals(one.config.copy(bodyweightLb = 205), repo.plans.configFlow.first())
         assertEquals(prefs, answersFor(3).cardio)
-        repo.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
+        repo.plans.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
         assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), answersFor(3))
-        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), repo.wizardAnswersFlow.first())
+        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), repo.plans.wizardAnswersFlow.first())
         settings.setSelectedPlanId(2)
-        repo.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
-        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), repo.wizardAnswersFlow.first())
+        repo.plans.setWizardAnswers(two.copy(config = two.config.copy(bodyweightLb = 215)))
+        assertEquals(two.copy(config = two.config.copy(bodyweightLb = 215)), repo.plans.wizardAnswersFlow.first())
         assertLegacyKeysGone()
     }
 
     @Test
     fun `authored emphasis sticks in a seeded recipe and changes standard lift goals`() = runTest {
-        val plan = repo.createAuthoredPlan("Strength", "Day A")
-        repo.publishCreatedAuthoredPlan(plan)
-        val original = repo.configFlow.first()
+        val plan = repo.plans.createAuthoredPlan("Strength", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        val original = repo.plans.configFlow.first()
         assertEquals(settings.globalLifterFlow.first().toConfig(), original)
-        val entry = repo.catalogFlow.first().get("bb_back_squat")
+        val entry = repo.catalog.catalogFlow.first().get("bb_back_squat")
         val before = GoalCalculator.targetFor(entry, original)
         val changed = original.copy(emphasis = GoalEmphasis.STRENGTH)
-        repo.setWizardAnswers(repo.wizardAnswersFlow.first())
-        repo.setPlanEmphasis(plan, changed.emphasis)
-        assertEquals(changed, repo.configFlow.first())
-        assertEquals(changed, repo.wizardAnswersFor(plan).first().config)
+        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first())
+        repo.plans.setPlanEmphasis(plan, changed.emphasis)
+        assertEquals(changed, repo.plans.configFlow.first())
+        assertEquals(changed, repo.plans.wizardAnswersFor(plan).first().config)
         assertEquals(changed, answersFor(plan).config)
-        assertFalse(before == GoalCalculator.targetFor(entry, repo.configFlow.first()))
-        val other = repo.createAuthoredPlan("Other", "Day A")
-        repo.publishCreatedAuthoredPlan(other)
-        assertEquals(original, repo.configFlow.first())
-        repo.selectPlan(plan)
-        assertEquals(changed, repo.configFlow.first())
+        assertFalse(before == GoalCalculator.targetFor(entry, repo.plans.configFlow.first()))
+        val other = repo.plans.createAuthoredPlan("Other", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(other)
+        assertEquals(original, repo.plans.configFlow.first())
+        repo.plans.selectPlan(plan)
+        assertEquals(changed, repo.plans.configFlow.first())
     }
 
     @Test
     fun `wizard can persist a recipe before the first program exists`() = runTest {
-        repo.setWizardAnswers(strengthAnswers())
+        repo.plans.setWizardAnswers(strengthAnswers())
 
-        assertEquals(strengthAnswers(), repo.wizardAnswersFlow.first())
+        assertEquals(strengthAnswers(), repo.plans.wizardAnswersFlow.first())
         assertEquals(PlanOrigin.GENERATED.name, db.planDao().allPlans().single().origin)
         assertEquals(db.planDao().allPlans().single().id, settings.selectedPlanIdFlow.first())
         assertLegacyKeysGone()
@@ -414,7 +414,7 @@ class PlanSettingsTest {
         assertTrue(runCatching { repo.finishRun(repo.openRunFlow.first()!!.id)!! }.isFailure)
 
         assertTrue(db.sessionDao().allSessions().isEmpty())
-        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
         assertEquals(1_000L, repo.openRunFlow.first()!!.startedAt)
     }
 
@@ -432,12 +432,12 @@ class PlanSettingsTest {
             db.planDao().deleteAllPlans()
             db.planDao().insertPlan(plan(1))
             store.edit { it.remove(booleanPreferencesKey("plan_settings_fixup_done")) }
-            assertEquals(oldConfig, repo.configFlow.first())
+            assertEquals(oldConfig, repo.plans.configFlow.first())
 
-            repo.runPlanSettingsFixupIfNeeded()
+            repo.plans.runPlanSettingsFixupIfNeeded()
 
-            assertEquals(oldConfig, repo.configFlow.first())
-            assertEquals(expected, GoalCalculator.goalForMain(StandardLift.SQUAT, false, repo.configFlow.first()), 0.0)
+            assertEquals(oldConfig, repo.plans.configFlow.first())
+            assertEquals(expected, GoalCalculator.goalForMain(StandardLift.SQUAT, false, repo.plans.configFlow.first()), 0.0)
             if (answers == WizardAnswers()) assertEquals(235.0, expected, 0.0)
         }
     }
@@ -482,7 +482,7 @@ class PlanSettingsTest {
         assertLegacyKeysGone()
         repo.importSnapshot(legacy.copy(plans = emptyList(), selectedPlanId = null, days = listOf(day(1, "A", 0))), journal)
         assertEquals(one, answersFor(PlanEntity.LEGACY_ID))
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
     }
 
     @Test
@@ -506,20 +506,20 @@ class PlanSettingsTest {
 
         assertEquals(PlanEntity.LEGACY_ID, db.planDao().allPlans().single().id)
         assertEquals(answers, answersFor(PlanEntity.LEGACY_ID))
-        assertEquals(answers, repo.wizardAnswersFlow.first())
-        assertTrue(repo.programFlow.first().days.isEmpty())
+        assertEquals(answers, repo.plans.wizardAnswersFlow.first())
+        assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertFalse(settings.wizardCompleteFlow.first())
         val generated = ProgramGenerator.generate(answers)
         repo.replaceProgram(generated)
         assertEquals(1, db.planDao().allPlans().size)
-        assertEquals(generated, repo.programFlow.first())
-        assertEquals(answers, repo.wizardAnswersFlow.first())
+        assertEquals(generated, repo.plans.programFlow.first())
+        assertEquals(answers, repo.plans.wizardAnswersFlow.first())
     }
 
     @Test
     fun `restore retires the legacy store before returning`() = runTest {
         db.planDao().insertPlan(plan(1, strengthAnswers(), "B"))
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         val snapshot = repo.exportSnapshot()
         assertTrue(settings.planSettingsFixupDoneFlow.first())
 
@@ -527,7 +527,7 @@ class PlanSettingsTest {
 
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertLegacyKeysGone()
-        assertEquals(strengthAnswers(), repo.wizardAnswersFlow.first())
+        assertEquals(strengthAnswers(), repo.plans.wizardAnswersFlow.first())
         assertEquals(snapshot.plans, db.planDao().allPlans())
     }
 
@@ -537,15 +537,15 @@ class PlanSettingsTest {
         settings.setSelectedPlanId(1)
         val global = GlobalLifter(210, 42, ExperienceLevel.ADVANCED)
         settings.setGlobalLifter(global)
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         val one = db.planDao().plan(1)
         val two = db.planDao().plan(2)!!
         val prefs = store.data.first()
 
-        repo.setPlanEmphasis(2, GoalEmphasis.STRENGTH)
+        repo.plans.setPlanEmphasis(2, GoalEmphasis.STRENGTH)
 
-        assertEquals(GoalEmphasis.STRENGTH, repo.wizardAnswersFor(2).first().config.emphasis)
-        assertEquals(GoalEmphasis.BALANCED, repo.wizardAnswersFor(1).first().config.emphasis)
+        assertEquals(GoalEmphasis.STRENGTH, repo.plans.wizardAnswersFor(2).first().config.emphasis)
+        assertEquals(GoalEmphasis.BALANCED, repo.plans.wizardAnswersFor(1).first().config.emphasis)
         assertEquals(one, db.planDao().plan(1))
         assertEquals(two.copy(recipeJson = PlanRecipeJson.encode(WizardAnswers(
             config = global.toConfig().copy(emphasis = GoalEmphasis.STRENGTH),
@@ -557,26 +557,26 @@ class PlanSettingsTest {
     @Test
     fun `setPlanEmphasis ignores missing plans and null recipes`() = runTest {
         db.planDao().insertPlan(plan(1, WizardAnswers()))
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         val before = db.planDao().allPlans()
         val prefs = store.data.first()
 
-        repo.setPlanEmphasis(3, GoalEmphasis.STRENGTH)
+        repo.plans.setPlanEmphasis(3, GoalEmphasis.STRENGTH)
 
         assertEquals(before, db.planDao().allPlans())
         val authored = plan(3).copy(origin = PlanOrigin.AUTHORED.name)
         db.planDao().insertPlan(authored)
-        repo.setPlanEmphasis(3, GoalEmphasis.STRENGTH)
+        repo.plans.setPlanEmphasis(3, GoalEmphasis.STRENGTH)
 
         assertEquals(before + authored, db.planDao().allPlans())
         assertEquals(prefs, store.data.first())
     }
 
     private suspend fun assertSelected(answers: WizardAnswers, suggestedDay: String) {
-        assertEquals(answers.config, repo.configFlow.first())
-        assertEquals(answers.cardio, repo.wizardAnswersFlow.first().cardio)
-        assertEquals(answers, repo.wizardAnswersFlow.first())
-        assertEquals(suggestedDay, repo.suggestedDayFlow.first())
+        assertEquals(answers.config, repo.plans.configFlow.first())
+        assertEquals(answers.cardio, repo.plans.wizardAnswersFlow.first().cardio)
+        assertEquals(answers, repo.plans.wizardAnswersFlow.first())
+        assertEquals(suggestedDay, repo.plans.suggestedDayFlow.first())
     }
 
     private suspend fun answersFor(id: Long): WizardAnswers =

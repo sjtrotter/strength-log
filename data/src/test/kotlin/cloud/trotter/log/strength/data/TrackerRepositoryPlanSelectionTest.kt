@@ -53,7 +53,7 @@ class TrackerRepositoryPlanSelectionTest {
         try {
             val store = PausingDataStore()
             val settings = SettingsStore(store)
-            val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+            val repo = PlanRepository(db, settings)
             db.planDao().insertPlans(listOf(
                 PlanEntity(1, "A", PlanOrigin.GENERATED.name, 0, 1_000),
                 PlanEntity(2, "B", PlanOrigin.GENERATED.name, 1, 1_000),

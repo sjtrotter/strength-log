@@ -78,7 +78,10 @@ class WorkoutSetRouteTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         rule.runOnUiThread {
             viewModel = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
-                TestClock, SilentAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings)
+                TestClock, SilentAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings,
+                plans = repo.plans,
+                catalog = repo.catalog,
+            )
         }
         rule.setContent { AppTheme {
             DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = {}, viewModel = viewModel)

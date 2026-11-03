@@ -118,13 +118,13 @@ class DayViewModelReceiptTest {
     @Test
     fun aGapInDayLettersKeepsTheCompletedDaysThirdAccentOnTheReceipt() = runVmTest {
         insertProgram()
-        val program = repo.programFlow.first()
+        val program = repo.plans.programFlow.first()
         repo.replaceProgram(Program(listOf(program.days[0], program.days[1].copy(id = "C"))))
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = newCollectingViewModel()
         vm.selectDay("C")
         advanceUntilIdle()
-        val slot = repo.slotsFor(plan, "C").first().single()
+        val slot = repo.plans.slotsFor(plan, "C").first().single()
         val sets = repo.dayTracksFlow(plan, "C").first().tracks.single().sets
         sets.indices.forEach { vm.toggleDone(slot.programExerciseId, it, checked = true, slot = Slot.MAIN) }
         advanceUntilIdle()
@@ -133,21 +133,21 @@ class DayViewModelReceiptTest {
 
         assertEquals("C", vm.sessionReceipt.value?.dayId)
         assertEquals(2, vm.sessionReceipt.value?.dayIndex)
-        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
         assertEquals("Day A, Lower", vm.sessionReceipt.value?.nextDayLine)
     }
 
     @Test
     fun finishingAPausedNonpreferredRunReportsItsOwnNextDay() = runVmTest {
         insertProgram()
-        val owner = repo.selectedPlanIdFlow.first()!!
-        val other = repo.duplicatePlan(owner, "Preferred")
+        val owner = repo.plans.selectedPlanIdFlow.first()!!
+        val other = repo.plans.duplicatePlan(owner, "Preferred")
         val vm = newCollectingViewModel()
         advanceUntilIdle()
-        val slot = repo.slotsFor(owner, "A").first().first()
+        val slot = repo.plans.slotsFor(owner, "A").first().first()
         vm.toggleDone(slot.programExerciseId, 0, checked = true, slot = Slot.MAIN)
         advanceUntilIdle()
-        repo.useOnly(other)
+        repo.plans.useOnly(other)
         advanceUntilIdle()
         assertEquals(owner, vm.uiState.value.planId)
         vm.completeDay()
@@ -165,13 +165,13 @@ class DayViewModelReceiptTest {
             id = "C", title = "Cardio + Core", emphasisLine = "",
             exercises = listOf(ProgramExercise("plank", targetSets = 2)), kind = ProgramDayKind.CARDIO,
         )
-        repo.replaceProgram(Program(repo.programFlow.first().days + cardio))
-        db.planDao().updateSuggestedDay(repo.selectedPlanIdFlow.first()!!, "B")
+        repo.replaceProgram(Program(repo.plans.programFlow.first().days + cardio))
+        db.planDao().updateSuggestedDay(repo.plans.selectedPlanIdFlow.first()!!, "B")
         val vm = newCollectingViewModel()
         vm.selectDay("C")
         advanceUntilIdle()
-        val slot = repo.daySlotsFlow("C").first().single()
-        val rows = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets
+        val slot = repo.plans.daySlotsFlow("C").first().single()
+        val rows = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets
         rows.indices.forEach { vm.toggleDone(slot.programExerciseId, it, checked = true, slot = Slot.MAIN) }
         advanceUntilIdle()
         val completedSetCount = vm.uiState.value.doneSets
@@ -184,17 +184,17 @@ class DayViewModelReceiptTest {
         assertEquals(2, completedSetCount)
         assertEquals(completedSetCount, receipt.setCount)
         assertEquals("Day B, Upper", receipt.nextDayLine)
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertEquals("C", repo.session(receipt.sessionId)?.dayId)
-        assertEquals(false, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets.any { it.done })
+        assertEquals(false, repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets.any { it.done })
     }
 
     @Test
     fun authoredStrengthCompletionAndReceiptBothSelectTheFollowingCardioDay() = runVmTest {
-        val planId = repo.createAuthoredPlan("Mixed plan", "Lower")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Mixed plan", "Lower")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         insertProgram()
-        val days = repo.programFlow.first().days
+        val days = repo.plans.programFlow.first().days
         repo.replaceProgram(Program(listOf(
             days[0],
             ProgramDay("B", "Cardio", "", emptyList(), cardioBlock = cardioFixture().block),
@@ -203,14 +203,14 @@ class DayViewModelReceiptTest {
         val vm = newViewModel()
         advanceUntilIdle()
         completeOneSession(vm)
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertEquals("Day B, Cardio", vm.sessionReceipt.value?.nextDayLine)
     }
 
     @Test
     fun generatedStrengthCompletionAndReceiptSkipTheFollowingStandaloneCardioDay() = runVmTest {
         insertProgram()
-        val days = repo.programFlow.first().days
+        val days = repo.plans.programFlow.first().days
         repo.replaceProgram(Program(listOf(
             days[0],
             ProgramDay("C1", "Cardio", "", listOf(ProgramExercise("plank", targetSets = 2)),
@@ -220,7 +220,7 @@ class DayViewModelReceiptTest {
         val vm = newViewModel()
         advanceUntilIdle()
         completeOneSession(vm)
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertEquals("Day B, Upper", vm.sessionReceipt.value?.nextDayLine)
     }
 
@@ -278,7 +278,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
 
         val headerCount = vm.uiState.value.doneSets
-        val partnerRows = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.SS }.sets.size
+        val partnerRows = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.SS }.sets.size
         vm.completeDay()
         advanceUntilIdle()
 
@@ -296,8 +296,8 @@ class DayViewModelReceiptTest {
             )))))
             val vm = newCollectingViewModel()
             advanceUntilIdle()
-            val planId = requireNotNull(repo.selectedPlanIdFlow.first())
-            val id = repo.slotsFor(planId, "A").first().single().programExerciseId
+            val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+            val id = repo.plans.slotsFor(planId, "A").first().single().programExerciseId
             if (mainDone) vm.toggleDone(id, 0, true, Slot.MAIN)
             if (partnerDone) vm.toggleDone(id, 0, true, Slot.SS)
             advanceUntilIdle()
@@ -458,7 +458,7 @@ class DayViewModelReceiptTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
 
     /** [DayViewModel.uiState] is `WhileSubscribed`: without a live collector its
      *  `.value` never leaves the initial state, and the header count would read
@@ -511,15 +511,15 @@ class DayViewModelReceiptTest {
         )
     }
 
-    private suspend fun slotId(): Long = repo.daySlotsFlow("A").first().first().programExerciseId
+    private suspend fun slotId(): Long = repo.plans.daySlotsFlow("A").first().first().programExerciseId
 
-    private suspend fun mainTrack() = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets
+    private suspend fun mainTrack() = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets
 
     private suspend fun mainTrackRowCount(): Int = mainTrack().size
 
     private suspend fun tickWholeTrack(vm: DayViewModel) {
         val id = slotId()
-        val hasPartner = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().any { it.slot == Slot.SS }
+        val hasPartner = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().any { it.slot == Slot.SS }
         repeat(mainTrackRowCount()) { index ->
             vm.toggleDone(id, index, checked = true, slot = Slot.MAIN)
             if (hasPartner) vm.toggleDone(id, index, checked = true, slot = Slot.SS)

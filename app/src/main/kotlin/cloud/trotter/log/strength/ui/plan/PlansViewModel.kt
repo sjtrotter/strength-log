@@ -5,7 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.R
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class PlansViewModel @Inject constructor(
-    private val repo: TrackerRepository,
+    private val repo: PlanRepository,
     private val savedState: SavedStateHandle,
     @ApplicationContext private val context: Context,
     private val settings: SettingsStore,

@@ -242,7 +242,7 @@ class RestoreCoordinationTest {
             val stored = db.programDao().day(7, "C1")!!
             assertNull(stored.cardioJson)
             assertEquals(expected, CardioBlockJson.decode(stored.cardioBlockJson))
-            assertEquals(expected, repo.programFor(7).first().cardioDays.single().cardioBlock)
+            assertEquals(expected, repo.plans.programFor(7).first().cardioDays.single().cardioBlock)
             assertEquals(snapshot.plans.single().recipeJson
                 ?: PlanRecipeJson.encode(snapshot.answers),
                 db.planDao().plan(7)!!.recipeJson)
@@ -292,7 +292,7 @@ class RestoreCoordinationTest {
         val result = service.withRestoreLock {
             assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
             assertTrue(settings.wizardCompleteFlow.first())
-            assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
+            assertEquals(listOf("A"), repo.plans.programFlow.first().days.map { it.id })
             assertNull(db.restoreMarkerDao().nonce())
             "settled"
         }
@@ -320,7 +320,7 @@ class RestoreCoordinationTest {
             assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
             assertTrue(settings.wizardCompleteFlow.first())
             assertTrue(db.planDao().allPlans().isEmpty())
-            assertTrue(repo.programFlow.first().days.isEmpty())
+            assertTrue(repo.plans.programFlow.first().days.isEmpty())
             assertNull(settings.selectedPlanIdFlow.first())
             assertNull(db.restoreMarkerDao().nonce())
             "settled"
@@ -380,7 +380,7 @@ class RestoreCoordinationTest {
         val replayed = withTimeout(TIMEOUT_MS) { reconcile.await() }
 
         assertFalse("by its turn the restore had finished, so there was nothing left", replayed)
-        assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
+        assertEquals(listOf("A"), repo.plans.programFlow.first().days.map { it.id })
         assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
         assertNull(db.restoreMarkerDao().nonce())
     }
@@ -390,9 +390,9 @@ class RestoreCoordinationTest {
         service.import(backupJson("A", 190))
         service.import(backupJson("B", 205))
 
-        assertEquals(listOf("B"), repo.programFlow.first().days.map { it.id })
+        assertEquals(listOf("B"), repo.plans.programFlow.first().days.map { it.id })
         assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertNull("the second restore cleared its own marker", db.restoreMarkerDao().nonce())
         assertFalse(service.reconcilePendingRestore())
     }
@@ -410,7 +410,7 @@ class RestoreCoordinationTest {
             ).awaitAll()
         }
 
-        assertEquals(listOf("A"), repo.programFlow.first().days.map { it.id })
+        assertEquals(listOf("A"), repo.plans.programFlow.first().days.map { it.id })
         assertEquals(190, settings.globalLifterFlow.first().bodyweightLb)
         assertTrue(settings.wizardCompleteFlow.first())
         assertNull(db.restoreMarkerDao().nonce())
@@ -430,9 +430,9 @@ class RestoreCoordinationTest {
         service.import(BackupCodec().encode(document))
 
         assertTrue(db.planDao().allPlans().isEmpty())
-        assertTrue(repo.programFlow.first().days.isEmpty())
+        assertTrue(repo.plans.programFlow.first().days.isEmpty())
         assertNull(settings.selectedPlanIdFlow.first())
-        assertNull(repo.suggestedDayFlow.first())
+        assertNull(repo.plans.suggestedDayFlow.first())
         val global = settings.globalLifterFlow.first()
         assertEquals(210, global.bodyweightLb)
         assertEquals(33, global.age)
@@ -479,7 +479,7 @@ class RestoreCoordinationTest {
         assertEquals(plans[0].recipeJson, plans[1].recipeJson)
         assertNull(plans[2].recipeJson)
         assertEquals(listOf("A", null, null), plans.map { it.suggestedDayId })
-        assertEquals(legacy.toSnapshot().answers, repo.wizardAnswersFlow.first())
+        assertEquals(legacy.toSnapshot().answers, repo.plans.wizardAnswersFlow.first())
         assertEquals(7L, settings.selectedPlanIdFlow.first())
     }
 

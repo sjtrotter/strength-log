@@ -6,7 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
@@ -45,7 +45,7 @@ import org.robolectric.annotation.Config
  * name is never savable), the [Routes.CUSTOM_EXERCISE_PATTERN_ARG] pre-fill from the
  * picker context, and that [CustomExerciseViewModel.save] goes through the existing
  * `:data` API with no bypass — a saved exercise must turn up in
- * [TrackerRepository.catalogFlow] with exactly what the form held.
+ * [CatalogRepository.catalogFlow] with exactly what the form held.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -55,7 +55,7 @@ class CustomExerciseViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
-    private lateinit var repo: TrackerRepository
+    private lateinit var repo: CatalogRepository
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<CustomExerciseViewModel>()
 
@@ -72,13 +72,7 @@ class CustomExerciseViewModelTest {
             File.createTempFile("custom-exercise-vm-settings", ".preferences_pb")
         }
         settings = SettingsStore(dataStore)
-        repo = TrackerRepository(
-            db = db,
-            programDao = db.programDao(),
-            sessionDao = db.sessionDao(),
-            customExerciseDao = db.customExerciseDao(),
-            settings = settings,
-        )
+        repo = CatalogRepository(db.customExerciseDao())
     }
 
     @After

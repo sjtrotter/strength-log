@@ -84,11 +84,11 @@ class TrackerRepositoryRunEditsTest {
             ) + if (extraSlot) listOf(ProgramExercise("bb_bench"), ProgramExercise("missing_exercise")) else emptyList()),
             ProgramDay("B", "Day B", "", listOf(ProgramExercise("bb_bench"))),
         )))
-        return repo.selectedPlanIdFlow.first()!!
+        return repo.plans.selectedPlanIdFlow.first()!!
     }
     private suspend fun authored(): Long {
-        val plan = repo.createAuthoredPlan("Authored", "Day A")
-        repo.publishCreatedAuthoredPlan(plan)
+        val plan = repo.plans.createAuthoredPlan("Authored", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
         repo.addExercise("A", ProgramExercise("bb_back_squat"))
         repo.setPrescription(slot(plan), load, 3)
         return plan
@@ -212,9 +212,9 @@ class TrackerRepositoryRunEditsTest {
         db.storeTestRows("A", id, Slot.SS, work())
         db.storeTestRows("A", other, Slot.MAIN, work())
         val otherLog = db.programDao().logForSlot(plan, "A", other, Slot.MAIN)
-        val config = repo.wizardAnswersFor(plan).first().config
+        val config = repo.plans.wizardAnswersFor(plan).first().config
         val expected = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP),
-            GoalCalculator.targetFor(repo.catalogFlow.first().get("bb_back_squat"), config), config)
+            GoalCalculator.targetFor(repo.catalog.catalogFlow.first().get("bb_back_squat"), config), config)
 
         repo.setStructure(id, SetStructure.RAMP_TOP)
 
@@ -225,7 +225,7 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(5, rows.size)
         assertEquals(SetKind.TOP, rows.last().kind)
         assertEquals(main.plannedJson, after.plannedJson)
-        assertEquals(SetStructure.RAMP_TOP, repo.slotsFor(plan, "A").first().first().exercise.structure)
+        assertEquals(SetStructure.RAMP_TOP, repo.plans.slotsFor(plan, "A").first().first().exercise.structure)
         assertTrue(db.programDao().logsForDay(plan, "A").none { it.programExerciseId == id })
         assertEquals(otherLog, db.programDao().logForSlot(plan, "A", other, Slot.MAIN))
     }
@@ -270,8 +270,8 @@ class TrackerRepositoryRunEditsTest {
         val runId = explicitStart(plan)
         val original = db.runDao().tracks(runId).associateBy { it.slot }
         val partnerBefore = SetJson.decodeSets(original.getValue(Slot.SS).setsJson)
-        val config = repo.wizardAnswersFor(plan).first().config
-        val partnerGoal = GoalCalculator.targetFor(repo.catalogFlow.first().get("ez_curl"), config)
+        val config = repo.plans.wizardAnswersFor(plan).first().config
+        val partnerGoal = GoalCalculator.targetFor(repo.catalog.catalogFlow.first().get("ez_curl"), config)
 
         repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
 
@@ -394,8 +394,8 @@ class TrackerRepositoryRunEditsTest {
         val runId = start(plan, sets = work())
         val before = db.runDao().tracks(runId).associateBy { it.slot }
         val changed = Prescription(PrescribedTarget.LoadReps(60.0, 8))
-        val config = repo.wizardAnswersFor(plan).first().config
-        val goal = GoalCalculator.targetFor(repo.catalogFlow.first().get("ez_curl"), config)
+        val config = repo.plans.wizardAnswersFor(plan).first().config
+        val goal = GoalCalculator.targetFor(repo.catalog.catalogFlow.first().get("ez_curl"), config)
 
         repo.setPrescription(slot, changed, sets = 4)
 
@@ -666,9 +666,9 @@ class TrackerRepositoryRunEditsTest {
     }
 
     private suspend fun substituteSeed(plan: Long, exerciseId: String): List<LoggedSet> {
-        val pe = repo.slotsFor(plan, "A").first().first().exercise.copy(exerciseId = exerciseId, prescription = null)
-        val config = repo.wizardAnswersFor(plan).first().config
-        val target = GoalCalculator.targetFor(repo.catalogFlow.first().get(exerciseId), config)
+        val pe = repo.plans.slotsFor(plan, "A").first().first().exercise.copy(exerciseId = exerciseId, prescription = null)
+        val config = repo.plans.wizardAnswersFor(plan).first().config
+        val target = GoalCalculator.targetFor(repo.catalog.catalogFlow.first().get(exerciseId), config)
         return SetSeeder.seed(pe, target, config)
     }
 
@@ -732,8 +732,8 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(5, padded.size)
         assertEquals(before, padded.take(3))
         assertTrue(padded[2].done)
-        val config = repo.wizardAnswersFor(plan).first().config
-        val goal = GoalCalculator.targetFor(repo.catalogFlow.first().get("ez_curl"), config)
+        val config = repo.plans.wizardAnswersFor(plan).first().config
+        val goal = GoalCalculator.targetFor(repo.catalog.catalogFlow.first().get("ez_curl"), config)
         assertEquals(SetSeeder.seedPartner(5, goal).takeLast(2), padded.takeLast(2))
     }
 
@@ -744,8 +744,8 @@ class TrackerRepositoryRunEditsTest {
         val runId = explicitStart(plan, work() + work().take(1))
         seed(runId)
         val main = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.MAIN }
-        val config = repo.wizardAnswersFor(plan).first().config
-        val goal = GoalCalculator.targetFor(repo.catalogFlow.first().get("rope_pushdown"), config)
+        val config = repo.plans.wizardAnswersFor(plan).first().config
+        val goal = GoalCalculator.targetFor(repo.catalog.catalogFlow.first().get("rope_pushdown"), config)
         val rows = SetSeeder.seedPartner(4, goal)
         assertTrue(repo.swapInRun(runId, id, Slot.SS, "rope_pushdown"))
         val tracks = repo.openRunFlow.first()!!.tracks

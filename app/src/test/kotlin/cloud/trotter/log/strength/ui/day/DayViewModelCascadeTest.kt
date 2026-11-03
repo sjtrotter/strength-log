@@ -97,7 +97,7 @@ class DayViewModelCascadeTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
 
     private suspend fun insertProgram() {
         repo.replaceProgram(
@@ -115,16 +115,16 @@ class DayViewModelCascadeTest {
     }
 
     private suspend fun slotId(): Long =
-        repo.daySlotsFlow("A").first().first().programExerciseId
+        repo.plans.daySlotsFlow("A").first().first().programExerciseId
 
     private suspend fun topIndex(): Int =
-        repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets.indexOfFirst { it.kind == SetKind.TOP }
+        repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets.indexOfFirst { it.kind == SetKind.TOP }
 
     /** Ticks every set of the seeded squat track, so the advance records a
      *  completed TOP set at whatever weight it currently carries. */
     private suspend fun tickWholeTrack(vm: DayViewModel) {
         val id = slotId()
-        val rows = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets.size
+        val rows = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets.size
         repeat(rows) { index -> vm.toggleDone(id, index, checked = true, slot = Slot.MAIN) }
     }
 
@@ -242,7 +242,7 @@ class DayViewModelCascadeTest {
         // Tick everything except the TOP row — the weight moved, the lift didn't.
         val id = slotId()
         val top = topIndex()
-        val rows = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets.size
+        val rows = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().first { it.slot == Slot.MAIN }.sets.size
         repeat(rows) { index -> if (index != top) vm.toggleDone(id, index, checked = true, slot = Slot.MAIN) }
         advanceUntilIdle()
         vm.completeDay()

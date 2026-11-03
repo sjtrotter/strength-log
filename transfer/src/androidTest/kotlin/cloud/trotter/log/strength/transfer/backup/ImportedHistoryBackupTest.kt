@@ -47,13 +47,13 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
         )
         repository.replaceProgram(Program(listOf(day)))
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
-        repository.applyToRun(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.planIdOfSlot(squatId)), "A", listOf(
+        repository.applyToRun(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.plans.planIdOfSlot(squatId)), "A", listOf(
             TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)) },
         ))
         repository.finishRun(repository.openRunFlow.first()!!.id)!!
     }
 
-    private fun csvService() = CsvHistoryService(repository)
+    private fun csvService() = CsvHistoryService(repository, catalog = repository.catalog)
 
     private suspend fun exportCsv(): String {
         val out = ByteArrayOutputStream()
@@ -78,7 +78,7 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
     private suspend fun captureState(): State {
         val sessions = repository.sessionsFlow.first()
         return State(
-            program = repository.programFlow.first(),
+            program = repository.plans.programFlow.first(),
             sessions = sessions,
             sessionSets = sessions.associate { it.id to db.sessionDao().setsForSession(it.id) },
         )

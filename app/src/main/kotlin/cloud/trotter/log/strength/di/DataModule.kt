@@ -8,6 +8,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
@@ -108,7 +110,22 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun trackerRepository(db: StrengthDatabase, settings: SettingsStore, clock: Clock): TrackerRepository =
+    fun planRepository(db: StrengthDatabase, settings: SettingsStore, clock: Clock): PlanRepository =
+        PlanRepository(db, settings, clock)
+
+    @Provides
+    @Singleton
+    fun catalogRepository(db: StrengthDatabase): CatalogRepository = CatalogRepository(db.customExerciseDao())
+
+    @Provides
+    @Singleton
+    fun trackerRepository(
+        db: StrengthDatabase,
+        settings: SettingsStore,
+        clock: Clock,
+        plans: PlanRepository,
+        catalog: CatalogRepository,
+    ): TrackerRepository =
         TrackerRepository(
             db = db,
             programDao = db.programDao(),
@@ -116,5 +133,7 @@ object DataModule {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
             clock = clock,
+            plans = plans,
+            catalog = catalog,
         )
 }

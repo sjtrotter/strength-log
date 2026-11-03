@@ -1,23 +1,16 @@
 package cloud.trotter.log.strength.data
 
 import android.content.Context
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.StrengthDatabase
-import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.MovementPattern
-import java.io.File
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -31,7 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [TrackerRepository.addCustomExercise] / [TrackerRepository.catalogFlow]
+ * [CatalogRepository.addCustomExercise] / [CatalogRepository.catalogFlow]
  * (PLAN.md A4): id-collision impossibility via the `custom_` prefix and
  * catalog-merge visibility of a saved custom exercise — the two `:data`-level
  * guarantees the custom-exercise creation form depends on. Name-blank rejection
@@ -43,8 +36,7 @@ import org.robolectric.annotation.Config
 class TrackerRepositoryCustomExerciseTest {
 
     private lateinit var db: StrengthDatabase
-    private lateinit var repo: TrackerRepository
-    private lateinit var storeScope: CoroutineScope
+    private lateinit var repo: CatalogRepository
 
     @Before
     fun setUp() {
@@ -52,23 +44,12 @@ class TrackerRepositoryCustomExerciseTest {
         db = Room.inMemoryDatabaseBuilder(context, StrengthDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        storeScope = CoroutineScope(Dispatchers.IO + Job())
-        val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
-            File.createTempFile("custom-exercise-settings", ".preferences_pb")
-        }
-        repo = TrackerRepository(
-            db = db,
-            programDao = db.programDao(),
-            sessionDao = db.sessionDao(),
-            customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
-        )
+        repo = CatalogRepository(db.customExerciseDao())
     }
 
     @After
     fun tearDown() {
         db.close()
-        storeScope.cancel()
     }
 
     @Test

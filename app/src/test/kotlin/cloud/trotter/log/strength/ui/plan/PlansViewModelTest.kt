@@ -74,7 +74,7 @@ class PlansViewModelTest {
     }
 
     private fun viewModel(handle: SavedStateHandle = SavedStateHandle()): PlansViewModel =
-        PlansViewModel(repo, handle, context, settings = settings).also { vm ->
+        PlansViewModel(repo.plans, handle, context, settings = settings).also { vm ->
             viewModels += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -92,7 +92,7 @@ class PlansViewModelTest {
         assertNull(vm.uiState.value.you)
         advanceUntilIdle()
         assertEquals(YouSummary("235 lb", 40, "intermediate"), vm.uiState.value.you)
-        repo.updateLifter { it.copy(bodyweightLb = 220, age = 41, level = ExperienceLevel.ADVANCED) }
+        repo.plans.updateLifter { it.copy(bodyweightLb = 220, age = 41, level = ExperienceLevel.ADVANCED) }
         settings.setUnit(WeightUnit.KG)
         advanceUntilIdle()
         val weight = WeightStepper.format(WeightUnit.KG.fromLb(220.0))
@@ -102,7 +102,7 @@ class PlansViewModelTest {
     @Test
     fun `membership actions update rows without changing preferred until use only`() = runTest(dispatcher) {
         seed()
-        val other = repo.duplicatePlan(1, "Other")
+        val other = repo.plans.duplicatePlan(1, "Other")
         val vm = viewModel()
         vm.useAlongside(other)
         advanceUntilIdle()
@@ -149,8 +149,8 @@ class PlansViewModelTest {
         assertEquals("AUTHORED", created.origin)
         assertEquals(created.id, settings.selectedPlanIdFlow.first())
         assertEquals(global, settings.globalLifterFlow.first())
-        assertTrue(repo.programFor(created.id).first().days.single().exercises.isEmpty())
-        assertEquals("Day A", repo.programFor(created.id).first().days.single().title)
+        assertTrue(repo.plans.programFor(created.id).first().days.single().exercises.isEmpty())
+        assertEquals("Day A", repo.plans.programFor(created.id).first().days.single().title)
         assertNull(restored.uiState.value.newPlanPage)
         assertEquals(created.id, restored.createdPlan.first())
     }

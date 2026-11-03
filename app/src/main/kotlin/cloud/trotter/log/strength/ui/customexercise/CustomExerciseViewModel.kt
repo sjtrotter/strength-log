@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -33,11 +33,11 @@ import kotlinx.coroutines.launch
  * can change.
  *
  * [save] is the one write path, and it is the existing `:data` surface
- * ([TrackerRepository.addCustomExercise]) — no new persistence semantics.
+ * ([CatalogRepository.addCustomExercise]) — no new persistence semantics.
  */
 @HiltViewModel
 class CustomExerciseViewModel @Inject constructor(
-    private val repo: TrackerRepository,
+    private val repo: CatalogRepository,
     private val savedState: SavedStateHandle,
     private val settings: SettingsStore,
 ) : ViewModel() {
@@ -177,9 +177,9 @@ class CustomExerciseViewModel @Inject constructor(
 
     /** No-ops on a blank/whitespace name (mirrors [CustomExerciseUiState.canSave],
      *  which [CustomExerciseScreen] uses to disable the save action) so a bad
-     *  name can never reach [TrackerRepository.addCustomExercise]. [tracking]
+     *  name can never reach [CatalogRepository.addCustomExercise]. [tracking]
      *  selects which target field is the live GOAL — the other two are simply
-     *  not sent, exactly as [TrackerRepository.addCustomExercise] expects. */
+     *  not sent, exactly as [CatalogRepository.addCustomExercise] expects. */
     fun save() {
         val trimmedName = name.value.trim()
         if (trimmedName.isEmpty()) return

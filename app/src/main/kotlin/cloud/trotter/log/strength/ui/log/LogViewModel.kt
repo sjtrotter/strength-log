@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
@@ -77,6 +79,8 @@ class LogViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     private val civilTimeSource: CivilTimeSource,
     private val settings: SettingsStore,
+    private val plans: PlanRepository,
+    private val catalog: CatalogRepository,
 ) : ViewModel() {
 
     private val expandedSessionId: StateFlow<Long?> = savedState.getStateFlow(KEY_EXPANDED, null)
@@ -136,9 +140,9 @@ class LogViewModel @Inject constructor(
     }
 
     private val mainLifts = combine(
-        repo.programFlow,
-        repo.catalogFlow,
-        repo.configFlow,
+        plans.programFlow,
+        catalog.catalogFlow,
+        plans.configFlow,
     ) { program, catalog, config -> JournalBuilder.mainLifts(program, catalog, config) }
 
     private val journalHistory = combine(
@@ -173,14 +177,14 @@ class LogViewModel @Inject constructor(
 
     private val healthUi = combine(
         healthData,
-        repo.configFlow,
+        plans.configFlow,
         settings.unitFlow,
         bodyweightDismissed,
     ) { health, config, unit, dismissed -> buildHealthUi(health, config.bodyweightLb, unit, dismissed) }
 
     /** Only the empty state reads this, so it is the one bit of the
      *  program the journal needs — not the program itself. */
-    private val hasProgram = repo.programFlow.map { it.days.isNotEmpty() }.distinctUntilChanged()
+    private val hasProgram = plans.programFlow.map { it.days.isNotEmpty() }.distinctUntilChanged()
 
     private val backfillState = combine(settings.healthBackfillDoneFlow, backfillRunning, ::BackfillState)
 
@@ -394,9 +398,9 @@ class LogViewModel @Inject constructor(
      *  SettingsStore surface, as the You screen does. */
     fun applyBodyweightPrompt() {
         viewModelScope.launch {
-            val config = repo.configFlow.first()
+            val config = plans.configFlow.first()
             val data = BodyweightPrompt.evaluate(healthData.value.latestWeightLb, config.bodyweightLb) ?: return@launch
-            repo.updateLifter { it.copy(bodyweightLb = BodyweightPrompt.appliedBodyweightLb(data)) }
+            plans.updateLifter { it.copy(bodyweightLb = BodyweightPrompt.appliedBodyweightLb(data)) }
             savedState[KEY_BW_DISMISSED] = true
         }
     }

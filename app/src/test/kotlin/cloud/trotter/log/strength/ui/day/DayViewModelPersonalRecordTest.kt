@@ -98,7 +98,7 @@ class DayViewModelPersonalRecordTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
 
     private suspend fun insertSingleDayProgram() {
         repo.replaceProgram(
@@ -116,7 +116,7 @@ class DayViewModelPersonalRecordTest {
     }
 
     private suspend fun slotId(exerciseId: String): Long =
-        repo.daySlotsFlow("A").first().first { it.exercise.exerciseId == exerciseId }.programExerciseId
+        repo.plans.daySlotsFlow("A").first().first { it.exercise.exerciseId == exerciseId }.programExerciseId
 
     private fun session(completedAt: Long, dayTitle: String = "Test") =
         WorkoutSessionEntity(id = 0, dayId = "A", dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)

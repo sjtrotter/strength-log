@@ -64,7 +64,7 @@ class BackupRoundTripTest : BackupTestHarness() {
     @Test
     fun export_wipe_import_reproduces_every_piece_of_state() = runTest {
         // --- build a rich, realistic state -----------------------------------
-        repository.setWizardAnswers(wizardAnswers)
+        repository.plans.setWizardAnswers(wizardAnswers)
         settings.setWizardComplete(true)
         settings.setUnit(WeightUnit.KG)
         settings.setRestTimerEnabled(false)
@@ -72,7 +72,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         settings.setRestOverride(RestCategory.LIGHT, 30)
         settings.setKeepScreenOn(true)
 
-        val customId = repository.addCustomExercise(
+        val customId = repository.catalog.addCustomExercise(
             name = "Cable Hack Squat",
             pattern = MovementPattern.SQUAT_BILATERAL,
             equipment = listOf(Equipment.MACHINE, Equipment.CABLE),
@@ -101,17 +101,17 @@ class BackupRoundTripTest : BackupTestHarness() {
 
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
         val rowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id
-        repository.applyToRun(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.planIdOfSlot(squatId)), "A", listOf(
+        repository.applyToRun(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.plans.planIdOfSlot(squatId)), "A", listOf(
             TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)) },
         ))
-        repository.applyToRun(repository.dayTracksFlow(repository.planIdOfSlot(rowId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.planIdOfSlot(rowId)), "A", listOf(
+        repository.applyToRun(repository.dayTracksFlow(repository.plans.planIdOfSlot(rowId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.plans.planIdOfSlot(rowId)), "A", listOf(
             TrackEdit(rowId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)) },
         ))
         val sessionId = repository.finishRun(repository.openRunFlow.first()!!.id)!!
         repository.setSessionNote(sessionId, "Felt smooth")
         repository.setKeepToPlan(rowId, true)
         // A fresh post-advance edit, so the exported live logs carry current work.
-        repository.applyToRun(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.planIdOfSlot(squatId)), "A", listOf(
+        repository.applyToRun(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.plans.planIdOfSlot(squatId)), "A", listOf(
             TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(250.0, 5, SetKind.TOP)) },
         ))
 
@@ -144,10 +144,10 @@ class BackupRoundTripTest : BackupTestHarness() {
 
         // --- wipe: importing an empty backup must clear everything ------------
         service.import(emptyBackupJson())
-        assertTrue(repository.programFlow.first().days.isEmpty())
+        assertTrue(repository.plans.programFlow.first().days.isEmpty())
         assertTrue(repository.sessionsFlow.first().isEmpty())
-        assertTrue(repository.catalogFlow.first().entries.none { it.id == customId })
-        assertEquals(null, repository.suggestedDayFlow.first())
+        assertTrue(repository.catalog.catalogFlow.first().entries.none { it.id == customId })
+        assertEquals(null, repository.plans.suggestedDayFlow.first())
         // The wipe backup predates nothing — it simply carries no rest keys, so
         // the tuned buckets must fall back to RestPolicy's defaults, not linger.
         assertEquals(RestSettings(), settings.restSettingsFlow.first())
@@ -170,7 +170,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         assertEquals(listOf("B", "C"), restored.plans.map { it.suggestedDayId })
 
         // Spot-check a couple of load-bearing details beyond structural equality.
-        assertEquals("C", repository.suggestedDayFlow.first())
+        assertEquals("C", repository.plans.suggestedDayFlow.first())
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertEquals(true, settings.keepScreenOnFlow.first())
         val squatLog = db.programDao().allLogs().first { it.planId == PlanEntity.LEGACY_ID && it.programExerciseId == squatId }
@@ -198,16 +198,16 @@ class BackupRoundTripTest : BackupTestHarness() {
         val sessions = repository.sessionsFlow.first()
         return State(
             snapshot = repository.exportSnapshot(),
-            program = repository.programFlow.first(),
-            logsA = repository.dayTracksFlow(repository.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId },
-            logsB = repository.dayTracksFlow(repository.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().sortedBy { it.programExerciseId },
+            program = repository.plans.programFlow.first(),
+            logsA = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId },
+            logsB = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().sortedBy { it.programExerciseId },
             sessions = sessions,
             sessionSets = sessions.associate { it.id to db.sessionDao().setsForSession(it.id) },
-            catalog = repository.catalogFlow.first().entries,
-            answers = repository.wizardAnswersFlow.first(),
+            catalog = repository.catalog.catalogFlow.first().entries,
+            answers = repository.plans.wizardAnswersFlow.first(),
             unit = settings.unitFlow.first(),
             wizardComplete = settings.wizardCompleteFlow.first(),
-            suggestedDay = repository.suggestedDayFlow.first(),
+            suggestedDay = repository.plans.suggestedDayFlow.first(),
             restSettings = settings.restSettingsFlow.first(),
             keepScreenOn = settings.keepScreenOnFlow.first(),
         )

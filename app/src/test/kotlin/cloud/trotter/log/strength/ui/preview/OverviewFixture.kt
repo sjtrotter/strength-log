@@ -102,7 +102,9 @@ open class OverviewFixture {
         val vm = TodayViewModel(repo, object : CivilTimeSource {
             override val civilTime = flowOf(CivilTime(instant, zone, instant.atZone(zone).toLocalDate()))
             override fun refresh() = Unit
-        }, handle, phoneRest = PhoneRestController(settings, NoOpRestRuntime))
+        }, handle, phoneRest = PhoneRestController(settings, NoOpRestRuntime),
+            plans = repo.plans,
+        )
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         observeStart(vm, vm.workoutStart)
@@ -110,7 +112,7 @@ open class OverviewFixture {
     }
 
     protected fun preview(planId: Long, dayId: String): PreviewViewModel {
-        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)), PhoneRestController(settings, NoOpRestRuntime), settings = settings)
+        val vm = PreviewViewModel(repo, SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to planId.toString(), Routes.DAY_ID_ARG to dayId)), PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans)
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         observeStart(vm, vm.workoutStart)
@@ -118,7 +120,7 @@ open class OverviewFixture {
     }
 
     protected fun day(handle: SavedStateHandle = SavedStateHandle()): DayViewModel {
-        val vm = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings)
+        val vm = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog)
         vms += vm
         vm.viewModelScope.launch { vm.uiState.collect {} }
         vm.viewModelScope.launch { vm.dayEditState.collect {} }

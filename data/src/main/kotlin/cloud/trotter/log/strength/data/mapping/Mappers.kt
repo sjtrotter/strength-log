@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 
 /** Room-entity ⇆ pure-domain conversions, kept in one place. */
@@ -21,10 +22,8 @@ import cloud.trotter.log.strength.domain.model.SupersetPartner
 fun ProgramExerciseEntity.toDomain(): ProgramExercise =
     ProgramExercise(
         exerciseId = exerciseId,
-        isMain = isMain,
+        structure = SetStructure.fromLegacy(isMain),
         targetSets = targetSets,
-        repSchemeLabel = repSchemeLabel,
-        hasWarmupHint = hasWarmupHint,
         superset = supersetExerciseId?.let(::SupersetPartner),
         note = note,
         prescription = PrescriptionJson.decode(prescriptionJson),
@@ -38,10 +37,10 @@ fun ProgramExercise.toEntity(planId: Long, dayId: String, position: Int): Progra
         dayId = dayId,
         position = position,
         exerciseId = exerciseId,
-        isMain = isMain,
+        isMain = structure.hasTopSet,
         targetSets = targetSets,
-        repSchemeLabel = repSchemeLabel,
-        hasWarmupHint = hasWarmupHint,
+        repSchemeLabel = "",
+        hasWarmupHint = false,
         supersetExerciseId = superset?.exerciseId,
         note = note,
         prescriptionJson = prescription?.let(PrescriptionJson::encode),

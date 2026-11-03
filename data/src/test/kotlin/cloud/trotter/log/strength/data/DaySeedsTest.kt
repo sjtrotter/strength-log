@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import kotlin.test.Test
@@ -27,7 +28,7 @@ class DaySeedsTest {
     fun `authored seeds and previews use the prescription even for main or unknown catalog entries`() {
         val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8), eachSide = true)
         val slots = listOf("bb_back_squat", "unknown").mapIndexed { index, exerciseId ->
-            ProgramSlot(index + 1L, index, ProgramExercise(exerciseId, isMain = true, targetSets = 2, prescription = prescription))
+            ProgramSlot(index + 1L, index, ProgramExercise(exerciseId, targetSets = 2, prescription = prescription))
         }
         val expected = List(2) { LoggedSet(37.5, 8, SetKind.WORK) }
         val writes = DaySeeds.plan(slots, emptyMap(), LifterConfig(), ExerciseCatalog.CODE_ONLY)
@@ -126,7 +127,7 @@ class DaySeedsTest {
     fun seedPlan_weighted_seed_is_unchanged_by_the_targetFor_routing() {
         // The routed path must produce the exact same rows as the goalFor->seed
         // path for a WEIGHTED slot.
-        val pe = ProgramExercise("bb_back_squat", isMain = true, targetSets = 6)
+        val pe = ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6)
         val slot = ProgramSlot(1, 0, pe)
         val routed = DaySeeds.plan(listOf(slot), emptyMap(), cfg, catalog).values.single()
         val direct = SetSeeder.seed(pe, GoalCalculator.goalFor(catalog.get("bb_back_squat"), cfg), cfg)
@@ -135,7 +136,7 @@ class DaySeedsTest {
 
     @Test
     fun seedPlan_seeds_main_lift_full_ramp_sequence() {
-        val slot = ProgramSlot(1, 0, ProgramExercise(exerciseId = "bb_back_squat", isMain = true, targetSets = 6))
+        val slot = ProgramSlot(1, 0, ProgramExercise(exerciseId = "bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6))
         val plan = DaySeeds.plan(listOf(slot), emptyMap(), cfg, catalog)
         val weights = plan.values.single().map { it.weightLb }
         // Pinned §11 squat seed: 130/165/190/210 · TOP 235 · B/O 175.

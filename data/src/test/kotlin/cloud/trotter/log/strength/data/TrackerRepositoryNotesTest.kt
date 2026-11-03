@@ -15,6 +15,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetStructure
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +54,7 @@ class TrackerRepositoryNotesTest {
     @After fun tearDown() { db.close(); scope.cancel() }
 
     @Test fun exerciseNoteRoundTripsThroughRoom() = runTest {
-        repo.replaceProgram(Program(listOf(ProgramDay("A", "LOWER", "", listOf(ProgramExercise("bb_back_squat", true, 4, "5/5/5/3", true))))))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "LOWER", "", listOf(ProgramExercise("bb_back_squat", SetStructure.RAMP_TOP_BACKOFF, 4))))))
         val slot = repo.daySlotsFlow("A").first().single()
         repo.setExerciseNote(slot.programExerciseId, "Belt on top")
         assertEquals("Belt on top", repo.daySlotsFlow("A").first().single().exercise.note)

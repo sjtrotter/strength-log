@@ -31,6 +31,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -200,7 +201,7 @@ class WizardViewModelWiringTest {
                 id = "R",
                 title = "Restored",
                 emphasisLine = "from a backup",
-                exercises = listOf(ProgramExercise(exerciseId = "bb_back_squat", isMain = true)),
+                exercises = listOf(ProgramExercise(exerciseId = "bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
             ),
         ),
     )
@@ -287,8 +288,8 @@ class WizardViewModelWiringTest {
 
         val expected = ProgramGenerator.generate(vm.uiState.value.answers)
         assertEquals(
-            expected.days.map { it.exercises.first { exercise -> exercise.isMain }.exerciseId },
-            vm.uiState.value.previewProgram!!.days.map { it.exercises.first { exercise -> exercise.isMain }.exerciseId },
+            expected.days.map { it.exercises.first { exercise -> exercise.structure.hasTopSet }.exerciseId },
+            vm.uiState.value.previewProgram!!.days.map { it.exercises.first { exercise -> exercise.structure.hasTopSet }.exerciseId },
         )
     }
 

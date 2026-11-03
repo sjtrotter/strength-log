@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
@@ -24,7 +25,7 @@ class PinnedVerificationTest {
     private fun goalOf(id: String) = GoalCalculator.goalFor(ExerciseLibrary.get(id), cfg)
 
     private fun seedMain(id: String) =
-        SetSeeder.seed(ProgramExercise(id, isMain = true), goalOf(id), cfg)
+        SetSeeder.seed(ProgramExercise(id, structure = SetStructure.RAMP_TOP_BACKOFF), goalOf(id), cfg)
 
     private fun row(s: LoggedSet) = Triple(s.weightLb, s.reps, s.kind)
 

@@ -228,6 +228,7 @@ strength day; the shipped cardio vectors stay pinned.
   have no GOAL and never cascade. Every day keeps at least one exercise
   unless it has a cardio block, and rotation visits strength days (all days
   when none are strength).
+- **Set structures amendment (owner decision 2026-11-02, #415):** a ramped structure on an authored load × reps uses that load as the top set and cascades; straight-set prescriptions never cascade.
 - **Timed rep events.** The clock runs with the screen kept on (no dimming,
   no lock), and when time ends the count entry (a stepper) comes up by
   itself. The lifter records the count.

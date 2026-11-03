@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import cloud.trotter.log.strength.ui.today.TodayUiState
@@ -151,9 +152,7 @@ class ScrollPathStabilityTest {
         programExerciseId = id,
         position = 0,
         title = "Test",
-        isMain = false,
         isSuperset = false,
-        hasWarmupHint = false,
         headerTarget = HeaderTarget.Goal("100"),
         perHand = false,
         allDone = false,
@@ -208,7 +207,7 @@ class ScrollPathStabilityTest {
                         title = "Test",
                         emphasisLine = "",
                         exercises = listOf(
-                            ProgramExercise("bb_back_squat", isMain = true, targetSets = 6),
+                            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6),
                             ProgramExercise("ez_curl", targetSets = 2, superset = SupersetPartner("rope_pushdown")),
                             ProgramExercise("face_pull", targetSets = 3),
                         ),

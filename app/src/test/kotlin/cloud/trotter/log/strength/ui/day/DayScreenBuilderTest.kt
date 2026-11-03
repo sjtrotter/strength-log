@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
@@ -26,7 +27,7 @@ class DayScreenBuilderTest {
 
     @Test
     fun `generated header retains the exact goal value in either unit`() {
-        val exercise = ProgramExercise("bb_back_squat", isMain = true)
+        val exercise = ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)
         val goal = GoalTarget.Weight(235.0, perHand = false)
         assertEquals(HeaderTarget.Goal("235"), DayScreenBuilder.headerTarget(exercise, goal, WeightUnit.LB))
         assertEquals(HeaderTarget.Goal("106.59"), DayScreenBuilder.headerTarget(exercise, goal, WeightUnit.KG))
@@ -44,7 +45,7 @@ class DayScreenBuilderTest {
         )
         for ((target, lb, kg) in cases) {
             val exercise = ProgramExercise(
-                "bb_back_squat", isMain = true, targetSets = 3,
+                "bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 3,
                 prescription = Prescription(target, eachSide = true, resistance = "Red band"),
             )
             for ((unit, display) in listOf(WeightUnit.LB to lb, WeightUnit.KG to kg)) {
@@ -131,8 +132,8 @@ class DayScreenBuilderTest {
     @Test
     fun remoteTickMarksOnlyItsAffectedRow() {
         val card = ExerciseCardState(
-            programExerciseId = 7, position = 0, title = "Squat", isMain = true,
-            isSuperset = false, hasWarmupHint = false, headerTarget = HeaderTarget.Goal("235"), perHand = false,
+            programExerciseId = 7, position = 0, title = "Squat",
+            isSuperset = false, headerTarget = HeaderTarget.Goal("235"), perHand = false,
             allDone = false, rows = listOf(
                 SetRowState(0, "R1", false, 135.0, 5, false),
                 SetRowState(1, "TOP", true, 235.0, 5, true),
@@ -163,7 +164,7 @@ class DayScreenBuilderTest {
             cfg = cfg,
         )
         val seeded = SetSeeder.seed(
-            ProgramExercise("bb_back_squat", isMain = true, targetSets = 6),
+            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6),
             goal,
             cfg,
         )
@@ -177,7 +178,7 @@ class DayScreenBuilderTest {
 
     @Test
     fun kindLabels_number_ramps_and_mark_top_and_backoff() {
-        val main = SetSeeder.seed(ProgramExercise("bb_back_squat", isMain = true, targetSets = 6), 235.0, cfg)
+        val main = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6), 235.0, cfg)
         assertEquals(listOf("R1", "R2", "R3", "R4", "TOP", "B/O"), DayScreenBuilder.kindLabels(main))
     }
 
@@ -211,7 +212,7 @@ class DayScreenBuilderTest {
 
     @Test
     fun kindLabelsForKinds_matches_kindLabels_over_the_same_sequence() {
-        val main = SetSeeder.seed(ProgramExercise("bb_back_squat", isMain = true, targetSets = 6), 235.0, cfg)
+        val main = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6), 235.0, cfg)
         assertEquals(DayScreenBuilder.kindLabels(main), DayScreenBuilder.kindLabelsForKinds(main.map { it.kind }))
     }
 

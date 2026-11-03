@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.PersonalBests
@@ -58,17 +59,20 @@ object JournalBuilder {
      * position in [Program.days] — the same key `dayAccent` takes, so a lift's
      * line matches the tab it lives under.
      *
-     * Only generated weight-target mains qualify: prescribed slots have no
-     * ramped top set, and REPS/TIMED slots have no top-set weight to plot.
+     * REPS/TIMED targets have no top-set weight to plot.
      */
     fun mainLifts(program: Program, catalog: ExerciseCatalog, cfg: LifterConfig): List<MainLift> {
         val lifts = LinkedHashMap<String, MainLift>()
         program.days.forEachIndexed { dayIndex, day ->
             for (pe in day.exercises) {
-                if (!pe.isMain || pe.prescription != null || pe.exerciseId in lifts) continue
+                if (!pe.structure.hasTopSet || pe.exerciseId in lifts) continue
                 val entry = catalog.find(pe.exerciseId) ?: continue
-                val goal = GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight ?: continue
-                lifts[pe.exerciseId] = MainLift(pe.exerciseId, entry.name, dayIndex, goal.lb)
+                val goalLb = when (val target = pe.prescription?.target) {
+                    null -> (GoalCalculator.targetFor(entry, cfg) as? GoalTarget.Weight)?.lb ?: continue
+                    is PrescribedTarget.LoadReps -> target.lb
+                    else -> continue
+                }
+                lifts[pe.exerciseId] = MainLift(pe.exerciseId, entry.name, dayIndex, goalLb)
             }
         }
         return lifts.values.toList()

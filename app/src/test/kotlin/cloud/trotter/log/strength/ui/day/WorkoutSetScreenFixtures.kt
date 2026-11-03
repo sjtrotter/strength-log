@@ -27,7 +27,7 @@ internal fun workoutSetSingleFixture(): DayUiState {
     val rows = List(6) { index -> SetRowState(index, "R${index + 1}", false, 190.0, 5, index < 2, kind = SetKind.RAMP, rampIndex = index + 1) }
     val card = ExerciseCardState(
         programExerciseId = 1L, position = 0, title = "Barbell Back Squat", exerciseId = "bb_back_squat",
-        isMain = true, isSuperset = false, hasWarmupHint = false, headerTarget = HeaderTarget.Goal("235"), perHand = false,
+        isSuperset = false, headerTarget = HeaderTarget.Goal("235"), perHand = false,
         equipment = listOf(Equipment.BARBELL), allDone = false, rows = rows, plateLine = "45 + 25 + 2.5",
     )
     return DayUiState(hasProgram = true, viewDayId = "A", exercises = listOf(card), workout = WorkoutState(
@@ -68,7 +68,7 @@ internal fun workoutDaySheetFixture(): DayUiState {
         title = "Barbell Bench Press", exerciseId = "bb_bench",
         rows = single.rows.map { it.copy(done = false) })
     val plank = single.copy(programExerciseId = 4L, position = 3,
-        title = "Plank", exerciseId = "plank", isMain = false, tracking = TrackingType.TIMED,
+        title = "Plank", exerciseId = "plank", tracking = TrackingType.TIMED,
         rows = List(3) { SetRowState(it, "${it + 1}", false, 0.0, 0, false, seconds = 45) })
     return state.copy(dayTitle = "Squat focus", runOpen = true,
         exercises = listOf(squat, bench, state.exercises.single().copy(position = 2), plank),
@@ -155,7 +155,7 @@ internal fun workoutDayFixture(): DayUiState = DayUiState(
             done = page == 0 || page == 1 && index == 0, kind = SetKind.RAMP, rampIndex = index + 1) }
         val focus = DayScreenBuilder.focusIndex(rows)
         ExerciseCardState(programExerciseId = page + 1L, position = page, title = "Lift ${page + 1}",
-            isMain = true, isSuperset = false, hasWarmupHint = false, headerTarget = HeaderTarget.Goal("120"), perHand = false,
+            isSuperset = false, headerTarget = HeaderTarget.Goal("120"), perHand = false,
             allDone = page == 0, rows = rows, focusIndex = focus,
             summaryLine = "85×5, 95×5, 105×5")
     },

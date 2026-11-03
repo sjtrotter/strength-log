@@ -4,13 +4,14 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /** Working values retain edits while dropping results from the finished run. */
 class CarryForwardTest {
-    private fun squat() = SetSeeder.seed(ProgramExercise("bb_back_squat", isMain = true), 235.0, LifterConfig())
+    private fun squat() = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF), 235.0, LifterConfig())
 
     /** [F] */
     @Test
@@ -21,6 +22,24 @@ class CarryForwardTest {
         }
         val next = CarryForward.next(planned, SetEditor.editWeight(actual, 4, 245.0))
         assertEquals(listOf(135.0, 170.0, 195.0, 220.0, 245.0, 185.0), next.map { it.weightLb })
+        assertCleared(next)
+    }
+
+    @Test
+    fun `changed ramp to top recascades four ramps without adding a backoff`() {
+        val planned = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP), 235.0, LifterConfig())
+        val actual = planned.mapIndexed { i, set ->
+            set.copy(
+                weightLb = if (set.kind == SetKind.TOP) 245.0 else set.weightLb,
+                done = true, startedAtMillis = 100, completedAtMillis = 200, plannedIndex = i, watchEditedAt = 300,
+            )
+        }
+
+        val next = CarryForward.next(planned, actual)
+
+        assertEquals(listOf(135.0, 170.0, 195.0, 220.0, 245.0), next.map { it.weightLb })
+        assertEquals(listOf(SetKind.RAMP, SetKind.RAMP, SetKind.RAMP, SetKind.RAMP, SetKind.TOP), next.map { it.kind })
+        assertEquals(listOf(5, 5, 5, 3, 5), next.map { it.reps })
         assertCleared(next)
     }
 

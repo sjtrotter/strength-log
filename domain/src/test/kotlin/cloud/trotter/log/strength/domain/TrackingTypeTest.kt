@@ -81,7 +81,7 @@ class TrackingTypeTest {
             val program = ProgramGenerator.generate(WizardAnswers(daysPerWeek = days))
             val badMains = program.days
                 .flatMap { it.exercises }
-                .filter { it.isMain && ExerciseLibrary.get(it.exerciseId).tracking != TrackingType.WEIGHTED }
+                .filter { it.structure.hasTopSet && ExerciseLibrary.get(it.exerciseId).tracking != TrackingType.WEIGHTED }
                 .map { it.exerciseId }
             assertEquals(emptyList(), badMains, "non-WEIGHTED main produced for $days-day split")
         }

@@ -32,6 +32,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -84,9 +85,9 @@ class BackupRoundTripTest : BackupTestHarness() {
             title = "Day A",
             emphasisLine = "Squat-focused lower",
             exercises = listOf(
-                ProgramExercise("bb_back_squat", isMain = true, targetSets = 4, repSchemeLabel = "5/5/5/3", hasWarmupHint = true, note = "belt on top"),
-                ProgramExercise("bb_row", targetSets = 3, repSchemeLabel = "8-12"),
-                ProgramExercise("bb_bench", targetSets = 3, repSchemeLabel = "6-10"),
+                ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 4, note = "belt on top"),
+                ProgramExercise("bb_row", targetSets = 3),
+                ProgramExercise("bb_bench", targetSets = 3),
             ),
             cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Intervals", "5 min easy, then 4x2min hard/easy", hard = true), false, CardioActivity.TREADMILL_RUN),
         )
@@ -94,7 +95,7 @@ class BackupRoundTripTest : BackupTestHarness() {
             id = "B",
             title = "Day B",
             emphasisLine = "Bench-focused upper",
-            exercises = listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 4)),
+            exercises = listOf(ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 4)),
         )
         repository.replaceProgram(Program(listOf(dayA, dayB)))
 

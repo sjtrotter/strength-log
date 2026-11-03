@@ -14,7 +14,7 @@ import cloud.trotter.log.strength.domain.standards.GoalCalculator
  */
 object SlotSeeds {
     fun main(exercise: ProgramExercise, entry: ExerciseEntry?, config: LifterConfig): List<LoggedSet>? =
-        exercise.prescription?.let { prescribed(exercise.targetSets, it) }
+        exercise.prescription?.let { SetSeeder.seedPrescribed(exercise.targetSets, it, exercise.structure) }
             ?: entry?.let { SetSeeder.seed(exercise, GoalCalculator.targetFor(it, config), config) }
 
     fun prescribed(rows: Int, prescription: Prescription): List<LoggedSet> =

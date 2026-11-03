@@ -32,6 +32,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -157,14 +158,12 @@ class PersistenceProcessDeathTest {
         // --- the program -------------------------------------------------------
         val squat = ProgramExercise(
             exerciseId = "bb_back_squat",
-            isMain = true,
+            structure = SetStructure.RAMP_TOP_BACKOFF,
             targetSets = 4,
-            repSchemeLabel = "5/5/5/3",
-            hasWarmupHint = true,
             note = "belt on top set",
         )
-        val row = ProgramExercise(exerciseId = "bb_row", targetSets = 3, repSchemeLabel = "8-12")
-        val bench = ProgramExercise(exerciseId = "bb_bench", targetSets = 3, repSchemeLabel = "6-10")
+        val row = ProgramExercise(exerciseId = "bb_row", targetSets = 3)
+        val bench = ProgramExercise(exerciseId = "bb_bench", targetSets = 3)
         val dayA = ProgramDay(
             id = "A",
             title = "Day A",
@@ -176,7 +175,7 @@ class PersistenceProcessDeathTest {
             id = "B",
             title = "Day B",
             emphasisLine = "Bench-focused upper",
-            exercises = listOf(ProgramExercise(exerciseId = "bb_bench", isMain = true, targetSets = 4)),
+            exercises = listOf(ProgramExercise(exerciseId = "bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 4)),
         )
         repository.replaceProgram(Program(listOf(dayA, dayB)))
 

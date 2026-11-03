@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.domain.model
 
+import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.domain.library.GoalSource
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.tracking
 import kotlinx.serialization.Serializable
 
 enum class ExperienceLevel { NOVICE, INTERMEDIATE, ADVANCED }
@@ -24,6 +28,24 @@ enum class Equipment {
 
 enum class SetKind { RAMP, TOP, BACKOFF, WORK, EXTRA }
 
+/** Stored by name; new constants go at the end. */
+enum class SetStructure {
+    STRAIGHT,
+    RAMP_TOP_BACKOFF,
+    RAMP_TOP;
+
+    val hasTopSet: Boolean get() = this != STRAIGHT
+
+    companion object {
+        fun defaultFor(entry: ExerciseEntry): SetStructure =
+            if (entry.tracking == TrackingType.WEIGHTED && entry.goal is GoalSource.Std) RAMP_TOP_BACKOFF else STRAIGHT
+
+        /** Data from before structures existed: a main lift ramps, everything else is straight. A main
+         *  lift with a written load ramps around that load as its top set (owner decision, #415). */
+        fun fromLegacy(isMain: Boolean): SetStructure = if (isMain) RAMP_TOP_BACKOFF else STRAIGHT
+    }
+}
+
 data class LoggedSet(
     val weightLb: Double,
     val reps: Int,
@@ -47,10 +69,8 @@ data class SupersetPartner(val exerciseId: String) // refers into ExerciseLibrar
 /** One exercise slot inside a day of the user's (editable) program. */
 data class ProgramExercise(
     val exerciseId: String, // ExerciseLibrary key
-    val isMain: Boolean = false,
+    val structure: SetStructure = SetStructure.STRAIGHT,
     val targetSets: Int = 3,
-    val repSchemeLabel: String = "", // display only, e.g. "8-12"
-    val hasWarmupHint: Boolean = false, // "+1 warm-up set" badge
     val superset: SupersetPartner? = null,
     val note: String = "",
     val prescription: Prescription? = null,

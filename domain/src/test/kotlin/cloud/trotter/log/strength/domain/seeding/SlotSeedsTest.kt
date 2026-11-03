@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,7 +21,7 @@ class SlotSeedsTest {
 
     @Test
     fun `main lift preserves the pinned squat sequence`() {
-        val exercise = ProgramExercise(squat.id, isMain = true)
+        val exercise = ProgramExercise(squat.id, structure = SetStructure.RAMP_TOP_BACKOFF)
         val sets = assertNotNull(SlotSeeds.main(exercise, squat, config))
 
         assertEquals(SetSeeder.seed(exercise, GoalCalculator.targetFor(squat, config), config), sets)
@@ -38,6 +39,62 @@ class SlotSeedsTest {
     }
 
     @Test
+    fun `ramp to top seeds the pinned squat ramps and top without a backoff`() {
+        val exercise = ProgramExercise(squat.id, structure = SetStructure.RAMP_TOP, targetSets = 1)
+
+        assertEquals(
+            listOf(
+                LoggedSet(130.0, 5, SetKind.RAMP),
+                LoggedSet(165.0, 5, SetKind.RAMP),
+                LoggedSet(190.0, 5, SetKind.RAMP),
+                LoggedSet(210.0, 3, SetKind.RAMP),
+                LoggedSet(235.0, 5, SetKind.TOP),
+            ),
+            SlotSeeds.main(exercise, squat, config),
+        )
+    }
+
+    @Test
+    fun `prescribed 225 by 5 seeds each structure around the authored top`() {
+        val rampsAndTop = listOf(
+            LoggedSet(125.0, 5, SetKind.RAMP),
+            LoggedSet(160.0, 5, SetKind.RAMP),
+            LoggedSet(180.0, 5, SetKind.RAMP),
+            LoggedSet(205.0, 3, SetKind.RAMP),
+            LoggedSet(225.0, 5, SetKind.TOP),
+        )
+        val expected = mapOf(
+            SetStructure.STRAIGHT to List(3) { LoggedSet(225.0, 5, SetKind.WORK) },
+            SetStructure.RAMP_TOP_BACKOFF to rampsAndTop + LoggedSet(170.0, 8, SetKind.BACKOFF),
+            SetStructure.RAMP_TOP to rampsAndTop,
+        )
+        for (structure in SetStructure.entries) {
+            val exercise = ProgramExercise(
+                squat.id, structure = structure,
+                prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5)),
+            )
+            assertEquals(expected.getValue(structure), SlotSeeds.main(exercise, squat, config))
+            assertEquals(expected.getValue(structure), SlotSeeds.main(exercise, null, config))
+        }
+    }
+
+    @Test
+    fun `non-weighted prescriptions seed straight even under ramped structures`() {
+        val cases = listOf(
+            PrescribedTarget.Reps(12) to LoggedSet(0.0, 12, SetKind.WORK),
+            PrescribedTarget.Hold(45, 25.0) to LoggedSet(25.0, 0, SetKind.WORK, seconds = 45),
+            PrescribedTarget.RepsInTime(120, 50) to LoggedSet(0.0, 0, SetKind.WORK),
+        )
+        for (structure in listOf(SetStructure.RAMP_TOP_BACKOFF, SetStructure.RAMP_TOP)) {
+            for ((target, row) in cases) {
+                val exercise = ProgramExercise(squat.id, structure = structure, targetSets = 2, prescription = Prescription(target))
+                assertEquals(List(2) { row }, SlotSeeds.main(exercise, squat, config))
+                assertEquals(List(2) { row }, SlotSeeds.main(exercise, null, config))
+            }
+        }
+    }
+
+    @Test
     fun `prescription takes precedence over any entry including an unknown one`() {
         val prescriptions = listOf(
             PrescribedTarget.LoadReps(37.5, 8),
@@ -47,7 +104,7 @@ class SlotSeedsTest {
         ).map { Prescription(it) }
 
         for (prescription in prescriptions) {
-            val exercise = ProgramExercise(squat.id, isMain = true, targetSets = 2, prescription = prescription)
+            val exercise = ProgramExercise(squat.id, targetSets = 2, prescription = prescription)
             val expected = SetSeeder.seedPrescribed(2, prescription)
             assertEquals(expected, SlotSeeds.prescribed(2, prescription))
             assertEquals(expected, SlotSeeds.main(exercise, squat, config))
@@ -82,7 +139,7 @@ class SlotSeedsTest {
         )
         for ((goal, row) in cases) {
             val entry = squat.copy(goal = goal)
-            val exercise = ProgramExercise(entry.id, isMain = true, targetSets = 4)
+            val exercise = ProgramExercise(entry.id, structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 4)
 
             assertEquals(List(4) { row }, SlotSeeds.main(exercise, entry, config))
             assertEquals(List(7) { row }, SlotSeeds.partner(entry, mainRows = 7, config = config))
@@ -107,7 +164,7 @@ class SlotSeedsTest {
     @Test
     fun `clearing a prescription for a substitute uses its goal`() {
         val exercise = ProgramExercise(
-            squat.id, isMain = true, prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8)),
+            squat.id, structure = SetStructure.RAMP_TOP_BACKOFF, prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8)),
         )
         val entry = ExerciseLibrary.get("hack_squat")
         val substitute = exercise.copy(exerciseId = entry.id, prescription = null)
@@ -116,5 +173,10 @@ class SlotSeedsTest {
             SetSeeder.seed(substitute, GoalCalculator.targetFor(entry, config), config),
             SlotSeeds.main(substitute, entry, config),
         )
+    }
+
+    @Test fun `legacy data ramps a main lift and keeps everything else straight`() {
+        assertEquals(SetStructure.RAMP_TOP_BACKOFF, SetStructure.fromLegacy(isMain = true))
+        assertEquals(SetStructure.STRAIGHT, SetStructure.fromLegacy(isMain = false))
     }
 }

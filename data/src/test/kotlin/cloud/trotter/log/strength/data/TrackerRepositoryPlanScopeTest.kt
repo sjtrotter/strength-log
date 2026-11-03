@@ -393,8 +393,9 @@ class TrackerRepositoryPlanScopeTest {
         repo.ensureSeeded(2, "A")
         assertEquals(second, db.programDao().logsForDay(2, "A"))
 
-        assertEquals(100.0, SetJson.decodeSets(db.programDao().logsForDay(1, "A").single().setsJson).single().weightLb, 0.0)
-        assertEquals(200.0, SetJson.decodeSets(db.programDao().logsForDay(2, "A").single().setsJson).single().weightLb, 0.0)
+        // Main lifts ramp around a written load, so each plan's own load is its top set.
+        assertEquals(100.0, SetJson.decodeSets(db.programDao().logsForDay(1, "A").single().setsJson).single { it.kind == SetKind.TOP }.weightLb, 0.0)
+        assertEquals(200.0, SetJson.decodeSets(db.programDao().logsForDay(2, "A").single().setsJson).single { it.kind == SetKind.TOP }.weightLb, 0.0)
     }
 
     @Test

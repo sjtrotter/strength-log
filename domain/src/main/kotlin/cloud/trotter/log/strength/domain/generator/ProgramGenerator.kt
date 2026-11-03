@@ -32,6 +32,7 @@ import cloud.trotter.log.strength.domain.model.MovementPattern.V_PUSH
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 
 /**
@@ -174,7 +175,7 @@ object ProgramGenerator {
             id = id,
             title = "Full Body",
             emphasisLine = fullBodyEmphasis(incline, vertPull, kneeFlex, soleus, singleLeg),
-            exercises = withWarmupHint(slots, mainPattern),
+            exercises = slots,
             cardioBlock = finisher(answers, legHeavy = lowerMain),
         )
     }
@@ -225,7 +226,7 @@ object ProgramGenerator {
         return ProgramDay(
             id, "Upper",
             "horizontal + vertical push and pull · arms superset",
-            withWarmupHint(slots, H_PUSH),
+            slots,
             cardioBlock = finisher(answers, legHeavy = false),
         )
     }
@@ -255,7 +256,7 @@ object ProgramGenerator {
         return ProgramDay(
             id, "Lower",
             "squat + hinge · single-leg · knee-flexion hamstrings",
-            withWarmupHint(slots, mainPattern),
+            slots,
             cardioBlock = finisher(answers, legHeavy = true),
         )
     }
@@ -274,7 +275,7 @@ object ProgramGenerator {
         return ProgramDay(
             id, "Push",
             "flat + incline press · vertical press · side delts · triceps",
-            withWarmupHint(slots, H_PUSH),
+            slots,
             cardioBlock = finisher(answers, legHeavy = false),
         )
     }
@@ -297,7 +298,7 @@ object ProgramGenerator {
         return ProgramDay(
             id, "Pull",
             "horizontal row · vertical pull · rear delts · biceps",
-            withWarmupHint(slots, H_PULL),
+            slots,
             cardioBlock = finisher(answers, legHeavy = false),
         )
     }
@@ -323,7 +324,7 @@ object ProgramGenerator {
         return ProgramDay(
             id, "Legs",
             "${if (mainPattern == HINGE) "hinge" else "squat"} main · single-leg · knee-flexion hamstrings",
-            withWarmupHint(slots, mainPattern),
+            slots,
             cardioBlock = finisher(answers, legHeavy = true),
         )
     }
@@ -336,21 +337,19 @@ object ProgramGenerator {
         }
         return ProgramExercise(
             exerciseId = id,
-            isMain = true,
+            structure = SetStructure.RAMP_TOP_BACKOFF,
             targetSets = 6,
-            repSchemeLabel = "ramp → top → back-off",
         )
     }
 
     private fun accessory(entry: ExerciseEntry): ProgramExercise =
-        ProgramExercise(exerciseId = entry.id, targetSets = 3, repSchemeLabel = "8–12")
+        ProgramExercise(exerciseId = entry.id, targetSets = 3)
 
     /** Arms superset: BICEPS primary paired with a TRICEPS partner (spec §6.3). */
     private fun armsSuperset(equip: Set<Equipment>): ProgramExercise =
         ProgramExercise(
             exerciseId = pickAccessory(BICEPS, equip).id,
             targetSets = 3,
-            repSchemeLabel = "10–15",
             superset = SupersetPartner(pickAccessory(TRICEPS, equip).id),
         )
 
@@ -380,23 +379,6 @@ object ProgramGenerator {
         return nonStd.firstOrNull { it.availableWith(equip) }
             ?: nonStd.firstOrNull()
             ?: ranked.first() // never leave a hole
-    }
-
-    /** Exactly one warm-up hint per day: the first accessory that loads a new
-     *  pattern after the main (spec §12 warm-ups). */
-    private fun withWarmupHint(
-        slots: List<ProgramExercise>,
-        mainPattern: MovementPattern,
-    ): List<ProgramExercise> {
-        var placed = false
-        return slots.map { pe ->
-            if (!placed && !pe.isMain && ExerciseLibrary.get(pe.exerciseId).pattern != mainPattern) {
-                placed = true
-                pe.copy(hasWarmupHint = true)
-            } else {
-                pe
-            }
-        }
     }
 
     // --- cardio --------------------------------------------------------------

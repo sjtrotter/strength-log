@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.wear.compose.foundation.BasicSwipeToDismissBox
 import androidx.wear.remote.interactions.RemoteActivityHelper
+import cloud.trotter.log.strength.domain.sync.CardioDelta
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.generator.CardioIntervals
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
@@ -410,6 +411,7 @@ fun WearApp(
                     // Activity going away mid-enqueue.
                     sendEdit = client::sendEdit,
                     sendSwap = client::sendSwap,
+                    sendCardio = client::sendCardio,
                     onSessionStarted = { localSessionStartedAtMillis = it },
                     onDismiss = onDismiss,
                 )
@@ -468,6 +470,8 @@ private fun WorkoutDial(
     scheduleTimedHoldTick: (RestTimerController.Firing, () -> Unit) -> Unit,
     sendEdit: (SetEditDelta) -> Unit,
     sendSwap: (ExerciseSwapDelta) -> Unit,
+    // The original signature anchors rememberSaveable's compiler-generated registry key.
+    @Suppress("UNUSED_PARAMETER") sendCardio: (CardioDelta) -> Unit,
     onSessionStarted: (Long) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -494,10 +498,12 @@ private fun WorkoutDial(
                 is WorkoutEffect.Haptic -> DialHaptics.perform(view, effect.cue)
                 is WorkoutEffect.TimedRepChanged -> onTimedRepChanged(effect.state)
                 is WorkoutEffect.SessionStarted -> onSessionStarted(effect.wallMillis)
+                is WorkoutEffect.StartRest -> dispatch(WorkoutEvent.StartRest(effect.seconds, effect.betweenExercises))
                 WorkoutEffect.DisarmTimer -> restController.disarm()
                 is WorkoutEffect.ArmRest -> restController.arm(effect.deadlineMillis, effect.totalSeconds)
                 is WorkoutEffect.ArmTimedHold -> restController.arm(effect.deadlineMillis, effect.totalSeconds) { firing ->
-                    scheduleTimedHoldTick(firing) { dispatch(WorkoutEvent.Tick) }
+                    val tick = WorkoutEvent.Tick(saved.tickTarget(latestWorkoutInputs))
+                    scheduleTimedHoldTick(firing) { dispatch(tick) }
                 }
                 WorkoutEffect.StartCardio -> onStartCardio()
                 WorkoutEffect.StopCardio -> onStopCardio()
@@ -648,7 +654,7 @@ private fun WorkoutDial(
                 when (state.tap) {
                     DialTap.OPEN_WORKOUT -> dispatch(WorkoutEvent.ShowFace(DialFace.WORKOUT))
                     DialTap.START_SET -> dispatch(WorkoutEvent.StartSet)
-                    DialTap.TICK -> dispatch(WorkoutEvent.Tick)
+                    DialTap.TICK -> dispatch(WorkoutEvent.Tick())
                     DialTap.SKIP_REST -> dispatch(WorkoutEvent.SkipRest)
                     DialTap.CONFIRM_SWAP -> dispatch(WorkoutEvent.ConfirmSwap)
                     DialTap.DISMISS -> if (cardioSets?.complete == true) {

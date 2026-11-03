@@ -121,6 +121,11 @@ class WorkoutDialStateTest {
         cardioRunning: Boolean = false,
     ) = reduce(event, time, WorkoutInputs(snapshot, timedRep, cardioRunning))
 
+    private fun WorkoutTransition.startRest(time: DeviceTime, snapshot: WatchSnapshot = snapshot(exercise())): WorkoutTransition {
+        val rest = effects.filterIsInstance<WorkoutEffect.StartRest>().single()
+        return state.event(WorkoutEvent.StartRest(rest.seconds, rest.betweenExercises), time, snapshot)
+    }
+
     @Test
     fun `start and tick preserve stamps identity memory and effect order`() {
         val original = ready()
@@ -130,7 +135,7 @@ class WorkoutDialStateTest {
         assertEquals(listOf(WorkoutEffect.SessionStarted(100_000L), WorkoutEffect.Haptic(DialHaptics.Cue.START)), started.effects)
         assertFalse(original.lifting)
 
-        val ticked = started.state.event(WorkoutEvent.Tick, tickTime)
+        val ticked = started.state.event(WorkoutEvent.Tick(), tickTime)
         assertEquals(listOf(
             WorkoutEffect.DisarmTimer,
             WorkoutEffect.SendEdit(SetEditDelta(dayId = "A", programExerciseId = 7L, slot = "main", setIndex = 0,
@@ -138,6 +143,7 @@ class WorkoutDialStateTest {
                 planId = 1L, runId = "r-1", exerciseId = "squat")),
             WorkoutEffect.Haptic(DialHaptics.Cue.CONFIRM_TICK),
             WorkoutEffect.TimedRepChanged(null),
+            WorkoutEffect.StartRest(150, false),
         ), ticked.effects)
         assertFalse(ticked.state.lifting)
         assertEquals(0L, ticked.state.startedAtWallMillis)
@@ -146,16 +152,18 @@ class WorkoutDialStateTest {
         assertEquals(listOf(TickRef(7L, 0)), ticked.state.tickMemory.newestFirst())
         assertEquals(100_000L, ticked.state.sessionStartedAtMillis)
         assertEquals(145_000L, ticked.state.sessionEndedAtMillis)
-        assertEquals(205_000L, ticked.state.restDeadlineMillis)
-        assertEquals(150, ticked.state.restTotalSeconds)
-        assertFalse(ticked.state.restBetweenExercises)
+        assertEquals(0L, ticked.state.restDeadlineMillis)
+        val resting = ticked.startRest(tickTime).state
+        assertEquals(205_000L, resting.restDeadlineMillis)
+        assertEquals(150, resting.restTotalSeconds)
+        assertFalse(resting.restBetweenExercises)
         assertEquals(NO_REST, ticked.state.restedSeconds)
         assertEquals(DialFace.WORKOUT, ticked.state.face)
     }
 
     @Test
     fun `tick without a start sends no invented start and still records chronology`() {
-        val ticked = ready().event(WorkoutEvent.Tick, tickTime)
+        val ticked = ready().event(WorkoutEvent.Tick(), tickTime)
         val edit = ticked.effects.filterIsInstance<WorkoutEffect.SendEdit>().single().delta
         assertNull(edit.startedAtMillis)
         assertEquals(145_000L, edit.completedAtMillis)
@@ -168,13 +176,13 @@ class WorkoutDialStateTest {
     @Test
     fun `finishing an exercise rests before the next exercise and finishing the day opens overview`() {
         val first = exercise(sets = 1)
-        val between = ready().event(WorkoutEvent.Tick, tickTime, snapshot(first, exercise(8L)))
+        val between = ready().event(WorkoutEvent.Tick(), tickTime, snapshot(first, exercise(8L))).startRest(tickTime)
         assertEquals(205_000L, between.state.restDeadlineMillis)
         assertEquals(150, between.state.restTotalSeconds)
         assertTrue(between.state.restBetweenExercises)
         assertEquals(DialFace.WORKOUT, between.state.face)
 
-        val done = ready().event(WorkoutEvent.Tick, tickTime, snapshot(first))
+        val done = ready().event(WorkoutEvent.Tick(), tickTime, snapshot(first))
         assertEquals(0L, done.state.restDeadlineMillis)
         assertEquals(0, done.state.restTotalSeconds)
         assertEquals(DialFace.OVERVIEW, done.state.face)
@@ -184,9 +192,9 @@ class WorkoutDialStateTest {
     fun `done or missing rounds never send a second edit or haptic`() {
         val ex = exercise(sets = 1)
         val done = snapshot(ex.copy(sets = ex.sets.map { it.copy(done = true) }))
-        assertEquals(WorkoutTransition(ready()), ready().event(WorkoutEvent.Tick, tickTime, done))
-        assertTrue(ready().event(WorkoutEvent.Tick, tickTime, snapshot(ex.copy(sets = emptyList()))).effects.isEmpty())
-        assertTrue(ready().event(WorkoutEvent.Tick, tickTime, snapshot()).effects.isEmpty())
+        assertEquals(WorkoutTransition(ready()), ready().event(WorkoutEvent.Tick(), tickTime, done))
+        assertTrue(ready().event(WorkoutEvent.Tick(), tickTime, snapshot(ex.copy(sets = emptyList()))).effects.isEmpty())
+        assertTrue(ready().event(WorkoutEvent.Tick(), tickTime, snapshot()).effects.isEmpty())
     }
 
     @Test
@@ -200,6 +208,22 @@ class WorkoutDialStateTest {
         assertEquals(ready(), skipped.state)
         assertEquals(listOf(WorkoutEffect.DisarmTimer), skipped.effects)
         assertTrue(ready().event(WorkoutEvent.ResumeRest).effects.isEmpty())
+    }
+
+    @Test
+    fun `tick requests rest last and a later StartRest preserves the earlier completion stamp`() {
+        val ticked = ready().event(WorkoutEvent.StartSet).state.event(WorkoutEvent.Tick(), tickTime)
+        assertEquals(WorkoutEffect.StartRest(150, false), ticked.effects.last())
+        assertEquals(0L, ticked.state.restDeadlineMillis)
+        val afterEffects = DeviceTime(148_000L, 58_000L, 4)
+        val resting = ticked.startRest(afterEffects).state
+        assertEquals(208_000L, resting.restDeadlineMillis)
+        assertEquals(145_000L, resting.sessionEndedAtMillis)
+        assertEquals(45, resting.tickMemory.secondsFor(7L, 0))
+        val edit = ticked.effects.filterIsInstance<WorkoutEffect.SendEdit>().single().delta
+        assertEquals(145_000L, edit.completedAtMillis)
+        assertEquals(145_000L, edit.editedAtMillis)
+        assertEquals(listOf(WorkoutEffect.ArmRest(208_000L, 150)), resting.event(WorkoutEvent.ResumeRest).effects)
     }
 
     @Test
@@ -329,23 +353,24 @@ class WorkoutDialStateTest {
         assertEquals(WorkoutEffect.TimedRepChanged(attempt.timeUp().copy(count = 38)), counted.effects.first())
         assertEquals(List(38) { WorkoutEffect.Haptic(DialHaptics.Cue.ROTARY_DETENT) }, counted.effects.drop(1))
         val end = DeviceTime(240_000L, 150_000L, 4)
-        val ticked = started.state.event(WorkoutEvent.Tick, end, snap, attempt.timeUp().copy(count = 38))
+        val ticked = started.state.event(WorkoutEvent.Tick(), end, snap, attempt.timeUp().copy(count = 38))
         assertEquals(listOf(
             WorkoutEffect.DisarmTimer,
             WorkoutEffect.SendEdit(SetEditDelta(dayId = "A", programExerciseId = 7L, slot = "main", setIndex = 0,
                 reps = 38, done = true, editedAtMillis = 240_000L, startedAtMillis = 100_000L,
                 completedAtMillis = 240_000L, planId = 1L, runId = "r-1", exerciseId = "squat")),
             WorkoutEffect.Haptic(DialHaptics.Cue.CONFIRM_TICK), WorkoutEffect.TimedRepChanged(null),
+            WorkoutEffect.StartRest(150, false),
         ), ticked.effects)
         assertEquals(140, ticked.state.tickMemory.secondsFor(7L, 0))
-        assertEquals(300_000L, ticked.state.restDeadlineMillis)
+        assertEquals(300_000L, ticked.startRest(end, snap).state.restDeadlineMillis)
     }
 
     @Test
     fun `running timed reps refuse ticks and stale or expired stop holds`() {
         val snap = snapshot(exercise().copy(repWindowSeconds = 120))
         val attempt = assertNotNull(startTimedRep(snap, 0, false, null, 100_000L, 10_000L, 4))
-        val runningTick = ready().event(WorkoutEvent.Tick, tickTime, snap, attempt)
+        val runningTick = ready().event(WorkoutEvent.Tick(), tickTime, snap, attempt)
         assertEquals(listOf(WorkoutEffect.DisarmTimer), runningTick.effects)
         assertEquals(ready(), runningTick.state)
         val stopped = ready().event(WorkoutEvent.StopTimedRep(attempt), tickTime, snap, attempt)
@@ -378,12 +403,12 @@ class WorkoutDialStateTest {
         val wake = DeviceTime(700_000L, 610_000L, 4)
         assertEquals(listOf(WorkoutEffect.ArmTimedHold(55_000L, 45)),
             started.event(WorkoutEvent.ResumeTimedHold, wake, snap).effects)
-        val ticked = started.event(WorkoutEvent.Tick, wake, snap)
+        val ticked = started.event(WorkoutEvent.Tick(), wake, snap)
         val edit = ticked.effects.filterIsInstance<WorkoutEffect.SendEdit>().single().delta
         assertEquals(100_000L, edit.startedAtMillis)
         assertEquals(700_000L, edit.completedAtMillis)
         assertEquals(600, ticked.state.tickMemory.secondsFor(7L, 0))
-        assertEquals(760_000L, ticked.state.restDeadlineMillis)
+        assertEquals(760_000L, ticked.startRest(wake, snap).state.restDeadlineMillis)
     }
 
     @Test
@@ -418,7 +443,7 @@ class WorkoutDialStateTest {
         assertEquals(DialScreen.READY, ready().render(snap, startTime).screen)
         val started = ready().event(WorkoutEvent.StartSet, snapshot = snap).state
         assertEquals(DialScreen.LIFTING, started.render(snap, startTime).screen)
-        val ticked = started.event(WorkoutEvent.Tick, tickTime, snap).state
+        val ticked = started.event(WorkoutEvent.Tick(), tickTime, snap).startRest(tickTime, snap).state
         val echoed = snapshot(ex.copy(sets = ex.sets.mapIndexed { index, set -> set.copy(done = index == 0) }))
         assertEquals(DialScreen.REST, ticked.render(echoed, tickTime).screen)
         val wake = DeviceTime(400_000L, 310_000L, 4)
@@ -435,12 +460,12 @@ class WorkoutDialStateTest {
     @Test
     fun `wall-clock rollback preserves observed stamps while rest stays on elapsed time`() {
         val started = ready().event(WorkoutEvent.StartSet).state
-        val ticked = started.event(WorkoutEvent.Tick, DeviceTime(90_000L, 55_000L, 4))
+        val ticked = started.event(WorkoutEvent.Tick(), DeviceTime(90_000L, 55_000L, 4))
         val edit = ticked.effects.filterIsInstance<WorkoutEffect.SendEdit>().single().delta
         assertEquals(100_000L, edit.startedAtMillis)
         assertEquals(90_000L, edit.completedAtMillis)
         assertEquals(90_000L, edit.editedAtMillis)
-        assertEquals(205_000L, ticked.state.restDeadlineMillis)
+        assertEquals(205_000L, ticked.startRest(DeviceTime(90_000L, 55_000L, 4)).state.restDeadlineMillis)
         assertNull(ticked.state.tickMemory.secondsFor(7L, 0))
         assertEquals(listOf(TickRef(7L, 0)), ticked.state.tickMemory.newestFirst())
     }

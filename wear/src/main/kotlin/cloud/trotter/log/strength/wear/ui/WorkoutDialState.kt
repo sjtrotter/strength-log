@@ -39,6 +39,12 @@ internal data class WorkoutDialState(
         inputs.snapshot.day.exercises.indexOfFirst { it.programExerciseId == id }.takeIf { it >= 0 }
     } ?: ExerciseSelection.resolve(inputs.snapshot, selectedExercise.takeIf { it >= 0 })
 
+    fun tickTarget(inputs: WorkoutInputs): WorkoutTickTarget {
+        val index = exerciseIndex(inputs)
+        val round = inputs.snapshot.day.exercises.getOrNull(index)?.let(::currentRoundIndex) ?: 0
+        return WorkoutTickTarget(inputs.snapshot, index, round, inputs.timedRep)
+    }
+
     fun swapPreviewFor(exerciseIndex: Int): SwapPreview? = swapPreview.takeIf { swapExerciseIndex == exerciseIndex }
 
     private fun clearRest() = copy(restDeadlineMillis = 0L, restTotalSeconds = 0, restBetweenExercises = false)
@@ -78,42 +84,45 @@ internal data class WorkoutDialState(
                         sessionStartedAtMillis = sessionStartedAtMillis.takeIf { it != 0L } ?: now.wallMillis)
                 }
             }
-            WorkoutEvent.Tick -> {
-                val ex = exercise ?: return WorkoutTransition(current)
-                val set = ex.sets.getOrNull(round) ?: return WorkoutTransition(current)
+            is WorkoutEvent.Tick -> {
+                val target = event.target ?: tickTarget(inputs)
+                val tickSnapshot = target.snapshot
+                val ex = tickSnapshot.day.exercises.getOrNull(target.exerciseIndex) ?: return WorkoutTransition(current)
+                val tickRound = target.roundIndex
+                val tickAttempt = target.timedRep
+                val set = ex.sets.getOrNull(tickRound) ?: return WorkoutTransition(current)
                 if (set.done) return WorkoutTransition(current)
                 // Cancel the ending hold's goal buzz before sending its tick or starting a rest.
                 effects += WorkoutEffect.DisarmTimer
-                val timedDelta = attempt?.let { buildTimedRepDelta(it, snap, now.wallMillis) }
-                if (attempt != null && timedDelta == null) return WorkoutTransition(current, effects)
+                val timedDelta = tickAttempt?.let { buildTimedRepDelta(it, tickSnapshot, now.wallMillis) }
+                if (tickAttempt != null && timedDelta == null) return WorkoutTransition(current, effects)
                 effects += WorkoutEffect.SendEdit(timedDelta ?: buildTickDelta(
-                    dayId = snap.day.dayId, programExerciseId = ex.programExerciseId, setIndex = round,
-                    startedAtMillis = startedAtWallMillis, completedAtMillis = now.wallMillis, snapshot = snap))
+                    dayId = tickSnapshot.day.dayId, programExerciseId = ex.programExerciseId, setIndex = tickRound,
+                    startedAtMillis = startedAtWallMillis, completedAtMillis = now.wallMillis, snapshot = tickSnapshot))
                 effects += WorkoutEffect.Haptic(DialHaptics.Cue.CONFIRM_TICK)
                 effects += WorkoutEffect.TimedRepChanged(null)
-                val start = attempt?.startedAtWallMillis ?: startedAtWallMillis
-                var completed = current.copy(
-                    tickMemory = tickMemory.record(ex.programExerciseId, round,
+                val start = tickAttempt?.startedAtWallMillis ?: startedAtWallMillis
+                val completed = current.copy(
+                    tickMemory = tickMemory.record(ex.programExerciseId, tickRound,
                         if (start > 0L) ((now.wallMillis - start) / 1000L).toInt() else 0),
                     lifting = false, startedAtWallMillis = 0L, startedAtElapsedMillis = 0L, restedSeconds = NO_REST,
                     sessionStartedAtMillis = sessionStartedAtMillis.takeIf { it != 0L } ?: now.wallMillis,
                     sessionEndedAtMillis = now.wallMillis,
                 )
-                val flags = ex.sets.mapIndexed { i, s -> i == round || s.done }
-                val othersDone = snap.day.exercises.all { other ->
+                val flags = ex.sets.mapIndexed { i, s -> i == tickRound || s.done }
+                val othersDone = tickSnapshot.day.exercises.all { other ->
                     other.programExerciseId == ex.programExerciseId || other.sets.all { it.done }
                 }
                 val advance = decideStreamAdvance(flags, flags.all { it } && othersDone)
-                if (advance == StreamAdvance.DayDone && snap.cardio?.loggedStartedAt == null) {
-                    completed = completed.copy(face = DialFace.OVERVIEW)
-                }
                 when {
                     RestTimer.shouldRest(advance, set.restAfterSeconds) ->
-                        completed.startRest(set.restAfterSeconds, false, now)
+                        effects += WorkoutEffect.StartRest(set.restAfterSeconds, false)
                     RestTimer.shouldRestAfterExercise(advance, set.restAfterSeconds) ->
-                        completed.startRest(set.restAfterSeconds, true, now)
-                    else -> completed
+                        effects += WorkoutEffect.StartRest(set.restAfterSeconds, true)
                 }
+                if (advance == StreamAdvance.DayDone && tickSnapshot.cardio?.loggedStartedAt == null) {
+                    completed.copy(face = DialFace.OVERVIEW)
+                } else completed
             }
             is WorkoutEvent.StartRest -> current.startRest(event.seconds, event.betweenExercises, now)
             WorkoutEvent.ClearRest -> current.clearRest()
@@ -241,9 +250,16 @@ internal data class WorkoutInputs(
     val cardioRunning: Boolean = false,
 )
 
+internal data class WorkoutTickTarget(
+    val snapshot: WatchSnapshot,
+    val exerciseIndex: Int,
+    val roundIndex: Int,
+    val timedRep: TimedRepState?,
+)
+
 internal sealed interface WorkoutEvent {
     data object StartSet : WorkoutEvent
-    data object Tick : WorkoutEvent
+    data class Tick(val target: WorkoutTickTarget? = null) : WorkoutEvent
     data class StartRest(val seconds: Int, val betweenExercises: Boolean) : WorkoutEvent
     data object ClearRest : WorkoutEvent
     data object SkipRest : WorkoutEvent
@@ -271,6 +287,7 @@ internal sealed interface WorkoutEffect {
     data class Haptic(val cue: DialHaptics.Cue) : WorkoutEffect
     data class TimedRepChanged(val state: TimedRepState?) : WorkoutEffect
     data class SessionStarted(val wallMillis: Long) : WorkoutEffect
+    data class StartRest(val seconds: Int, val betweenExercises: Boolean) : WorkoutEffect
     data object DisarmTimer : WorkoutEffect
     data class ArmRest(val deadlineMillis: Long, val totalSeconds: Int) : WorkoutEffect
     data class ArmTimedHold(val deadlineMillis: Long, val totalSeconds: Int) : WorkoutEffect

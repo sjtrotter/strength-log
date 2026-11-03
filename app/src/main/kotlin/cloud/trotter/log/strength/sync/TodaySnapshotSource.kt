@@ -4,10 +4,7 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.sync.WatchDay
-import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.di.CivilDay
-import cloud.trotter.log.strength.domain.model.Equipment
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -64,71 +61,45 @@ class TodaySnapshotSource(
             if (plan == null || dayId == null) {
                 flowOf(null)
             } else {
-                val program = combine(
-                    repo.programFor(plan.id),
-                    repo.slotsFor(plan.id, dayId),
-                    repo.dayTracksFlow(plan.id, dayId),
-                    repo.openRunFlow,
-                ) { program, slots, tracks, open ->
-                    Triple(program, slots, tracks) to open
-                }
                 // restSettingsFlow rides the context combine so a Setup edit (master
                 // toggle or a duration) republishes immediately — the watch never
                 // counts a stale rest for longer than one sync hop.
                 val context = combine(
-                    repo.wizardAnswersFor(plan.id),
-                    repo.catalogFlow,
                     settings.unitFlow,
                     settings.restSettingsFlow,
-                ) { answers, catalog, unit, rest ->
-                    Context(answers.config, catalog, unit, rest, answers.equipment)
+                    cardioAckLog.acksFlow,
+                    editAckLog.processedEditsFlow,
+                ) { unit, rest, cardio, edits ->
+                    Context(unit, rest, cardio, edits)
                 }
                 combine(
-                    program, context, repo.cardioSessionsFlow, today,
-                    combine(cardioAckLog.acksFlow, editAckLog.processedEditsFlow) { cardio, edits ->
-                        cardio to edits
-                    },
-                ) { (programState, open), ctx, cardioHistory, civilDate, (cardioAck, processedEdits) ->
-                    val (prog, slots, tracks) = programState
+                    repo.observeDay(plan.id, dayId), repo.openRunFlow, context, repo.cardioSessionsFlow, today,
+                ) { performedDay, open, ctx, cardioHistory, civilDate ->
                     val loggedCardio = cardioHistory.firstOrNull { session ->
                         session.planId == plan.id && session.dayId == dayId &&
                             Instant.ofEpochMilli(session.completedAt).atZone(ZoneId.systemDefault()).toLocalDate() == civilDate
                     }
                     WatchSnapshotBuilder.build(
-                        program = prog,
-                        suggestedDayId = dayId,
-                        slots = slots,
-                        logs = tracks.tracks,
-                        droppedPartners = tracks.droppedPartners,
-                        skippedLifts = tracks.skippedLifts,
-                        cfg = ctx.cfg,
-                        catalog = ctx.catalog,
+                        day = performedDay,
                         unit = ctx.unit,
                         revision = 0L,
                         restSettings = ctx.restSettings,
-                        equipment = ctx.equipment,
                         loggedCardio = loggedCardio,
-                        cardioAckStamp = cardioAck.highest,
-                        cardioAckedStamps = cardioAck.recent,
-                        planId = plan.id,
+                        cardioAckStamp = ctx.cardioAck.highest,
+                        cardioAckedStamps = ctx.cardioAck.recent,
                         planName = plan.name,
-                        runId = tracks.runId,
-                        runStartedAt = open?.takeIf { tracks.runOpen && it.id == tracks.runId }?.startedAt,
-                        retiredRoundsDone = tracks.retiredRoundsDone.takeIf { it > 0 },
-                        processedEditStamps = processedEdits,
+                        runStartedAt = open?.takeIf { performedDay.tracks.runOpen && it.id == performedDay.tracks.runId }?.startedAt,
+                        processedEditStamps = ctx.processedEdits,
                     )
                 }
             }
         })
     }
 
-    /** The non-program half of a snapshot's inputs, combined separately so the
-     *  program flows and the preference flows conflate independently. */
     private data class Context(
-        val cfg: LifterConfig,
-        val catalog: ExerciseCatalog,
         val unit: WeightUnit,
         val restSettings: RestSettings,
-        val equipment: Set<Equipment>,
+        val cardioAck: CardioAcks,
+        val processedEdits: List<Long>,
     )
 }

@@ -1,10 +1,8 @@
 package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.DaySeeds
-import cloud.trotter.log.strength.data.forRun
-import cloud.trotter.log.strength.data.performedExercise
-import cloud.trotter.log.strength.data.LoggedSlot
-import cloud.trotter.log.strength.data.ProgramSlot
+import cloud.trotter.log.strength.data.PerformedDay
+import cloud.trotter.log.strength.data.PerformedSlot
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.sync.toWatch
@@ -16,7 +14,6 @@ import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -36,12 +33,10 @@ import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.ExercisePicker
 
 /**
- * Projects the phone's live state for the *suggested* day into the wire
+ * Formats the performed *suggested* day into the wire
  * [WatchSnapshot] (m5-wear.md wire protocol: only the suggested day rides the
- * wrist). Pure and JVM-testable — it mirrors the same name/goal/track derivations
- * [cloud.trotter.log.strength.ui.day.DayViewModel.buildCard] renders, so what
- * the watch shows is exactly what the phone shows, never a second computation of
- * derived sets (those stay phone-side, spec §9).
+ * wrist). [PerformedDay] supplies performed identities, goals and rows; this
+ * projection supplies watch names, labels, rest durations and alternates.
  *
  * Weights stay canonical lb on the wire; the watch converts for display via
  * [unit]. The [revision] is stamped by the publisher, not derived here.
@@ -56,50 +51,30 @@ object WatchSnapshotBuilder {
     /**
      * Returns a snapshot even for an empty day, retaining its identity. Returns
      * null only when the suggested day is missing; the publisher then sends nothing.
-     * [equipment] is the lifter's gear, so the wrist is never offered a machine
+     * [PerformedDay.equipment] is the lifter's gear, so the wrist is never offered a machine
      * they don't own — the same filter the phone's swap sheet applies.
      */
     fun build(
-        program: Program,
-        suggestedDayId: String?,
-        slots: List<ProgramSlot>,
-        logs: List<LoggedSlot>,
-        cfg: LifterConfig,
-        catalog: ExerciseCatalog,
+        day: PerformedDay,
         unit: WeightUnit,
         revision: Long,
         restSettings: RestSettings = RestSettings(),
-        equipment: Set<Equipment> = Equipment.entries.toSet(),
         loggedCardio: CardioSessionEntity? = null,
         cardioAckStamp: Long = 0L,
-        planId: Long? = null,
         planName: String? = null,
         cardioAckedStamps: List<Long> = emptyList(),
-        runId: String? = null,
         runStartedAt: Long? = null,
-        retiredRoundsDone: Int? = null,
         processedEditStamps: List<Long>? = null,
-        droppedPartners: Set<Long> = emptySet(),
-        skippedLifts: Set<Long> = emptySet(),
     ): WatchSnapshot? {
-        val dayId = suggestedDayId ?: return null
-        val watchDays = program.days.filter {
+        val dayId = day.dayId
+        val programDay = day.day ?: return null
+        val watchDays = day.program.days.filter {
             it.kind == ProgramDayKind.STRENGTH || it.cardioBlock != null || it.exercises.isNotEmpty()
         }
         val dayIndex = watchDays.indexOfFirst { it.id == dayId }
         if (dayIndex < 0) return null
-        val day = watchDays[dayIndex]
-
-        val workoutSlots = slots.forRun(droppedPartners, skippedLifts)
-        val logsByKey = logs.associateBy { it.programExerciseId to it.slot }
-        val previewSeeds = DaySeeds.plan(
-            slots = workoutSlots,
-            existing = logsByKey.mapValues { it.value.sets.size },
-            config = cfg,
-            catalog = catalog,
-        )
-        val exercises = workoutSlots.map { slot ->
-            buildExercise(slot, logsByKey, previewSeeds, cfg, catalog, unit, restSettings, equipment)
+        val exercises = day.slots.map { slot ->
+            buildExercise(slot, day.config, day.catalog, unit, restSettings, day.equipment)
         }
 
         return WatchSnapshot(
@@ -107,23 +82,23 @@ object WatchSnapshotBuilder {
             suggestedDayId = dayId,
             day = WatchDay(
                 dayId = dayId,
-                title = day.title,
+                title = programDay.title,
                 accentIndex = dayIndex,
                 exercises = exercises,
-                emphasisLine = day.emphasisLine,
+                emphasisLine = programDay.emphasisLine,
             ),
             unit = unit.name.lowercase(),
-            cycle = watchDays.map { it.toCycleDay(catalog) },
-            cardioBlock = day.cardioBlock?.toWatch(),
+            cycle = watchDays.map { it.toCycleDay(day.catalog) },
+            cardioBlock = programDay.cardioBlock?.toWatch(),
             cardioAckStamp = cardioAckStamp,
             cardioAckedStamps = cardioAckedStamps,
-            planId = planId,
+            planId = day.planId,
             planName = planName,
-            runId = runId,
+            runId = day.tracks.runId,
             runStartedAt = runStartedAt,
-            retiredRoundsDone = retiredRoundsDone,
+            retiredRoundsDone = day.tracks.retiredRoundsDone.takeIf { it > 0 },
             processedEditStamps = processedEditStamps,
-            cardio = day.cardioBlock?.let { block ->
+            cardio = programDay.cardioBlock?.let { block ->
                 CardioSuggestion(
                     label = activityLabel(block.activity),
                     detail = "",
@@ -153,47 +128,27 @@ object WatchSnapshotBuilder {
     )
 
     private fun buildExercise(
-        slot: ProgramSlot,
-        logsByKey: Map<Pair<Long, String>, LoggedSlot>,
-        previewSeeds: Map<Pair<Long, String>, List<LoggedSet>>,
+        slot: PerformedSlot,
         cfg: LifterConfig,
         catalog: ExerciseCatalog,
         unit: WeightUnit,
         restSettings: RestSettings,
         equipment: Set<Equipment>,
     ): WatchExercise {
-        val id = slot.programExerciseId
-        val performed = performedExercise(slot, logsByKey[id to Slot.MAIN]?.exerciseId, catalog)
-        val pe = slot.exercise
+        val id = slot.slot.programExerciseId
+        val performed = slot.main.performed
+        val pe = slot.slot.exercise
         val entry = performed.entry
-        val tracking = performed.tracking
-        // Routed through targetFor so a reclassified REPS/TIMED slot never hits
-        // goalFor's error() branch. The numeric goal stays canonical lb, including
-        // a prescribed hold's added load. goalLabel is the type-safe display groundwork.
-        val target = performed.goal(cfg)
+        val tracking = slot.main.tracking
+        val target = slot.main.goal
         val prescribedTarget = performed.prescription?.target
-        val goalLb = when (prescribedTarget) {
-            is PrescribedTarget.LoadReps -> prescribedTarget.lb
-            is PrescribedTarget.Hold -> prescribedTarget.addedLb
-            is PrescribedTarget.Reps, is PrescribedTarget.RepsInTime -> 0.0
-            null -> when (target) {
-                is GoalTarget.Weight -> target.lb
-                is GoalTarget.Time -> target.addedLb
-                is GoalTarget.Reps, null -> 0.0
-            }
-        }
         val header = DayScreenBuilder.headerTarget(pe.copy(prescription = performed.prescription), target ?: GoalTarget.Weight(0.0, false), unit)
         val repWindow = prescribedTarget as? PrescribedTarget.RepsInTime
-        val partner = pe.superset?.let {
-            performedExercise(slot, logsByKey[id to Slot.SS]?.exerciseId, catalog, Slot.SS)
-        }
+        val partner = slot.partner?.performed
         val partnerEntry = partner?.entry
-        val main = logsByKey[id to Slot.MAIN]?.sets
-            ?: previewSeeds[id to Slot.MAIN]
-            ?: DaySeeds.previewMain(slot, cfg, catalog)
-        val ss = pe.superset?.let {
-            logsByKey[id to Slot.SS]?.sets ?: previewSeeds[id to Slot.SS]
-        }.orEmpty()
+        // The wire keeps authored-count blank rows for an unseedable slot.
+        val main = slot.main.stored ?: slot.main.seed ?: DaySeeds.previewMain(slot.slot, cfg, catalog)
+        val ss = slot.partner?.sets.orEmpty()
 
         return WatchExercise(
             programExerciseId = id,
@@ -204,7 +159,7 @@ object WatchSnapshotBuilder {
             // retire it (see report).
             slot = Slot.MAIN,
             name = entry?.watchName ?: performed.exerciseId,
-            goal = goalLb,
+            goal = slot.main.loadLb,
             goalLabel = if (performed.prescription != null) DayScreenBuilder.headerTargetLabel(header)
                 else target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
             targetDetail = DayScreenBuilder.headerTargetDetail(header),
@@ -223,7 +178,7 @@ object WatchSnapshotBuilder {
             // wire holds exactly one rest per round (the watch never tie-breaks).
             sets = main.map { it.toWatchSet(restAfterSecondsFor(it, tracking, restSettings)) },
             ssSets = ss.map { it.toWatchSet(restAfterSeconds = 0) },
-            alternates = (listOfNotNull(slot.exercise.exerciseId.takeIf { it != performed.exerciseId }?.let { plannedId ->
+            alternates = (listOfNotNull(pe.exerciseId.takeIf { it != performed.exerciseId }?.let { plannedId ->
                 WatchAlternate(plannedId, catalog.find(plannedId)?.watchName ?: plannedId)
             }) + alternatesFor(performed.exerciseId, catalog, equipment)).distinctBy { it.exerciseId }.take(MAX_ALTERNATES),
             // The slot's content identity, which is what a swap is acked by — never

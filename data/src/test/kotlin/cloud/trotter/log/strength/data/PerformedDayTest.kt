@@ -101,7 +101,8 @@ class PerformedDayTest {
         assertEquals(listOf(1L, 3L), day.slots.map { it.slot.programExerciseId })
         assertNull(day.slots.first().slot.exercise.superset)
         assertNull(day.slots.first().partner)
-        assertEquals(listOf("ez_curl", "pushup"), day.performedExerciseIds)
+        // History still reads the skipped lift and the dropped partner.
+        assertEquals(listOf("ez_curl", "rope_pushdown", "bb_bench", "pushup"), day.historyExerciseIds)
     }
 
     @Test fun `load in pounds follows every prescribed and goal target arm`() {
@@ -154,7 +155,7 @@ class PerformedDayTest {
             LoggedSlot(1, Slot.SS, emptyList(), "plank"),
         )))
 
-        assertEquals(listOf("pushup", "plank"), day.performedExerciseIds)
+        assertEquals(listOf("pushup", "plank"), day.historyExerciseIds)
         assertEquals(catalog.get("pushup"), day.slots.first().main.performed.entry)
         assertNull(day.slots.first().main.performed.prescription)
         val partner = requireNotNull(day.slots.first().partner)

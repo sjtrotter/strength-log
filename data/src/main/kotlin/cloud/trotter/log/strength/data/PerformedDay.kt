@@ -46,11 +46,10 @@ data class PerformedDay(
     val catalog: ExerciseCatalog,
     val tracks: DayTracks,
     val slots: List<PerformedSlot>,
+    /** Every planned slot's performed exercises, skipped lifts and dropped partners included, so
+     *  skipping or restoring one in a run does not change which history the day reads. */
+    val historyExerciseIds: List<String>,
 ) {
-    val performedExerciseIds: List<String>
-        get() = slots.flatMap { slot ->
-            listOfNotNull(slot.main.performed.exerciseId, slot.partner?.performed?.exerciseId)
-        }.distinct()
 
     companion object {
         fun of(
@@ -76,6 +75,14 @@ data class PerformedDay(
                 workoutSlots.map { slot ->
                     PerformedSlot(slot, track(slot, Slot.MAIN), slot.exercise.superset?.let { track(slot, Slot.SS) })
                 },
+                slots.sortedBy { it.position }.flatMap { slot ->
+                    listOfNotNull(
+                        performedExercise(slot, stored[slot.programExerciseId to Slot.MAIN]?.exerciseId, catalog).exerciseId,
+                        slot.exercise.superset?.let {
+                            performedExercise(slot, stored[slot.programExerciseId to Slot.SS]?.exerciseId, catalog, Slot.SS).exerciseId
+                        },
+                    )
+                }.distinct(),
             )
         }
     }

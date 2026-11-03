@@ -11,6 +11,6 @@ fun TrackerRepository.dayHistoryKeys(
     planId: Long,
     dayId: String,
 ): Flow<List<String>> = combine(
-    observeDay(planId, dayId).map { it.performedExerciseIds }.distinctUntilChanged(),
+    observeDay(planId, dayId).map { it.historyExerciseIds }.distinctUntilChanged(),
     sessionSummariesFor(planId),
 ) { ids, _ -> ids }

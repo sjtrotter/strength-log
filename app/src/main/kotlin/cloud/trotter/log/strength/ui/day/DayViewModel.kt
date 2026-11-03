@@ -206,11 +206,13 @@ class DayViewModel @Inject constructor(
             // Live-set keystrokes still do not touch this path, while a Log edit
             // immediately corrects both "last time" and "Best" on an open day.
             val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(CommittedDay(noDayState(ctx)))
-            val historyKeys = repo.dayHistoryKeys(planId, dayId)
-            val slotsWithHistory = historyKeys.flatMapLatest { (slots, performedIds) ->
+            val historyKeys = combine(repo.slotsFor(planId, dayId), repo.dayHistoryKeys(planId, dayId)) { slots, ids ->
+                slots to ids
+            }
+            val slotsWithHistory = historyKeys.flatMapLatest { (slots, ids) ->
                 flow {
                     ensureSeeded(planId, dayId)
-                    emit(slots to fetchDayHistory(slots, performedIds, ctx.catalog))
+                    emit(slots to fetchDayHistory(ids))
                 }
             }
             slotsWithHistory.flatMapLatest { (slots, history) ->
@@ -1960,12 +1962,7 @@ class DayViewModel @Inject constructor(
     /** One batched read for the whole day's "last time" chips (PLAN.md A1
      *  bonus) AND its "Best" profile chips (performance-profile.md Phase 1)
      *  — never one query per exercise for either. */
-    private suspend fun fetchDayHistory(
-        slots: List<ProgramSlot>,
-        performedIds: Map<Pair<Long, String>, String?>,
-        catalog: ExerciseCatalog,
-    ): DayHistory {
-        val ids = performedDayExerciseIds(slots, performedIds, catalog)
+    private suspend fun fetchDayHistory(ids: List<String>): DayHistory {
         return DayHistory(repo.lastPerformed(ids), repo.personalRecords(ids),
             repo.lastPerformedDates(ids))
     }

@@ -987,6 +987,14 @@ open class TrackerRepository(
             rows.map { ProgramSlot(it.id, it.position, it.toDomain()) }
         }
 
+    /** Pure read: seeding and writes remain the caller's responsibility. */
+    fun observeDay(planId: Long, dayId: String): Flow<PerformedDay> = combine(
+        programFor(planId), slotsFor(planId, dayId), dayTracksFlow(planId, dayId),
+        wizardAnswersFor(planId), catalogFlow,
+    ) { program, slots, tracks, answers, catalog ->
+        PerformedDay.of(planId, dayId, program, slots, tracks, answers, catalog)
+    }
+
     /** Resolves legacy watch messages whose slot is their only plan identity. */
     suspend fun planIdOfSlot(programExerciseId: Long): Long? = programDao.exercise(programExerciseId)?.planId
 

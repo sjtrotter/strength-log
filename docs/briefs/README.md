@@ -30,6 +30,10 @@ implementation agent) → verify pass (same reviewer) → merge on clean verdict
 + green CI. Local machines never run adb/connected/install tasks — CI's
 emulator executes instrumented tests.
 
+## 2026-11-03
+
+- `performed-day-2026-11-03.md` — shared performed-day read model, preview and history keys, and the three-PR sequence (#408).
+
 ## 2026-11-02
 
 - `set-structures-2026-11-02.md` — per-slot set structures, authored tops, progression, and the PR sequence (#415).

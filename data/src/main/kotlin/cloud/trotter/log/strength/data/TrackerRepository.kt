@@ -1758,7 +1758,8 @@ open class TrackerRepository(
                 }
             }
             if (index < 0) {
-                if (seed == null) return ResolvedRunEdits(failure = RunWriteResult.Rejected)
+                // A whole-list write brings its own rows, so a slot the plan cannot seed (an unknown exercise) still gets a track.
+                val base = seed ?: if (edit.replacesAll) emptyList() else return ResolvedRunEdits(failure = RunWriteResult.Rejected)
                 val slot = programDao.exercise(edit.programExerciseId)
                     ?.takeIf { it.planId == day.planId && it.dayId == day.dayId }
                     ?: return ResolvedRunEdits(failure = RunWriteResult.Rejected)
@@ -1767,7 +1768,7 @@ open class TrackerRepository(
                 if (edit.exerciseId != null && edit.exerciseId != exerciseId) {
                     return ResolvedRunEdits(failure = RunWriteResult.Rejected)
                 }
-                val candidate = runTrack(runId, slot, edit.slot, exerciseId, CarryForward.cleared(seed))
+                val candidate = runTrack(runId, slot, edit.slot, exerciseId, CarryForward.cleared(base))
                 if (resolved.any { it.sameKey(candidate) }) return ResolvedRunEdits(failure = RunWriteResult.Rejected)
                 resolved.add(candidate)
                 index = resolved.lastIndex

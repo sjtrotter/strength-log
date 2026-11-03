@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
@@ -599,6 +600,25 @@ class DayViewModelWiringTest {
     }
 
     @Test
+    fun onlyLoadedTimedHoldsShowTheTimedWeightControl() = runVmTest {
+        val exercises = listOf(
+            ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Hold(45, 25.0))),
+            ProgramExercise("bb_back_squat", prescription = Prescription(PrescribedTarget.LoadReps(95.0, 10))),
+        )
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Loaded targets", "", exercises))))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        val cards = vm.uiState.value.exercises
+        assertEquals(listOf(TrackingType.TIMED, TrackingType.WEIGHTED), cards.map { it.tracking })
+        assertEquals(listOf(25.0, 95.0), cards.map { it.rows.first().weightDisplay })
+        assertEquals(listOf(true, false), cards.map { it.timedShowsWeight })
+
+        collect.cancel()
+    }
+
+    @Test
     fun weightedPlankOnlyUsesTheCatalogWeightControlWithoutAPrescription() = runVmTest {
         val exercises = listOf(
             ProgramExercise("weighted_plank", prescription = Prescription(PrescribedTarget.Reps(12))),
@@ -616,7 +636,8 @@ class DayViewModelWiringTest {
             listOf(TrackingType.REPS, TrackingType.REPS, TrackingType.WEIGHTED, TrackingType.TIMED),
             cards.map { it.tracking },
         )
-        assertEquals(listOf(false, false, true, true), cards.map { it.timedShowsWeight })
+        // Only holds read this flag; a WEIGHTED card always shows its weight.
+        assertEquals(listOf(false, false, false, true), cards.map { it.timedShowsWeight })
 
         collectUi.cancel()
     }
@@ -1707,6 +1728,53 @@ class DayViewModelWiringTest {
         // unknown placeholder exercise is gone.
         assertFalse(vm.dayEditState.value.slots.any { it.exerciseId == "ghost_unknown" })
         assertTrue(vm.dayEditState.value.slots.isNotEmpty())
+        collect.cancel()
+    }
+
+    @Test
+    fun resetDayAlreadyMatchingTemplateReseedsBeforeLoggingAndRemovingSets() = runVmTest {
+        repo.replaceProgram(ProgramGenerator.generate(repo.wizardAnswersFlow.first()))
+        val planId = repo.selectedPlanIdFlow.first()!!
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val original = repo.observeDay(planId, "A").first()
+        val originalIds = original.slots.map { it.slot.programExerciseId }.toSet()
+        assertTrue(original.slots.isNotEmpty())
+        assertTrue(original.slots.all { it.main.stored?.isNotEmpty() == true })
+        assertNull(repo.openRunFlow.first())
+
+        vm.resetDayToTemplate()
+        advanceUntilIdle()
+
+        val reset = repo.observeDay(planId, "A").first()
+        assertEquals(original.program, reset.program)
+        assertEquals(original.historyExerciseIds, reset.historyExerciseIds)
+        assertEquals(original.slots.size, reset.slots.size)
+        assertTrue(reset.slots.none { it.slot.programExerciseId in originalIds })
+        assertTrue(reset.slots.all { it.main.stored?.isNotEmpty() == true })
+        assertNull(repo.openRunFlow.first())
+        val focus = requireNotNull(vm.uiState.value.workout?.focus)
+        assertEquals(Slot.MAIN, focus.slot)
+        val id = focus.programExerciseId
+        val seeded = requireNotNull(track(id, Slot.MAIN))
+        assertTrue(seeded.size > 1)
+        assertTrue(seeded.none { it.done })
+
+        vm.logFocusedSet()
+        advanceUntilIdle()
+
+        assertTrue(repo.openRunFlow.first() != null)
+        val logged = requireNotNull(track(id, Slot.MAIN))
+        assertEquals(seeded.size, logged.size)
+        assertTrue(logged[focus.index].done)
+        assertEquals(1, logged.count { it.done })
+
+        vm.removeSet(id, index = logged.lastIndex, isSuperset = false)
+        advanceUntilIdle()
+
+        assertEquals(logged.dropLast(1), track(id, Slot.MAIN))
+        assertEquals(logged.size - 1, vm.uiState.value.exercises.first { it.programExerciseId == id }.rows.size)
         collect.cancel()
     }
 

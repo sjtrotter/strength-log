@@ -882,7 +882,8 @@ class DayViewModelWiringTest {
 
         assertTrue(repo.history.sessionSummariesFlow.first().isNotEmpty())
         assertEquals("A", vm.uiState.value.viewDayId)
-        assertEquals("Day B, Day B", vm.sessionReceipt.value?.nextDayLine)
+        // The receipt reads the plan as committed after Finish: only Day A is left, so A is up next.
+        assertEquals("Day A, Day A", vm.sessionReceipt.value?.nextDayLine)
         assertNull(handle.get<OpenSheet>("day_open_sheet"))
         assertNull(vm.uiState.value.openSheet)
         val pageKey = "exercise:${slotId("ez_curl")}"

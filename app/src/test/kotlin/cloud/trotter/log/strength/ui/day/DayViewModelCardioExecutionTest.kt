@@ -304,6 +304,31 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
+    fun removingTheNextDayDuringCardioUsesTheCommittedSuggestionAndCurrentTitleOnTheReceipt() = test {
+        prepareAuthoredCardioDay(time(CardioRole.WORK))
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        assertEquals("Day B, Run B", vm.uiState.value.cardio?.run?.nextDayTitle)
+
+        assertTrue(repo.removeDay(plan, "B"))
+        repo.renameDay(plan, "C", "Updated run C")
+        runCurrent()
+        assertTrue(vm.uiState.value.cardio!!.run!!.running)
+        tick(10_000)
+
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertEquals(plan, session.planId)
+        assertEquals("A", session.dayId)
+        assertEquals("C", db.planDao().plan(plan)!!.suggestedDayId)
+        val receipt = requireNotNull(vm.sessionReceipt.value)
+        assertEquals(session.id, receipt.sessionId)
+        assertEquals("Day C, Updated run C", receipt.nextDayLine)
+        assertEquals(receipt.nextDayLine, receipt.cardio?.nextDayTitle)
+    }
+
+    @Test
     fun addDayThenAuthorCardioRunsAndFinishesWithoutExercises() = test {
         val plan = repo.plans.createAuthoredPlan("Running", "Day A")
         repo.plans.publishCreatedAuthoredPlan(plan)

@@ -565,8 +565,7 @@ class DayViewModel @Inject constructor(
         val program = plans.programFor(plan.id).first()
         val day = program.days.firstOrNull { it.id == dayId } ?: return null
         val block = day.cardioBlock ?: return null
-        val nextId = Rotation.nextFor(program, dayId)
-            ?: plan.suggestedDayId
+        val nextId = Rotation.upNextAfter(program, plan.suggestedDayId, dayId)
         val next = program.days.firstOrNull { it.id == nextId }
         if (currentDay() != dayId || dayState.value.planId != plan.id) return null
         val json = CardioBlockJson.encode(block)
@@ -770,8 +769,14 @@ class DayViewModel @Inject constructor(
                         stepsCompleted = summary.stepsCompleted,
                         planId = current.planId, planName = current.planName, activity = activity.name,
                     ), current.resultSets, finishDay = current.finishesDay)
+                    val nextDayId = plans.plansFlow.first().firstOrNull { it.id == current.planId }?.suggestedDayId
+                    val program = plans.programFor(current.planId).first()
+                    val nextDay = program.days.firstOrNull { it.id == nextDayId }
                     val latest = cardioRun.value?.takeIf { it.runId == current.runId } ?: return@withLock
-                    val logged = latest.copy(sessionId = id)
+                    val logged = latest.copy(
+                        sessionId = id,
+                        nextDayTitle = nextDay?.let { GlanceLines.dayLine(it.id, it.title) },
+                    )
                     // Drafts own only amendment state, never the execution slot or alarm.
                     if (logged.drafts.isNotEmpty()) {
                         savedState[KEY_CARDIO_DISTANCES] = ArrayList(
@@ -1424,17 +1429,12 @@ class DayViewModel @Inject constructor(
             ) return@mutate
             val program = plans.programFor(planId).first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(historyRepository.topSetHistoryFlow.first())
-            val dayPosition = program.days.indexOfFirst { it.id == day }
-            val nextDayId = if (dayPosition >= 0) {
-                Rotation.nextFor(program, day)
-                    ?: plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
-            } else null
             val sessionId = repo.finishRun(runId) ?: return@mutate
             phoneRest.skip()
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_SELECTION] = null
-            val advancedTo = plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
-            pinHeldFor = day.takeIf { advancedTo != day && effectiveDayId.value == day }
+            val nextDayId = plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
+            pinHeldFor = day.takeIf { nextDayId != day && effectiveDayId.value == day }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
             val unit = settings.unitFlow.first()
@@ -1733,7 +1733,7 @@ class DayViewModel @Inject constructor(
             dayTitle = day.title,
             emphasisLine = day.emphasisLine,
             unit = ctx.unit,
-            nextDayId = Rotation.nextFor(program, dayId),
+            nextDayId = Rotation.upNextAfter(program, ctx.suggested, dayId),
             exercises = performedDay.slots.map { slot ->
                 buildCard(slot, ctx.unit, history).copy(
                     weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),

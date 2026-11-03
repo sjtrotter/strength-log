@@ -153,6 +153,22 @@ class TrackerRepositoryCardioSetsTest {
         assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
     }
 
+    @Test fun `cardio completion with no suggested day advances from the finished day`() = runTest {
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
+        val block = CardioBlock(CardioActivity.TRACK_RUN, sets.map { it.spec })
+        repo.replaceProgram(Program(listOf("A", "B", "C").map {
+            ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
+        }))
+        db.planDao().updateSuggestedDay(planId, null)
+
+        val id = repo.logCardioSession(session.copy(planId = planId), sets, finishDay = true)
+
+        assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
+        assertEquals(planId, history.cardioSession(id)?.planId)
+        assertEquals(sets, history.cardioSetsFor(id))
+    }
+
     @Test fun `a second device completion for A logs without advancing its rotation again`() = runTest {
         val planId = repo.plans.createAuthoredPlan("Running", "Run")
         repo.plans.publishCreatedAuthoredPlan(planId)

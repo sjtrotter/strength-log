@@ -1635,9 +1635,10 @@ open class TrackerRepository(
                 if (slot.exerciseIdFor(edit.slot) == null) return@withTransaction RunWriteResult.Rejected
                 if (edit.exerciseId != null && edit.exerciseId != slot.exerciseIdFor(edit.slot)) return@withTransaction RunWriteResult.Rejected
                 val key = edit.programExerciseId to edit.slot
-                val base = working[key] ?: workingBase(day, slot, edit.slot, seeds)
-                    ?: if (edit.createsMissing) emptyList() else return@withTransaction RunWriteResult.Rejected
+                val stored = working[key] ?: workingBase(day, slot, edit.slot, seeds)
+                val base = stored ?: if (edit.createsMissing) emptyList() else return@withTransaction RunWriteResult.Rejected
                 val result = edit.transform(base) ?: return@withTransaction RunWriteResult.Unchanged
+                if (stored == null && result.isEmpty()) return@withTransaction RunWriteResult.Unchanged
                 if (result.count { it.done } > base.count { it.done }) doneTick = true
                 working[key] = result
             }
@@ -1733,7 +1734,7 @@ open class TrackerRepository(
             if (index < 0) {
                 // Unknown exercises have no plan seed; a phone edit can supply their first rows.
                 val base = seed ?: if (edit.createsMissing) {
-                    edit.transform(emptyList())?.also { created = it }?.let(CarryForward::cleared)
+                    edit.transform(emptyList())?.takeIf { it.isNotEmpty() }?.also { created = it }?.let(CarryForward::cleared)
                         ?: return ResolvedRunEdits(failure = RunWriteResult.Unchanged)
                 } else return ResolvedRunEdits(failure = RunWriteResult.Rejected)
                 val slot = programDao.exercise(edit.programExerciseId)

@@ -1243,10 +1243,10 @@ class DayViewModel @Inject constructor(
             )
             repo.applyToRun(runId, planId, day, listOfNotNull(
                 TrackEdit(programExerciseId, Slot.MAIN, createsMissing = true) { rows ->
-                    if (rows.size <= 1 || index !in rows.indices) null else SetEditor.removeSet(rows, index)
+                    if (rows.size <= 1 || index !in rows.indices) null else SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
                 },
                 if (partner.isNotEmpty()) TrackEdit(programExerciseId, Slot.SS, createsMissing = true) { rows ->
-                    SetEditor.removeSet(rows, index)
+                    SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
                 } else null,
             ))
         }
@@ -1269,10 +1269,10 @@ class DayViewModel @Inject constructor(
             cancelTimedRepForSetListChange(day, removed.programExerciseId)
             repo.applyToRun(runId, planId, day, listOfNotNull(
                 TrackEdit(removed.programExerciseId, Slot.MAIN) { rows ->
-                    SetEditor.insertSet(rows, removed.index, removed.main)
+                    SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, removed.main))
                 },
                 if (paired) TrackEdit(removed.programExerciseId, Slot.SS) { rows ->
-                    SetEditor.insertSet(rows, removed.index, requireNotNull(removed.partner))
+                    SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, requireNotNull(removed.partner)))
                 } else null,
             ))
         }

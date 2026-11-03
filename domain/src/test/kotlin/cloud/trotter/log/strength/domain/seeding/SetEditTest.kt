@@ -65,4 +65,16 @@ class SetEditTest {
         assertEquals(sets.take(2), after.take(2))
         assertEquals(sets[5].reps, after[5].reps)
     }
+
+    @Test fun `removing a row keeps the watch stamp at each index`() {
+        val stamped = row.copy(done = true, watchEditedAt = 200L)
+        val after = SetEditor.keepingIndexStamps(listOf(stamped, row), SetEditor.removeSet(listOf(stamped, row), 0))
+        assertEquals(200L, after.single().watchEditedAt)
+    }
+
+    @Test fun `reinserting a row keeps the watch stamp at each index`() {
+        val stamped = row.copy(done = true, watchEditedAt = 200L)
+        val after = SetEditor.keepingIndexStamps(listOf(stamped), SetEditor.insertSet(listOf(stamped), 0, row))
+        assertEquals(listOf(200L, 200L), after.map { it.watchEditedAt })
+    }
 }

@@ -1167,4 +1167,18 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(after[1].done)
         assertEquals(200L, after[1].watchEditedAt)
     }
+
+    @Test fun `a phone edit that produces no rows does not create an unseedable track`() = runTest {
+        val plan = generated(extraSlot = true)
+        val unknown = db.programDao().exercisesForDay(plan, "A").last().id
+        val next = db.programDao().day(plan, "A")!!.nextRunId
+        val empty = TrackEdit(unknown, Slot.MAIN, createsMissing = true) { it }
+
+        assertEquals(RunWriteResult.Unchanged, repo.applyToRun(next, plan, "A", listOf(empty)))
+        assertNull(db.programDao().logForSlot(plan, "A", unknown, Slot.MAIN))
+
+        val runId = start(plan)
+        assertEquals(RunWriteResult.Unchanged, repo.applyToRun(runId, plan, "A", listOf(empty)))
+        assertTrue(db.runDao().tracks(runId).none { it.programExerciseId == unknown })
+    }
 }

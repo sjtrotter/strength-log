@@ -77,6 +77,13 @@ object SetEditor {
         return sets + last.copy(kind = SetKind.EXTRA, done = false, plannedIndex = null, watchEditedAt = null)
     }
 
+    /** Keeps each index's newest watch stamp across a remove or insert, so a watch edit replayed
+     *  by index after the rows shift is still judged stale. */
+    fun keepingIndexStamps(before: List<LoggedSet>, after: List<LoggedSet>): List<LoggedSet> =
+        after.mapIndexed { i, row ->
+            row.copy(watchEditedAt = listOfNotNull(row.watchEditedAt, before.getOrNull(i)?.watchEditedAt).maxOrNull())
+        }
+
     /** Remove a row; never drop below one set. */
     fun removeSet(sets: List<LoggedSet>, index: Int): List<LoggedSet> =
         if (sets.size <= 1) sets else sets.filterIndexed { i, _ -> i != index }

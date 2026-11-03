@@ -776,7 +776,10 @@ class TrackerRepositoryRunTest {
         repo.swapExerciseById("A", slots.first().id, "bb_bench")
         db.programDao().deleteExercise(slots.last().id)
         repo.finishRun(id)
-        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+        // Unchanged tracks (a kept superset partner, say) carry forward; the swapped half and the removed slot do not.
+        val logs = db.programDao().logsForDay(plan, "A")
+        assertTrue(logs.none { it.programExerciseId == slots.first().id && it.slot == Slot.MAIN })
+        assertTrue(logs.none { it.programExerciseId == slots.last().id })
     }
 
     @Test fun `kept slot without a prescription clears working values and next read seeds goal math`() = runTest {
@@ -841,7 +844,7 @@ class TrackerRepositoryRunTest {
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
         performed.forEach { track ->
-            val archived = repo.sessionSets(session).filter { it.slot == track.slot }
+            val archived = repo.sessionSets(session).filter { it.slot == track.slot && it.exerciseId == track.exerciseId }
             assertEquals(track.sets.map { it.reps }, archived.map { it.reps })
             assertEquals(track.sets.map { it.done }, archived.map { it.done })
             assertEquals(track.sets.map { it.seconds }, archived.map { it.seconds })

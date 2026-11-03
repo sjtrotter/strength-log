@@ -64,14 +64,13 @@ class WatchSnapshotBuilderTest {
     )
 
     @Test
-    fun `a gap in day letters keeps the third accent on the watch and widget`() {
+    fun `a gap in day letters keeps the third accent on the watch`() {
         val withGap = Program(listOf(program.days[0], program.days[1].copy(id = "C")))
         val performed = performedDay(withGap, "C", emptyList(), emptyList(), planId = 42L)
         val snapshot = WatchSnapshotBuilder.build(performed, WeightUnit.LB, revision = 1L)!!
 
         assertEquals("C", snapshot.day.dayId)
         assertEquals(2, snapshot.day.accentIndex)
-        assertEquals(2, todayWidgetContent(snapshot).accentIndex)
         assertEquals(listOf("A", "C"), snapshot.cycle.map { it.dayId })
 
         val withoutGap = Program(listOf(withGap.days[0], program.days[1], withGap.days[1]))

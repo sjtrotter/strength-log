@@ -55,15 +55,13 @@ object JournalBuilder {
 
     /**
      * The program's ramped mains in day order, de-duplicated by exercise (a lift
-     * anchored on two days keeps its first day's accent). [dayIndex] is the day's
-     * position in [Program.days] — the same key `dayAccent` takes, so a lift's
-     * line matches the tab it lives under.
+     * anchored on two days keeps its first day's accent).
      *
      * REPS/TIMED targets have no top-set weight to plot.
      */
     fun mainLifts(program: Program, catalog: ExerciseCatalog, cfg: LifterConfig): List<MainLift> {
         val lifts = LinkedHashMap<String, MainLift>()
-        program.days.forEachIndexed { dayIndex, day ->
+        program.days.forEach { day ->
             for (pe in day.exercises) {
                 if (!pe.structure.hasTopSet || pe.exerciseId in lifts) continue
                 val entry = catalog.find(pe.exerciseId) ?: continue
@@ -72,7 +70,7 @@ object JournalBuilder {
                     is PrescribedTarget.LoadReps -> target.lb
                     else -> continue
                 }
-                lifts[pe.exerciseId] = MainLift(pe.exerciseId, entry.name, dayIndex, goalLb)
+                lifts[pe.exerciseId] = MainLift(pe.exerciseId, entry.name, Program.accentIndex(day.id), goalLb)
             }
         }
         return lifts.values.toList()
@@ -249,7 +247,7 @@ object JournalBuilder {
                 dayOfMonth = dayOfMonth,
                 label = label,
                 dayLetter = first?.dayId,
-                dayIndex = first?.let { LogScreenBuilder.dayIndex(it.dayId) } ?: 0,
+                dayIndex = first?.let { Program.accentIndex(it.dayId) } ?: 0,
                 sessionId = first?.strengthId,
                 moreSessions = (onDate?.size ?: 0) > 1,
                 isToday = date == today,

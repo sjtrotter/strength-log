@@ -116,6 +116,28 @@ class DayViewModelReceiptTest {
     // --- it appears, once, and only on a DONE --------------------------------
 
     @Test
+    fun aGapInDayLettersKeepsTheCompletedDaysThirdAccentOnTheReceipt() = runVmTest {
+        insertProgram()
+        val program = repo.programFlow.first()
+        repo.replaceProgram(Program(listOf(program.days[0], program.days[1].copy(id = "C"))))
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val vm = newCollectingViewModel()
+        vm.selectDay("C")
+        advanceUntilIdle()
+        val slot = repo.slotsFor(plan, "C").first().single()
+        val sets = repo.dayTracksFlow(plan, "C").first().tracks.single().sets
+        sets.indices.forEach { vm.toggleDone(slot.programExerciseId, it, checked = true, slot = Slot.MAIN) }
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+
+        assertEquals("C", vm.sessionReceipt.value?.dayId)
+        assertEquals(2, vm.sessionReceipt.value?.dayIndex)
+        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals("Day A, Lower", vm.sessionReceipt.value?.nextDayLine)
+    }
+
+    @Test
     fun finishingAPausedNonpreferredRunReportsItsOwnNextDay() = runVmTest {
         insertProgram()
         val owner = repo.selectedPlanIdFlow.first()!!

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.decodedCardioMode
 import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.ClockText
@@ -30,17 +31,6 @@ object LogScreenBuilder {
     /** "Jul 6, 2026" from a session's epoch-millis completion time, device-local. */
     fun dateDisplay(completedAtMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
         DATE_FORMAT.format(Instant.ofEpochMilli(completedAtMillis).atZone(zone))
-
-    /**
-     * 0-based day index from a program day id ("A".."Z", the day-generator
-     * convention) — the same key the day screen's `dayAccent` uses, so a
-     * history badge matches that day's live tab color. An unrecognized id
-     * (never produced by this app) falls back to day A's.
-     */
-    fun dayIndex(dayId: String): Int {
-        val letter = dayId.firstOrNull()?.uppercaseChar() ?: return 0
-        return (letter - 'A').takeIf { it >= 0 } ?: 0
-    }
 
     /**
      * The backfill offer's line: "Publish 12 past workouts" over the history
@@ -78,7 +68,7 @@ object LogScreenBuilder {
             sessionId = session.id,
             dateDisplay = dateDisplay(session.completedAt),
             dayLetter = session.dayId.orEmpty(),
-            dayIndex = dayIndex(session.dayId.orEmpty()),
+            dayIndex = Program.accentIndex(session.dayId.orEmpty()),
             dayTitle = session.label,
             setCount = 0,
             bodyweightDisplay = null,

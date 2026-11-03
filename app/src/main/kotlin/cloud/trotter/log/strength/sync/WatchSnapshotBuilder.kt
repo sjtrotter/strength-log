@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -71,8 +72,7 @@ object WatchSnapshotBuilder {
         val watchDays = day.program.days.filter {
             it.kind == ProgramDayKind.STRENGTH || it.cardioBlock != null || it.exercises.isNotEmpty()
         }
-        val dayIndex = watchDays.indexOfFirst { it.id == dayId }
-        if (dayIndex < 0) return null
+        if (watchDays.none { it.id == dayId }) return null
         val exercises = day.slots.map { slot ->
             buildExercise(slot, day.config, day.catalog, unit, restSettings, day.equipment)
         }
@@ -83,7 +83,7 @@ object WatchSnapshotBuilder {
             day = WatchDay(
                 dayId = dayId,
                 title = programDay.title,
-                accentIndex = dayIndex,
+                accentIndex = Program.accentIndex(dayId),
                 exercises = exercises,
                 emphasisLine = programDay.emphasisLine,
             ),

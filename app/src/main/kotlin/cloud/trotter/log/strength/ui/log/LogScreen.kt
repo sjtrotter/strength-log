@@ -56,6 +56,7 @@ import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.CheckmarkToggle
 import cloud.trotter.log.strength.ui.components.Stepper
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -726,7 +727,7 @@ private fun LogScreenPreviewContent(theme: ThemePreference) {
                         dayOfMonth = day,
                         label = if (day == 6) "July $day, today, $spoken" else "July $day, $spoken",
                         dayLetter = dayLetter,
-                        dayIndex = day % 3,
+                        dayIndex = Program.accentIndex(dayLetter.orEmpty()),
                         sessionId = day.toLong(),
                         isToday = day == 6,
                     )

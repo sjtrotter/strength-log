@@ -49,6 +49,7 @@ import cloud.trotter.log.strength.domain.model.CardioPlacement
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.components.AppCard
 import cloud.trotter.log.strength.ui.components.BodyweightStepper
@@ -514,8 +515,8 @@ private fun equipmentLabel(equipment: Equipment): String = when (equipment) {
 
 @Composable
 private fun RotationStep(state: WizardUiState) {
-    state.previewProgram?.days.orEmpty().forEachIndexed { index, day ->
-        val accent = dayAccent(index)
+    state.previewProgram?.days.orEmpty().forEach { day ->
+        val accent = dayAccent(Program.accentIndex(day.id))
         val main = day.exercises.firstOrNull { it.structure.hasTopSet } ?: day.exercises.firstOrNull()
         AppCard(borderColor = accent) {
             Text(

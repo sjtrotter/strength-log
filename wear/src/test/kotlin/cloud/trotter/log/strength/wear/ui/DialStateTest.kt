@@ -202,10 +202,11 @@ class DialStateTest {
 
     @Test
     fun `the ring is the program's days in order, today's in the accent`() {
-        val cycle = dialUiState(inputs()).cycle
-        assertEquals(listOf("A", "B", "C"), cycle.map { it.dayLabel })
-        assertEquals(listOf(0, 1, 2), cycle.map { it.accentIndex }) // accent by position
-        assertEquals(listOf(CycleMark.TODAY, CycleMark.OTHER, CycleMark.OTHER), cycle.map { it.mark })
+        val reordered = day.copy(cycle = listOf(day.cycle[2], day.cycle[0], day.cycle[1]))
+        val cycle = dialUiState(inputs(snapshot = reordered)).cycle
+        assertEquals(listOf("C", "A", "B"), cycle.map { it.dayLabel })
+        assertEquals(listOf(2, 0, 1), cycle.map { it.accentIndex })
+        assertEquals(listOf(CycleMark.OTHER, CycleMark.TODAY, CycleMark.OTHER), cycle.map { it.mark })
     }
 
     @Test
@@ -239,16 +240,17 @@ class DialStateTest {
 
     @Test
     fun `browsing another day is read-only, in that day's own colours`() {
-        val state = overview(browseDayIndex = 1)
+        val withGap = day.copy(cycle = day.cycle.filterNot { it.dayId == "B" })
+        val state = overview(withGap, browseDayIndex = 1)
         assertEquals(DialScreen.OVERVIEW, state.screen)
-        assertEquals(1, state.accentIndex) // day B's accent, not today's
-        assertEquals("UPPER", state.topBand?.text)
+        assertEquals(2, state.accentIndex)
+        assertEquals("FULL BODY", state.topBand?.text)
         assertNull(state.bottomBand)
         assertTrue(state.showsTimePill)
-        assertEquals(2, state.rounds.size) // one segment per lift of the browsed day
+        assertEquals(1, state.rounds.size)
         assertTrue(state.rounds.all { it == RoundState.UPCOMING })
         assertEquals(DiscStyle.DIMMED, state.disc.style)
-        assertEquals(listOf("DAY B", "BENCH"), state.discText())
+        assertEquals(listOf("DAY C", "DEADLIFT"), state.discText())
         assertEquals(DialTap.NONE, state.tap)
         assertEquals(DialCrown.NONE, state.crown)
         assertEquals(DialSwipe.BROWSE_DAY, state.swipe)

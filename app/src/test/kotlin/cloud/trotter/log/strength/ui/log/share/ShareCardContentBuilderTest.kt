@@ -58,6 +58,13 @@ class ShareCardContentBuilderTest {
     // --- header ------------------------------------------------------------
 
     @Test
+    fun dayCKeepsTheThirdAccentWithoutTheOriginalProgram() {
+        val content = ShareCardContentBuilder.build(session(dayId = "C"), emptyList(), WeightUnit.LB, ZoneOffset.UTC)
+        assertEquals("DAY C · LOWER", content.dayLine)
+        assertEquals(2, content.dayIndex)
+    }
+
+    @Test
     fun dateAndDayLinesReadCapsFromTheSessionHeader() {
         val content = ShareCardContentBuilder.build(session(), emptyList(), WeightUnit.LB, ZoneOffset.UTC)
         assertEquals("WEDNESDAY · JUL 8", content.dateLine)

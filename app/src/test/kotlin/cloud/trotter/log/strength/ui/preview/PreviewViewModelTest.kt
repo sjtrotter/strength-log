@@ -35,6 +35,18 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
+    @Test fun aGapInDayLettersKeepsTheThirdAccentInPreview() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val program = repo.programFor(plan).first()
+        repo.replaceProgram(Program(listOf(program.days[0], program.days[1].copy(id = "C"))))
+        val vm = preview(plan, "C")
+        advanceUntilIdle()
+
+        assertEquals("C", vm.uiState.value.selection.dayId)
+        assertEquals(2, vm.uiState.value.dayIndex)
+    }
+
     @Test fun unopenedPreviewUsesTheWorkoutSeedWithoutWritingWorkingValues() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.selectedPlanIdFlow.first()!!

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.theme.DayAccentColors
 import kotlinx.serialization.Serializable
 
 enum class ExperienceLevel { NOVICE, INTERMEDIATE, ADVANCED }
@@ -91,6 +92,17 @@ data class ProgramDay(
 data class Program(val days: List<ProgramDay>) {
     val strengthDays: List<ProgramDay> get() = days.filter { it.kind == ProgramDayKind.STRENGTH }
     val cardioDays: List<ProgramDay> get() = days.filter { it.kind == ProgramDayKind.CARDIO }
+
+    fun dayToShow(suggested: String?): ProgramDay? =
+        days.firstOrNull { it.id == suggested } ?: strengthDays.firstOrNull() ?: days.firstOrNull()
+
+    companion object {
+        /** History can outlive its program; the letter cycles through [DayAccentColors.count] accents. */
+        fun accentIndex(dayId: String): Int {
+            val letter = dayId.firstOrNull()?.uppercaseChar() ?: return 0
+            return if (letter in 'A'..'Z') (letter - 'A') % DayAccentColors.count else 0
+        }
+    }
 }
 
 data class LifterConfig(

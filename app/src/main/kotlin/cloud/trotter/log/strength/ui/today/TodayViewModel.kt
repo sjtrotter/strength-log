@@ -48,18 +48,17 @@ class TodayViewModel @Inject constructor(
         combine(programs, lastSession, civilTimeSource.civilTime) { byPlan, last, now ->
             val days = plans.flatMap { plan ->
                 val program = byPlan.getValue(plan.id)
-                val next = plan.suggestedDayId?.takeIf { id -> program.days.any { it.id == id } }
-                    ?: program.strengthDays.firstOrNull()?.id ?: program.days.firstOrNull()?.id
+                val next = program.dayToShow(plan.suggestedDayId)?.id
                 program.days.map { day ->
                     TodayDay(plan.id, plan.name, day.id,
-                        program.strengthDays.indexOfFirst { it.id == day.id }.coerceAtLeast(0), day.title,
+                        Program.accentIndex(day.id), day.title,
                         cardioOnly = day.kind == ProgramDayKind.CARDIO ||
                             (day.exercises.isEmpty() && day.cardioBlock != null)) to (day.id == next)
                 }
             }
             val openDay = run?.takeIf { it.planId != null && it.dayId != null }?.let { open ->
                 TodayDay(requireNotNull(open.planId), open.planName.orEmpty(), requireNotNull(open.dayId),
-                    byPlan[open.planId]?.strengthDays?.indexOfFirst { it.id == open.dayId }?.coerceAtLeast(0) ?: 0,
+                    Program.accentIndex(requireNotNull(open.dayId)),
                     open.dayTitle)
             }
             TodayUiState(

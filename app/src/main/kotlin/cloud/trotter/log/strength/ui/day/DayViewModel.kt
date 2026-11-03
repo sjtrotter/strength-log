@@ -168,7 +168,7 @@ class DayViewModel @Inject constructor(
 
     private val effectiveDayId: StateFlow<String?> = displayTargetFlow.flatMapLatest { target ->
         if (target == null) flowOf(null) else repo.programFor(target.plan.id).map { program ->
-            resolveDay(program, target.dayId)
+            program.dayToShow(target.dayId)?.id
         }
     }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -178,7 +178,7 @@ class DayViewModel @Inject constructor(
         }
         else combine(repo.programFor(target.plan.id), settings.unitFlow, repo.catalogFlow) {
                 program, unit, catalog ->
-            DayContext(program, target.plan.suggestedDayId, resolveDay(program, target.dayId),
+            DayContext(program, target.plan.suggestedDayId, program.dayToShow(target.dayId)?.id,
                 unit, catalog, plan = target.plan)
         }
     }.combine(effectiveDayId) { ctx, dayId ->
@@ -562,7 +562,7 @@ class DayViewModel @Inject constructor(
         val next = program.days.firstOrNull { it.id == nextId }
         if (currentDay() != dayId || dayState.value.planId != plan.id) return null
         val json = CardioBlockJson.encode(block)
-        return CardioRun(plan.id, plan.name, dayId, program.days.indexOf(day), json, json,
+        return CardioRun(plan.id, plan.name, dayId, Program.accentIndex(dayId), json, json,
             day.exercises.isEmpty(), next?.let { GlanceLines.dayLine(it.id, it.title) })
     }
 
@@ -1393,7 +1393,7 @@ class DayViewModel @Inject constructor(
      *  history; comparing them with what the session actually recorded is the
      *  new-top-set trigger. Those rows are frozen in saved state with the
      *  receipt, from one fetch of the committed session's sets. The completed
-     *  day's id and index are captured before [TrackerRepository.finishRun]
+     *  day's id is captured before [TrackerRepository.finishRun]
      *  moves the pointer, when "the current day" becomes the next one. */
     fun completeDay() {
         val day = currentDay() ?: return
@@ -1416,8 +1416,8 @@ class DayViewModel @Inject constructor(
             ) return@mutate
             val program = repo.programFor(planId).first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
-            val dayIndex = program.days.indexOfFirst { it.id == day }
-            val nextDayId = if (dayIndex >= 0) {
+            val dayPosition = program.days.indexOfFirst { it.id == day }
+            val nextDayId = if (dayPosition >= 0) {
                 Rotation.nextFor(program, day)
                     ?: repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             } else null
@@ -1440,7 +1440,7 @@ class DayViewModel @Inject constructor(
             savedState[KEY_SESSION_RECEIPT] = SessionReceiptBuilder.from(
                 sessionId = sessionId,
                 dayId = day,
-                dayIndex = dayIndex.coerceAtLeast(0),
+                dayIndex = Program.accentIndex(day),
                 startedAt = session?.startedAt,
                 completedAt = session?.completedAt ?: cardioClock.wallMillis(),
                 completedSetCount = completedSetCount,
@@ -1698,13 +1698,6 @@ class DayViewModel @Inject constructor(
         return DayUiState(hasProgram = false, loading = ctx.program.days.isNotEmpty())
     }
 
-    private fun resolveDay(program: Program, suggested: String?): String? {
-        val allIds = program.days.map { it.id }
-        val strengthIds = program.strengthDays.map { it.id }
-        return suggested?.takeIf { it in allIds }
-            ?: strengthIds.firstOrNull() ?: allIds.firstOrNull()
-    }
-
     /** One batched read for the whole day's "last time" chips (PLAN.md A1
      *  bonus) AND its "Best" profile chips (performance-profile.md Phase 1)
      *  — never one query per exercise for either. */
@@ -1722,7 +1715,7 @@ class DayViewModel @Inject constructor(
         val program = performedDay.program
         val dayId = performedDay.dayId
         val day = performedDay.day ?: return noDayState(ctx)
-        val dayIndex = program.strengthDays.indexOfFirst { it.id == dayId }.coerceAtLeast(0)
+        val dayIndex = Program.accentIndex(dayId)
         return DayUiState(
             hasProgram = true,
             isProgramDay = program.strengthDays.any { it.id == dayId },

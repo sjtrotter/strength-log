@@ -47,18 +47,6 @@ class LogScreenBuilderTest {
     }
 
     @Test
-    fun dayIndex_reads_the_leading_letter_of_the_day_id() {
-        assertEquals(0, LogScreenBuilder.dayIndex("A"))
-        assertEquals(3, LogScreenBuilder.dayIndex("D"))
-        assertEquals(4, LogScreenBuilder.dayIndex("E"))
-    }
-
-    @Test
-    fun dayIndex_falls_back_to_day_a_for_an_unrecognized_id() {
-        assertEquals(0, LogScreenBuilder.dayIndex(""))
-    }
-
-    @Test
     fun bodyweightDisplay_converts_to_the_display_unit() {
         assertEquals("182", LogScreenBuilder.bodyweightDisplay(182, WeightUnit.LB))
         // Delegates to WeightStepper/WeightUnit (SSOT) rather than reimplementing

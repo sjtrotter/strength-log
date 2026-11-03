@@ -699,6 +699,123 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(before, db.runDao().tracks(runId))
     }
 
+    @Test fun `workout swap back follows a structure edited while substituted and aligns the partner`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = start(plan, sets = work())
+        val original = db.runDao().tracks(runId).single { it.slot == Slot.MAIN }
+        val current = SetJson.decodeSets(original.setsJson).mapIndexed { index, row ->
+            row.copy(watchEditedAt = 100L + index, startedAtMillis = 200L + index,
+                completedAtMillis = 300L.takeIf { row.done })
+        }
+        db.runDao().updateTrack(original.copy(setsJson = SetJson.encodeSets(current)))
+        val partner = db.runDao().tracks(runId).single { it.slot == Slot.SS }
+        val partnerRows = SetJson.decodeSets(partner.setsJson)
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
+        val substituted = db.runDao().tracks(runId)
+
+        repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
+
+        assertEquals(substituted, db.runDao().tracks(runId))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
+        val restored = db.runDao().tracks(runId).filter { !it.retired }.associateBy { it.slot }
+        val main = restored.getValue(Slot.MAIN)
+        val rows = SetJson.decodeSets(main.setsJson)
+        val expected = SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF)
+        assertEquals(RunReplan.represcribe(current, expected), rows)
+        assertEquals(6, rows.size)
+        assertEquals(current.first(), rows.first())
+        assertEquals(listOf(0, 1, 2, null, null, null), rows.map { it.plannedIndex })
+        assertEquals(listOf(100L, 101L, 102L, null, null, null), rows.map { it.watchEditedAt })
+        assertEquals(SetKind.BACKOFF, rows.last().kind)
+        assertEquals(expected, SetJson.decodeSets(main.plannedJson))
+        val alignedPartner = restored.getValue(Slot.SS)
+        assertEquals(partnerRows, SetJson.decodeSets(alignedPartner.setsJson).take(3))
+        assertEquals(6, SetJson.decodeSets(alignedPartner.setsJson).size)
+        assertEquals(partner.plannedJson, alignedPartner.plannedJson)
+
+        val edited = rows.mapIndexed { index, row ->
+            if (index == 1) row.copy(weightLb = 85.0, watchEditedAt = 500L) else row
+        }
+        repo.writeTestRows(runId, "A", id, Slot.MAIN, edited)
+        val beforeSecondSwap = db.runDao().tracks(runId).single { it.id == main.id }
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
+        assertEquals(beforeSecondSwap, db.runDao().tracks(runId).single { !it.retired && it.slot == Slot.MAIN })
+    }
+
+    @Test fun `workout swap back follows a prescription edited while substituted and keeps done rows`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        val runId = start(plan, sets = work())
+        val original = db.runDao().tracks(runId).single()
+        val current = SetJson.decodeSets(original.setsJson).mapIndexed { index, row ->
+            row.copy(watchEditedAt = 100L + index)
+        }
+        db.runDao().updateTrack(original.copy(setsJson = SetJson.encodeSets(current)))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
+        val substitute = db.runDao().tracks(runId).single { !it.retired }
+        val prescription = Prescription(PrescribedTarget.LoadReps(80.0, 8))
+
+        repo.setPrescription(id, prescription, sets = 6)
+
+        assertEquals(substitute, db.runDao().tracks(runId).single { !it.retired })
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
+        val restored = db.runDao().tracks(runId).single { !it.retired }
+        val rows = SetJson.decodeSets(restored.setsJson)
+        assertEquals(RunReplan.represcribe(current, SetSeeder.seedPrescribed(6, prescription)), rows)
+        assertEquals(6, rows.size)
+        assertEquals(current.first(), rows.first())
+        assertEquals(SetSeeder.seedPrescribed(6, prescription), SetJson.decodeSets(restored.plannedJson))
+    }
+
+    @Test fun `workout swap back without a plan edit restores the exact track including edited undone rows`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        val remembered = work().map { it.copy(weightLb = 65.0, reps = 12) }
+        val runId = start(plan, sets = remembered)
+        val rows = repo.openRunFlow.first()!!.tracks.single().sets.mapIndexed { index, row ->
+            row.copy(weightLb = 70.0 + index, reps = 6 + index, watchEditedAt = 100L + index,
+                startedAtMillis = 200L + index, completedAtMillis = 300L.takeIf { row.done })
+        } + work().last().copy(weightLb = 90.0)
+        repo.writeTestRows(runId, "A", id, Slot.MAIN, rows)
+        val original = db.runDao().tracks(runId).single()
+
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
+
+        assertEquals(original, db.runDao().tracks(runId).single { !it.retired })
+    }
+
+    @Test fun `workout swap back reapplies the current plan after an active replan and an undone row edit`() = runTest {
+        // Known, accepted edge: swap-back reapplies the current plan because active replans keep plannedJson captured.
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = start(plan, sets = work())
+        val prescription = Prescription(PrescribedTarget.LoadReps(80.0, 8))
+        repo.setPrescription(id, prescription, sets = 4)
+        val rows = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.MAIN }.sets.mapIndexed { index, row ->
+            if (index == 1) row.copy(weightLb = 85.0, watchEditedAt = 100L) else row
+        }
+        repo.writeTestRows(runId, "A", id, Slot.MAIN, rows)
+        val partner = db.runDao().tracks(runId).single { it.slot == Slot.SS }
+
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
+
+        val restored = db.runDao().tracks(runId).filter { !it.retired }.associateBy { it.slot }
+        val restoredRows = SetJson.decodeSets(restored.getValue(Slot.MAIN).setsJson)
+        val expected = SetSeeder.seedPrescribed(4, prescription).mapIndexed { index, row ->
+            row.copy(plannedIndex = rows[index].plannedIndex, watchEditedAt = rows[index].watchEditedAt)
+        }
+        assertEquals(rows.filter { it.done }, restoredRows.filter { it.done })
+        assertEquals(expected.drop(1), restoredRows.filterNot { it.done })
+        assertEquals(partner, restored.getValue(Slot.SS))
+        assertEquals(restoredRows.size, SetJson.decodeSets(restored.getValue(Slot.SS).setsJson).size)
+    }
+
     @Test fun `workout swap archives each performed exercise and leaves the slots remembered values alone`() = runTest {
         val plan = authored()
         val id = slot(plan)
@@ -1094,6 +1211,31 @@ class TrackerRepositoryRunEditsTest {
         assertFalse(tracks.single { it.slot == Slot.SS }.retired)
         assertTrue(tracks.none { it.dropped })
         assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(drop.runId, id, Slot.SS))
+    }
+
+    @Test fun `whole lift bring back follows a structure edited while MAIN was substituted`() = runTest {
+        val plan = authored()
+        repo.addExercise("A", ProgramExercise("bb_bench"))
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = start(plan, sets = work())
+        val original = db.runDao().tracks(runId).single { it.programExerciseId == id && it.slot == Slot.MAIN }
+        val current = SetJson.decodeSets(original.setsJson)
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
+        repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
+        assertTrue(repo.skipLift(plan, "A", id, Slot.SS, "hack_squat", "ez_curl") is RunWriteResult.InRun)
+        assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "hack_squat", null) is RunWriteResult.InRun)
+
+        assertTrue(repo.restoreSkippedLift(runId, id) is RunWriteResult.InRun)
+
+        val restored = db.runDao().tracks(runId).filter { it.programExerciseId == id && !it.retired }
+        val main = restored.single { it.slot == Slot.MAIN }
+        assertEquals(RunReplan.represcribe(current,
+            SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF)), SetJson.decodeSets(main.setsJson))
+        assertEquals(SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP_BACKOFF),
+            SetJson.decodeSets(main.plannedJson))
+        assertEquals(6, SetJson.decodeSets(restored.single { it.slot == Slot.SS }.setsJson).size)
+        assertTrue(restored.none { it.dropped })
     }
 
     @Test fun `skip MAIN then promoted MAIN and clear checks reseeds the aligned plan with tied timestamps`() = runTest {

@@ -91,6 +91,10 @@ a review finding can't be resolved or a change would alter pinned spec numbers.
   on rotation because state lived in memory; that class of bug must be
   impossible here. UI state that must survive process death goes through
   SavedStateHandle or the DB, never a bare ViewModel field.
+- **A Parcelable kept in SavedStateHandle never gains, drops or reorders a
+  field.** `@Parcelize` reads every field in order, so a bundle saved by the
+  previous release would be misread after an update. New state gets its own
+  SavedStateHandle key.
 - **The user can always get their data out**: versioned JSON full backup +
   CSV history export via the share sheet / SAF, plus Health Connect writes.
 

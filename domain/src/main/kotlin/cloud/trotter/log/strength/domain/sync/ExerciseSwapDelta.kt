@@ -13,7 +13,7 @@ import kotlinx.serialization.Serializable
  *    [guardedFor]'s tracking strip) means anything for it;
  *  - the phone applies it through `TrackerRepository.swapExercise` (spec §8.3 — the
  *    slot keeps its `programExerciseId`, its live log is cleared, the new exercise
- *    reseeds from its own GOAL), not through `updateSets`.
+ *    reseeds from its own GOAL), not through row edits.
  *
  * Folding it into [SetEditDelta] would mean a sentinel index and a branch that skips
  * every guard the type exists to enforce. A separate path also degrades better: an

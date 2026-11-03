@@ -46,6 +46,7 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
+import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.standards.PhoneRestTimer
@@ -99,11 +100,6 @@ import kotlinx.coroutines.sync.withLock
  * the workout resolver. A day switch or completion clears both
  * identities.
  *
- * Log mutations are read-modify-write over a whole set track, so they are
- * serialized through [mutationLock] — without it two rapid intents on one slot
- * (tick set 1, tick set 2) could each read the same stored list and the second
- * write would silently drop the first.
- *
  * The §8.2 decision logic lives in the pure [DayScreenBuilder]; this class is the
  * flow/write wiring around it. All cascade/edit math comes from `:domain`
  * ([SetEditor]) — never reimplemented here.
@@ -155,11 +151,8 @@ class DayViewModel @Inject constructor(
     // and returns after a missed deadline present entry silently.
     private var timedRepAlertAnchor: Long? = null
 
-    /** Serializes all read-modify-write log mutations (see class doc). */
+    /** Keeps UI side effects ordered with their repository writes. */
     private val mutationLock = Mutex()
-
-    internal var beforeWorkoutUndoWrite: (suspend () -> Unit)? = null
-    internal var afterWorkoutTickWrite: (suspend () -> Unit)? = null
 
     private val displayTargetFlow = combine(
         repo.todayTargetFlow, repo.selectedPlanFlow, repo.plansFlow, viewDayOverride,
@@ -968,39 +961,48 @@ class DayViewModel @Inject constructor(
 
     fun changeWeight(programExerciseId: Long, slot: String, index: Int, newDisplayWeight: Double) {
         val day = currentDay() ?: return
-        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
         mutate {
-            val unit = settings.unitFlow.first()
-            val sets = trackFor(day, programExerciseId, slot)
-            if (index !in sets.indices) return@mutate
-            val updated = SetEditor.editWeight(sets, index, unit.toLb(newDisplayWeight))
-            repo.updateSets(runId, day, programExerciseId, slot, updated)
-            if (sets[index].kind == SetKind.TOP && updated != sets) settings.markTopSetHelperSeen()
+            val lb = settings.unitFlow.first().toLb(newDisplayWeight)
+            val tapped = trackFor(day, programExerciseId, slot).getOrNull(index)
+            repo.applyToRun(runId, planId, day, listOf(
+                TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
+                    if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(weightLb = lb))
+                },
+            ))
+            if (tapped?.kind == SetKind.TOP && tapped.weightLb != lb) settings.markTopSetHelperSeen()
         }
     }
 
     fun changeReps(programExerciseId: Long, slot: String, index: Int, newReps: Int) {
         val day = currentDay() ?: return
-        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
         mutate {
-            val sets = trackFor(day, programExerciseId, slot)
-            if (index !in sets.indices) return@mutate
-            val updated = SetEditor.editReps(sets, index, newReps)
-            repo.updateSets(runId, day, programExerciseId, slot, updated)
-            if (sets[index].kind == SetKind.TOP && updated != sets) settings.markTopSetHelperSeen()
+            val tapped = trackFor(day, programExerciseId, slot).getOrNull(index)
+            repo.applyToRun(runId, planId, day, listOf(
+                TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
+                    if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(reps = newReps))
+                },
+            ))
+            if (tapped?.kind == SetKind.TOP && tapped.reps != newReps) settings.markTopSetHelperSeen()
         }
     }
 
-    /** TIMED tracks' seconds edit — same write-immediately shape as
-     *  [changeReps]/[changeWeight], routed through [SetEditor.editSeconds]
-     *  (never cascades, exactly like reps). */
     fun changeSeconds(programExerciseId: Long, slot: String, index: Int, newSeconds: Int) {
         val day = currentDay() ?: return
-        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
         mutate {
-            val sets = trackFor(day, programExerciseId, slot)
-            if (index !in sets.indices) return@mutate
-            repo.updateSets(runId, day, programExerciseId, slot, SetEditor.editSeconds(sets, index, newSeconds))
+            repo.applyToRun(runId, planId, day, listOf(
+                TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
+                    if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(seconds = newSeconds))
+                },
+            ))
         }
     }
 
@@ -1068,17 +1070,9 @@ class DayViewModel @Inject constructor(
                 val target = validUndo(tracks, record, current(), clock.millis()) ?: return@locked
                 if (tracks.runId != runId || currentDay() != day) return@locked
                 val before = runCatching { target.before.toDomain() }.getOrNull() ?: return@locked
-                beforeWorkoutUndoWrite?.invoke()
                 val result = repo.applyToRun(runId, planId, day, listOf(
                     TrackEdit(target.programExerciseId, target.slot) { current ->
-                        val row = current.getOrNull(target.index)
-                        if (row == null || !matchesUndo(row, target)) null else current.mapIndexed { index, set ->
-                            if (index != target.index) set else before.copy(
-                                done = false, startedAtMillis = null, completedAtMillis = null,
-                                // A watch stamp only moves forward, or a replayed watch tick redoes this set.
-                                watchEditedAt = listOfNotNull(before.watchEditedAt, set.watchEditedAt).maxOrNull(),
-                            )
-                        }
+                        WorkoutUndo.revert(current, target, before)
                     },
                 ))
                 if (result !is RunWriteResult.InRun) return@locked
@@ -1125,26 +1119,26 @@ class DayViewModel @Inject constructor(
             if (performed.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return
         }
         if (slot != Slot.MAIN && slot != Slot.SS) return
-        val stored = trackFor(day, programExerciseId, slot)
-        val row = stored.getOrNull(index) ?: return
-        if (countEvent != null && row.done) return
-        if (actionLog && row.done) return
+        val planId = repo.planIdOfSlot(programExerciseId) ?: return
         val loggedAt = clock.millis()
-        val updated = stored.mapIndexed { i, set ->
-            if (i != index) set else set.copy(
-                done = checked,
-                reps = countEvent?.count ?: set.reps,
-                seconds = if (countEvent != null) 0 else set.seconds,
-                startedAtMillis = if (!checked) null else set.startedAtMillis,
-                completedAtMillis = if (!checked) null else if (!set.done) loggedAt else set.completedAtMillis,
-            )
-        }
-        val result = repo.updateSets(runId, day, programExerciseId, slot, updated)
-        if (result == RunWriteResult.Rejected) return
-        afterWorkoutTickWrite?.invoke()
+        var writtenBefore: LoggedSet? = null
+        var writtenAfter: LoggedSet? = null
+        val result = repo.applyToRun(runId, planId, day, listOf(
+            TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
+                val current = rows.getOrNull(index)
+                if (current == null || ((countEvent != null || actionLog) && current.done)) null else {
+                    val updated = SetEditor.edit(rows, index, phoneTickEdit(current, checked, loggedAt, countEvent?.count))
+                    writtenBefore = current
+                    writtenAfter = updated[index]
+                    updated
+                }
+            },
+        ))
+        if (result !is RunWriteResult.InRun && result != RunWriteResult.WorkingValues) return
+        val row = writtenBefore ?: return
+        val logged = writtenAfter ?: return
         if (countEvent != null) clearTimedRep()
         val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
-        val planId = repo.planIdOfSlot(programExerciseId) ?: return
         val planSlots = repo.slotsFor(planId, day).first()
         val workoutSlots = repo.dayTracksFlow(planId, day).first().let {
             planSlots.forRun(it.droppedPartners, it.skippedLifts)
@@ -1184,7 +1178,7 @@ class DayViewModel @Inject constructor(
             }
             if (recordLog) {
                 settings.setWorkoutRecord(WorkoutRecord(runId, selection, UndoTarget(
-                    programExerciseId, slot, index, SetDto.of(row), SetDto.of(updated[index]),
+                    programExerciseId, slot, index, SetDto.of(row), SetDto.of(logged),
                     loggedAt, restStarted,
                 )))
             } else if (previous == null) {
@@ -1201,21 +1195,20 @@ class DayViewModel @Inject constructor(
 
     fun addSet(programExerciseId: Long, isSuperset: Boolean) {
         val day = currentDay() ?: return
-        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
         mutate {
-            val main = trackFor(day, programExerciseId, Slot.MAIN)
-            // An unseeded track has no last row to copy — nothing to add yet.
-            if (main.isEmpty()) return@mutate
-            val partner = if (isSuperset) trackFor(day, programExerciseId, Slot.SS) else emptyList()
+            val paired = isSuperset && trackFor(day, programExerciseId, Slot.SS).isNotEmpty()
             cancelTimedRepForSetListChange(day, programExerciseId)
-            if (partner.isNotEmpty()) {
-                val (newMain, newPartner) = SetEditor.addSetPaired(main, partner)
-                repo.updateSetsPaired(runId, day, programExerciseId, newMain, newPartner)
-            } else {
-                // No partner track exists (e.g. its catalog entry is unknown, so it
-                // never seeded) — there is nothing to keep aligned; plain add.
-                repo.updateSets(runId, day, programExerciseId, Slot.MAIN, SetEditor.addSet(main))
-            }
+            val edits = listOfNotNull(
+                // An empty track has no row to copy, so adding to it stays a no-op.
+                TrackEdit(programExerciseId, Slot.MAIN) { rows -> rows.takeIf { it.isNotEmpty() }?.let(SetEditor::addSet) },
+                if (paired) TrackEdit(programExerciseId, Slot.SS) { rows ->
+                    rows.takeIf { it.isNotEmpty() }?.let(SetEditor::addSet)
+                } else null,
+            )
+            repo.applyToRun(runId, planId, day, edits)
         }
     }
 
@@ -1224,7 +1217,9 @@ class DayViewModel @Inject constructor(
      *  asking first — see [_removedSet]. */
     fun removeSet(programExerciseId: Long, index: Int, isSuperset: Boolean) {
         val day = currentDay() ?: return
-        val runId = dayState.value.takeIf { it.viewDayId == day }?.runId ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
         mutate {
             val main = trackFor(day, programExerciseId, Slot.MAIN)
             if (index !in main.indices) return@mutate
@@ -1246,12 +1241,14 @@ class DayViewModel @Inject constructor(
                     partner = partner.getOrNull(index),
                 ),
             )
-            if (partner.isNotEmpty()) {
-                val (newMain, newPartner) = SetEditor.removeSetPaired(main, partner, index)
-                repo.updateSetsPaired(runId, day, programExerciseId, newMain, newPartner)
-            } else {
-                repo.updateSets(runId, day, programExerciseId, Slot.MAIN, SetEditor.removeSet(main, index))
-            }
+            repo.applyToRun(runId, planId, day, listOfNotNull(
+                TrackEdit(programExerciseId, Slot.MAIN, createsMissing = true) { rows ->
+                    if (rows.size <= 1 || index !in rows.indices) null else SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
+                },
+                if (partner.isNotEmpty()) TrackEdit(programExerciseId, Slot.SS, createsMissing = true) { rows ->
+                    SetEditor.keepingIndexStamps(rows, SetEditor.removeSet(rows, index))
+                } else null,
+            ))
         }
     }
 
@@ -1268,17 +1265,16 @@ class DayViewModel @Inject constructor(
         mutate {
             if (day != removed.dayId || runId != removed.runId) return@mutate
             if (repo.dayTracksFlow(planId, day).first().runId != removed.runId) return@mutate
-            val main = trackFor(day, removed.programExerciseId, Slot.MAIN)
-            val partner = trackFor(day, removed.programExerciseId, Slot.SS)
+            val paired = removed.partner != null && trackFor(day, removed.programExerciseId, Slot.SS).isNotEmpty()
             cancelTimedRepForSetListChange(day, removed.programExerciseId)
-            if (removed.partner != null && partner.isNotEmpty()) {
-                val (newMain, newPartner) =
-                    SetEditor.insertSetPaired(main, partner, removed.index, removed.main, removed.partner)
-                repo.updateSetsPaired(runId, day, removed.programExerciseId, newMain, newPartner)
-            } else {
-                val restored = SetEditor.insertSet(main, removed.index, removed.main)
-                repo.updateSets(runId, day, removed.programExerciseId, Slot.MAIN, restored)
-            }
+            repo.applyToRun(runId, planId, day, listOfNotNull(
+                TrackEdit(removed.programExerciseId, Slot.MAIN) { rows ->
+                    SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, removed.main))
+                },
+                if (paired) TrackEdit(removed.programExerciseId, Slot.SS) { rows ->
+                    SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, requireNotNull(removed.partner)))
+                } else null,
+            ))
         }
     }
 
@@ -1876,19 +1872,13 @@ class DayViewModel @Inject constructor(
     private fun undoDeadline(target: UndoTarget, rest: PhoneRest?): Long? =
         if (target.restStarted) rest?.deadlineEpochMillis else target.loggedAtMillis + LOG_UNDO_WINDOW_MS
 
-    private fun matchesUndo(row: LoggedSet, target: UndoTarget): Boolean {
-        val after = target.after
-        return row.done && row.weightLb == after.weightLb && row.reps == after.reps && row.seconds == after.seconds &&
-            row.completedAtMillis == target.loggedAtMillis
-    }
-
     private fun validUndo(tracks: DayTracks?, record: WorkoutRecord?, rest: PhoneRest?, now: Long): UndoTarget? {
         if (tracks == null || !tracks.runOpen) return null
         val target = record?.takeIf { it.runId == tracks.runId }?.undo ?: return null
         val row = tracks.tracks.firstOrNull {
             it.programExerciseId == target.programExerciseId && it.slot == target.slot
         }?.sets?.getOrNull(target.index) ?: return null
-        if (!matchesUndo(row, target)) return null
+        if (!WorkoutUndo.matches(row, target)) return null
         if (runRows(tracks).any { (it.completedAtMillis ?: Long.MIN_VALUE) > target.loggedAtMillis }) return null
         val deadline = undoDeadline(target, rest) ?: return null
         return target.takeIf { now < deadline }

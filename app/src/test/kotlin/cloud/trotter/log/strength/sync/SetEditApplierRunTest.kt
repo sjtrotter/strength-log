@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.writeTestRows
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
@@ -122,7 +123,7 @@ class SetEditApplierRunTest {
         val runId = repo.dayTracksFlow(planId, "A").first().runId!!
         val id = squatId(planId)
         val main = seeds.getValue(id to Slot.MAIN)
-        repo.updateSets(runId, "A", id, Slot.MAIN,
+        repo.writeTestRows(runId, "A", id, Slot.MAIN,
             main.mapIndexed { index, set -> if (index == 0) set.copy(done = true) else set })
         assertEquals(runId, repo.openRunFlow.first()!!.id)
         return runId
@@ -187,7 +188,7 @@ class SetEditApplierRunTest {
                 .first { it.exercise.exerciseId == "ez_curl" }.programExerciseId
             val initial = repo.dayTracksFlow(planId, "A").first().tracks
                 .first { it.programExerciseId == id && it.slot == doneSlot }.sets
-            repo.updateSets(runId, "A", id, doneSlot, initial.mapIndexed { index, set ->
+            repo.writeTestRows(runId, "A", id, doneSlot, initial.mapIndexed { index, set ->
                 if (index == 0) set.copy(done = true, startedAtMillis = 10L, completedAtMillis = 70L) else set
             })
             val edit = delta(planId, runId).copy(programExerciseId = id, exerciseId = "ez_curl",

@@ -106,7 +106,7 @@ class TrackerRepositoryFinishArchiveTest {
 
     private suspend fun tickSets(slotId: Long, indices: Set<Int>) {
         val sets = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.programExerciseId == slotId }.sets
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(),
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(),
             "A", slotId, Slot.MAIN,
             sets.mapIndexed { index, set ->
                 if (index in indices) {

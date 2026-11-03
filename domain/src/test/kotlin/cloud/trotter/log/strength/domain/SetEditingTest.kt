@@ -59,13 +59,13 @@ class SetEditingTest {
         val partner = SetSeeder.seedPartner(primary.size, 50.0)
         assertEquals(primary.size, partner.size)
 
-        val (p2, s2) = SetEditor.addSetPaired(primary, partner)
+        val (p2, s2) = SetEditor.addSet(primary) to SetEditor.addSet(partner)
         assertEquals(4, p2.size)
         assertEquals(4, s2.size)
         assertEquals(SetKind.EXTRA, p2.last().kind)
         assertEquals(SetKind.EXTRA, s2.last().kind)
 
-        val (p3, s3) = SetEditor.removeSetPaired(p2, s2, 1)
+        val (p3, s3) = SetEditor.removeSet(p2, 1) to SetEditor.removeSet(s2, 1)
         assertEquals(3, p3.size)
         assertEquals(3, s3.size)
     }
@@ -123,8 +123,8 @@ class SetEditingTest {
         val primary = SetSeeder.seed(ProgramExercise("ez_curl", targetSets = 3), 60.0, cfg)
         val partner = SetSeeder.seedPartner(primary.size, 50.0)
 
-        val (p2, s2) = SetEditor.removeSetPaired(primary, partner, 1)
-        val (p3, s3) = SetEditor.insertSetPaired(p2, s2, 1, primary[1], partner[1])
+        val (p2, s2) = SetEditor.removeSet(primary, 1) to SetEditor.removeSet(partner, 1)
+        val (p3, s3) = SetEditor.insertSet(p2, 1, primary[1]) to SetEditor.insertSet(s2, 1, partner[1])
         assertEquals(primary, p3)
         assertEquals(partner, s3)
     }

@@ -9,7 +9,7 @@ import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
@@ -80,16 +80,15 @@ class SetEditApplier(
                     ?: tracks.firstOrNull { it.programExerciseId == slot.programExerciseId && it.slot == trackSlot }?.exerciseId
                 val performed = performedExercise(slot, exerciseId, catalog, trackSlot)
                 val guarded = delta.guardedFor(performed.tracking)
-                var updated = track
-                if (values) {
-                    guarded.weightLb?.let { updated = SetEditor.editWeight(updated, delta.setIndex, it) }
-                    guarded.reps?.let { updated = SetEditor.editReps(updated, delta.setIndex, it) }
-                    guarded.seconds?.let { updated = SetEditor.editSeconds(updated, delta.setIndex, it) }
-                }
-                updated.stamped(delta).mapIndexed { i, set ->
-                    if (i == delta.setIndex) set.copy(done = delta.done ?: set.done, watchEditedAt = if (values) delta.editedAtMillis else set.watchEditedAt)
-                    else set
-                }
+                SetEditor.edit(track, delta.setIndex, SetEdit(
+                    weightLb = guarded.weightLb.takeIf { values },
+                    reps = guarded.reps.takeIf { values },
+                    seconds = guarded.seconds.takeIf { values },
+                    done = delta.done,
+                    startedAtMillis = delta.startedAtMillis,
+                    completedAtMillis = delta.completedAtMillis,
+                    watchEditedAt = delta.editedAtMillis.takeIf { values },
+                ))
             }
         }
         edits.add(edit(delta.slot, true))
@@ -181,37 +180,4 @@ class SetEditApplier(
         markers.markApplied(rowKey, swap.editedAtMillis)
         return Outcome.APPLIED
     }
-
-    /** Writes the watch-observed start/complete millis onto the delta's row. They are
-     *  facts, not tracked fields, so no tracking guard strips them ([guardedFor]) and
-     *  they land whatever else the delta carries — in practice they ride with the
-     *  tick that produced them. Null keeps the stored value, the same
-     *  "null means unchanged" rule every other delta field follows.
-     *
-     *  A done tick preserves stored timing on either track, filling only missing stamps.
-     *
-     *  An **untick is the exception**: `done = false` retracts the tick, and the
-     *  stamps are facts *about that tick*. They clear with it, whether or not the
-     *  delta carries any (the watch's undo carries none).
-     *  Leaving a start/complete pair on a row that now reads unchecked would let a
-     *  duration nobody performed ride into the day's derived active time. */
-    private fun List<LoggedSet>.stamped(delta: SetEditDelta): List<LoggedSet> {
-        val unticking = delta.done == false
-        if (!unticking && delta.startedAtMillis == null && delta.completedAtMillis == null) return this
-        return mapIndexed { i, s ->
-            when {
-                i != delta.setIndex -> s
-                unticking -> s.copy(startedAtMillis = null, completedAtMillis = null)
-                delta.done == true && s.done -> s.copy(
-                    startedAtMillis = s.startedAtMillis ?: delta.startedAtMillis,
-                    completedAtMillis = s.completedAtMillis ?: delta.completedAtMillis,
-                )
-                else -> s.copy(
-                    startedAtMillis = delta.startedAtMillis ?: s.startedAtMillis,
-                    completedAtMillis = delta.completedAtMillis ?: s.completedAtMillis,
-                )
-            }
-        }
-    }
-
 }

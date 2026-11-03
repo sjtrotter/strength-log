@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.TrackEdit
+import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.flow.map
@@ -623,7 +625,7 @@ class DayViewModelWiringTest {
         insertSelectionProgram()
         val id = slotId("ez_curl")
         val rows = List(3) { LoggedSet(50.0, 8, SetKind.WORK, done = false) }
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, rows)
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, rows)
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         val collect = launch { vm.uiState.collect {} }
@@ -638,7 +640,7 @@ class DayViewModelWiringTest {
         assertEquals(editor, handle.get<OpenSheet>("day_open_sheet"))
 
         // A remote reseed bypasses the sheet's Remove set/dismiss callbacks.
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, rows)
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, rows)
         advanceUntilIdle()
 
         // The screen's Back gate reads this resolved null, never the saved identity.
@@ -873,7 +875,11 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertEquals("cardio", revived.uiState.value.selectedPageKey)
         val id = slotId("ghost_unknown")
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(LoggedSet(50.0, 8, SetKind.WORK, done = false)))
+        val planId = requireNotNull(repo.planIdOfSlot(id))
+        val next = requireNotNull(repo.dayTracksFlow(planId, "A").first().runId)
+        repo.applyToRun(next, planId, "A", listOf(
+            TrackEdit(id, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(50.0, 8, SetKind.WORK)) },
+        ))
         advanceUntilIdle()
         assertTrue(revived.uiState.value.exercises.single().rows.isNotEmpty())
         assertEquals("cardio", (revived.uiState.value.workout?.shown as WorkoutSelection.Shown.Group).key)
@@ -885,7 +891,7 @@ class DayViewModelWiringTest {
     fun seededDayPinsFirstUnfinishedPageWithoutScreenAndCompletingItDoesNotMoveSelection() = runVmTest {
         insertProgram()
         val squatId = slotId("bb_back_squat")
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), "A", squatId, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), "A", squatId, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         // Pinning belongs to the ViewModel even when nobody collects uiState.
@@ -1428,7 +1434,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val id = slotId("ez_curl")
         val runId = requireNotNull(vm.uiState.value.runId)
-        repo.updateSets(runId, "A", id, Slot.SS, track(id, Slot.SS)!!.take(1))
+        repo.writeTestRows(runId, "A", id, Slot.SS, track(id, Slot.SS)!!.take(1))
         vm.toggleDone(id, 0, true, Slot.MAIN)
         vm.toggleDone(id, 1, true, Slot.MAIN)
         advanceUntilIdle()
@@ -2070,7 +2076,7 @@ class DayViewModelWiringTest {
         mutationReadGate = null
         repo.discardRun(old.id)
         val day = db.programDao().day(old.planId!!, "A")!!
-        repo.updateSets(day.nextRunId, "A", id, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
+        repo.writeTestRows(day.nextRunId, "A", id, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
         val replacement = repo.openRunFlow.first()!!
         gate.complete(Unit)
         advanceUntilIdle()
@@ -2143,7 +2149,7 @@ class DayViewModelWiringTest {
         assertEquals(old.id, vm.removedSets.value.single().runId)
         repo.discardRun(old.id)
         val day = db.programDao().day(old.planId!!, "A")!!
-        repo.updateSets(day.nextRunId, "A", id, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
+        repo.writeTestRows(day.nextRunId, "A", id, Slot.MAIN, listOf(LoggedSet(100.0, 5, SetKind.WORK, done = true)))
         advanceTimeBy(500)
         val replacement = repo.openRunFlow.first()!!
         vm.undoRemoveSet()

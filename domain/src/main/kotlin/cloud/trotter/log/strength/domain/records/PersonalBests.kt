@@ -5,7 +5,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 
-enum class PrKind { WEIGHT, REPS, HOLD }
+enum class PrKind { WEIGHT, REPS, HOLD, FASTER, FARTHER }
 
 /**
  * Single source for personal bests read by the receipt, History, share card and Best chip.

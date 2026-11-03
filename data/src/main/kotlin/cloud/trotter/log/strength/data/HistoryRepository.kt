@@ -16,9 +16,13 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.mapping.toDomainOrNull
 import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.records.CardioBests
+import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -121,6 +125,17 @@ class HistoryRepository(
 
     suspend fun cardioSetsFor(sessionId: Long): List<CardioSetResult> =
         cardioSetResultDao.forSession(sessionId).mapNotNull { it.toDomainOrNull() }
+
+    suspend fun cardioBestsFor(
+        activity: CardioActivity,
+        excludedDayId: String? = null,
+        excludedStartedAt: Long? = null,
+    ): Map<CardioRecordKey, CardioSetResult> {
+        val results = cardioSetResultDao.finishedForActivity(
+            activity.name, CardioSetStatus.FINISHED.name, excludedDayId, excludedStartedAt,
+        ).mapNotNull { it.toDomainOrNull() }
+        return CardioBests.bests(activity, results)
+    }
 
     /** Exact rows for undo, including original ids, order and stored specs. */
     data class DeletedCardioSession(

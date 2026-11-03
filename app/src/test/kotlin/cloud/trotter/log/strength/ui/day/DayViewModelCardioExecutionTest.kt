@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.data.mapping.toEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -33,6 +34,7 @@ import cloud.trotter.log.strength.domain.model.CardioSuggestion
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
@@ -214,10 +216,13 @@ class DayViewModelCardioExecutionTest {
     private fun recreateHandle(handle: SavedStateHandle) =
         SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
 
-    private suspend fun prepareAuthoredCardioDay(vararg sets: CardioSetSpec) {
+    private suspend fun prepareAuthoredCardioDay(
+        vararg sets: CardioSetSpec,
+        activity: CardioActivity = CardioActivity.TRACK_RUN,
+    ) {
         val planId = repo.plans.createAuthoredPlan("Running plan", "Running")
         repo.plans.publishCreatedAuthoredPlan(planId)
-        val block = CardioBlock(CardioActivity.TRACK_RUN, sets.toList())
+        val block = CardioBlock(activity, sets.toList())
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
             ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
@@ -228,6 +233,254 @@ class DayViewModelCardioExecutionTest {
             fiveK = true, activity = CardioActivity.TRACK_RUN)
         prepareAuthoredCardioDay(*block.sets.toTypedArray())
         return requireNotNull(repo.plans.selectedPlanIdFlow.first())
+    }
+
+    private suspend fun seedCardioBest(
+        spec: CardioSetSpec,
+        seconds: Int,
+        metres: Int? = null,
+        activity: CardioActivity = CardioActivity.TRACK_RUN,
+    ): Long {
+        val id = db.cardioSessionDao().insert(CardioSessionEntity(
+            dayId = "A", mode = CardioMode.OUTDOOR_RUN.name, hard = true, label = "Run",
+            startedAt = clock.wall - seconds * 1000L - 1000, completedAt = clock.wall - 1000,
+            seconds = seconds, stepsCompleted = 1, activity = activity.name,
+        ))
+        val result = CardioSetResult(spec, CardioSetStatus.FINISHED, seconds,
+            metres, metres?.let { DistanceSource.MANUAL })
+        db.cardioSetResultDao().insertAll(listOf(result.toEntity(id, 0)))
+        return id
+    }
+
+    private fun parcelHandle(handle: SavedStateHandle): SavedStateHandle {
+        val parcel = Parcel.obtain()
+        return try {
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.setDataPosition(0)
+            SavedStateHandle.createHandle(parcel.readBundle(CardioRun::class.java.classLoader), null)
+        } finally {
+            parcel.recycle()
+        }
+    }
+
+    @Test
+    fun fasterRecordIsFrozenBeforeLoggingAndSurvivesReceiptParcelAndHistoryEdits() = test {
+        val spec = distance()
+        prepareAuthoredCardioDay(spec)
+        val standingId = seedCardioBest(spec, 102)
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startCardio()
+        runCurrent()
+        tick(98_000)
+        vm.reachCardioTarget(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+
+        val receipt = requireNotNull(vm.sessionReceipt.value)
+        assertEquals(listOf(CardioReceiptRecord("400 m", "1:38", "1:42", PrKind.FASTER)), vm.sessionCardioRecords.value)
+        assertEquals(2, repo.history.cardioSessionsFlow.first().size)
+        repo.history.deleteCardioSession(standingId)
+        seedCardioBest(spec, 90)
+        vm.retryCardioSave()
+        runCurrent()
+        assertEquals(receipt, vm.sessionReceipt.value)
+        assertEquals(listOf(CardioReceiptRecord("400 m", "1:38", "1:42", PrKind.FASTER)), vm.sessionCardioRecords.value)
+
+        vm.setCardioScreenLive(false)
+        vm.viewModelScope.cancel()
+        val restoredHandle = parcelHandle(handle)
+        val restored = readyVm(restoredHandle)
+        assertEquals(receipt, restored.sessionReceipt.value)
+        assertEquals(listOf(CardioReceiptRecord("400 m", "1:38", "1:42", PrKind.FASTER)), restored.sessionCardioRecords.value)
+        restored.retryCardioSave()
+        runCurrent()
+        assertEquals(receipt, restored.sessionReceipt.value)
+        assertEquals(listOf(CardioReceiptRecord("400 m", "1:38", "1:42", PrKind.FASTER)), restored.sessionCardioRecords.value)
+        assertEquals(2, repo.history.cardioSessionsFlow.first().size)
+        assertTrue(restored.dismissSessionReceipt())
+        runCurrent()
+        assertTrue(restored.sessionCardioRecords.value.isEmpty())
+        assertFalse(restoredHandle.keys().any {
+            it.startsWith("day_cardio_standing_bests:") || it.startsWith("day_cardio_receipt_records:")
+        })
+    }
+
+    @Test
+    fun fartherRecordKeepsPreLogBaselineThroughDistanceEntryAndSavedStateRestore() = test {
+        val spec = time(CardioRole.WORK, seconds = 1800, aim = 5000)
+        val activity = CardioActivity.ROAD_RUN
+        prepareAuthoredCardioDay(spec, activity = activity)
+        seedCardioBest(spec, 1800, 4980, activity)
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startCardio()
+        runCurrent()
+        tick(1_800_000)
+        assertNull(vm.sessionReceipt.value)
+        val pending = vm.uiState.value.cardio!!.distanceRuns.single()
+        assertEquals(4980, handle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${pending.runId}")?.single()?.metres)
+        val sessionId = requireNotNull(pending.sessionId)
+        assertNull(repo.history.cardioSetsFor(sessionId).single().metres)
+
+        seedCardioBest(spec, 1800, 5400, activity)
+        vm.setCardioScreenLive(false)
+        vm.viewModelScope.cancel()
+        val restored = readyVm(parcelHandle(handle))
+        restored.openCardioDistance()
+        runCurrent()
+        restored.changeCardioDistance("5210")
+        restored.saveCardioDistance(restored.distanceAction())
+        runCurrent()
+
+        val receipt = requireNotNull(restored.sessionReceipt.value)
+        assertEquals(sessionId, receipt.sessionId)
+        assertEquals(listOf(CardioReceiptRecord("30:00", "5,210 m", "4,980 m", PrKind.FARTHER)), restored.sessionCardioRecords.value)
+        assertEquals(5210, repo.history.cardioSetsFor(sessionId).single().metres)
+        assertEquals(5400, repo.history.cardioBestsFor(activity).values.single().metres)
+        restored.retryCardioSave()
+        runCurrent()
+        assertEquals(receipt, restored.sessionReceipt.value)
+        assertEquals(3, repo.history.cardioSessionsFlow.first().size)
+    }
+
+    @Test
+    fun multiplePendingRunsKeepTheirOwnBaselinesAcrossParcelRestoreAndReceiptDismissal() = test {
+        val spec = time(CardioRole.WORK, seconds = 1800, aim = 5000)
+        val activity = CardioActivity.ROAD_RUN
+        prepareAuthoredCardioDay(spec, activity = activity)
+        seedCardioBest(spec, 1800, 4980, activity)
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startCardio()
+        runCurrent()
+        tick(1_800_000)
+        val first = vm.uiState.value.cardio!!.distanceRuns.single()
+        vm.openCardioDistance()
+        vm.closeSheet()
+        runCurrent()
+
+        seedCardioBest(spec, 1800, 5400, activity)
+        vm.startCardio()
+        runCurrent()
+        tick(1_800_000)
+        val pending = requireNotNull(handle.get<ArrayList<CardioRun>>("day_cardio_distances"))
+        assertEquals(2, pending.size)
+        val second = pending.single { it.runId != first.runId }
+        vm.setCardioScreenLive(false)
+        vm.viewModelScope.cancel()
+
+        val restoredHandle = parcelHandle(handle)
+        val restored = readyVm(restoredHandle)
+        assertEquals(4980, restoredHandle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${first.runId}")?.single()?.metres)
+        assertEquals(5400, restoredHandle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${second.runId}")?.single()?.metres)
+        restored.requestCardioDistance(first.action(0))
+        restored.openCardioDistance()
+        runCurrent()
+        assertEquals(first.action(0), restored.distanceAction())
+        restored.changeCardioDistance("5210")
+        restored.saveCardioDistance(restored.distanceAction())
+        runCurrent()
+
+        assertEquals(first.runId, restored.sessionReceipt.value?.cardio?.runId)
+        assertEquals(listOf(CardioReceiptRecord("30:00", "5,210 m", "4,980 m", PrKind.FARTHER)), restored.sessionCardioRecords.value)
+        assertNull(restoredHandle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${first.runId}"))
+        assertTrue(restored.dismissSessionReceipt())
+        runCurrent()
+        assertNull(restoredHandle.get<ArrayList<CardioReceiptRecord>>("day_cardio_receipt_records:${first.runId}"))
+        assertEquals(5400, restoredHandle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${second.runId}")?.single()?.metres)
+
+        restored.selectDay(second.dayId)
+        runCurrent()
+        restored.requestCardioDistance(second.action(0))
+        restored.openCardioDistance()
+        runCurrent()
+        assertEquals(second.action(0), restored.distanceAction())
+        restored.changeCardioDistance("5500")
+        restored.saveCardioDistance(restored.distanceAction())
+        runCurrent()
+
+        assertEquals(second.runId, restored.sessionReceipt.value?.cardio?.runId)
+        assertEquals(listOf(CardioReceiptRecord("30:00", "5,500 m", "5,400 m", PrKind.FARTHER)), restored.sessionCardioRecords.value)
+        assertTrue(restored.dismissSessionReceipt())
+        runCurrent()
+        assertFalse(restoredHandle.keys().any {
+            it.startsWith("day_cardio_standing_bests:") || it.startsWith("day_cardio_receipt_records:")
+        })
+    }
+
+    @Test
+    fun failedSaveRetainsPreLogBaselineForRetryAfterSavedStateRestore() = test {
+        val spec = distance()
+        prepareAuthoredCardioDay(spec)
+        seedCardioBest(spec, 102)
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
+        vm.startCardio()
+        runCurrent()
+        tick(98_000)
+        vm.reachCardioTarget(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        val failed = requireNotNull(vm.uiState.value.cardio?.run)
+        assertTrue(failed.saveFailed)
+        assertEquals(102, handle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${failed.runId}")?.single()?.elapsedSeconds)
+        assertNull(vm.sessionReceipt.value)
+
+        vm.setCardioScreenLive(false)
+        vm.viewModelScope.cancel()
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
+        seedCardioBest(spec, 90)
+        val restored = readyVm(parcelHandle(handle))
+        restored.retryCardioSave()
+        restored.retryCardioSave()
+        runCurrent()
+
+        assertEquals(listOf(CardioReceiptRecord("400 m", "1:38", "1:42", PrKind.FASTER)),
+            restored.sessionCardioRecords.value)
+        assertEquals(3, repo.history.cardioSessionsFlow.first().size)
+        assertEquals(1, publishedCardio.size)
+    }
+
+    @Test
+    fun committedRunWithoutSavedSessionIdOrBaselineDoesNotCompeteWithItselfAfterRestore() = test {
+        val spec = distance()
+        prepareAuthoredCardioDay(spec)
+        seedCardioBest(spec, 102)
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        first.startCardio()
+        runCurrent()
+        val started = requireNotNull(first.uiState.value.cardio?.run)
+        first.setCardioScreenLive(false)
+        first.viewModelScope.cancel()
+        clock.advance(98_000)
+        val completed = started.reachTarget(clock)
+        assertTrue(completed.complete)
+        assertNull(completed.sessionId)
+        handle["day_cardio_run"] = completed
+        val summary = completed.summary()
+        val committedId = repo.logCardioSession(CardioSessionEntity(
+            dayId = completed.dayId, mode = summary.mode.name, hard = summary.hard,
+            label = summary.label, startedAt = requireNotNull(completed.startedAt),
+            completedAt = requireNotNull(completed.completedAt), seconds = summary.seconds,
+            stepsCompleted = summary.stepsCompleted, planId = completed.planId,
+            planName = completed.planName, activity = completed.block.activity.name,
+        ), completed.resultSets, finishDay = true)
+        assertFalse(handle.keys().any { it.startsWith("day_cardio_standing_bests:") })
+        assertEquals(98, repo.history.cardioBestsFor(CardioActivity.TRACK_RUN).values.single().elapsedSeconds)
+
+        val restoredHandle = parcelHandle(handle)
+        val restored = readyVm(restoredHandle)
+
+        assertEquals(committedId, restored.sessionReceipt.value?.sessionId)
+        assertEquals(listOf(CardioReceiptRecord("400 m", "1:38", "1:42", PrKind.FASTER)),
+            restored.sessionCardioRecords.value)
+        assertEquals(2, repo.history.cardioSessionsFlow.first().size)
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
+        assertFalse(restoredHandle.keys().any { it.startsWith("day_cardio_standing_bests:") })
+        assertTrue(restored.dismissSessionReceipt())
+        runCurrent()
+        assertFalse(restoredHandle.keys().any { it.startsWith("day_cardio_receipt_records:") })
     }
 
     private fun TestScope.startLegacyWorkSet(vm: DayViewModel): CardioRun {

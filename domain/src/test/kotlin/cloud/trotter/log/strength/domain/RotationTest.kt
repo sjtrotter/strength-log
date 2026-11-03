@@ -13,6 +13,28 @@ import kotlin.test.assertNull
 import kotlin.test.Test
 
 class RotationTest {
+    private val program = Program(listOf("A", "B", "C").map { ProgramDay(it, "Day $it", "", emptyList()) })
+
+    @Test fun finishingSuggestedDayAdvancesToItsSuccessor() {
+        assertEquals("C", Rotation.upNextAfter(program, "B", "B"))
+    }
+
+    @Test fun finishingOutOfOrderKeepsSuggestedDay() {
+        assertEquals("B", Rotation.upNextAfter(program, "B", "C"))
+    }
+
+    @Test fun finishingWithStaleSuggestionAdvancesFromFinishedDay() {
+        assertEquals("B", Rotation.upNextAfter(program, "removed", "A"))
+    }
+
+    @Test fun finishingWithNoSuggestionAdvancesFromFinishedDay() {
+        assertEquals("B", Rotation.upNextAfter(program, null, "A"))
+    }
+
+    @Test fun finishingLastSuggestedDayWrapsToFirst() {
+        assertEquals("A", Rotation.upNextAfter(program, "C", "C"))
+    }
+
     @Test fun authoredPlansKeepTheExistingEveryDayRotation() {
         val program = Program(listOf("A", "B", "C").map { ProgramDay(it, "Day $it", "", emptyList()) })
         program.days.forEachIndexed { index, day ->

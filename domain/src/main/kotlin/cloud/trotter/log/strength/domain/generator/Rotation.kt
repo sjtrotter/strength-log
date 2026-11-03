@@ -8,6 +8,13 @@ import cloud.trotter.log.strength.domain.model.Program
  */
 object Rotation {
 
+    fun upNextAfter(program: Program, suggestedDayId: String?, finishedDayId: String): String? =
+        if (suggestedDayId != finishedDayId && program.days.any { it.id == suggestedDayId }) {
+            suggestedDayId
+        } else {
+            nextFor(program, finishedDayId)
+        }
+
     fun nextFor(program: Program, currentId: String): String? {
         val days = program.strengthDays.ifEmpty { program.days }
         val index = days.indexOfFirst { it.id == currentId }

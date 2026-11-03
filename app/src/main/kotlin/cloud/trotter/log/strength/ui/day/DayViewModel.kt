@@ -565,8 +565,7 @@ class DayViewModel @Inject constructor(
         val program = plans.programFor(plan.id).first()
         val day = program.days.firstOrNull { it.id == dayId } ?: return null
         val block = day.cardioBlock ?: return null
-        val nextId = Rotation.nextFor(program, dayId)
-            ?: plan.suggestedDayId
+        val nextId = Rotation.upNextAfter(program, plan.suggestedDayId, dayId)
         val next = program.days.firstOrNull { it.id == nextId }
         if (currentDay() != dayId || dayState.value.planId != plan.id) return null
         val json = CardioBlockJson.encode(block)
@@ -1728,7 +1727,7 @@ class DayViewModel @Inject constructor(
             dayTitle = day.title,
             emphasisLine = day.emphasisLine,
             unit = ctx.unit,
-            nextDayId = Rotation.nextFor(program, dayId),
+            nextDayId = Rotation.upNextAfter(program, ctx.suggested, dayId),
             exercises = performedDay.slots.map { slot ->
                 buildCard(slot, ctx.unit, history).copy(
                     weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),

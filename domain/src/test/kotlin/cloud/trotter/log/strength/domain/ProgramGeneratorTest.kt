@@ -132,7 +132,7 @@ class ProgramGeneratorTest {
                     WizardAnswers(daysPerWeek = days, split = split),
                 )
                 for (day in program.days) {
-                    for (pe in day.exercises.filterNot { it.isMain }) {
+                    for (pe in day.exercises.filterNot { it.structure.hasTopSet }) {
                         for (id in listOfNotNull(pe.exerciseId, pe.superset?.exerciseId)) {
                             assertTrue(
                                 ExerciseLibrary.get(id).goal !is GoalSource.Std,
@@ -171,8 +171,8 @@ class ProgramGeneratorTest {
     fun `every full-body day has exactly one main anchor`() {
         val program = ProgramGenerator.generate(WizardAnswers())
         for (day in program.days) {
-            assertEquals(1, day.exercises.count { it.isMain }, "one main on day ${day.id}")
-            assertTrue(day.exercises.first().isMain, "main leads day ${day.id}")
+            assertEquals(1, day.exercises.count { it.structure.hasTopSet }, "one main on day ${day.id}")
+            assertTrue(day.exercises.first().structure.hasTopSet, "main leads day ${day.id}")
         }
     }
 
@@ -208,7 +208,7 @@ class ProgramGeneratorTest {
     // --- anchor schemes (spec §6.1 step 4) -----------------------------------
 
     private fun mainIds(program: Program) =
-        program.days.mapNotNull { day -> day.exercises.firstOrNull { it.isMain }?.exerciseId }
+        program.days.mapNotNull { day -> day.exercises.firstOrNull { it.structure.hasTopSet }?.exerciseId }
 
     @Test
     fun `anchor schemes map to the right main lifts`() {
@@ -328,26 +328,6 @@ class ProgramGeneratorTest {
         )
         // With machines gone it falls down subRank to the bodyweight ball curl.
         assertEquals("ball_curl", ids(noMachine.days[1])[2])
-    }
-
-    // --- warm-up hint (spec §12) ---------------------------------------------
-
-    @Test
-    fun `exactly one warm-up hint per generated day`() {
-        val programs = listOf(
-            ProgramGenerator.generate(WizardAnswers()),
-            ProgramGenerator.generate(
-                WizardAnswers(daysPerWeek = 5, split = SplitTemplate.PPLUL),
-            ),
-            ProgramGenerator.generate(
-                WizardAnswers(daysPerWeek = 6, split = SplitTemplate.PPL),
-            ),
-        )
-        for (program in programs) {
-            for (day in program.days) {
-                assertEquals(1, day.exercises.count { it.hasWarmupHint }, "one warm-up hint on day ${day.id}")
-            }
-        }
     }
 
     @Test

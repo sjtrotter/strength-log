@@ -32,6 +32,7 @@ emulator executes instrumented tests.
 
 ## 2026-11-02
 
+- `set-structures-2026-11-02.md` — per-slot set structures, authored tops, progression, and the PR sequence (#415).
 - `codebase-audit-2026-11-02.md` — the first structural audit (deep modules, seams, duplicated rules); tracking issue #418.
 - `personal-bests-2026-11-02.md` — the one personal-best rule (step 1 shipped in #402; receipt #416, cardio records #417).
 - `receipt-v4-2026-11-02/` — receipt design rounds v3 and v4, both seats; on hold for set structures (#415).

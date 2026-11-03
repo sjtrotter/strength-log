@@ -27,6 +27,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import java.io.File
@@ -130,7 +131,7 @@ class SetEditApplierTest {
     @Test
     fun `eager watch swap reseeds from the slot prescription`() = runTest {
         val prescription = Prescription(PrescribedTarget.LoadReps(37.5, 8))
-        val exercise = ProgramExercise("bb_back_squat", isMain = true, targetSets = 2, prescription = prescription)
+        val exercise = ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription)
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise)))))
         val id = squatId()
         repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(LoggedSet(50.0, 10, SetKind.WORK, done = false)))
@@ -153,7 +154,7 @@ class SetEditApplierTest {
                         title = "Test",
                         emphasisLine = "",
                         exercises = listOf(
-                            ProgramExercise("bb_back_squat", isMain = true, targetSets = 6),
+                            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6),
                             ProgramExercise("ez_curl", superset = SupersetPartner("rope_pushdown")),
                         ),
                     ),

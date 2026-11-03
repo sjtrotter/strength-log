@@ -39,7 +39,7 @@ object SetEditor {
     }
 
     /**
-     * Edit one row's weight. Editing a main lift's TOP row re-derives every
+     * Edit one row's weight. Editing a TOP row re-derives every
      * RAMP row (from [StrengthStandards.RAMP_PCTS], in order) and the BACKOFF
      * row (× [StrengthStandards.BACKOFF]) off the new top weight, rounded to 5.
      * Reps, WORK/EXTRA rows, and every non-TOP edit are left untouched.

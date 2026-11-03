@@ -27,6 +27,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
@@ -54,8 +55,8 @@ class WatchSnapshotBuilderTest {
 
     private val program = Program(
         listOf(
-            ProgramDay("A", "Day A — Squat", "quads", listOf(ProgramExercise("bb_back_squat", isMain = true))),
-            ProgramDay("B", "Day B — Bench", "chest", listOf(ProgramExercise("bb_bench", isMain = true))),
+            ProgramDay("A", "Day A — Squat", "quads", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF))),
+            ProgramDay("B", "Day B — Bench", "chest", listOf(ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF))),
         ),
     )
 
@@ -237,7 +238,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `an unseeded day previews the domain-seeded template with every set undone`() {
-        val exercise = ProgramExercise("bb_back_squat", isMain = true)
+        val exercise = ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)
         val slots = listOf(ProgramSlot(10L, 0, exercise))
         val expected = SetSeeder.seed(
             exercise,
@@ -276,7 +277,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `a partially logged day keeps its real rows unchanged`() {
-        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val realSets = listOf(
             LoggedSet(145.0, 8, SetKind.EXTRA, done = true),
             LoggedSet(155.0, 6, SetKind.WORK, done = false),
@@ -295,7 +296,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `projects the suggested day with canonical weights, goal and accent index`() {
-        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val logs = listOf(
             loggedSlot(10L, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP, done = true))),
         )
@@ -334,7 +335,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `weighted goalLabel equals the number the watch already shows today`() {
-        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val ex = WatchSnapshotBuilder.build(
             program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
@@ -379,7 +380,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `a weighted exercise projects tracking=weighted and carries each set's seconds`() {
-        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val ex = WatchSnapshotBuilder.build(
             program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
@@ -400,7 +401,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `uses day B's accent index when it is the suggested day`() {
-        val slots = listOf(ProgramSlot(20L, 0, ProgramExercise("bb_bench", isMain = true)))
+        val slots = listOf(ProgramSlot(20L, 0, ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val snapshot = WatchSnapshotBuilder.build(
             program, "B", slots,
             logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
@@ -413,7 +414,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `stamps every day of the program, in order, with the names the watch says`() {
-        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val snapshot = WatchSnapshotBuilder.build(
             program, "A", slots,
             logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
@@ -428,7 +429,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `the cycle is the program, not the suggested day — it doesn't move with it`() {
-        val slots = listOf(ProgramSlot(20L, 0, ProgramExercise("bb_bench", isMain = true)))
+        val slots = listOf(ProgramSlot(20L, 0, ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val fromB = WatchSnapshotBuilder.build(
             program, "B", slots,
             logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
@@ -459,7 +460,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `an entry with a colloquial name sends it, and the phone keeps the full one`() {
-        val pe = ProgramExercise("conv_dl", isMain = true)
+        val pe = ProgramExercise("conv_dl", structure = SetStructure.RAMP_TOP_BACKOFF)
         val slots = listOf(ProgramSlot(40L, 0, pe))
         val program = Program(listOf(ProgramDay("A", "Pull", "", listOf(pe))))
 
@@ -474,8 +475,8 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `an entry without one keeps its full name, custom exercises included`() {
-        val pe = ProgramExercise("hack_squat", isMain = true)
-        val custom = ProgramExercise("custom_pullup", isMain = true)
+        val pe = ProgramExercise("hack_squat", structure = SetStructure.RAMP_TOP_BACKOFF)
+        val custom = ProgramExercise("custom_pullup", structure = SetStructure.RAMP_TOP_BACKOFF)
         val slots = listOf(ProgramSlot(41L, 0, pe), ProgramSlot(42L, 1, custom))
         val program = Program(listOf(ProgramDay("A", "Legs", "", listOf(pe, custom))))
 
@@ -519,7 +520,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `ssTracking defaults to weighted when there is no superset partner`() {
-        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val ex = WatchSnapshotBuilder.build(
             program, "A", slots, logs = emptyList(), cfg = cfg, catalog = catalog, unit = WeightUnit.LB, revision = 1L,
         )!!.day.exercises.single()
@@ -528,7 +529,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `stamps each main set's rest from RestPolicy when the master toggle is on`() {
-        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val logs = listOf(
             loggedSlot(10L, Slot.MAIN, listOf(
                 LoggedSet(130.0, 5, SetKind.RAMP),
@@ -547,7 +548,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `a per-category override reaches the stamped rest`() {
-        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val logs = listOf(loggedSlot(10L, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP))))
         val sets = WatchSnapshotBuilder.build(
             program, "A", slots, logs, cfg, catalog, WeightUnit.LB, revision = 1L,
@@ -558,7 +559,7 @@ class WatchSnapshotBuilderTest {
 
     @Test
     fun `the master toggle off zeroes every stamped rest`() {
-        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", isMain = true)))
+        val slots = listOf(ProgramSlot(10L, 0, ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)))
         val logs = listOf(
             loggedSlot(10L, Slot.MAIN, listOf(LoggedSet(130.0, 5, SetKind.RAMP), LoggedSet(235.0, 5, SetKind.TOP))),
         )

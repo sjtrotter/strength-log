@@ -21,6 +21,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.sync.SyncCodec
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
@@ -108,7 +109,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `pausing all plans publishes an empty snapshot with live acknowledgments`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
         val plan = repo.selectedPlanIdFlow.first()!!
@@ -172,7 +173,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `a throwing set transaction publishes no stamp and a committed retry publishes its stamp`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
         val preview = source.snapshots.publishableSnapshots().first()
@@ -202,7 +203,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `a throwing swap transaction publishes no stamp and a committed retry publishes its stamp`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
         val preview = source.snapshots.publishableSnapshots().first()
@@ -237,7 +238,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `rejected and invalid edits and swaps publish their processed stamps`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
         val preview = source.snapshots.publishableSnapshots().first()
@@ -307,7 +308,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `recorded cardio stamps republish even when a late stamp leaves the max unchanged`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
         val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
@@ -375,13 +376,13 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `switching plans changes the live widget and watch day`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val firstPlan = repo.selectedPlanIdFlow.first()!!
         val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
         repo.selectPlan(secondPlan)
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "B", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)),
+            "B", "Bench", "", listOf(ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         repo.selectPlan(firstPlan)
         val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
@@ -404,7 +405,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `same day ids do not share cardio completion across plans`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
             cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Zone 2", "20 minutes", hard = false), true, CardioActivity.ROAD_RUN),
         ))))
         val firstPlan = repo.selectedPlanIdFlow.first()!!
@@ -431,7 +432,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `live snapshots carry the selected plan and name across same-day plan switches`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val planP = repo.selectedPlanIdFlow.first()!!
         repo.renamePlan(planP, "Strength")
@@ -462,7 +463,7 @@ class TodaySnapshotSourceRestTest {
     /** [F] */
     @Test fun `an open run supplies the watch and widget even when another plan is selected`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val plan = repo.selectedPlanIdFlow.first()!!
         repo.renamePlan(plan, "Strength")
@@ -484,7 +485,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `a rest-settings edit changes the projected snapshot content`() = runTest(dispatcher) {
         repo.replaceProgram(
-            Program(listOf(ProgramDay("A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true))))),
+            Program(listOf(ProgramDay("A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF))))),
         )
         db.planDao().updateSuggestedDay(repo.selectedPlanIdFlow.first()!!, "A")
         val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
@@ -511,7 +512,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `a preview publishes the next run and an open run publishes its start`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true)),
+            "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
         val planId = repo.selectedPlanIdFlow.first()!!
         val runId = db.programDao().day(planId, "A")!!.nextRunId
@@ -532,7 +533,7 @@ class TodaySnapshotSourceRestTest {
     @Test
     fun `a mid-run bench swap publishes two retired rounds for watch and widget progress`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true, targetSets = 3)),
+            "A", "Bench", "", listOf(ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 3)),
         ))))
         val planId = repo.selectedPlanIdFlow.first()!!
         val slot = repo.slotsFor(planId, "A").first().single().programExerciseId

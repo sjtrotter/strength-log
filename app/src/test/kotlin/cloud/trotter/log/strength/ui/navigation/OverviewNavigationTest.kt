@@ -41,6 +41,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.time.CivilTime
 import cloud.trotter.log.strength.time.CivilTimeSource
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -106,7 +107,7 @@ class OverviewNavigationTest {
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
         runBlocking {
             repo.replaceProgram(Program(listOf(
-                ProgramDay("A", "Squat", "", listOf(ProgramExercise("bb_back_squat", isMain = true))),
+                ProgramDay("A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF))),
                 ProgramDay("B", "Arms", "", listOf(ProgramExercise("ez_curl"))),
             )))
             preferred = repo.selectedPlanIdFlow.first()!!

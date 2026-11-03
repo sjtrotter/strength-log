@@ -516,7 +516,7 @@ private fun equipmentLabel(equipment: Equipment): String = when (equipment) {
 private fun RotationStep(state: WizardUiState) {
     state.previewProgram?.days.orEmpty().forEachIndexed { index, day ->
         val accent = dayAccent(index)
-        val main = day.exercises.firstOrNull { it.isMain } ?: day.exercises.firstOrNull()
+        val main = day.exercises.firstOrNull { it.structure.hasTopSet } ?: day.exercises.firstOrNull()
         AppCard(borderColor = accent) {
             Text(
                 if (day.kind == cloud.trotter.log.strength.domain.model.ProgramDayKind.CARDIO) "${day.id} · CARDIO"

@@ -32,7 +32,7 @@ class TimedRepSetScreenTest {
     private fun card(): ExerciseCardState {
         val rows = List(2) { SetRowState(it, "Set ${it + 1}", false, 0.0, 0, false) }
         return workoutSetTimedRepFixture().exercises.single().copy(
-            title = "Push-ups", exerciseId = "pushup", isMain = false,
+            title = "Push-ups", exerciseId = "pushup",
             headerTarget = HeaderTarget.Prescribed("2:00", repAim = 40),
             tracking = TrackingType.REPS, timedRepDurationSeconds = 120, timedRepAim = 40,
             rows = rows, focusIndex = 0,

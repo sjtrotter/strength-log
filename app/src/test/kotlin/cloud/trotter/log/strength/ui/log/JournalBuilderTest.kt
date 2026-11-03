@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
 import java.time.LocalTime
@@ -75,7 +76,7 @@ class JournalBuilderTest {
     }
 
     @Test
-    fun mainLifts_excludes_prescribed_mains_from_trajectories() {
+    fun mainLifts_includes_only_weighted_prescriptions_under_ramped_structures() {
         val targets = listOf(
             PrescribedTarget.LoadReps(37.5, 8), PrescribedTarget.Reps(12),
             PrescribedTarget.Hold(45, 25.0), PrescribedTarget.RepsInTime(120, 50),
@@ -83,16 +84,20 @@ class JournalBuilderTest {
         targets.forEach { target ->
             val program = Program(listOf(ProgramDay(
                 "A", "Mixed", "", listOf(
-                    ProgramExercise("bb_back_squat", isMain = true, prescription = Prescription(target)),
-                    ProgramExercise("bb_bench", isMain = true),
+                    ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, prescription = Prescription(target)),
+                    ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF),
                 ),
             )))
             val history = listOf(top("bb_back_squat", today, 235.0), top("bb_bench", today, 195.0))
 
             val mains = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, LifterConfig())
 
-            assertEquals(listOf("bb_bench"), mains.map { it.exerciseId })
-            assertEquals(listOf("bb_bench"), JournalBuilder.trajectories(mains, history, WeightUnit.LB, zone).map { it.exerciseId })
+            val expectedIds = if (target is PrescribedTarget.LoadReps) listOf("bb_back_squat", "bb_bench") else listOf("bb_bench")
+            assertEquals(expectedIds, mains.map { it.exerciseId })
+            assertEquals(expectedIds, JournalBuilder.trajectories(mains, history, WeightUnit.LB, zone).map { it.exerciseId })
+            if (target is PrescribedTarget.LoadReps) {
+                assertEquals(target.lb, mains.first().goalLb)
+            }
         }
     }
 

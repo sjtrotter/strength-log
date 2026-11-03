@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetStructure
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -67,7 +68,7 @@ class PlanScreenBuilderTest {
                     title = "Day A",
                     emphasisLine = "",
                     exercises = listOf(
-                        ProgramExercise("bb_back_squat", isMain = true, targetSets = 3),
+                        ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 3),
                         ProgramExercise("ez_curl", targetSets = 4),
                     ),
                 ),

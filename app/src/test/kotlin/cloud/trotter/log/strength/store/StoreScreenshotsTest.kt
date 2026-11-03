@@ -25,6 +25,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -95,8 +96,8 @@ class StoreScreenshotsTest {
     private val catalog = ExerciseCatalog.CODE_ONLY
     private val config = LifterConfig(bodyweightLb = 235, age = 40)
     private val exercises = listOf(
-        ProgramExercise("bb_back_squat", isMain = true),
-        ProgramExercise("bb_bench", isMain = true),
+        ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF),
+        ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF),
         ProgramExercise("bb_row"),
         ProgramExercise("plank"),
     )
@@ -449,11 +450,9 @@ class StoreScreenshotsTest {
             position = position,
             exerciseId = entry.id,
             title = entry.name,
-            isMain = exercise.isMain,
             isSuperset = partnerEntry != null,
             partnerTitle = partnerEntry?.name,
             partnerTracking = partnerEntry?.tracking,
-            hasWarmupHint = false,
             headerTarget = DayScreenBuilder.headerTarget(exercise, target, WeightUnit.LB),
             perHand = entry.perHand,
             tracking = entry.tracking,

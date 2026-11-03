@@ -278,9 +278,7 @@ data class ExerciseCardState(
     val position: Int,
     val title: String,
     val note: String = "",
-    val isMain: Boolean,
     val isSuperset: Boolean,
-    val hasWarmupHint: Boolean,
     /** Generated GOAL or authored target, already formatted in the user's unit. */
     val headerTarget: HeaderTarget,
     val perHand: Boolean,

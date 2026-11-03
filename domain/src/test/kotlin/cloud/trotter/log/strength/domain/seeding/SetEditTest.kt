@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -57,7 +58,7 @@ class SetEditTest {
     }
 
     @Test fun `row edit delegates top weight cascade and keeps completed ramps`() {
-        val sets = SetSeeder.seed(ProgramExercise("bb_back_squat", isMain = true), 235.0, LifterConfig())
+        val sets = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF), 235.0, LifterConfig())
             .mapIndexed { index, set -> set.copy(done = index < 2) }
         val after = SetEditor.edit(sets, 4, SetEdit(weightLb = 245.0, reps = 2))
         assertEquals(listOf(130.0, 165.0, 195.0, 220.0, 245.0, 185.0), after.map { it.weightLb })

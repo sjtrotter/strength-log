@@ -1753,7 +1753,7 @@ class DayViewModel @Inject constructor(
     fun addDaySlot(exerciseId: String) {
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
-        mutate { repo.addExercise(day, ProgramExercise(exerciseId = exerciseId, repSchemeLabel = "8–12"), targetPlanId = planId) }
+        mutate { repo.addExercise(day, ProgramExercise(exerciseId = exerciseId), targetPlanId = planId) }
     }
 
     /** Removes a slot; the repository enforces its owning day's floor atomically. */
@@ -2228,9 +2228,7 @@ class DayViewModel @Inject constructor(
             partnerExerciseId = partner?.exerciseId,
             equipment = entry?.equipment.orEmpty(),
             note = pe.note,
-            isMain = pe.isMain,
             isSuperset = pe.superset != null,
-            hasWarmupHint = pe.hasWarmupHint,
             headerTarget = DayScreenBuilder.headerTarget(pe.copy(prescription = performed.prescription), goalTarget, unit),
             perHand = entry?.perHand == true,
             tracking = tracking,

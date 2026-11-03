@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import java.io.File
 import java.time.Clock
 import java.time.Instant
@@ -87,8 +88,8 @@ class TrackerRepositoryFinishArchiveTest {
                         title = "Test",
                         emphasisLine = "",
                         exercises = listOf(
-                            ProgramExercise("bb_back_squat", isMain = true, targetSets = 2),
-                            ProgramExercise("bb_bench", isMain = true, targetSets = 2),
+                            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 2),
+                            ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 2),
                         ),
                     ),
                 ),

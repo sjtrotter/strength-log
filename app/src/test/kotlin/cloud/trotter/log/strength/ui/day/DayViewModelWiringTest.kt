@@ -41,6 +41,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.Routes
@@ -471,7 +472,7 @@ class DayViewModelWiringTest {
             PrescribedTarget.RepsInTime(120),
             PrescribedTarget.RepsInTime(120, 40),
         )
-        val exercises = listOf(ProgramExercise("bb_back_squat", isMain = true)) + targets.map {
+        val exercises = listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)) + targets.map {
             ProgramExercise(
                 "weighted_plank", targetSets = 3,
                 prescription = Prescription(it, eachSide = true, resistance = "Red band"),
@@ -982,7 +983,7 @@ class DayViewModelWiringTest {
                         title = "Test",
                         emphasisLine = "",
                         exercises = listOf(
-                            ProgramExercise("bb_back_squat", isMain = true, targetSets = 6),
+                            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 6),
                             ProgramExercise("ez_curl", targetSets = 2, superset = SupersetPartner("rope_pushdown")),
                             ProgramExercise("ghost_unknown"),
                             ProgramExercise("db_lateral", targetSets = 2, superset = SupersetPartner("nope_unknown")),
@@ -1273,7 +1274,7 @@ class DayViewModelWiringTest {
     @Test
     fun partnerFirstStartsRestOnlyAfterMainAndUsesMainSetKind() = runVmTest {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Lower", "", listOf(
-            ProgramExercise("bb_back_squat", isMain = true, superset = SupersetPartner("rope_pushdown")),
+            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, superset = SupersetPartner("rope_pushdown")),
         )))))
         settings.setPhoneRestTimerEnabled(true)
         val armed = mutableListOf<cloud.trotter.log.strength.domain.standards.PhoneRest>()
@@ -2417,7 +2418,7 @@ class DayViewModelWiringTest {
 
     private suspend fun insertBenchProgram() {
         repo.replaceProgram(Program(listOf(ProgramDay(
-            "A", "Bench", "", listOf(ProgramExercise("bb_bench", isMain = true)),
+            "A", "Bench", "", listOf(ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
     }
 

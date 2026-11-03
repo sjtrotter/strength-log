@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.csv.CsvHistoryService
 import java.io.ByteArrayInputStream
@@ -42,7 +43,7 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
             id = "A",
             title = "Day A",
             emphasisLine = "Lower",
-            exercises = listOf(ProgramExercise("bb_back_squat", isMain = true, targetSets = 3)),
+            exercises = listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 3)),
         )
         repository.replaceProgram(Program(listOf(day)))
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id

@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
@@ -213,7 +214,7 @@ class TrackerRepositoryRunTest {
         db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, clock, { ids.removeFirst() },
     )
 
-    private fun squat() = SetSeeder.seed(ProgramExercise("bb_back_squat", isMain = true), 235.0, LifterConfig())
+    private fun squat() = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF), 235.0, LifterConfig())
     private fun work() = List(3) { LoggedSet(50.0, 10, SetKind.WORK) }
     private fun tick(id: Long, index: Int = 0) = TrackEdit(id, Slot.MAIN) { rows ->
         rows.mapIndexed { i, row -> if (i == index) row.copy(done = true) else row }
@@ -281,7 +282,7 @@ class TrackerRepositoryRunTest {
 
     private fun generated() = Program(listOf(
         ProgramDay("A", "Day A", "", listOf(
-            ProgramExercise("bb_back_squat", isMain = true, superset = SupersetPartner("ez_curl")),
+            ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF, superset = SupersetPartner("ez_curl")),
             ProgramExercise("bb_bench", prescription = Prescription(PrescribedTarget.LoadReps(50.0, 10)), keepToPlan = true),
         )),
         ProgramDay("B", "Day B", "", listOf(ProgramExercise("bb_bench"))),

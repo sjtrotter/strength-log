@@ -38,9 +38,8 @@ object RestPolicy {
 
     /**
      * [SetKind] + [TrackingType] fully determine the bucket: RAMP/TOP/BACKOFF are
-     * seeded only on main lifts, WORK only on accessories and superset tracks,
-     * EXTRA is user-appended anywhere. No `isMain` flag is needed — it is
-     * derivable, so passing it would be a second source of truth.
+     * seeded only by ramped structures, WORK by straight structures and superset tracks,
+     * EXTRA is user-appended anywhere. The slot's structure is not needed here.
      */
     fun categoryFor(kind: SetKind, tracking: TrackingType): RestCategory = when (kind) {
         SetKind.RAMP -> RestCategory.RAMP

@@ -24,8 +24,8 @@ android {
     }
 
     sourceSets {
-        getByName("test").java.srcDir("src/testFixtures/kotlin")
-        getByName("androidTest").java.srcDir("src/testFixtures/kotlin")
+        getByName("test").kotlin.srcDir("src/testFixtures/kotlin")
+        getByName("androidTest").kotlin.srcDir("src/testFixtures/kotlin")
     }
 }
 

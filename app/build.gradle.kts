@@ -67,7 +67,7 @@ android {
         compose = true
     }
 
-    sourceSets.getByName("test").java.srcDir("../data/src/testFixtures/kotlin")
+    sourceSets.getByName("test").kotlin.srcDir("../data/src/testFixtures/kotlin")
 
     testOptions {
         val recordStoreShots = providers.gradleProperty("storeShots").orNull == "true"

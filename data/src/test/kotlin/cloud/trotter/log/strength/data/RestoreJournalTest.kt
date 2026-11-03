@@ -149,7 +149,7 @@ class RestoreJournalTest {
         assertEquals(28, settings.globalLifterFlow.first().age)
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         assertTrue("the wizard flag is what keeps setup from reopening", settings.wizardCompleteFlow.first())
-        assertEquals("R", repo.suggestedDayFlow.first())
+        assertEquals("R", repo.plans.suggestedDayFlow.first())
         assertEquals(PlanEntity.LEGACY_ID, settings.selectedPlanIdFlow.first())
         assertEquals(
             RestSettings(enabled = false, overrides = mapOf(RestCategory.TOP to 240)),
@@ -166,7 +166,7 @@ class RestoreJournalTest {
     }
 
     private suspend fun restoredProgramIsInRoom() =
-        repo.programFlow.first().days.map { it.id } == listOf("R")
+        repo.plans.programFlow.first().days.map { it.id } == listOf("R")
 
     // --- the whole path, uninterrupted ----------------------------------------
 
@@ -178,7 +178,7 @@ class RestoreJournalTest {
     @Test fun importMarksMembershipFixupDoneAndPreservesAllPaused() = runTest {
         repo.importSnapshot(pausedSnapshot(), journal)
         assertTrue(settings.onTodayFixupDoneFlow.first())
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         assertFalse(db.planDao().plan(1)!!.onToday)
     }
 
@@ -188,7 +188,7 @@ class RestoreJournalTest {
         commitPreviousBuildRoomHalf(restored, "marked")
         assertTrue(repo.reconcilePendingRestore(journal))
         assertTrue(settings.onTodayFixupDoneFlow.first())
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         assertFalse(db.planDao().plan(1)!!.onToday)
     }
 
@@ -200,7 +200,7 @@ class RestoreJournalTest {
         assertTrue(repo.reconcilePendingRestore(journal))
         assertFalse(settings.onTodayFixupDoneFlow.first())
         assertFalse(db.planDao().plan(1)!!.onToday)
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         assertTrue(settings.onTodayFixupDoneFlow.first())
         assertTrue(db.planDao().plan(1)!!.onToday)
     }
@@ -350,7 +350,7 @@ class RestoreJournalTest {
         commitPreviousBuildRoomHalf(restored, nonce)
         assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
 
-        repo.setWizardAnswers(WizardAnswers(cardio = CardioPrefs(CardioMode.NONE, CardioPlacement.NONE, false)))
+        repo.plans.setWizardAnswers(WizardAnswers(cardio = CardioPrefs(CardioMode.NONE, CardioPlacement.NONE, false)))
 
         assertNotNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
         assertFalse(settings.planSettingsFixupDoneFlow.first())
@@ -361,7 +361,7 @@ class RestoreJournalTest {
         val plan = db.planDao().plan(PlanEntity.LEGACY_ID)!!
         assertEquals(restored.answers, PlanRecipeJson.decode(plan.recipeJson!!, settings.globalLifterFlow.first()))
         assertEquals("B", plan.suggestedDayId)
-        assertEquals(restored.answers, repo.wizardAnswersFlow.first())
+        assertEquals(restored.answers, repo.plans.wizardAnswersFlow.first())
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
         assertNull(db.restoreMarkerDao().nonce())
@@ -391,8 +391,8 @@ class RestoreJournalTest {
         assertEquals("B", plan.suggestedDayId)
         assertTrue(db.programDao().daysForPlan(plan.id).isEmpty())
         assertEquals(plan.id, settings.selectedPlanIdFlow.first())
-        assertEquals(plan.id, repo.selectedPlanIdFlow.first())
-        assertEquals(restored.answers, repo.wizardAnswersFlow.first())
+        assertEquals(plan.id, repo.plans.selectedPlanIdFlow.first())
+        assertEquals(restored.answers, repo.plans.wizardAnswersFlow.first())
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
         assertNull(db.restoreMarkerDao().nonce())
@@ -437,7 +437,7 @@ class RestoreJournalTest {
         stagePreviousBuild(restored, nonce)
         commitPreviousBuildRoomHalf(restored, nonce)
 
-        repo.configFlow.first()
+        repo.plans.configFlow.first()
 
         assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
         assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.suggestedDayId)
@@ -450,7 +450,7 @@ class RestoreJournalTest {
         val plan = db.planDao().plan(PlanEntity.LEGACY_ID)!!
         assertEquals(restored.answers, PlanRecipeJson.decode(plan.recipeJson!!, settings.globalLifterFlow.first()))
         assertEquals("B", plan.suggestedDayId)
-        assertEquals(GoalEmphasis.STRENGTH, repo.configFlow.first().emphasis)
+        assertEquals(GoalEmphasis.STRENGTH, repo.plans.configFlow.first().emphasis)
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertNull(settingsStore.data.first()[stringPreferencesKey("emphasis")])
         assertNull(settingsStore.data.first()[stringPreferencesKey("suggested_day")])
@@ -503,7 +503,7 @@ class RestoreJournalTest {
 
         assertFalse(repo.reconcilePendingRestore(journal))
         assertSettingsUntouched()
-        assertTrue(repo.programFlow.first().days.isEmpty())
+        assertTrue(repo.plans.programFlow.first().days.isEmpty())
     }
 
     @Test
@@ -543,7 +543,7 @@ class RestoreJournalTest {
             "nothing was destroyed, and the copy has to say so",
             thrown is RestoreInterruption.NotStarted,
         )
-        assertTrue("the transaction never ran", repo.programFlow.first().days.isEmpty())
+        assertTrue("the transaction never ran", repo.plans.programFlow.first().days.isEmpty())
         assertNull(db.restoreMarkerDao().nonce())
         assertSettingsUntouched()
         assertFalse("no half-written journal is left to replay", repo.reconcilePendingRestore(journal))
@@ -613,7 +613,7 @@ class RestoreJournalTest {
 
         repo.importSnapshot(second, journal)
 
-        assertEquals(listOf("S"), repo.programFlow.first().days.map { it.id })
+        assertEquals(listOf("S"), repo.plans.programFlow.first().days.map { it.id })
         assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(repo.reconcilePendingRestore(journal))

@@ -795,7 +795,7 @@ private fun WizardRoute(onFinished: () -> Unit, viewModel: WizardViewModel = hil
 /**
  * On save, returns to the caller (the picker or Setup) with the new exercise already visible there: it's in
  * [cloud.trotter.log.strength.data.catalog.ExerciseCatalog] the moment [CustomExerciseViewModel.save] returns, and
- * [cloud.trotter.log.strength.data.TrackerRepository.catalogFlow] is live, so the picker only needs to observe it.
+ * [cloud.trotter.log.strength.data.CatalogRepository.catalogFlow] is live, so the picker only needs to observe it.
  * System back before saving cancels the same way.
  */
 @Composable

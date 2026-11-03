@@ -111,19 +111,19 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         val before = source.snapshots.publishableSnapshots().first()
         val expected = WatchSnapshotBuilder.build(
-            repo.programFor(plan).first(), "A", repo.slotsFor(plan, "A").first(), emptyList(),
-            repo.wizardAnswersFor(plan).first().config, repo.catalogFlow.first(), settings.unitFlow.first(),
+            repo.plans.programFor(plan).first(), "A", repo.plans.slotsFor(plan, "A").first(), emptyList(),
+            repo.plans.wizardAnswersFor(plan).first().config, repo.catalog.catalogFlow.first(), settings.unitFlow.first(),
             revision = 0L, planId = plan, planName = before.planName, runId = before.runId,
-            restSettings = settings.restSettingsFlow.first(), equipment = repo.wizardAnswersFor(plan).first().equipment,
+            restSettings = settings.restSettingsFlow.first(), equipment = repo.plans.wizardAnswersFor(plan).first().equipment,
             processedEditStamps = emptyList(),
         )
         assertEquals(expected, before)
         val widgetBefore = todayWidgetContent(before)
-        repo.pause(plan)
+        repo.plans.pause(plan)
         syncStore.record(101)
         syncStore.record(100)
         syncStore.recordProcessedEdit(200)
@@ -136,16 +136,16 @@ class TodaySnapshotSourceRestTest {
         assertEquals(cloud.trotter.log.strength.widget.WidgetStatLine.NothingOnToday, todayWidgetContent(empty).statLine)
         syncStore.recordProcessedEdit(201)
         assertEquals(listOf(200L, 201L), source.snapshots.publishableSnapshots().first().processedEditStamps)
-        repo.useAlongside(plan)
+        repo.plans.useAlongside(plan)
         assertEquals(widgetBefore, todayWidgetContent(source.snapshots.publishableSnapshots().first()))
     }
 
     @Test
     fun `nothing on Today stays null while a restore marker is present`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Empty", "", emptyList()))))
-        repo.pause(repo.selectedPlanIdFlow.first()!!)
+        repo.plans.pause(repo.plans.selectedPlanIdFlow.first()!!)
         db.restoreMarkerDao().put(cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity(nonce = "pending"))
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         assertEquals(null, source.snapshots.first())
     }
 
@@ -160,7 +160,7 @@ class TodaySnapshotSourceRestTest {
             ), kind = "CARDIO", nextRunId = "preview-C1",
         ))
         settings.setSelectedPlanId(1)
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
 
         val snapshot = source.snapshots.publishableSnapshots().first()
 
@@ -175,14 +175,14 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val preview = source.snapshots.publishableSnapshots().first()
         val edit = SetEditDelta(
             dayId = "A", programExerciseId = preview.day.exercises.single().programExerciseId,
             slot = Slot.MAIN, setIndex = 0, done = true, editedAtMillis = 100,
             planId = preview.planId, runId = preview.runId, exerciseId = "bb_back_squat",
         )
-        val applier = SetEditApplier(repo, syncStore, syncStore)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
         db.openHelper.writableDatabase.execSQL(
             "CREATE TRIGGER reject_watch_track BEFORE INSERT ON run_track " +
                 "BEGIN SELECT RAISE(ABORT, 'watch track write failed'); END",
@@ -205,7 +205,7 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val preview = source.snapshots.publishableSnapshots().first()
         val exercise = preview.day.exercises.single()
         val alternate = exercise.alternates.first()
@@ -214,7 +214,7 @@ class TodaySnapshotSourceRestTest {
             exerciseId = alternate.exerciseId, exerciseName = alternate.name, editedAtMillis = 100,
             planId = preview.planId, runId = preview.runId,
         )
-        val applier = SetEditApplier(repo, syncStore, syncStore)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
         db.openHelper.writableDatabase.execSQL(
             "CREATE TRIGGER reject_watch_swap BEFORE INSERT ON run_track " +
                 "BEGIN SELECT RAISE(ABORT, 'watch swap write failed'); END",
@@ -240,11 +240,11 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val preview = source.snapshots.publishableSnapshots().first()
         val exercise = preview.day.exercises.single()
         val alternate = exercise.alternates.first()
-        val applier = SetEditApplier(repo, syncStore, syncStore)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
         val edit = SetEditDelta(
             dayId = "A", programExerciseId = exercise.programExerciseId,
             slot = Slot.MAIN, setIndex = 0, done = true, editedAtMillis = 100,
@@ -269,9 +269,9 @@ class TodaySnapshotSourceRestTest {
 
     @Test
     fun `processed edit stamps republish in processing order and stay bounded to 32`() = runTest(dispatcher) {
-        val planId = repo.createAuthoredPlan("Rehab", "Daily rehab")
-        repo.publishCreatedAuthoredPlan(planId)
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val planId = repo.plans.createAuthoredPlan("Rehab", "Daily rehab")
+        repo.plans.publishCreatedAuthoredPlan(planId)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
         backgroundScope.launch {
             source.snapshots.publishableSnapshots().collect { snapshots.send(it) }
@@ -294,10 +294,10 @@ class TodaySnapshotSourceRestTest {
 
     @Test
     fun `an upgraded phone publishes its max as the only processed stamp`() = runTest(dispatcher) {
-        val planId = repo.createAuthoredPlan("Running", "Track")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running", "Track")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         syncStore.markApplied(CardioDeltaApplier.MARKER_KEY, 101L)
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val snapshot = source.snapshots.publishableSnapshots().first()
         assertEquals(101L, snapshot.cardioAckStamp)
         // A lost 100 must stay queued on a new watch, which only the list rule does.
@@ -310,7 +310,7 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
         backgroundScope.launch {
             source.snapshots.publishableSnapshots().collect { snapshots.send(it) }
@@ -333,9 +333,9 @@ class TodaySnapshotSourceRestTest {
 
     @Test
     fun `an empty authored day publishes its plan and day identity without exercises`() = runTest(dispatcher) {
-        val planId = repo.createAuthoredPlan("Rehab", "Daily rehab")
-        repo.publishCreatedAuthoredPlan(planId)
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val planId = repo.plans.createAuthoredPlan("Rehab", "Daily rehab")
+        repo.plans.publishCreatedAuthoredPlan(planId)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val snapshot = source.snapshots.publishableSnapshots().first()
         val published = mutableListOf<WatchSnapshot>()
         publishSnapshotWithinSizeLimit(
@@ -357,7 +357,7 @@ class TodaySnapshotSourceRestTest {
 
     @Test
     fun `no program projects null and publishes nothing`() = runTest(dispatcher) {
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val projection = source.snapshots.first()
         assertEquals(null, projection)
         var stamps = 0
@@ -378,14 +378,14 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        val firstPlan = repo.selectedPlanIdFlow.first()!!
-        val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
-        repo.selectPlan(secondPlan)
+        val firstPlan = repo.plans.selectedPlanIdFlow.first()!!
+        val secondPlan = repo.plans.duplicatePlan(firstPlan, "Test prep")
+        repo.plans.selectPlan(secondPlan)
         repo.replaceProgram(Program(listOf(ProgramDay(
             "B", "Bench", "", listOf(ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        repo.selectPlan(firstPlan)
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        repo.plans.selectPlan(firstPlan)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val widgets = Channel<TodayWidgetContent>(Channel.UNLIMITED)
         backgroundScope.launch { source.snapshots.collect { widgets.send(todayWidgetContent(it)) } }
         suspend fun awaitDay(line: String): TodayWidgetContent {
@@ -396,9 +396,9 @@ class TodaySnapshotSourceRestTest {
         }
 
         assertEquals("Day A, Squat", awaitDay("Day A, Squat").dayLine)
-        repo.selectPlan(secondPlan)
+        repo.plans.selectPlan(secondPlan)
         assertEquals("Day B, Bench", awaitDay("Day B, Bench").dayLine)
-        repo.selectPlan(firstPlan)
+        repo.plans.selectPlan(firstPlan)
         assertEquals("Day A, Squat", awaitDay("Day A, Squat").dayLine)
     }
 
@@ -408,8 +408,8 @@ class TodaySnapshotSourceRestTest {
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
             cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Zone 2", "20 minutes", hard = false), true, CardioActivity.ROAD_RUN),
         ))))
-        val firstPlan = repo.selectedPlanIdFlow.first()!!
-        val secondPlan = repo.duplicatePlan(firstPlan, "Test prep")
+        val firstPlan = repo.plans.selectedPlanIdFlow.first()!!
+        val secondPlan = repo.plans.duplicatePlan(firstPlan, "Test prep")
         val noon = LocalDate.now(clock).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val firstSession = CardioSessionEntity(
             dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Zone 2",
@@ -420,12 +420,12 @@ class TodaySnapshotSourceRestTest {
             firstSession.copy(planId = secondPlan, completedAt = noon + 60_000, seconds = 120),
             firstSession.copy(planId = null, completedAt = noon + 120_000, seconds = 180),
         ))
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
 
         assertEquals(60, source.snapshots.first { it != null }?.cardio?.loggedSeconds)
-        repo.selectPlan(secondPlan)
+        repo.plans.selectPlan(secondPlan)
         assertEquals(120, source.snapshots.first { it != null }?.cardio?.loggedSeconds)
-        repo.selectPlan(firstPlan)
+        repo.plans.selectPlan(firstPlan)
         assertEquals(60, source.snapshots.first { it != null }?.cardio?.loggedSeconds)
     }
 
@@ -434,10 +434,10 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        val planP = repo.selectedPlanIdFlow.first()!!
-        repo.renamePlan(planP, "Strength")
-        val planQ = repo.duplicatePlan(planP, "Running")
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val planP = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.renamePlan(planP, "Strength")
+        val planQ = repo.plans.duplicatePlan(planP, "Running")
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val snapshots = Channel<WatchSnapshot>(Channel.UNLIMITED)
         backgroundScope.launch { source.snapshots.collect { if (it != null) snapshots.send(it) } }
         suspend fun awaitPlan(planId: Long): WatchSnapshot {
@@ -450,13 +450,13 @@ class TodaySnapshotSourceRestTest {
         val first = awaitPlan(planP)
         assertEquals("Strength", first.planName)
         assertEquals("A", first.day.dayId)
-        assertEquals(repo.slotsFor(planP, "A").first().single().programExerciseId, first.day.exercises.single().programExerciseId)
-        repo.selectPlan(planQ)
+        assertEquals(repo.plans.slotsFor(planP, "A").first().single().programExerciseId, first.day.exercises.single().programExerciseId)
+        repo.plans.selectPlan(planQ)
         val second = awaitPlan(planQ)
         assertEquals("Running", second.planName)
         assertEquals("A", second.day.dayId)
-        assertEquals(repo.slotsFor(planQ, "A").first().single().programExerciseId, second.day.exercises.single().programExerciseId)
-        repo.selectPlan(planP)
+        assertEquals(repo.plans.slotsFor(planQ, "A").first().single().programExerciseId, second.day.exercises.single().programExerciseId)
+        repo.plans.selectPlan(planP)
         assertEquals("Strength", awaitPlan(planP).planName)
     }
 
@@ -465,14 +465,14 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        val plan = repo.selectedPlanIdFlow.first()!!
-        repo.renamePlan(plan, "Strength")
-        val other = repo.duplicatePlan(plan, "Running")
-        val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.renamePlan(plan, "Strength")
+        val other = repo.plans.duplicatePlan(plan, "Running")
+        val slot = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
         val preview = repo.dayTracksFlow(plan, "A").first()
         repo.writeTestRows(preview.runId!!, "A", slot, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP, true)))
-        repo.selectPlan(other)
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        repo.plans.selectPlan(other)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val snapshot = source.snapshots.first { it != null }!!
         assertEquals(plan, snapshot.planId)
         assertEquals("Strength", snapshot.planName)
@@ -487,11 +487,11 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(
             Program(listOf(ProgramDay("A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF))))),
         )
-        db.planDao().updateSuggestedDay(repo.selectedPlanIdFlow.first()!!, "A")
-        val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
+        db.planDao().updateSuggestedDay(repo.plans.selectedPlanIdFlow.first()!!, "A")
+        val slotId = repo.plans.daySlotsFlow("A").first().single().programExerciseId
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
 
-        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
 
         // Default (master on, no overrides): TOP rests its 180s default.
         val before = source.snapshots.first { it != null }!!
@@ -514,14 +514,14 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF)),
         ))))
-        val planId = repo.selectedPlanIdFlow.first()!!
+        val planId = repo.plans.selectedPlanIdFlow.first()!!
         val runId = db.programDao().day(planId, "A")!!.nextRunId
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val preview = source.snapshots.publishableSnapshots().first()
         assertEquals(runId, preview.runId)
         assertEquals(null, preview.runStartedAt)
         assertEquals(null, preview.retiredRoundsDone)
-        val slot = repo.slotsFor(planId, "A").first().single().programExerciseId
+        val slot = repo.plans.slotsFor(planId, "A").first().single().programExerciseId
         repo.writeTestRows(runId, "A", slot, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP, true)))
         val open = repo.openRunFlow.first()!!
         val started = source.snapshots.publishableSnapshots().first()
@@ -535,14 +535,14 @@ class TodaySnapshotSourceRestTest {
         repo.replaceProgram(Program(listOf(ProgramDay(
             "A", "Bench", "", listOf(ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF, targetSets = 3)),
         ))))
-        val planId = repo.selectedPlanIdFlow.first()!!
-        val slot = repo.slotsFor(planId, "A").first().single().programExerciseId
+        val planId = repo.plans.selectedPlanIdFlow.first()!!
+        val slot = repo.plans.slotsFor(planId, "A").first().single().programExerciseId
         val runId = db.programDao().day(planId, "A")!!.nextRunId
         repo.writeTestRows(runId, "A", slot, Slot.MAIN, List(3) { index -> LoggedSet(135.0, 5, SetKind.WORK, index < 2) })
-        val alternate = repo.catalogFlow.first().substitutionsFor("bb_bench").first().id
+        val alternate = repo.catalog.catalogFlow.first().substitutionsFor("bb_bench").first().id
         repo.swapExerciseById("A", slot, alternate)
         repo.ensureSeeded(planId, "A")
-        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
+        val source = TodaySnapshotSource(repo, MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings, plans = repo.plans)
         val snapshot = source.snapshots.publishableSnapshots().first()
         assertEquals(2, snapshot.retiredRoundsDone)
         assertEquals(2, SyncCodec.decodeSnapshot(SyncCodec.encodeSnapshot(snapshot)).retiredRoundsDone)

@@ -135,22 +135,24 @@ class DayRouteNavigationTest {
                         CardioSetSpec(CardioRole.WORK, Measure.Time(120)),
                     ))),
             )))
-            val planId = requireNotNull(repo.selectedPlanIdFlow.first())
-            val slot = repo.slotsFor(planId, "A").first().single().programExerciseId
+            val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+            val slot = repo.plans.slotsFor(planId, "A").first().single().programExerciseId
             val planned = listOf(LoggedSet(100.0, 5, SetKind.WORK))
             db.storeTestRows("A", slot, Slot.MAIN, planned)
             val runId = requireNotNull(repo.dayTracksFlow(planId, "A").first().runId)
             repo.writeTestRows(runId, "A", slot, Slot.MAIN, planned.map { it.copy(done = true) })
-            val otherPlan = repo.duplicatePlan(planId, "Other")
-            repo.selectPlan(otherPlan)
-            assertEquals(otherPlan, repo.selectedPlanIdFlow.first())
+            val otherPlan = repo.plans.duplicatePlan(planId, "Other")
+            repo.plans.selectPlan(otherPlan)
+            assertEquals(otherPlan, repo.plans.selectedPlanIdFlow.first())
             planId
         }
         rule.runOnUiThread {
             todayViewModel = TodayViewModel(repo, object : CivilTimeSource {
                 override val civilTime = flowOf(CivilTime.now())
                 override fun refresh() = Unit
-            }, SavedStateHandle(), phoneRest = PhoneRestController(settings, NoOpRestRuntime))
+            }, SavedStateHandle(), phoneRest = PhoneRestController(settings, NoOpRestRuntime),
+                plans = repo.plans,
+            )
         }
         rule.setContent { AppTheme {
             navController = rememberNavController()
@@ -179,7 +181,10 @@ class DayRouteNavigationTest {
                                 SavedStateHandle(mapOf(
                                     Routes.DAY_ID_ARG to entry.arguments?.getString(Routes.DAY_ID_ARG),
                                     Routes.DAY_PLAN_ID_ARG to entry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
-                                )), FixedClock, alarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings)
+                                )), FixedClock, alarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings,
+                                plans = repo.plans,
+                                catalog = repo.catalog,
+                            )
                         }
                         DayRoute(
                             onCreateExercise = {}, onSetUpProgram = {},
@@ -228,6 +233,8 @@ class DayRouteNavigationTest {
                 repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
                 FixedClock, alarm, PhoneRestController(settings, NoOpRestRuntime),
                 settings = settings,
+                plans = repo.plans,
+                catalog = repo.catalog,
             )
         }
         rule.setContent {

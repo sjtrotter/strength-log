@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.rest.PhoneRestController
@@ -28,6 +29,7 @@ class TodayViewModel @Inject constructor(
     civilTimeSource: CivilTimeSource,
     private val savedState: SavedStateHandle,
     phoneRest: PhoneRestController,
+    private val plans: PlanRepository,
 ) : ViewModel() {
     val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
     private val expanded = savedState.getStateFlow("today_other_days", false)
@@ -35,12 +37,12 @@ class TodayViewModel @Inject constructor(
     // membership switch keeps the previous complete overview until all new data arrives.
     // Set ticks re-emit the open run's tracks; the overview needs only its identity.
     private val openRunIdentity = repo.openRunFlow.map { it?.copy(tracks = emptyList()) }.distinctUntilChanged()
-    private val overview = combine(repo.todayPlans, repo.todayTargetFlow, openRunIdentity) { plans, target, run ->
+    private val overview = combine(plans.todayPlans, repo.todayTargetFlow, openRunIdentity) { plans, target, run ->
         Triple(plans, target, run)
     }.flatMapLatest { (plans, target, run) ->
         val planIds = (plans.map { it.id } + listOfNotNull(run?.planId)).distinct()
         val programs = if (planIds.isEmpty()) flowOf(emptyMap<Long, Program>()) else combine(
-            planIds.map { id -> repo.programFor(id).map { id to it } },
+            planIds.map { id -> this.plans.programFor(id).map { id to it } },
         ) { it.toMap() }
         // todayPlans uses the shared display ordering: preferred on Today, else first.
         val factPlanId = run?.planId ?: plans.firstOrNull()?.id

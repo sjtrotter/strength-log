@@ -115,10 +115,12 @@ class DayViewModelCardioExecutionTest {
     private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
         repo, publisher, share, handle, clock, alarm, PhoneRestController(settings, NoOpRestRuntime),
         settings = settings,
+        plans = repo.plans,
+        catalog = repo.catalog,
     ).also { vms += it }
 
     private suspend fun prepare(fiveK: Boolean = true) {
-        repo.setWizardAnswers(repo.wizardAnswersFlow.first().copy(cardio = CardioPrefs(CardioMode.OUTDOOR_RUN, fiveKGoal = fiveK)))
+        repo.plans.setWizardAnswers(repo.plans.wizardAnswersFlow.first().copy(cardio = CardioPrefs(CardioMode.OUTDOOR_RUN, fiveKGoal = fiveK)))
         repo.replaceProgram(
             Program(listOf(ProgramDay(
                 "A", "Intervals", "", listOf(ProgramExercise("bb_back_squat")),
@@ -157,8 +159,8 @@ class DayViewModelCardioExecutionTest {
     fun cardioLoggedOnAnotherPlansSameDayDoesNotMarkTheDisplayedDayLogged() = test {
         val prescription = time(CardioRole.WORK, seconds = 10)
         prepareBlock(prescription)
-        val loggedPlan = repo.selectedPlanIdFlow.first()!!
-        val otherPlan = repo.duplicatePlan(loggedPlan, "Other")
+        val loggedPlan = repo.plans.selectedPlanIdFlow.first()!!
+        val otherPlan = repo.plans.duplicatePlan(loggedPlan, "Other")
         val loggedSpec = time(CardioRole.WORK, seconds = 30)
         val sessionId = repo.logCardioSession(
             CardioSessionEntity(
@@ -172,7 +174,7 @@ class DayViewModelCardioExecutionTest {
         assertEquals(sessionId, vm.uiState.value.cardio?.loggedSessionId)
         assertEquals(30, vm.uiState.value.cardio?.loggedSeconds)
 
-        repo.selectPlan(otherPlan)
+        repo.plans.selectPlan(otherPlan)
         runCurrent()
 
         assertEquals(otherPlan, vm.uiState.value.planId)
@@ -212,8 +214,8 @@ class DayViewModelCardioExecutionTest {
         SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
 
     private suspend fun prepareAuthoredCardioDay(vararg sets: CardioSetSpec) {
-        val planId = repo.createAuthoredPlan("Running plan", "Running")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running plan", "Running")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, sets.toList())
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
             ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
@@ -224,7 +226,7 @@ class DayViewModelCardioExecutionTest {
         val block = CardioBlocks.fromLegacy(CardioSuggestion("Intervals", "", true),
             fiveK = true, activity = CardioActivity.TRACK_RUN)
         prepareAuthoredCardioDay(*block.sets.toTypedArray())
-        return requireNotNull(repo.selectedPlanIdFlow.first())
+        return requireNotNull(repo.plans.selectedPlanIdFlow.first())
     }
 
     private fun TestScope.startLegacyWorkSet(vm: DayViewModel): CardioRun {
@@ -302,8 +304,8 @@ class DayViewModelCardioExecutionTest {
 
     @Test
     fun addDayThenAuthorCardioRunsAndFinishesWithoutExercises() = test {
-        val plan = repo.createAuthoredPlan("Running", "Day A")
-        repo.publishCreatedAuthoredPlan(plan)
+        val plan = repo.plans.createAuthoredPlan("Running", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
         assertEquals("B", repo.addDay(plan, "Removed"))
         assertEquals("C", repo.addDay(plan, "Run"))
         assertTrue(repo.removeDay(plan, "B"))
@@ -335,7 +337,7 @@ class DayViewModelCardioExecutionTest {
         assertEquals(CardioSetStatus.FINISHED, repo.cardioSetsFor(session.id).single().status)
         assertEquals(session.id, vm.sessionReceipt.value?.sessionId)
         assertEquals(2, vm.sessionReceipt.value?.dayIndex)
-        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
         assertEquals(listOf(session.id), publishedCardio)
     }
 
@@ -481,7 +483,7 @@ class DayViewModelCardioExecutionTest {
 
         assertNull(vm.uiState.value.timedRep)
         assertEquals(first.sessionId, vm.sessionReceipt.value?.sessionId)
-        assertEquals(12, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single().sets.first().reps)
+        assertEquals(12, repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single().sets.first().reps)
     }
 
     @Test
@@ -500,7 +502,7 @@ class DayViewModelCardioExecutionTest {
         val vm = readyVm()
         val first = stopFirstRunAndDismissDistance(vm)
         // An authored day can gain a timed-rep slot while its logged distance is deferred.
-        repo.replaceProgram(Program(repo.programFlow.first().days.map { day ->
+        repo.replaceProgram(Program(repo.plans.programFlow.first().days.map { day ->
             if (day.id != "A") day else day.copy(exercises = listOf(ProgramExercise(
                 "pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)),
             )))
@@ -553,7 +555,7 @@ class DayViewModelCardioExecutionTest {
         vm.editor.changeCardioDraft(edited)
         vm.editor.saveCardioBlock() // Set-page Save commits while keeping the block page open.
         runCurrent()
-        assertEquals(edited.block(), repo.programFlow.first().days.first().cardioBlock)
+        assertEquals(edited.block(), repo.plans.programFlow.first().days.first().cardioBlock)
         assertEquals(frozen, vm.uiState.value.cardio?.run)
         assertEquals(deadline, alarm.deadline)
         vm.editor.saveCardioBlock() // Block-page Save must preserve the same execution too.
@@ -625,7 +627,7 @@ class DayViewModelCardioExecutionTest {
         assertEquals("ROAD_RUN", session.activity)
         assertEquals("OUTDOOR_RUN", session.mode)
         assertTrue(session.hard)
-        assertEquals(repo.selectedPlanIdFlow.first(), session.planId)
+        assertEquals(repo.plans.selectedPlanIdFlow.first(), session.planId)
         assertEquals(block.sets, repo.cardioSetsFor(session.id).map { it.spec })
         assertTrue(repo.cardioSetsFor(session.id).all { it.status == CardioSetStatus.FINISHED })
         assertNull(vm.uiState.value.cardio?.run)
@@ -743,7 +745,7 @@ class DayViewModelCardioExecutionTest {
     @Test
     fun addSetOnAnotherDisplayedDayCannotChangeTheRunningBlock() = test {
         prepareBlock(distance(), time(CardioRole.RECOVERY))
-        val day = repo.programFlow.first().days.single()
+        val day = repo.plans.programFlow.first().days.single()
         repo.replaceProgram(Program(listOf(day, day.copy(id = "B", title = "Other run"))))
         val handle = SavedStateHandle()
         val vm = readyVm(handle)
@@ -767,7 +769,7 @@ class DayViewModelCardioExecutionTest {
     @Test
     fun dismissedFinalDistanceReleasesExecutionPublishesOnceAndLaterDoneAmends() = test {
         prepareBlock(time(CardioRole.WORK, aim = 400))
-        val day = repo.programFlow.first().days.single()
+        val day = repo.plans.programFlow.first().days.single()
         repo.replaceProgram(Program(listOf(day.copy(exercises = listOf(ProgramExercise(
             "pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)),
         ))), day.copy(id = "B", title = "Other run"))))
@@ -1002,11 +1004,11 @@ class DayViewModelCardioExecutionTest {
     fun entirelyUnstartedBlockDoesNotLogOrAdvance() = test {
         prepareBlock(time(CardioRole.WORK), time(CardioRole.COOLDOWN))
         val vm = readyVm()
-        val suggested = repo.suggestedDayFlow.first()
+        val suggested = repo.plans.suggestedDayFlow.first()
         vm.endCardioBlock()
         runCurrent()
         assertTrue(repo.cardioSessionsFlow.first().isEmpty())
-        assertEquals(suggested, repo.suggestedDayFlow.first())
+        assertEquals(suggested, repo.plans.suggestedDayFlow.first())
         assertNull(vm.uiState.value.cardio?.run)
     }
 
@@ -1079,7 +1081,7 @@ class DayViewModelCardioExecutionTest {
         tick(30_000)
         first.setCardioScreenLive(false)
         first.viewModelScope.cancel()
-        val day = repo.programFlow.first().days.single()
+        val day = repo.plans.programFlow.first().days.single()
         repo.replaceProgram(Program(listOf(day.copy(id = "B"))))
         val restored = readyVm(recreateHandle(handle))
         assertNull(restored.uiState.value.cardio?.run)
@@ -1096,12 +1098,12 @@ class DayViewModelCardioExecutionTest {
     @Test
     fun differentPlanEndsAndLogsLegacyRunEvenWhenDayAndBlockMatch() = test {
         val plan = prepareLegacyCardioDays()
-        val other = repo.duplicatePlan(plan, "Other plan")
+        val other = repo.plans.duplicatePlan(plan, "Other plan")
         val handle = SavedStateHandle()
         val vm = readyVm(handle)
         val run = startLegacyWorkSet(vm)
         assertTrue(run.finishesDay)
-        repo.selectPlan(other)
+        repo.plans.selectPlan(other)
         runCurrent()
         vm.openCardioDistance()
         vm.retryCardioSave()
@@ -1109,7 +1111,7 @@ class DayViewModelCardioExecutionTest {
         assertInterruptedLegacyRunLogged(vm, run)
         assertNull(handle.get<CardioRun>("day_cardio_run"))
         assertEquals(other, vm.uiState.value.planId)
-        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
         assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
     }
 
@@ -1124,7 +1126,7 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertInterruptedLegacyRunLogged(vm, run)
         assertEquals("B", vm.uiState.value.viewDayId)
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
     }
 
     @Test
@@ -1146,7 +1148,7 @@ class DayViewModelCardioExecutionTest {
         // Rebuilding this day's logs with the same DayContext must not retry.
         vm.changeSeconds(vm.uiState.value.exercises.single().programExerciseId, Slot.MAIN, 0, 42)
         runCurrent()
-        assertEquals(42, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().single().sets.first().seconds)
+        assertEquals(42, repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().single().sets.first().seconds)
         assertAutoEndedSaveFailed(vm, run)
         assertTrue(repo.cardioSessionsFlow.first().isEmpty())
         vm.retryCardioSave()
@@ -1155,30 +1157,30 @@ class DayViewModelCardioExecutionTest {
         assertInterruptedLegacyRunLogged(vm, run)
         assertNull(handle.get<CardioRun>("day_cardio_run"))
         assertNull(vm.uiState.value.cardio)
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
     }
 
     @Test
     fun autoEndedRunRetriesOnLaterPlanContextAndLogsOnce() = test {
         val plan = prepareLegacyCardioDays()
-        val other = repo.duplicatePlan(plan, "Other plan")
+        val other = repo.plans.duplicatePlan(plan, "Other plan")
         assertTrue(repo.setCardioBlock(other, "A", CardioBlock(CardioActivity.OUTDOOR_WALK, listOf(distance()))))
         val vm = readyVm()
         val run = startLegacyWorkSet(vm)
         db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
-        repo.selectPlan(other)
+        repo.plans.selectPlan(other)
         runCurrent()
         assertEquals(other, vm.uiState.value.planId)
         assertAutoEndedSaveFailed(vm, run)
         assertTrue(repo.cardioSessionsFlow.first().isEmpty())
 
         db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
-        repo.selectPlan(plan)
+        repo.plans.selectPlan(plan)
         runCurrent()
         assertInterruptedLegacyRunLogged(vm, run)
         assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
         assertEquals("A", db.planDao().plan(other)?.suggestedDayId)
-        repo.selectPlan(other)
+        repo.plans.selectPlan(other)
         runCurrent()
         assertEquals(1, repo.cardioSessionsFlow.first().size)
     }
@@ -1211,25 +1213,25 @@ class DayViewModelCardioExecutionTest {
         assertInterruptedLegacyRunLogged(restored, run)
         assertNull(restoredHandle.get<CardioRun>("day_cardio_run"))
         assertNull(restored.uiState.value.cardio)
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
     }
 
     @Test
     fun unstartedRunIsClearedOnPlanSwitchWithoutLoggingOrAdvancing() = test {
         val plan = prepareLegacyCardioDays()
-        val other = repo.duplicatePlan(plan, "Other plan")
+        val other = repo.plans.duplicatePlan(plan, "Other plan")
         val handle = SavedStateHandle()
         val vm = readyVm(handle)
         vm.addCardioSet()
         runCurrent()
         assertNull(requireNotNull(handle.get<CardioRun>("day_cardio_run")).startedAt)
-        repo.selectPlan(other)
+        repo.plans.selectPlan(other)
         runCurrent()
         assertNull(handle.get<CardioRun>("day_cardio_run"))
         assertNull(vm.uiState.value.cardio?.run)
         assertTrue(repo.cardioSessionsFlow.first().isEmpty())
         assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
-        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
         assertNull(vm.sessionReceipt.value)
     }
 
@@ -1245,7 +1247,7 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertNull(handle.get<CardioRun>("day_cardio_run"))
         assertTrue(repo.cardioSessionsFlow.first().isEmpty())
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertNull(vm.uiState.value.openSheet)
         assertNull(vm.sessionReceipt.value)
     }
@@ -1262,18 +1264,18 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertNull(handle.get<CardioRun>("day_cardio_run"))
         assertTrue(repo.cardioSessionsFlow.first().isEmpty())
-        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
     }
 
     @Test
     fun interruptedRunAutomaticallyRetriesAfterProcessDeathWithoutReceiptOrMovingAnotherPlansCursor() = test {
         val plan = prepareLegacyCardioDays()
-        val other = repo.duplicatePlan(plan, "Other plan")
+        val other = repo.plans.duplicatePlan(plan, "Other plan")
         val handle = SavedStateHandle()
         val first = readyVm(handle)
         val run = startLegacyWorkSet(first)
         db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_cardio BEFORE INSERT ON cardio_session BEGIN SELECT RAISE(ABORT, 'save failed'); END")
-        repo.selectPlan(other)
+        repo.plans.selectPlan(other)
         runCurrent()
         val failed = requireNotNull(handle.get<CardioRun>("day_cardio_run"))
         assertTrue(failed.complete)
@@ -1287,14 +1289,14 @@ class DayViewModelCardioExecutionTest {
         val restored = readyVm(recreateHandle(handle))
         assertInterruptedLegacyRunLogged(restored, run)
         assertEquals(other, restored.uiState.value.planId)
-        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
         assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
     }
 
     @Test
     fun removedSourceBlockLeavesFrozenRunAccessibleUntilDistanceIsSaved() = test {
-        val plan = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(plan)
+        val plan = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(plan)
         repo.addExercise("A", ProgramExercise("plank"))
         assertTrue(repo.setCardioBlock(plan, "A", CardioBlock(CardioActivity.TRACK_RUN,
             listOf(time(CardioRole.WORK, aim = 400)))))
@@ -1332,8 +1334,8 @@ class DayViewModelCardioExecutionTest {
 
     @Test
     fun finalDistanceEntryAmendsBeforeCardioOnlyReceiptAndPlanAdvancesOnce() = test {
-        val planId = repo.createAuthoredPlan("Running plan", "Running")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running plan", "Running")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(time(CardioRole.WORK, aim = 400)))
         repo.replaceProgram(Program(listOf(
             ProgramDay("A", "Running", "", emptyList(), cardioBlock = block),
@@ -1345,7 +1347,7 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(10_000)
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertNull(vm.sessionReceipt.value)
         assertEquals(1, repo.cardioSessionsFlow.first().size)
         vm.openCardioDistance()
@@ -1360,14 +1362,14 @@ class DayViewModelCardioExecutionTest {
         assertEquals(401, vm.sessionReceipt.value?.cardio?.resultSets?.single()?.metres)
         vm.retryCardioSave()
         runCurrent()
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertEquals(1, repo.cardioSessionsFlow.first().size)
     }
 
     @Test
     fun finalSheetDraftSurvivesProcessDeathAfterLogAndBlankEntryStillFinishesDay() = test {
-        val planId = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(time(CardioRole.WORK, aim = 400)))
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
             ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
@@ -1393,7 +1395,7 @@ class DayViewModelCardioExecutionTest {
         restored.saveCardioDistance(restored.distanceAction())
         runCurrent()
         assertNull(repo.cardioSetsFor(repo.cardioSessionsFlow.first().single().id).single().metres)
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertEquals("A", restored.sessionReceipt.value?.cardio?.dayId)
         assertEquals(1, alarm.buzzes)
     }
@@ -1401,7 +1403,7 @@ class DayViewModelCardioExecutionTest {
     @Test
     fun generatedCardioDayFinishesOutsideStrengthRotation() = test {
         prepare()
-        val source = repo.programFlow.first().days.single()
+        val source = repo.plans.programFlow.first().days.single()
         repo.replaceProgram(Program(listOf(source, source.copy(id = "B"),
             ProgramDay("C", "Running", "", emptyList(), cardioBlock = CardioBlocks.fromLegacy(CardioSuggestion("Easy", "", false), true, CardioActivity.ROAD_RUN), kind = ProgramDayKind.CARDIO))))
         val vm = readyVm()
@@ -1410,7 +1412,7 @@ class DayViewModelCardioExecutionTest {
         vm.startCardio()
         runCurrent()
         tick(1_500_000)
-        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
         assertEquals("C", vm.sessionReceipt.value?.cardio?.dayId)
         assertEquals(1, repo.cardioSessionsFlow.first().size)
     }

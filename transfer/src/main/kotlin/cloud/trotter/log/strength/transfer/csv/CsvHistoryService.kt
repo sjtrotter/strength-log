@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import java.io.InputStream
 import java.io.OutputStream
@@ -17,7 +18,7 @@ import kotlinx.coroutines.flow.first
  * after the caller has let the user review and, if needed,
  * correct each unmatched exercise name's pattern (PLAN.md A2).
  */
-class CsvHistoryService(private val repository: TrackerRepository) {
+class CsvHistoryService(private val repository: TrackerRepository, private val catalog: CatalogRepository) {
 
     suspend fun exportTo(out: OutputStream) {
         val history = repository.exportSessionHistory()
@@ -34,7 +35,7 @@ class CsvHistoryService(private val repository: TrackerRepository) {
      *  written to the device by this call. */
     suspend fun preview(input: InputStream): CsvImportPreview {
         val text = HistoryCsvReader.readCapped(input)
-        val catalog = repository.catalogFlow.first()
+        val catalog = this.catalog.catalogFlow.first()
         return HistoryCsvReader.preview(text, catalog)
     }
 

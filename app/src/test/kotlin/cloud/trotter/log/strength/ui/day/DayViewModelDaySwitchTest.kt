@@ -8,11 +8,9 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
-import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
-import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
-import cloud.trotter.log.strength.data.db.dao.ProgramDao
+import cloud.trotter.log.strength.data.db.dao.LastPerformedRow
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
@@ -67,7 +65,9 @@ class DayViewModelDaySwitchTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
-    private lateinit var repo: GatedRepository
+    private lateinit var repo: TrackerRepository
+    @Volatile
+    private var historyGate: CompletableDeferred<Unit>? = null
     private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
     private val vms = mutableListOf<DayViewModel>()
@@ -85,10 +85,15 @@ class DayViewModelDaySwitchTest {
             File.createTempFile("day-vm-day-switch-settings", ".preferences_pb")
         }
         settings = SettingsStore(dataStore)
-        repo = GatedRepository(
+        repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
-            sessionDao = db.sessionDao(),
+            sessionDao = object : SessionDao by db.sessionDao() {
+                override suspend fun lastPerformedRows(exerciseIds: List<String>): List<LastPerformedRow> {
+                    historyGate?.await()
+                    return db.sessionDao().lastPerformedRows(exerciseIds)
+                }
+            },
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
@@ -106,7 +111,7 @@ class DayViewModelDaySwitchTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, SavedStateHandle(), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, SavedStateHandle(), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
 
     private suspend fun insertTwoDayProgram() {
         repo.replaceProgram(
@@ -122,7 +127,7 @@ class DayViewModelDaySwitchTest {
     @Test
     fun aGapInDayLettersKeepsTheThirdAccentInTheWorkout() = runVmTest {
         insertTwoDayProgram()
-        val program = repo.programFlow.first()
+        val program = repo.plans.programFlow.first()
         repo.replaceProgram(Program(listOf(program.days[0], program.days[1].copy(id = "C"))))
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
@@ -139,20 +144,20 @@ class DayViewModelDaySwitchTest {
     @Test
     fun pausingAllPlansClearsTheDayDefaultAndResumingRestoresIt() = runVmTest {
         insertTwoDayProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = newViewModel()
         val collect = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         assertEquals(plan, vm.uiState.value.planId)
         assertEquals("A", vm.uiState.value.viewDayId)
-        repo.pause(plan)
+        repo.plans.pause(plan)
         advanceUntilIdle()
         assertNull(vm.uiState.value.viewDayId)
         assertNull(vm.uiState.value.planId)
         assertFalse(vm.uiState.value.hasProgram)
         assertFalse(vm.uiState.value.loading)
         assertTrue(vm.uiState.value.exercises.isEmpty())
-        repo.useAlongside(plan)
+        repo.plans.useAlongside(plan)
         advanceUntilIdle()
         assertEquals(plan, vm.uiState.value.planId)
         assertEquals("A", vm.uiState.value.viewDayId)
@@ -172,7 +177,7 @@ class DayViewModelDaySwitchTest {
 
         // Hold day B's history read open, then switch.
         val gate = CompletableDeferred<Unit>()
-        repo.historyGate = gate
+        historyGate = gate
         vm.selectDay("B")
         advanceUntilIdle()
 
@@ -201,7 +206,7 @@ class DayViewModelDaySwitchTest {
 
         // Gated: if the switch flowed through the day pipeline, the branch would
         // restart and stall on this read instead of staying on day A.
-        repo.historyGate = CompletableDeferred()
+        historyGate = CompletableDeferred()
         vm.setKeepScreenOn(true)
         advanceUntilIdle()
 
@@ -213,20 +218,4 @@ class DayViewModelDaySwitchTest {
         collect.cancel()
     }
 
-    /** The real repository with one read the test can hold open. */
-    private class GatedRepository(
-        db: StrengthDatabase,
-        programDao: ProgramDao,
-        sessionDao: SessionDao,
-        customExerciseDao: CustomExerciseDao,
-        settings: SettingsStore,
-    ) : TrackerRepository(db, programDao, sessionDao, customExerciseDao, settings) {
-        @Volatile
-        var historyGate: CompletableDeferred<Unit>? = null
-
-        override suspend fun lastPerformed(exerciseIds: List<String>): Map<String, LastPerformed> {
-            historyGate?.await()
-            return super.lastPerformed(exerciseIds)
-        }
-    }
 }

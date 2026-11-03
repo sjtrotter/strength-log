@@ -130,14 +130,14 @@ class TrackerRepositoryCardioSetsTest {
     }
 
     @Test fun `cardio completion advances the originating authored plan once even if another plan is selected`() = runTest {
-        val planId = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, sets.map { it.spec })
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
             ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)
         }))
-        val otherPlan = repo.createAuthoredPlan("Other", "Other day")
-        repo.publishCreatedAuthoredPlan(otherPlan)
+        val otherPlan = repo.plans.createAuthoredPlan("Other", "Other day")
+        repo.plans.publishCreatedAuthoredPlan(otherPlan)
         val origin = session.copy(planId = planId)
         val id = repo.logCardioSession(origin, sets, finishDay = true)
         assertEquals("B", db.planDao().plan(planId)?.suggestedDayId)
@@ -149,8 +149,8 @@ class TrackerRepositoryCardioSetsTest {
     }
 
     @Test fun `a second device completion for A logs without advancing its rotation again`() = runTest {
-        val planId = repo.createAuthoredPlan("Running", "Run")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Running", "Run")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         val block = CardioBlock(CardioActivity.TRACK_RUN, sets.map { it.spec })
         repo.replaceProgram(Program(listOf("A", "B", "C").map {
             ProgramDay(it, "Run $it", "", emptyList(), cardioBlock = block)

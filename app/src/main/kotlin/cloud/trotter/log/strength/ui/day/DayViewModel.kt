@@ -22,6 +22,8 @@ import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.PerformedSlot
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -118,6 +120,8 @@ class DayViewModel @Inject constructor(
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
     private val watchContinuity: WatchContinuitySource = WatchContinuitySource.None,
     private val settings: SettingsStore,
+    private val plans: PlanRepository,
+    private val catalog: CatalogRepository,
 ) : ViewModel() {
 
     private val viewDayOverride = savedState.getStateFlow<DaySelection?>(
@@ -151,7 +155,7 @@ class DayViewModel @Inject constructor(
     private val mutationLock = Mutex()
 
     private val displayTargetFlow = combine(
-        repo.todayTargetFlow, repo.selectedPlanFlow, repo.plansFlow, viewDayOverride,
+        repo.todayTargetFlow, plans.selectedPlanFlow, plans.plansFlow, viewDayOverride,
     ) { display, selected, plans, override ->
         val target = display as? TodayTarget.Day
         val candidates = if (override?.planId != null) plans.filter { it.id == override.planId }
@@ -159,7 +163,7 @@ class DayViewModel @Inject constructor(
         Triple(target, candidates, override)
     }.flatMapLatest { (target, candidates, override) ->
         if (override == null || candidates.isEmpty()) flowOf(target) else combine(
-            candidates.map { plan -> repo.programFor(plan.id).map { plan to it } },
+            candidates.map { plan -> plans.programFor(plan.id).map { plan to it } },
         ) { programs ->
             programs.firstOrNull { (_, program) -> program.days.any { it.id == override.dayId } }
                 ?.let { (plan, _) -> TodayTarget.Day(plan, override.dayId) } ?: target
@@ -167,16 +171,16 @@ class DayViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     private val effectiveDayId: StateFlow<String?> = displayTargetFlow.flatMapLatest { target ->
-        if (target == null) flowOf(null) else repo.programFor(target.plan.id).map { program ->
+        if (target == null) flowOf(null) else plans.programFor(target.plan.id).map { program ->
             program.dayToShow(target.dayId)?.id
         }
     }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val contextFlow = displayTargetFlow.flatMapLatest { target ->
-        if (target == null) combine(settings.unitFlow, repo.catalogFlow) {
+        if (target == null) combine(settings.unitFlow, catalog.catalogFlow) {
                 unit, catalog -> DayContext(Program(emptyList()), null, null, unit, catalog)
         }
-        else combine(repo.programFor(target.plan.id), settings.unitFlow, repo.catalogFlow) {
+        else combine(plans.programFor(target.plan.id), settings.unitFlow, catalog.catalogFlow) {
                 program, unit, catalog ->
             DayContext(program, target.plan.suggestedDayId, program.dayToShow(target.dayId)?.id,
                 unit, catalog, plan = target.plan)
@@ -199,7 +203,7 @@ class DayViewModel @Inject constructor(
             // A reset replaces slot ids even when the program and history ids stay equal.
             // Those rows must be seeded before observing the replacement day.
             val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(CommittedDay(noDayState(ctx)))
-            val historyKeys = combine(repo.slotsFor(planId, dayId), repo.dayHistoryKeys(planId, dayId)) { slots, ids ->
+            val historyKeys = combine(plans.slotsFor(planId, dayId), dayHistoryKeys(repo.observeDay(planId, dayId), repo.sessionSummariesFor(planId))) { slots, ids ->
                 slots to ids
             }
             // One flatMapLatest per slot emission: a reset cancels the old observer at once, so the
@@ -481,6 +485,8 @@ class DayViewModel @Inject constructor(
             clearLogUndo = ::clearLogUndo,
             dismissSwapUndo = ::dismissSwapUndo,
             otherWorkoutOpenMessage = otherWorkoutOpenMessage,
+            plans = plans,
+            catalog = catalog,
         )
 
         viewModelScope.launch {
@@ -553,8 +559,8 @@ class DayViewModel @Inject constructor(
     private suspend fun newCardioRun(): CardioRun? {
         val dayId = currentDay() ?: return null
         val planId = dayState.value.takeIf { it.viewDayId == dayId }?.planId ?: return null
-        val plan = repo.plansFlow.first().firstOrNull { it.id == planId } ?: return null
-        val program = repo.programFor(plan.id).first()
+        val plan = plans.plansFlow.first().firstOrNull { it.id == planId } ?: return null
+        val program = plans.programFor(plan.id).first()
         val day = program.days.firstOrNull { it.id == dayId } ?: return null
         val block = day.cardioBlock ?: return null
         val nextId = Rotation.nextFor(program, dayId)
@@ -837,7 +843,7 @@ class DayViewModel @Inject constructor(
     private suspend fun showDeferredCardioReceipt() {
         if (executionActive) return
         val run = deferredCardioReceipt.value ?: return
-        val advancedTo = repo.plansFlow.first().firstOrNull { it.id == run.planId }?.suggestedDayId
+        val advancedTo = plans.plansFlow.first().firstOrNull { it.id == run.planId }?.suggestedDayId
         val sessionId = requireNotNull(run.sessionId)
         val completedAt = repo.cardioSession(sessionId)?.completedAt ?: cardioClock.wallMillis()
         if (executionActive) return
@@ -1070,18 +1076,18 @@ class DayViewModel @Inject constructor(
             if (timedRepEvent.value != countEvent || day != countEvent.dayId ||
                 !timedRepMatches(dayState.value, countEvent)
             ) return
-            val planId = repo.planIdOfSlot(programExerciseId) ?: return
-            val programSlot = repo.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
+            val planId = plans.planIdOfSlot(programExerciseId) ?: return
+            val programSlot = plans.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
                 ?: return
             val track = repo.dayTracksFlow(planId, day).first().tracks.firstOrNull {
                 it.programExerciseId == programExerciseId && it.slot == Slot.MAIN
             }
-            val performed = performedExercise(programSlot, track?.exerciseId, repo.catalogFlow.first())
+            val performed = performedExercise(programSlot, track?.exerciseId, catalog.catalogFlow.first())
             val target = performed.prescription?.target as? PrescribedTarget.RepsInTime
             if (performed.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return
         }
         if (slot != Slot.MAIN && slot != Slot.SS) return
-        val planId = repo.planIdOfSlot(programExerciseId) ?: return
+        val planId = plans.planIdOfSlot(programExerciseId) ?: return
         val loggedAt = clock.millis()
         var writtenBefore: LoggedSet? = null
         var writtenAfter: LoggedSet? = null
@@ -1101,7 +1107,7 @@ class DayViewModel @Inject constructor(
         val logged = writtenAfter ?: return
         if (countEvent != null) clearTimedRep()
         val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
-        val planSlots = repo.slotsFor(planId, day).first()
+        val planSlots = plans.slotsFor(planId, day).first()
         val workoutSlots = repo.dayTracksFlow(planId, day).first().let {
             planSlots.forRun(it.droppedPartners, it.skippedLifts)
         }
@@ -1414,18 +1420,18 @@ class DayViewModel @Inject constructor(
             if (tracks.tracks.none { track -> track.sets.any { it.done } } &&
                 tracks.retired.none { track -> track.sets.any { it.done } }
             ) return@mutate
-            val program = repo.programFor(planId).first()
+            val program = plans.programFor(planId).first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(repo.topSetHistoryFlow.first())
             val dayPosition = program.days.indexOfFirst { it.id == day }
             val nextDayId = if (dayPosition >= 0) {
                 Rotation.nextFor(program, day)
-                    ?: repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
+                    ?: plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             } else null
             val sessionId = repo.finishRun(runId) ?: return@mutate
             phoneRest.skip()
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_SELECTION] = null
-            val advancedTo = repo.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
+            val advancedTo = plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
             pinHeldFor = day.takeIf { advancedTo != day && effectiveDayId.value == day }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
@@ -1500,7 +1506,7 @@ class DayViewModel @Inject constructor(
             settings.setWorkoutRecord(WorkoutRecord(result.runId, key))
             val keptId = if (half == Slot.MAIN && card.isSuperset) card.partnerExerciseId.orEmpty() else card.exerciseId
             savedState[KEY_SWAP_UNDO] = WorkoutSwapUndo(day, result.runId, programExerciseId, Slot.MAIN,
-                skippedId, keptId, repo.catalogFlow.first().find(skippedId)?.name ?: skippedId,
+                skippedId, keptId, catalog.catalogFlow.first().find(skippedId)?.name ?: skippedId,
                 skippedSlot = if (card.isSuperset && card.exerciseId == card.partnerExerciseId) Slot.SS else half)
         }
     }
@@ -1538,7 +1544,7 @@ class DayViewModel @Inject constructor(
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
-            val slots = repo.slotsFor(planId, day).first()
+            val slots = plans.slotsFor(planId, day).first()
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
             if (half == Slot.SS && slot.exercise.superset == null) return@mutate
             val runId = when (val result = repo.startRun(planId, day)) {
@@ -1554,7 +1560,7 @@ class DayViewModel @Inject constructor(
             val previousId = tracks.firstOrNull { it.programExerciseId == slot.programExerciseId && it.slot == half }?.exerciseId
                 ?: if (half == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
             if (previousId == null || previousId == newExerciseId) return@mutate
-            val catalog = repo.catalogFlow.first()
+            val catalog = this.catalog.catalogFlow.first()
             val swapped = repo.swapInRun(runId, slot.programExerciseId, half, newExerciseId)
             if (swapped) {
                 clearLogUndo()
@@ -1682,7 +1688,7 @@ class DayViewModel @Inject constructor(
     }
 
     private suspend fun trackFor(dayId: String, programExerciseId: Long, slot: String): List<LoggedSet> {
-        val planId = repo.planIdOfSlot(programExerciseId) ?: return emptyList()
+        val planId = plans.planIdOfSlot(programExerciseId) ?: return emptyList()
         return repo.dayTracksFlow(planId, dayId).first().tracks
             .firstOrNull { it.programExerciseId == programExerciseId && it.slot == slot }?.sets.orEmpty()
     }

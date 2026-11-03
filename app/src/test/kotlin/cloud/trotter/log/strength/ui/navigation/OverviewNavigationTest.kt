@@ -110,11 +110,11 @@ class OverviewNavigationTest {
                 ProgramDay("A", "Squat", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF))),
                 ProgramDay("B", "Arms", "", listOf(ProgramExercise("ez_curl"))),
             )))
-            preferred = repo.selectedPlanIdFlow.first()!!
-            repo.renamePlan(preferred, "Strength")
-            other = repo.duplicatePlan(preferred, "Other")
+            preferred = repo.plans.selectedPlanIdFlow.first()!!
+            repo.plans.renamePlan(preferred, "Strength")
+            other = repo.plans.duplicatePlan(preferred, "Other")
             repo.renameDay(other, "A", "Rehab")
-            repo.useAlongside(other)
+            repo.plans.useAlongside(other)
         }
     }
 
@@ -138,7 +138,9 @@ class OverviewNavigationTest {
                         val vm = remember { keep(TodayViewModel(repo, object : CivilTimeSource {
                             override val civilTime = flowOf(CivilTime.now())
                             override fun refresh() = Unit
-                        }, SavedStateHandle(), phoneRest = PhoneRestController(settings, NoOpRestRuntime))) }
+                        }, SavedStateHandle(), phoneRest = PhoneRestController(settings, NoOpRestRuntime),
+                            plans = repo.plans,
+                        )) }
                         TodayRoute(
                             onStart = { nav.navigate(Routes.day(it.dayId, it.planId)) { launchSingleTop = true } },
                             onOpenCardio = { nav.navigate(Routes.day(it.dayId, it.planId)) },
@@ -149,7 +151,7 @@ class OverviewNavigationTest {
                     }
                     composable(Routes.LOG) { Text("History contents") }
                     composable(Routes.PLANS) {
-                        val vm = remember { keep(PlansViewModel(repo, SavedStateHandle(), context, settings = settings)) }
+                        val vm = remember { keep(PlansViewModel(repo.plans, SavedStateHandle(), context, settings = settings)) }
                         val state by vm.uiState.collectAsStateWithLifecycle()
                         PlansScreen(state, PlansActions(
                             onNewPlan = {}, onSelect = vm::select, onMenu = vm::openMenu,
@@ -161,7 +163,10 @@ class OverviewNavigationTest {
                     composable(Routes.PLAN_IN_PLANS, arguments = listOf(navArgument(Routes.PLAN_ID_ARG) { type = NavType.StringType })) { planEntry ->
                         val vm = remember(planEntry) { keep(PlanViewModel(repo, SavedStateHandle(mapOf(
                             Routes.PLAN_ID_ARG to planEntry.arguments?.getString(Routes.PLAN_ID_ARG),
-                        )), context, settings = settings)) }
+                        )), context, settings = settings,
+                            plans = repo.plans,
+                            catalog = repo.catalog,
+                        )) }
                         val state by vm.uiState.collectAsStateWithLifecycle()
                         PlanScreen(state, PlanActions(
                             onOpenDay = { nav.navigate(Routes.preview(it)) }, onOpenPlans = { nav.popBackStack() }, onSetUpProgram = {},
@@ -174,7 +179,9 @@ class OverviewNavigationTest {
                         val vm = remember(previewEntry) { keep(PreviewViewModel(repo, SavedStateHandle(mapOf(
                             Routes.PLAN_ID_ARG to previewEntry.arguments?.getString(Routes.PLAN_ID_ARG),
                             Routes.DAY_ID_ARG to previewEntry.arguments?.getString(Routes.DAY_ID_ARG),
-                        )), PhoneRestController(settings, NoOpRestRuntime), settings = settings)) }
+                        )), PhoneRestController(settings, NoOpRestRuntime), settings = settings,
+                            plans = repo.plans,
+                        )) }
                         PreviewRoute(onBack = { nav.popBackStack() }, onOpenDay = { selection, edit ->
                             nav.navigate(Routes.day(selection.dayId, selection.planId, edit))
                         }, viewModel = vm)
@@ -190,7 +197,10 @@ class OverviewNavigationTest {
                                     Routes.DAY_PLAN_ID_ARG to dayEntry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
                                     Routes.DAY_ID_ARG to dayEntry.arguments?.getString(Routes.DAY_ID_ARG),
                                     Routes.DAY_EDITOR_ARG to dayEntry.arguments?.getBoolean(Routes.DAY_EDITOR_ARG),
-                                )), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings)) }
+                                )), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings,
+                                plans = repo.plans,
+                                catalog = repo.catalog,
+                            )) }
                             DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = { nav.finishWorkout() },
                                 onBack = { nav.popBackStack() },
                                 viewModel = dayVm)
@@ -225,7 +235,7 @@ class OverviewNavigationTest {
         }
         rule.onNodeWithText("Rehab").assertExists()
         rule.onNodeWithText("Other").assertExists()
-        assertEquals(preferred, runBlocking { repo.selectedPlanIdFlow.first() })
+        assertEquals(preferred, runBlocking { repo.plans.selectedPlanIdFlow.first() })
     }
 
     @Test fun tabsHaveContentDescriptionsAndNoText() {
@@ -310,12 +320,12 @@ class OverviewNavigationTest {
     }
 
     @Test fun pausedPreferredPlanStartStartsTheFirstPlanOnToday() {
-        runBlocking { repo.pause(preferred) }
+        runBlocking { repo.plans.pause(preferred) }
         render(expectedRow = "Other · Day A")
         rule.onNodeWithText("Start").performClick()
         rule.waitUntil(5_000) { rule.runOnIdle { ::dayVm.isInitialized && dayVm.uiState.value.runOpen } }
         assertEquals(other, runBlocking { repo.openRunFlow.first()!!.planId })
-        assertEquals(preferred, runBlocking { repo.selectedPlanIdFlow.first() })
+        assertEquals(preferred, runBlocking { repo.plans.selectedPlanIdFlow.first() })
     }
 
     @Test fun todayStartReceiptReturnsToToday() {

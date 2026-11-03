@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -33,17 +34,18 @@ class PreviewViewModel @Inject constructor(
     savedState: SavedStateHandle,
     phoneRest: PhoneRestController,
     private val settings: SettingsStore,
+    private val plans: PlanRepository,
 ) : ViewModel() {
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
     private val dayId = checkNotNull(savedState.get<String>(Routes.DAY_ID_ARG))
     val selection = DaySelection(planId, dayId)
     val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
-    private val history = repo.dayHistoryKeys(planId, dayId).flatMapLatest { ids ->
+    private val history = dayHistoryKeys(repo.observeDay(planId, dayId), repo.sessionSummariesFor(planId)).flatMapLatest { ids ->
         flow { emit(repo.lastPerformed(ids)) }
     }
 
     val uiState = combine(
-        repo.observeDay(planId, dayId), settings.unitFlow, history, repo.plansFlow,
+        repo.observeDay(planId, dayId), settings.unitFlow, history, plans.plansFlow,
     ) { performedDay, unit, last, plans ->
         val day = performedDay.day
         PreviewUiState(

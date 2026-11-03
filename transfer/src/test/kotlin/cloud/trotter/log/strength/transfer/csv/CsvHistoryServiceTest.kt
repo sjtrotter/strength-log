@@ -73,7 +73,7 @@ class CsvHistoryServiceTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        service = CsvHistoryService(repo)
+        service = CsvHistoryService(repo, catalog = repo.catalog)
     }
 
     @After
@@ -147,7 +147,7 @@ class CsvHistoryServiceTest {
             File.createTempFile("csv-service-fresh-settings", ".preferences_pb")
         }
         val freshRepo = TrackerRepository(freshDb, freshDb.programDao(), freshDb.sessionDao(), freshDb.customExerciseDao(), SettingsStore(freshStore))
-        val freshService = CsvHistoryService(freshRepo)
+        val freshService = CsvHistoryService(freshRepo, catalog = freshRepo.catalog)
         try {
             val preview = freshService.preview(ByteArrayInputStream(out.toByteArray()))
             assertTrue(preview.isFullyMatched)
@@ -279,7 +279,7 @@ class CsvHistoryServiceTest {
             File.createTempFile("csv-service-kg-settings", ".preferences_pb")
         }
         val freshRepo = TrackerRepository(freshDb, freshDb.programDao(), freshDb.sessionDao(), freshDb.customExerciseDao(), SettingsStore(freshStore))
-        val freshService = CsvHistoryService(freshRepo)
+        val freshService = CsvHistoryService(freshRepo, catalog = freshRepo.catalog)
         try {
             SettingsStore(freshStore).setUnit(WeightUnit.KG)
             freshService.commit(freshService.preview(ByteArrayInputStream(csvA.toByteArray())))
@@ -304,12 +304,12 @@ class CsvHistoryServiceTest {
         // Committing without an approval throws and writes nothing.
         assertThrowsMissingApproval { service.commit(preview) }
         assertEquals(0, repo.sessionsFlow.first().size)
-        assertEquals(0, repo.catalogFlow.first().entries.count { it.id.startsWith("custom_") })
+        assertEquals(0, repo.catalog.catalogFlow.first().entries.count { it.id.startsWith("custom_") })
 
         // Confirming creates the custom exercise and commits the session.
         service.commit(preview, mapOf("Mystery Move" to MovementPattern.H_PULL))
         assertEquals(1, repo.sessionsFlow.first().size)
-        assertTrue(repo.catalogFlow.first().entries.any { it.name == "Mystery Move" })
+        assertTrue(repo.catalog.catalogFlow.first().entries.any { it.name == "Mystery Move" })
     }
 
     @Test

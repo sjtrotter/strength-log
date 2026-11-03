@@ -11,6 +11,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import cloud.trotter.log.strength.data.PlanRepository
+import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.sync.SetEditApplier
@@ -66,7 +68,9 @@ object WearSyncModule {
     fun setEditApplier(
         repo: TrackerRepository,
         store: WearSyncStore,
-    ): SetEditApplier = SetEditApplier(repo, store, store)
+        plans: PlanRepository,
+        catalog: CatalogRepository,
+    ): SetEditApplier = SetEditApplier(repo, store, store, plans = plans, catalog = catalog)
 
     @Provides
     @Singleton
@@ -86,7 +90,8 @@ object WearSyncModule {
         ackLog: CardioAckLog,
         editAckLog: EditAckLog,
         settings: SettingsStore,
-    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog, settings)
+        plans: PlanRepository,
+    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog, settings, plans = plans)
 
     @Provides
     @Singleton

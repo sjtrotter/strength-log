@@ -8,6 +8,8 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -31,6 +33,8 @@ class PlanViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     @ApplicationContext private val context: Context,
     private val settings: SettingsStore,
+    private val plans: PlanRepository,
+    private val catalog: CatalogRepository,
 ) : ViewModel() {
     private val mutationLock = Mutex()
     private val dialog = savedState.getStateFlow<String?>(DIALOG, null)
@@ -41,9 +45,9 @@ class PlanViewModel @Inject constructor(
         PlanUiState(dialog = kind, dialogDayId = day, dayTitleDraft = draft, menuDayId = menuDay)
     }
     private val planId = checkNotNull(savedState.get<String>(Routes.PLAN_ID_ARG)).toLong()
-    private val programState = repo.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
+    private val programState = plans.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
         .flatMapLatest { plan -> combine(
-            repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow, settings.unitFlow,
+            plans.programFor(planId), plans.wizardAnswersFor(planId), catalog.catalogFlow, settings.unitFlow,
         ) { program, answers, catalog, unit ->
             PlanScreenBuilder.buildUiState(plan, program, answers, catalog, unit)
         } }
@@ -55,7 +59,7 @@ class PlanViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PlanUiState(loading = true))
 
     fun setEmphasis(emphasis: GoalEmphasis) {
-        viewModelScope.launch { repo.setPlanEmphasis(planId, emphasis) }
+        viewModelScope.launch { plans.setPlanEmphasis(planId, emphasis) }
     }
 
     fun openDayMenu(dayId: String?) { savedState[MENU] = dayId }
@@ -64,7 +68,7 @@ class PlanViewModel @Inject constructor(
         val id = uiState.value.planId ?: return
         viewModelScope.launch {
             mutationLock.withLock {
-                val days = repo.programFor(id).first().days
+                val days = plans.programFor(id).first().days
                 val letter = ('A'..'G').firstOrNull { candidate -> days.none { it.id == candidate.toString() } }
                     ?: return@withLock
                 repo.addDay(id, context.getString(R.string.authored_day_title, letter.toString()))

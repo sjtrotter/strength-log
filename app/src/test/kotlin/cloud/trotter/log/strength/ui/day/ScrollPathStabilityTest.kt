@@ -196,7 +196,7 @@ class ScrollPathStabilityTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, SavedStateHandle(), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, SavedStateHandle(), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
 
     private suspend fun insertProgram() {
         repo.replaceProgram(
@@ -218,5 +218,5 @@ class ScrollPathStabilityTest {
     }
 
     private suspend fun slotId(exerciseId: String): Long =
-        repo.daySlotsFlow("A").first().first { it.exercise.exerciseId == exerciseId }.programExerciseId
+        repo.plans.daySlotsFlow("A").first().first { it.exercise.exerciseId == exerciseId }.programExerciseId
 }

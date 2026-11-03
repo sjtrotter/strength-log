@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.sync
 
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.sync.WatchDay
@@ -40,10 +41,11 @@ class TodaySnapshotSource(
     private val cardioAckLog: CardioAckLog,
     private val editAckLog: EditAckLog,
     private val settings: SettingsStore,
+    private val plans: PlanRepository,
 ) {
 
     val snapshots: Flow<WatchSnapshot?> = flow {
-        repo.runPlanSettingsFixupIfNeeded()
+        plans.runPlanSettingsFixupIfNeeded()
         emitAll(repo.todayTargetFlow.flatMapLatest { target ->
             if (target == TodayTarget.NothingOnToday) return@flatMapLatest combine(
                 settings.unitFlow, cardioAckLog.acksFlow, editAckLog.processedEditsFlow,

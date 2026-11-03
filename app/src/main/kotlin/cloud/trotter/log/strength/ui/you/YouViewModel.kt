@@ -2,7 +2,7 @@ package cloud.trotter.log.strength.ui.you
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.ui.setup.SetupStateBuilder
@@ -18,7 +18,7 @@ import kotlinx.coroutines.sync.withLock
 
 @HiltViewModel
 class YouViewModel @Inject constructor(
-    private val repo: TrackerRepository,
+    private val repo: PlanRepository,
     private val settings: SettingsStore,
 ) : ViewModel() {
     // Steppers send absolute values; a fair lock keeps two quick taps committing in tap order.

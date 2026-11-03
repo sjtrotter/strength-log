@@ -69,7 +69,7 @@ class CardioHistoryRestoreTest {
     @Test fun `a zero second cardio row imported from csv survives a backup round trip`() = runTest {
         val zero = session.copy(seconds = 0, startedAt = 61_000, completedAt = 61_000)
         val csv = HistoryCsvWriter.export(emptyList(), emptyList(), WeightUnit.LB, ZoneOffset.UTC, listOf(zero))
-        val csvService = CsvHistoryService(repository)
+        val csvService = CsvHistoryService(repository, catalog = repository.catalog)
         csvService.commit(csvService.preview(csv.byteInputStream()))
         val imported = db.cardioSessionDao().all().single()
         assertTrue(imported.startedAt < imported.completedAt)

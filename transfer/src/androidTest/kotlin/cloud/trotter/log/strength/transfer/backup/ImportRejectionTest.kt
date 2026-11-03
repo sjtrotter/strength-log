@@ -37,7 +37,7 @@ class ImportRejectionTest : BackupTestHarness() {
 
     private suspend fun seed() {
         settings.setUnit(WeightUnit.LB)
-        repository.addCustomExercise("Cable Hack Squat", MovementPattern.SQUAT_BILATERAL, listOf(Equipment.MACHINE), false, 80.0)
+        repository.catalog.addCustomExercise("Cable Hack Squat", MovementPattern.SQUAT_BILATERAL, listOf(Equipment.MACHINE), false, 80.0)
         val day = ProgramDay(
             id = "A",
             title = "Day A",
@@ -46,18 +46,18 @@ class ImportRejectionTest : BackupTestHarness() {
         )
         repository.replaceProgram(Program(listOf(day)))
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
-        repository.applyToRun(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.planIdOfSlot(squatId)), "A", listOf(
+        repository.applyToRun(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.plans.planIdOfSlot(squatId)), "A", listOf(
             TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)) },
         ))
         repository.finishRun(repository.openRunFlow.first()!!.id)!!
     }
 
     private suspend fun fingerprint() = Fingerprint(
-        program = repository.programFlow.first(),
+        program = repository.plans.programFlow.first(),
         sessions = repository.sessionsFlow.first(),
-        catalog = repository.catalogFlow.first().entries,
+        catalog = repository.catalog.catalogFlow.first().entries,
         unit = settings.unitFlow.first(),
-        suggestedDay = repository.suggestedDayFlow.first(),
+        suggestedDay = repository.plans.suggestedDayFlow.first(),
     )
 
     // kotlin.test isn't on the androidTest classpath (it would drag JUnit 5 into a

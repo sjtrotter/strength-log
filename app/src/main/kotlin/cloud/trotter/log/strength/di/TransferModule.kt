@@ -4,6 +4,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -27,5 +28,6 @@ object TransferModule {
 
     @Provides
     @Singleton
-    fun csvHistoryService(repository: TrackerRepository): CsvHistoryService = CsvHistoryService(repository)
+    fun csvHistoryService(repository: TrackerRepository, catalog: CatalogRepository): CsvHistoryService =
+        CsvHistoryService(repository, catalog = catalog)
 }

@@ -8,6 +8,7 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
 import cloud.trotter.log.strength.icon.LauncherAliasMigration
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.di.ApplicationScope
 import cloud.trotter.log.strength.sync.WearSyncPublisher
@@ -38,6 +39,7 @@ class StrengthLogApp : Application() {
     @InstallIn(SingletonComponent::class)
     interface RepositoryEntryPoint {
         fun trackerRepository(): TrackerRepository
+        fun planRepository(): PlanRepository
     }
 
     @EntryPoint
@@ -98,6 +100,10 @@ class StrengthLogApp : Application() {
             .fromApplication(this, RepositoryEntryPoint::class.java)
             .trackerRepository()
 
+        val plans = EntryPointAccessors
+            .fromApplication(this, RepositoryEntryPoint::class.java)
+            .planRepository()
+
         appScope.launch {
             runCatching {
                 EntryPointAccessors.fromApplication(this@StrengthLogApp, LauncherEntryPoint::class.java)
@@ -128,7 +134,7 @@ class StrengthLogApp : Application() {
                 .onFailure { Log.e(TAG, "Legacy TIMED fixup failed; will retry next launch", it) }
             runCatching { repository.adoptLegacySessionStartIfNeeded() }
                 .onFailure { Log.e(TAG, "Legacy session start adoption failed", it) }
-            runCatching { repository.runPlanSettingsFixupIfNeeded() }
+            runCatching { plans.runPlanSettingsFixupIfNeeded() }
                 .onFailure { Log.e(TAG, "Plan settings fixup failed; will retry next launch", it) }
             runCatching { repository.ensureSessionNotesMoved() }
                 .onFailure { Log.e(TAG, "Session notes move failed; will retry next launch", it) }

@@ -80,7 +80,7 @@ class SetEditApplierRunTest {
         syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("applier-edit-acks", ".preferences_pb")
         })
-        applier = SetEditApplier(repo, RecordingMarkers(), syncStore)
+        applier = SetEditApplier(repo, RecordingMarkers(), syncStore, plans = repo.plans, catalog = repo.catalog)
     }
 
     @After
@@ -90,8 +90,8 @@ class SetEditApplierRunTest {
     }
 
     private suspend fun authored(): Long {
-        val planId = repo.createAuthoredPlan("Repeatable", "Day A")
-        repo.publishCreatedAuthoredPlan(planId)
+        val planId = repo.plans.createAuthoredPlan("Repeatable", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(planId)
         repo.addExercise("A", ProgramExercise(
             "bb_back_squat", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(100.0, 5)),
         ))
@@ -99,7 +99,7 @@ class SetEditApplierRunTest {
             "ez_curl", targetSets = 2, prescription = Prescription(PrescribedTarget.LoadReps(50.0, 10)),
             superset = SupersetPartner("rope_pushdown"),
         ))
-        for (slot in repo.slotsFor(planId, "A").first()) {
+        for (slot in repo.plans.slotsFor(planId, "A").first()) {
             val squat = slot.exercise.exerciseId == "bb_back_squat"
             repo.setPrescription(slot.programExerciseId,
                 Prescription(PrescribedTarget.LoadReps(if (squat) 100.0 else 50.0, if (squat) 5 else 10)),
@@ -109,12 +109,12 @@ class SetEditApplierRunTest {
         return planId
     }
 
-    private suspend fun squatId(planId: Long): Long = repo.slotsFor(planId, "A").first()
+    private suspend fun squatId(planId: Long): Long = repo.plans.slotsFor(planId, "A").first()
         .first { it.exercise.exerciseId == "bb_back_squat" }.programExerciseId
 
     private suspend fun seeds(planId: Long): Map<Pair<Long, String>, List<LoggedSet>> = DaySeeds.plan(
-        repo.slotsFor(planId, "A").first(), emptyMap(),
-        repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first(),
+        repo.plans.slotsFor(planId, "A").first(), emptyMap(),
+        repo.plans.wizardAnswersFor(planId).first().config, repo.catalog.catalogFlow.first(),
     )
 
     private suspend fun phoneStart(planId: Long): String {
@@ -168,7 +168,7 @@ class SetEditApplierRunTest {
         val planId = authored()
         assertTrue(repo.dayTracksFlow(planId, "A").first().tracks.isEmpty())
         val runId = db.programDao().day(planId, "A")!!.nextRunId
-        val curl = repo.slotsFor(planId, "A").first().first { it.exercise.exerciseId == "ez_curl" }.programExerciseId
+        val curl = repo.plans.slotsFor(planId, "A").first().first { it.exercise.exerciseId == "ez_curl" }.programExerciseId
         val edit = delta(planId, runId).copy(programExerciseId = curl, exerciseId = "ez_curl")
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit))
         val open = repo.openRunFlow.first()!!
@@ -184,7 +184,7 @@ class SetEditApplierRunTest {
         for (doneSlot in listOf(Slot.MAIN, Slot.SS)) {
             val planId = authored()
             val runId = phoneStart(planId)
-            val id = repo.slotsFor(planId, "A").first()
+            val id = repo.plans.slotsFor(planId, "A").first()
                 .first { it.exercise.exerciseId == "ez_curl" }.programExerciseId
             val initial = repo.dayTracksFlow(planId, "A").first().tracks
                 .first { it.programExerciseId == id && it.slot == doneSlot }.sets
@@ -262,7 +262,7 @@ class SetEditApplierRunTest {
             dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
             editedAtMillis = 100, planId = planId, runId = runId,
         )))
-        assertEquals("bb_back_squat", repo.slotsFor(planId, "A").first().first { it.programExerciseId == id }.exercise.exerciseId)
+        assertEquals("bb_back_squat", repo.plans.slotsFor(planId, "A").first().first { it.programExerciseId == id }.exercise.exerciseId)
         assertFalse(repo.dayTracksFlow(planId, "A").first().runOpen)
     }
 
@@ -272,12 +272,12 @@ class SetEditApplierRunTest {
         val planId = authored()
         val runId = phoneStart(planId)
         val id = squatId(planId)
-        applier = SetEditApplier(repo, RecordingMarkers { repo.finishRun(runId) }, syncStore)
+        applier = SetEditApplier(repo, RecordingMarkers { repo.finishRun(runId) }, syncStore, plans = repo.plans, catalog = repo.catalog)
         assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
             editedAtMillis = 100, planId = planId, runId = runId,
         )))
-        assertEquals("bb_back_squat", repo.slotsFor(planId, "A").first()
+        assertEquals("bb_back_squat", repo.plans.slotsFor(planId, "A").first()
             .first { it.programExerciseId == id }.exercise.exerciseId)
         assertTrue(repo.dayTracksFlow(planId, "A").first().tracks.isEmpty())
         assertNull(repo.openRunFlow.first())
@@ -382,7 +382,7 @@ class SetEditApplierRunTest {
 
     @Test fun `run identified swap refuses another open workout without changing anything`() = runTest {
         val plan = authored()
-        val other = repo.duplicatePlan(plan, "Other")
+        val other = repo.plans.duplicatePlan(plan, "Other")
         val openId = phoneStart(other)
         val beforeRun = repo.openRunFlow.first()
         val beforeSlot = db.programDao().exercise(squatId(plan))
@@ -419,7 +419,10 @@ class SetEditApplierRunTest {
         applier = SetEditApplier(repo, RecordingMarkers {
             phoneStart(plan)
             repo.finishRun(runId)
-        }, syncStore)
+        }, syncStore,
+            plans = repo.plans,
+            catalog = repo.catalog,
+        )
         assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
             editedAtMillis = 100, planId = plan, runId = runId,
@@ -453,7 +456,7 @@ class SetEditApplierRunTest {
             afterPhoneSwap = repo.openRunFlow.first()
         }
         markers.markApplied("A|$id|swap", 200)
-        applier = SetEditApplier(repo, markers, syncStore)
+        applier = SetEditApplier(repo, markers, syncStore, plans = repo.plans, catalog = repo.catalog)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = id, exerciseId = "hack_squat", exerciseName = "Hack Squat",
             editedAtMillis = 100, planId = plan, runId = runId,
@@ -480,7 +483,7 @@ class SetEditApplierRunTest {
 
     @Test fun `watch Start seeds a missing SS to its MAIN remembered length`() = runTest {
         val plan = authored()
-        val curl = repo.slotsFor(plan, "A").first().first { it.exercise.exerciseId == "ez_curl" }
+        val curl = repo.plans.slotsFor(plan, "A").first().first { it.exercise.exerciseId == "ez_curl" }
         val remembered = List(5) { LoggedSet(60.0, 8, SetKind.WORK) }
         db.storeTestRows("A", curl.programExerciseId, Slot.MAIN, remembered)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
@@ -502,7 +505,7 @@ class SetEditApplierRunTest {
             afterPhoneSwap = repo.openRunFlow.first()
         }
         markers.markApplied("A|$id|swap", 200)
-        applier = SetEditApplier(repo, markers, syncStore)
+        applier = SetEditApplier(repo, markers, syncStore, plans = repo.plans, catalog = repo.catalog)
         assertEquals(SetEditApplier.Outcome.STALE, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = id, exerciseId = "bb_back_squat", exerciseName = "Squat",
             editedAtMillis = 100, planId = plan, runId = runId,
@@ -513,7 +516,7 @@ class SetEditApplierRunTest {
     @Test fun `SS delta for a dropped partner is rejected and acknowledged without changing tracks`() = runTest {
         val plan = authored()
         val runId = phoneStart(plan)
-        val id = repo.slotsFor(plan, "A").first().first { it.exercise.superset != null }.programExerciseId
+        val id = repo.plans.slotsFor(plan, "A").first().first { it.exercise.superset != null }.programExerciseId
         repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "ez_curl", "rope_pushdown")
         val before = db.runDao().tracks(runId)
         val edit = SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.SS, setIndex = 0,

@@ -95,7 +95,7 @@ class TrackerRepositoryFinishArchiveTest {
                 ),
             ),
         )
-        val ids = repo.daySlotsFlow("A").first().map { it.programExerciseId }
+        val ids = repo.plans.daySlotsFlow("A").first().map { it.programExerciseId }
         for (id in ids) {
             db.storeTestRows(
                 "A", id, Slot.MAIN,
@@ -106,8 +106,8 @@ class TrackerRepositoryFinishArchiveTest {
     }
 
     private suspend fun tickSets(slotId: Long, indices: Set<Int>) {
-        val sets = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.programExerciseId == slotId }.sets
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(),
+        val sets = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.programExerciseId == slotId }.sets
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(),
             "A", slotId, Slot.MAIN,
             sets.mapIndexed { index, set ->
                 if (index in indices) {
@@ -178,7 +178,7 @@ class TrackerRepositoryFinishArchiveTest {
         clock.instant = Instant.parse("2026-07-06T23:40:00Z")
         assertEquals("2026-07-06", LocalDate.now(clock).toString())
         tickSets(ids.first(), setOf(0))
-        val ticked = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.programExerciseId == ids.first() }.sets.first()
+        val ticked = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.programExerciseId == ids.first() }.sets.first()
 
         clock.instant = Instant.parse("2026-07-07T00:20:00Z")
         assertEquals("2026-07-07", LocalDate.now(clock).toString())

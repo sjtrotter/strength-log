@@ -142,12 +142,12 @@ class PersistenceProcessDeathTest {
     @Test
     fun every_mutation_survives_closing_and_reopening_the_database_and_datastore() = runTest {
         // --- settings: wizard answers, completion flag, display unit ----------
-        repository.setWizardAnswers(wizardAnswers)
+        repository.plans.setWizardAnswers(wizardAnswers)
         settings.setWizardComplete(true)
         settings.setUnit(WeightUnit.KG)
 
         // --- a user-created exercise ------------------------------------------
-        val customId = repository.addCustomExercise(
+        val customId = repository.catalog.addCustomExercise(
             name = "Cable Hack Squat",
             pattern = MovementPattern.SQUAT_BILATERAL,
             equipment = listOf(Equipment.MACHINE, Equipment.CABLE),
@@ -188,21 +188,21 @@ class PersistenceProcessDeathTest {
         db.storeTestRows("A", benchRowId, Slot.MAIN, emptyList())
 
         // --- a completed workout: log, then DONE — advance ---------------------
-        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
-        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.plans.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
         repository.finishRun(repository.openRunFlow.first()!!.id)!! // appends history, clears A's checks, rotation -> B
 
         // --- mid-edit state after that session ---------------------------------
         // A set-weight edit: write once, then edit upward.
-        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
-        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(255.0, 5, SetKind.TOP)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(255.0, 5, SetKind.TOP)))
         // A checkmark toggle: unchecked, then checked.
-        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = false)))
-        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.plans.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = false)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.plans.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)))
         // An exercise swap: the bench slot becomes a dumbbell-bench slot.
         repository.swapExerciseById("A", benchRowId, "db_bench")
 
-        val logsBeforeKill = repository.dayTracksFlow(repository.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId }
+        val logsBeforeKill = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId }
         assertEquals(2, logsBeforeKill.size)
         assertTrue(logsBeforeKill.flatMap { it.sets }.all { it.plannedIndex == 0 })
 
@@ -211,7 +211,7 @@ class PersistenceProcessDeathTest {
         openSession()
 
         // Program: every field of every slot, not just the id ordering.
-        val program = repository.programFlow.first()
+        val program = repository.plans.programFlow.first()
         assertEquals(listOf("A", "B"), program.days.map { it.id })
         val reopenedA = program.days.first()
         assertEquals("Day A", reopenedA.title)
@@ -220,7 +220,7 @@ class PersistenceProcessDeathTest {
         assertEquals(listOf(squat, row, bench.copy(exerciseId = "db_bench")), reopenedA.exercises)
         assertEquals(dayB, program.days.last())
 
-        assertEquals(logsBeforeKill, repository.dayTracksFlow(repository.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId })
+        assertEquals(logsBeforeKill, repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId })
         assertEquals(listOf(LoggedSet(255.0, 5, SetKind.TOP, plannedIndex = 0)), logsBeforeKill[0].sets)
         assertEquals(listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true, plannedIndex = 0)), logsBeforeKill[1].sets)
 
@@ -242,11 +242,11 @@ class PersistenceProcessDeathTest {
         assertTrue(sessionSets.all { it.exerciseName.isNotBlank() })
 
         // Settings: rotation pointer, wizard state, unit, custom exercise.
-        assertEquals("B", repository.suggestedDayFlow.first()) // advanced past A
-        assertEquals(wizardAnswers, repository.wizardAnswersFlow.first())
+        assertEquals("B", repository.plans.suggestedDayFlow.first()) // advanced past A
+        assertEquals(wizardAnswers, repository.plans.wizardAnswersFlow.first())
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
-        val customEntry = repository.catalogFlow.first().get(customId)
+        val customEntry = repository.catalog.catalogFlow.first().get(customId)
         assertEquals("Cable Hack Squat", customEntry.name)
         assertEquals(GoalSource.Flat(80.0), customEntry.goal)
     }

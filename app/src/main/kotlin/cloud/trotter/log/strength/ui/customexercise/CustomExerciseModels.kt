@@ -20,7 +20,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  *
  * [canSave] is the one validation rule the form has (name required, trimmed,
  * non-blank) — [CustomExerciseScreen] disables the save action on it so a
- * blank/whitespace name can never reach [cloud.trotter.log.strength.data.TrackerRepository.addCustomExercise].
+ * blank/whitespace name can never reach [cloud.trotter.log.strength.data.CatalogRepository.addCustomExercise].
  */
 data class CustomExerciseUiState(
     val name: String = "",

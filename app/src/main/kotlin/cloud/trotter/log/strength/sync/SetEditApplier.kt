@@ -8,6 +8,8 @@ import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
@@ -28,6 +30,8 @@ class SetEditApplier(
     private val repo: TrackerRepository,
     private val markers: AppliedEditMarkers,
     private val ackLog: EditAckLog,
+    private val plans: PlanRepository,
+    private val catalog: CatalogRepository,
 ) {
 
     enum class Outcome { APPLIED, STALE, INVALID, REJECTED }
@@ -51,14 +55,14 @@ class SetEditApplier(
         delta.completedAtMillis?.let { if (it < 0) return Outcome.INVALID }
 
         // A delayed edit still belongs to the slot's plan after a phone plan switch.
-        val planId = delta.planId ?: repo.planIdOfSlot(delta.programExerciseId) ?: return Outcome.INVALID
+        val planId = delta.planId ?: plans.planIdOfSlot(delta.programExerciseId) ?: return Outcome.INVALID
         val dayTracks = repo.dayTracksFlow(planId, delta.dayId).first()
         if (repo.openRunFlow.first()?.isSlotSkipped(delta.programExerciseId, delta.slot) == true) return Outcome.REJECTED
-        val slots = repo.slotsFor(planId, delta.dayId).first().forRun(dayTracks.droppedPartners, dayTracks.skippedLifts)
+        val slots = plans.slotsFor(planId, delta.dayId).first().forRun(dayTracks.droppedPartners, dayTracks.skippedLifts)
         val slot = slots.firstOrNull { it.programExerciseId == delta.programExerciseId } ?: return Outcome.INVALID
         if (delta.slot == Slot.SS && slot.exercise.superset == null) return Outcome.INVALID
 
-        val catalog = repo.catalogFlow.first()
+        val catalog = this.catalog.catalogFlow.first()
         val tracks = dayTracks.tracks
         var declined: Outcome? = null
         val edits = mutableListOf<TrackEdit>()
@@ -96,7 +100,7 @@ class SetEditApplier(
             val seeds = if (delta.runId == null) emptyMap() else {
                 val existing = tracks
                     .associate { (it.programExerciseId to it.slot) to it.sets.size }
-                val cfg = repo.wizardAnswersFor(planId).first().config
+                val cfg = plans.wizardAnswersFor(planId).first().config
                 DaySeeds.plan(slots, existing, cfg, catalog)
             }
             val otherSlot = if (delta.slot == Slot.MAIN) Slot.SS else Slot.MAIN
@@ -146,19 +150,19 @@ class SetEditApplier(
     }
 
     private suspend fun applySwap(swap: ExerciseSwapDelta): Outcome {
-        val planId = swap.planId ?: repo.planIdOfSlot(swap.programExerciseId) ?: return Outcome.INVALID
-        val slots = repo.slotsFor(planId, swap.dayId).first()
+        val planId = swap.planId ?: plans.planIdOfSlot(swap.programExerciseId) ?: return Outcome.INVALID
+        val slots = plans.slotsFor(planId, swap.dayId).first()
         val slot = slots.firstOrNull { it.programExerciseId == swap.programExerciseId }
             ?: return Outcome.INVALID
 
-        val catalog = repo.catalogFlow.first()
+        val catalog = this.catalog.catalogFlow.first()
         val tracks = repo.dayTracksFlow(planId, swap.dayId).first()
         val performed = performedExercise(slot, tracks.tracks.firstOrNull {
             it.programExerciseId == slot.programExerciseId && it.slot == Slot.MAIN
         }?.exerciseId, catalog)
         val rowKey = "${swap.dayId}|${swap.programExerciseId}|swap"
         val stale = swap.editedAtMillis <= markers.lastApplied(rowKey)
-        val answers = repo.wizardAnswersFor(planId).first()
+        val answers = plans.wizardAnswersFor(planId).first()
         val declined = when {
             stale -> Outcome.STALE
             swap.exerciseId != slot.exercise.exerciseId && swap.exerciseId != performed.exerciseId &&

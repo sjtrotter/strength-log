@@ -129,7 +129,7 @@ class TrackerRepositorySessionHistoryImportTest {
 
         repo.importSessionHistory(listOf(imported), newCustomExercises = listOf(custom))
 
-        val catalog = repo.catalogFlow.first()
+        val catalog = repo.catalog.catalogFlow.first()
         assertTrue(catalog.entries.any { it.id == custom.id })
     }
 
@@ -138,7 +138,7 @@ class TrackerRepositorySessionHistoryImportTest {
         val imported = ImportedSession(session("Day A", 1_000L), listOf(set("bb_back_squat", "Barbell Back Squat", 0)))
         repo.importSessionHistory(listOf(imported), newCustomExercises = emptyList())
 
-        assertEquals(0, repo.programFlow.first().days.size)
+        assertEquals(0, repo.plans.programFlow.first().days.size)
     }
 
     private fun cardio() = ImportedCardioSession(
@@ -190,7 +190,7 @@ class TrackerRepositorySessionHistoryImportTest {
         assertTrue(history.sessionSets.isEmpty())
         assertTrue(history.cardioSessions.isEmpty())
         assertTrue(db.cardioSetResultDao().all().isEmpty())
-        assertTrue(repo.catalogFlow.first().entries.none { it.id == custom.id })
+        assertTrue(repo.catalog.catalogFlow.first().entries.none { it.id == custom.id })
     }
 
     @Test

@@ -142,6 +142,8 @@ class DayViewModelWorkoutTest {
             repo, SessionPublisher.NoOp, share, savedState, clock, InertAlarm, PhoneRestController(settings, runtime),
             clock = clock,
             settings = settings,
+            plans = repo.plans,
+            catalog = repo.catalog,
         ).also { vms += it }
         backgroundScope.launch { vm.uiState.collect {} }
         runCurrent()
@@ -663,7 +665,7 @@ class DayViewModelWorkoutTest {
         val id = state.exercises.single().programExerciseId
         vm.logFocusedSet()
         runCurrent()
-        val applier = SetEditApplier(repo, syncStore, syncStore)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
         val edit = SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
             done = true, editedAtMillis = 100_001, planId = state.planId, runId = state.runId, exerciseId = "db_bench",
@@ -743,7 +745,7 @@ class DayViewModelWorkoutTest {
         vm.selectWorkoutLift(selectedKey)
         runCurrent()
         assertNull(repo.openRunFlow.first())
-        val applier = SetEditApplier(repo, syncStore, syncStore)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = firstId, slot = Slot.MAIN, setIndex = 0,
             done = true, editedAtMillis = 100_001, planId = state.planId, runId = state.runId, exerciseId = "db_bench",
@@ -809,7 +811,7 @@ class DayViewModelWorkoutTest {
         vm.logFocusedSet()
         runCurrent()
         assertNotNull(vm.uiState.value.workout!!.undo)
-        val applier = SetEditApplier(repo, syncStore, syncStore)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
             reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
@@ -833,7 +835,7 @@ class DayViewModelWorkoutTest {
         val id = state.exercises.single().programExerciseId
         vm.logFocusedSet()
         runCurrent()
-        val applier = SetEditApplier(repo, syncStore, syncStore)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
         val watchTick = SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
             done = true, editedAtMillis = 100_001, planId = state.planId, runId = state.runId, exerciseId = "db_bench",
@@ -862,7 +864,7 @@ class DayViewModelWorkoutTest {
         assertNotNull(record?.undo)
         assertNotNull(rest)
         val cancellations = runtime.cancellations
-        val applier = SetEditApplier(repo, syncStore, syncStore)
+        val applier = SetEditApplier(repo, syncStore, syncStore, plans = repo.plans, catalog = repo.catalog)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
             reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,

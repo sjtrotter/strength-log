@@ -270,12 +270,14 @@ class PhoneRestRuntimeTest {
 
     @Test fun previewDiscardAndStartClearsTheOldDaysRestAlarmAndNotification() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         repo.startRun(plan, "A")
         startRest()
         val preview = PreviewViewModel(repo, SavedStateHandle(mapOf(
             Routes.PLAN_ID_ARG to plan.toString(), Routes.DAY_ID_ARG to "B",
-        )), rest, settings = settings).also { models += it }
+        )), rest, settings = settings,
+            plans = repo.plans,
+        ).also { models += it }
         preview.start()
         advanceUntilIdle()
         preview.workoutStart.confirmDiscard()
@@ -298,7 +300,10 @@ class PhoneRestRuntimeTest {
 
     private fun newDayModel(clock: Clock = Clock.systemUTC()) =
         DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
-            FixedCardioClock(), InertCardioAlarm, rest, clock, settings = settings).also { models += it }
+            FixedCardioClock(), InertCardioAlarm, rest, clock, settings = settings,
+            plans = repo.plans,
+            catalog = repo.catalog,
+        ).also { models += it }
 
     private fun checkDayAction(action: (DayViewModel) -> Unit) = runTest(dispatcher) {
         insertProgram()
@@ -307,7 +312,7 @@ class PhoneRestRuntimeTest {
         advanceUntilIdle()
         // Log with rest disabled, then arm it without collecting the foreground ticker.
         settings.setPhoneRestTimerEnabled(false)
-        val slot = repo.daySlotsFlow("A").first().first()
+        val slot = repo.plans.daySlotsFlow("A").first().first()
         vm.toggleDone(slot.programExerciseId, 0, true, Slot.MAIN)
         advanceUntilIdle()
         assertTrue(vm.uiState.value.runOpen)

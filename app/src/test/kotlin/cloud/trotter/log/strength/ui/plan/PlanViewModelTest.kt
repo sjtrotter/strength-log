@@ -77,8 +77,8 @@ class PlanViewModelTest {
     }
 
     private suspend fun viewModel(handle: SavedStateHandle = SavedStateHandle()): PlanViewModel {
-        if (!handle.contains(Routes.PLAN_ID_ARG)) handle[Routes.PLAN_ID_ARG] = repo.selectedPlanIdFlow.first()!!.toString()
-        return PlanViewModel(repo, handle, context, settings = settings).also { vm ->
+        if (!handle.contains(Routes.PLAN_ID_ARG)) handle[Routes.PLAN_ID_ARG] = repo.plans.selectedPlanIdFlow.first()!!.toString()
+        return PlanViewModel(repo, handle, context, settings = settings, plans = repo.plans, catalog = repo.catalog).also { vm ->
             viewModels += vm
             vm.viewModelScope.launch { vm.uiState.collect {} }
         }
@@ -88,9 +88,9 @@ class PlanViewModelTest {
     fun `emphasis edits and unit changes update the viewed generated plan`() = runTest(dispatcher) {
         val answers = WizardAnswers()
         val program = ProgramGenerator.generate(answers)
-        val preferred = repo.createGeneratedPlan("Preferred", answers, program)
-        repo.publishCreatedPlan(preferred, answers)
-        val tapped = repo.createGeneratedPlan("Viewed", answers, program)
+        val preferred = repo.plans.createGeneratedPlan("Preferred", answers, program)
+        repo.plans.publishCreatedPlan(preferred, answers)
+        val tapped = repo.plans.createGeneratedPlan("Viewed", answers, program)
         val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to tapped.toString())))
         advanceUntilIdle()
         assertEquals("235", vm.uiState.value.goals.first().display)
@@ -98,8 +98,8 @@ class PlanViewModelTest {
         vm.setEmphasis(GoalEmphasis.STRENGTH)
         advanceUntilIdle()
         assertEquals(GoalEmphasis.STRENGTH, vm.uiState.value.emphasis)
-        assertEquals(GoalEmphasis.BALANCED, repo.wizardAnswersFor(preferred).first().config.emphasis)
-        assertEquals(preferred, repo.selectedPlanIdFlow.first())
+        assertEquals(GoalEmphasis.BALANCED, repo.plans.wizardAnswersFor(preferred).first().config.emphasis)
+        assertEquals(preferred, repo.plans.selectedPlanIdFlow.first())
         val pounds = vm.uiState.value.goals
         settings.setUnit(WeightUnit.KG)
         advanceUntilIdle()
@@ -109,9 +109,9 @@ class PlanViewModelTest {
 
     @Test
     fun `tapped plan stays visible and all day actions target it while preferred changes`() = runTest(dispatcher) {
-        val preferred = repo.createAuthoredPlan("Preferred", "Preferred day")
-        repo.publishCreatedAuthoredPlan(preferred)
-        val tapped = repo.createAuthoredPlan("Physio", "Rehab")
+        val preferred = repo.plans.createAuthoredPlan("Preferred", "Preferred day")
+        repo.plans.publishCreatedAuthoredPlan(preferred)
+        val tapped = repo.plans.createAuthoredPlan("Physio", "Rehab")
         val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to tapped.toString())))
         advanceUntilIdle()
         assertEquals("Physio", vm.uiState.value.name)
@@ -120,16 +120,16 @@ class PlanViewModelTest {
         advanceUntilIdle()
         assertEquals(2, db.programDao().daysForPlan(tapped).size)
         assertEquals(1, db.programDao().daysForPlan(preferred).size)
-        repo.selectPlan(tapped)
-        repo.selectPlan(preferred)
+        repo.plans.selectPlan(tapped)
+        repo.plans.selectPlan(preferred)
         advanceUntilIdle()
         assertEquals(tapped, vm.uiState.value.planId)
     }
 
     @Test
     fun `added cardio only day exposes its activity and set count immediately`() = runTest(dispatcher) {
-        val plan = repo.createAuthoredPlan("Running", "Day A")
-        repo.publishCreatedAuthoredPlan(plan)
+        val plan = repo.plans.createAuthoredPlan("Running", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
         val vm = viewModel()
         advanceUntilIdle()
         vm.addDay()
@@ -145,8 +145,8 @@ class PlanViewModelTest {
 
     @Test
     fun `authored days add rename and remove immediately with a seven day cap`() = runTest(dispatcher) {
-        val plan = repo.createAuthoredPlan("Prep", "Day A")
-        repo.publishCreatedAuthoredPlan(plan)
+        val plan = repo.plans.createAuthoredPlan("Prep", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
         val vm = viewModel()
         advanceUntilIdle()
         repeat(8) { vm.addDay() }
@@ -168,8 +168,8 @@ class PlanViewModelTest {
 
     @Test
     fun `day dialog survives recreation and writes to its original plan after selection changes`() = runTest(dispatcher) {
-        val plan = repo.createAuthoredPlan("Physio", "Day A")
-        repo.publishCreatedAuthoredPlan(plan)
+        val plan = repo.plans.createAuthoredPlan("Physio", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
         val handle = SavedStateHandle()
         val vm = viewModel(handle)
         advanceUntilIdle()
@@ -177,8 +177,8 @@ class PlanViewModelTest {
         vm.setDayTitleDraft("Daily rehab")
         val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
         vm.viewModelScope.cancel()
-        val other = repo.createAuthoredPlan("Other", "Day A")
-        repo.publishCreatedAuthoredPlan(other)
+        val other = repo.plans.createAuthoredPlan("Other", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(other)
         val restored = viewModel(restoredHandle)
         advanceUntilIdle()
         assertEquals("rename", restored.uiState.value.dialog)
@@ -194,7 +194,7 @@ class PlanViewModelTest {
         repo.replaceProgram(ProgramGenerator.generate(WizardAnswers(
             daysPerWeek = 6, cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS),
         )))
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = viewModel()
         advanceUntilIdle()
         assertEquals(8, vm.uiState.value.days.size)
@@ -203,7 +203,7 @@ class PlanViewModelTest {
         assertEquals(('A'..'G').map { it.toString() },
             vm.uiState.value.days.filter { it.kind == ProgramDayKind.STRENGTH }.map { it.dayId })
         assertEquals(9, vm.uiState.value.days.size)
-        assertEquals(listOf("C1", "C2"), repo.programFor(plan).first().cardioDays.map { it.id })
+        assertEquals(listOf("C1", "C2"), repo.plans.programFor(plan).first().cardioDays.map { it.id })
         vm.addDay()
         advanceUntilIdle()
         assertEquals(9, db.programDao().daysForPlan(plan).size)
@@ -212,7 +212,7 @@ class PlanViewModelTest {
     @Test
     fun `generated days add rename and remove immediately`() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Generated", "", emptyList()))))
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = viewModel()
         advanceUntilIdle()
         vm.addDay()

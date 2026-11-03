@@ -116,10 +116,10 @@ class TrackerRepositoryPlanScopeTest {
     fun `replace on a fresh database creates and selects My plan`() = runTest {
         repo.replaceProgram(program("First plan", "bb_back_squat"))
 
-        val plan = repo.plansFlow.first().single()
+        val plan = repo.plans.plansFlow.first().single()
         assertEquals(PlanEntity.LEGACY_NAME, plan.name)
         assertEquals(plan.id, settings.selectedPlanIdFlow.first())
-        assertEquals(listOf("First plan"), repo.programFlow.first().days.map { it.title })
+        assertEquals(listOf("First plan"), repo.plans.programFlow.first().days.map { it.title })
     }
 
     @Test
@@ -146,8 +146,8 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(Instant.parse("2026-10-19T12:00:00Z").toEpochMilli(), created.createdAt)
         assertFalse(created.archived)
         assertEquals(created.id, settings.selectedPlanIdFlow.first())
-        assertEquals(created.id, repo.selectedPlanIdFlow.first())
-        assertEquals(replacement, repo.programFlow.first())
+        assertEquals(created.id, repo.plans.selectedPlanIdFlow.first())
+        assertEquals(replacement, repo.plans.programFlow.first())
         assertEquals(listOf("New program"), db.programDao().daysForPlan(created.id).map { it.title })
         assertEquals(listOf("bb_bench"), db.programDao().exercisesForPlan(created.id).map { it.exerciseId })
         assertEquals(archivedDays, db.programDao().daysForPlan(1))
@@ -158,7 +158,7 @@ class TrackerRepositoryPlanScopeTest {
     @Test
     fun `live writes and flows follow the selected plan`() = runTest {
         repo.replaceProgram(program("Plan one", "bb_back_squat"))
-        val planOneId = repo.plansFlow.first().single().id
+        val planOneId = repo.plans.plansFlow.first().single().id
         val slotOne = db.programDao().exerciseAt(planOneId, "A", 0)!!.id
         insertPlanTwo()
         val slotTwo = insertProgram(2, "Plan two", "bb_bench", id = 22)
@@ -166,12 +166,12 @@ class TrackerRepositoryPlanScopeTest {
         val planTwoSets = sets(135.0)
         db.programDao().upsertLog(log(2, slotTwo, planTwoSets))
 
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slotOne) ?: -1, "A").first().runId.orEmpty(), "A", slotOne, Slot.MAIN, planOneSets)
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slotOne) ?: -1, "A").first().runId.orEmpty(), "A", slotOne, Slot.MAIN, planOneSets)
 
         val emissions = mutableListOf<List<LoggedSlot>>()
         val emitted = Channel<Unit>(Channel.UNLIMITED)
         val collector = backgroundScope.launch {
-            repo.selectedPlanIdFlow.flatMapLatest { repo.dayTracksFlow(it!!, "A") }.map { it.tracks }.collect {
+            repo.plans.selectedPlanIdFlow.flatMapLatest { repo.dayTracksFlow(it!!, "A") }.map { it.tracks }.collect {
                 emissions.add(it)
                 emitted.send(Unit)
             }
@@ -193,9 +193,9 @@ class TrackerRepositoryPlanScopeTest {
     @Test
     fun `replace clears only the selected plan`() = runTest {
         repo.replaceProgram(program("Plan one", "bb_back_squat"))
-        val planOneId = repo.plansFlow.first().single().id
+        val planOneId = repo.plans.plansFlow.first().single().id
         val slotOne = db.programDao().exerciseAt(planOneId, "A", 0)!!.id
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slotOne) ?: -1, "A").first().runId.orEmpty(), "A", slotOne, Slot.MAIN, sets(225.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slotOne) ?: -1, "A").first().runId.orEmpty(), "A", slotOne, Slot.MAIN, sets(225.0))
         insertPlanTwo()
         val slotTwo = insertProgram(2, "Plan two", "bb_bench", id = 22)
         db.programDao().upsertLog(log(2, slotTwo, sets(135.0)))
@@ -244,7 +244,7 @@ class TrackerRepositoryPlanScopeTest {
         insertTwoProgramsAndSelectPlanTwo()
         val main = sets(225.0)
 
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "A").first().runId.orEmpty(), "A", 11, Slot.MAIN, main)
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(11) ?: -1, "A").first().runId.orEmpty(), "A", 11, Slot.MAIN, main)
 
         assertSlotLogsInPlanOne(mapOf(Slot.MAIN to main))
     }
@@ -256,7 +256,7 @@ class TrackerRepositoryPlanScopeTest {
         val main = sets(225.0)
         val ss = sets(115.0)
 
-        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "A").first().runId.orEmpty(), "A", 11, main, ss)
+        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.plans.planIdOfSlot(11) ?: -1, "A").first().runId.orEmpty(), "A", 11, main, ss)
 
         assertSlotLogsInPlanOne(mapOf(Slot.MAIN to main, Slot.SS to ss))
     }
@@ -294,8 +294,8 @@ class TrackerRepositoryPlanScopeTest {
         db.programDao().upsertLog(storedLog)
         val exercises = db.programDao().allExercises()
 
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, Slot.MAIN, sets(235.0))
-        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, sets(245.0), sets(115.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, Slot.MAIN, sets(235.0))
+        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.plans.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, sets(245.0), sets(115.0))
         repo.ensureSeeded(1, "B")
         repo.swapExerciseById("B", 11, "db_goblet_squat")
 
@@ -308,8 +308,8 @@ class TrackerRepositoryPlanScopeTest {
         insertTwoProgramsAndSelectPlanTwo()
         val exercises = db.programDao().allExercises()
 
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, Slot.MAIN, sets(235.0))
-        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, sets(245.0), sets(115.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, Slot.MAIN, sets(235.0))
+        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.plans.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, sets(245.0), sets(115.0))
         repo.ensureSeeded(-1, "A")
         repo.swapExerciseById("A", 99, "db_goblet_squat")
 
@@ -327,15 +327,15 @@ class TrackerRepositoryPlanScopeTest {
             kind = ProgramDayKind.CARDIO,
         )
         repo.replaceProgram(Program(listOf(strength, strength.copy(id = "B", title = "Upper"), cardio)))
-        val plan = repo.plansFlow.first().single()
+        val plan = repo.plans.plansFlow.first().single()
         db.planDao().updateSuggestedDay(plan.id, "B")
-        val cardioSlot = repo.daySlotsFlow("C").first().single().programExerciseId
+        val cardioSlot = repo.plans.daySlotsFlow("C").first().single().programExerciseId
         val coreSets = listOf(LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 30))
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(cardioSlot) ?: -1, "C").first().runId.orEmpty(), "C", cardioSlot, Slot.MAIN, coreSets)
-        val strengthSlot = repo.daySlotsFlow("A").first().single().programExerciseId
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(strengthSlot) ?: -1, "A").first().runId.orEmpty(), "A", strengthSlot, Slot.MAIN, sets(225.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(cardioSlot) ?: -1, "C").first().runId.orEmpty(), "C", cardioSlot, Slot.MAIN, coreSets)
+        val strengthSlot = repo.plans.daySlotsFlow("A").first().single().programExerciseId
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(strengthSlot) ?: -1, "A").first().runId.orEmpty(), "A", strengthSlot, Slot.MAIN, sets(225.0))
         val otherDayLogs = db.programDao().logsForDay(plan.id, "A")
-        val suggestedBefore = repo.suggestedDayFlow.first()
+        val suggestedBefore = repo.plans.suggestedDayFlow.first()
 
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
@@ -348,16 +348,16 @@ class TrackerRepositoryPlanScopeTest {
         val recordedSet = repo.sessionSets(sessionId).single()
         assertTrue(recordedSet.done)
         assertEquals(30, recordedSet.seconds)
-        assertEquals(coreSets.map { it.copy(done = false) }, repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets)
+        assertEquals(coreSets.map { it.copy(done = false) }, repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets)
         assertEquals(otherDayLogs, db.programDao().logsForDay(plan.id, "A"))
         assertEquals("B", suggestedBefore)
-        assertEquals(suggestedBefore, repo.suggestedDayFlow.first())
+        assertEquals(suggestedBefore, repo.plans.suggestedDayFlow.first())
     }
 
     @Test
     fun `advance stamps the selected plan and clears only its checks`() = runTest {
         repo.replaceProgram(program("Plan one", "bb_back_squat"))
-        val planOneId = repo.plansFlow.first().single().id
+        val planOneId = repo.plans.plansFlow.first().single().id
         val slotOne = db.programDao().exerciseAt(planOneId, "A", 0)!!.id
         db.programDao().upsertLog(log(planOneId, slotOne, sets(225.0)))
         db.planDao().insertPlan(plan(2, "Test prep", position = 1))
@@ -409,9 +409,9 @@ class TrackerRepositoryPlanScopeTest {
         )
 
         settings.setSelectedPlanId(999)
-        assertEquals(3L, repo.selectedPlanIdFlow.first())
+        assertEquals(3L, repo.plans.selectedPlanIdFlow.first())
         settings.setSelectedPlanId(1)
-        assertEquals(3L, repo.selectedPlanIdFlow.first())
+        assertEquals(3L, repo.plans.selectedPlanIdFlow.first())
     }
 
     @Test
@@ -455,40 +455,40 @@ class TrackerRepositoryPlanScopeTest {
     fun `generated plan appends selects and preserves the previous plan`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
         val oldAnswers = WizardAnswers(daysPerWeek = 3)
-        repo.setWizardAnswers(oldAnswers)
+        repo.plans.setWizardAnswers(oldAnswers)
         db.programDao().upsertDay(ProgramDayEntity(1, "B", 1, "Original next", "", null))
         db.planDao().updateSuggestedDay(1, "B")
         val slot = db.programDao().exercisesForPlan(1).single().id
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, sets(225.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, sets(225.0))
         val before = db.planDao().plan(1)
         val days = db.programDao().daysForPlan(1)
         val exercises = db.programDao().exercisesForPlan(1)
         val logs = db.programDao().logsForPlan(1)
         val answers = WizardAnswers(config = oldAnswers.config.copy(bodyweightLb = 210))
 
-        val created = repo.createGeneratedPlan("4-day full body", answers, program("New", "bb_bench"))
+        val created = repo.plans.createGeneratedPlan("4-day full body", answers, program("New", "bb_bench"))
 
         assertEquals(1L, settings.selectedPlanIdFlow.first())
         assertEquals(GlobalLifter.of(oldAnswers.config), settings.globalLifterFlow.first())
-        repo.publishCreatedPlan(created, answers)
-        repo.publishCreatedPlan(created, answers)
+        repo.plans.publishCreatedPlan(created, answers)
+        repo.plans.publishCreatedPlan(created, answers)
 
         assertEquals(listOf(1L, created), db.planDao().allPlans().map { it.id })
         assertEquals(1, db.planDao().plan(created)!!.position)
         assertEquals(created, settings.selectedPlanIdFlow.first())
         assertEquals(PlanRecipeJson.encode(answers), db.planDao().plan(created)!!.recipeJson)
         assertEquals("A", db.planDao().plan(created)!!.suggestedDayId)
-        assertEquals(210, repo.configFlow.first().bodyweightLb)
-        assertEquals(program("New", "bb_bench"), repo.programFlow.first())
+        assertEquals(210, repo.plans.configFlow.first().bodyweightLb)
+        assertEquals(program("New", "bb_bench"), repo.plans.programFlow.first())
         assertEquals(before, db.planDao().plan(1))
         assertEquals(days, db.programDao().daysForPlan(1))
         assertEquals(exercises, db.programDao().exercisesForPlan(1))
         assertEquals(logs, db.programDao().logsForPlan(1))
         val createdPlan = db.planDao().plan(created)
-        repo.selectPlan(1)
+        repo.plans.selectPlan(1)
         assertEquals(before, db.planDao().plan(1))
         assertEquals(createdPlan, db.planDao().plan(created))
-        assertEquals(oldAnswers.daysPerWeek, repo.wizardAnswersFlow.first().daysPerWeek)
+        assertEquals(oldAnswers.daysPerWeek, repo.plans.wizardAnswersFlow.first().daysPerWeek)
     }
 
     @Test
@@ -502,9 +502,9 @@ class TrackerRepositoryPlanScopeTest {
         )
         val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
 
-        val created = creator.createGeneratedPlan("Full body", answers, program("First", "bb_bench"))
+        val created = creator.plans.createGeneratedPlan("Full body", answers, program("First", "bb_bench"))
 
-        assertTrue(creator.planHasDays(created))
+        assertTrue(creator.plans.planHasDays(created))
         assertEquals(null, unpublishedSettings.selectedPlanIdFlow.first())
         assertEquals(GlobalLifter(), unpublishedSettings.globalLifterFlow.first())
         assertFalse(unpublishedSettings.planSettingsFixupDoneFlow.first())
@@ -516,7 +516,7 @@ class TrackerRepositoryPlanScopeTest {
         val plans = db.planDao().allPlans()
         val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
 
-        repeat(2) { repo.publishCreatedPlan(Long.MAX_VALUE, answers) }
+        repeat(2) { repo.plans.publishCreatedPlan(Long.MAX_VALUE, answers) }
 
         assertEquals(1L, settings.selectedPlanIdFlow.first())
         assertEquals(GlobalLifter.of(answers.config), settings.globalLifterFlow.first())
@@ -527,11 +527,11 @@ class TrackerRepositoryPlanScopeTest {
     fun `publication does not select an archived plan`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
         insertPlanTwo()
-        assertTrue(repo.archivePlan(2))
+        assertTrue(repo.plans.archivePlan(2))
         val plans = db.planDao().allPlans()
         val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
 
-        repeat(2) { repo.publishCreatedPlan(2, answers) }
+        repeat(2) { repo.plans.publishCreatedPlan(2, answers) }
 
         assertEquals(1L, settings.selectedPlanIdFlow.first())
         assertEquals(GlobalLifter.of(answers.config), settings.globalLifterFlow.first())
@@ -540,12 +540,12 @@ class TrackerRepositoryPlanScopeTest {
 
     @Test
     fun `generated plan fills a selected settings-only plan`() = runTest {
-        repo.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
-        val id = repo.selectedPlanIdFlow.first()!!
+        repo.plans.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
+        val id = repo.plans.selectedPlanIdFlow.first()!!
         val global = settings.globalLifterFlow.first()
         val answers = WizardAnswers(config = WizardAnswers().config.copy(bodyweightLb = 210))
 
-        assertEquals(id, repo.createGeneratedPlan("Full body", answers, program("First", "bb_bench")))
+        assertEquals(id, repo.plans.createGeneratedPlan("Full body", answers, program("First", "bb_bench")))
 
         assertEquals(1, db.planDao().allPlans().size)
         assertEquals("Full body", db.planDao().plan(id)!!.name)
@@ -553,7 +553,7 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)
         assertEquals(listOf("First"), db.programDao().daysForPlan(id).map { it.title })
         assertEquals(global, settings.globalLifterFlow.first())
-        repo.publishCreatedPlan(id, answers)
+        repo.plans.publishCreatedPlan(id, answers)
         assertEquals(GlobalLifter.of(answers.config), settings.globalLifterFlow.first())
         assertEquals(id, settings.selectedPlanIdFlow.first())
     }
@@ -561,7 +561,7 @@ class TrackerRepositoryPlanScopeTest {
     @Test
     fun `duplicate rekeys both log tracks inserts after source and leaves selection and history alone`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
-        repo.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
+        repo.plans.setWizardAnswers(WizardAnswers(daysPerWeek = 3))
         val source = db.planDao().plan(1)!!
         val slot = db.programDao().exercisesForPlan(1).single()
         db.programDao().setSupersetExerciseId(slot.id, "bb_bench")
@@ -588,7 +588,7 @@ class TrackerRepositoryPlanScopeTest {
         val history = db.sessionDao().allSessions()
         val cardioHistory = db.cardioSessionDao().all()
 
-        val copy = repo.duplicatePlan(1, "Original copy")
+        val copy = repo.plans.duplicatePlan(1, "Original copy")
 
         val plans = db.planDao().allPlans()
         assertEquals(listOf(1L, copy, 2L), plans.map { it.id })
@@ -614,7 +614,7 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals("bb_bench", copiedSlot.supersetExerciseId)
         val sourceLogs = db.programDao().logsForPlan(1)
         assertEquals(sourceLogs.map { it.copy(planId = copy, programExerciseId = copiedSlot.id) }, db.programDao().logsForPlan(copy))
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(copiedSlot.id) ?: -1, "A").first().runId.orEmpty(), "A", copiedSlot.id, Slot.MAIN, sets(245.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(copiedSlot.id) ?: -1, "A").first().runId.orEmpty(), "A", copiedSlot.id, Slot.MAIN, sets(245.0))
         assertEquals(sourceLogs, db.programDao().logsForPlan(1))
         assertEquals(history, db.sessionDao().allSessions())
         assertEquals(cardioHistory, db.cardioSessionDao().all())
@@ -625,40 +625,40 @@ class TrackerRepositoryPlanScopeTest {
     @Test
     fun `archive refuses selected and last active and restore preserves data`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
-        assertFalse(repo.archivePlan(1))
-        val copy = repo.duplicatePlan(1, "Copy")
-        repo.selectPlan(copy)
+        assertFalse(repo.plans.archivePlan(1))
+        val copy = repo.plans.duplicatePlan(1, "Copy")
+        repo.plans.selectPlan(copy)
         val days = db.programDao().allDays()
-        assertFalse(repo.archivePlan(copy))
-        assertTrue(repo.archivePlan(1))
-        assertFalse(repo.archivePlan(copy))
+        assertFalse(repo.plans.archivePlan(copy))
+        assertTrue(repo.plans.archivePlan(1))
+        assertFalse(repo.plans.archivePlan(copy))
         settings.setSelectedPlanId(1)
-        assertEquals(copy, repo.selectedPlanIdFlow.first())
-        repo.restorePlan(1)
+        assertEquals(copy, repo.plans.selectedPlanIdFlow.first())
+        repo.plans.restorePlan(1)
         assertFalse(db.planDao().plan(1)!!.archived)
-        assertEquals(1L, repo.selectedPlanIdFlow.first())
+        assertEquals(1L, repo.plans.selectedPlanIdFlow.first())
         assertEquals(days, db.programDao().allDays())
     }
 
     @Test
     fun `select refuses archived and missing plans and rename validates trimmed names`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
-        val copy = repo.duplicatePlan(1, "Copy")
-        assertTrue(repo.archivePlan(copy))
-        repo.selectPlan(copy)
-        repo.selectPlan(999)
+        val copy = repo.plans.duplicatePlan(1, "Copy")
+        assertTrue(repo.plans.archivePlan(copy))
+        repo.plans.selectPlan(copy)
+        repo.plans.selectPlan(999)
         assertEquals(1L, settings.selectedPlanIdFlow.first())
-        repo.renamePlan(1, "   ")
-        repo.renamePlan(1, "a".repeat(41))
+        repo.plans.renamePlan(1, "   ")
+        repo.plans.renamePlan(1, "a".repeat(41))
         assertEquals(PlanEntity.LEGACY_NAME, db.planDao().plan(1)!!.name)
-        repo.renamePlan(1, "  Renamed  ")
+        repo.plans.renamePlan(1, "  Renamed  ")
         assertEquals("Renamed", db.planDao().plan(1)!!.name)
     }
 
     @Test
     fun `summaries resolve each next title and latest workout or cardio ignoring unknown plans`() = runTest {
         repo.replaceProgram(program("Original", "bb_back_squat"))
-        val copy = repo.duplicatePlan(1, "Copy")
+        val copy = repo.plans.duplicatePlan(1, "Copy")
         val empty = db.planDao().insertPlan(plan(0, "Empty", 2))
         db.programDao().upsertDay(ProgramDayEntity(copy, "B", 1, "Copy next", "", null))
         db.planDao().updateSuggestedDay(copy, "B")
@@ -676,9 +676,9 @@ class TrackerRepositoryPlanScopeTest {
             CardioSessionEntity(dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Unknown",
                 startedAt = 0, completedAt = 1000, seconds = 1000, stepsCompleted = 1),
         ))
-        assertTrue(repo.archivePlan(copy))
+        assertTrue(repo.plans.archivePlan(copy))
 
-        val summaries = repo.planSummariesFlow.first()
+        val summaries = repo.plans.planSummariesFlow.first()
 
         assertEquals(listOf(1L, copy, empty), summaries.map { it.id })
         assertEquals(listOf("A", "B", null), summaries.map { it.nextDayId })
@@ -695,11 +695,11 @@ class TrackerRepositoryPlanScopeTest {
             log(1, 11, sets(225.0)),
             log(2, 22, sets(135.0)),
         ))
-        assertEquals(1L, repo.planIdOfSlot(11))
-        assertEquals(2L, repo.planIdOfSlot(22))
-        assertEquals(null, repo.planIdOfSlot(99))
-        assertEquals(11L, repo.slotsFor(1, "A").first().single().programExerciseId)
-        assertEquals(emptyList<ProgramSlot>(), repo.slotsFor(1, "missing").first())
+        assertEquals(1L, repo.plans.planIdOfSlot(11))
+        assertEquals(2L, repo.plans.planIdOfSlot(22))
+        assertEquals(null, repo.plans.planIdOfSlot(99))
+        assertEquals(11L, repo.plans.slotsFor(1, "A").first().single().programExerciseId)
+        assertEquals(emptyList<ProgramSlot>(), repo.plans.slotsFor(1, "missing").first())
         val today = kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock))
         val log = repo.dayTracksFlow(1, "A").map { it.tracks }.first().single()
         assertEquals(11L, log.programExerciseId)
@@ -786,9 +786,9 @@ class TrackerRepositoryPlanScopeTest {
             ProgramExercise("bb_back_squat", targetSets = 1, prescription = prescription),
         ))
         repo.replaceProgram(Program(listOf(day)))
-        val id = repo.daySlotsFlow("A").first().single().programExerciseId
+        val id = repo.plans.daySlotsFlow("A").first().single().programExerciseId
         val completed = SetSeeder.seedPrescribed(1, prescription).single().copy(reps = 42, done = true)
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(completed))
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(completed))
 
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
@@ -865,7 +865,7 @@ class TrackerRepositoryPlanScopeTest {
                 ProgramExercise("bb_back_squat"), ProgramExercise("bb_bench"), ProgramExercise("ez_curl"),
             ))
             repo.replaceProgram(Program(listOf(day)))
-            val planId = repo.selectedPlanIdFlow.first()!!
+            val planId = repo.plans.selectedPlanIdFlow.first()!!
             val plan = db.planDao().plan(planId)!!
             db.planDao().updatePlan(plan.copy(origin = origin.name))
             val slots = db.programDao().exercisesForDay(planId, "A")
@@ -896,15 +896,15 @@ class TrackerRepositoryPlanScopeTest {
             ProgramExercise("bb_bench"),
         ))
         repo.replaceProgram(Program(listOf(day, day.copy(id = "B"))))
-        val plan = repo.plansFlow.first().single()
+        val plan = repo.plans.plansFlow.first().single()
         db.planDao().updatePlan(plan.copy(origin = PlanOrigin.AUTHORED.name, recipeJson = null))
-        val slots = repo.daySlotsFlow("A").first()
+        val slots = repo.plans.daySlotsFlow("A").first()
         val authoredId = slots[0].programExerciseId
         val generatedId = slots[1].programExerciseId
-        val otherDayId = repo.daySlotsFlow("B").first().first().programExerciseId
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(authoredId) ?: -1, "A").first().runId.orEmpty(), "A", authoredId, Slot.MAIN, sets(50.0))
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(generatedId) ?: -1, "A").first().runId.orEmpty(), "A", generatedId, Slot.MAIN, sets(135.0))
-        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(otherDayId) ?: -1, "B").first().runId.orEmpty(), "B", otherDayId, Slot.MAIN, sets(60.0))
+        val otherDayId = repo.plans.daySlotsFlow("B").first().first().programExerciseId
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(authoredId) ?: -1, "A").first().runId.orEmpty(), "A", authoredId, Slot.MAIN, sets(50.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(generatedId) ?: -1, "A").first().runId.orEmpty(), "A", generatedId, Slot.MAIN, sets(135.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(otherDayId) ?: -1, "B").first().runId.orEmpty(), "B", otherDayId, Slot.MAIN, sets(60.0))
         val otherDayLogs = db.programDao().logsForDay(plan.id, "B")
 
         val preview = repo.dayTracksFlow(plan.id, "A").first()
@@ -918,7 +918,7 @@ class TrackerRepositoryPlanScopeTest {
         assertTrue(archived.all { it.done })
         assertEquals(listOf(generatedId), db.programDao().logsForDay(plan.id, "A").map { it.programExerciseId })
         assertEquals(otherDayLogs, db.programDao().logsForDay(plan.id, "B"))
-        assertEquals("B", repo.suggestedDayFlow.first())
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         val session = db.sessionDao().sessionById(sessionId)!!
         assertEquals(plan.id, session.planId)
         assertEquals(plan.name, session.planName)
@@ -928,7 +928,7 @@ class TrackerRepositoryPlanScopeTest {
         val seeded = db.programDao().logsForDay(plan.id, "A")
         repo.ensureSeeded(plan.id, "A")
         assertEquals(seeded, db.programDao().logsForDay(plan.id, "A"))
-        val logs = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().associate { it.programExerciseId to it.sets }
+        val logs = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().associate { it.programExerciseId to it.sets }
         assertEquals(List(2) { LoggedSet(37.5, 8, SetKind.WORK) }, logs[authoredId])
         assertEquals(sets(135.0).map { it.copy(done = false) }, logs[generatedId])
         assertEquals(archived, repo.sessionSets(sessionId))
@@ -944,22 +944,22 @@ class TrackerRepositoryPlanScopeTest {
             ProgramExercise("plank", prescription = Prescription(target, true, "red band"), keepToPlan = index % 2 == 0)
         })
         repo.replaceProgram(Program(listOf(day)))
-        val source = repo.plansFlow.first().single()
+        val source = repo.plans.plansFlow.first().single()
         val originals = db.programDao().exercisesForPlan(source.id)
         originals.forEach { PrescriptionJson.validate(it.prescriptionJson!!) }
 
-        val copyId = repo.duplicatePlan(source.id, "Copy")
+        val copyId = repo.plans.duplicatePlan(source.id, "Copy")
 
         val copies = db.programDao().exercisesForPlan(copyId)
         assertEquals(originals.map { it.prescriptionJson }, copies.map { it.prescriptionJson })
         assertEquals(originals.map { it.keepToPlan }, copies.map { it.keepToPlan })
         assertTrue(copies.map { it.id }.toSet().intersect(originals.map { it.id }.toSet()).isEmpty())
-        assertEquals(day.exercises, repo.slotsFor(copyId, "A").first().map { it.exercise })
+        assertEquals(day.exercises, repo.plans.slotsFor(copyId, "A").first().map { it.exercise })
     }
 
     @Test
     fun `duplicate preserves authored cardio days and their ordered block sets`() = runTest {
-        val sourceId = repo.createAuthoredPlan("Running", "Track")
+        val sourceId = repo.plans.createAuthoredPlan("Running", "Track")
         val block = CardioBlock(CardioActivity.TRACK_RUN, listOf(
             CardioSetSpec(CardioRole.WARMUP, Measure.Time(300)),
             CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true),
@@ -970,7 +970,7 @@ class TrackerRepositoryPlanScopeTest {
             kind = ProgramDayKind.CARDIO, cardioBlock = block)
         db.programDao().upsertDay(day.toEntity(sourceId))
 
-        val copyId = repo.duplicatePlan(sourceId, "Running copy")
+        val copyId = repo.plans.duplicatePlan(sourceId, "Running copy")
 
         val original = db.programDao().daysForPlan(sourceId).single()
         val copied = db.programDao().daysForPlan(copyId).single()

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -52,7 +53,7 @@ import kotlinx.coroutines.launch
  * principle: no unsaved truth in a bare ViewModel field).
  *
  * [Finish][finish] creates and selects a new plan from the preview through
- * [TrackerRepository.createGeneratedPlan] and [TrackerRepository.publishCreatedPlan];
+ * [PlanRepository.createGeneratedPlan] and [PlanRepository.publishCreatedPlan];
  * it never replaces an existing program.
  * New-plan entry seeds the draft from the selected plan's stored answers.
  *
@@ -61,7 +62,7 @@ import kotlinx.coroutines.launch
  */
 @HiltViewModel
 class WizardViewModel @Inject constructor(
-    private val repo: TrackerRepository,
+    private val repo: PlanRepository,
     private val savedState: SavedStateHandle,
     @ApplicationContext private val context: Context,
     private val backupService: BackupService,
@@ -322,7 +323,7 @@ class WizardViewModel @Inject constructor(
      *
      * Write order is crash-safety, not cosmetics. `wizardComplete=true` is what
      * routes the app to the day screen (D1); if it were set before
-     * [TrackerRepository.createGeneratedPlan], a process death in the gap would
+     * [PlanRepository.createGeneratedPlan], a process death in the gap would
      * strand the app on an empty program. Setting it last means a crash before it
      * simply re-runs the wizard (the draft survives in [SavedStateHandle]). Mirrors
      * [TrackerRepository.importSnapshot]'s own write-before-flag ordering.

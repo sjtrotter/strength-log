@@ -69,11 +69,11 @@ class OnTodayTest {
         settings.setSelectedPlanId(2)
         settings.setPlanSettingsFixupDone()
         settings.setLegacyTimedFixupDone()
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         assertEquals(listOf(2L), db.planDao().allPlans().filter { it.onToday }.map { it.id })
         assertTrue(settings.onTodayFixupDoneFlow.first())
         db.planDao().updateOnToday(2, false)
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         assertTrue(db.planDao().allPlans().none { it.onToday })
     }
 
@@ -82,7 +82,7 @@ class OnTodayTest {
         settings.setSelectedPlanId(2)
         settings.setPlanSettingsFixupDone()
 
-        val summaries = repo.planSummariesFlow.first()
+        val summaries = repo.plans.planSummariesFlow.first()
 
         assertEquals(listOf(2L), summaries.filter { it.onToday }.map { it.id })
         assertTrue(settings.onTodayFixupDoneFlow.first())
@@ -92,20 +92,20 @@ class OnTodayTest {
         db.planDao().insertPlans(listOf(plan(1), plan(2)))
         settings.setSelectedPlanId(2)
         settings.setPlanSettingsFixupDone()
-        assertEquals(listOf(2L), repo.todayPlans.first().map { it.id })
+        assertEquals(listOf(2L), repo.plans.todayPlans.first().map { it.id })
         assertTrue(settings.onTodayFixupDoneFlow.first())
     }
 
     @Test fun `today plans orders preferred first then position and excludes paused and archived`() = runTest {
         db.planDao().insertPlans(listOf(plan(1, 3), plan(2, 2), plan(3, 1), plan(4, 0, archived = true)))
         settings.setSelectedPlanId(1)
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         db.planDao().updateOnToday(2, true)
         db.planDao().updateOnToday(3, true)
         db.planDao().updateOnToday(4, true)
-        assertEquals(listOf(1L, 3L, 2L), repo.todayPlans.first().map { it.id })
-        repo.pause(3)
-        assertEquals(listOf(1L, 2L), repo.todayPlans.first().map { it.id })
+        assertEquals(listOf(1L, 3L, 2L), repo.plans.todayPlans.first().map { it.id })
+        repo.plans.pause(3)
+        assertEquals(listOf(1L, 2L), repo.plans.todayPlans.first().map { it.id })
     }
 
     @Test fun `publishing a generated plan migrates the old preferred plan first`() = runTest {
@@ -114,9 +114,9 @@ class OnTodayTest {
         settings.setSelectedPlanId(1)
         settings.setPlanSettingsFixupDone()
         val program = Program(listOf(ProgramDay("A", "Day A", "", emptyList())))
-        val generated = repo.createGeneratedPlan("Generated", WizardAnswers(), program)
+        val generated = repo.plans.createGeneratedPlan("Generated", WizardAnswers(), program)
 
-        repo.publishCreatedPlan(generated, WizardAnswers())
+        repo.plans.publishCreatedPlan(generated, WizardAnswers())
 
         assertEquals(generated, settings.selectedPlanIdFlow.first())
         assertEquals(listOf(1L, generated), db.planDao().allPlans().filter { it.onToday }.map { it.id })
@@ -127,9 +127,9 @@ class OnTodayTest {
         db.planDao().insertPlan(plan(1))
         settings.setSelectedPlanId(1)
         settings.setPlanSettingsFixupDone()
-        val authored = repo.createAuthoredPlan("Authored", "Day A")
+        val authored = repo.plans.createAuthoredPlan("Authored", "Day A")
 
-        repo.publishCreatedAuthoredPlan(authored)
+        repo.plans.publishCreatedAuthoredPlan(authored)
 
         assertEquals(authored, settings.selectedPlanIdFlow.first())
         assertEquals(listOf(1L, authored), db.planDao().allPlans().filter { it.onToday }.map { it.id })
@@ -139,7 +139,7 @@ class OnTodayTest {
     @Test fun `membership fixup and display defer under the restore marker`() = runTest {
         db.planDao().insertPlan(plan(1))
         db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = "pending"))
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         assertFalse(settings.onTodayFixupDoneFlow.first())
         assertFalse(db.planDao().plan(1)!!.onToday)
         assertNull(repo.todayTargetFlow.first())
@@ -158,28 +158,28 @@ class OnTodayTest {
         assertEquals("B", running.dayId)
         assertFalse(running.plan.onToday)
         db.runDao().deleteRun("run")
-        repo.selectPlan(3)
+        repo.plans.selectPlan(3)
         assertEquals(3L, (repo.todayTargetFlow.first() as TodayTarget.Day).plan.id)
-        repo.pause(2)
-        repo.pause(3)
+        repo.plans.pause(2)
+        repo.plans.pause(3)
         assertEquals(TodayTarget.NothingOnToday, repo.todayTargetFlow.first())
     }
 
     @Test fun `use only selects one plan and pausing preferred or last keeps preference`() = runTest {
         db.planDao().insertPlans(listOf(plan(1), plan(2)))
-        repo.useAlongside(2)
-        repo.useOnly(2)
+        repo.plans.useAlongside(2)
+        repo.plans.useOnly(2)
         assertEquals(2L, settings.selectedPlanIdFlow.first())
         assertEquals(listOf(2L), db.planDao().allPlans().filter { it.onToday }.map { it.id })
-        repo.pause(2)
+        repo.plans.pause(2)
         assertEquals(2L, settings.selectedPlanIdFlow.first())
         assertTrue(db.planDao().allPlans().none { it.onToday })
-        repo.selectPlan(1)
+        repo.plans.selectPlan(1)
         assertTrue(db.planDao().plan(1)!!.onToday)
-        repo.useAlongside(2)
-        assertTrue(repo.archivePlan(2))
+        repo.plans.useAlongside(2)
+        assertTrue(repo.plans.archivePlan(2))
         assertFalse(db.planDao().plan(2)!!.onToday)
-        repo.restorePlan(2)
+        repo.plans.restorePlan(2)
         assertFalse(db.planDao().plan(2)!!.onToday)
         assertFalse(db.planDao().plan(2)!!.archived)
     }
@@ -187,7 +187,7 @@ class OnTodayTest {
     @Test fun `pausing does not close an open run`() = runTest {
         db.planDao().insertPlan(plan(1))
         db.runDao().insertRun(WorkoutRunEntity("run", 1, "A", "Day A", "Plan 1", 1000))
-        repo.pause(1)
+        repo.plans.pause(1)
         assertEquals("run", repo.openRunFlow.first()?.id)
         assertEquals(1L, (repo.todayTargetFlow.first() as TodayTarget.Day).plan.id)
     }
@@ -197,28 +197,28 @@ class OnTodayTest {
         repo.replaceProgram(program)
         val inserted = db.planDao().allPlans().single()
         assertTrue(inserted.onToday)
-        val authored = repo.createAuthoredPlan("Authored", "Day A")
-        repo.publishCreatedAuthoredPlan(authored)
+        val authored = repo.plans.createAuthoredPlan("Authored", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(authored)
         assertTrue(db.planDao().plan(authored)!!.onToday)
         assertEquals(authored, settings.selectedPlanIdFlow.first())
-        val generated = repo.createGeneratedPlan("Generated", WizardAnswers(), program)
-        repo.publishCreatedPlan(generated, WizardAnswers())
+        val generated = repo.plans.createGeneratedPlan("Generated", WizardAnswers(), program)
+        repo.plans.publishCreatedPlan(generated, WizardAnswers())
         assertTrue(db.planDao().plan(generated)!!.onToday)
         assertTrue(db.planDao().plan(authored)!!.onToday)
         assertEquals(generated, settings.selectedPlanIdFlow.first())
-        val copy = repo.duplicatePlan(generated, "Copy")
+        val copy = repo.plans.duplicatePlan(generated, "Copy")
         assertFalse(db.planDao().plan(copy)!!.onToday)
     }
 
     @Test fun `use only rolls back all membership when a Room write fails`() = runTest {
         db.planDao().insertPlans(listOf(plan(1), plan(2)))
-        repo.useOnly(1)
+        repo.plans.useOnly(1)
         val before = db.planDao().allPlans()
         db.openHelper.writableDatabase.execSQL(
             "CREATE TRIGGER fail_membership BEFORE UPDATE OF onToday ON plan WHEN NEW.id = 2 " +
                 "BEGIN SELECT RAISE(ABORT, 'membership failed'); END",
         )
-        assertTrue(runCatching { repo.useOnly(2) }.isFailure)
+        assertTrue(runCatching { repo.plans.useOnly(2) }.isFailure)
         assertEquals(before, db.planDao().allPlans())
         assertEquals(1L, settings.selectedPlanIdFlow.first())
     }

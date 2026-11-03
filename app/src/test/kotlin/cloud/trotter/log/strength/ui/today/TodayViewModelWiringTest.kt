@@ -38,8 +38,8 @@ import org.robolectric.annotation.Config
 class TodayViewModelWiringTest : OverviewFixture() {
     @Test fun aGapInDayLettersKeepsTheThirdAccentForUpNextOtherDaysAndResume() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
-        val program = repo.programFor(plan).first()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val program = repo.plans.programFor(plan).first()
         repo.replaceProgram(Program(listOf(program.days[0], program.days[1].copy(id = "C"))))
         db.planDao().updateSuggestedDay(plan, "C")
         val vm = today()
@@ -60,11 +60,11 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun twoPlansOnTodayPutPreferredFirstAndKeepTheirOwnSuggestedDays() = runTest(dispatcher) {
         insertProgram()
-        val first = repo.selectedPlanIdFlow.first()!!
-        val second = repo.duplicatePlan(first, "Prep")
-        repo.useAlongside(second)
+        val first = repo.plans.selectedPlanIdFlow.first()!!
+        val second = repo.plans.duplicatePlan(first, "Prep")
+        repo.plans.useAlongside(second)
         db.planDao().updateSuggestedDay(second, "B")
-        repo.selectPlan(second)
+        repo.plans.selectPlan(second)
         val vm = today()
         advanceUntilIdle()
         assertEquals(listOf(second, first), vm.uiState.value.upNext.map { it.planId })
@@ -74,7 +74,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun openRunAddsResumeWithoutReplacingSuggestedRows() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         assertTrue(repo.startRun(plan, "B") is RunStartResult.Started)
         val vm = today()
         advanceUntilIdle()
@@ -84,9 +84,9 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun pausedOpenWorkoutStillHasResumeWithItsOwnDayAccent() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         repo.startRun(plan, "B")
-        repo.pause(plan)
+        repo.plans.pause(plan)
         val vm = today()
         advanceUntilIdle()
         assertEquals(DaySelection(plan, "B"), vm.uiState.value.resume?.selection)
@@ -98,8 +98,8 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun otherDaysIncludeRemainingStrengthAndStandaloneCardioAndExpansionRestores() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
-        val program = repo.programFor(plan).first()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val program = repo.plans.programFor(plan).first()
         repo.replaceProgram(Program(program.days + ProgramDay("C1", "Run", "", emptyList(),
             kind = ProgramDayKind.CARDIO, cardioBlock = CardioBlock(CardioActivity.ROAD_RUN, listOf(
                 CardioSetSpec(CardioRole.WORK, Measure.Time(120)),
@@ -122,7 +122,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         assertFalse(vm.uiState.value.hasProgram)
         assertFalse(vm.uiState.value.nothingOnToday)
         insertProgram()
-        repo.pause(repo.selectedPlanIdFlow.first()!!)
+        repo.plans.pause(repo.plans.selectedPlanIdFlow.first()!!)
         advanceUntilIdle()
         assertTrue(vm.uiState.value.nothingOnToday)
         assertTrue(vm.uiState.value.upNext.isEmpty())
@@ -130,10 +130,10 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun pausedPreferredPlanGivesTheFirstPlanOnTodayDirectStart() = runTest(dispatcher) {
         insertProgram()
-        val first = repo.selectedPlanIdFlow.first()!!
-        val other = repo.duplicatePlan(first, "Other")
-        repo.useAlongside(other)
-        repo.pause(first)
+        val first = repo.plans.selectedPlanIdFlow.first()!!
+        val other = repo.plans.duplicatePlan(first, "Other")
+        repo.plans.useAlongside(other)
+        repo.plans.pause(first)
         val vm = today()
         advanceUntilIdle()
         assertEquals(other, vm.uiState.value.upNext.single().planId)
@@ -162,7 +162,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun conflictingStartConfirmsThenDiscardsAndStartsRequestedDay() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         repo.startRun(plan, "B")
         val old = repo.openRunFlow.first()!!
         val handle = SavedStateHandle()
@@ -189,7 +189,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun conflictResumeKeepsTheOpenRun() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         repo.startRun(plan, "B")
         val vm = today()
         advanceUntilIdle()
@@ -203,7 +203,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun factIsOneLastTrainedDateFromTheDisplayedPlan() = runTest(dispatcher) {
         insertProgram()
-        val plan = repo.selectedPlanIdFlow.first()!!
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
         db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null,
             java.time.Instant.parse("2026-10-28T18:00:00Z").toEpochMilli(), 180, planId = plan))
         val vm = today()
@@ -212,8 +212,8 @@ class TodayViewModelWiringTest : OverviewFixture() {
     }
 
     @Test fun emptyAuthoredDayRemainsAnUpNextRowAndRemovalMovesIt() = runTest(dispatcher) {
-        val plan = repo.createAuthoredPlan("Physio", "Day A")
-        repo.publishCreatedAuthoredPlan(plan)
+        val plan = repo.plans.createAuthoredPlan("Physio", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
         repo.addDay(plan, "Day B")
         val vm = today()
         advanceUntilIdle()
@@ -225,33 +225,33 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun lastTrainedDateFollowsPlanSelection() = runTest(dispatcher) {
         insertProgram()
-        val first = repo.selectedPlanIdFlow.first()!!
-        val second = repo.duplicatePlan(first, "Test prep")
+        val first = repo.plans.selectedPlanIdFlow.first()!!
+        val second = repo.plans.duplicatePlan(first, "Test prep")
         db.sessionDao().insertSessions(listOf(historySession(first, "2026-10-15"), historySession(second, "2026-10-18")))
         val vm = today()
         advanceUntilIdle()
         assertEquals("Oct 15", vm.uiState.value.fact)
         assertEquals(completionAt("2026-10-15"), repo.lastSessionAtFor(first).first())
-        repo.selectPlan(second)
+        repo.plans.selectPlan(second)
         advanceUntilIdle()
         assertEquals(second, vm.uiState.value.upNext.first().planId)
         assertEquals("Oct 18", vm.uiState.value.fact)
         assertEquals(completionAt("2026-10-18"), repo.lastSessionAtFor(second).first())
-        repo.selectPlan(first)
+        repo.plans.selectPlan(first)
         advanceUntilIdle()
         assertEquals("Oct 15", vm.uiState.value.fact)
     }
 
     @Test fun onlyTheLegacyPlanCountsNullPlanWorkoutHistory() = runTest(dispatcher) {
         insertProgram()
-        assertEquals(PlanEntity.LEGACY_ID, repo.selectedPlanIdFlow.first())
-        val second = repo.duplicatePlan(PlanEntity.LEGACY_ID, "Test prep")
+        assertEquals(PlanEntity.LEGACY_ID, repo.plans.selectedPlanIdFlow.first())
+        val second = repo.plans.duplicatePlan(PlanEntity.LEGACY_ID, "Test prep")
         db.sessionDao().insertSessions(listOf(historySession(PlanEntity.LEGACY_ID, "2026-10-15"), historySession(null, "2026-10-19")))
         val vm = today()
         advanceUntilIdle()
         assertEquals("Oct 19", vm.uiState.value.fact)
         assertEquals(completionAt("2026-10-19"), repo.lastSessionAtFor(PlanEntity.LEGACY_ID).first())
-        repo.selectPlan(second)
+        repo.plans.selectPlan(second)
         advanceUntilIdle()
         assertNull(vm.uiState.value.fact)
         assertNull(repo.lastSessionAtFor(second).first())
@@ -259,8 +259,8 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun cardioCountsForItsPlanAndNullPlanCardioCountsForLegacy() = runTest(dispatcher) {
         insertProgram()
-        val first = repo.selectedPlanIdFlow.first()!!
-        val second = repo.duplicatePlan(first, "Test prep")
+        val first = repo.plans.selectedPlanIdFlow.first()!!
+        val second = repo.plans.duplicatePlan(first, "Test prep")
         db.sessionDao().insertSession(historySession(first, "2026-10-15"))
         db.cardioSessionDao().insertAll(listOf(cardioSession(first, "2026-10-18"), cardioSession(second, "2026-10-19")))
         val vm = today()
@@ -271,7 +271,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         advanceUntilIdle()
         assertEquals("Oct 20", vm.uiState.value.fact)
         assertEquals(completionAt("2026-10-20"), repo.lastSessionAtFor(first).first())
-        repo.selectPlan(second)
+        repo.plans.selectPlan(second)
         advanceUntilIdle()
         assertEquals("Oct 19", vm.uiState.value.fact)
         assertEquals(completionAt("2026-10-19"), repo.lastSessionAtFor(second).first())
@@ -279,9 +279,9 @@ class TodayViewModelWiringTest : OverviewFixture() {
 
     @Test fun everyEmissionKeepsTheFactWithItsRowsWhileMembershipProgramReadIsDelayed() = runTest(dispatcher) {
         insertProgram()
-        val first = repo.selectedPlanIdFlow.first()!!
-        repo.renamePlan(first, "Strength")
-        val second = repo.duplicatePlan(first, "Running")
+        val first = repo.plans.selectedPlanIdFlow.first()!!
+        repo.plans.renamePlan(first, "Strength")
+        val second = repo.plans.duplicatePlan(first, "Running")
         repo.renameDay(second, "A", "Run prep") // Same day id, different plan.
         db.sessionDao().insertSessions(listOf(historySession(first, "2026-10-15"), historySession(second, "2026-10-18")))
         val vm = today()
@@ -296,7 +296,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         delayedPlanId = second
         val gate = CompletableDeferred<Unit>()
         programReadGate = gate
-        repo.useOnly(second)
+        repo.plans.useOnly(second)
         advanceUntilIdle()
         assertTrue("the new program must be waiting", delayedProgramReadStarted)
         assertEquals(first, vm.uiState.value.upNext.single().planId)
@@ -305,7 +305,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
         advanceUntilIdle()
         assertEquals(second, vm.uiState.value.upNext.single().planId)
         assertEquals("Oct 18", vm.uiState.value.fact)
-        repo.useOnly(first)
+        repo.plans.useOnly(first)
         advanceUntilIdle()
         assertEquals(first, vm.uiState.value.upNext.single().planId)
         assertTrue(emissions.any { it.upNext.firstOrNull()?.planId == second })

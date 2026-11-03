@@ -99,7 +99,7 @@ class TypedCardioMigrationTest {
         settings.removeLegacyPlanKeys()
         assertTrue(settings.planSettingsFixupDoneFlow.first())
 
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
 
         assertEquals(original.copy(cardioJson = null, cardioBlockJson = CardioBlockJson.encode(expected)), db.programDao().day(1, "A"))
         assertEquals(CardioBlockJson.encode(stored), db.programDao().day(1, "B")!!.cardioBlockJson)
@@ -110,7 +110,7 @@ class TypedCardioMigrationTest {
         db.openHelper.writableDatabase.execSQL(
             "CREATE TRIGGER refuse_cardio_retry BEFORE UPDATE ON program_day BEGIN SELECT RAISE(ABORT, 'unexpected rewrite'); END",
         )
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         assertEquals(converted, db.programDao().allDays())
     }
 
@@ -122,7 +122,7 @@ class TypedCardioMigrationTest {
         db.programDao().upsertDay(day.copy(cardioBlockJson = stored))
         db.programDao().upsertDay(day.copy(dayId = "B", cardioJson = null, cardioBlockJson = stored))
 
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
 
         assertEquals(listOf(stored, stored), db.programDao().allDays().map { it.cardioBlockJson })
         assertTrue(db.programDao().allDays().all { it.cardioJson == null })
@@ -135,7 +135,7 @@ class TypedCardioMigrationTest {
         settings.setGlobalLifter(GlobalLifter(bodyweightLb = 185, age = 52))
         val expected = CardioBlocks.fromLegacy(suggestion, true, CardioActivity.ROAD_RUN)
 
-        assertEquals(expected, repo.programFor(1).first().days.single().cardioBlock)
+        assertEquals(expected, repo.plans.programFor(1).first().days.single().cardioBlock)
 
         assertNull(db.planDao().plan(1)!!.recipeJson)
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
@@ -157,9 +157,9 @@ class TypedCardioMigrationTest {
         val fresh = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), legacySettings)
         val expected = CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN)
 
-        assertEquals(expected, fresh.programFlow.first().days.single().cardioBlock)
+        assertEquals(expected, fresh.plans.programFlow.first().days.single().cardioBlock)
 
-        assertEquals(CardioMode.TREADMILL, fresh.wizardAnswersFor(1).first().cardio.mode)
+        assertEquals(CardioMode.TREADMILL, fresh.plans.wizardAnswersFor(1).first().cardio.mode)
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
     }
 
@@ -169,13 +169,13 @@ class TypedCardioMigrationTest {
         val original = db.programDao().allDays()
         db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = "pending"))
 
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
 
         assertEquals(original, db.programDao().allDays())
         assertFalse(settings.planSettingsFixupDoneFlow.first())
         assertNull(db.planDao().plan(1)!!.recipeJson)
         db.restoreMarkerDao().clear()
-        repo.runPlanSettingsFixupIfNeeded()
+        repo.plans.runPlanSettingsFixupIfNeeded()
         assertTrue(db.programDao().daysWithLegacyCardio().isEmpty())
     }
 
@@ -189,7 +189,7 @@ class TypedCardioMigrationTest {
             "CREATE TRIGGER fail_cardio BEFORE UPDATE ON program_day WHEN NEW.dayId = 'B' BEGIN SELECT RAISE(ABORT, 'cardio failed'); END",
         )
 
-        assertTrue(runCatching { repo.runPlanSettingsFixupIfNeeded() }.isFailure)
+        assertTrue(runCatching { repo.plans.runPlanSettingsFixupIfNeeded() }.isFailure)
 
         assertEquals(before, db.programDao().allDays())
     }
@@ -219,7 +219,7 @@ class TypedCardioMigrationTest {
 
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
-            repo.programFor(1).first().days.single().cardioBlock)
+            repo.plans.programFor(1).first().days.single().cardioBlock)
     }
 
     @Test
@@ -240,7 +240,7 @@ class TypedCardioMigrationTest {
 
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, true, CardioActivity.ROAD_RUN),
-            repo.programFor(1).first().days.single().cardioBlock)
+            repo.plans.programFor(1).first().days.single().cardioBlock)
     }
 
     @Test
@@ -286,14 +286,14 @@ class TypedCardioMigrationTest {
         assertEquals(GlobalLifter.of(snapshot.answers.config), settings.globalLifterFlow.first())
         assertEquals(prose, db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
-            failingRepo.programFor(1).first().days.single().cardioBlock)
+            failingRepo.plans.programFor(1).first().days.single().cardioBlock)
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
     }
 
     @Test
     fun `reset C1 regenerates its block core emphasis and kind from the owning recipe`() = runTest {
         val answers = WizardAnswers(cardio = CardioPrefs(placement = CardioPlacement.SEPARATE_DAYS))
-        repo.setWizardAnswers(answers)
+        repo.plans.setWizardAnswers(answers)
         val program = ProgramGenerator.generate(answers)
         repo.replaceProgram(program)
         val planId = requireNotNull(settings.selectedPlanIdFlow.first())
@@ -302,7 +302,7 @@ class TypedCardioMigrationTest {
 
         repo.resetDayToTemplate("C1")
 
-        assertEquals(expected, repo.programFor(planId).first().cardioDays.first())
-        assertEquals("A", repo.suggestedDayFlow.first())
+        assertEquals(expected, repo.plans.programFor(planId).first().cardioDays.first())
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
     }
 }

@@ -205,7 +205,7 @@ class LogViewModelTest {
         reader: HealthConnectReader = healthReader,
         publisher: SessionPublisher = SessionPublisher.NoOp,
     ): LogViewModel =
-        LogViewModel(repo, reader, publisher, shareCardService, handle, civilTime, settings = settings).also { vms += it }
+        LogViewModel(repo, reader, publisher, shareCardService, handle, civilTime, settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
 
     private fun session(dayId: String, dayTitle: String, completedAt: Long) =
         WorkoutSessionEntity(id = 0, dayId = dayId, dayTitle = dayTitle, startedAt = null, completedAt = completedAt, bodyweightLb = 180)

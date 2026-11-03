@@ -599,6 +599,25 @@ class DayViewModelWiringTest {
     }
 
     @Test
+    fun onlyLoadedTimedHoldsShowTheTimedWeightControl() = runVmTest {
+        val exercises = listOf(
+            ProgramExercise("plank", prescription = Prescription(PrescribedTarget.Hold(45, 25.0))),
+            ProgramExercise("bb_back_squat", prescription = Prescription(PrescribedTarget.LoadReps(95.0, 10))),
+        )
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Loaded targets", "", exercises))))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        val cards = vm.uiState.value.exercises
+        assertEquals(listOf(TrackingType.TIMED, TrackingType.WEIGHTED), cards.map { it.tracking })
+        assertEquals(listOf(25.0, 95.0), cards.map { it.rows.first().weightDisplay })
+        assertEquals(listOf(true, false), cards.map { it.timedShowsWeight })
+
+        collect.cancel()
+    }
+
+    @Test
     fun weightedPlankOnlyUsesTheCatalogWeightControlWithoutAPrescription() = runVmTest {
         val exercises = listOf(
             ProgramExercise("weighted_plank", prescription = Prescription(PrescribedTarget.Reps(12))),
@@ -616,7 +635,8 @@ class DayViewModelWiringTest {
             listOf(TrackingType.REPS, TrackingType.REPS, TrackingType.WEIGHTED, TrackingType.TIMED),
             cards.map { it.tracking },
         )
-        assertEquals(listOf(false, false, true, true), cards.map { it.timedShowsWeight })
+        // Only holds read this flag; a WEIGHTED card always shows its weight.
+        assertEquals(listOf(false, false, false, true), cards.map { it.timedShowsWeight })
 
         collectUi.cancel()
     }

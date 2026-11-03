@@ -19,6 +19,8 @@ import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
+import cloud.trotter.log.strength.data.PerformedDay
+import cloud.trotter.log.strength.data.PerformedSlot
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.TrackEdit
@@ -39,7 +41,6 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
-import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -179,13 +180,13 @@ class DayViewModel @Inject constructor(
     }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val contextFlow = displayTargetFlow.flatMapLatest { target ->
-        if (target == null) combine(repo.configFlow, settings.unitFlow, repo.catalogFlow) {
-                cfg, unit, catalog -> DayContext(Program(emptyList()), null, null, cfg, unit, catalog)
+        if (target == null) combine(settings.unitFlow, repo.catalogFlow) {
+                unit, catalog -> DayContext(Program(emptyList()), null, null, unit, catalog)
         }
-        else combine(repo.programFor(target.plan.id), repo.wizardAnswersFor(target.plan.id), settings.unitFlow, repo.catalogFlow) {
-                program, answers, unit, catalog ->
+        else combine(repo.programFor(target.plan.id), settings.unitFlow, repo.catalogFlow) {
+                program, unit, catalog ->
             DayContext(program, target.plan.suggestedDayId, resolveDay(program, target.dayId),
-                answers.config, unit, catalog, plan = target.plan)
+                unit, catalog, plan = target.plan)
         }
     }.combine(effectiveDayId) { ctx, dayId ->
         ctx.copy(dayId = ctx.dayId?.takeIf { it == dayId })
@@ -206,36 +207,38 @@ class DayViewModel @Inject constructor(
             // Live-set keystrokes still do not touch this path, while a Log edit
             // immediately corrects both "last time" and "Best" on an open day.
             val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(CommittedDay(noDayState(ctx)))
-            val historyKeys = combine(repo.slotsFor(planId, dayId), repo.dayHistoryKeys(planId, dayId)) { slots, ids ->
-                slots to ids
-            }
-            val slotsWithHistory = historyKeys.flatMapLatest { (slots, ids) ->
+            val historyKeys = repo.dayHistoryKeys(planId, dayId)
+            val dayHistory = historyKeys.flatMapLatest { ids ->
                 flow {
                     ensureSeeded(planId, dayId)
-                    emit(slots to fetchDayHistory(ids))
+                    emit(fetchDayHistory(ids))
                 }
             }
-            slotsWithHistory.flatMapLatest { (slots, history) ->
-                combine(repo.dayTracksFlow(planId, dayId), repo.openRunFlow) { tracks, open ->
-                    val workoutSlots = slots.forRun(tracks.droppedPartners, tracks.skippedLifts)
-                    val state = buildState(ctx, dayId, workoutSlots, tracks.tracks.associateBy { it.programExerciseId to it.slot }, history)
+            dayHistory.flatMapLatest { history ->
+                combine(
+                    repo.observeDay(planId, dayId), repo.openRunFlow,
+                    // Skipped lifts are absent from PerformedDay.slots; their controls need the planned identity.
+                    repo.slotsFor(planId, dayId),
+                ) { day, open, slots ->
+                    val tracks = day.tracks
+                    val state = buildState(ctx, day, history)
                         .copy(runId = tracks.runId, runOpen = tracks.runOpen,
                             openRunElsewhere = open?.takeIf { it.planId != planId || it.dayId != dayId }?.dayTitle,
                             skippedLifts = slots.filter { it.programExerciseId in tracks.skippedLifts }.map { slot ->
                                 val id = slot.exercise.exerciseId
-                                SkippedLift(slot.programExerciseId, slot.position, ctx.catalog.find(id)?.name ?: id)
+                                SkippedLift(slot.programExerciseId, slot.position, day.catalog.find(id)?.name ?: id)
                             },
-                            skippedPartners = slots.filter { it.programExerciseId in tracks.droppedPartners && it.programExerciseId !in tracks.skippedLifts }.mapNotNull { slot ->
+                            skippedPartners = day.slots.map { it.slot }.filter { it.programExerciseId in tracks.droppedPartners }.mapNotNull { slot ->
                                 val skipped = open?.tracks?.singleOrNull { it.programExerciseId == slot.programExerciseId && it.slot == Slot.MAIN && it.dropped }
                                     ?: open?.tracks?.singleOrNull { it.programExerciseId == slot.programExerciseId && it.slot == Slot.SS && it.dropped }
                                 skipped?.let { slot.programExerciseId to SkippedLift(slot.programExerciseId, slot.position,
-                                    ctx.catalog.find(it.exerciseId)?.name ?: it.exerciseId, it.slot) }
+                                    day.catalog.find(it.exerciseId)?.name ?: it.exerciseId, it.slot) }
                             }.toMap(),
                             retiredRoundDoneCount = tracks.retiredRoundsDone,
                             retiredTracks = tracks.retired.mapNotNull { track ->
                                 val doneCount = track.sets.count { it.done }
                                 if (doneCount == 0) null else RetiredTrackLine(
-                                    ctx.catalog.find(track.exerciseId)?.name ?: track.exerciseId, doneCount,
+                                    day.catalog.find(track.exerciseId)?.name ?: track.exerciseId, doneCount,
                                 )
                             })
                     CommittedDay(state, tracks)
@@ -1969,27 +1972,29 @@ class DayViewModel @Inject constructor(
 
     private fun buildState(
         ctx: DayContext,
-        dayId: String,
-        slots: List<ProgramSlot>,
-        logsByKey: Map<Pair<Long, String>, cloud.trotter.log.strength.data.LoggedSlot>,
+        performedDay: PerformedDay,
         history: DayHistory,
     ): DayUiState {
         validateCardioRun(ctx)
-        val program = ctx.program
-        val day = program.days.firstOrNull { it.id == dayId }
-            ?: return noDayState(ctx)
+        val program = performedDay.program
+        val dayId = performedDay.dayId
+        val day = performedDay.day ?: return noDayState(ctx)
         val dayIndex = program.strengthDays.indexOfFirst { it.id == dayId }.coerceAtLeast(0)
         return DayUiState(
             hasProgram = true,
             isProgramDay = program.strengthDays.any { it.id == dayId },
             viewDayId = dayId,
-            planId = ctx.plan?.id,
+            planId = performedDay.planId,
             dayIndex = dayIndex,
             dayTitle = day.title,
             emphasisLine = day.emphasisLine,
             unit = ctx.unit,
             nextDayId = Rotation.nextFor(program, dayId),
-            exercises = slots.map { buildCard(it, logsByKey, ctx.cfg, ctx.unit, ctx.catalog, history) },
+            exercises = performedDay.slots.map { slot ->
+                buildCard(slot, ctx.unit, history).copy(
+                    weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),
+                )
+            },
             cardio = day.cardioBlock?.let {
                 CardioCardState(label = activityLabel(it.activity), detail = it.plannedTimeDetail(),
                     hard = it.sets.any { spec -> spec.hard }, block = it, finishesDay = day.exercises.isEmpty())
@@ -2171,36 +2176,24 @@ class DayViewModel @Inject constructor(
     }
 
     private fun buildCard(
-        slot: ProgramSlot,
-        logsByKey: Map<Pair<Long, String>, cloud.trotter.log.strength.data.LoggedSlot>,
-        cfg: LifterConfig,
+        slot: PerformedSlot,
         unit: WeightUnit,
-        catalog: ExerciseCatalog,
         history: DayHistory,
     ): ExerciseCardState {
-        val id = slot.programExerciseId
-        val performed = performedExercise(slot, logsByKey[id to Slot.MAIN]?.exerciseId, catalog)
-        val pe = slot.exercise
+        val id = slot.slot.programExerciseId
+        val performed = slot.main.performed
+        val pe = slot.slot.exercise
         val entry = performed.entry
         val name = entry?.name ?: performed.exerciseId
-        val goalTarget = performed.goal(cfg)
+        val goalTarget = slot.main.goal
             ?: GoalTarget.Weight(0.0, perHand = false)
-        val tracking = performed.tracking
-        val timedShowsWeight = when (val target = performed.prescription?.target) {
-            null -> (goalTarget as? GoalTarget.Time)?.let { it.addedLb > 0.0 } ?: false
-            is PrescribedTarget.LoadReps -> true
-            is PrescribedTarget.Hold -> target.addedLb > 0.0
-            is PrescribedTarget.Reps, is PrescribedTarget.RepsInTime -> false
-        }
-        val main = logsByKey[id to Slot.MAIN]?.sets ?: emptyList()
-        val partner = pe.superset?.let {
-            performedExercise(slot, logsByKey[id to Slot.SS]?.exerciseId, catalog, Slot.SS)
-        }
+        val tracking = slot.main.tracking
+        val main = slot.main.sets
+        val partner = slot.partner?.performed
         val partnerEntry = partner?.entry
-        val partnerGoalTarget = partner?.goal(cfg)
-        val partnerTracking = partner?.tracking
-        val partnerTimedShowsWeight = (partnerGoalTarget as? GoalTarget.Time)?.let { it.addedLb > 0.0 } ?: false
-        val partnerSets = pe.superset?.let { logsByKey[id to Slot.SS]?.sets }
+        val partnerGoalTarget = slot.partner?.goal
+        val partnerTracking = slot.partner?.tracking
+        val partnerSets = slot.partner?.sets
 
         val labels = DayScreenBuilder.kindLabels(main)
         val setLabels = SetLabels.of(main.map { it.kind })
@@ -2226,7 +2219,7 @@ class DayViewModel @Inject constructor(
             exerciseId = performed.exerciseId,
             timedRepDurationSeconds = (performed.prescription?.target as? PrescribedTarget.RepsInTime)?.seconds,
             timedRepAim = (performed.prescription?.target as? PrescribedTarget.RepsInTime)?.repAim,
-            position = slot.position,
+            position = slot.slot.position,
             title = name,
             partnerTitle = partnerEntry?.name ?: partner?.exerciseId,
             partnerExerciseId = partner?.exerciseId,
@@ -2236,9 +2229,9 @@ class DayViewModel @Inject constructor(
             headerTarget = DayScreenBuilder.headerTarget(pe.copy(prescription = performed.prescription), goalTarget, unit),
             perHand = entry?.perHand == true,
             tracking = tracking,
-            timedShowsWeight = timedShowsWeight,
+            timedShowsWeight = slot.main.showsLoad,
             partnerTracking = partnerTracking,
-            partnerTimedShowsWeight = partnerTimedShowsWeight,
+            partnerTimedShowsWeight = slot.partner?.showsLoad == true,
             lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, unit),
             lastTimeDate = history.lastPerformedDates[performed.exerciseId]?.let(::lastTimeDate),
             partnerSetLabels = DayScreenBuilder.kindLabels(partnerSets.orEmpty()),
@@ -2253,7 +2246,6 @@ class DayViewModel @Inject constructor(
             focusIndex = DayScreenBuilder.focusIndex(rows),
             summaryLine = DayScreenBuilder.summaryLine(main, partnerSets, tracking, partnerTracking ?: TrackingType.WEIGHTED, unit),
             rows = rows,
-            weightSwap = DayScreenBuilder.weightSwapAffordance(entry, catalog),
         )
     }
 
@@ -2311,7 +2303,6 @@ class DayViewModel @Inject constructor(
         val program: Program,
         val suggested: String?,
         val dayId: String?,
-        val cfg: LifterConfig,
         val unit: WeightUnit,
         val catalog: ExerciseCatalog,
         val plan: PlanEntity? = null,

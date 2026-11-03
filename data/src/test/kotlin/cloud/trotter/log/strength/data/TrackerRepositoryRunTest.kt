@@ -464,6 +464,19 @@ class TrackerRepositoryRunTest {
         assertEquals("B", db.planDao().plan(plan)!!.suggestedDayId)
     }
 
+    @Test fun `finish A with stale suggested C advances to B`() = runTest {
+        val plan = authored()
+        val id = start(plan)
+        db.planDao().updateSuggestedDay(plan, "C")
+        assertEquals(listOf("A", "B"), db.programDao().daysForPlan(plan).map { it.dayId })
+        assertEquals("C", db.planDao().plan(plan)!!.suggestedDayId)
+
+        val sessionId = repo.finishRun(id)!!
+
+        assertEquals("A", db.sessionDao().sessionById(sessionId)!!.dayId)
+        assertEquals("B", db.planDao().plan(plan)!!.suggestedDayId)
+    }
+
     /** [F] */
     @Test fun `finish on an archived plan archives and advances its attached day`() = runTest {
         finishArchivedRun(attached = true)

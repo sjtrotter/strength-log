@@ -138,6 +138,31 @@ class DayViewModelReceiptTest {
     }
 
     @Test
+    fun finishingCWhileBIsSuggestedReportsBOnTheReceipt() = runVmTest {
+        insertProgram()
+        val program = repo.plans.programFlow.first()
+        repo.replaceProgram(Program(program.days + program.days[0].copy(id = "C", title = "Full body")))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        db.planDao().updateSuggestedDay(plan, "B")
+        val vm = newCollectingViewModel()
+        vm.selectDay("C")
+        advanceUntilIdle()
+        val slot = repo.plans.slotsFor(plan, "C").first().single()
+        vm.toggleDone(slot.programExerciseId, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.doneSets > 0)
+
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.sessionReceipt.value)
+        assertEquals("C", receipt.dayId)
+        assertEquals(plan, repo.history.session(receipt.sessionId)?.planId)
+        assertEquals("B", db.planDao().plan(plan)!!.suggestedDayId)
+        assertEquals("Day B, Upper", receipt.nextDayLine)
+    }
+
+    @Test
     fun finishingAPausedNonpreferredRunReportsItsOwnNextDay() = runVmTest {
         insertProgram()
         val owner = repo.plans.selectedPlanIdFlow.first()!!

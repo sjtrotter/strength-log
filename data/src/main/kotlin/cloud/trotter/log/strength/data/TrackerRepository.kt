@@ -638,8 +638,9 @@ class TrackerRepository(
 
     /** Room only: both the phone commit and strength DONE use the originating plan's rotation. */
     private suspend fun advanceRotation(plan: PlanEntity, dayId: String) {
-        if (plan.suggestedDayId != null && plan.suggestedDayId != dayId) return
         val program = assemble(programDao.daysForPlan(plan.id), programDao.exercisesForPlan(plan.id))
+        val suggestedDay = program.days.firstOrNull { it.id == plan.suggestedDayId }
+        if (suggestedDay != null && suggestedDay.id != dayId) return
         Rotation.nextFor(program, dayId)?.let {
             planDao.updateSuggestedDay(plan.id, it)
         }

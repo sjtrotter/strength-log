@@ -1424,17 +1424,12 @@ class DayViewModel @Inject constructor(
             ) return@mutate
             val program = plans.programFor(planId).first()
             val previousHighs = CascadeCeremonyBuilder.allTimeHighs(historyRepository.topSetHistoryFlow.first())
-            val dayPosition = program.days.indexOfFirst { it.id == day }
-            val nextDayId = if (dayPosition >= 0) {
-                Rotation.nextFor(program, day)
-                    ?: plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
-            } else null
             val sessionId = repo.finishRun(runId) ?: return@mutate
             phoneRest.skip()
             if (timedRepEvent.value?.dayId == day) clearTimedRep()
             savedState[KEY_VIEW_SELECTION] = null
-            val advancedTo = plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
-            pinHeldFor = day.takeIf { advancedTo != day && effectiveDayId.value == day }
+            val nextDayId = plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
+            pinHeldFor = day.takeIf { nextDayId != day && effectiveDayId.value == day }
             savedState[KEY_SELECTED_PAGE] = null
             closeSheet()
             val unit = settings.unitFlow.first()

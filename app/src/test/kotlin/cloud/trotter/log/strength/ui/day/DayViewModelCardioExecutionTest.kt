@@ -309,14 +309,14 @@ class DayViewModelCardioExecutionTest {
         backgroundScope.launch { vm.dayEditState.collect {} }
         vm.selectDay("B")
         runCurrent()
-        vm.setDayEditorOpen(true)
-        vm.openCardioBlock()
+        vm.editor.setDayEditorOpen(true)
+        vm.editor.openCardioBlock()
         runCurrent()
         val draft = vm.dayEditState.value.cardioDraft!!
-        vm.changeCardioDraft(draft.copy(sets = listOf(CardioSetDraft(seconds = 10, hasAim = true))))
-        vm.saveCardioBlock()
+        vm.editor.changeCardioDraft(draft.copy(sets = listOf(CardioSetDraft(seconds = 10, hasAim = true))))
+        vm.editor.saveCardioBlock()
         runCurrent()
-        vm.setDayEditorOpen(false)
+        vm.editor.setDayEditorOpen(false)
         assertTrue(vm.uiState.value.exercises.isEmpty())
         assertTrue(vm.uiState.value.cardio!!.finishesDay)
         vm.startCardio()
@@ -539,22 +539,22 @@ class DayViewModelCardioExecutionTest {
         assertEquals("123", frozen.drafts.single().text)
         val deadline = alarm.deadline
 
-        vm.setDayEditorOpen(true)
-        vm.openCardioBlock()
+        vm.editor.setDayEditorOpen(true)
+        vm.editor.openCardioBlock()
         runCurrent()
         val draft = requireNotNull(vm.dayEditState.value.cardioDraft)
         val edited = draft.copy(sets = draft.sets.mapIndexed { index, set ->
             if (index == 3) set.copy(seconds = 60) else set
         }, editingSet = 3)
-        vm.changeCardioDraft(edited)
-        vm.saveCardioBlock() // Set-page Save commits while keeping the block page open.
+        vm.editor.changeCardioDraft(edited)
+        vm.editor.saveCardioBlock() // Set-page Save commits while keeping the block page open.
         runCurrent()
         assertEquals(edited.block(), repo.programFlow.first().days.first().cardioBlock)
         assertEquals(frozen, vm.uiState.value.cardio?.run)
         assertEquals(deadline, alarm.deadline)
-        vm.saveCardioBlock() // Block-page Save must preserve the same execution too.
+        vm.editor.saveCardioBlock() // Block-page Save must preserve the same execution too.
         runCurrent()
-        vm.setDayEditorOpen(false)
+        vm.editor.setDayEditorOpen(false)
         assertEquals(frozen, vm.uiState.value.cardio?.run)
         assertEquals(sets, vm.uiState.value.cardio?.block?.sets)
 

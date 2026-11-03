@@ -190,7 +190,7 @@ class PreviewViewModelTest : OverviewFixture() {
         advanceUntilIdle()
         assertEquals("B", vm.uiState.value.viewDayId)
         assertTrue(vm.dayEditState.value.editorOpen)
-        vm.setDayEditorOpen(false)
+        vm.editor.setDayEditorOpen(false)
         advanceUntilIdle()
         val restored = day(SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) }))
         advanceUntilIdle()

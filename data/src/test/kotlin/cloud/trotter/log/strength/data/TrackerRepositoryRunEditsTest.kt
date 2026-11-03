@@ -18,6 +18,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import java.io.File
 import java.time.Clock
@@ -1095,5 +1096,27 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(2, tracks.size)
         assertTrue(tracks.all { it.retired && !it.dropped && it.sets == done })
         assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(runId, id, Slot.MAIN))
+    }
+
+    /** #406: a phone edit written from a read taken before a watch tick must not undo the tick. */
+    @Test fun `a phone edit written from a stale read keeps a watch tick that landed in between`() = runTest {
+        val plan = generated()
+        val slot = slot(plan)
+        val runId = start(plan)
+        // The phone reads the track (DayViewModel.trackFor) ...
+        val phoneRows = SetJson.decodeSets(db.runDao().tracks(runId).single().setsJson)
+        // ... the watch ticks row 1 and commits ...
+        assertEquals(RunWriteResult.InRun(runId, false), repo.applyToRun(runId, plan, "A", listOf(
+            TrackEdit(slot, Slot.MAIN) { rows ->
+                rows.mapIndexed { i, row -> if (i == 1) row.copy(done = true, completedAtMillis = 1_000L, watchEditedAt = 200L) else row }
+            },
+        )))
+        // ... and the phone writes a weight edit on row 2 from its stale rows.
+        repo.updateSets(runId, "A", slot, Slot.MAIN, SetEditor.editWeight(phoneRows, 2, 200.0))
+
+        val after = SetJson.decodeSets(db.runDao().tracks(runId).single().setsJson)
+        assertEquals(200.0, after[2].weightLb, 0.0)
+        assertTrue(after[1].done)
+        assertEquals(200L, after[1].watchEditedAt)
     }
 }

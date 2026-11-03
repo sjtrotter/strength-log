@@ -197,7 +197,8 @@ class WorkoutDialIntegrationTest {
             val state = registry.workout(key)
             assertEquals(edit.completedAtMillis, edit.editedAtMillis)
             assertEquals(edit.completedAtMillis, state["sessionEndedAtMillis"])
-            assertTrue(assertNotNull(edit.completedAtMillis) <= wallAfterSend - 3_000L)
+            // The test clock advances elapsed time only; the wall stamp just must not come from after the send.
+            assertTrue(assertNotNull(edit.completedAtMillis) <= wallAfterSend)
             assertTrue((state["restDeadlineMillis"] as Long) >= elapsedAfterSend + 150_000L)
             assertEquals(150, state["restTotalSeconds"])
         }

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import android.os.Parcel
@@ -1727,6 +1728,53 @@ class DayViewModelWiringTest {
         // unknown placeholder exercise is gone.
         assertFalse(vm.dayEditState.value.slots.any { it.exerciseId == "ghost_unknown" })
         assertTrue(vm.dayEditState.value.slots.isNotEmpty())
+        collect.cancel()
+    }
+
+    @Test
+    fun resetDayAlreadyMatchingTemplateReseedsBeforeLoggingAndRemovingSets() = runVmTest {
+        repo.replaceProgram(ProgramGenerator.generate(repo.wizardAnswersFlow.first()))
+        val planId = repo.selectedPlanIdFlow.first()!!
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val original = repo.observeDay(planId, "A").first()
+        val originalIds = original.slots.map { it.slot.programExerciseId }.toSet()
+        assertTrue(original.slots.isNotEmpty())
+        assertTrue(original.slots.all { it.main.stored?.isNotEmpty() == true })
+        assertNull(repo.openRunFlow.first())
+
+        vm.resetDayToTemplate()
+        advanceUntilIdle()
+
+        val reset = repo.observeDay(planId, "A").first()
+        assertEquals(original.program, reset.program)
+        assertEquals(original.historyExerciseIds, reset.historyExerciseIds)
+        assertEquals(original.slots.size, reset.slots.size)
+        assertTrue(reset.slots.none { it.slot.programExerciseId in originalIds })
+        assertTrue(reset.slots.all { it.main.stored?.isNotEmpty() == true })
+        assertNull(repo.openRunFlow.first())
+        val focus = requireNotNull(vm.uiState.value.workout?.focus)
+        assertEquals(Slot.MAIN, focus.slot)
+        val id = focus.programExerciseId
+        val seeded = requireNotNull(track(id, Slot.MAIN))
+        assertTrue(seeded.size > 1)
+        assertTrue(seeded.none { it.done })
+
+        vm.logFocusedSet()
+        advanceUntilIdle()
+
+        assertTrue(repo.openRunFlow.first() != null)
+        val logged = requireNotNull(track(id, Slot.MAIN))
+        assertEquals(seeded.size, logged.size)
+        assertTrue(logged[focus.index].done)
+        assertEquals(1, logged.count { it.done })
+
+        vm.removeSet(id, index = logged.lastIndex, isSuperset = false)
+        advanceUntilIdle()
+
+        assertEquals(logged.dropLast(1), track(id, Slot.MAIN))
+        assertEquals(logged.size - 1, vm.uiState.value.exercises.first { it.programExerciseId == id }.rows.size)
         collect.cancel()
     }
 

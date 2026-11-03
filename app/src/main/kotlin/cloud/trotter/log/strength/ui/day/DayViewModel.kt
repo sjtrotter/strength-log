@@ -203,23 +203,20 @@ class DayViewModel @Inject constructor(
         if (dayId == null) {
             flowOf(CommittedDay(noDayState(ctx)))
         } else {
-            // Re-fetched when the day's exercise ids or archived history change.
-            // Live-set keystrokes still do not touch this path, while a Log edit
-            // immediately corrects both "last time" and "Best" on an open day.
+            // A reset replaces slot ids even when the program and history ids stay equal.
+            // Those rows must be seeded before observing the replacement day.
             val planId = ctx.plan?.id ?: return@flatMapLatest flowOf(CommittedDay(noDayState(ctx)))
-            val historyKeys = repo.dayHistoryKeys(planId, dayId)
-            val dayHistory = historyKeys.flatMapLatest { ids ->
+            val historyKeys = combine(repo.slotsFor(planId, dayId), repo.dayHistoryKeys(planId, dayId)) { slots, ids ->
+                slots to ids
+            }
+            val slotsWithHistory = historyKeys.flatMapLatest { (slots, ids) ->
                 flow {
                     ensureSeeded(planId, dayId)
-                    emit(fetchDayHistory(ids))
+                    emit(slots to fetchDayHistory(ids))
                 }
             }
-            dayHistory.flatMapLatest { history ->
-                combine(
-                    repo.observeDay(planId, dayId), repo.openRunFlow,
-                    // Skipped lifts are absent from PerformedDay.slots; their controls need the planned identity.
-                    repo.slotsFor(planId, dayId),
-                ) { day, open, slots ->
+            slotsWithHistory.flatMapLatest { (slots, history) ->
+                combine(repo.observeDay(planId, dayId), repo.openRunFlow) { day, open ->
                     val tracks = day.tracks
                     val state = buildState(ctx, day, history)
                         .copy(runId = tracks.runId, runOpen = tracks.runOpen,

@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.transfer.csv
 
-import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.ImportedSession
 import cloud.trotter.log.strength.data.ImportedCardioSession
 import cloud.trotter.log.strength.data.SessionHistorySnapshot

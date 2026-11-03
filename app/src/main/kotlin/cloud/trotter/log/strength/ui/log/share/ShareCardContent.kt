@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.records.PersonalBests
 import cloud.trotter.log.strength.domain.units.ClockText
@@ -65,7 +66,7 @@ object ShareCardContentBuilder {
 
         return ShareCardContent(
             dateLine = dateLine(session.completedAt, zone),
-            dayIndex = LogScreenBuilder.dayIndex(session.dayId),
+            dayIndex = Program.accentIndex(session.dayId),
             dayLine = "DAY ${session.dayId} · ${session.dayTitle}".uppercase(Locale.US),
             liftLines = lifts.take(if (lifts.size > MAX_LIFT_LINES) MAX_LIFT_LINES_WITH_OVERFLOW else MAX_LIFT_LINES),
             overflowLine = if (lifts.size > MAX_LIFT_LINES) "+${lifts.size - MAX_LIFT_LINES_WITH_OVERFLOW} MORE" else null,

@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.wear.ui
 
 import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.generator.CardioIntervals
@@ -112,8 +113,7 @@ fun cycleSegments(snapshot: WatchSnapshot, browseDayIndex: Int? = null): List<Cy
     return days.mapIndexed { index, cycleDay ->
         CycleSegment(
             dayLabel = cycleDay.dayId.uppercase(),
-            // Accent by position, the rule every other surface uses.
-            accentIndex = index,
+            accentIndex = Program.accentIndex(cycleDay.dayId),
             mark = when {
                 cycleDay.dayId == day.dayId -> CycleMark.TODAY
                 index == browseDayIndex -> CycleMark.BROWSED
@@ -356,7 +356,7 @@ private class ScreenContext(
             // move, and a dimmed face that still responds isn't read-only.
             crown = DialCrown.NONE,
             swipe = DialSwipe.BROWSE_DAY,
-            accentOverride = index,
+            accentOverride = Program.accentIndex(browsed.dayId),
         )
     }
 

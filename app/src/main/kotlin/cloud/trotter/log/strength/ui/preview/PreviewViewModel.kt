@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.rest.PhoneRestController
@@ -48,7 +49,7 @@ class PreviewViewModel @Inject constructor(
         PreviewUiState(
             loading = false, selection = selection,
             planName = plans.firstOrNull { it.id == planId }?.name.orEmpty(),
-            dayIndex = performedDay.program.strengthDays.indexOfFirst { it.id == dayId }.coerceAtLeast(0),
+            dayIndex = Program.accentIndex(dayId),
             title = day?.title.orEmpty(), emphasis = day?.emphasisLine.orEmpty(),
             lifts = performedDay.slots.map { slot ->
                 val tracks = listOfNotNull(slot.main, slot.partner)

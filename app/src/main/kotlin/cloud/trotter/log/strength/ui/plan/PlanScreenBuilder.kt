@@ -40,7 +40,7 @@ object PlanScreenBuilder {
         program.days.map { day ->
             PlanDay(
                 dayId = day.id,
-                dayIndex = program.strengthDays.indexOf(day).coerceAtLeast(0),
+                dayIndex = Program.accentIndex(day.id),
                 title = day.title,
                 liftCount = day.exercises.size,
                 setCount = day.exercises.mapIndexed { position, exercise ->

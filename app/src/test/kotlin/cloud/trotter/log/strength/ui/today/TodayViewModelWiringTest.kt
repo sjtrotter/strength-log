@@ -36,6 +36,28 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class TodayViewModelWiringTest : OverviewFixture() {
+    @Test fun aGapInDayLettersKeepsTheThirdAccentForUpNextOtherDaysAndResume() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val program = repo.programFor(plan).first()
+        repo.replaceProgram(Program(listOf(program.days[0], program.days[1].copy(id = "C"))))
+        db.planDao().updateSuggestedDay(plan, "C")
+        val vm = today()
+        advanceUntilIdle()
+
+        assertEquals("C", vm.uiState.value.upNext.single().dayId)
+        assertEquals(2, vm.uiState.value.upNext.single().dayIndex)
+        assertEquals("A", vm.uiState.value.otherDays.single().dayId)
+        db.planDao().updateSuggestedDay(plan, "A")
+        repo.startRun(plan, "C")
+        advanceUntilIdle()
+
+        assertEquals("C", vm.uiState.value.otherDays.single().dayId)
+        assertEquals(2, vm.uiState.value.otherDays.single().dayIndex)
+        assertEquals("C", vm.uiState.value.resume?.dayId)
+        assertEquals(2, vm.uiState.value.resume?.dayIndex)
+    }
+
     @Test fun twoPlansOnTodayPutPreferredFirstAndKeepTheirOwnSuggestedDays() = runTest(dispatcher) {
         insertProgram()
         val first = repo.selectedPlanIdFlow.first()!!

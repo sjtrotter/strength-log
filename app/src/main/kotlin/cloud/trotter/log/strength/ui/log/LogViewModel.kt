@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.time.CivilTimeSource
@@ -442,7 +443,7 @@ class LogViewModel @Inject constructor(
             sessionId = session.id,
             dateDisplay = LogScreenBuilder.dateDisplay(session.completedAt),
             dayLetter = session.dayId,
-            dayIndex = LogScreenBuilder.dayIndex(session.dayId),
+            dayIndex = Program.accentIndex(session.dayId),
             dayTitle = session.dayTitle,
             setCount = summary.setCount,
             bodyweightDisplay = LogScreenBuilder.bodyweightDisplay(session.bodyweightLb, unit),

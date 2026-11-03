@@ -9,6 +9,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class CardioJournalTest {
+    @Test fun `history and the calendar use the third accent for day C without a program`() {
+        val date = LocalDate.of(2026, 8, 10)
+        val completed = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val session = cardio(completedAt = completed).copy(dayId = "C")
+        val item = LogScreenBuilder.cardioItem(session)
+        val calendar = JournalBuilder.calendar(emptyList(), 0, date, ZoneOffset.UTC, listOf(session))!!
+
+        assertEquals("C", item.dayLetter)
+        assertEquals(2, item.dayIndex)
+        assertEquals(2, calendar.days.single { it.dayOfMonth == 10 }.dayIndex)
+    }
+
     @Test fun `strength and cardio interleave newest completion first`() {
         val strength = SessionListItem(1, "", "A", 0, "Strength", 1, null, false, completedAt = 100)
         val cardio = SessionListItem(2, "", "A", 0, "Cardio", 0, null, false, completedAt = 200, cardioId = 2)

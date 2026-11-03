@@ -120,6 +120,23 @@ class DayViewModelDaySwitchTest {
     }
 
     @Test
+    fun aGapInDayLettersKeepsTheThirdAccentInTheWorkout() = runVmTest {
+        insertTwoDayProgram()
+        val program = repo.programFlow.first()
+        repo.replaceProgram(Program(listOf(program.days[0], program.days[1].copy(id = "C"))))
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.selectDay("C")
+        advanceUntilIdle()
+
+        assertEquals("C", vm.uiState.value.viewDayId)
+        assertEquals(2, vm.uiState.value.dayIndex)
+        assertTrue(vm.uiState.value.exercises.isNotEmpty())
+        collect.cancel()
+    }
+
+    @Test
     fun pausingAllPlansClearsTheDayDefaultAndResumingRestoresIt() = runVmTest {
         insertTwoDayProgram()
         val plan = repo.selectedPlanIdFlow.first()!!

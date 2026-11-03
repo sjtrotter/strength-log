@@ -87,7 +87,7 @@ class PlanScreenBuilderTest {
     }
 
     @Test
-    fun daysIncludeStandaloneCardioAndPreserveStrengthAccentIndices() {
+    fun daysIncludeStandaloneCardioAndUseLetterAccentsForEveryKind() {
         val program = Program(listOf(
             day("A", "Lower", 3),
             day("C1", "Cardio", 2).copy(kind = ProgramDayKind.CARDIO),
@@ -96,7 +96,7 @@ class PlanScreenBuilderTest {
         ))
         val rows = PlanScreenBuilder.days(program, "B", config, catalog)
         assertEquals(listOf("A", "C1", "B", "C2"), rows.map { it.dayId })
-        assertEquals(listOf(0, 1), rows.filter { it.kind == ProgramDayKind.STRENGTH }.map { it.dayIndex })
+        assertEquals(listOf(0, 2, 1, 2), rows.map { it.dayIndex })
         assertEquals(program.days.map { it.kind }, rows.map { it.kind })
         assertEquals(listOf("B"), rows.filter { it.isNext }.map { it.dayId })
     }

@@ -62,6 +62,17 @@ class JournalBuilderTest {
     // --- main lifts -----------------------------------------------------------
 
     @Test
+    fun mainLiftsKeepTheirDayLetterAccentsWhenADayIsRemoved() {
+        val program = Program(listOf(
+            ProgramDay("A", "Lower", "", listOf(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP_BACKOFF))),
+            ProgramDay("C", "Upper", "", listOf(ProgramExercise("bb_bench", structure = SetStructure.RAMP_TOP_BACKOFF))),
+        ))
+        val mains = JournalBuilder.mainLifts(program, ExerciseCatalog.CODE_ONLY, LifterConfig())
+
+        assertEquals(listOf(0, 2), mains.map { it.dayIndex })
+    }
+
+    @Test
     fun mainLifts_reads_the_generated_program_mains_with_their_read_only_goals() {
         val generated = ProgramGenerator.generate(WizardAnswers())
         val cfg = LifterConfig()

@@ -186,10 +186,20 @@ class TrackerRepository(
         val entry = catalog.find(row.exerciseId)
         val isTimed = (exercise.prescription?.tracking ?: entry?.tracking) == TrackingType.TIMED
         val seeded = SlotSeeds.main(exercise, entry, config) ?: return
+        val activeMain = tracks.firstOrNull { !it.retired && it.slot == Slot.MAIN }
+        val partnerMain = if (activeMain == null) {
+            tracks.firstOrNull { it.retired && it.slot == Slot.MAIN && it.exerciseId == row.exerciseId }
+        } else {
+            tracks.firstOrNull { it.slot == Slot.MAIN && it.dropped } ?: activeMain
+        }
+        val partnerMainSeed = seeded.takeIf {
+            partnerMain?.exerciseId == row.exerciseId && partnerMain.canReplan(isTimed)
+        }
         for (track in tracks.filter { it.retired && it.exerciseId == row.exerciseIdFor(it.slot) }) {
             val trackSeed = when (track.slot) {
                 Slot.MAIN -> seeded
-                Slot.SS -> SlotSeeds.partner(catalog.find(track.exerciseId), seeded.size, config) ?: continue
+                Slot.SS -> SlotSeeds.partner(catalog.find(track.exerciseId), partnerMainSeed?.size ?: continue, config)
+                    ?: continue
                 else -> continue
             }
             val trackIsTimed = if (track.slot == Slot.MAIN) isTimed
@@ -200,7 +210,7 @@ class TrackerRepository(
                 updatedAt = clock.millis(),
             ))
         }
-        val main = tracks.firstOrNull { !it.retired && it.slot == Slot.MAIN && it.exerciseId == row.exerciseId } ?: return
+        val main = activeMain?.takeIf { it.exerciseId == row.exerciseId } ?: return
         if (!main.canReplan(isTimed)) return
         val current = SetJson.decodeSets(main.setsJson)
         val partner = tracks.firstOrNull { !it.retired && it.slot == Slot.SS }

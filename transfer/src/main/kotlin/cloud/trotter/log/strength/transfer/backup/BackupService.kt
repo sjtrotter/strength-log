@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import java.io.InputStream
 import java.io.OutputStream
@@ -25,7 +25,7 @@ import kotlinx.coroutines.sync.withLock
  * [RestoreJournal] and [reconcilePendingRestore].
  */
 class BackupService(
-    private val repository: TrackerRepository,
+    private val repository: BackupRepository,
     private val journal: RestoreJournal,
     private val codec: BackupCodec = BackupCodec(),
 ) {

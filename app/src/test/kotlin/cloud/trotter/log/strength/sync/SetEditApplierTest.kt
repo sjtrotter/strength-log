@@ -10,6 +10,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
@@ -61,6 +62,7 @@ import org.robolectric.annotation.Config
 class SetEditApplierTest {
 
     private lateinit var db: StrengthDatabase
+    private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private lateinit var markers: RecordingMarkers
@@ -85,13 +87,15 @@ class SetEditApplierTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("applier-settings", ".preferences_pb")
         }
+        val settings = SettingsStore(dataStore)
         repo = TrackerRepository(
             db = db,
             programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
         )
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
         markers = RecordingMarkers()
         syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("applier-edit-acks", ".preferences_pb")
@@ -204,12 +208,12 @@ class SetEditApplierTest {
     /** [F] */
     @Test fun `a done delta without an open run is rejected and changes nothing`() = runTest {
         seedProgram()
-        val before = repo.exportSnapshot()
+        val before = backupRepository.exportSnapshot()
         assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = squatId(), slot = Slot.MAIN, setIndex = 0,
             done = true, editedAtMillis = 100L,
         )))
-        assertEquals(before, repo.exportSnapshot())
+        assertEquals(before, backupRepository.exportSnapshot())
     }
 
     /** [F] */
@@ -218,13 +222,13 @@ class SetEditApplierTest {
         val planId = repo.plans.selectedPlanIdFlow.first()!!
         val day = db.programDao().day(planId, "A")!!
         db.programDao().upsertDay(day.copy(closedAt = 100))
-        val before = repo.exportSnapshot()
+        val before = backupRepository.exportSnapshot()
         for (stamp in listOf(99L, 100L)) {
             assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(SetEditDelta(
                 dayId = "A", programExerciseId = squatId(), slot = Slot.MAIN, setIndex = 0,
                 done = true, editedAtMillis = stamp,
             )))
-            assertEquals(before, repo.exportSnapshot())
+            assertEquals(before, backupRepository.exportSnapshot())
         }
     }
 

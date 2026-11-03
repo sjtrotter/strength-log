@@ -67,6 +67,7 @@ class PlanSettingsTest {
     private lateinit var store: FlakyDataStore
     private lateinit var settings: SettingsStore
     private lateinit var journal: RestoreJournal
+    private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
 
@@ -90,6 +91,7 @@ class PlanSettingsTest {
             settings,
         )
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
     }
 
     @After
@@ -118,6 +120,7 @@ class PlanSettingsTest {
                 store.updateData(transform)
         })
         val repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), gatedSettings)
+        val importingBackup = BackupRepository(db, gatedSettings, repository.plans, repository.history)
         val snapshot = FullSnapshot(
             answers = WizardAnswers(), unit = WeightUnit.LB, wizardComplete = true,
             suggestedDay = null, selectedPlanId = 2, restSettings = RestSettings(),
@@ -130,7 +133,7 @@ class PlanSettingsTest {
         store.gate = writeOpen
         val fixup = launch { repository.plans.runPlanSettingsFixupIfNeeded() }
         readReached.await()
-        val importing = launch { repository.importSnapshot(snapshot, journal) }
+        val importing = launch { importingBackup.importSnapshot(snapshot, journal) }
         try {
             store.gateReached.await()
             assertTrue(db.restoreMarkerDao().nonce() != null)
@@ -452,7 +455,7 @@ class PlanSettingsTest {
             day(2, "D", 0).copy(nextRunId = "plan-2-D"),
         ))
         settings.setSelectedPlanId(2)
-        val snapshot = repo.exportSnapshot()
+        val snapshot = backupRepository.exportSnapshot()
         assertEquals(two, snapshot.answers)
         assertEquals("D", snapshot.suggestedDay)
         writeLegacy(one, "old")
@@ -460,9 +463,9 @@ class PlanSettingsTest {
         settings.recordAutoBackupSuccess(1_234)
         val autoBackup = settings.autoBackupSettingsFlow.first()
 
-        repo.importSnapshot(snapshot, journal)
+        backupRepository.importSnapshot(snapshot, journal)
 
-        assertEquals(snapshot, repo.exportSnapshot())
+        assertEquals(snapshot, backupRepository.exportSnapshot())
         assertEquals(autoBackup, settings.autoBackupSettingsFlow.first())
         assertLegacyKeysGone()
         val authored = plan(3).copy(origin = PlanOrigin.AUTHORED.name)
@@ -472,7 +475,7 @@ class PlanSettingsTest {
             suggestedDay = "B",
             answersCarryRecipe = true,
         )
-        repo.importSnapshot(legacy, journal)
+        backupRepository.importSnapshot(legacy, journal)
 
         assertEquals(one, answersFor(1))
         assertEquals(one, answersFor(2))
@@ -480,7 +483,7 @@ class PlanSettingsTest {
         assertEquals("B", db.planDao().plan(2)!!.suggestedDayId)
         assertNull(db.planDao().plan(1)!!.suggestedDayId)
         assertLegacyKeysGone()
-        repo.importSnapshot(legacy.copy(plans = emptyList(), selectedPlanId = null, days = listOf(day(1, "A", 0))), journal)
+        backupRepository.importSnapshot(legacy.copy(plans = emptyList(), selectedPlanId = null, days = listOf(day(1, "A", 0))), journal)
         assertEquals(one, answersFor(PlanEntity.LEGACY_ID))
         assertEquals("B", repo.plans.suggestedDayFlow.first())
     }
@@ -502,7 +505,7 @@ class PlanSettingsTest {
             sessionSets = emptyList(),
         )
 
-        repo.importSnapshot(snapshot, journal)
+        backupRepository.importSnapshot(snapshot, journal)
 
         assertEquals(PlanEntity.LEGACY_ID, db.planDao().allPlans().single().id)
         assertEquals(answers, answersFor(PlanEntity.LEGACY_ID))
@@ -520,10 +523,10 @@ class PlanSettingsTest {
     fun `restore retires the legacy store before returning`() = runTest {
         db.planDao().insertPlan(plan(1, strengthAnswers(), "B"))
         repo.plans.runPlanSettingsFixupIfNeeded()
-        val snapshot = repo.exportSnapshot()
+        val snapshot = backupRepository.exportSnapshot()
         assertTrue(settings.planSettingsFixupDoneFlow.first())
 
-        repo.importSnapshot(snapshot, journal)
+        backupRepository.importSnapshot(snapshot, journal)
 
         assertTrue(settings.planSettingsFixupDoneFlow.first())
         assertLegacyKeysGone()

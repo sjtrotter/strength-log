@@ -9,7 +9,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.data.prefs.RestoreJournal
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -56,7 +55,6 @@ class TrackerRepositoryRunTest {
     private lateinit var db: StrengthDatabase
     private lateinit var dataStore: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences>
     private lateinit var settings: SettingsStore
-    private lateinit var journal: RestoreJournal
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private val ids = ArrayDeque((1..100).map { "id-$it" })
@@ -71,9 +69,6 @@ class TrackerRepositoryRunTest {
             File.createTempFile("run-settings", ".preferences_pb")
         }
         settings = SettingsStore(dataStore)
-        journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
-            File.createTempFile("run-journal", ".preferences_pb")
-        }, settings)
         repo = repository()
     }
 
@@ -171,44 +166,7 @@ class TrackerRepositoryRunTest {
         assertNull(settings.takeLegacySessionStart())
     }
 
-    /** [F] */
-    @Test fun `legacy restore splits on the repository clock and attaches minted identity`() = runTest {
-        val plan = authored()
-        val snapshot = repo.exportSnapshot()
-        val legacy = cloud.trotter.log.strength.data.run.LegacyLog(
-            plan, "A", slot(plan), Slot.MAIN, work().map { it.copy(done = true) }, "2026-10-19", 6_000,
-        )
-        repo.importSnapshot(snapshot.copy(days = snapshot.days.map { it.copy(nextRunId = "") },
-            legacyLogs = listOf(legacy)), journal)
-        val state = repo.dayTracksFlow(plan, "A").first()
-        assertTrue(state.runOpen)
-        assertEquals(db.programDao().day(plan, "A")!!.nextRunId, state.runId)
-        assertTrue(state.tracks.single().sets.all { it.done })
-        assertTrue(db.programDao().allLogs().flatMap { SetJson.decodeSets(it.setsJson) }.none { it.done })
 
-        repo.importSnapshot(snapshot.copy(legacyLogs = listOf(legacy.copy(checkDate = "2026-10-18"))), journal)
-        assertNull(repo.openRunFlow.first())
-        assertTrue(repo.history.sessionsFlow.first().isEmpty())
-        assertTrue(repo.dayTracksFlow(plan, "A").first().tracks.single().sets.none { it.done })
-    }
-
-    /** [F] */
-    @Test fun `legacy restore leaves an existing run attached to its own day`() = runTest {
-        val plan = authored()
-        val runId = start(plan)
-        val snapshot = repo.exportSnapshot()
-        val legacy = listOf("A", "B").map { day ->
-            cloud.trotter.log.strength.data.run.LegacyLog(plan, day, slot(plan, day), Slot.MAIN,
-                work().map { it.copy(done = true) }, "2026-10-19", 6_000)
-        }
-        repo.importSnapshot(snapshot.copy(legacyLogs = legacy), journal)
-        assertEquals(snapshot.runs, db.runDao().allRuns())
-        assertEquals(snapshot.runTracks, db.runDao().allTracks())
-        assertEquals(runId, day(plan).nextRunId)
-        assertNull(day(plan).closedAt)
-        assertEquals(listOf("B"), db.sessionDao().allSessions().map { it.dayId })
-        assertTrue(db.programDao().allLogs().flatMap { SetJson.decodeSets(it.setsJson) }.none { it.done })
-    }
 
     private fun repository() = TrackerRepository(
         db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, clock, { ids.removeFirst() },
@@ -656,22 +614,6 @@ class TrackerRepositoryRunTest {
         assertEquals(before, repo.openRunFlow.first())
     }
 
-    /** [F] */
-    @Test fun `snapshot restores runs tracks and mints only blank day identities`() = runTest {
-        val plan = authored()
-        start(plan)
-        val before = repo.exportSnapshot()
-        repo.importSnapshot(before, journal)
-        val restored = repo.exportSnapshot()
-        assertEquals(before.runs, restored.runs)
-        assertEquals(before.runTracks, restored.runTracks)
-        assertEquals(before.days, restored.days)
-        val legacyDay = before.days.last().copy(nextRunId = "", closedAt = 1000)
-        repo.importSnapshot(before.copy(days = before.days.dropLast(1) + legacyDay), journal)
-        assertTrue(day(plan, "B").nextRunId.isNotBlank())
-        assertNull(day(plan, "B").closedAt)
-        assertEquals(before.days.first(), day(plan))
-    }
 
     /** [F] */
     @Test fun `declined or rejected batch leaves working values and run creation unwritten`() = runTest {

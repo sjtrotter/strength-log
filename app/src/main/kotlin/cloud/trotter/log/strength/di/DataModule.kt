@@ -8,6 +8,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.PlanRepository
@@ -122,6 +123,16 @@ object DataModule {
     @Singleton
     fun historyRepository(db: StrengthDatabase, settings: SettingsStore, plans: PlanRepository): HistoryRepository =
         HistoryRepository(db, settings, plans)
+
+    @Provides
+    @Singleton
+    fun backupRepository(
+        db: StrengthDatabase,
+        settings: SettingsStore,
+        plans: PlanRepository,
+        history: HistoryRepository,
+        clock: Clock,
+    ): BackupRepository = BackupRepository(db, settings, plans, history, clock)
 
     @Provides
     @Singleton

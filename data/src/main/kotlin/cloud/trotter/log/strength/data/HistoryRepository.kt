@@ -240,7 +240,7 @@ class HistoryRepository(
 
     /**
      * Every session + set for CSV history export, in the same deterministic
-     * order as [TrackerRepository.exportSnapshot]'s equivalent fields. Read-only — `:transfer`
+     * order as [BackupRepository.exportSnapshot]'s equivalent fields. Read-only — `:transfer`
      * builds the CSV text from this instead of touching Room.
      */
     suspend fun exportSessionHistory(): SessionHistorySnapshot = SessionHistorySnapshot(
@@ -257,7 +257,7 @@ class HistoryRepository(
     /**
      * Appends CSV-imported history in one transaction
      * (docs/briefs/m4-transfer.md, "#16 CSV"), per D9's one staging
-     * transaction rule. Additive only: unlike [TrackerRepository.importSnapshot]'s full
+     * transaction rule. Additive only: unlike [BackupRepository.importSnapshot]'s full
      * destructive replace, the program and live logs are untouched.
      * [newCustomExercises] are upserted first so every imported set's
      * `exerciseId` already resolves by the time its row lands; each

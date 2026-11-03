@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.FlakyDataStore
+import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
@@ -98,9 +99,10 @@ class BackupViewModelRestoreTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
+        val backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
         viewModel = BackupViewModel(
             context,
-            BackupService(repo, RestoreJournal(journalStore, settings)),
+            BackupService(backupRepository, RestoreJournal(journalStore, settings)),
             CsvHistoryService(repo.history, catalog = repo.catalog),
             settings,
             appScope,

@@ -1316,4 +1316,38 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(RunWriteResult.Unchanged, repo.applyToRun(runId, plan, "A", listOf(empty)))
         assertTrue(db.runDao().tracks(runId).none { it.programExerciseId == unknown })
     }
+
+    @Test fun `picking the current structure again changes nothing`() = runTest {
+        val plan = generated()
+        val id = slot(plan)
+        val runId = start(plan)
+        val tracks = db.runDao().tracks(runId)
+        val logs = db.programDao().logsForDay(plan, "A")
+        assertTrue(logs.any { it.programExerciseId == id })
+
+        repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
+
+        assertEquals(tracks, db.runDao().tracks(runId))
+        assertEquals(logs, db.programDao().logsForDay(plan, "A"))
+    }
+
+    @Test fun `structure growth pads a substituted partner to the new row count`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setStructure(id, SetStructure.STRAIGHT)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = explicitStart(plan)
+        seed(runId)
+        assertTrue(repo.swapInRun(runId, id, Slot.SS, "rope_pushdown"))
+        val partnerRows = SetJson.decodeSets(db.runDao().tracks(runId).single { it.slot == Slot.SS && !it.retired }.setsJson)
+
+        repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
+
+        val active = db.runDao().tracks(runId).filter { !it.retired }
+        val main = SetJson.decodeSets(active.single { it.slot == Slot.MAIN }.setsJson)
+        val partner = SetJson.decodeSets(active.single { it.slot == Slot.SS }.setsJson)
+        assertEquals(6, main.size)
+        assertEquals(main.size, partner.size)
+        assertEquals(partnerRows, partner.take(partnerRows.size))
+    }
 }

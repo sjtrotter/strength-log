@@ -516,6 +516,8 @@ open class TrackerRepository(
         val global = settings.globalLifterFlow.first()
         db.withTransaction {
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            // Picking the current structure again must not replan rows or drop remembered values.
+            if (row.structure == structure.name) return@withTransaction
             val updated = row.copy(structure = structure.name)
             programDao.setStructure(row.id, structure.name)
             replanSlot(updated, answersForPlan(planDao.plan(row.planId), global).config)
@@ -542,7 +544,17 @@ open class TrackerRepository(
             val alignedSeed = RunReplan.alignPaired(
                 seeded, partnerRows, seeded, partnerRows.ifEmpty { seeded },
             ).first
-            RunReplan.represcribe(current, alignedSeed)
+            val rows = RunReplan.represcribe(current, alignedSeed)
+            // A substituted partner keeps its rows; when the main track grows, it grows from its own target.
+            if (rows.size > partnerRows.size) {
+                val partnerSeed = SlotSeeds.partner(catalog.find(partner.exerciseId), rows.size, config)
+                    ?: partnerRows.ifEmpty { rows }
+                runDao.updateTrack(partner.copy(
+                    setsJson = SetJson.encodeSets(RunReplan.alignPaired(rows, partnerRows, rows, partnerSeed).second),
+                    updatedAt = clock.millis(),
+                ))
+            }
+            rows
         } else {
             val partnerEntry = catalog.find(partner.exerciseId)
             if (partnerEntry == null) RunReplan.represcribe(current, seeded) else {

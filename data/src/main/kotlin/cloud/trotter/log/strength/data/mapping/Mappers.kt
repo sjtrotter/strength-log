@@ -22,7 +22,7 @@ import cloud.trotter.log.strength.domain.model.SupersetPartner
 fun ProgramExerciseEntity.toDomain(): ProgramExercise =
     ProgramExercise(
         exerciseId = exerciseId,
-        structure = SetStructure.fromLegacy(isMain, prescribed = prescriptionJson != null),
+        structure = SetStructure.fromLegacy(isMain),
         targetSets = targetSets,
         superset = supersetExerciseId?.let(::SupersetPartner),
         note = note,

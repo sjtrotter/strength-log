@@ -175,9 +175,8 @@ class SlotSeedsTest {
         )
     }
 
-    @Test fun `legacy data keeps a prescribed main lift on straight sets`() {
-        assertEquals(SetStructure.RAMP_TOP_BACKOFF, SetStructure.fromLegacy(isMain = true, prescribed = false))
-        assertEquals(SetStructure.STRAIGHT, SetStructure.fromLegacy(isMain = true, prescribed = true))
-        assertEquals(SetStructure.STRAIGHT, SetStructure.fromLegacy(isMain = false, prescribed = false))
+    @Test fun `legacy data ramps a main lift and keeps everything else straight`() {
+        assertEquals(SetStructure.RAMP_TOP_BACKOFF, SetStructure.fromLegacy(isMain = true))
+        assertEquals(SetStructure.STRAIGHT, SetStructure.fromLegacy(isMain = false))
     }
 }

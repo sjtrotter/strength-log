@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -27,6 +28,24 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class SetEditSheetTest {
     @get:Rule val rule = createComposeRule()
+
+    @Test fun topSetWithBackoffExplainsBothFollowingWeights() {
+        val card = workoutLiftSheetFixture().exercises.first().copy(equipment = emptyList())
+        val top = card.rows.single { it.kind == SetKind.TOP }
+        rule.setContent { AppTheme { SetEditSheet(card, top, WeightUnit.LB, 0, workoutActions(), {}) } }
+        rule.onNodeWithText("Warm-ups and back-off follow this weight.").assertExists()
+        rule.onNodeWithText("Warm-ups follow this weight.").assertDoesNotExist()
+    }
+
+    @Test fun topSetWithoutBackoffOnlyExplainsWarmups() {
+        val card = workoutLiftSheetFixture().exercises.first().let { original ->
+            original.copy(equipment = emptyList(), rows = original.rows.filter { it.kind != SetKind.BACKOFF })
+        }
+        val top = card.rows.single { it.kind == SetKind.TOP }
+        rule.setContent { AppTheme { SetEditSheet(card, top, WeightUnit.LB, 0, workoutActions(), {}) } }
+        rule.onNodeWithText("Warm-ups follow this weight.").assertExists()
+        rule.onNodeWithText("Warm-ups and back-off follow this weight.").assertDoesNotExist()
+    }
 
     @Test fun validEditsWriteImmediatelyAndDoneOnlyDismisses() {
         val writes = mutableListOf<Double>()

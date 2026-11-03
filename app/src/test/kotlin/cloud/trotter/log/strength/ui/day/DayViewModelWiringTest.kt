@@ -444,7 +444,7 @@ class DayViewModelWiringTest {
     }
 
     @Test
-    fun authoredAddUsesThreeSetsAndSeedsAStandardLiftFromGoalMath() = runVmTest {
+    fun authoredAddDefaultsAStandardLiftToRampTopBackoffFromGoalMath() = runVmTest {
         val plan = repo.createAuthoredPlan("Strength", "Day A")
         repo.publishCreatedAuthoredPlan(plan)
         val vm = newViewModel()
@@ -455,11 +455,88 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val slot = repo.slotsFor(plan, "A").first().single()
         assertEquals(3, slot.exercise.targetSets)
+        assertEquals(SetStructure.RAMP_TOP_BACKOFF, slot.exercise.structure)
+        assertEquals(SetStructure.RAMP_TOP_BACKOFF, vm.dayEditState.value.slots.single().structure)
+        assertTrue(vm.dayEditState.value.slots.single().weightedTarget)
+        assertEquals(List(4) { SetKind.RAMP } + listOf(SetKind.TOP, SetKind.BACKOFF),
+            track(slot.programExerciseId, Slot.MAIN)!!.map { it.kind })
         assertNull(slot.exercise.prescription)
         assertEquals(DaySeeds.previewMain(slot, repo.configFlow.first(), repo.catalogFlow.first()),
             track(slot.programExerciseId, Slot.MAIN))
         collectEdit.cancel()
         collectUi.cancel()
+    }
+
+    @Test
+    fun authoredAddDefaultsACurlToStraightSets() = runVmTest {
+        val plan = repo.createAuthoredPlan("Strength", "Day A")
+        repo.publishCreatedAuthoredPlan(plan)
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+
+        vm.addDaySlot("ez_curl")
+        advanceUntilIdle()
+
+        val slot = repo.slotsFor(plan, "A").first().single()
+        assertEquals(SetStructure.STRAIGHT, slot.exercise.structure)
+        assertEquals(SetStructure.STRAIGHT, vm.dayEditState.value.slots.single().structure)
+        assertTrue(vm.dayEditState.value.slots.single().weightedTarget)
+        assertEquals(List(3) { SetKind.WORK }, track(slot.programExerciseId, Slot.MAIN)!!.map { it.kind })
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun onStructureChangeWritesThePlanAndReplansTheOpenWorkout() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val id = slotId("bb_back_squat")
+        vm.toggleDone(id, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        val done = track(id, Slot.MAIN)!!.first()
+        val actions = workoutEditActions().copy(onStructureChange = vm::setDaySlotStructure)
+
+        actions.onStructureChange(id, SetStructure.RAMP_TOP)
+        advanceUntilIdle()
+
+        assertEquals(SetStructure.RAMP_TOP.name, db.programDao().exercise(id)!!.structure)
+        assertEquals(SetStructure.RAMP_TOP, vm.dayEditState.value.slots.first { it.programExerciseId == id }.structure)
+        val rows = track(id, Slot.MAIN)!!
+        assertEquals(5, rows.size)
+        assertEquals(done, rows.first())
+        assertEquals(SetKind.TOP, rows.last().kind)
+        assertEquals(rows.map { it.kind }, vm.uiState.value.exercises.first { it.programExerciseId == id }.rows.map { it.kind })
+        collectEdit.cancel()
+        collectUi.cancel()
+    }
+
+    @Test
+    fun editorOnlyMarksWeightedCatalogEntriesWithWeightedTargets() = runVmTest {
+        val slots = listOf(
+            ProgramExercise("bb_back_squat"),
+            ProgramExercise("bb_back_squat", prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5))),
+            ProgramExercise("bb_back_squat", prescription = Prescription(PrescribedTarget.Hold(45))),
+            ProgramExercise("bb_back_squat", prescription = Prescription(PrescribedTarget.Reps(12))),
+            ProgramExercise("bb_back_squat", prescription = Prescription(PrescribedTarget.RepsInTime(45))),
+            ProgramExercise("plank", prescription = Prescription(PrescribedTarget.LoadReps(25.0, 5))),
+            ProgramExercise("weighted_plank"),
+            ProgramExercise("pushup"),
+            ProgramExercise("plank"),
+        ).map { it.copy(structure = SetStructure.RAMP_TOP) }
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Targets", "", slots))))
+        val vm = newViewModel()
+        val collect = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(listOf(true, true, false, false, false, false, false, false, false),
+            vm.dayEditState.value.slots.map { it.weightedTarget })
+        assertTrue(vm.dayEditState.value.slots.all { it.structure == SetStructure.RAMP_TOP })
+        collect.cancel()
     }
 
     @Test

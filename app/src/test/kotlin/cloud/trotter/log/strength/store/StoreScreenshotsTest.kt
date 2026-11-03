@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
+import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -22,6 +23,7 @@ import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.LifterConfig
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
@@ -334,7 +336,11 @@ class StoreScreenshotsTest {
                 composeTestRule.waitForIdle()
                 composeTestRule.onNodeWithText("Next time").assertIsDisplayed()
                 composeTestRule.onNodeWithText("Prescription").assertIsDisplayed()
-                composeTestRule.onNodeWithText("Remove superset").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Set structure").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Straight sets").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Ramp to a top set").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Ramp, top set, back-off").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Remove superset").assertExists()
             },
         )
     }
@@ -490,6 +496,9 @@ class StoreScreenshotsTest {
                 canMoveUp = card.position > 0,
                 canMoveDown = card.position < state.exercises.lastIndex,
                 keepToPlan = dayExercises[card.position].keepToPlan,
+                structure = dayExercises[card.position].structure,
+                weightedTarget = catalog.get(card.exerciseId).tracking == TrackingType.WEIGHTED &&
+                    (dayExercises[card.position].prescription?.target.let { it == null || it is PrescribedTarget.LoadReps }),
             )
         },
     )

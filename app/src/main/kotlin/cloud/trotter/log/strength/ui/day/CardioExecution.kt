@@ -8,6 +8,7 @@ import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import cloud.trotter.log.strength.domain.cardio.Clocks
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +20,8 @@ interface CardioClock {
     fun elapsedRealtimeMillis(): Long
     fun bootCount(): Int
 }
+
+internal fun CardioClock.clocks(): Clocks = Clocks(wallMillis(), elapsedRealtimeMillis(), bootCount())
 
 @Singleton
 class SystemCardioClock @Inject constructor(

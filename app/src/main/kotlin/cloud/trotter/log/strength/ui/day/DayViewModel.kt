@@ -26,7 +26,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.PlanOrigin
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
-import cloud.trotter.log.strength.domain.generator.CardioBlocks
+import cloud.trotter.log.strength.domain.cardio.BootAnchor
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -620,12 +620,8 @@ class DayViewModel @Inject constructor(
     fun reachCardioTarget(action: CardioSetAction) {
         val run = reconcileCardio() ?: return
         if (!run.matches(action) || !run.running || run.complete) return
-        val target = run.block.sets[run.position].end as? Measure.Distance ?: return
-        var next = run.finish(CardioSetStatus.FINISHED, cardioElapsedSeconds(run), cardioClock, target.metres)
-        if (!next.complete && next.block.sets[next.position].role in listOf(CardioRole.RECOVERY, CardioRole.COOLDOWN)) {
-            next = next.start(cardioClock)
-        }
-        saveCardioRun(next)
+        if (run.block.sets[run.position].end !is Measure.Distance) return
+        saveCardioRun(run.reachTarget(cardioClock))
         maybeLogCardio()
     }
 
@@ -741,9 +737,10 @@ class DayViewModel @Inject constructor(
             val run = distanceRun(action) ?: return@mutate
             val position = action.setIndex
             val draft = run.drafts.firstOrNull { it.position == position && it.valid && !it.saved } ?: return@mutate
-            val next = run.copy(results = run.results.mapIndexed { index, result ->
-                if (index == position) result.copy(metres = draft.metres) else result
-            }, drafts = run.drafts.map { if (it.position == position) it.copy(saved = true, amended = false) else it }, saveFailed = false)
+            val next = run.enterDistance(position, draft.metres).copy(
+                drafts = run.drafts.map { if (it.position == position) it.copy(saved = true, amended = false) else it },
+                saveFailed = false,
+            )
             // Persist the intent before amending; a restored draft can retry the same set.
             saveDistanceRun(next)
             savedState[KEY_OPEN_SHEET] = null
@@ -786,18 +783,18 @@ class DayViewModel @Inject constructor(
                 mutationLock.withLock {
                     val current = cardioRun.value?.takeIf { it.runId == run.runId } ?: return@withLock
                     val activity = current.block.activity
-                    val mode = CardioBlocks.legacyModeOf(activity)
+                    val summary = current.summary()
                     // Keep entry on its originating day while the committed rotation moves on.
                     if (current.finishesDay && current.showReceipt) {
                         savedState[KEY_VIEW_SELECTION] = DaySelection(current.planId, current.dayId)
                     }
                     val id = current.sessionId ?: repo.logCardioSession(CardioSessionEntity(
-                        dayId = current.dayId, mode = mode.name,
-                        hard = current.block.sets.any { it.role == CardioRole.WORK && it.hard },
-                        label = activityLabel(activity), startedAt = requireNotNull(current.startedAt),
+                        dayId = current.dayId, mode = summary.mode.name,
+                        hard = summary.hard,
+                        label = summary.label, startedAt = requireNotNull(current.startedAt),
                         completedAt = requireNotNull(current.completedAt),
-                        seconds = current.results.sumOf { it.seconds },
-                        stepsCompleted = current.results.count { it.status == CardioSetStatus.FINISHED.name },
+                        seconds = summary.seconds,
+                        stepsCompleted = summary.stepsCompleted,
                         planId = current.planId, planName = current.planName, activity = activity.name,
                     ), current.resultSets, finishDay = current.finishesDay)
                     val latest = cardioRun.value?.takeIf { it.runId == current.runId } ?: return@withLock
@@ -2028,7 +2025,7 @@ class DayViewModel @Inject constructor(
             return null
         }
         if (event.awaitingCount) return TimedRepState(event, 0)
-        val elapsed = derivedElapsedMillis(CardioAnchors(null, event.wallStart, event.elapsedStart, event.bootCount))
+        val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
         val remainingMillis = (event.durationSeconds * 1_000L - elapsed).coerceAtLeast(0L)
         if (remainingMillis == 0L) {
             finishTimedRep(event, buzz = cardioScreenLive && timedRepAlertAnchor == event.wallStart)
@@ -2157,17 +2154,6 @@ class DayViewModel @Inject constructor(
             phase = if (run.running) CardioPhase.EXECUTING else CardioPhase.SUGGESTION,
             elapsedSeconds = elapsed,
             stepSecondsLeft = end?.let { ((it.seconds * 1_000L - run.elapsedMillis(cardioClock) + 999L) / 1_000L).toInt().coerceAtLeast(0) } ?: 0)
-    }
-
-    private fun derivedElapsedMillis(anchors: CardioAnchors): Long {
-        val wallDelta = (cardioClock.wallMillis() - (anchors.wallMillis ?: return 0L)).coerceAtLeast(0L)
-        val elapsedAnchor = anchors.elapsedMillis ?: return wallDelta
-        // The boot counter decides exactly: same boot, the monotonic clock is
-        // live and wall adjustments (NTP, manual) can never hijack elapsed;
-        // different boot, the monotonic anchor is meaningless and wall time is
-        // the only witness left.
-        if (anchors.bootCount != cardioClock.bootCount()) return wallDelta
-        return (cardioClock.elapsedRealtimeMillis() - elapsedAnchor).coerceAtLeast(0L)
     }
 
     private fun clearCardioExecution(keepDistanceSheet: Boolean = false) {
@@ -2324,13 +2310,6 @@ class DayViewModel @Inject constructor(
         val unit: WeightUnit,
         val catalog: ExerciseCatalog,
         val plan: PlanEntity? = null,
-    )
-
-    private data class CardioAnchors(
-        val identity: String?,
-        val wallMillis: Long?,
-        val elapsedMillis: Long?,
-        val bootCount: Int?,
     )
 
     private companion object {

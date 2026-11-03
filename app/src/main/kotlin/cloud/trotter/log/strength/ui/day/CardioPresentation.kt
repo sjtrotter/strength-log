@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.domain.cardio.cardioActivityLabel
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -37,7 +38,7 @@ import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 
 /** History's stored label is a title-cased activity, independent of the former interval labels. */
 internal fun activityLabel(activity: CardioActivity): String =
-    activity.name.lowercase(java.util.Locale.ROOT).replace('_', ' ').replaceFirstChar { it.titlecase() }
+    cardioActivityLabel(activity)
 
 @Composable
 internal fun cardioActivityName(activity: CardioActivity): String = stringResource(when (activity) {

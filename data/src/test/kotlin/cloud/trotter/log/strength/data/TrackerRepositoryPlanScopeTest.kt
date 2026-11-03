@@ -1012,7 +1012,7 @@ class TrackerRepositoryPlanScopeTest {
             ProgramDayEntity(planId, "A", 0, title, "", null, nextRunId = "run-$planId-A"),
         )
         return db.programDao().insertExercise(
-            ProgramExerciseEntity(id, planId, "A", 0, exerciseId, true, 3, "", false, null, ""),
+            ProgramExerciseEntity(id, planId, "A", 0, exerciseId, "RAMP_TOP_BACKOFF", 3, null, ""),
         )
     }
 

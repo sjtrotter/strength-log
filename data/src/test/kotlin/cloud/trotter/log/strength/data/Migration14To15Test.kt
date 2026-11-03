@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_14_15
 import cloud.trotter.log.strength.data.db.MIGRATION_15_16
 import cloud.trotter.log.strength.data.db.MIGRATION_16_17
+import cloud.trotter.log.strength.data.db.MIGRATION_17_18
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ExerciseLogEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
@@ -44,12 +45,12 @@ class Migration14To15Test {
         createV14().also { it.writableDatabase.close(); it.close() }
         repeat(2) {
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18).allowMainThreadQueries().build()
             try {
                 assertEquals(listOf(
-                    ProgramExerciseEntity(1, 1, "A", 0, "bb_back_squat", true, 3, "5", false, "ez_curl", "slot note",
+                    ProgramExerciseEntity(1, 1, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 3, "ez_curl", "slot note",
                         prescriptionJson = prescription, keepToPlan = true),
-                    ProgramExerciseEntity(2, 1, "A", 1, "bb_bench", false, 3, "8", false, null, ""),
+                    ProgramExerciseEntity(2, 1, "A", 1, "bb_bench", "STRAIGHT", 3, null, ""),
                 ), db.programDao().allExercises())
                 assertEquals(listOf(
                     ExerciseLogEntity(1, "A", 1, "main", working, 1_000),

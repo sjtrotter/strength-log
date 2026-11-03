@@ -19,8 +19,9 @@ import kotlinx.serialization.Serializable
  * v13 carries workout runs, each day's run identity, and archived prescriptions.
  * v14 carries each slot's next-time choice and each session's note.
  * v15 adds each plan’s onToday membership.
+ * v16 replaces legacy slot flags with a named set structure.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 15
+const val CURRENT_SCHEMA_VERSION: Int = 16
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -197,14 +198,15 @@ data class ProgramDayBackup(
 data class ProgramExerciseBackup(
     val id: Long,
     val exerciseId: String,
-    val isMain: Boolean,
+    val structure: String? = null,
     val targetSets: Int,
-    val repSchemeLabel: String,
-    val hasWarmupHint: Boolean,
     val supersetExerciseId: String? = null,
     val note: String,
     val prescriptionJson: String? = null,
     val keepToPlan: Boolean? = null,
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val isMain: Boolean? = null,
 )
 
 /**

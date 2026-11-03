@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.run.SplitInput
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.model.SetStructure
 import java.time.LocalDate
 import java.util.UUID
 import androidx.room.migration.Migration
@@ -318,8 +319,8 @@ fun migration13To14(today: () -> LocalDate, now: () -> Long, mint: () -> String)
         }
         val slots = read("SELECT * FROM program_exercise") { c ->
             ProgramExerciseEntity(c.long("id"), c.long("planId"), c.string("dayId"), c.int("position"),
-                c.string("exerciseId"), c.int("isMain") != 0, c.int("targetSets"), c.string("repSchemeLabel"),
-                c.int("hasWarmupHint") != 0, c.nullableString("supersetExerciseId"), c.string("note"),
+                c.string("exerciseId"), SetStructure.fromLegacy(c.int("isMain") != 0).name, c.int("targetSets"),
+                c.nullableString("supersetExerciseId"), c.string("note"),
                 c.nullableString("prescriptionJson"))
         }
         val days = read("SELECT * FROM program_day") { c ->
@@ -415,6 +416,49 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
 val MIGRATION_16_17 = object : Migration(16, 17) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE run_track ADD COLUMN dropped INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `program_exercise_new` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `planId` INTEGER NOT NULL, " +
+                "`dayId` TEXT NOT NULL, `position` INTEGER NOT NULL, `exerciseId` TEXT NOT NULL, " +
+                "`structure` TEXT NOT NULL, `targetSets` INTEGER NOT NULL, " +
+                "`supersetExerciseId` TEXT, `note` TEXT NOT NULL, `prescriptionJson` TEXT, " +
+                "`keepToPlan` INTEGER NOT NULL)",
+        )
+        db.execSQL(
+            "INSERT INTO `program_exercise_new` (id, planId, dayId, position, exerciseId, structure, " +
+                "targetSets, supersetExerciseId, note, prescriptionJson, keepToPlan) " +
+                "SELECT id, planId, dayId, position, exerciseId, " +
+                "CASE isMain WHEN 1 THEN 'RAMP_TOP_BACKOFF' ELSE 'STRAIGHT' END, " +
+                "targetSets, supersetExerciseId, note, prescriptionJson, keepToPlan FROM `program_exercise`",
+        )
+        // Deleted slots can leave the AUTOINCREMENT high-water mark above every surviving id.
+        db.execSQL(
+            "INSERT INTO sqlite_sequence(name, seq) " +
+                "SELECT 'program_exercise_new', old.seq FROM sqlite_sequence AS old " +
+                "WHERE old.name = 'program_exercise' " +
+                "AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'program_exercise_new')",
+        )
+        db.execSQL(
+            "UPDATE sqlite_sequence SET seq = " +
+                "(SELECT old.seq FROM sqlite_sequence AS old WHERE old.name = 'program_exercise') " +
+                "WHERE name = 'program_exercise_new' " +
+                "AND seq < (SELECT old.seq FROM sqlite_sequence AS old WHERE old.name = 'program_exercise')",
+        )
+        db.execSQL(
+            "DELETE FROM sqlite_sequence WHERE name = 'program_exercise_new' " +
+                "AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'program_exercise')",
+        )
+        db.execSQL("DROP TABLE `program_exercise`")
+        db.execSQL("ALTER TABLE `program_exercise_new` RENAME TO `program_exercise`")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_program_exercise_planId_dayId` " +
+                "ON `program_exercise` (`planId`, `dayId`)",
+        )
     }
 }
 

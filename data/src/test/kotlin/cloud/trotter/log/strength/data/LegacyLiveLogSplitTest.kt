@@ -138,6 +138,6 @@ class LegacyLiveLogSplitTest {
     }
 
     private fun slot(id: Long, day: String, position: Int, exercise: String) =
-        ProgramExerciseEntity(id, 1, day, position, exercise, true, 1, "5", false, null, "")
+        ProgramExerciseEntity(id, 1, day, position, exercise, "RAMP_TOP_BACKOFF", 1, null, "")
     private fun day(id: String, run: String) = ProgramDayEntity(1, id, 0, "Day $id", "", null, nextRunId = run)
 }

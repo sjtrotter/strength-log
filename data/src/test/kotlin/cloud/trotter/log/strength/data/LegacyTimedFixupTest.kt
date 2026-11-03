@@ -74,7 +74,7 @@ class LegacyTimedFixupTest {
 
     private suspend fun slot(exerciseId: String, position: Int): Long =
         db.programDao().insertExercise(
-            ProgramExerciseEntity(0, PlanEntity.LEGACY_ID, "A", position, exerciseId, false, 3, "", false, null, ""),
+            ProgramExerciseEntity(0, PlanEntity.LEGACY_ID, "A", position, exerciseId, "STRAIGHT", 3, null, ""),
         )
 
     private suspend fun writeLog(slotId: Long, sets: List<LoggedSet>) =
@@ -92,7 +92,7 @@ class LegacyTimedFixupTest {
     fun `a prescribed plank keeps its rep count while its legacy partner is fixed`() = runTest {
         val id = db.programDao().insertExercise(
             ProgramExerciseEntity(
-                0, PlanEntity.LEGACY_ID, "A", 0, "plank", false, 3, "", false, "plank", "",
+                0, PlanEntity.LEGACY_ID, "A", 0, "plank", "STRAIGHT", 3, "plank", "",
                 prescriptionJson = PrescriptionJson.encode(Prescription(PrescribedTarget.Reps(12))),
             ),
         )

@@ -174,7 +174,7 @@ class WizardRestoreWiringTest {
                 dayId = "A",
                 title = "Day A",
                 emphasisLine = "Squat-focused",
-                exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
+                exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 4, supersetExerciseId = null, note = "")),
             ),
         ),
     )

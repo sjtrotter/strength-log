@@ -1663,7 +1663,7 @@ open class TrackerRepository(
                 if (edit.exerciseId != null && edit.exerciseId != slot.exerciseIdFor(edit.slot)) return@withTransaction RunWriteResult.Rejected
                 val key = edit.programExerciseId to edit.slot
                 val base = working[key] ?: workingBase(day, slot, edit.slot, seeds)
-                    ?: return@withTransaction RunWriteResult.Rejected
+                    ?: if (edit.replacesAll) emptyList() else return@withTransaction RunWriteResult.Rejected
                 val result = edit.transform(base) ?: return@withTransaction RunWriteResult.Unchanged
                 if (result.count { it.done } > base.count { it.done }) doneTick = true
                 working[key] = result
@@ -1681,7 +1681,8 @@ open class TrackerRepository(
             startRun(day, initial)
             val inserted = runDao.tracks(runId)
             writeRunTracks(resolved.tracks.map { edited ->
-                edited.copy(id = inserted.first { it.sameKey(edited) }.id,
+                // A whole-list write can add a track the plan could not seed; it was not in the initial insert.
+                edited.copy(id = inserted.firstOrNull { it.sameKey(edited) }?.id ?: runDao.insertTrack(edited),
                     setsJson = SetJson.encodeSets(SetJson.decodeSets(edited.setsJson).mapIndexed { i, set -> set.copy(plannedIndex = i) }))
             })
             RunWriteResult.InRun(runId, true)

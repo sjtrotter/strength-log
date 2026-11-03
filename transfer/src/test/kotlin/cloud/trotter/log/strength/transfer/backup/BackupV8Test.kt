@@ -46,8 +46,8 @@ class BackupV8Test {
             ProgramDayEntity(2, "A", 0, "Test A", "Bench", null),
         ),
         exercises = listOf(
-            ProgramExerciseEntity(11, 1, "A", 0, "bb_back_squat", true, 4, "5", true, null, "belt"),
-            ProgramExerciseEntity(21, 2, "A", 0, "bb_bench", true, 3, "8", false, null, "pause"),
+            ProgramExerciseEntity(11, 1, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 4, null, "belt"),
+            ProgramExerciseEntity(21, 2, "A", 0, "bb_bench", "RAMP_TOP_BACKOFF", 3, null, "pause"),
         ),
         logs = listOf(
             ExerciseLogEntity(1, "A", 11, "main", """[{"weightLb":225.0,"reps":5,"kind":"TOP","done":true}]""", 3_000),
@@ -69,7 +69,7 @@ class BackupV8Test {
     )
 
     // Keep the fixture at v8 even though production exports write v9.
-    private fun FullSnapshot.toV8Document(): BackupDocument = toDocument().let { document ->
+    private fun FullSnapshot.toV8Document(): BackupDocument = toDocument().withoutV16Fields().let { document ->
         document.copy(
             schemaVersion = 8,
             plans = document.plans.map { it.copy(onToday = null) },

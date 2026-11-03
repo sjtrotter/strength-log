@@ -137,7 +137,7 @@ class RestoreJournalTest {
         customExercises = emptyList(),
         days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "R", 0, "Restored", "from a backup", null)),
         exercises = listOf(
-            ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "R", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, ""),
+            ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "R", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 4, null, ""),
         ),
         logs = emptyList(),
         sessions = emptyList(),
@@ -606,7 +606,7 @@ class RestoreJournalTest {
             answers = WizardAnswers(config = LifterConfig(bodyweightLb = 205, age = 31)),
             days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "S", 0, "Second", "from a later backup", null)),
             exercises = listOf(
-                ProgramExerciseEntity(2, PlanEntity.LEGACY_ID, "S", 0, "bb_back_squat", true, 3, "5/5/5", false, null, ""),
+                ProgramExerciseEntity(2, PlanEntity.LEGACY_ID, "S", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 3, null, ""),
             ),
             suggestedDay = "S",
         )

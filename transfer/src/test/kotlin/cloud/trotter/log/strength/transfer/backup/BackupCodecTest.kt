@@ -76,9 +76,9 @@ class BackupCodecTest {
                 emphasisLine = "Squat-focused",
                 cardioJson = null,
                 exercises = listOf(
-                    ProgramExerciseBackup(1, "bb_back_squat", true, 4, "5/5/5/3", true, null, ""),
+                    ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 4, supersetExerciseId = null, note = ""),
                     // A slot that supersets and references the backup's own custom exercise.
-                    ProgramExerciseBackup(2, custom.id, false, 3, "8-12", false, "bb_bench", "note"),
+                    ProgramExerciseBackup(2, custom.id, isMain = false, targetSets = 3, supersetExerciseId = "bb_bench", note = "note"),
                 ),
             ),
         ),
@@ -111,7 +111,7 @@ class BackupCodecTest {
                 base.plans.single().copy(id = 2, position = 1, name = "Other", onToday = membership[1]),
             )
             val snapshot = base.copy(plans = plans)
-            val encoded = codec.encode(snapshot.toDocument())
+            val encoded = codec.encode(snapshot.toDocument().withoutV16Fields().copy(schemaVersion = 15))
             val decoded = codec.decode(encoded)
             assertEquals(15, decoded.schemaVersion)
             assertTrue(encoded.contains("\"onToday\":false"))
@@ -121,7 +121,7 @@ class BackupCodecTest {
 
     @Test
     fun `v14 derives only preferred fallback membership and ignores future fields`() {
-        val base = restSnapshot(RestSettings()).toDocument()
+        val base = restSnapshot(RestSettings()).toDocument().withoutV16Fields()
         val plans = listOf(
             base.plans.single().copy(id = 3, archived = true, days = emptyList(), suggestedDay = null, onToday = true),
             base.plans.single().copy(id = 1, onToday = false),
@@ -139,7 +139,7 @@ class BackupCodecTest {
 
     @Test
     fun `v15 normalizes stale preference without changing paused membership`() {
-        val base = restSnapshot(RestSettings()).toDocument()
+        val base = restSnapshot(RestSettings()).toDocument().withoutV16Fields().copy(schemaVersion = 15)
         val plans = listOf(
             base.plans.single().copy(id = 1, onToday = false),
             base.plans.single().copy(id = 2, archived = true, days = emptyList(), suggestedDay = null, onToday = false),
@@ -393,7 +393,7 @@ class BackupCodecTest {
             program = listOf(
                 ProgramDayBackup(
                     dayId = "A", title = "Day A", emphasisLine = "",
-                    exercises = listOf(ProgramExerciseBackup(1, "not_a_real_exercise", false, 3, "", false, null, "")),
+                    exercises = listOf(ProgramExerciseBackup(1, "not_a_real_exercise", isMain = false, targetSets = 3, supersetExerciseId = null, note = "")),
                 ),
             ),
             liveLogs = emptyList(),
@@ -410,7 +410,7 @@ class BackupCodecTest {
             program = listOf(
                 ProgramDayBackup(
                     dayId = "A", title = "Day A", emphasisLine = "",
-                    exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", true, 3, "", false, "ghost", "")),
+                    exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 3, supersetExerciseId = "ghost", note = "")),
                 ),
             ),
             liveLogs = emptyList(),
@@ -490,7 +490,7 @@ class BackupCodecTest {
             program = listOf(
                 ProgramDayBackup(
                     dayId = "A", title = "Day A", emphasisLine = "", cardioJson = "{ not cardio",
-                    exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", true, 4, "", false, null, "")),
+                    exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 4, supersetExerciseId = null, note = "")),
                 ),
             ),
         )
@@ -507,8 +507,8 @@ class BackupCodecTest {
                 ProgramDayBackup(
                     dayId = "A", title = "Day A", emphasisLine = "",
                     exercises = listOf(
-                        ProgramExerciseBackup(1, "bb_back_squat", true, 4, "", false, null, ""),
-                        ProgramExerciseBackup(1, "bb_bench", false, 3, "", false, null, ""),
+                        ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 4, supersetExerciseId = null, note = ""),
+                        ProgramExerciseBackup(1, "bb_bench", isMain = false, targetSets = 3, supersetExerciseId = null, note = ""),
                     ),
                 ),
             ),
@@ -559,7 +559,7 @@ class BackupCodecTest {
                 program = listOf(
                     ProgramDayBackup(
                         dayId = "A", title = "Day A", emphasisLine = "",
-                        exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", true, 0, "", false, null, "")),
+                        exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 0, supersetExerciseId = null, note = "")),
                     ),
                 ),
                 liveLogs = emptyList(),
@@ -640,9 +640,9 @@ class BackupCodecTest {
                 ProgramDayEntity(PlanEntity.LEGACY_ID, "B", 1, "Day B", "Bench-focused", """{"label":"Zone 2","detail":"20-30 min","hard":false}"""),
             ),
             exercises = listOf(
-                ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "belt"),
-                ProgramExerciseEntity(2, PlanEntity.LEGACY_ID, "A", 1, custom.id, false, 3, "8-12", false, "bb_bench", ""),
-                ProgramExerciseEntity(3, PlanEntity.LEGACY_ID, "B", 0, "bb_bench", true, 4, "6-10", false, null, ""),
+                ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 4, null, "belt"),
+                ProgramExerciseEntity(2, PlanEntity.LEGACY_ID, "A", 1, custom.id, "STRAIGHT", 3, "bb_bench", ""),
+                ProgramExerciseEntity(3, PlanEntity.LEGACY_ID, "B", 0, "bb_bench", "RAMP_TOP_BACKOFF", 4, null, ""),
             ),
             logs = listOf(
                 ExerciseLogEntity(PlanEntity.LEGACY_ID, "A", 1, "main", """[{"weightLb":235.0,"reps":5,"kind":"TOP","done":true}]""", 1_000L),
@@ -670,7 +670,7 @@ class BackupCodecTest {
             restSettings = RestSettings(),
             customExercises = emptyList(),
             days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "A", 0, "Day A", "Squat-focused", null)),
-            exercises = listOf(ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
+            exercises = listOf(ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 4, null, "")),
             logs = emptyList(),
             sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000L, 210)),
             sessionSets = listOf(stamped),
@@ -692,7 +692,7 @@ class BackupCodecTest {
         restSettings = restSettings,
         customExercises = emptyList(),
         days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "A", 0, "Day A", "Squat-focused", null)),
-        exercises = listOf(ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
+        exercises = listOf(ProgramExerciseEntity(1, PlanEntity.LEGACY_ID, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 4, null, "")),
         logs = emptyList(),
         sessions = emptyList(),
         sessionSets = emptyList(),
@@ -799,7 +799,7 @@ class BackupCodecTest {
             ),
             sessions = listOf(WorkoutSessionEntity(7, "A", "Day A", null, 5_000, 210, note = "Felt smooth")),
         )
-        val encoded = codec.encode(snapshot.toDocument().copy(schemaVersion = 14))
+        val encoded = codec.encode(snapshot.toDocument().withoutV16Fields().copy(schemaVersion = 14))
         val decoded = codec.decode(encoded)
         val restored = decoded.toSnapshot()
 
@@ -813,7 +813,7 @@ class BackupCodecTest {
     @Test
     fun `v13 restores legacy notes by backup session id and derives prescribed keep choice`() {
         val prescription = PrescriptionJson.encode(Prescription(PrescribedTarget.Reps(12)))
-        val base = restSnapshot(RestSettings()).toDocument()
+        val base = restSnapshot(RestSettings()).toDocument().withoutV16Fields()
         val plan = base.plans.single()
         val day = plan.days.single()
         val document = base.copy(
@@ -838,7 +838,7 @@ class BackupCodecTest {
 
     @Test
     fun `v13 ignores next time choices and session notes`() {
-        val base = restSnapshot(RestSettings()).toDocument()
+        val base = restSnapshot(RestSettings()).toDocument().withoutV16Fields()
         val plan = base.plans.single()
         val day = plan.days.single()
         val prescription = PrescriptionJson.encode(Prescription(PrescribedTarget.Reps(12)))

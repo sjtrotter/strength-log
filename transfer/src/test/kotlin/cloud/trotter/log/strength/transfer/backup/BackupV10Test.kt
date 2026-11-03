@@ -55,7 +55,7 @@ class BackupV10Test {
     private fun decode(document: BackupDocument) = codec.decode(codec.encode(document))
 
     private fun withExercise(exercise: ProgramExerciseBackup): BackupDocument {
-        val document = snapshot().toDocument().copy(schemaVersion = 10)
+        val document = snapshot().toDocument().withoutV16Fields().copy(schemaVersion = 10)
         val plan = document.plans.single()
         val day = plan.days.single().copy(exercises = listOf(exercise))
         return document.copy(plans = listOf(plan.copy(days = listOf(day))))
@@ -64,7 +64,7 @@ class BackupV10Test {
     @Test
     fun `v10 carries all prescribed targets and metadata through deterministic export and restore`() {
         val before = snapshot()
-        val encoded = codec.encode(before.toDocument().copy(schemaVersion = 10))
+        val encoded = codec.encode(before.toDocument().withoutV16Fields().copy(schemaVersion = 10))
         val decoded = codec.decode(encoded)
         val restored = decoded.toSnapshot()
         assertEquals(10, decoded.schemaVersion)
@@ -72,8 +72,8 @@ class BackupV10Test {
         assertEquals(before.days, restored.days)
         assertEquals(before.exercises, restored.exercises)
         assertEquals(prescriptions, restored.exercises.map { PrescriptionJson.decode(it.prescriptionJson) })
-        assertEquals(encoded, codec.encode(before.toDocument().copy(schemaVersion = 10)))
-        assertEquals(encoded, codec.encode(restored.toDocument().copy(schemaVersion = 10)))
+        assertEquals(encoded, codec.encode(before.toDocument().withoutV16Fields().copy(schemaVersion = 10)))
+        assertEquals(encoded, codec.encode(restored.toDocument().withoutV16Fields().copy(schemaVersion = 10)))
     }
 
     @Test
@@ -91,7 +91,7 @@ class BackupV10Test {
 
     @Test
     fun `pre-v10 treats prescription keys as unknown even when they have the wrong JSON type`() {
-        val document = snapshot().toDocument().copy(schemaVersion = 9)
+        val document = snapshot().toDocument().withoutV16Fields().copy(schemaVersion = 9)
         val root = Json.parseToJsonElement(codec.encode(document)).jsonObject
         val plan = root.getValue("plans").jsonArray.single().jsonObject
         val day = plan.getValue("days").jsonArray.single().jsonObject

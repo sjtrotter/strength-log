@@ -179,7 +179,7 @@ class RestoreCoordinationTest {
             settings = SettingsBackup(200, 30, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true),
             plans = listOf(PlanBackup(1, "My plan", "GENERATED", 0, false, days = listOf(
                 ProgramDayBackup("A", "Day A", "", null, exercises = listOf(
-                    ProgramExerciseBackup(1, "bb_back_squat", true, 1, "5", false, null, ""),
+                    ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 1, supersetExerciseId = null, note = ""),
                 )),
             ))),
             liveLogs = listOf(LiveLogBackup(1, "A", 1, "main", setJson, "2026-10-19", 6_000)),
@@ -220,7 +220,7 @@ class RestoreCoordinationTest {
             suggestion, false, CardioActivity.TREADMILL_RUN,
         )
         val day = ProgramDayBackup("C1", "Cardio + Core", "Easy", prose, kind = "CARDIO", exercises = listOf(
-            ProgramExerciseBackup(1, "plank", false, 3, "30s", false, note = ""),
+            ProgramExerciseBackup(1, "plank", isMain = false, targetSets = 3, note = ""),
         ))
         val legacy = codec.decode(backupJson("A", 190))
         for (version in listOf(8, 13)) {
@@ -275,7 +275,7 @@ class RestoreCoordinationTest {
                     dayId = dayId,
                     title = "Day $dayId",
                     emphasisLine = "Squat-focused",
-                    exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", true, 4, "5/5/5/3", true, null, "")),
+                    exercises = listOf(ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 4, supersetExerciseId = null, note = "")),
                 ),
             ),
         ),
@@ -527,7 +527,7 @@ class RestoreCoordinationTest {
                 sessionNotes = mapOf(11L to "  Restored note  ", 999L to "Unknown session")),
             plans = listOf(PlanBackup(1, "My plan", "GENERATED", 1_000, days = listOf(
                 ProgramDayBackup("A", "Day A", "", exercises = listOf(
-                    ProgramExerciseBackup(1, "bb_back_squat", true, 3, "12", false, note = "", prescriptionJson = prescription),
+                    ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 3, note = "", prescriptionJson = prescription),
                 )),
             ))),
             sessions = listOf(SessionBackup(11, "A", "Day A", completedAt = 2_000, bodyweightLb = 190)),

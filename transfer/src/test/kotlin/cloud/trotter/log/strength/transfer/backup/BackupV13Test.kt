@@ -37,7 +37,7 @@ class BackupV13Test {
         settings = SettingsBackup(200, 30, "INTERMEDIATE", weightUnit = "LB", wizardComplete = true, selectedPlanId = 1),
         plans = listOf(PlanBackup(1, "Plan", "GENERATED", 1000, days = listOf(
             ProgramDayBackup("A", "Day A", "", nextRunId = run.id, closedAt = 500,
-                exercises = listOf(ProgramExerciseBackup(7, "bb_back_squat", false, 3, "10", false, "ez_curl", ""))),
+                exercises = listOf(ProgramExerciseBackup(7, "bb_back_squat", structure = "STRAIGHT", targetSets = 3, supersetExerciseId = "ez_curl", note = ""))),
             ProgramDayBackup("B", "Day B", "", nextRunId = "preview-B"),
         ))),
         runs = listOf(run), sessions = listOf(session),
@@ -46,7 +46,7 @@ class BackupV13Test {
 
     /** [F] */
     @Test fun `v13 round trip maps runs tracks day identities and archive fields`() {
-        val before = document().copy(schemaVersion = 13)
+        val before = document().withoutV16Fields().copy(schemaVersion = 13)
         val decoded = decode(before)
         assertEquals(13, decoded.schemaVersion)
         assertEquals(before, decoded)
@@ -70,7 +70,7 @@ class BackupV13Test {
     @Test fun `v1 through v12 strip run fields even with incorrect types`() {
         val legacySettings = codec.decode(checkNotNull(javaClass.getResource("/backup/v7_backup.json")).readText()).settings
         for (version in 1..12) {
-            val baseline = document().let { current ->
+            val baseline = document().withoutV16Fields().let { current ->
                 current.copy(
                     schemaVersion = version,
                     settings = if (version < 9) legacySettings.copy(selectedPlanId = if (version >= 8) 1 else null, suggestedDay = null) else current.settings,
@@ -200,9 +200,27 @@ class BackupV13Test {
 }
 
 /** What a writer before format 14 produced: no next-time choice, no session note. */
-internal fun BackupDocument.withoutV14Fields() = copy(
-    plans = plans.map { plan ->
-        plan.copy(onToday = null, days = plan.days.map { day -> day.copy(exercises = day.exercises.map { it.copy(keepToPlan = null) }) })
-    },
-    sessions = sessions.map { it.copy(note = "") },
-)
+internal fun BackupDocument.withoutV14Fields(): BackupDocument {
+    val legacy = withoutV16Fields()
+    return legacy.copy(
+        plans = legacy.plans.map { plan ->
+            plan.copy(onToday = null, days = plan.days.map { day -> day.copy(exercises = day.exercises.map { it.copy(keepToPlan = null) }) })
+        },
+        sessions = legacy.sessions.map { it.copy(note = "") },
+    )
+}
+
+internal fun BackupDocument.withoutV16Fields(): BackupDocument {
+    fun List<ProgramDayBackup>.legacyDays() = map { day ->
+        day.copy(exercises = day.exercises.map { slot ->
+            slot.copy(
+                structure = null,
+                isMain = slot.isMain ?: (slot.structure == "RAMP_TOP_BACKOFF"),
+            )
+        })
+    }
+    return copy(
+        program = program.legacyDays(),
+        plans = plans.map { it.copy(days = it.days.legacyDays()) },
+    )
+}

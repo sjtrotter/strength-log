@@ -129,7 +129,7 @@ class BackupRoundTripTest : BackupTestHarness() {
             ProgramDayEntity(2, "C", 2, "Test C", "Row-focused", null, nextRunId = "run-2C"),
         ))
         val benchId = db.programDao().insertExercise(
-            ProgramExerciseEntity(21, 2, "A", 0, "bb_bench", true, 3, "8", false, null, "pause"),
+            ProgramExerciseEntity(21, 2, "A", 0, "bb_bench", "RAMP_TOP_BACKOFF", 3, null, "pause"),
         )
         db.programDao().insertLogs(listOf(
             ExerciseLogEntity(

@@ -54,8 +54,8 @@ class BackupV1RestoreTest {
                 emphasisLine = "Squat-focused",
                 cardioJson = null,
                 exercises = listOf(
-                    ProgramExerciseBackup(1, "bb_back_squat", true, 4, "5/5/5/3", true, null, ""),
-                    ProgramExerciseBackup(2, "plank", false, 3, "", false, null, ""),
+                    ProgramExerciseBackup(1, "bb_back_squat", isMain = true, targetSets = 4, supersetExerciseId = null, note = ""),
+                    ProgramExerciseBackup(2, "plank", isMain = false, targetSets = 3, supersetExerciseId = null, note = ""),
                 ),
             ),
         ),

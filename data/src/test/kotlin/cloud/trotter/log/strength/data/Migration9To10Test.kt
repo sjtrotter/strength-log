@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_13_14
 import cloud.trotter.log.strength.data.db.MIGRATION_14_15
 import cloud.trotter.log.strength.data.db.MIGRATION_15_16
 import cloud.trotter.log.strength.data.db.MIGRATION_16_17
+import cloud.trotter.log.strength.data.db.MIGRATION_17_18
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
@@ -44,10 +45,10 @@ class Migration9To10Test {
         }
         val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
             .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
-            .addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17).allowMainThreadQueries()
+            .addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18).allowMainThreadQueries()
             .build()
         try {
-            val original = ProgramExerciseEntity(1, 1, "A", 0, "bb_back_squat", true, 3, "5", true, null, "old note")
+            val original = ProgramExerciseEntity(1, 1, "A", 0, "bb_back_squat", "RAMP_TOP_BACKOFF", 3, null, "old note")
             assertEquals(listOf(original), db.programDao().allExercises())
             assertNull(db.programDao().allExercises().single().prescriptionJson)
             assertEquals("[]", db.programDao().allLogs().single().setsJson)

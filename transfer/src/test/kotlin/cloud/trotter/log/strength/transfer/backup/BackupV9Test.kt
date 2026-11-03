@@ -107,7 +107,7 @@ class BackupV9Test {
                 days = emptyList(),
             )
         }
-        val encoded = codec.encode(before.toDocument().copy(schemaVersion = 9))
+        val encoded = codec.encode(before.toDocument().withoutV16Fields().copy(schemaVersion = 9))
 
         val decoded = codec.decode(encoded)
         val restored = decoded.toSnapshot()
@@ -119,7 +119,7 @@ class BackupV9Test {
         assertTrue(restored.exercises.isEmpty())
         assertEquals(7L, restored.selectedPlanId)
         // Mapping exports the latest schema, so keep both sides of this cycle at v9.
-        assertEquals(encoded, codec.encode(restored.toDocument().copy(schemaVersion = 9)))
+        assertEquals(encoded, codec.encode(restored.toDocument().withoutV16Fields().copy(schemaVersion = 9)))
     }
 
     @Test

@@ -26,6 +26,7 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.ExperienceLevel
 import cloud.trotter.log.strength.domain.model.GoalEmphasis
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -106,10 +107,8 @@ fun FullSnapshot.toDocument(): BackupDocument {
                             ProgramExerciseBackup(
                                 id = ex.id,
                                 exerciseId = ex.exerciseId,
-                                isMain = ex.isMain,
+                                structure = ex.structure,
                                 targetSets = ex.targetSets,
-                                repSchemeLabel = ex.repSchemeLabel,
-                                hasWarmupHint = ex.hasWarmupHint,
                                 supersetExerciseId = ex.supersetExerciseId,
                                 note = ex.note,
                                 prescriptionJson = ex.prescriptionJson,
@@ -252,10 +251,12 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                     dayId = day.dayId,
                     position = pos,
                     exerciseId = ex.exerciseId,
-                    isMain = ex.isMain,
+                    structure = if (schemaVersion >= 16) {
+                        enumOrDefault(ex.structure, SetStructure.STRAIGHT)
+                    } else {
+                        SetStructure.fromLegacy(ex.isMain == true)
+                    }.name,
                     targetSets = ex.targetSets,
-                    repSchemeLabel = ex.repSchemeLabel,
-                    hasWarmupHint = ex.hasWarmupHint,
                     supersetExerciseId = ex.supersetExerciseId,
                     note = ex.note,
                     prescriptionJson = if (schemaVersion >= 10) ex.prescriptionJson else null,

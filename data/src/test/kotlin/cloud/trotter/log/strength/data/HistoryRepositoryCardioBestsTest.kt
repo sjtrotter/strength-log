@@ -72,9 +72,10 @@ class HistoryRepositoryCardioBestsTest {
         completedAt: Long,
         sets: List<CardioSetResult>,
         planId: Long? = null,
+        dayId: String? = "A",
     ): Long {
         val id = db.cardioSessionDao().insert(CardioSessionEntity(
-            dayId = "A", mode = CardioMode.OUTDOOR_RUN.name, hard = false, label = "Run",
+            dayId = dayId, mode = CardioMode.OUTDOOR_RUN.name, hard = false, label = "Run",
             startedAt = completedAt - 1000, completedAt = completedAt,
             seconds = sets.sumOf { it.elapsedSeconds }, stepsCompleted = sets.size,
             planId = planId, activity = activity,
@@ -133,5 +134,23 @@ class HistoryRepositoryCardioBestsTest {
         assertEquals(listOf(older, older, newer), rows.map { it.cardioSessionId })
         assertEquals(listOf(0, 1, 0), rows.map { it.position })
         assertEquals(listOf(102, 101, 100), rows.map { it.elapsedSeconds })
+    }
+
+    @Test
+    fun baselineExcludesAllRowsWithTheCurrentRunIdentityBeforeReducingBests() = runTest {
+        val activity = CardioActivity.TRACK_RUN
+        val prior = insert(activity.name, 2000, listOf(result(seconds = 102)))
+        insert(activity.name, 3000, listOf(result(seconds = 98)), planId = 2)
+        insert(activity.name, 3000, listOf(result(seconds = 99)), planId = 3)
+        val otherDay = insert(activity.name, 3000, listOf(result(seconds = 101)), dayId = "B")
+        val noDay = insert(activity.name, 3000, listOf(result(seconds = 100)), dayId = null)
+
+        val rows = db.cardioSetResultDao().finishedForActivity(
+            activity.name, CardioSetStatus.FINISHED.name, excludedDayId = "A", excludedStartedAt = 2000,
+        )
+        assertEquals(listOf(prior, otherDay, noDay), rows.map { it.cardioSessionId })
+        assertEquals(100, history.cardioBestsFor(activity, "A", 2000).values.single().elapsedSeconds)
+        assertEquals(98, history.cardioBestsFor(activity).values.single().elapsedSeconds)
+        assertEquals(98, history.cardioBestsFor(activity, null, 2000).values.single().elapsedSeconds)
     }
 }

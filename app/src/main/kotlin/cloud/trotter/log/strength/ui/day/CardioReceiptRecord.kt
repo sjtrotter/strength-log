@@ -37,9 +37,9 @@ data class CardioReceiptRecord(
     val kind: PrKind,
 ) : Parcelable
 
-internal fun CardioRun.receiptRecords(): List<CardioReceiptRecord> {
+internal fun CardioRun.receiptRecords(standingBests: List<SavedCardioBest>): List<CardioReceiptRecord> {
     val activity = block.activity
-    val standing = CardioBests.bests(activity, standingBests.orEmpty().map { it.toDomain() })
+    val standing = CardioBests.bests(activity, standingBests.map { it.toDomain() })
     return CardioBests.records(activity, resultSets, standing).map { record ->
         val name = when (val end = record.key.end) {
             is Measure.Distance -> formatRecordMetres(end.metres)

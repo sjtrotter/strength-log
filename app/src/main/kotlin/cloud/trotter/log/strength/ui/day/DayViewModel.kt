@@ -420,6 +420,35 @@ class DayViewModel @Inject constructor(
      */
     val sessionReceipt = savedState.getStateFlow<SessionReceipt?>(KEY_SESSION_RECEIPT, null)
 
+    // Keep additions outside the legacy Parcelize layouts. Each payload belongs
+    // to one run, including while its receipt is deferred or distance is pending.
+    val sessionCardioRecords: StateFlow<List<CardioReceiptRecord>> = sessionReceipt.map { receipt ->
+        receipt?.cardio?.let { savedState.get<ArrayList<CardioReceiptRecord>>(cardioRecordsKey(it)) }.orEmpty()
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    private fun cardioBestsKey(run: CardioRun) = "day_cardio_standing_bests:${run.runId}"
+    private fun cardioRecordsKey(run: CardioRun) = "day_cardio_receipt_records:${run.runId}"
+
+    private suspend fun standingBestsFor(run: CardioRun): List<SavedCardioBest> {
+        savedState.get<ArrayList<SavedCardioBest>>(cardioBestsKey(run))?.let { return it }
+        // A stale snapshot may have neither sessionId nor a baseline even though
+        // the transaction committed. Exclude the same identity used to deduplicate.
+        val standing = historyRepository.cardioBestsFor(
+            run.block.activity, excludedDayId = run.dayId, excludedStartedAt = run.startedAt,
+        ).values.map(SavedCardioBest::from)
+        savedState[cardioBestsKey(run)] = ArrayList(standing)
+        return standing
+    }
+
+    private fun clearCardioRecordState(run: CardioRun) {
+        savedState.remove<ArrayList<SavedCardioBest>>(cardioBestsKey(run))
+        savedState.remove<ArrayList<CardioReceiptRecord>>(cardioRecordsKey(run))
+    }
+
+    private fun clearReceiptRecords() {
+        sessionReceipt.value?.cardio?.let(::clearCardioRecordState)
+    }
+
     /**
      * The receipt's SHARE payoff, built by the one service that builds share
      * intents anywhere in this app (session-share brief §4). Set only by
@@ -753,15 +782,9 @@ class DayViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 mutationLock.withLock {
-                    val pending = cardioRun.value?.takeIf { it.runId == run.runId } ?: return@withLock
-                    val activity = pending.block.activity
-                    val current = if (pending.standingBests == null) {
-                        // A restored, already logged run must never use itself as its baseline.
-                        val standing = if (pending.sessionId == null) {
-                            historyRepository.cardioBestsFor(activity).values.map(SavedCardioBest::from)
-                        } else emptyList()
-                        pending.copy(standingBests = standing).also(::saveCardioRun)
-                    } else pending
+                    val current = cardioRun.value?.takeIf { it.runId == run.runId } ?: return@withLock
+                    val activity = current.block.activity
+                    standingBestsFor(current)
                     val summary = current.summary()
                     // Keep entry on its originating day while the committed rotation moves on.
                     if (current.finishesDay && current.showReceipt) {
@@ -790,7 +813,7 @@ class DayViewModel @Inject constructor(
                             pendingCardioDistances.value.filterNot { it.runId == logged.runId } + logged,
                         )
                     }
-                    clearCardioExecution(keepDistanceSheet = true)
+                    clearCardioExecution(keepDistanceSheet = true, keepRecordState = true)
                     viewModelScope.launch { sessionPublisher.publishCardio(id) }
                     if (logged.drafts.isEmpty()) finishCardioReceipt(logged)
                 }
@@ -818,6 +841,7 @@ class DayViewModel @Inject constructor(
             try {
                 mutationLock.withLock {
                     val id = requireNotNull(pending.sessionId)
+                    standingBestsFor(pending)
                     pending.drafts.filter { it.saved && !it.amended }.forEach { draft ->
                         historyRepository.amendCardioSetDistance(id, draft.position, draft.metres)
                         val latest = pendingCardioDistances.value.firstOrNull { it.runId == pending.runId } ?: return@withLock
@@ -845,12 +869,17 @@ class DayViewModel @Inject constructor(
     }
 
     private suspend fun finishCardioReceipt(run: CardioRun) {
-        if (!run.finishesDay || !run.showReceipt) return
+        if (!run.finishesDay || !run.showReceipt) {
+            clearCardioRecordState(run)
+            return
+        }
         // Keep the first due receipt when another run finishes before the screen is free.
         if (deferredCardioReceipt.value == null) {
-            savedState[KEY_DEFERRED_CARDIO_RECEIPT] = run.copy(
-                cardioRecords = run.receiptRecords(), standingBests = null,
-            )
+            savedState[cardioRecordsKey(run)] = ArrayList(run.receiptRecords(standingBestsFor(run)))
+            savedState.remove<ArrayList<SavedCardioBest>>(cardioBestsKey(run))
+            savedState[KEY_DEFERRED_CARDIO_RECEIPT] = run
+        } else {
+            clearCardioRecordState(run)
         }
         showDeferredCardioReceipt()
     }
@@ -866,11 +895,12 @@ class DayViewModel @Inject constructor(
         val completedAt = historyRepository.cardioSession(sessionId)?.completedAt ?: cardioClock.wallMillis()
         if (executionActive) return
         savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
+        clearReceiptRecords()
         savedState[KEY_SESSION_RECEIPT] = SessionReceipt(
             sessionId = sessionId, dayId = run.dayId, dayIndex = run.dayIndex,
             completedAt = completedAt, minutes = null,
             completedSetCount = 0, totalSetCount = 0, setCount = 0, newTopSets = emptyList(),
-            nextDayLine = run.nextDayTitle, cardio = run, cardioRecords = run.cardioRecords,
+            nextDayLine = run.nextDayTitle, cardio = run,
         )
         if (currentDay() == run.dayId) {
             savedState[KEY_VIEW_SELECTION] = null
@@ -1456,6 +1486,7 @@ class DayViewModel @Inject constructor(
                 sessionSets = sessionSets,
                 unit = unit,
             )
+            clearReceiptRecords()
             savedState[KEY_SESSION_RECEIPT] = SessionReceiptBuilder.from(
                 sessionId = sessionId,
                 dayId = day,
@@ -1476,6 +1507,7 @@ class DayViewModel @Inject constructor(
     /** Returns whether the receipt closed and navigation back to Today is safe. */
     fun dismissSessionReceipt(): Boolean {
         if (executionActive || sessionReceipt.value == null) return false
+        clearReceiptRecords()
         savedState[KEY_SESSION_RECEIPT] = null
         return true
     }
@@ -1920,7 +1952,8 @@ class DayViewModel @Inject constructor(
             stepSecondsLeft = end?.let { ((it.seconds * 1_000L - run.elapsedMillis(cardioClock) + 999L) / 1_000L).toInt().coerceAtLeast(0) } ?: 0)
     }
 
-    private fun clearCardioExecution(keepDistanceSheet: Boolean = false) {
+    private fun clearCardioExecution(keepDistanceSheet: Boolean = false, keepRecordState: Boolean = false) {
+        if (!keepRecordState) cardioRun.value?.let(::clearCardioRecordState)
         cardioAlarm.cancel()
         cardioAlertAnchor = null
         savedState[KEY_CARDIO_RUN] = null

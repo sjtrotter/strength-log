@@ -126,9 +126,14 @@ class HistoryRepository(
     suspend fun cardioSetsFor(sessionId: Long): List<CardioSetResult> =
         cardioSetResultDao.forSession(sessionId).mapNotNull { it.toDomainOrNull() }
 
-    suspend fun cardioBestsFor(activity: CardioActivity): Map<CardioRecordKey, CardioSetResult> {
-        val results = cardioSetResultDao.finishedForActivity(activity.name, CardioSetStatus.FINISHED.name)
-            .mapNotNull { it.toDomainOrNull() }
+    suspend fun cardioBestsFor(
+        activity: CardioActivity,
+        excludedDayId: String? = null,
+        excludedStartedAt: Long? = null,
+    ): Map<CardioRecordKey, CardioSetResult> {
+        val results = cardioSetResultDao.finishedForActivity(
+            activity.name, CardioSetStatus.FINISHED.name, excludedDayId, excludedStartedAt,
+        ).mapNotNull { it.toDomainOrNull() }
         return CardioBests.bests(activity, results)
     }
 

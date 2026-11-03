@@ -43,6 +43,7 @@ import org.robolectric.annotation.Config
 class TrackerRepositoryCardioSetsTest {
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
+    private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
     private lateinit var history: HistoryRepository
     private lateinit var journal: RestoreJournal
@@ -100,6 +101,7 @@ class TrackerRepositoryCardioSetsTest {
         val plans = PlanRepository(db, settings)
         history = HistoryRepository(db, settings, plans)
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, plans = plans, history = history)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }
@@ -200,10 +202,10 @@ class TrackerRepositoryCardioSetsTest {
         repo.logCardioSession(session, sets)
         // Finish lazy database initialization and the legacy preferences fixup
         // before recording only the export's snapshot reads.
-        repo.exportSnapshot()
+        backupRepository.exportSnapshot()
         snapshotReads.clear()
 
-        repo.exportSnapshot()
+        backupRepository.exportSnapshot()
 
         val reads = snapshotReads.toList()
         assertEquals(snapshotQueries, reads.map { it.first })
@@ -237,13 +239,13 @@ class TrackerRepositoryCardioSetsTest {
 
     @Test fun `full restore replaces sets and restores their original ids`() = runTest {
         val id = repo.logCardioSession(session, sets)
-        val snapshot = repo.exportSnapshot()
+        val snapshot = backupRepository.exportSnapshot()
         repo.logCardioSession(session.copy(startedAt = 2_000), sets)
-        repo.importSnapshot(snapshot, journal)
+        backupRepository.importSnapshot(snapshot, journal)
         assertEquals(snapshot.cardioSessions, db.cardioSessionDao().all())
         assertEquals(snapshot.cardioSetResults, db.cardioSetResultDao().all())
         assertEquals(sets, history.cardioSetsFor(id))
-        repo.importSnapshot(snapshot.copy(cardioSetResults = emptyList()), journal)
+        backupRepository.importSnapshot(snapshot.copy(cardioSetResults = emptyList()), journal)
         assertEquals(snapshot.cardioSessions, db.cardioSessionDao().all())
         assertEquals(emptyList<CardioSetResult>(), history.cardioSetsFor(id))
         assertTrue(db.cardioSetResultDao().all().isEmpty())

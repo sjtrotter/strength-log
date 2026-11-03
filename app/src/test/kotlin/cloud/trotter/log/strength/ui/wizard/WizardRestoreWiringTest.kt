@@ -15,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.FlakyDataStore
+import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -87,6 +88,7 @@ class WizardRestoreWiringTest {
     private lateinit var db: StrengthDatabase
     private lateinit var settingsStore: FlakyDataStore
     private lateinit var settings: SettingsStore
+    private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
     private lateinit var journal: RestoreJournal
     private lateinit var journalStore: DataStore<Preferences>
@@ -124,11 +126,12 @@ class WizardRestoreWiringTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
         journalStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("wizard-restore-journal", ".preferences_pb")
         }
         journal = RestoreJournal(journalStore, settings)
-        service = BackupService(repo, journal)
+        service = BackupService(backupRepository, journal)
     }
 
     @After
@@ -490,7 +493,7 @@ class WizardRestoreWiringTest {
         val vm = newViewModel()
         vm.awaitOffered()
         vm.setDaysPerWeek(6)
-        val before = repo.exportSnapshot()
+        val before = backupRepository.exportSnapshot()
         settingsStore.failOnUpdate = 2 // the recovery's settings write
 
         repeat(WizardStep.entries.size) { vm.onNext() }
@@ -502,7 +505,7 @@ class WizardRestoreWiringTest {
         assertFalse(state.restore.inFlight)
         assertFalse(state.isComplete)
         assertFalse(settings.wizardCompleteFlow.first())
-        assertEquals(before, repo.exportSnapshot())
+        assertEquals(before, backupRepository.exportSnapshot())
         assertNotNull(db.restoreMarkerDao().nonce())
 
         vm.onNext()

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -40,6 +41,7 @@ import org.robolectric.annotation.Config
 class CardioHistoryRestoreTest {
     private lateinit var db: StrengthDatabase
     private lateinit var scope: CoroutineScope
+    private lateinit var backupRepository: BackupRepository
     private lateinit var repository: TrackerRepository
     private lateinit var service: BackupService
     private val session = CardioSessionEntity(
@@ -61,7 +63,8 @@ class CardioHistoryRestoreTest {
             File.createTempFile("cardio-backup-journal", ".preferences_pb")
         }, settings)
         repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
-        service = BackupService(repository, journal)
+        backupRepository = BackupRepository(db, settings, repository.plans, repository.history)
+        service = BackupService(backupRepository, journal)
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }
@@ -81,7 +84,7 @@ class CardioHistoryRestoreTest {
 
     @Test fun `v12 service round trip restores exact rows replacing later results`() = runTest {
         val id = repository.logCardioSession(session, sets)
-        val before = repository.exportSnapshot()
+        val before = backupRepository.exportSnapshot()
         val backup = service.export()
         repository.logCardioSession(session.copy(startedAt = 2_000), sets)
         service.import(backup)
@@ -143,7 +146,7 @@ class CardioHistoryRestoreTest {
             completedAt = session.startedAt + maxOf(1L, seconds * 1_000L), seconds = seconds, stepsCompleted = 0,
         )
         val id = repository.logCardioSession(shortSession, shortSets)
-        val before = repository.exportSnapshot()
+        val before = backupRepository.exportSnapshot()
         val backup = service.export()
         repository.logCardioSession(session.copy(startedAt = 2_000), sets)
 

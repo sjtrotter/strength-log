@@ -158,7 +158,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         // --- import the real backup and compare deep-equal --------------------
         service.import(backup)
         assertEquals(before, captureState())
-        val restored = repository.exportSnapshot()
+        val restored = backupRepository.exportSnapshot()
         assertEquals(16, BackupCodec().decode(backup).schemaVersion)
         assertTrue(restored.exercises.first { it.id == rowId }.keepToPlan)
         assertEquals("Felt smooth", restored.sessions.single().note)
@@ -197,7 +197,7 @@ class BackupRoundTripTest : BackupTestHarness() {
     private suspend fun captureState(): State {
         val sessions = repository.history.sessionsFlow.first()
         return State(
-            snapshot = repository.exportSnapshot(),
+            snapshot = backupRepository.exportSnapshot(),
             program = repository.plans.programFlow.first(),
             logsA = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().sortedBy { it.programExerciseId },
             logsB = repository.dayTracksFlow(repository.plans.selectedPlanIdFlow.first()!!, "B").map { it.tracks }.first().sortedBy { it.programExerciseId },

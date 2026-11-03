@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.FlakyDataStore
 import cloud.trotter.log.strength.data.CatalogRepository
+import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.dao.PlanDao
@@ -256,7 +257,7 @@ class WizardViewModelWiringTest {
             repository.plans,
             handle,
             context,
-            BackupService(repository, journal),
+            BackupService(BackupRepository(db, settings, repository.plans, repository.history), journal),
             appScope,
             DeviceWeightUnitProvider { defaultUnit },
             settings = preferences,

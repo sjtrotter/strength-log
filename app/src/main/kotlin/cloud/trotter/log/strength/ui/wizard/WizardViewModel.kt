@@ -9,7 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.PlanRepository
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.prefs.RestoreInterruption
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.di.ApplicationScope
@@ -326,7 +326,7 @@ class WizardViewModel @Inject constructor(
      * [PlanRepository.createGeneratedPlan], a process death in the gap would
      * strand the app on an empty program. Setting it last means a crash before it
      * simply re-runs the wizard (the draft survives in [SavedStateHandle]). Mirrors
-     * [TrackerRepository.importSnapshot]'s own write-before-flag ordering.
+     * [BackupRepository.importSnapshot]'s own write-before-flag ordering.
      *
      * A first-run wizard that finds `wizardComplete` already true steps aside
      * instead of generating. The app opens on the wizard whenever that flag

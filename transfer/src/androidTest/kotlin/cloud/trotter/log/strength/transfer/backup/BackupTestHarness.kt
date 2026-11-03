@@ -6,6 +6,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.BackupRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.prefs.RestoreJournal
@@ -33,6 +34,7 @@ abstract class BackupTestHarness {
 
     protected lateinit var db: StrengthDatabase
     private lateinit var dataStoreScope: CoroutineScope
+    protected lateinit var backupRepository: BackupRepository
     protected lateinit var repository: TrackerRepository
     protected lateinit var journal: RestoreJournal
     protected lateinit var service: BackupService
@@ -57,6 +59,7 @@ abstract class BackupTestHarness {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
+        backupRepository = BackupRepository(db, settings, repository.plans, repository.history)
         journal = RestoreJournal(
             PreferenceDataStoreFactory.create(
                 scope = dataStoreScope,
@@ -64,7 +67,7 @@ abstract class BackupTestHarness {
             ),
             settings,
         )
-        service = BackupService(repository, journal)
+        service = BackupService(backupRepository, journal)
     }
 
     /** A minimal but structurally valid empty backup: importing it wipes the

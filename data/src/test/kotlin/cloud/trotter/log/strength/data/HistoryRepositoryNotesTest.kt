@@ -38,6 +38,7 @@ import org.robolectric.annotation.Config
 class HistoryRepositoryNotesTest {
     private lateinit var db: StrengthDatabase
     private lateinit var repo: HistoryRepository
+    private lateinit var backupRepository: BackupRepository
     private lateinit var tracker: TrackerRepository
     private lateinit var scope: CoroutineScope
     private lateinit var store: DataStore<Preferences>
@@ -52,6 +53,7 @@ class HistoryRepositoryNotesTest {
         val plans = PlanRepository(db, settings)
         repo = HistoryRepository(db, settings, plans)
         tracker = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, plans = plans, history = repo)
+        backupRepository = BackupRepository(db, settings, tracker.plans, tracker.history)
     }
 
     @After fun tearDown() { db.close(); scope.cancel() }
@@ -124,7 +126,7 @@ class HistoryRepositoryNotesTest {
     @Test fun exportWaitsForTheLegacyNotesMove() = runTest {
         insertSession(11)
         store.edit { it[stringPreferencesKey("session_notes")] = """{"11":"Export me"}""" }
-        assertEquals("Export me", tracker.exportSnapshot().sessions.single().note)
+        assertEquals("Export me", backupRepository.exportSnapshot().sessions.single().note)
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
     }
 

@@ -20,8 +20,8 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
 /**
  * A complete, in-memory copy of everything a user owns — the whole DataStore
  * surface plus every Room row — read or written as one unit. It is the data-layer
- * currency for the A2 full backup: [TrackerRepository.exportSnapshot] reads one,
- * [TrackerRepository.importSnapshot] replaces the device's state with one.
+ * currency for the A2 full backup: [BackupRepository.exportSnapshot] reads one,
+ * [BackupRepository.importSnapshot] replaces the device's state with one.
  *
  * Rows are held as raw entities (surrogate ids and all) so a restore is bit-exact
  * — live logs and session sets key on those ids, so preserving them verbatim keeps

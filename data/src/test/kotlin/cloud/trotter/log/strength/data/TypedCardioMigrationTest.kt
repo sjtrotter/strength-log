@@ -54,6 +54,7 @@ class TypedCardioMigrationTest {
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
     private lateinit var store: DataStore<Preferences>
+    private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
     private val suggestion = CardioSuggestion("Intervals", "Run hard, recover easy.", true)
@@ -69,6 +70,7 @@ class TypedCardioMigrationTest {
         }
         settings = SettingsStore(store)
         repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
     }
 
     @After
@@ -198,7 +200,7 @@ class TypedCardioMigrationTest {
     fun `export called first waits for cardio conversion`() = runTest {
         seed()
 
-        val snapshot = repo.exportSnapshot()
+        val snapshot = backupRepository.exportSnapshot()
 
         assertNull(snapshot.days.single().cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, true, CardioActivity.ROAD_RUN),
@@ -210,12 +212,12 @@ class TypedCardioMigrationTest {
         val answers = WizardAnswers(cardio = CardioPrefs(mode = CardioMode.TREADMILL, fiveKGoal = false))
         seed(answers)
         val legacyDay = requireNotNull(db.programDao().day(1, "A"))
-        val snapshot = repo.exportSnapshot().copy(days = listOf(legacyDay))
+        val snapshot = backupRepository.exportSnapshot().copy(days = listOf(legacyDay))
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-journal", ".preferences_pb")
         }, settings)
 
-        repo.importSnapshot(snapshot, journal)
+        backupRepository.importSnapshot(snapshot, journal)
 
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, false, CardioActivity.TREADMILL_RUN),
@@ -226,7 +228,7 @@ class TypedCardioMigrationTest {
     fun `reconcile converts restored prose after the cardio gate was already completed`() = runTest {
         seed()
         val legacyDay = requireNotNull(db.programDao().day(1, "A"))
-        val snapshot = repo.exportSnapshot().copy(days = listOf(legacyDay))
+        val snapshot = backupRepository.exportSnapshot().copy(days = listOf(legacyDay))
         val journal = RestoreJournal(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("typed-cardio-reconcile-journal", ".preferences_pb")
         }, settings)
@@ -236,7 +238,7 @@ class TypedCardioMigrationTest {
             db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = "restored-prose"))
         }
 
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
 
         assertNull(db.programDao().day(1, "A")!!.cardioJson)
         assertEquals(CardioBlocks.fromLegacy(suggestion, true, CardioActivity.ROAD_RUN),
@@ -268,7 +270,8 @@ class TypedCardioMigrationTest {
                 }
         })
         val failingRepo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), failingSettings)
-        val exported = failingRepo.exportSnapshot()
+        val failingBackup = BackupRepository(db, failingSettings, failingRepo.plans, failingRepo.history)
+        val exported = failingBackup.exportSnapshot()
         val snapshot = exported.copy(days = listOf(legacyDay), answers = exported.answers.copy(
             config = exported.answers.config.copy(bodyweightLb = 190, age = 28),
         ))
@@ -277,7 +280,7 @@ class TypedCardioMigrationTest {
         }, failingSettings)
         armOnRestore = true
 
-        val failure = runCatching { failingRepo.importSnapshot(snapshot, journal) }.exceptionOrNull()
+        val failure = runCatching { failingBackup.importSnapshot(snapshot, journal) }.exceptionOrNull()
 
         assertTrue(failure is RestoreInterruption.CleanupPending)
         // Coroutine stack-trace recovery may copy the exception, nesting the original under it.

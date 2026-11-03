@@ -15,6 +15,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.data.BackupRepository
+import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.db.StrengthDatabase
@@ -75,6 +78,7 @@ class RestoreCoordinationTest {
     private lateinit var settingsStore: FlakyDataStore
     private lateinit var settings: SettingsStore
     private lateinit var journal: RestoreJournal
+    private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
     private lateinit var service: BackupService
 
@@ -104,7 +108,8 @@ class RestoreCoordinationTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        service = BackupService(repo, journal)
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
+        service = BackupService(backupRepository, journal)
     }
 
     @Test
@@ -124,8 +129,10 @@ class RestoreCoordinationTest {
             val gatedSettings = FlakyDataStore(settingsStore)
             gatedSettings.gateOnUpdate = 1
             gatedSettings.gate = open
-            val importingRepo = TrackerRepository(
-                db, db.programDao(), db.sessionDao(), db.customExerciseDao(), SettingsStore(gatedSettings),
+            val importingSettings = SettingsStore(gatedSettings)
+            val importingPlans = PlanRepository(db, importingSettings)
+            val importingRepo = BackupRepository(
+                db, importingSettings, importingPlans, HistoryRepository(db, importingSettings, importingPlans),
             )
             val importing = storeScope.async { importingRepo.importSnapshot(snapshot, journal) }
             withTimeout(TIMEOUT_MS) { gatedSettings.gateReached.await() }
@@ -161,7 +168,7 @@ class RestoreCoordinationTest {
         assertTrue(settings.onTodayFixupDoneFlow.first())
         assertFalse(db.planDao().plan(1)!!.onToday)
         val nonce = "membership-replay"
-        journal.stage(repo.exportSnapshot(), nonce)
+        journal.stage(backupRepository.exportSnapshot(), nonce)
         db.restoreMarkerDao().put(cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity(nonce = nonce))
         service.withRestoreLock {
             assertTrue(settings.onTodayFixupDoneFlow.first())
@@ -191,7 +198,9 @@ class RestoreCoordinationTest {
             val clock = java.time.Clock.fixed(java.time.Instant.parse("${date}T12:00:00Z"), java.time.ZoneOffset.UTC)
             val repository = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings,
                 clock = clock, mintRunId = { "restored-A" })
-            repository.importSnapshot(snapshot, journal)
+            val restoringBackup = BackupRepository(db, settings, repository.plans, repository.history,
+                clock = clock, mintRunId = { "restored-A" })
+            restoringBackup.importSnapshot(snapshot, journal)
             val open = repository.openRunFlow.first()
             if (date == "2026-10-19") {
                 assertEquals("restored-A", open!!.id)
@@ -237,7 +246,7 @@ class RestoreCoordinationTest {
             val snapshot = codec.decode(codec.encode(document)).toSnapshot()
             assertEquals(version == 8, snapshot.answersCarryRecipe)
 
-            repo.importSnapshot(snapshot, journal)
+            backupRepository.importSnapshot(snapshot, journal)
 
             val stored = db.programDao().day(7, "C1")!!
             assertNull(stored.cardioJson)
@@ -247,7 +256,7 @@ class RestoreCoordinationTest {
                 ?: PlanRecipeJson.encode(snapshot.answers),
                 db.planDao().plan(7)!!.recipeJson)
             assertNull(db.restoreMarkerDao().nonce())
-            val exported = codec.decode(codec.encode(repo.exportSnapshot().toDocument()))
+            val exported = codec.decode(codec.encode(backupRepository.exportSnapshot().toDocument()))
             assertTrue(exported.plans.flatMap { it.days }.all { it.cardioJson == null })
             assertEquals(stored.cardioBlockJson, exported.plans.single().days.single().cardioBlockJson)
         }
@@ -438,7 +447,7 @@ class RestoreCoordinationTest {
         assertEquals(33, global.age)
         assertEquals("ADVANCED", global.level.name)
         assertTrue(settings.wizardCompleteFlow.first())
-        assertFalse(repo.exportSnapshot().answersCarryRecipe)
+        assertFalse(backupRepository.exportSnapshot().answersCarryRecipe)
     }
 
     @Test
@@ -454,7 +463,7 @@ class RestoreCoordinationTest {
         service.import(BackupCodec().encode(document))
 
         assertEquals(listOf(PlanEntity(7, "Recipe-less", "GENERATED", 0, 1_000)), db.planDao().allPlans())
-        assertFalse(repo.exportSnapshot().answersCarryRecipe)
+        assertFalse(backupRepository.exportSnapshot().answersCarryRecipe)
     }
 
     @Test

@@ -77,6 +77,7 @@ class TrackerRepositoryPlanScopeTest {
     private lateinit var settings: SettingsStore
     private lateinit var journal: RestoreJournal
     private val clock = Clock.fixed(Instant.parse("2026-10-19T12:00:00Z"), ZoneOffset.UTC)
+    private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
     private lateinit var storeScope: CoroutineScope
 
@@ -104,6 +105,7 @@ class TrackerRepositoryPlanScopeTest {
             settings = settings,
             clock = clock,
         )
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history, clock)
     }
 
     @After
@@ -423,9 +425,9 @@ class TrackerRepositoryPlanScopeTest {
         val slotTwo = insertProgram(2, "Plan two", "bb_bench", id = 22)
         db.programDao().upsertLog(log(2, slotTwo, sets(135.0)))
         settings.setSelectedPlanId(2)
-        val snapshot = repo.exportSnapshot()
+        val snapshot = backupRepository.exportSnapshot()
 
-        repo.importSnapshot(snapshot, journal)
+        backupRepository.importSnapshot(snapshot, journal)
 
         assertEquals(listOf(1L, 2L), db.planDao().allPlans().map { it.id })
         assertEquals(listOf("Plan one"), db.programDao().daysForPlan(1).map { it.title })
@@ -442,7 +444,7 @@ class TrackerRepositoryPlanScopeTest {
             logs = snapshot.logs.filter { it.planId == 1L },
             answersCarryRecipe = true,
         )
-        repo.importSnapshot(legacy, journal)
+        backupRepository.importSnapshot(legacy, journal)
 
         val restored = db.planDao().allPlans().single()
         assertEquals(PlanEntity.LEGACY_ID, restored.id)

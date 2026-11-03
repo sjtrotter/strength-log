@@ -88,6 +88,7 @@ class RestoreJournalTest {
     private lateinit var journalStore: FlakyDataStore
     private lateinit var settings: SettingsStore
     private lateinit var journal: RestoreJournal
+    private lateinit var backupRepository: BackupRepository
     private lateinit var repo: TrackerRepository
 
     @Before
@@ -116,6 +117,7 @@ class RestoreJournalTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
+        backupRepository = BackupRepository(db, settings, repo.plans, repo.history)
     }
 
     @After
@@ -176,7 +178,7 @@ class RestoreJournalTest {
     )
 
     @Test fun importMarksMembershipFixupDoneAndPreservesAllPaused() = runTest {
-        repo.importSnapshot(pausedSnapshot(), journal)
+        backupRepository.importSnapshot(pausedSnapshot(), journal)
         assertTrue(settings.onTodayFixupDoneFlow.first())
         repo.plans.runPlanSettingsFixupIfNeeded()
         assertFalse(db.planDao().plan(1)!!.onToday)
@@ -186,7 +188,7 @@ class RestoreJournalTest {
         val restored = pausedSnapshot()
         journal.stage(restored, "marked")
         commitPreviousBuildRoomHalf(restored, "marked")
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
         assertTrue(settings.onTodayFixupDoneFlow.first())
         repo.plans.runPlanSettingsFixupIfNeeded()
         assertFalse(db.planDao().plan(1)!!.onToday)
@@ -197,7 +199,7 @@ class RestoreJournalTest {
         journal.stage(restored, "unmarked")
         journalStore.edit { it.remove(booleanPreferencesKey("restore_today_membership")) }
         commitPreviousBuildRoomHalf(restored, "unmarked")
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
         assertFalse(settings.onTodayFixupDoneFlow.first())
         assertFalse(db.planDao().plan(1)!!.onToday)
         repo.plans.runPlanSettingsFixupIfNeeded()
@@ -207,19 +209,19 @@ class RestoreJournalTest {
 
     @Test fun noReplayLeavesMembershipFixupUntouched() = runTest {
         db.planDao().insertPlans(pausedSnapshot().plans)
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
         assertFalse(settings.onTodayFixupDoneFlow.first())
         assertFalse(db.planDao().plan(1)!!.onToday)
     }
 
     @Test
     fun happyPath_leavesNoJournalAndNoMarker() = runTest {
-        repo.importSnapshot(snapshot(), journal)
+        backupRepository.importSnapshot(snapshot(), journal)
 
         assertSettingsRestored()
         assertTrue(restoredProgramIsInRoom())
         assertNull("the marker is bookkeeping, not residue", db.restoreMarkerDao().nonce())
-        assertFalse("nothing is outstanding", repo.reconcilePendingRestore(journal))
+        assertFalse("nothing is outstanding", backupRepository.reconcilePendingRestore(journal))
     }
 
     // --- interrupted after the transaction committed ---------------------------
@@ -228,7 +230,7 @@ class RestoreJournalTest {
     fun settingsFailureAfterTheCommit_isReportedByPhase_andReconcileConverges() = runTest {
         settingsStore.failOnUpdate = 1
 
-        val thrown = runCatching { repo.importSnapshot(snapshot(), journal) }.exceptionOrNull()
+        val thrown = runCatching { backupRepository.importSnapshot(snapshot(), journal) }.exceptionOrNull()
 
         assertTrue(
             "a post-commit settings failure is not a problem with the picked file",
@@ -239,10 +241,10 @@ class RestoreJournalTest {
         assertSettingsUntouched()
         assertNotNull("the marker is what proves the data half landed", db.restoreMarkerDao().nonce())
 
-        assertTrue("the journal survived the failure", repo.reconcilePendingRestore(journal))
+        assertTrue("the journal survived the failure", backupRepository.reconcilePendingRestore(journal))
         assertSettingsRestored()
         assertNull(db.restoreMarkerDao().nonce())
-        assertFalse("and is spent", repo.reconcilePendingRestore(journal))
+        assertFalse("and is spent", backupRepository.reconcilePendingRestore(journal))
     }
 
     @Test
@@ -255,19 +257,19 @@ class RestoreJournalTest {
         )
         settingsStore.failOnUpdate = 1
 
-        val failure = runCatching { repo.importSnapshot(restored, journal) }.exceptionOrNull()
+        val failure = runCatching { backupRepository.importSnapshot(restored, journal) }.exceptionOrNull()
 
         assertTrue(failure is RestoreInterruption.SettingsPending)
         assertEquals(restored.sessions, db.sessionDao().allSessions())
         assertNotNull(db.restoreMarkerDao().nonce())
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
 
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
 
         assertEquals(restored.sessions, db.sessionDao().allSessions())
         assertSettingsRestored()
         assertNull(db.restoreMarkerDao().nonce())
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
         assertEquals(restored.sessions, db.sessionDao().allSessions())
     }
 
@@ -285,12 +287,12 @@ class RestoreJournalTest {
 
         repo.history.ensureSessionNotesMoved()
         assertEquals("", repo.history.session(11)!!.note)
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
 
         assertEquals("Recovered note", repo.history.session(11)!!.note)
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
         assertNull(db.restoreMarkerDao().nonce())
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
         assertEquals("Recovered note", repo.history.session(11)!!.note)
     }
 
@@ -303,7 +305,7 @@ class RestoreJournalTest {
         stagePreviousBuild(snapshot(), nonce)
         commitPreviousBuildRoomHalf(snapshot(), nonce)
 
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
 
         assertSettingsRestored()
         assertNull(db.restoreMarkerDao().nonce())
@@ -322,7 +324,7 @@ class RestoreJournalTest {
         assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson)
         assertNull(db.planDao().plan(PlanEntity.LEGACY_ID)!!.suggestedDayId)
 
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
 
         val plan = db.planDao().plan(PlanEntity.LEGACY_ID)!!
         assertEquals(restored.answers, PlanRecipeJson.decode(plan.recipeJson!!, settings.globalLifterFlow.first()))
@@ -356,7 +358,7 @@ class RestoreJournalTest {
         assertFalse(settings.planSettingsFixupDoneFlow.first())
         assertEquals(nonce, db.restoreMarkerDao().nonce())
 
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
 
         val plan = db.planDao().plan(PlanEntity.LEGACY_ID)!!
         assertEquals(restored.answers, PlanRecipeJson.decode(plan.recipeJson!!, settings.globalLifterFlow.first()))
@@ -381,7 +383,7 @@ class RestoreJournalTest {
         commitPreviousBuildRoomHalf(restored, nonce)
         assertTrue(db.planDao().allPlans().isEmpty())
 
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
 
         val plan = db.planDao().allPlans().single()
         assertEquals(PlanEntity.LEGACY_ID, plan.id)
@@ -414,7 +416,7 @@ class RestoreJournalTest {
         val authored = PlanEntity(3, "Authored", PlanOrigin.AUTHORED.name, 2, 1_000, suggestedDayId = "D")
         db.planDao().insertPlans(listOf(archived, authored))
 
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
 
         val recipe = db.planDao().plan(PlanEntity.LEGACY_ID)!!.recipeJson!!
         assertEquals(restored.answers, PlanRecipeJson.decode(recipe, settings.globalLifterFlow.first()))
@@ -445,7 +447,7 @@ class RestoreJournalTest {
         assertEquals("PHYSIQUE", settingsStore.data.first()[stringPreferencesKey("emphasis")])
         assertEquals(nonce, db.restoreMarkerDao().nonce())
 
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
 
         val plan = db.planDao().plan(PlanEntity.LEGACY_ID)!!
         assertEquals(restored.answers, PlanRecipeJson.decode(plan.recipeJson!!, settings.globalLifterFlow.first()))
@@ -484,7 +486,7 @@ class RestoreJournalTest {
 
         val keys = journalStore.data.first().asMap().keys.map { it.name }.toSet()
         assertTrue(keys.intersect(LEGACY_PLAN_KEYS).isEmpty())
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
         assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
         assertEquals(plans, db.planDao().allPlans())
         assertTrue(settingsStore.data.first().asMap().keys.none { it.name in LEGACY_PLAN_KEYS })
@@ -501,7 +503,7 @@ class RestoreJournalTest {
         // the same bug mirrored.
         journal.stage(snapshot(), "nonce-that-never-committed")
 
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
         assertSettingsUntouched()
         assertTrue(repo.plans.programFlow.first().days.isEmpty())
     }
@@ -511,7 +513,7 @@ class RestoreJournalTest {
         journal.stage(snapshot(), "nonce-A")
         db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = "nonce-B"))
 
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
         assertSettingsUntouched()
         assertNull("the stale marker goes too", db.restoreMarkerDao().nonce())
     }
@@ -520,14 +522,14 @@ class RestoreJournalTest {
     fun aMarkerWithNoStagedPayload_isJustDropped() = runTest {
         db.restoreMarkerDao().put(RestoreMarkerEntity(nonce = "orphan"))
 
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
         assertSettingsUntouched()
         assertNull(db.restoreMarkerDao().nonce())
     }
 
     @Test
     fun nothingPending_isANoOp() = runTest {
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
         assertSettingsUntouched()
     }
 
@@ -537,7 +539,7 @@ class RestoreJournalTest {
     fun aFailureStagingTheJournal_leavesTheDeviceExactlyAsItWas() = runTest {
         journalStore.failOnUpdate = 1
 
-        val thrown = runCatching { repo.importSnapshot(snapshot(), journal) }.exceptionOrNull()
+        val thrown = runCatching { backupRepository.importSnapshot(snapshot(), journal) }.exceptionOrNull()
 
         assertTrue(
             "nothing was destroyed, and the copy has to say so",
@@ -546,7 +548,7 @@ class RestoreJournalTest {
         assertTrue("the transaction never ran", repo.plans.programFlow.first().days.isEmpty())
         assertNull(db.restoreMarkerDao().nonce())
         assertSettingsUntouched()
-        assertFalse("no half-written journal is left to replay", repo.reconcilePendingRestore(journal))
+        assertFalse("no half-written journal is left to replay", backupRepository.reconcilePendingRestore(journal))
     }
 
     // --- interrupted after everything the user owns had landed ------------------
@@ -558,7 +560,7 @@ class RestoreJournalTest {
         // on the desk.
         journalStore.failOnUpdate = 3
 
-        val thrown = runCatching { repo.importSnapshot(snapshot(), journal) }.exceptionOrNull()
+        val thrown = runCatching { backupRepository.importSnapshot(snapshot(), journal) }.exceptionOrNull()
 
         assertTrue(thrown is RestoreInterruption.CleanupPending)
         assertTrue(restoredProgramIsInRoom())
@@ -566,10 +568,10 @@ class RestoreJournalTest {
 
         // The leftover pair still matches, so the next launch rewrites the same
         // values (a no-op the user can't see) and clears them.
-        assertTrue(repo.reconcilePendingRestore(journal))
+        assertTrue(backupRepository.reconcilePendingRestore(journal))
         assertSettingsRestored()
         assertNull(db.restoreMarkerDao().nonce())
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
     }
 
     // --- cancellation ------------------------------------------------------------
@@ -584,7 +586,7 @@ class RestoreJournalTest {
         val open = CompletableDeferred<Unit>()
         settingsStore.gateOnUpdate = 1
         settingsStore.gate = open
-        val job = storeScope.launch { repo.importSnapshot(snapshot(), journal) }
+        val job = storeScope.launch { backupRepository.importSnapshot(snapshot(), journal) }
         withTimeout(TIMEOUT_MS) { settingsStore.gateReached.await() }
 
         job.cancel()
@@ -594,14 +596,14 @@ class RestoreJournalTest {
         assertTrue(restoredProgramIsInRoom())
         assertSettingsRestored()
         assertNull(db.restoreMarkerDao().nonce())
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
     }
 
     // --- back-to-back restores ---------------------------------------------------
 
     @Test
     fun aSecondRestoreReplacesTheFirstsBookkeeping() = runTest {
-        repo.importSnapshot(snapshot(), journal)
+        backupRepository.importSnapshot(snapshot(), journal)
         val second = snapshot().copy(
             answers = WizardAnswers(config = LifterConfig(bodyweightLb = 205, age = 31)),
             days = listOf(ProgramDayEntity(PlanEntity.LEGACY_ID, "S", 0, "Second", "from a later backup", null)),
@@ -611,12 +613,12 @@ class RestoreJournalTest {
             suggestedDay = "S",
         )
 
-        repo.importSnapshot(second, journal)
+        backupRepository.importSnapshot(second, journal)
 
         assertEquals(listOf("S"), repo.plans.programFlow.first().days.map { it.id })
         assertEquals(205, settings.globalLifterFlow.first().bodyweightLb)
         assertNull(db.restoreMarkerDao().nonce())
-        assertFalse(repo.reconcilePendingRestore(journal))
+        assertFalse(backupRepository.reconcilePendingRestore(journal))
     }
 
     /** The main build's SettingsStore.restore payload, followed by stage's nonce

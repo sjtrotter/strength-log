@@ -209,13 +209,13 @@ class DayViewModel @Inject constructor(
             val historyKeys = combine(repo.slotsFor(planId, dayId), repo.dayHistoryKeys(planId, dayId)) { slots, ids ->
                 slots to ids
             }
-            val slotsWithHistory = historyKeys.flatMapLatest { (slots, ids) ->
+            // One flatMapLatest per slot emission: a reset cancels the old observer at once, so the
+            // skipped-lift controls never pair the new day's cards with the old slot ids.
+            historyKeys.flatMapLatest { (slots, ids) ->
                 flow {
                     ensureSeeded(planId, dayId)
-                    emit(slots to fetchDayHistory(ids))
-                }
-            }
-            slotsWithHistory.flatMapLatest { (slots, history) ->
+                    emit(fetchDayHistory(ids))
+                }.flatMapLatest { history ->
                 combine(repo.observeDay(planId, dayId), repo.openRunFlow) { day, open ->
                     val tracks = day.tracks
                     val state = buildState(ctx, day, history)
@@ -239,6 +239,7 @@ class DayViewModel @Inject constructor(
                                 )
                             })
                     CommittedDay(state, tracks)
+                }
                 }
             }
                 // flatMapLatest cancels the day the lifter just left, but nothing

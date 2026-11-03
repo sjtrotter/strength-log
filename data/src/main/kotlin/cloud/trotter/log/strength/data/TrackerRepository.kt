@@ -629,8 +629,7 @@ class TrackerRepository(
             if (sets.isNotEmpty()) cardioSetResultDao.insertAll(sets.mapIndexed { position, set ->
                 set.toEntity(id, position)
             })
-            // A late or second-device completion still logs, but cannot move a newer cursor.
-            if (finishDay && plan != null && stamped.dayId != null && plan.suggestedDayId == stamped.dayId) {
+            if (finishDay && plan != null && stamped.dayId != null) {
                 advanceRotation(plan, stamped.dayId)
             }
             id
@@ -639,6 +638,7 @@ class TrackerRepository(
 
     /** Room only: both the phone commit and strength DONE use the originating plan's rotation. */
     private suspend fun advanceRotation(plan: PlanEntity, dayId: String) {
+        if (plan.suggestedDayId != null && plan.suggestedDayId != dayId) return
         val program = assemble(programDao.daysForPlan(plan.id), programDao.exercisesForPlan(plan.id))
         Rotation.nextFor(program, dayId)?.let {
             planDao.updateSuggestedDay(plan.id, it)

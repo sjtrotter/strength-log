@@ -414,6 +414,56 @@ class TrackerRepositoryRunTest {
         assertNull(db.programDao().logForSlot(plan, "A", authored, Slot.MAIN))
     }
 
+    @Test fun `finish C while B is suggested logs and carries forward without skipping B`() = runTest {
+        val plan = authored()
+        repo.addDay(plan, "Day C")
+        repo.addExercise("C", ProgramExercise("bb_back_squat"))
+        db.planDao().updateSuggestedDay(plan, "B")
+        val beforePlan = db.planDao().plan(plan)
+        val beforeB = day(plan, "B")
+        val id = start(plan, "C")
+        val track = repo.openRunFlow.first()!!.tracks.single()
+
+        val sessionId = repo.finishRun(id)!!
+
+        val session = db.sessionDao().sessionById(sessionId)!!
+        assertEquals(id, session.runId)
+        assertEquals("C", session.dayId)
+        assertTrue(repo.history.sessionSets(sessionId).first().done)
+        assertEquals(beforePlan, db.planDao().plan(plan))
+        assertEquals("B", db.planDao().plan(plan)!!.suggestedDayId)
+        assertEquals(beforeB, day(plan, "B"))
+        assertEquals(CarryForward.next(track.planned, track.sets), SetJson.decodeSets(
+            db.programDao().logForSlot(plan, "C", checkNotNull(track.programExerciseId), track.slot)!!.setsJson,
+        ))
+        assertNotEquals(id, day(plan, "C").nextRunId)
+        assertEquals(clock.millis(), day(plan, "C").closedAt)
+        assertNull(db.runDao().openRun())
+        assertTrue(db.runDao().allTracks().isEmpty())
+    }
+
+    @Test fun `finish suggested B advances to C`() = runTest {
+        val plan = authored()
+        repo.addDay(plan, "Day C")
+        repo.addExercise("C", ProgramExercise("bb_back_squat"))
+        db.planDao().updateSuggestedDay(plan, "B")
+        val id = start(plan, "B")
+
+        repo.finishRun(id)
+
+        assertEquals("C", db.planDao().plan(plan)!!.suggestedDayId)
+    }
+
+    @Test fun `finish A with no suggested day advances to B`() = runTest {
+        val plan = authored()
+        val id = start(plan)
+        db.planDao().updateSuggestedDay(plan, null)
+
+        repo.finishRun(id)
+
+        assertEquals("B", db.planDao().plan(plan)!!.suggestedDayId)
+    }
+
     /** [F] */
     @Test fun `finish on an archived plan archives and advances its attached day`() = runTest {
         finishArchivedRun(attached = true)

@@ -33,6 +33,7 @@ data class SessionReceipt(
     val nextDayLine: String?,
     val note: String = "",
     val cardio: CardioRun? = null,
+    val cardioRecords: List<CardioReceiptRecord> = emptyList(),
 ) : Parcelable
 
 object SessionReceiptBuilder {

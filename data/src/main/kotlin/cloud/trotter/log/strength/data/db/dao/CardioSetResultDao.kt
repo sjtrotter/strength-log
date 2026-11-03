@@ -14,6 +14,14 @@ interface CardioSetResultDao {
     @Query("SELECT * FROM cardio_set_result WHERE cardioSessionId = :sessionId ORDER BY position, id")
     suspend fun forSession(sessionId: Long): List<CardioSetResultEntity>
 
+    @Query("""
+        SELECT r.* FROM cardio_set_result r
+        JOIN cardio_session s ON s.id = r.cardioSessionId
+        WHERE s.activity = :activity AND r.status = :finished
+        ORDER BY s.completedAt, r.position, r.id
+    """)
+    suspend fun finishedForActivity(activity: String, finished: String): List<CardioSetResultEntity>
+
     @Query("SELECT * FROM cardio_set_result ORDER BY cardioSessionId, position, id")
     suspend fun all(): List<CardioSetResultEntity>
 

@@ -55,6 +55,9 @@ data class CardioRun(
     val runId: String = java.util.UUID.randomUUID().toString(),
     /** Invalidated runs log normally without navigating away from the current page. */
     val showReceipt: Boolean = true,
+    /** Captured before logging, including while later distance entry is pending. */
+    val standingBests: List<SavedCardioBest>? = null,
+    val cardioRecords: List<CardioReceiptRecord> = emptyList(),
 ) : Parcelable {
     fun action(setIndex: Int = position): CardioSetAction = CardioSetAction(dayId, runId, setIndex)
 

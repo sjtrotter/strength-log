@@ -753,8 +753,15 @@ class DayViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 mutationLock.withLock {
-                    val current = cardioRun.value?.takeIf { it.runId == run.runId } ?: return@withLock
-                    val activity = current.block.activity
+                    val pending = cardioRun.value?.takeIf { it.runId == run.runId } ?: return@withLock
+                    val activity = pending.block.activity
+                    val current = if (pending.standingBests == null) {
+                        // A restored, already logged run must never use itself as its baseline.
+                        val standing = if (pending.sessionId == null) {
+                            historyRepository.cardioBestsFor(activity).values.map(SavedCardioBest::from)
+                        } else emptyList()
+                        pending.copy(standingBests = standing).also(::saveCardioRun)
+                    } else pending
                     val summary = current.summary()
                     // Keep entry on its originating day while the committed rotation moves on.
                     if (current.finishesDay && current.showReceipt) {
@@ -840,7 +847,11 @@ class DayViewModel @Inject constructor(
     private suspend fun finishCardioReceipt(run: CardioRun) {
         if (!run.finishesDay || !run.showReceipt) return
         // Keep the first due receipt when another run finishes before the screen is free.
-        if (deferredCardioReceipt.value == null) savedState[KEY_DEFERRED_CARDIO_RECEIPT] = run
+        if (deferredCardioReceipt.value == null) {
+            savedState[KEY_DEFERRED_CARDIO_RECEIPT] = run.copy(
+                cardioRecords = run.receiptRecords(), standingBests = null,
+            )
+        }
         showDeferredCardioReceipt()
     }
 
@@ -859,7 +870,7 @@ class DayViewModel @Inject constructor(
             sessionId = sessionId, dayId = run.dayId, dayIndex = run.dayIndex,
             completedAt = completedAt, minutes = null,
             completedSetCount = 0, totalSetCount = 0, setCount = 0, newTopSets = emptyList(),
-            nextDayLine = run.nextDayTitle, cardio = run,
+            nextDayLine = run.nextDayTitle, cardio = run, cardioRecords = run.cardioRecords,
         )
         if (currentDay() == run.dayId) {
             savedState[KEY_VIEW_SELECTION] = null

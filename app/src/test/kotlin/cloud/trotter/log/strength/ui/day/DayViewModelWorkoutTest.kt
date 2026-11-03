@@ -781,7 +781,8 @@ class DayViewModelWorkoutTest {
         prepare(listOf(bench(sets = 1), ProgramExercise("plank")))
         val vm = readyVm()
         val id = vm.uiState.value.exercises[0].programExerciseId
-        val before = track(vm, id)[0]
+        // The first tick starts the run, which links row 0 to planned row 0; Undo keeps that link.
+        val before = track(vm, id)[0].copy(plannedIndex = 0)
         vm.logFocusedSet()
         runCurrent()
         assertEquals("exercise:${vm.uiState.value.exercises[1].programExerciseId}",
@@ -804,7 +805,7 @@ class DayViewModelWorkoutTest {
         val vm = readyVm()
         val state = vm.uiState.value
         val id = state.exercises.single().programExerciseId
-        val before = track(vm, id)[0]
+        val before = track(vm, id)[0].copy(plannedIndex = 0)
         vm.logFocusedSet()
         runCurrent()
         assertNotNull(vm.uiState.value.workout!!.undo)

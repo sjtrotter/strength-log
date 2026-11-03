@@ -180,15 +180,40 @@ class TrackerRepository(
     private suspend fun replanSlot(row: ProgramExerciseEntity, config: LifterConfig) {
         val run = runDao.openRun() ?: return
         if (run.planId != row.planId || run.dayId != row.dayId) return
-        val tracks = runDao.tracks(run.id).filter { it.programExerciseId == row.id && !it.retired }
-        val main = tracks.firstOrNull { it.slot == Slot.MAIN && it.exerciseId == row.exerciseId } ?: return
+        val tracks = runDao.tracks(run.id).filter { it.programExerciseId == row.id }
         val catalog = this.catalog.snapshot()
         val exercise = row.toDomain()
         val entry = catalog.find(row.exerciseId)
-        if (!main.canReplan((exercise.prescription?.tracking ?: entry?.tracking) == TrackingType.TIMED)) return
+        val isTimed = (exercise.prescription?.tracking ?: entry?.tracking) == TrackingType.TIMED
         val seeded = SlotSeeds.main(exercise, entry, config) ?: return
+        val activeMain = tracks.firstOrNull { !it.retired && it.slot == Slot.MAIN }
+        val partnerMain = if (activeMain == null) {
+            tracks.firstOrNull { it.retired && it.slot == Slot.MAIN && it.exerciseId == row.exerciseId }
+        } else {
+            tracks.firstOrNull { it.slot == Slot.MAIN && it.dropped } ?: activeMain
+        }
+        val partnerMainSeed = seeded.takeIf {
+            partnerMain?.exerciseId == row.exerciseId && partnerMain.canReplan(isTimed)
+        }
+        for (track in tracks.filter { it.retired && it.exerciseId == row.exerciseIdFor(it.slot) }) {
+            val trackSeed = when (track.slot) {
+                Slot.MAIN -> seeded
+                Slot.SS -> SlotSeeds.partner(catalog.find(track.exerciseId), partnerMainSeed?.size ?: continue, config)
+                    ?: continue
+                else -> continue
+            }
+            val trackIsTimed = if (track.slot == Slot.MAIN) isTimed
+                else catalog.find(track.exerciseId)?.tracking == TrackingType.TIMED
+            if (!track.canReplan(trackIsTimed)) continue
+            runDao.updateTrack(track.copy(
+                setsJson = SetJson.encodeSets(RunReplan.represcribe(SetJson.decodeSets(track.setsJson), trackSeed)),
+                updatedAt = clock.millis(),
+            ))
+        }
+        val main = activeMain?.takeIf { it.exerciseId == row.exerciseId } ?: return
+        if (!main.canReplan(isTimed)) return
         val current = SetJson.decodeSets(main.setsJson)
-        val partner = tracks.firstOrNull { it.slot == Slot.SS }
+        val partner = tracks.firstOrNull { !it.retired && it.slot == Slot.SS }
         val mainRows = if (partner == null) RunReplan.represcribe(current, seeded) else if (
             partner.exerciseId != row.exerciseIdFor(Slot.SS)
         ) {

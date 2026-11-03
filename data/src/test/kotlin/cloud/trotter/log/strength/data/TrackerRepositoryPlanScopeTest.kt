@@ -264,14 +264,15 @@ class TrackerRepositoryPlanScopeTest {
     @Test
     fun `seed writes under the slot plan despite another selection and never overwrites`() = runTest {
         insertTwoProgramsAndSelectPlanTwo()
-        val main = sets(225.0)
 
-        repo.setPrescription(11, Prescription(PrescribedTarget.LoadReps(225.0, 5)), 1)
         repo.ensureSeeded(1, "A")
         val seeded = db.programDao().allLogs()
+        val main = SetJson.decodeSets(seeded.single().setsJson)
+        // A heavier lifter would seed a different squat goal; the stored track must not follow it.
+        settings.updateGlobalLifter { it.copy(bodyweightLb = it.bodyweightLb + 60) }
         repo.ensureSeeded(1, "A")
-        assertEquals(seeded, db.programDao().allLogs())
 
+        assertEquals(seeded, db.programDao().allLogs())
         assertSlotLogsInPlanOne(mapOf(Slot.MAIN to main))
     }
 

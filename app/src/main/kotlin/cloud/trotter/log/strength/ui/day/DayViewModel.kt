@@ -2285,7 +2285,7 @@ class DayViewModel @Inject constructor(
                 keepToPlan = pe.keepToPlan,
                 structure = pe.structure,
                 weightedTarget = entry?.tracking == TrackingType.WEIGHTED &&
-                    (pe.prescription == null || pe.prescription.target is PrescribedTarget.LoadReps),
+                    pe.prescription.let { it == null || it.target is PrescribedTarget.LoadReps },
                 targetSets = pe.targetSets,
                 canMoveUp = index > 0,
                 canMoveDown = index < slots.lastIndex,

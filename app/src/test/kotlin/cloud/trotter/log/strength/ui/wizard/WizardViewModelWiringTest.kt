@@ -55,7 +55,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -133,6 +135,7 @@ class WizardViewModelWiringTest {
     )
 
     private var createGate: CompletableDeferred<Unit>? = null
+    private var creationRecordedBeforeGate = false
 
     private val calls = mutableListOf<String>()
     private val WIZARD_COMPLETE = booleanPreferencesKey("wizard_complete")
@@ -143,7 +146,19 @@ class WizardViewModelWiringTest {
     private inner class CompletionRecordingStore(
         private val delegate: DataStore<Preferences>,
     ) : DataStore<Preferences> {
-        override val data = delegate.data
+        override val data = flow {
+            val gate = createGate
+            if (gate != null) {
+                createGate = null
+                // Armed after initialization: finish's restore reconciliation reads
+                // preferences before any transaction that could create the plan.
+                check(!db.inTransaction())
+                calls += "createGeneratedPlan"
+                creationRecordedBeforeGate = true
+                gate.await()
+            }
+            emitAll(delegate.data)
+        }
 
         override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
             delegate.updateData { before ->
@@ -171,8 +186,8 @@ class WizardViewModelWiringTest {
 
             override suspend fun upsertDay(day: ProgramDayEntity) {
                 if (day.position == 0) {
-                    calls += "createGeneratedPlan"
-                    createGate?.await()
+                    if (!creationRecordedBeforeGate) calls += "createGeneratedPlan"
+                    creationRecordedBeforeGate = false
                 }
                 db.programDao().upsertDay(day)
             }
@@ -436,10 +451,10 @@ class WizardViewModelWiringTest {
         settings.setWizardComplete(true)
         val recording = newRecordingRepo()
         val gate = CompletableDeferred<Unit>()
-        createGate = gate
         val vm = newViewModel(repository = recording)
         advanceUntilIdle()
         repeat(WizardStep.ROTATION.ordinal) { vm.onNext() }
+        createGate = gate
 
         vm.onNext()
         vm.onNext()

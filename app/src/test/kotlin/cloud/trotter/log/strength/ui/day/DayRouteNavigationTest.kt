@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.writeTestRows
 import android.content.Context
 import android.view.View
 import androidx.activity.OnBackPressedDispatcher
@@ -139,7 +140,7 @@ class DayRouteNavigationTest {
             val planned = listOf(LoggedSet(100.0, 5, SetKind.WORK))
             db.storeTestRows("A", slot, Slot.MAIN, planned)
             val runId = requireNotNull(repo.dayTracksFlow(planId, "A").first().runId)
-            repo.updateSets(runId, "A", slot, Slot.MAIN, planned.map { it.copy(done = true) })
+            repo.writeTestRows(runId, "A", slot, Slot.MAIN, planned.map { it.copy(done = true) })
             val otherPlan = repo.duplicatePlan(planId, "Other")
             repo.selectPlan(otherPlan)
             assertEquals(otherPlan, repo.selectedPlanIdFlow.first())

@@ -382,7 +382,7 @@ class TrackerRepositoryRunTest {
     @Test fun `unticking a preview writes working values without starting a run`() = runTest {
         val plan = authored()
         val slot = slot(plan)
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, work())
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, work())
         val beforeDay = day(plan)
         val beforePlan = db.planDao().plan(plan)
         val edit = TrackEdit(slot, Slot.MAIN) { rows -> rows.map { it.copy(done = false) } }
@@ -425,8 +425,8 @@ class TrackerRepositoryRunTest {
         val slots = db.programDao().exercisesForDay(plan, "A")
         val main = slots[0].id
         val authored = slots[1].id
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(main) ?: -1, "A").first().runId.orEmpty(), "A", main, Slot.MAIN, squat())
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(authored) ?: -1, "A").first().runId.orEmpty(), "A", authored, Slot.MAIN, work())
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(main) ?: -1, "A").first().runId.orEmpty(), "A", main, Slot.MAIN, squat())
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(authored) ?: -1, "A").first().runId.orEmpty(), "A", authored, Slot.MAIN, work())
         val id = day(plan).nextRunId
         repo.applyToRun(id, plan, "A", listOf(tick(main)))
         repo.applyToRun(id, plan, "A", listOf(TrackEdit(main, Slot.MAIN) { SetEditor.editWeight(it, 4, 245.0) }))
@@ -468,7 +468,7 @@ class TrackerRepositoryRunTest {
     private suspend fun finishArchivedRun(attached: Boolean) {
         val plan = authored()
         val slot = slot(plan)
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, work())
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, work())
         val id = start(plan)
         val beforeRun = repo.openRunFlow.first()!!
         val other = repo.createAuthoredPlan("Other", "Other day")
@@ -532,7 +532,7 @@ class TrackerRepositoryRunTest {
     @Test fun `discard preserves working values preview edits and plan changes`() = runTest {
         val plan = authored()
         val slot = slot(plan)
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, work())
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, work())
         val id = start(plan)
         repo.applyToRun(id, plan, "A", listOf(weight(slot, 80.0)))
         val other = slot(plan, "B")

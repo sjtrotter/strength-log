@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
+import cloud.trotter.log.strength.domain.seeding.SetEditor
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +31,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [TrackerRepository.updateSetsPaired] must land a superset's two tracks as one
+ * [TrackerRepository.applyToRun] must land a superset's two tracks as one
  * transactional write — two separate upserts could be split by process death and
  * misalign the tracks forever (spec §4/§8.2 alignment; feeds A1 history).
  * Robolectric + in-memory Room because the transaction is the thing under test.
@@ -87,7 +88,12 @@ class TrackerRepositoryPairedWriteTest {
             LoggedSet(50.0, 14, SetKind.WORK),
         )
 
-        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", programExerciseId = slotId, main = main, ss = partner)
+        val planId = requireNotNull(repo.planIdOfSlot(slotId))
+        val runId = requireNotNull(repo.dayTracksFlow(planId, "A").first().runId)
+        repo.applyToRun(runId, planId, "A", listOf(
+            TrackEdit(slotId, Slot.MAIN) { main },
+            TrackEdit(slotId, Slot.SS) { partner },
+        ))
 
         val slots = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().associateBy { it.slot }
         assertEquals(setOf(Slot.MAIN, Slot.SS), slots.keys)
@@ -98,9 +104,9 @@ class TrackerRepositoryPairedWriteTest {
     }
 
     @Test
-    fun pairedWriteOverwritesBothTracksInPlace() = runTest {
+    fun pairedAddAndRemoveKeepBothTracksAligned() = runTest {
         val slotId = supersetSlot()
-        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(),
+        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(),
             "A", slotId,
             main = listOf(LoggedSet(60.0, 12, SetKind.WORK)),
             ss = listOf(LoggedSet(50.0, 15, SetKind.WORK)),
@@ -108,11 +114,45 @@ class TrackerRepositoryPairedWriteTest {
         val grownMain = listOf(LoggedSet(60.0, 12, SetKind.WORK), LoggedSet(60.0, 12, SetKind.EXTRA))
         val grownSs = listOf(LoggedSet(50.0, 15, SetKind.WORK), LoggedSet(50.0, 15, SetKind.EXTRA))
 
-        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", slotId, grownMain, grownSs)
+        val planId = requireNotNull(repo.planIdOfSlot(slotId))
+        val runId = requireNotNull(repo.dayTracksFlow(planId, "A").first().runId)
+        assertEquals(RunWriteResult.WorkingValues, repo.applyToRun(runId, planId, "A", listOf(
+            TrackEdit(slotId, Slot.MAIN) { SetEditor.addSet(it) },
+            TrackEdit(slotId, Slot.SS) { SetEditor.addSet(it) },
+        )))
 
         val slots = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().associateBy { it.slot }
         assertEquals(2, slots.size)
         assertEquals(grownMain, slots.getValue(Slot.MAIN).sets)
         assertEquals(grownSs, slots.getValue(Slot.SS).sets)
+        val remove = listOf(
+            TrackEdit(slotId, Slot.MAIN) { rows ->
+                if (rows.size <= 1) null else SetEditor.removeSet(rows, 1)
+            },
+            TrackEdit(slotId, Slot.SS) { SetEditor.removeSet(it, 1) },
+        )
+        assertEquals(RunWriteResult.WorkingValues, repo.applyToRun(runId, planId, "A", remove))
+        val shrunk = repo.dayTracksFlow(planId, "A").first().tracks.associateBy { it.slot }
+        assertEquals(grownMain.take(1), shrunk.getValue(Slot.MAIN).sets)
+        assertEquals(grownSs.take(1), shrunk.getValue(Slot.SS).sets)
+        assertEquals(RunWriteResult.WorkingValues, repo.applyToRun(runId, planId, "A", listOf(
+            TrackEdit(slotId, Slot.SS) { SetEditor.addSet(it) },
+        )))
+        val before = db.programDao().allLogs()
+        assertEquals(RunWriteResult.Unchanged, repo.applyToRun(runId, planId, "A", remove))
+        assertEquals(before, db.programDao().allLogs())
+        assertEquals(RunStartResult.Started(runId), repo.startRun(planId, "A"))
+        val captured = repo.dayTracksFlow(planId, "A").first().tracks.associate { it.slot to it.sets }
+        assertEquals(RunWriteResult.InRun(runId, false), repo.applyToRun(runId, planId, "A", listOf(
+            TrackEdit(slotId, Slot.MAIN) { SetEditor.addSet(it) },
+            TrackEdit(slotId, Slot.SS) { SetEditor.addSet(it) },
+        )))
+        val added = repo.dayTracksFlow(planId, "A").first().tracks.associate { it.slot to it.sets }
+        assertEquals(SetEditor.addSet(captured.getValue(Slot.MAIN)), added.getValue(Slot.MAIN))
+        assertEquals(SetEditor.addSet(captured.getValue(Slot.SS)), added.getValue(Slot.SS))
+        assertEquals(RunWriteResult.InRun(runId, false), repo.applyToRun(runId, planId, "A", remove))
+        val tracksBeforeDecline = db.runDao().tracks(runId)
+        assertEquals(RunWriteResult.Unchanged, repo.applyToRun(runId, planId, "A", remove))
+        assertEquals(tracksBeforeDecline, db.runDao().tracks(runId))
     }
 }

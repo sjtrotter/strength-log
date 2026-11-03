@@ -166,7 +166,7 @@ class TrackerRepositoryPlanScopeTest {
         val planTwoSets = sets(135.0)
         db.programDao().upsertLog(log(2, slotTwo, planTwoSets))
 
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slotOne) ?: -1, "A").first().runId.orEmpty(), "A", slotOne, Slot.MAIN, planOneSets)
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slotOne) ?: -1, "A").first().runId.orEmpty(), "A", slotOne, Slot.MAIN, planOneSets)
 
         val emissions = mutableListOf<List<LoggedSlot>>()
         val emitted = Channel<Unit>(Channel.UNLIMITED)
@@ -195,7 +195,7 @@ class TrackerRepositoryPlanScopeTest {
         repo.replaceProgram(program("Plan one", "bb_back_squat"))
         val planOneId = repo.plansFlow.first().single().id
         val slotOne = db.programDao().exerciseAt(planOneId, "A", 0)!!.id
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slotOne) ?: -1, "A").first().runId.orEmpty(), "A", slotOne, Slot.MAIN, sets(225.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slotOne) ?: -1, "A").first().runId.orEmpty(), "A", slotOne, Slot.MAIN, sets(225.0))
         insertPlanTwo()
         val slotTwo = insertProgram(2, "Plan two", "bb_bench", id = 22)
         db.programDao().upsertLog(log(2, slotTwo, sets(135.0)))
@@ -244,7 +244,7 @@ class TrackerRepositoryPlanScopeTest {
         insertTwoProgramsAndSelectPlanTwo()
         val main = sets(225.0)
 
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "A").first().runId.orEmpty(), "A", 11, Slot.MAIN, main)
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "A").first().runId.orEmpty(), "A", 11, Slot.MAIN, main)
 
         assertSlotLogsInPlanOne(mapOf(Slot.MAIN to main))
     }
@@ -256,7 +256,7 @@ class TrackerRepositoryPlanScopeTest {
         val main = sets(225.0)
         val ss = sets(115.0)
 
-        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "A").first().runId.orEmpty(), "A", 11, main, ss)
+        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "A").first().runId.orEmpty(), "A", 11, main, ss)
 
         assertSlotLogsInPlanOne(mapOf(Slot.MAIN to main, Slot.SS to ss))
     }
@@ -294,8 +294,8 @@ class TrackerRepositoryPlanScopeTest {
         db.programDao().upsertLog(storedLog)
         val exercises = db.programDao().allExercises()
 
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, Slot.MAIN, sets(235.0))
-        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, sets(245.0), sets(115.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, Slot.MAIN, sets(235.0))
+        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, sets(245.0), sets(115.0))
         repo.ensureSeeded(1, "B")
         repo.swapExerciseById("B", 11, "db_goblet_squat")
 
@@ -308,8 +308,8 @@ class TrackerRepositoryPlanScopeTest {
         insertTwoProgramsAndSelectPlanTwo()
         val exercises = db.programDao().allExercises()
 
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, Slot.MAIN, sets(235.0))
-        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, sets(245.0), sets(115.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, Slot.MAIN, sets(235.0))
+        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, sets(245.0), sets(115.0))
         repo.ensureSeeded(-1, "A")
         repo.swapExerciseById("A", 99, "db_goblet_squat")
 
@@ -331,9 +331,9 @@ class TrackerRepositoryPlanScopeTest {
         db.planDao().updateSuggestedDay(plan.id, "B")
         val cardioSlot = repo.daySlotsFlow("C").first().single().programExerciseId
         val coreSets = listOf(LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 30))
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(cardioSlot) ?: -1, "C").first().runId.orEmpty(), "C", cardioSlot, Slot.MAIN, coreSets)
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(cardioSlot) ?: -1, "C").first().runId.orEmpty(), "C", cardioSlot, Slot.MAIN, coreSets)
         val strengthSlot = repo.daySlotsFlow("A").first().single().programExerciseId
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(strengthSlot) ?: -1, "A").first().runId.orEmpty(), "A", strengthSlot, Slot.MAIN, sets(225.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(strengthSlot) ?: -1, "A").first().runId.orEmpty(), "A", strengthSlot, Slot.MAIN, sets(225.0))
         val otherDayLogs = db.programDao().logsForDay(plan.id, "A")
         val suggestedBefore = repo.suggestedDayFlow.first()
 
@@ -366,7 +366,7 @@ class TrackerRepositoryPlanScopeTest {
         settings.setSelectedPlanId(2)
 
         val preview = repo.dayTracksFlow(2, "A").first()
-        repo.updateSets(preview.runId!!, "A", slotTwo, Slot.MAIN, sets(135.0).map { it.copy(done = true) })
+        repo.writeTestRows(preview.runId!!, "A", slotTwo, Slot.MAIN, sets(135.0).map { it.copy(done = true) })
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
         val session = db.sessionDao().sessionById(sessionId)!!
@@ -458,7 +458,7 @@ class TrackerRepositoryPlanScopeTest {
         db.programDao().upsertDay(ProgramDayEntity(1, "B", 1, "Original next", "", null))
         db.planDao().updateSuggestedDay(1, "B")
         val slot = db.programDao().exercisesForPlan(1).single().id
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, sets(225.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "A").first().runId.orEmpty(), "A", slot, Slot.MAIN, sets(225.0))
         val before = db.planDao().plan(1)
         val days = db.programDao().daysForPlan(1)
         val exercises = db.programDao().exercisesForPlan(1)
@@ -613,7 +613,7 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals("bb_bench", copiedSlot.supersetExerciseId)
         val sourceLogs = db.programDao().logsForPlan(1)
         assertEquals(sourceLogs.map { it.copy(planId = copy, programExerciseId = copiedSlot.id) }, db.programDao().logsForPlan(copy))
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(copiedSlot.id) ?: -1, "A").first().runId.orEmpty(), "A", copiedSlot.id, Slot.MAIN, sets(245.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(copiedSlot.id) ?: -1, "A").first().runId.orEmpty(), "A", copiedSlot.id, Slot.MAIN, sets(245.0))
         assertEquals(sourceLogs, db.programDao().logsForPlan(1))
         assertEquals(history, db.sessionDao().allSessions())
         assertEquals(cardioHistory, db.cardioSessionDao().all())
@@ -787,7 +787,7 @@ class TrackerRepositoryPlanScopeTest {
         repo.replaceProgram(Program(listOf(day)))
         val id = repo.daySlotsFlow("A").first().single().programExerciseId
         val completed = SetSeeder.seedPrescribed(1, prescription).single().copy(reps = 42, done = true)
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(completed))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(completed))
 
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
@@ -901,14 +901,14 @@ class TrackerRepositoryPlanScopeTest {
         val authoredId = slots[0].programExerciseId
         val generatedId = slots[1].programExerciseId
         val otherDayId = repo.daySlotsFlow("B").first().first().programExerciseId
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(authoredId) ?: -1, "A").first().runId.orEmpty(), "A", authoredId, Slot.MAIN, sets(50.0))
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(generatedId) ?: -1, "A").first().runId.orEmpty(), "A", generatedId, Slot.MAIN, sets(135.0))
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(otherDayId) ?: -1, "B").first().runId.orEmpty(), "B", otherDayId, Slot.MAIN, sets(60.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(authoredId) ?: -1, "A").first().runId.orEmpty(), "A", authoredId, Slot.MAIN, sets(50.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(generatedId) ?: -1, "A").first().runId.orEmpty(), "A", generatedId, Slot.MAIN, sets(135.0))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(otherDayId) ?: -1, "B").first().runId.orEmpty(), "B", otherDayId, Slot.MAIN, sets(60.0))
         val otherDayLogs = db.programDao().logsForDay(plan.id, "B")
 
         val preview = repo.dayTracksFlow(plan.id, "A").first()
         for (track in preview.tracks) {
-            repo.updateSets(preview.runId!!, "A", track.programExerciseId, track.slot, track.sets.map { it.copy(done = true) })
+            repo.writeTestRows(preview.runId!!, "A", track.programExerciseId, track.slot, track.sets.map { it.copy(done = true) })
         }
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 

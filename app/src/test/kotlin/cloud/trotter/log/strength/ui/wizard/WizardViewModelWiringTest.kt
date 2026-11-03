@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import cloud.trotter.log.strength.data.writeTestRows
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -394,7 +395,7 @@ class WizardViewModelWiringTest {
         repo.replaceProgram(restoredProgram())
         settings.setWizardComplete(true)
         val slot = db.programDao().exercisesForPlan(1).single().id
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "R").first().runId.orEmpty(), "R", slot, Slot.MAIN, listOf(
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slot) ?: -1, "R").first().runId.orEmpty(), "R", slot, Slot.MAIN, listOf(
             cloud.trotter.log.strength.domain.model.LoggedSet(225.0, 5, SetKind.WORK, done = true),
         ))
         val original = db.planDao().plan(1)

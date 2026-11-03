@@ -11,6 +11,33 @@ import cloud.trotter.log.strength.domain.standards.StrengthStandards
  */
 object SetEditor {
 
+    fun edit(sets: List<LoggedSet>, index: Int, edit: SetEdit): List<LoggedSet> {
+        var updated = sets
+        edit.weightLb?.let { updated = editWeight(updated, index, it) }
+        edit.reps?.let { updated = editReps(updated, index, it) }
+        edit.seconds?.let { updated = editSeconds(updated, index, it) }
+        return updated.mapIndexed { i, row ->
+            if (i != index) row else {
+                val unticking = edit.done == false
+                val filling = edit.done == true && row.done
+                row.copy(
+                    done = edit.done ?: row.done,
+                    startedAtMillis = when {
+                        unticking -> null
+                        filling -> row.startedAtMillis ?: edit.startedAtMillis
+                        else -> edit.startedAtMillis ?: row.startedAtMillis
+                    },
+                    completedAtMillis = when {
+                        unticking -> null
+                        filling -> row.completedAtMillis ?: edit.completedAtMillis
+                        else -> edit.completedAtMillis ?: row.completedAtMillis
+                    },
+                    watchEditedAt = edit.watchEditedAt ?: row.watchEditedAt,
+                )
+            }
+        }
+    }
+
     /**
      * Edit one row's weight. Editing a main lift's TOP row re-derives every
      * RAMP row (from [StrengthStandards.RAMP_PCTS], in order) and the BACKOFF
@@ -64,30 +91,4 @@ object SetEditor {
         val at = index.coerceIn(0, sets.size)
         return sets.subList(0, at) + set + sets.subList(at, sets.size)
     }
-
-    /**
-     * Superset add: append an EXTRA row to both tracks so rounds stay aligned
-     * index-for-index (spec §4).
-     */
-    fun addSetPaired(primary: List<LoggedSet>, partner: List<LoggedSet>): Pair<List<LoggedSet>, List<LoggedSet>> =
-        addSet(primary) to addSet(partner)
-
-    /** Superset remove: drop the same index from both tracks, never below one. */
-    fun removeSetPaired(
-        primary: List<LoggedSet>,
-        partner: List<LoggedSet>,
-        index: Int,
-    ): Pair<List<LoggedSet>, List<LoggedSet>> =
-        if (primary.size <= 1) primary to partner
-        else removeSet(primary, index) to removeSet(partner, index)
-
-    /** Superset undo: put both tracks' rows back at [index], still aligned. */
-    fun insertSetPaired(
-        primary: List<LoggedSet>,
-        partner: List<LoggedSet>,
-        index: Int,
-        primarySet: LoggedSet,
-        partnerSet: LoggedSet,
-    ): Pair<List<LoggedSet>, List<LoggedSet>> =
-        insertSet(primary, index, primarySet) to insertSet(partner, index, partnerSet)
 }

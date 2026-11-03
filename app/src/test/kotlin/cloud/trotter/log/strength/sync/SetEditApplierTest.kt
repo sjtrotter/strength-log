@@ -1,5 +1,10 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.TrackEdit
+import cloud.trotter.log.strength.domain.seeding.SetEdit
+import cloud.trotter.log.strength.domain.seeding.SetEditor
+import cloud.trotter.log.strength.data.writeTestRows
+import cloud.trotter.log.strength.data.writeTestRowsPaired
 import kotlinx.coroutines.flow.map
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -128,7 +133,7 @@ class SetEditApplierTest {
         val exercise = ProgramExercise("bb_back_squat", isMain = true, targetSets = 2, prescription = prescription)
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise)))))
         val id = squatId()
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(LoggedSet(50.0, 10, SetKind.WORK, done = false)))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, listOf(LoggedSet(50.0, 10, SetKind.WORK, done = false)))
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
 
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 1L))
@@ -185,9 +190,9 @@ class SetEditApplierTest {
         val planId = repo.selectedPlanIdFlow.first()!!
         val state = repo.dayTracksFlow(planId, day).first()
         val track = state.tracks.first { it.slot == Slot.MAIN && it.sets.isNotEmpty() }
-        repo.updateSets(state.runId!!, day, track.programExerciseId, Slot.MAIN,
+        repo.writeTestRows(state.runId!!, day, track.programExerciseId, Slot.MAIN,
             track.sets.mapIndexed { i, set -> if (i == 0) set.copy(done = true) else set })
-        repo.updateSets(state.runId!!, day, track.programExerciseId, Slot.MAIN, track.sets)
+        repo.writeTestRows(state.runId!!, day, track.programExerciseId, Slot.MAIN, track.sets)
     }
 
     private suspend fun seedOpenProgram() {
@@ -231,10 +236,10 @@ class SetEditApplierTest {
             val runId = repo.openRunFlow.first()!!.id
             suspend fun rows(slot: String) = repo.dayTracksFlow(planId, "A").first().tracks
                 .first { it.programExerciseId == id && it.slot == slot }.sets
-            val earlier = rows(Slot.MAIN).map { it.copy(reps = 10) }
-            val partner = rows(Slot.SS)
-            if (paired) repo.updateSetsPaired(runId, "A", id, earlier, partner)
-            else repo.updateSets(runId, "A", id, Slot.MAIN, earlier)
+            repo.applyToRun(runId, planId, "A", listOfNotNull(
+                TrackEdit(id, Slot.MAIN) { current -> current.map { it.copy(reps = 10) } },
+                if (paired) TrackEdit(id, Slot.SS) { it } else null,
+            ))
             val delta = SetEditDelta(dayId = "A", programExerciseId = id, slot = Slot.MAIN,
                 setIndex = 0, reps = 9, editedAtMillis = 200)
             assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(delta))
@@ -242,9 +247,10 @@ class SetEditApplierTest {
                 val partnerDelta = delta.copy(slot = Slot.SS)
                 assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(partnerDelta))
             }
-            val phoneEdit = earlier.map { it.copy(weightLb = 65.0) }
-            if (paired) repo.updateSetsPaired(runId, "A", id, phoneEdit, partner)
-            else repo.updateSets(runId, "A", id, Slot.MAIN, phoneEdit)
+            repo.applyToRun(runId, planId, "A", listOfNotNull(
+                TrackEdit(id, Slot.MAIN) { current -> SetEditor.edit(current, 0, SetEdit(weightLb = 65.0)) },
+                if (paired) TrackEdit(id, Slot.SS) { current -> SetEditor.edit(current, 0, SetEdit(weightLb = 65.0)) } else null,
+            ))
             assertEquals(200L, rows(Slot.MAIN)[0].watchEditedAt)
             assertEquals(SetEditApplier.Outcome.STALE, applier.apply(delta))
             if (paired) {
@@ -277,7 +283,7 @@ class SetEditApplierTest {
         seedOpenProgram()
         val id = curlId()
         val runId = repo.openRunFlow.first()!!.id
-        repo.updateSetsPaired(runId, "A", id, track(id, Slot.MAIN)!!, track(id, Slot.SS)!!.take(1))
+        repo.writeTestRowsPaired(runId, "A", id, track(id, Slot.MAIN)!!, track(id, Slot.SS)!!.take(1))
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
             dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
             done = true, startedAtMillis = 1, completedAtMillis = 2, editedAtMillis = 3,
@@ -486,10 +492,10 @@ class SetEditApplierTest {
                 ),
             ),
         )
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(trackId("pullup")) ?: -1, "T").first().runId.orEmpty(), "T", trackId("pullup"), Slot.MAIN, listOf(LoggedSet(0.0, 6, SetKind.WORK)))
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(trackId("plank")) ?: -1, "T").first().runId.orEmpty(), "T", trackId("plank"), Slot.MAIN, listOf(LoggedSet(0.0, 0, SetKind.WORK, seconds = 45)))
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(trackId("weighted_plank")) ?: -1, "T").first().runId.orEmpty(), "T", trackId("weighted_plank"), Slot.MAIN, listOf(LoggedSet(25.0, 0, SetKind.WORK, seconds = 45)))
-        repo.updateSetsPaired(repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "T").first().runId!!,
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(trackId("pullup")) ?: -1, "T").first().runId.orEmpty(), "T", trackId("pullup"), Slot.MAIN, listOf(LoggedSet(0.0, 6, SetKind.WORK)))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(trackId("plank")) ?: -1, "T").first().runId.orEmpty(), "T", trackId("plank"), Slot.MAIN, listOf(LoggedSet(0.0, 0, SetKind.WORK, seconds = 45)))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(trackId("weighted_plank")) ?: -1, "T").first().runId.orEmpty(), "T", trackId("weighted_plank"), Slot.MAIN, listOf(LoggedSet(25.0, 0, SetKind.WORK, seconds = 45)))
+        repo.writeTestRowsPaired(repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "T").first().runId!!,
             "T", trackId("ez_curl"),
             main = listOf(LoggedSet(60.0, 12, SetKind.WORK)),
             ss = listOf(LoggedSet(0.0, 12, SetKind.WORK)), // bench_dip: REPS, zero weight
@@ -678,7 +684,7 @@ class SetEditApplierTest {
             val before = track(id, doneSlot)!!.mapIndexed { index, set ->
                 if (index == 1) set.copy(done = true, startedAtMillis = 100L, completedAtMillis = 160L) else set
             }
-            repo.updateSets(runId, "A", id, doneSlot, before)
+            repo.writeTestRows(runId, "A", id, doneSlot, before)
             assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
                 dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
                 done = true, editedAtMillis = 1L, startedAtMillis = 500L, completedAtMillis = 560L,
@@ -702,7 +708,7 @@ class SetEditApplierTest {
         val timings = listOf(null to null, 100L to null, null to 660L, 100L to 660L)
         for ((index, timing) in timings.withIndex()) {
             for (slot in listOf(Slot.MAIN, Slot.SS)) {
-                repo.updateSets(runId, "A", id, slot, track(id, slot)!!.mapIndexed { rowIndex, set ->
+                repo.writeTestRows(runId, "A", id, slot, track(id, slot)!!.mapIndexed { rowIndex, set ->
                     if (rowIndex == 1) set.copy(done = true, startedAtMillis = timing.first, completedAtMillis = timing.second) else set
                 })
             }
@@ -1008,7 +1014,7 @@ class SetEditApplierTest {
         applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 100L))
         // ...the lifter logs against what it seeded...
         val logged = track(id, Slot.MAIN)!!.mapIndexed { i, s -> if (i == 0) s.copy(done = true) else s }
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, logged)
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, logged)
         // ...and only now does the delayed screen seed reach the database.
         val beforeSeed = db.runDao().tracks(requireNotNull(repo.openRunFlow.first()).id)
         repo.ensureSeeded(requireNotNull(repo.planIdOfSlot(id)), "A")
@@ -1051,7 +1057,7 @@ class SetEditApplierTest {
             applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 100L)),
         )
         val newLog = listOf(LoggedSet(75.0, 8, SetKind.WORK))
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, newLog)
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, newLog)
 
         val outcome = applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 101L))
 
@@ -1125,7 +1131,7 @@ class SetEditApplierTest {
         seedProgram()
         val planP = repo.selectedPlanIdFlow.first()!!
         val id = squatId()
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, track(id, Slot.MAIN)!!.map { it.copy(done = false) })
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, track(id, Slot.MAIN)!!.map { it.copy(done = false) })
         db.sessionDao().insertSession(WorkoutSessionEntity(
             id = 0, dayId = "A", dayTitle = "Test", startedAt = null,
             completedAt = 200L, bodyweightLb = 180, planId = planP,

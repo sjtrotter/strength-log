@@ -944,7 +944,7 @@ open class TrackerRepository(
 
     /**
      * The day's exercise slots with their stable row ids, in program order. The UI
-     * needs the id to key and seed each slot's log ([dayTracksFlow]/[updateSets]); the
+     * needs the id to key and seed each slot's log ([dayTracksFlow]/[applyToRun]); the
      * pure-domain [Program] from [programFlow] doesn't carry it.
      */
     fun daySlotsFlow(dayId: String): Flow<List<ProgramSlot>> =
@@ -983,13 +983,6 @@ open class TrackerRepository(
         }
     }
 
-    suspend fun updateSets(
-        runId: String, dayId: String, programExerciseId: Long, slot: String, sets: List<LoggedSet>,
-    ): RunWriteResult {
-        val planId = planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
-        return applyToRun(runId, planId, dayId, listOf(TrackEdit(programExerciseId, slot, replacesAll = true) { current -> sets.keepingWatchStamps(current) }))
-    }
-
     /**
      * Seeds the day's missing tracks **only if they are still unseeded when the write happens**.
      * The plan and day identify the working values or their open run.
@@ -1023,26 +1016,6 @@ open class TrackerRepository(
             }
         }
     }
-
-    suspend fun updateSetsPaired(
-        runId: String,
-        dayId: String,
-        programExerciseId: Long,
-        main: List<LoggedSet>,
-        ss: List<LoggedSet>,
-    ): RunWriteResult {
-        val planId = planIdOfSlot(programExerciseId) ?: return RunWriteResult.Rejected
-        return applyToRun(runId, planId, dayId, listOf(
-            TrackEdit(programExerciseId, Slot.MAIN, replacesAll = true) { current -> main.keepingWatchStamps(current) },
-            TrackEdit(programExerciseId, Slot.SS, replacesAll = true) { current -> ss.keepingWatchStamps(current) },
-        ))
-    }
-
-    private fun List<LoggedSet>.keepingWatchStamps(current: List<LoggedSet>): List<LoggedSet> =
-        mapIndexed { index, set ->
-            val stamp = listOfNotNull(set.watchEditedAt, current.getOrNull(index)?.watchEditedAt).maxOrNull()
-            set.copy(watchEditedAt = stamp)
-        }
 
     private fun logEntity(
         planId: Long,
@@ -1663,7 +1636,7 @@ open class TrackerRepository(
                 if (edit.exerciseId != null && edit.exerciseId != slot.exerciseIdFor(edit.slot)) return@withTransaction RunWriteResult.Rejected
                 val key = edit.programExerciseId to edit.slot
                 val base = working[key] ?: workingBase(day, slot, edit.slot, seeds)
-                    ?: if (edit.replacesAll) emptyList() else return@withTransaction RunWriteResult.Rejected
+                    ?: if (edit.createsMissing) emptyList() else return@withTransaction RunWriteResult.Rejected
                 val result = edit.transform(base) ?: return@withTransaction RunWriteResult.Unchanged
                 if (result.count { it.done } > base.count { it.done }) doneTick = true
                 working[key] = result
@@ -1681,7 +1654,7 @@ open class TrackerRepository(
             startRun(day, initial)
             val inserted = runDao.tracks(runId)
             writeRunTracks(resolved.tracks.map { edited ->
-                // A whole-list write can add a track the plan could not seed; it was not in the initial insert.
+                // Phone edits can create tracks absent from the plan seed and initial insert.
                 edited.copy(id = inserted.firstOrNull { it.sameKey(edited) }?.id ?: runDao.insertTrack(edited),
                     setsJson = SetJson.encodeSets(SetJson.decodeSets(edited.setsJson).mapIndexed { i, set -> set.copy(plannedIndex = i) }))
             })
@@ -1735,7 +1708,7 @@ open class TrackerRepository(
                 return ResolvedRunEdits(failure = RunWriteResult.Rejected)
             }
             val seed = seeds[edit.programExerciseId to edit.slot]
-            var reopened = false
+            var created: List<LoggedSet>? = null
             var index = resolved.indexOfFirst {
                 it.programExerciseId == edit.programExerciseId && it.slot == edit.slot &&
                     (if (edit.exerciseId != null) it.exerciseId == edit.exerciseId else !it.retired)
@@ -1754,15 +1727,13 @@ open class TrackerRepository(
                     if (retiredIndex >= 0) {
                         resolved[retiredIndex] = reopenTrack(resolved[retiredIndex], seeds)
                         index = retiredIndex
-                        reopened = true
                     }
                 }
             }
             if (index < 0) {
-                // A whole-list write brings its own rows, so a slot the plan cannot seed (an unknown exercise)
-                // still gets a track, planned from those rows as the screen used to seed it.
-                val base = seed ?: if (edit.replacesAll) {
-                    edit.transform(emptyList())?.let(CarryForward::cleared)
+                // Unknown exercises have no plan seed; a phone edit can supply their first rows.
+                val base = seed ?: if (edit.createsMissing) {
+                    edit.transform(emptyList())?.also { created = it }?.let(CarryForward::cleared)
                         ?: return ResolvedRunEdits(failure = RunWriteResult.Unchanged)
                 } else return ResolvedRunEdits(failure = RunWriteResult.Rejected)
                 val slot = programDao.exercise(edit.programExerciseId)
@@ -1780,28 +1751,13 @@ open class TrackerRepository(
             }
             val track = resolved[index]
             val current = SetJson.decodeSets(track.setsJson)
-            val result = edit.transform(current)
+            val result = created ?: edit.transform(current)
                 ?: return ResolvedRunEdits(failure = RunWriteResult.Unchanged)
-            if (reopened && edit.replacesAll && !result.keepsDoneRowsOf(current)) {
-                return ResolvedRunEdits(failure = RunWriteResult.Rejected)
-            }
             resolved[index] = track.copy(setsJson = SetJson.encodeSets(result), updatedAt = clock.millis())
             changed.add(index)
         }
         return ResolvedRunEdits(changed.map { resolved[it] })
     }
-
-    /**
-     * A whole-list write that reopens a retired track was built from the screen's empty or
-     * stale rows, so it may only add to the reopened rows: every done row stays done, at its index, with
-     * its values.
-     */
-    private fun List<LoggedSet>.keepsDoneRowsOf(reopened: List<LoggedSet>): Boolean =
-        reopened.withIndex().filter { it.value.done }.all { (i, row) ->
-            val kept = getOrNull(i) ?: return@all false
-            kept.done && kept.kind == row.kind && kept.weightLb == row.weightLb &&
-                kept.reps == row.reps && kept.seconds == row.seconds
-        }
 
     private fun RunTrackEntity.sameKey(other: RunTrackEntity): Boolean =
         runId == other.runId && programExerciseId == other.programExerciseId && slot == other.slot && exerciseId == other.exerciseId

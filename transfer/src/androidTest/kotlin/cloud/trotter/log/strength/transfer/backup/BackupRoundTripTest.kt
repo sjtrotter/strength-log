@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.generator.CardioBlocks
 import kotlinx.coroutines.flow.map
@@ -99,13 +100,19 @@ class BackupRoundTripTest : BackupTestHarness() {
 
         val squatId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 0)!!.id
         val rowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id
-        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), "A", squatId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
-        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowId) ?: -1, "A").first().runId.orEmpty(), "A", rowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
+        repository.applyToRun(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.planIdOfSlot(squatId)), "A", listOf(
+            TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)) },
+        ))
+        repository.applyToRun(repository.dayTracksFlow(repository.planIdOfSlot(rowId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.planIdOfSlot(rowId)), "A", listOf(
+            TrackEdit(rowId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)) },
+        ))
         val sessionId = repository.finishRun(repository.openRunFlow.first()!!.id)!!
         repository.setSessionNote(sessionId, "Felt smooth")
         repository.setKeepToPlan(rowId, true)
         // A fresh post-advance edit, so the exported live logs carry current work.
-        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), "A", squatId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
+        repository.applyToRun(repository.dayTracksFlow(repository.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.planIdOfSlot(squatId)), "A", listOf(
+            TrackEdit(squatId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(250.0, 5, SetKind.TOP)) },
+        ))
 
         val secondAnswers = wizardAnswers.copy(
             daysPerWeek = 5,

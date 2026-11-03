@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.writeTestRows
 import cloud.trotter.log.strength.data.serialization.CardioDto
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -468,7 +469,7 @@ class TodaySnapshotSourceRestTest {
         val other = repo.duplicatePlan(plan, "Running")
         val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
         val preview = repo.dayTracksFlow(plan, "A").first()
-        repo.updateSets(preview.runId!!, "A", slot, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP, true)))
+        repo.writeTestRows(preview.runId!!, "A", slot, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP, true)))
         repo.selectPlan(other)
         val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
         val snapshot = source.snapshots.first { it != null }!!
@@ -487,7 +488,7 @@ class TodaySnapshotSourceRestTest {
         )
         db.planDao().updateSuggestedDay(repo.selectedPlanIdFlow.first()!!, "A")
         val slotId = repo.daySlotsFlow("A").first().single().programExerciseId
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
+        repo.writeTestRows(repo.dayTracksFlow(repo.planIdOfSlot(slotId) ?: -1, "A").first().runId.orEmpty(), "A", slotId, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP)))
 
         val source = TodaySnapshotSource(repo, kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now(clock)), syncStore, syncStore, settings = settings)
 
@@ -520,7 +521,7 @@ class TodaySnapshotSourceRestTest {
         assertEquals(null, preview.runStartedAt)
         assertEquals(null, preview.retiredRoundsDone)
         val slot = repo.slotsFor(planId, "A").first().single().programExerciseId
-        repo.updateSets(runId, "A", slot, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP, true)))
+        repo.writeTestRows(runId, "A", slot, Slot.MAIN, listOf(LoggedSet(235.0, 5, SetKind.TOP, true)))
         val open = repo.openRunFlow.first()!!
         val started = source.snapshots.publishableSnapshots().first()
         assertEquals(open.id, started.runId)
@@ -536,7 +537,7 @@ class TodaySnapshotSourceRestTest {
         val planId = repo.selectedPlanIdFlow.first()!!
         val slot = repo.slotsFor(planId, "A").first().single().programExerciseId
         val runId = db.programDao().day(planId, "A")!!.nextRunId
-        repo.updateSets(runId, "A", slot, Slot.MAIN, List(3) { index -> LoggedSet(135.0, 5, SetKind.WORK, index < 2) })
+        repo.writeTestRows(runId, "A", slot, Slot.MAIN, List(3) { index -> LoggedSet(135.0, 5, SetKind.WORK, index < 2) })
         val alternate = repo.catalogFlow.first().substitutionsFor("bb_bench").first().id
         repo.swapExerciseById("A", slot, alternate)
         repo.ensureSeeded(planId, "A")

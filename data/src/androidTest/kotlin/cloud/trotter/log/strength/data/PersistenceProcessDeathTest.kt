@@ -189,17 +189,17 @@ class PersistenceProcessDeathTest {
         db.storeTestRows("A", benchRowId, Slot.MAIN, emptyList())
 
         // --- a completed workout: log, then DONE — advance ---------------------
-        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
-        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))
         repository.finishRun(repository.openRunFlow.first()!!.id)!! // appends history, clears A's checks, rotation -> B
 
         // --- mid-edit state after that session ---------------------------------
         // A set-weight edit: write once, then edit upward.
-        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
-        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(255.0, 5, SetKind.TOP)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(250.0, 5, SetKind.TOP)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(255.0, 5, SetKind.TOP)))
         // A checkmark toggle: unchecked, then checked.
-        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = false)))
-        repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = false)))
+        repository.writeTestRows(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true)))
         // An exercise swap: the bench slot becomes a dumbbell-bench slot.
         repository.swapExerciseById("A", benchRowId, "db_bench")
 

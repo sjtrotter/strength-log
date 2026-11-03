@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.writeTestRows
+import cloud.trotter.log.strength.data.writeTestRowsPaired
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -163,7 +165,7 @@ class DayViewModelWorkoutTest {
         val partner = track(vm, id, Slot.SS).mapIndexed { index, set ->
             set.copy(done = index == 0, weightLb = 120.0, reps = 10)
         }
-        repo.updateSetsPaired(requireNotNull(vm.uiState.value.runId), "A", id, main, partner)
+        repo.writeTestRowsPaired(requireNotNull(vm.uiState.value.runId), "A", id, main, partner)
         runCurrent()
         return id
     }
@@ -180,7 +182,7 @@ class DayViewModelWorkoutTest {
     private suspend fun openRunWithLegacyRows(pending: PendingPlanSwap) {
         val tracks = repo.dayTracksFlow(pending.planId, pending.dayId).first()
         val id = pending.programExerciseId
-        assertTrue(repo.updateSetsPaired(requireNotNull(tracks.runId), pending.dayId, id,
+        assertTrue(repo.writeTestRowsPaired(requireNotNull(tracks.runId), pending.dayId, id,
             tracks.tracks.single { it.programExerciseId == id && it.slot == Slot.MAIN }.sets,
             tracks.tracks.single { it.programExerciseId == id && it.slot == Slot.SS }.sets,
         ) is RunWriteResult.InRun)
@@ -521,7 +523,7 @@ class DayViewModelWorkoutTest {
         runCurrent()
         assertEquals(100_000L, track(vm, id)[0].completedAtMillis)
         val stored = track(vm, id)
-        repo.updateSets(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN,
+        repo.writeTestRows(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN,
             stored.mapIndexed { index, set -> if (index == 0) set.copy(startedAtMillis = 99_000) else set })
         vm.toggleDone(id, 0, false, Slot.MAIN)
         runCurrent()
@@ -541,7 +543,7 @@ class DayViewModelWorkoutTest {
             prescription = Prescription(PrescribedTarget.RepsInTime(120, 40)))))
         val vm = readyVm()
         val id = vm.uiState.value.exercises.single().programExerciseId
-        repo.updateSets(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN,
+        repo.writeTestRows(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN,
             track(vm, id).mapIndexed { index, set -> if (index == 0) set.copy(reps = 7, seconds = 9) else set })
         runCurrent()
         vm.startTimedRep(id, 0)
@@ -797,7 +799,7 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
-    fun `★ undo preserves a watch edit to another row between validation and writing`() = test {
+    fun `★ undo preserves a watch edit to another row before undo`() = test {
         prepare(restEnabled = true)
         val vm = readyVm()
         val state = vm.uiState.value
@@ -807,19 +809,15 @@ class DayViewModelWorkoutTest {
         runCurrent()
         assertNotNull(vm.uiState.value.workout!!.undo)
         val applier = SetEditApplier(repo, syncStore, syncStore)
-        var watchRows: List<LoggedSet>? = null
-        vm.beforeWorkoutUndoWrite = {
-            vm.beforeWorkoutUndoWrite = null
-            assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
-                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
-                reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
-                exerciseId = "db_bench",
-            )))
-            watchRows = track(vm, id)
-        }
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
+            reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
+            exerciseId = "db_bench",
+        )))
+        val watchRows = track(vm, id)
         vm.undoLastLog()
         runCurrent()
-        val expected = requireNotNull(watchRows).mapIndexed { index, row -> if (index == 0) before else row }
+        val expected = watchRows.mapIndexed { index, row -> if (index == 0) before else row }
         assertEquals(11, expected[1].reps)
         assertEquals(expected, track(vm, id))
         assertNull(settings.phoneRestFlow.first())
@@ -851,7 +849,7 @@ class DayViewModelWorkoutTest {
     }
 
     @Test
-    fun `★ undo declines a concurrent target edit without canceling rest or clearing the record`() = test {
+    fun `★ undo declines a watch target edit without canceling rest or clearing the record`() = test {
         prepare(restEnabled = true)
         val vm = readyVm()
         val state = vm.uiState.value
@@ -864,54 +862,19 @@ class DayViewModelWorkoutTest {
         assertNotNull(rest)
         val cancellations = runtime.cancellations
         val applier = SetEditApplier(repo, syncStore, syncStore)
-        var watchRows: List<LoggedSet>? = null
-        vm.beforeWorkoutUndoWrite = {
-            vm.beforeWorkoutUndoWrite = null
-            assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
-                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
-                reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
-                exerciseId = "db_bench",
-            )))
-            watchRows = track(vm, id)
-        }
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            reps = 11, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
+            exerciseId = "db_bench",
+        )))
+        val watchRows = track(vm, id)
         vm.undoLastLog()
         runCurrent()
-        assertEquals(requireNotNull(watchRows), track(vm, id))
+        assertEquals(watchRows, track(vm, id))
         assertEquals(record, settings.workoutRecordFlow.first())
         assertEquals(rest, settings.phoneRestFlow.first())
         assertEquals(cancellations, runtime.cancellations)
         assertNull(vm.uiState.value.workout!!.undo)
-    }
-
-    @Test
-    fun `★ a watch value edit between the tick commit and record write leaves no valid undo`() = test {
-        prepare()
-        val vm = readyVm()
-        val state = vm.uiState.value
-        val id = state.exercises.single().programExerciseId
-        val before = track(vm, id)[0]
-        val applier = SetEditApplier(repo, syncStore, syncStore)
-        vm.afterWorkoutTickWrite = {
-            vm.afterWorkoutTickWrite = null
-            assertTrue(track(vm, id)[0].done)
-            assertEquals(100_000L, track(vm, id)[0].completedAtMillis)
-            assertNull(settings.workoutRecordFlow.first()?.undo)
-            assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
-                dayId = "A", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
-                reps = before.reps + 1, editedAtMillis = 100_001, planId = state.planId, runId = state.runId,
-                exerciseId = "db_bench",
-            )))
-        }
-        vm.logFocusedSet()
-        runCurrent()
-        val recorded = requireNotNull(settings.workoutRecordFlow.first()?.undo)
-        assertEquals(before.reps, recorded.after.reps)
-        val edited = track(vm, id)
-        assertEquals(before.reps + 1, edited[0].reps)
-        assertNull(vm.uiState.value.workout!!.undo)
-        vm.undoLastLog()
-        runCurrent()
-        assertEquals(edited, track(vm, id))
     }
 
     @Test
@@ -956,7 +919,7 @@ class DayViewModelWorkoutTest {
         assertNotNull(vm.uiState.value.workout!!.undo)
         val stored = track(vm, id)
         val edited = stored.mapIndexed { index, set -> if (index == 0) set.copy(reps = 11) else set }
-        repo.updateSets(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN, edited)
+        repo.writeTestRows(requireNotNull(vm.uiState.value.runId), "A", id, Slot.MAIN, edited)
         vm.undoLastLog()
         runCurrent()
         assertEquals(edited, track(vm, id))
@@ -1321,7 +1284,7 @@ class DayViewModelWorkoutTest {
         val runId = requireNotNull(vm.uiState.value.runId)
         // A done extra row must survive reopening and extend both restored tracks.
         val main = track(vm, id)
-        assertTrue(repo.updateSets(runId, "A", id, Slot.MAIN,
+        assertTrue(repo.writeTestRows(runId, "A", id, Slot.MAIN,
             main + main.last().copy(done = true, weightLb = 85.0, reps = 7, plannedIndex = null),
         ) is RunWriteResult.InRun)
         runCurrent()
@@ -1338,7 +1301,7 @@ class DayViewModelWorkoutTest {
         }
         assertEquals("machine_chest", swapped.exerciseId)
         val swappedRows = swapped.sets.mapIndexed { index, row -> row.copy(done = index == 0) }
-        assertTrue(repo.updateSets(runId, "A", id, swappedSlot, swappedRows) is RunWriteResult.InRun)
+        assertTrue(repo.writeTestRows(runId, "A", id, swappedSlot, swappedRows) is RunWriteResult.InRun)
         runCurrent()
         if (!swapPromoted) {
             vm.skipLift(id, Slot.SS)

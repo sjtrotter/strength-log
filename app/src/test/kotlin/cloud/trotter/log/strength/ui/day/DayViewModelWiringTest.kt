@@ -171,16 +171,16 @@ class DayViewModelWiringTest {
         val first = newViewModel(handle)
         val collectFirst = launch { first.dayEditState.collect {} }
         advanceUntilIdle()
-        first.setDayEditorOpen(true)
-        first.openCardioBlock()
+        first.editor.setDayEditorOpen(true)
+        first.editor.openCardioBlock()
         advanceUntilIdle()
         val easy = first.dayEditState.value.cardioDraft!!
         assertEquals(Measure.Time(1500), easy.block().sets.single().end)
-        first.changeCardioDraft(easy.startFrom(CardioTemplate.INTERVALS).copy(editingSet = 1))
+        first.editor.changeCardioDraft(easy.startFrom(CardioTemplate.INTERVALS).copy(editingSet = 1))
         advanceUntilIdle()
         val intervals = first.dayEditState.value.cardioDraft!!
         assertEquals(11, intervals.sets.size)
-        first.changeCardioDraft(intervals.copy(sets = intervals.sets.mapIndexed { index, set ->
+        first.editor.changeCardioDraft(intervals.copy(sets = intervals.sets.mapIndexed { index, set ->
             if (index == 1) set.copy(endIsTime = false, metres = 400, hasAim = true, seconds = 105) else set
         }))
         advanceUntilIdle()
@@ -201,17 +201,17 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertTrue(restored.dayEditState.value.editorOpen)
         assertEquals(draft, restored.dayEditState.value.cardioDraft)
-        restored.saveCardioBlock()
+        restored.editor.saveCardioBlock()
         advanceUntilIdle()
         assertEquals(draft.block(), repo.programFor(plan).first().days.single().cardioBlock)
         assertNull(restored.dayEditState.value.cardioDraft!!.editingSet)
         assertEquals(CardioSetSpec(CardioRole.WORK, Measure.Distance(400), Measure.Time(105), hard = true),
             repo.programFor(plan).first().days.single().cardioBlock!!.sets[1])
-        restored.saveCardioBlock()
+        restored.editor.saveCardioBlock()
         advanceUntilIdle()
         assertNull(restored.dayEditState.value.cardioDraft)
         // The day holds no exercises, so removing its only cardio block is refused.
-        restored.removeCardioBlock()
+        restored.editor.removeCardioBlock()
         advanceUntilIdle()
         assertEquals(draft.block(), repo.programFor(plan).first().days.single().cardioBlock)
         collectEdit.cancel()
@@ -226,21 +226,21 @@ class DayViewModelWiringTest {
         val collectEdit = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
         assertFalse(vm.dayEditState.value.canRemove)
-        vm.openCardioBlock()
+        vm.editor.openCardioBlock()
         advanceUntilIdle()
         val intervals = vm.dayEditState.value.cardioDraft!!.startFrom(CardioTemplate.INTERVALS)
         val cooldown = CardioSetDraft(role = CardioRole.COOLDOWN, seconds = 300)
-        vm.changeCardioDraft(intervals.copy(sets = intervals.sets + cooldown).addSet())
+        vm.editor.changeCardioDraft(intervals.copy(sets = intervals.sets + cooldown).addSet())
         advanceUntilIdle()
         val draft = vm.dayEditState.value.cardioDraft!!
         assertEquals(14, draft.sets.size)
         assertEquals(intervals.sets.takeLast(2), draft.sets.takeLast(3).take(2))
         assertEquals(cooldown, draft.sets.last())
         assertEquals(CardioActivity.ROAD_RUN, draft.activity)
-        vm.saveCardioBlock()
+        vm.editor.saveCardioBlock()
         advanceUntilIdle()
         assertTrue(vm.dayEditState.value.canRemove)
-        vm.removeDaySlot(vm.dayEditState.value.slots.single().position)
+        vm.editor.removeDaySlot(vm.dayEditState.value.slots.single().position)
         advanceUntilIdle()
         assertTrue(vm.dayEditState.value.slots.isEmpty())
         assertEquals(draft.block(), repo.programFor(plan).first().days.single().cardioBlock)
@@ -254,17 +254,17 @@ class DayViewModelWiringTest {
         val vm = newViewModel(handle)
         val collectEdit = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
-        vm.openCardioBlock()
+        vm.editor.openCardioBlock()
         advanceUntilIdle()
         val draft = requireNotNull(vm.dayEditState.value.cardioDraft)
         val restored = newViewModel(SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) }))
         val collectRestored = launch { restored.dayEditState.collect {} }
         advanceUntilIdle()
         assertEquals(draft, restored.dayEditState.value.cardioDraft)
-        restored.saveCardioBlock()
+        restored.editor.saveCardioBlock()
         advanceUntilIdle()
         assertEquals(draft.block(), repo.programFlow.first().days.single().cardioBlock)
-        restored.removeCardioBlock()
+        restored.editor.removeCardioBlock()
         advanceUntilIdle()
         assertNull(repo.programFlow.first().days.single().cardioBlock)
         collectRestored.cancel()
@@ -287,7 +287,7 @@ class DayViewModelWiringTest {
         assertEquals(3, vm.dayEditState.value.slots.size)
         for (slot in vm.dayEditState.value.slots) {
             assertNull(slot.prescription)
-            vm.openPrescription(slot.programExerciseId)
+            vm.editor.openPrescription(slot.programExerciseId)
             advanceUntilIdle()
             val draft = requireNotNull(vm.dayEditState.value.prescriptionDraft)
             val expected = when (val goal = GoalCalculator.targetFor(catalog.get(slot.exerciseId), config)) {
@@ -321,14 +321,14 @@ class DayViewModelWiringTest {
         val first = newViewModel(handle)
         val collectFirst = launch { first.dayEditState.collect {} }
         advanceUntilIdle()
-        first.setDayEditorOpen(true)
-        first.openPrescription(slotId)
+        first.editor.setDayEditorOpen(true)
+        first.editor.openPrescription(slotId)
         advanceUntilIdle()
         val draft = first.dayEditState.value.prescriptionDraft!!.copy(
             kind = PrescriptionKind.REPS_IN_TIME, sets = 5, seconds = 120,
             hasRepAim = true, repAim = 40, eachSide = true, resistance = "Red band",
         )
-        first.changePrescriptionDraft(draft)
+        first.editor.changePrescriptionDraft(draft)
         val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
         collectFirst.cancel()
         first.viewModelScope.cancel()
@@ -340,7 +340,7 @@ class DayViewModelWiringTest {
         assertEquals(draft, restored.dayEditState.value.prescriptionDraft)
         assertNull(repo.daySlotsFlow("A").first().single().exercise.prescription)
 
-        restored.savePrescription()
+        restored.editor.savePrescription()
         advanceUntilIdle()
 
         val exercise = repo.daySlotsFlow("A").first().single().exercise
@@ -348,10 +348,10 @@ class DayViewModelWiringTest {
         assertEquals(draft.prescription(), exercise.prescription)
         assertNull(restored.dayEditState.value.prescriptionDraft)
         assertEquals(5, restored.uiState.value.exercises.single().rows.size)
-        restored.openPrescription(slotId)
+        restored.editor.openPrescription(slotId)
         advanceUntilIdle()
-        restored.changePrescriptionDraft(draft.copy(sets = 8))
-        restored.discardPrescription()
+        restored.editor.changePrescriptionDraft(draft.copy(sets = 8))
+        restored.editor.discardPrescription()
         advanceUntilIdle()
         assertNull(restored.dayEditState.value.prescriptionDraft)
         assertEquals(5, repo.daySlotsFlow("A").first().single().exercise.targetSets)
@@ -371,8 +371,8 @@ class DayViewModelWiringTest {
         assertEquals("Day A", vm.uiState.value.dayTitle)
         assertTrue(vm.uiState.value.pages.isEmpty())
         assertFalse(vm.dayEditState.value.canResetToTemplate)
-        vm.setDayEditorOpen(true)
-        vm.addDaySlot("plank")
+        vm.editor.setDayEditorOpen(true)
+        vm.editor.addDaySlot("plank")
         advanceUntilIdle()
         assertTrue(vm.dayEditState.value.editorOpen)
         assertEquals(1, vm.uiState.value.pages.size)
@@ -389,11 +389,11 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        vm.removeDaySlot(0)
+        vm.editor.removeDaySlot(0)
         advanceUntilIdle()
-        vm.moveDaySlot(originals[2].programExerciseId, up = true)
+        vm.editor.moveDaySlot(originals[2].programExerciseId, up = true)
         advanceUntilIdle()
-        vm.swapDaySlot(2, "pushup")
+        vm.editor.swapDaySlot(2, "pushup")
         advanceUntilIdle()
         assertEquals("pushup", db.programDao().exercise(originals[1].programExerciseId)!!.exerciseId)
         assertEquals("plank", db.programDao().exercise(originals[2].programExerciseId)!!.exerciseId)
@@ -408,11 +408,11 @@ class DayViewModelWiringTest {
         val vm = newViewModel()
         val collectUi = launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        vm.removeDaySlot(0)
+        vm.editor.removeDaySlot(0)
         advanceUntilIdle()
-        vm.moveDaySlot(originals[2].programExerciseId, up = true)
+        vm.editor.moveDaySlot(originals[2].programExerciseId, up = true)
         advanceUntilIdle()
-        vm.swapDaySlot(2, "pushup")
+        vm.editor.swapDaySlot(2, "pushup")
         advanceUntilIdle()
         assertEquals("pushup", db.programDao().exercise(originals[1].programExerciseId)!!.exerciseId)
         assertEquals("plank", db.programDao().exercise(originals[2].programExerciseId)!!.exerciseId)
@@ -452,7 +452,7 @@ class DayViewModelWiringTest {
         val collectUi = launch { vm.uiState.collect {} }
         val collectEdit = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
-        vm.addDaySlot("bb_back_squat")
+        vm.editor.addDaySlot("bb_back_squat")
         advanceUntilIdle()
         val slot = repo.slotsFor(plan, "A").first().single()
         assertEquals(3, slot.exercise.targetSets)
@@ -477,7 +477,7 @@ class DayViewModelWiringTest {
         val collectEdit = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
 
-        vm.addDaySlot("ez_curl")
+        vm.editor.addDaySlot("ez_curl")
         advanceUntilIdle()
 
         val slot = repo.slotsFor(plan, "A").first().single()
@@ -500,7 +500,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val done = track(id, Slot.MAIN)!!.first()
-        val actions = workoutEditActions().copy(onStructureChange = vm::setDaySlotStructure)
+        val actions = workoutEditActions().copy(onStructureChange = vm.editor::setDaySlotStructure)
 
         actions.onStructureChange(id, SetStructure.RAMP_TOP)
         advanceUntilIdle()
@@ -1043,7 +1043,7 @@ class DayViewModelWiringTest {
         val selected = vm.uiState.value.exercises.last()
         vm.selectWorkoutLift("exercise:${selected.programExerciseId}")
         advanceUntilIdle()
-        vm.removeDaySlot(selected.position)
+        vm.editor.removeDaySlot(selected.position)
         advanceUntilIdle()
         assertTrue(vm.uiState.value.exercises.none { it.programExerciseId == selected.programExerciseId })
         assertEquals(0, vm.uiState.value.pages.indexOfFirst { it.key == (vm.uiState.value.workout?.shown as? WorkoutSelection.Shown.Group)?.key })
@@ -1119,7 +1119,7 @@ class DayViewModelWiringTest {
         assertEquals(150.0, vm.uiState.value.exercises.single().rows.first().weightDisplay, 0.0)
         assertNull(repo.openRunFlow.first())
 
-        vm.resetDaySlotToPlan(id)
+        vm.editor.resetDaySlotToPlan(id)
         advanceUntilIdle()
 
         assertEquals(plannedRows, vm.uiState.value.exercises.single().rows)
@@ -1145,7 +1145,7 @@ class DayViewModelWiringTest {
         assertEquals(150.0, vm.uiState.value.exercises.single().rows.first().weightDisplay, 0.0)
         assertNull(repo.openRunFlow.first())
 
-        vm.setDaySlotKeepToPlan(id, true)
+        vm.editor.setDaySlotKeepToPlan(id, true)
         advanceUntilIdle()
 
         assertEquals(plannedRows, vm.uiState.value.exercises.single().rows)
@@ -1166,7 +1166,7 @@ class DayViewModelWiringTest {
         val run = repo.openRunFlow.first()!!
         val rows = vm.uiState.value.exercises.first { it.programExerciseId == id }.rows
 
-        vm.setDaySlotKeepToPlan(id, true)
+        vm.editor.setDaySlotKeepToPlan(id, true)
         advanceUntilIdle()
 
         assertEquals(run, repo.openRunFlow.first())
@@ -1416,7 +1416,7 @@ class DayViewModelWiringTest {
             assertTrue(vm.uiState.value.canFinish)
             assertEquals(0, vm.uiState.value.doneSets)
             if (retire) {
-                vm.setDaySlotSuperset(vm.uiState.value.exercises.first { it.programExerciseId == id }.position, "face_pull")
+                vm.editor.setDaySlotSuperset(vm.uiState.value.exercises.first { it.programExerciseId == id }.position, "face_pull")
                 advanceUntilIdle()
                 assertEquals(1, vm.uiState.value.retiredTracks.single().doneCount)
                 assertTrue(vm.uiState.value.canFinish)
@@ -1621,7 +1621,7 @@ class DayViewModelWiringTest {
 
         // Tapping the pill is exactly this: swap the slot to the pill's own
         // targetExerciseId, at the card's own position — never re-derived.
-        vm.swapDaySlot(card.position, swap.targetExerciseId)
+        vm.editor.swapDaySlot(card.position, swap.targetExerciseId)
         advanceUntilIdle()
 
         val collectEdit = launch { vm.dayEditState.collect {} }
@@ -1668,7 +1668,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val ghostPosition = vm.dayEditState.value.slots.first { it.exerciseId == "ghost_unknown" }.position
 
-        vm.swapDaySlot(ghostPosition, "hack_squat")
+        vm.editor.swapDaySlot(ghostPosition, "hack_squat")
         advanceUntilIdle()
 
         val hackId = slotId("hack_squat")
@@ -1686,7 +1686,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val before = vm.dayEditState.value.slots.size
 
-        vm.addDaySlot("face_pull")
+        vm.editor.addDaySlot("face_pull")
         advanceUntilIdle()
 
         assertEquals(before + 1, vm.dayEditState.value.slots.size)
@@ -1702,12 +1702,12 @@ class DayViewModelWiringTest {
         val collect = launch { vm.dayEditState.collect {} }
         advanceUntilIdle()
         repeat(3) {
-            vm.removeDaySlot(vm.dayEditState.value.slots.first().position)
+            vm.editor.removeDaySlot(vm.dayEditState.value.slots.first().position)
             advanceUntilIdle()
         }
         assertEquals(1, vm.dayEditState.value.slots.size)
         assertFalse(vm.dayEditState.value.canRemove)
-        vm.removeDaySlot(vm.dayEditState.value.slots.single().position)
+        vm.editor.removeDaySlot(vm.dayEditState.value.slots.single().position)
         advanceUntilIdle()
         assertEquals(1, vm.dayEditState.value.slots.size)
         collect.cancel()
@@ -1721,7 +1721,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         assertTrue(vm.dayEditState.value.slots.any { it.exerciseId == "ghost_unknown" })
 
-        vm.resetDayToTemplate()
+        vm.editor.resetDayToTemplate()
         advanceUntilIdle()
 
         // Regenerated from the default wizard answers — the hand-built fixture's
@@ -1744,7 +1744,7 @@ class DayViewModelWiringTest {
         assertTrue(original.slots.all { it.main.stored?.isNotEmpty() == true })
         assertNull(repo.openRunFlow.first())
 
-        vm.resetDayToTemplate()
+        vm.editor.resetDayToTemplate()
         advanceUntilIdle()
 
         val reset = repo.observeDay(planId, "A").first()
@@ -1802,7 +1802,7 @@ class DayViewModelWiringTest {
         // action DayScreen binds to the ViewModel.
         val card = vm.uiState.value.exercises.first { it.programExerciseId == squatId }
         val onSwap = DayEditActions(
-            onSwap = vm::swapDaySlot,
+            onSwap = vm.editor::swapDaySlot,
             onAdd = {},
             onRemove = {},
             onSetSuperset = { _, _ -> },
@@ -1848,7 +1848,7 @@ class DayViewModelWiringTest {
         assertEquals(7, mainBefore.size)
 
         val position = vm.dayEditState.value.slots.first { it.programExerciseId == squatId }.position
-        vm.setDaySlotSuperset(position, "rope_pushdown")
+        vm.editor.setDaySlotSuperset(position, "rope_pushdown")
         advanceUntilIdle()
 
         val slot = vm.dayEditState.value.slots.first { it.programExerciseId == squatId }
@@ -1870,7 +1870,7 @@ class DayViewModelWiringTest {
         assertEquals(listOf(50.0, 50.0), track(curlId, Slot.SS)!!.map { it.weightLb })
 
         val position = vm.dayEditState.value.slots.first { it.programExerciseId == curlId }.position
-        vm.setDaySlotSuperset(position, "face_pull")
+        vm.editor.setDaySlotSuperset(position, "face_pull")
         advanceUntilIdle()
 
         assertEquals(
@@ -1892,7 +1892,7 @@ class DayViewModelWiringTest {
         val curlId = slotId("ez_curl")
 
         val position = vm.dayEditState.value.slots.first { it.programExerciseId == curlId }.position
-        vm.removeDaySlotSuperset(position)
+        vm.editor.removeDaySlotSuperset(position)
         advanceUntilIdle()
 
         val slot = vm.dayEditState.value.slots.first { it.programExerciseId == curlId }
@@ -1917,18 +1917,18 @@ class DayViewModelWiringTest {
             val collect = launch { vm.dayEditState.collect {} }
             advanceUntilIdle()
             val slots = vm.dayEditState.value.slots
-            vm.removeDaySlot(slots[0].position)
+            vm.editor.removeDaySlot(slots[0].position)
             advanceUntilIdle()
             assertEquals(listOf(1, 2), vm.dayEditState.value.slots.map { it.position })
             val mainBefore = track(slots[1].programExerciseId, Slot.MAIN)
 
-            vm.setDaySlotSuperset(slots[1].position, "rope_pushdown")
+            vm.editor.setDaySlotSuperset(slots[1].position, "rope_pushdown")
             advanceUntilIdle()
             assertEquals("rope_pushdown", vm.dayEditState.value.slots[0].partnerExerciseId)
             assertNull(vm.dayEditState.value.slots[1].partnerExerciseId)
             assertEquals(mainBefore, track(slots[1].programExerciseId, Slot.MAIN))
 
-            vm.removeDaySlotSuperset(slots[1].position)
+            vm.editor.removeDaySlotSuperset(slots[1].position)
             advanceUntilIdle()
             assertTrue(vm.dayEditState.value.slots.none { it.isSuperset })
             assertNull(track(slots[1].programExerciseId, Slot.SS))
@@ -2468,8 +2468,8 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val otherBefore = db.programDao().exercisesForDay(other, "A")
         assertEquals(plan, vm.dayEditState.value.planId)
-        vm.swapDaySlot(0, "hack_squat")
-        vm.addDaySlot("face_pull")
+        vm.editor.swapDaySlot(0, "hack_squat")
+        vm.editor.addDaySlot("face_pull")
         advanceUntilIdle()
         assertEquals("hack_squat", db.programDao().exercisesForDay(plan, "A").first().exerciseId)
         assertEquals("face_pull", db.programDao().exercisesForDay(plan, "A").last().exerciseId)
@@ -2492,7 +2492,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(id, 0, true, Slot.MAIN)
         vm.toggleDone(id, 1, true, Slot.MAIN)
         advanceUntilIdle()
-        vm.swapDaySlot(0, "db_bench")
+        vm.editor.swapDaySlot(0, "db_bench")
         advanceUntilIdle()
         assertEquals(listOf(RetiredTrackLine("Barbell Bench Press", 2)), vm.uiState.value.retiredTracks)
         assertEquals(2, vm.uiState.value.doneSets)
@@ -2516,7 +2516,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(id, 0, true, Slot.MAIN)
         vm.toggleDone(id, 1, true, Slot.MAIN)
         advanceUntilIdle()
-        vm.swapDaySlot(0, "db_bench")
+        vm.editor.swapDaySlot(0, "db_bench")
         advanceUntilIdle()
         assertTrue(vm.uiState.value.exercises.flatMap { it.rows }.none { it.done })
         val total = vm.uiState.value.totalSets
@@ -2547,7 +2547,7 @@ class DayViewModelWiringTest {
         advanceUntilIdle()
         val total = vm.uiState.value.totalSets
         val position = vm.uiState.value.exercises.first { it.programExerciseId == id }.position
-        vm.setDaySlotSuperset(position, "face_pull")
+        vm.editor.setDaySlotSuperset(position, "face_pull")
         advanceUntilIdle()
         assertEquals(1, vm.uiState.value.retiredTracks.single().doneCount)
         assertEquals(0, vm.uiState.value.retiredRoundDoneCount)

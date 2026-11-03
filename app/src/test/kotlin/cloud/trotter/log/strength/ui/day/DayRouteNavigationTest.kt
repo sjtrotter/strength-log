@@ -27,6 +27,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -136,7 +137,7 @@ class DayRouteNavigationTest {
             val planId = requireNotNull(repo.selectedPlanIdFlow.first())
             val slot = repo.slotsFor(planId, "A").first().single().programExerciseId
             val planned = listOf(LoggedSet(100.0, 5, SetKind.WORK))
-            repo.seedIfEmpty("A", slot, Slot.MAIN, planned)
+            db.storeTestRows("A", slot, Slot.MAIN, planned)
             val runId = requireNotNull(repo.dayTracksFlow(planId, "A").first().runId)
             repo.updateSets(runId, "A", slot, Slot.MAIN, planned.map { it.copy(done = true) })
             val otherPlan = repo.duplicatePlan(planId, "Other")

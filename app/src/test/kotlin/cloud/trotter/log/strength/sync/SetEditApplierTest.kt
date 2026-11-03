@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -18,7 +19,6 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
-import cloud.trotter.log.strength.domain.seeding.SetSeeder
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
@@ -107,7 +107,7 @@ class SetEditApplierTest {
         val exercise = ProgramExercise("bb_back_squat", targetSets = 2, prescription = prescription)
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Test", "", listOf(exercise)))))
         val id = squatId()
-        repo.seedIfEmpty("A", id, Slot.MAIN, SetSeeder.seedPrescribed(2, prescription))
+        repo.ensureSeeded(requireNotNull(repo.planIdOfSlot(id)), "A")
         startRun()
 
         val outcome = applier.apply(SetEditDelta(
@@ -155,9 +155,8 @@ class SetEditApplierTest {
                 ),
             ),
         )
-        // Seed logs the way the day VM would (this test targets the applier, not seeding).
-        repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(squatId()) ?: -1, "A").first().runId.orEmpty(),
-            "A", squatId(), Slot.MAIN,
+        // These literal §11 rows exercise the applier independently of plan seeding.
+        db.storeTestRows("A", squatId(), Slot.MAIN,
             listOf(
                 LoggedSet(130.0, 5, SetKind.RAMP),
                 LoggedSet(165.0, 5, SetKind.RAMP),
@@ -167,11 +166,10 @@ class SetEditApplierTest {
                 LoggedSet(175.0, 8, SetKind.BACKOFF),
             ),
         )
-        repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(curlId()) ?: -1, "A").first().runId.orEmpty(),
-            "A", curlId(),
-            main = listOf(LoggedSet(60.0, 12, SetKind.WORK), LoggedSet(60.0, 11, SetKind.WORK)),
-            ss = listOf(LoggedSet(50.0, 15, SetKind.WORK), LoggedSet(50.0, 14, SetKind.WORK)),
-        )
+        db.storeTestRows("A", curlId(), Slot.MAIN,
+            listOf(LoggedSet(60.0, 12, SetKind.WORK), LoggedSet(60.0, 11, SetKind.WORK)))
+        db.storeTestRows("A", curlId(), Slot.SS,
+            listOf(LoggedSet(50.0, 15, SetKind.WORK), LoggedSet(50.0, 14, SetKind.WORK)))
     }
 
     private suspend fun slotId(exerciseId: String): Long =
@@ -997,33 +995,25 @@ class SetEditApplierTest {
         assertEquals(SetEditApplier.Outcome.INVALID, outcome)
     }
 
-    /**
-     * Two things seed — the day ViewModel lazily, and this applier eagerly after a
-     * watch swap — and the ViewModel's plan is decided from a read it may act on much
-     * later. Here it reads an empty track, the swap seeds it, the lifter logs a set
-     * against the *new* exercise, and only then does the stale plan try to write. It
-     * must no-op: `seedIfEmpty` re-checks inside its own transaction, so whoever
-     * seeds first wins and a later tick can never be overwritten by a decision taken
-     * before it existed.
-     */
+    /** A delayed screen seed must preserve the rows already seeded by a watch swap and then logged. */
     @Test
-    fun a_stale_seed_plan_cannot_overwrite_work_logged_since_it_was_decided() = runTest {
+    fun a_delayed_seed_cannot_overwrite_work_logged_before_it_runs() = runTest {
         seedProgram()
         val id = squatId()
         val target = ExerciseCatalog.CODE_ONLY.substitutionsFor("bb_back_squat").first()
         // The state the day screen's seeder would have read: this slot has no track.
         repo.swapExerciseById("A", id, "bb_back_squat")
-        val stalePlan = listOf(LoggedSet(999.0, 1, SetKind.WORK))
 
         // The applier seeds the swapped slot...
         applier.apply(ExerciseSwapDelta(1, "A", id, target.id, target.name, 100L))
         // ...the lifter logs against what it seeded...
         val logged = track(id, Slot.MAIN)!!.mapIndexed { i, s -> if (i == 0) s.copy(done = true) else s }
         repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(id) ?: -1, "A").first().runId.orEmpty(), "A", id, Slot.MAIN, logged)
-        // ...and only now does the stale plan reach the database.
-        val wrote = repo.seedIfEmpty("A", id, Slot.MAIN, stalePlan)
+        // ...and only now does the delayed screen seed reach the database.
+        val beforeSeed = db.runDao().tracks(requireNotNull(repo.openRunFlow.first()).id)
+        repo.ensureSeeded(requireNotNull(repo.planIdOfSlot(id)), "A")
 
-        assertFalse(wrote)
+        assertEquals(beforeSeed, db.runDao().tracks(requireNotNull(repo.openRunFlow.first()).id))
         assertEquals(logged, track(id, Slot.MAIN))
         assertTrue(track(id, Slot.MAIN)!![0].done)
     }

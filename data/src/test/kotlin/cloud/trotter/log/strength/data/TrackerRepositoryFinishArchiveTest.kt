@@ -96,7 +96,7 @@ class TrackerRepositoryFinishArchiveTest {
         )
         val ids = repo.daySlotsFlow("A").first().map { it.programExerciseId }
         for (id in ids) {
-            repo.seedIfEmpty(
+            db.storeTestRows(
                 "A", id, Slot.MAIN,
                 listOf(LoggedSet(100.0, 8, SetKind.WORK), LoggedSet(90.0, 10, SetKind.BACKOFF)),
             )

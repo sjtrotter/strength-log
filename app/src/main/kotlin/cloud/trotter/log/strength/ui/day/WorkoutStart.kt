@@ -41,9 +41,7 @@ class WorkoutStart(
 
     private suspend fun startNow(target: DaySelection) {
         val planId = target.planId ?: return
-        val slots = repo.slotsFor(planId, target.dayId).first()
-        val seeds = repo.daySeeds(planId, target.dayId, slots)
-        when (val result = repo.startRun(planId, target.dayId, seeds)) {
+        when (val result = repo.startRun(planId, target.dayId)) {
             is RunStartResult.OtherRunOpen -> {
                 savedState["start_target"] = target
                 savedState["start_conflict"] = result.runId

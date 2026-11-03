@@ -11,9 +11,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
-import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -424,11 +422,11 @@ class DayViewModelWorkoutTest {
         vm.swapWorkoutSlot(0, replacement, half)
         runCurrent()
         val offer = requireNotNull(vm.uiState.value.swapUndo)
-        assertTrue(repo.swapInRun(offer.runId, id, half, remote, RunSeed(id, half, track(vm, id, half))))
+        assertTrue(repo.swapInRun(offer.runId, id, half, remote))
         runCurrent()
         assertNull(vm.uiState.value.swapUndo)
         assertNull(saved.get<WorkoutSwapUndo>("day_swap_undo"))
-        assertTrue(repo.swapInRun(offer.runId, id, half, replacement, null))
+        assertTrue(repo.swapInRun(offer.runId, id, half, replacement))
         runCurrent()
         assertNull(vm.uiState.value.swapUndo)
         vm.undoWorkoutSwap()
@@ -1141,13 +1139,10 @@ class DayViewModelWorkoutTest {
         vm.skipLift(vm.uiState.value.exercises.single().programExerciseId, Slot.SS)
         runCurrent()
         val offer = requireNotNull(vm.uiState.value.swapUndo)
-        val slots = repo.slotsFor(requireNotNull(vm.uiState.value.planId), "A").first()
-        val seed = DaySeeds.swap(slots.single(), Slot.MAIN, "bb_bench", emptyMap(),
-            repo.wizardAnswersFor(requireNotNull(vm.uiState.value.planId)).first().config, repo.catalogFlow.first())!!
-        repo.swapInRun(offer.runId, offer.programExerciseId, Slot.MAIN, "bb_bench", RunSeed(slots.single().programExerciseId, Slot.MAIN, seed))
+        repo.swapInRun(offer.runId, offer.programExerciseId, Slot.MAIN, "bb_bench")
         runCurrent()
         assertNull(vm.uiState.value.swapUndo)
-        repo.swapInRun(offer.runId, offer.programExerciseId, Slot.MAIN, "db_bench", null)
+        repo.swapInRun(offer.runId, offer.programExerciseId, Slot.MAIN, "db_bench")
         runCurrent()
         assertNull(vm.uiState.value.swapUndo)
     }

@@ -2664,9 +2664,7 @@ class DayViewModelWiringTest {
         vm.toggleDone(id, 0, true, Slot.MAIN)
         advanceUntilIdle()
         val run = repo.openRunFlow.first()!!
-        assertTrue(repo.swapInRun(run.id, id, Slot.SS, "bb_row", cloud.trotter.log.strength.data.RunSeed(
-            id, Slot.SS, List(3) { LoggedSet(190.0, 10, SetKind.WORK) },
-        )))
+        assertTrue(repo.swapInRun(run.id, id, Slot.SS, "bb_row"))
         advanceUntilIdle()
         val card = vm.uiState.value.exercises.single()
         assertEquals("bb_row", card.partnerExerciseId)

@@ -4,9 +4,6 @@ import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LoggedSet
 
-/** Initial working values for a slot with no stored log. */
-data class RunSeed(val programExerciseId: Long, val slot: String, val sets: List<LoggedSet>)
-
 enum class ExerciseSwapResult { CHANGED, ALREADY_THERE, REJECTED }
 
 sealed interface RunStartResult {

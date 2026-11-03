@@ -67,6 +67,8 @@ android {
         compose = true
     }
 
+    sourceSets.getByName("test").java.srcDir("../data/src/testFixtures/kotlin")
+
     testOptions {
         val recordStoreShots = providers.gradleProperty("storeShots").orNull == "true"
         val previewShotsDir = layout.buildDirectory.dir("outputs/preview").get().asFile

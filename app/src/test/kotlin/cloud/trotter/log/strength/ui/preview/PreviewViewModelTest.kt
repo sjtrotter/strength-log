@@ -1,7 +1,7 @@
 package cloud.trotter.log.strength.ui.preview
 
 import androidx.lifecycle.SavedStateHandle
-import cloud.trotter.log.strength.data.RunSeed
+import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.RunStartResult
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -57,7 +57,7 @@ class PreviewViewModelTest : OverviewFixture() {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Push", "", listOf(ProgramExercise("pushup"))))))
         val plan = repo.selectedPlanIdFlow.first()!!
         val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
-        repo.seedIfEmpty("A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 8, SetKind.WORK)))
+        db.storeTestRows("A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 8, SetKind.WORK)))
         val vm = preview(plan, "A")
         advanceUntilIdle()
         assertEquals("× 8", vm.uiState.value.lifts.single().working)
@@ -67,7 +67,7 @@ class PreviewViewModelTest : OverviewFixture() {
         insertProgram()
         val plan = repo.selectedPlanIdFlow.first()!!
         val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
-        repo.seedIfEmpty("A", slot, Slot.MAIN, listOf(
+        db.storeTestRows("A", slot, Slot.MAIN, listOf(
             LoggedSet(100.0, 5, SetKind.RAMP), LoggedSet(225.0, 7, SetKind.TOP), LoggedSet(175.0, 8, SetKind.BACKOFF),
         ))
         val vm = preview(plan, "A")
@@ -84,9 +84,9 @@ class PreviewViewModelTest : OverviewFixture() {
         insertProgram()
         val plan = repo.selectedPlanIdFlow.first()!!
         val slot = repo.slotsFor(plan, "A").first().single().programExerciseId
-        val started = repo.startRun(plan, "A", emptyList()) as RunStartResult.Started
-        assertTrue(repo.swapInRun(started.runId, slot, Slot.MAIN, "hack_squat",
-            RunSeed(slot, Slot.MAIN, listOf(LoggedSet(180.0, 8, SetKind.WORK)))))
+        val started = repo.startRun(plan, "A") as RunStartResult.Started
+        assertTrue(repo.swapInRun(started.runId, slot, Slot.MAIN, "hack_squat"))
+        db.storeTestRows("A", slot, Slot.MAIN, listOf(LoggedSet(180.0, 8, SetKind.WORK)), started.runId)
         val vm = preview(plan, "A")
         advanceUntilIdle()
         assertEquals("Hack Squat", vm.uiState.value.lifts.single().name)
@@ -111,8 +111,7 @@ class PreviewViewModelTest : OverviewFixture() {
         vm.start()
         advanceUntilIdle()
         val slot = repo.slotsFor(plan, "B").first().single().programExerciseId
-        repo.swapInRun(repo.openRunFlow.first()!!.id, slot, Slot.SS, "bb_bench",
-            RunSeed(slot, Slot.SS, List(2) { LoggedSet(90.0, 8, SetKind.WORK) }))
+        repo.swapInRun(repo.openRunFlow.first()!!.id, slot, Slot.SS, "bb_bench")
         advanceUntilIdle()
         assertEquals("${catalog.find("ez_curl")!!.name} + ${catalog.find("bb_bench")!!.name}", vm.uiState.value.lifts.single().name)
     }
@@ -151,7 +150,7 @@ class PreviewViewModelTest : OverviewFixture() {
     @Test fun conflictingPreviewStartUsesTheSharedConfirmationPolicy() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.selectedPlanIdFlow.first()!!
-        repo.startRun(plan, "B", emptyList())
+        repo.startRun(plan, "B")
         val vm = preview(plan, "A")
         advanceUntilIdle()
         vm.start()

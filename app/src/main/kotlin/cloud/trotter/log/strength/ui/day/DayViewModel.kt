@@ -5,7 +5,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.isSlotSkipped
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.DayTracks
@@ -17,7 +16,6 @@ import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.data.TodayTarget
 import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.RunStartResult
-import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
@@ -216,7 +214,7 @@ class DayViewModel @Inject constructor(
             val historyKeys = repo.dayHistoryKeys(planId, dayId)
             val slotsWithHistory = historyKeys.flatMapLatest { (slots, performedIds) ->
                 flow {
-                    ensureSeeded(planId, dayId, slots)
+                    ensureSeeded(planId, dayId)
                     emit(slots to fetchDayHistory(slots, performedIds, ctx.catalog))
                 }
             }
@@ -1352,17 +1350,11 @@ class DayViewModel @Inject constructor(
                 return@mutate
             }
             val planId = state.planId ?: return@mutate
-            val slot = repo.slotsFor(planId, offer.dayId).first()
-                .firstOrNull { it.programExerciseId == offer.programExerciseId } ?: return@mutate
             val tracks = repo.dayTracksFlow(planId, offer.dayId).first()
             if (!tracks.runOpen || tracks.runId != offer.runId || tracks.tracks.none {
                 it.programExerciseId == offer.programExerciseId && it.slot == offer.slot && it.exerciseId == offer.exerciseId
             }) return@mutate
-            val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
-            val seed = DaySeeds.swap(slot, offer.slot, offer.previousExerciseId, existing,
-                repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first())
-                ?.let { RunSeed(slot.programExerciseId, offer.slot, it) }
-            repo.swapInRun(offer.runId, offer.programExerciseId, offer.slot, offer.previousExerciseId, seed,
+            repo.swapInRun(offer.runId, offer.programExerciseId, offer.slot, offer.previousExerciseId,
                 expectedExerciseId = offer.exerciseId)
             dismissSwapUndo()
         }
@@ -1413,7 +1405,7 @@ class DayViewModel @Inject constructor(
             if (repo.discardRun(runId)) {
                 phoneRest.skip()
                 clearTimedRep()
-                seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
+                seedWorkingValues(planId, day)
             }
         }
     }
@@ -1715,13 +1707,7 @@ class DayViewModel @Inject constructor(
             repo.restoreSkipped(runId, programExerciseId, half)
             return
         }
-        val planId = run.planId ?: return
-        val dayId = run.dayId ?: return
-        if (repo.restoreSkippedLift(runId, programExerciseId) !is RunWriteResult.InRun) return
-        // Clearing a whole skip leaves no active identity change to trigger dayHistoryKeys.
-        val slots = repo.slotsFor(planId, dayId).first().filter { it.programExerciseId == programExerciseId }
-        val seeds = repo.daySeeds(planId, dayId, slots)
-        repo.seedRunTracksIfMissing(runId, seeds, alignPairs = true)
+        repo.restoreSkippedLift(runId, programExerciseId)
     }
 
     fun skipNowSet(programExerciseId: Long, half: String) {
@@ -1743,8 +1729,7 @@ class DayViewModel @Inject constructor(
             val slots = repo.slotsFor(planId, day).first()
             val slot = slots.firstOrNull { it.position == position } ?: return@mutate
             if (half == Slot.SS && slot.exercise.superset == null) return@mutate
-            val seeds = repo.daySeeds(planId, day, slots)
-            val runId = when (val result = repo.startRun(planId, day, seeds)) {
+            val runId = when (val result = repo.startRun(planId, day)) {
                 is RunStartResult.Started -> result.runId
                 is RunStartResult.AlreadyOpen -> result.runId
                 is RunStartResult.OtherRunOpen -> {
@@ -1757,12 +1742,8 @@ class DayViewModel @Inject constructor(
             val previousId = tracks.firstOrNull { it.programExerciseId == slot.programExerciseId && it.slot == half }?.exerciseId
                 ?: if (half == Slot.SS) slot.exercise.superset?.exerciseId else slot.exercise.exerciseId
             if (previousId == null || previousId == newExerciseId) return@mutate
-            val existing = tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
-            val cfg = repo.wizardAnswersFor(planId).first().config
             val catalog = repo.catalogFlow.first()
-            val seed = DaySeeds.swap(slot, half, newExerciseId, existing, cfg, catalog)
-                ?.let { RunSeed(slot.programExerciseId, half, it) }
-            val swapped = repo.swapInRun(runId, slot.programExerciseId, half, newExerciseId, seed)
+            val swapped = repo.swapInRun(runId, slot.programExerciseId, half, newExerciseId)
             if (swapped) {
                 clearLogUndo()
                 savedState[KEY_SWAP_UNDO] = WorkoutSwapUndo(
@@ -1804,7 +1785,7 @@ class DayViewModel @Inject constructor(
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
             repo.setKeepToPlan(slotId, keep)
-            if (keep) seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
+            if (keep) seedWorkingValues(planId, day)
         }
     }
 
@@ -1813,7 +1794,7 @@ class DayViewModel @Inject constructor(
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
         mutate {
             if (repo.resetSlotToPlan(slotId)) {
-                seedWorkingValues(planId, day, repo.slotsFor(planId, day).first())
+                seedWorkingValues(planId, day)
             }
         }
     }
@@ -1840,23 +1821,12 @@ class DayViewModel @Inject constructor(
     // --- seeding & bootstrap -------------------------------------------------
 
     /** Seeds each day's logs before its authoritative rows are observed. */
-    private suspend fun ensureSeeded(planId: Long, dayId: String, slots: List<ProgramSlot>) = mutationLock.withLock {
-        val tracks = repo.dayTracksFlow(planId, dayId).first()
-        val seeds = repo.daySeeds(planId, dayId, slots, tracks)
-        val runId = tracks.runId
-        if (tracks.runOpen && runId != null) {
-            repo.seedRunTracksIfMissing(runId, seeds)
-        } else {
-            seeds.forEach { repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets) }
-        }
+    private suspend fun ensureSeeded(planId: Long, dayId: String) = mutationLock.withLock {
+        repo.ensureSeeded(planId, dayId)
     }
 
-    private suspend fun seedWorkingValues(planId: Long, dayId: String, slots: List<ProgramSlot>) {
-        val tracks = repo.dayTracksFlow(planId, dayId).first()
-        if (tracks.runOpen) return
-        repo.daySeeds(planId, dayId, slots, tracks).forEach {
-            repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets)
-        }
+    private suspend fun seedWorkingValues(planId: Long, dayId: String) {
+        repo.ensureSeeded(planId, dayId)
     }
 
     // --- helpers -------------------------------------------------------------

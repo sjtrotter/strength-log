@@ -769,8 +769,14 @@ class DayViewModel @Inject constructor(
                         stepsCompleted = summary.stepsCompleted,
                         planId = current.planId, planName = current.planName, activity = activity.name,
                     ), current.resultSets, finishDay = current.finishesDay)
+                    val nextDayId = plans.plansFlow.first().firstOrNull { it.id == current.planId }?.suggestedDayId
+                    val program = plans.programFor(current.planId).first()
+                    val nextDay = program.days.firstOrNull { it.id == nextDayId }
                     val latest = cardioRun.value?.takeIf { it.runId == current.runId } ?: return@withLock
-                    val logged = latest.copy(sessionId = id)
+                    val logged = latest.copy(
+                        sessionId = id,
+                        nextDayTitle = nextDay?.let { GlanceLines.dayLine(it.id, it.title) },
+                    )
                     // Drafts own only amendment state, never the execution slot or alarm.
                     if (logged.drafts.isNotEmpty()) {
                         savedState[KEY_CARDIO_DISTANCES] = ArrayList(

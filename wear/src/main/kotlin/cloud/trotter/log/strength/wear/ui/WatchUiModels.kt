@@ -83,8 +83,7 @@ fun WatchExercise.toStreamUiState(
     val track = watchTracking(tracking)
     val ssTrack = watchTracking(ssTracking)
     val isSuperset = supersetPartnerName != null
-    // A TIMED goal carries its added load on the numeric [goal] (0 when none), so a
-    // loaded hold is simply goal > 0 — same rule the phone's timedShowsWeight uses.
+    // Reproduces PerformedTrack.showsLoad from the wire's canonical-lb goal.
     val loaded = track == TrackingType.TIMED && goal > 0.0
     return ExerciseStreamUiState(
         programExerciseId = programExerciseId,

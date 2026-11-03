@@ -287,10 +287,8 @@ class DayViewModelReceiptTest {
             assertEquals(1, vm.uiState.value.totalSets)
             assertEquals(0, tracks.retiredRoundsDone)
             val snapshot = requireNotNull(WatchSnapshotBuilder.build(
-                program = repo.programFor(planId).first(), suggestedDayId = "A",
-                slots = repo.slotsFor(planId, "A").first(), logs = tracks.tracks,
-                cfg = repo.wizardAnswersFor(planId).first().config, catalog = repo.catalogFlow.first(),
-                unit = WeightUnit.LB, revision = 1, retiredRoundsDone = tracks.retiredRoundsDone,
+                day = repo.observeDay(planId, "A").first(),
+                unit = WeightUnit.LB, revision = 1,
             ))
             assertEquals(DayProgress(expectedDone, 1), DayProgress.of(snapshot))
             vm.completeDay()

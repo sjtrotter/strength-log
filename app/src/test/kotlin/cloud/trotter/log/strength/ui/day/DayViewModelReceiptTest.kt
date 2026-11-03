@@ -102,7 +102,7 @@ class DayViewModelReceiptTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        shareCardService = ShareCardService(context, repo, settings = settings)
+        shareCardService = ShareCardService(context, repo.history, settings = settings)
     }
 
     @After
@@ -155,7 +155,7 @@ class DayViewModelReceiptTest {
         assertEquals("B", db.planDao().plan(owner)!!.suggestedDayId)
         assertEquals("A", db.planDao().plan(other)!!.suggestedDayId)
         assertEquals("Day B, Upper", vm.sessionReceipt.value?.nextDayLine)
-        assertEquals(owner, repo.session(vm.sessionReceipt.value!!.sessionId)?.planId)
+        assertEquals(owner, repo.history.session(vm.sessionReceipt.value!!.sessionId)?.planId)
     }
 
     @Test
@@ -185,7 +185,7 @@ class DayViewModelReceiptTest {
         assertEquals(completedSetCount, receipt.setCount)
         assertEquals("Day B, Upper", receipt.nextDayLine)
         assertEquals("B", repo.plans.suggestedDayFlow.first())
-        assertEquals("C", repo.session(receipt.sessionId)?.dayId)
+        assertEquals("C", repo.history.session(receipt.sessionId)?.dayId)
         assertEquals(false, repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets.any { it.done })
     }
 
@@ -246,7 +246,7 @@ class DayViewModelReceiptTest {
         val receipt = vm.sessionReceipt.value
         assertNotNull(receipt)
         assertEquals("A", receipt!!.dayId)
-        assertEquals(repo.session(receipt.sessionId)?.completedAt, receipt.completedAt)
+        assertEquals(repo.history.session(receipt.sessionId)?.completedAt, receipt.completedAt)
         assertEquals("Day B, Upper", receipt.nextDayLine)
         // The completed day's accent, not the one the pointer now stands on.
         assertEquals(0, receipt.dayIndex)
@@ -332,7 +332,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         completeOneSession(vm)
 
-        assertEquals(repo.sessionsFlow.first().single().id, vm.sessionReceipt.value?.sessionId)
+        assertEquals(repo.history.sessionsFlow.first().single().id, vm.sessionReceipt.value?.sessionId)
     }
 
     /** One Finish captures the new top set inside the committed day's receipt. */
@@ -422,7 +422,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         val receipt = requireNotNull(vm.sessionReceipt.value)
         assertEquals("Felt steady", receipt.note)
-        assertEquals(receipt.note, repo.session(receipt.sessionId)?.note)
+        assertEquals(receipt.note, repo.history.session(receipt.sessionId)?.note)
         vm.viewModelScope.cancel()
         val parcel = Parcel.obtain()
         val restoredHandle = try {
@@ -458,7 +458,7 @@ class DayViewModelReceiptTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
 
     /** [DayViewModel.uiState] is `WhileSubscribed`: without a live collector its
      *  `.value` never leaves the initial state, and the header count would read

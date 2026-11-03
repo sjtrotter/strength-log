@@ -188,7 +188,7 @@ class TrackerRepositoryRunTest {
 
         repo.importSnapshot(snapshot.copy(legacyLogs = listOf(legacy.copy(checkDate = "2026-10-18"))), journal)
         assertNull(repo.openRunFlow.first())
-        assertTrue(repo.sessionsFlow.first().isEmpty())
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
         assertTrue(repo.dayTracksFlow(plan, "A").first().tracks.single().sets.none { it.done })
     }
 
@@ -439,7 +439,7 @@ class TrackerRepositoryRunTest {
         val planned = SessionPlanJson.decode(session.plannedJson!!)
         assertEquals(before.tracks.map { it.planned }, planned.map { track -> track.sets.map { it.toDomain() } })
         assertEquals(before.tracks.map { it.position }, planned.map { it.position })
-        val archived = repo.sessionSets(sessionId)
+        val archived = repo.history.sessionSets(sessionId)
         before.tracks.forEach { track ->
             val rows = archived.filter { it.exerciseId == track.exerciseId && it.slot == track.slot }
             assertEquals(track.sets.map { it.plannedIndex }, rows.map { it.plannedIndex })
@@ -492,7 +492,7 @@ class TrackerRepositoryRunTest {
         assertEquals(clock.millis(), session.completedAt)
         val track = beforeRun.tracks.single()
         assertEquals(track.planned, SessionPlanJson.decode(session.plannedJson!!).single().sets.map { it.toDomain() })
-        val archived = repo.sessionSets(sessionId)
+        val archived = repo.history.sessionSets(sessionId)
         assertEquals(track.sets.indices.toList(), archived.map { it.setIndex })
         assertEquals(track.sets.map { it.weightLb }, archived.map { it.weightLb })
         assertEquals(track.sets.map { it.reps }, archived.map { it.reps })
@@ -636,7 +636,7 @@ class TrackerRepositoryRunTest {
         val track = db.runDao().tracks(id).single()
         db.runDao().updateTrack(track.copy(retired = true))
         val session = repo.finishRun(id)!!
-        assertEquals(listOf(0), repo.sessionSets(session).map { it.setIndex })
+        assertEquals(listOf(0), repo.history.sessionSets(session).map { it.setIndex })
         val planned = SessionPlanJson.decode(db.sessionDao().sessionById(session)!!.plannedJson!!).single()
         assertTrue(planned.retired)
         assertEquals(3, planned.sets.size)
@@ -849,7 +849,7 @@ class TrackerRepositoryRunTest {
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN))
         assertNull(db.programDao().logForSlot(plan, "A", slot, Slot.SS))
         performed.forEach { track ->
-            val archived = repo.sessionSets(session).filter { it.slot == track.slot && it.exerciseId == track.exerciseId }
+            val archived = repo.history.sessionSets(session).filter { it.slot == track.slot && it.exerciseId == track.exerciseId }
             assertEquals(track.sets.map { it.reps }, archived.map { it.reps })
             assertEquals(track.sets.map { it.done }, archived.map { it.done })
             assertEquals(track.sets.map { it.seconds }, archived.map { it.seconds })

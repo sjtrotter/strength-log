@@ -53,7 +53,7 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
         repository.finishRun(repository.openRunFlow.first()!!.id)!!
     }
 
-    private fun csvService() = CsvHistoryService(repository, catalog = repository.catalog)
+    private fun csvService() = CsvHistoryService(repository.history, catalog = repository.catalog)
 
     private suspend fun exportCsv(): String {
         val out = ByteArrayOutputStream()
@@ -76,7 +76,7 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
     )
 
     private suspend fun captureState(): State {
-        val sessions = repository.sessionsFlow.first()
+        val sessions = repository.history.sessionsFlow.first()
         return State(
             program = repository.plans.programFlow.first(),
             sessions = sessions,
@@ -92,7 +92,7 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
         // and the import must land it.
         importCsv(exportCsv().replace(Regex("""\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"""), "2020-01-02 03:04:05"))
 
-        val sessions = repository.sessionsFlow.first()
+        val sessions = repository.history.sessionsFlow.first()
         assertEquals(2, sessions.size)
         // The logged session kept the bodyweight it recorded; its CSV twin never
         // had one to record.
@@ -103,7 +103,7 @@ class ImportedHistoryBackupTest : BackupTestHarness() {
         val backup = service.export()
 
         service.import(emptyBackupJson())
-        assertTrue(repository.sessionsFlow.first().isEmpty())
+        assertTrue(repository.history.sessionsFlow.first().isEmpty())
 
         // The backup must restore CSV-imported history with no recorded
         // bodyweight.

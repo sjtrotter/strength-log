@@ -26,18 +26,18 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [TrackerRepository.personalRecords] (docs/briefs/performance-profile.md,
+ * [HistoryRepository.personalRecords] (docs/briefs/performance-profile.md,
  * the day-card "Best" chip): the SQL in [SessionDao] alongside
  * [SessionDao.lastPerformedRows]. Robolectric + in-memory Room, same pattern
- * as [TrackerRepositoryHistoryReadTest] — the query is the thing under test,
+ * as [HistoryRepositoryHistoryReadTest] — the query is the thing under test,
  * not the reduction (that's [PersonalRecordTest]).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class TrackerRepositoryPersonalRecordTest {
+class HistoryRepositoryPersonalRecordTest {
 
     private lateinit var db: StrengthDatabase
-    private lateinit var repo: TrackerRepository
+    private lateinit var repo: HistoryRepository
     private lateinit var storeScope: CoroutineScope
 
     @Before
@@ -50,12 +50,13 @@ class TrackerRepositoryPersonalRecordTest {
         val dataStore = PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("personal-record-settings", ".preferences_pb")
         }
-        repo = TrackerRepository(
+        val settings = SettingsStore(dataStore)
+        repo = HistoryRepository(
             db = db,
-            programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
-            settings = SettingsStore(dataStore),
+            settings = settings,
+            plans = PlanRepository(db, settings),
         )
     }
 

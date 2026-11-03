@@ -231,12 +231,12 @@ class TodayViewModelWiringTest : OverviewFixture() {
         val vm = today()
         advanceUntilIdle()
         assertEquals("Oct 15", vm.uiState.value.fact)
-        assertEquals(completionAt("2026-10-15"), repo.lastSessionAtFor(first).first())
+        assertEquals(completionAt("2026-10-15"), repo.history.lastSessionAtFor(first).first())
         repo.plans.selectPlan(second)
         advanceUntilIdle()
         assertEquals(second, vm.uiState.value.upNext.first().planId)
         assertEquals("Oct 18", vm.uiState.value.fact)
-        assertEquals(completionAt("2026-10-18"), repo.lastSessionAtFor(second).first())
+        assertEquals(completionAt("2026-10-18"), repo.history.lastSessionAtFor(second).first())
         repo.plans.selectPlan(first)
         advanceUntilIdle()
         assertEquals("Oct 15", vm.uiState.value.fact)
@@ -250,11 +250,11 @@ class TodayViewModelWiringTest : OverviewFixture() {
         val vm = today()
         advanceUntilIdle()
         assertEquals("Oct 19", vm.uiState.value.fact)
-        assertEquals(completionAt("2026-10-19"), repo.lastSessionAtFor(PlanEntity.LEGACY_ID).first())
+        assertEquals(completionAt("2026-10-19"), repo.history.lastSessionAtFor(PlanEntity.LEGACY_ID).first())
         repo.plans.selectPlan(second)
         advanceUntilIdle()
         assertNull(vm.uiState.value.fact)
-        assertNull(repo.lastSessionAtFor(second).first())
+        assertNull(repo.history.lastSessionAtFor(second).first())
     }
 
     @Test fun cardioCountsForItsPlanAndNullPlanCardioCountsForLegacy() = runTest(dispatcher) {
@@ -266,15 +266,15 @@ class TodayViewModelWiringTest : OverviewFixture() {
         val vm = today()
         advanceUntilIdle()
         assertEquals("Oct 18", vm.uiState.value.fact)
-        assertEquals(completionAt("2026-10-18"), repo.lastSessionAtFor(first).first())
+        assertEquals(completionAt("2026-10-18"), repo.history.lastSessionAtFor(first).first())
         db.cardioSessionDao().insert(cardioSession(null, "2026-10-20"))
         advanceUntilIdle()
         assertEquals("Oct 20", vm.uiState.value.fact)
-        assertEquals(completionAt("2026-10-20"), repo.lastSessionAtFor(first).first())
+        assertEquals(completionAt("2026-10-20"), repo.history.lastSessionAtFor(first).first())
         repo.plans.selectPlan(second)
         advanceUntilIdle()
         assertEquals("Oct 19", vm.uiState.value.fact)
-        assertEquals(completionAt("2026-10-19"), repo.lastSessionAtFor(second).first())
+        assertEquals(completionAt("2026-10-19"), repo.history.lastSessionAtFor(second).first())
     }
 
     @Test fun everyEmissionKeepsTheFactWithItsRowsWhileMembershipProgramReadIsDelayed() = runTest(dispatcher) {

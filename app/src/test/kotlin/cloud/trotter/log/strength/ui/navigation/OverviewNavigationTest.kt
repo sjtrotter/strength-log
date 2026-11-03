@@ -140,6 +140,7 @@ class OverviewNavigationTest {
                             override fun refresh() = Unit
                         }, SavedStateHandle(), phoneRest = PhoneRestController(settings, NoOpRestRuntime),
                             plans = repo.plans,
+                            historyRepository = repo.history,
                         )) }
                         TodayRoute(
                             onStart = { nav.navigate(Routes.day(it.dayId, it.planId)) { launchSingleTop = true } },
@@ -181,6 +182,7 @@ class OverviewNavigationTest {
                             Routes.DAY_ID_ARG to previewEntry.arguments?.getString(Routes.DAY_ID_ARG),
                         )), PhoneRestController(settings, NoOpRestRuntime), settings = settings,
                             plans = repo.plans,
+                            historyRepository = repo.history,
                         )) }
                         PreviewRoute(onBack = { nav.popBackStack() }, onOpenDay = { selection, edit ->
                             nav.navigate(Routes.day(selection.dayId, selection.planId, edit))
@@ -192,7 +194,7 @@ class OverviewNavigationTest {
                             navArgument(Routes.DAY_ID_ARG) { type = NavType.StringType },
                             navArgument(Routes.DAY_EDITOR_ARG) { type = NavType.BoolType; defaultValue = route == Routes.DAY_EDIT_IN_PLAN },
                         )) { dayEntry ->
-                            dayVm = remember(dayEntry) { keep(DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings),
+                            dayVm = remember(dayEntry) { keep(DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo.history, settings = settings),
                                 SavedStateHandle(mapOf(
                                     Routes.DAY_PLAN_ID_ARG to dayEntry.arguments?.getString(Routes.DAY_PLAN_ID_ARG),
                                     Routes.DAY_ID_ARG to dayEntry.arguments?.getString(Routes.DAY_ID_ARG),
@@ -200,6 +202,7 @@ class OverviewNavigationTest {
                                 )), FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings,
                                 plans = repo.plans,
                                 catalog = repo.catalog,
+                                historyRepository = repo.history,
                             )) }
                             DayRoute(onCreateExercise = {}, onSetUpProgram = {}, onFinishSession = { nav.finishWorkout() },
                                 onBack = { nav.popBackStack() },

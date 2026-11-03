@@ -225,7 +225,7 @@ class PersistenceProcessDeathTest {
         assertEquals(listOf(LoggedSet(100.0, 10, SetKind.WORK, done = true, plannedIndex = 0)), logsBeforeKill[1].sets)
 
         // Workout history: the session row and its denormalized set rows.
-        val session = repository.sessionsFlow.first().single()
+        val session = repository.history.sessionsFlow.first().single()
         assertEquals("A", session.dayId)
         assertEquals("Day A", session.dayTitle)
         assertEquals(210, session.bodyweightLb) // from the wizard answers' config

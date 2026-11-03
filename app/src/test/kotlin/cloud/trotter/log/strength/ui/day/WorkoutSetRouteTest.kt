@@ -77,10 +77,11 @@ class WorkoutSetRouteTest {
     private fun show() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         rule.runOnUiThread {
-            viewModel = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
+            viewModel = DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo.history, settings = settings), SavedStateHandle(),
                 TestClock, SilentAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings,
                 plans = repo.plans,
                 catalog = repo.catalog,
+                historyRepository = repo.history,
             )
         }
         rule.setContent { AppTheme {

@@ -83,7 +83,7 @@ class DayViewModelCascadeTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        shareCardService = ShareCardService(context, repo, settings = settings)
+        shareCardService = ShareCardService(context, repo.history, settings = settings)
     }
 
     @After
@@ -97,7 +97,7 @@ class DayViewModelCascadeTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
 
     private suspend fun insertProgram() {
         repo.replaceProgram(

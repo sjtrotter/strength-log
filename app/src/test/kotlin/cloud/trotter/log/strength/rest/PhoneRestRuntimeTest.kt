@@ -150,7 +150,7 @@ class PhoneRestRuntimeTest {
         shadowOf(Looper.getMainLooper()).idle()
         advanceUntilIdle()
         assertCleared()
-        assertEquals(0, repo.sessionsFlow.first().size)
+        assertEquals(0, repo.history.sessionsFlow.first().size)
     }
 
     @Test fun restOverUsesANewDefaultImportanceChannelWithSoundAndVibration() {
@@ -277,6 +277,7 @@ class PhoneRestRuntimeTest {
             Routes.PLAN_ID_ARG to plan.toString(), Routes.DAY_ID_ARG to "B",
         )), rest, settings = settings,
             plans = repo.plans,
+            historyRepository = repo.history,
         ).also { models += it }
         preview.start()
         advanceUntilIdle()
@@ -299,10 +300,11 @@ class PhoneRestRuntimeTest {
     }
 
     private fun newDayModel(clock: Clock = Clock.systemUTC()) =
-        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo, settings = settings), SavedStateHandle(),
+        DayViewModel(repo, SessionPublisher.NoOp, ShareCardService(context, repo.history, settings = settings), SavedStateHandle(),
             FixedCardioClock(), InertCardioAlarm, rest, clock, settings = settings,
             plans = repo.plans,
             catalog = repo.catalog,
+            historyRepository = repo.history,
         ).also { models += it }
 
     private fun checkDayAction(action: (DayViewModel) -> Unit) = runTest(dispatcher) {

@@ -351,12 +351,12 @@ class RestoreCoordinationTest {
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
 
         service.withRestoreLock {
-            assertEquals(notes, repo.sessionNotesFlow.first())
+            assertEquals(notes, repo.history.sessionNotesFlow.first())
             assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
             assertNull(db.restoreMarkerDao().nonce())
         }
         assertFalse(service.reconcilePendingRestore())
-        assertEquals(notes, repo.sessionNotesFlow.first())
+        assertEquals(notes, repo.history.sessionNotesFlow.first())
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
     }
 
@@ -512,9 +512,9 @@ class RestoreCoordinationTest {
         withTimeout(TIMEOUT_MS) { restore.await() }
 
         assertNull(settingsStore.data.first()[key])
-        repo.ensureSessionNotesMoved()
+        repo.history.ensureSessionNotesMoved()
         assertEquals("Document note", db.sessionDao().sessionById(11)!!.note)
-        assertEquals(mapOf(11L to "Document note"), repo.sessionNotesFlow.first())
+        assertEquals(mapOf(11L to "Document note"), repo.history.sessionNotesFlow.first())
     }
 
     @Test
@@ -541,7 +541,7 @@ class RestoreCoordinationTest {
         assertEquals("Restored note", db.sessionDao().sessionById(11)!!.note)
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
         assertNull(settingsStore.data.first()[stringPreferencesKey("session_notes")])
-        repo.ensureSessionNotesMoved()
-        assertEquals(mapOf(11L to "Restored note"), repo.sessionNotesFlow.first())
+        repo.history.ensureSessionNotesMoved()
+        assertEquals(mapOf(11L to "Restored note"), repo.history.sessionNotesFlow.first())
     }
 }

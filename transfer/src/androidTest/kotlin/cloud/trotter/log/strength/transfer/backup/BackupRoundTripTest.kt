@@ -108,7 +108,7 @@ class BackupRoundTripTest : BackupTestHarness() {
             TrackEdit(rowId, Slot.MAIN, createsMissing = true) { listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)) },
         ))
         val sessionId = repository.finishRun(repository.openRunFlow.first()!!.id)!!
-        repository.setSessionNote(sessionId, "Felt smooth")
+        repository.history.setSessionNote(sessionId, "Felt smooth")
         repository.setKeepToPlan(rowId, true)
         // A fresh post-advance edit, so the exported live logs carry current work.
         repository.applyToRun(repository.dayTracksFlow(repository.plans.planIdOfSlot(squatId) ?: -1, "A").first().runId.orEmpty(), requireNotNull(repository.plans.planIdOfSlot(squatId)), "A", listOf(
@@ -145,7 +145,7 @@ class BackupRoundTripTest : BackupTestHarness() {
         // --- wipe: importing an empty backup must clear everything ------------
         service.import(emptyBackupJson())
         assertTrue(repository.plans.programFlow.first().days.isEmpty())
-        assertTrue(repository.sessionsFlow.first().isEmpty())
+        assertTrue(repository.history.sessionsFlow.first().isEmpty())
         assertTrue(repository.catalog.catalogFlow.first().entries.none { it.id == customId })
         assertEquals(null, repository.plans.suggestedDayFlow.first())
         // The wipe backup predates nothing — it simply carries no rest keys, so
@@ -195,7 +195,7 @@ class BackupRoundTripTest : BackupTestHarness() {
     )
 
     private suspend fun captureState(): State {
-        val sessions = repository.sessionsFlow.first()
+        val sessions = repository.history.sessionsFlow.first()
         return State(
             snapshot = repository.exportSnapshot(),
             program = repository.plans.programFlow.first(),

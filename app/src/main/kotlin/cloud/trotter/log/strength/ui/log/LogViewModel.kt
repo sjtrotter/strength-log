@@ -6,7 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
@@ -55,7 +55,7 @@ import kotlinx.coroutines.launch
  * death).
  *
  * The journal sections cost two aggregate queries for the whole screen
- * ([TrackerRepository.topSetHistoryFlow], [TrackerRepository.sessionTonnageFlow])
+ * ([HistoryRepository.topSetHistoryFlow], [HistoryRepository.sessionTonnageFlow])
  * plus the session list the screen already streams — never one query per card.
  * All of their shaping is [JournalBuilder]'s.
  *
@@ -72,7 +72,7 @@ import kotlinx.coroutines.launch
  */
 @HiltViewModel
 class LogViewModel @Inject constructor(
-    private val repo: TrackerRepository,
+    private val repo: HistoryRepository,
     private val healthReader: HealthConnectReader,
     private val sessionPublisher: SessionPublisher,
     private val shareCardService: ShareCardService,
@@ -511,7 +511,7 @@ class LogViewModel @Inject constructor(
 
     private data class PendingDeletion(
         val item: SessionListItem,
-        val deleted: TrackerRepository.DeletedSession,
+        val deleted: HistoryRepository.DeletedSession,
         val index: Int,
     )
 

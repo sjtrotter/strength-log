@@ -11,6 +11,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.TrackerRepository
@@ -78,7 +79,8 @@ object WearSyncModule {
         repo: TrackerRepository,
         ackLog: CardioAckLog,
         publisher: SessionPublisher,
-    ): CardioDeltaApplier = CardioDeltaApplier(repo, ackLog, publisher)
+        history: HistoryRepository,
+    ): CardioDeltaApplier = CardioDeltaApplier(repo, ackLog, publisher, historyRepository = history)
 
     /** One source, every glance surface: the widget observer reads this same
      *  instance (glance-surfaces.md §4.2). */
@@ -91,7 +93,8 @@ object WearSyncModule {
         editAckLog: EditAckLog,
         settings: SettingsStore,
         plans: PlanRepository,
-    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog, settings, plans = plans)
+        history: HistoryRepository,
+    ): TodaySnapshotSource = TodaySnapshotSource(repo, today, ackLog, editAckLog, settings, plans = plans, historyRepository = history)
 
     @Provides
     @Singleton

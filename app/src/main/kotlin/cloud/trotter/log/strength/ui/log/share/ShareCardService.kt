@@ -6,7 +6,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import java.io.File
 import java.io.FileOutputStream
@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Builds the session share card end to end (docs/briefs/session-share.md §3):
- * reads the session off [TrackerRepository], renders it with
+ * reads the session off [HistoryRepository], renders it with
  * [ShareCardPainter], writes the PNG under `cache/shares/`, and wraps it in an
  * `ACTION_SEND` chooser intent. This is the *only* place a share [Intent] gets
  * built (§4) — [cloud.trotter.log.strength.ui.log.LogViewModel] calls
@@ -27,7 +27,7 @@ import kotlinx.coroutines.withContext
  */
 class ShareCardService @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val repo: TrackerRepository,
+    private val repo: HistoryRepository,
     private val settings: SettingsStore,
 ) {
 

@@ -38,7 +38,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [TrackerRepository.importSessionHistory] and [TrackerRepository.exportSessionHistory]
+ * [HistoryRepository.importSessionHistory] and [HistoryRepository.exportSessionHistory]
  * (CSV import/export): additive appends that must link each imported session to its own
  * freshly generated id, leave the program and live logs untouched, and read back in the
  * same deterministic order the A2 backup uses. Robolectric + in-memory Room, same
@@ -47,11 +47,13 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class TrackerRepositorySessionHistoryImportTest {
+class HistoryRepositorySessionHistoryImportTest {
 
     private lateinit var db: StrengthDatabase
     private lateinit var settings: SettingsStore
-    private lateinit var repo: TrackerRepository
+    private lateinit var repo: HistoryRepository
+    private lateinit var plans: PlanRepository
+    private lateinit var catalog: CatalogRepository
     private lateinit var storeScope: CoroutineScope
 
     @Before
@@ -65,12 +67,14 @@ class TrackerRepositorySessionHistoryImportTest {
             File.createTempFile("csv-import-settings", ".preferences_pb")
         }
         settings = SettingsStore(dataStore)
-        repo = TrackerRepository(
+        plans = PlanRepository(db, settings)
+        catalog = CatalogRepository(db.customExerciseDao())
+        repo = HistoryRepository(
             db = db,
-            programDao = db.programDao(),
             sessionDao = db.sessionDao(),
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
+            plans = plans,
         )
     }
 
@@ -129,7 +133,7 @@ class TrackerRepositorySessionHistoryImportTest {
 
         repo.importSessionHistory(listOf(imported), newCustomExercises = listOf(custom))
 
-        val catalog = repo.catalog.catalogFlow.first()
+        val catalog = catalog.catalogFlow.first()
         assertTrue(catalog.entries.any { it.id == custom.id })
     }
 
@@ -138,7 +142,7 @@ class TrackerRepositorySessionHistoryImportTest {
         val imported = ImportedSession(session("Day A", 1_000L), listOf(set("bb_back_squat", "Barbell Back Squat", 0)))
         repo.importSessionHistory(listOf(imported), newCustomExercises = emptyList())
 
-        assertEquals(0, repo.plans.programFlow.first().days.size)
+        assertEquals(0, plans.programFlow.first().days.size)
     }
 
     private fun cardio() = ImportedCardioSession(
@@ -190,7 +194,7 @@ class TrackerRepositorySessionHistoryImportTest {
         assertTrue(history.sessionSets.isEmpty())
         assertTrue(history.cardioSessions.isEmpty())
         assertTrue(db.cardioSetResultDao().all().isEmpty())
-        assertTrue(repo.catalog.catalogFlow.first().entries.none { it.id == custom.id })
+        assertTrue(catalog.catalogFlow.first().entries.none { it.id == custom.id })
     }
 
     @Test

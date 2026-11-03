@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.data.HistoryRepository
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -47,7 +48,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The performance-profile "Best" chip end to end: [DayViewModel] batches
- * [TrackerRepository.personalRecords] for a whole day's exercises into
+ * [HistoryRepository.personalRecords] for a whole day's exercises into
  * [ExerciseCardState.personalRecordDisplay], suppressing it when it would
  * just repeat the "last time" chip.
  */
@@ -84,7 +85,7 @@ class DayViewModelPersonalRecordTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        shareCardService = ShareCardService(context, repo, settings = settings)
+        shareCardService = ShareCardService(context, repo.history, settings = settings)
     }
 
     @After
@@ -98,7 +99,7 @@ class DayViewModelPersonalRecordTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog).also { vms += it }
+        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
 
     private suspend fun insertSingleDayProgram() {
         repo.replaceProgram(
@@ -146,7 +147,7 @@ class DayViewModelPersonalRecordTest {
         insertSingleDayProgram()
         // An older, heavier session sets the record; a newer, lighter one is
         // the most recent performance — the two chips must differ.
-        repo.importSessionHistory(
+        repo.history.importSessionHistory(
             listOf(
                 ImportedSession(
                     session(1_000L, "Older — heavy"),
@@ -175,7 +176,7 @@ class DayViewModelPersonalRecordTest {
         insertSingleDayProgram()
         // The only session on record is both the record AND the last
         // performance — showing "245×5" twice would be redundant.
-        repo.importSessionHistory(
+        repo.history.importSessionHistory(
             listOf(
                 ImportedSession(
                     session(1_000L),

@@ -21,7 +21,7 @@ data class SessionSummaryRow(
 
 /**
  * One flat row behind [SessionDao.lastPerformedRows] — see
- * [cloud.trotter.log.strength.data.TrackerRepository.lastPerformed] for how
+ * [cloud.trotter.log.strength.data.HistoryRepository.lastPerformed] for how
  * this is reduced to one entry per exercise.
  */
 data class LastPerformedRow(
@@ -35,7 +35,7 @@ data class LastPerformedDateRow(val exerciseId: String, val completedAt: Long)
 
 /**
  * One flat row behind [SessionDao.personalRecordRows] — see
- * [cloud.trotter.log.strength.data.TrackerRepository.personalRecords] for
+ * [cloud.trotter.log.strength.data.HistoryRepository.personalRecords] for
  * how this is reduced to one entry per exercise.
  */
 data class PersonalRecordRow(
@@ -123,7 +123,7 @@ interface SessionDao {
      * [exerciseIds], newest session first (ties — i.e. rows from the same session
      * — broken by heaviest weight). One query for a whole day's worth of exercise
      * ids ("last time" chip) instead of one per exercise; see
-     * [cloud.trotter.log.strength.data.TrackerRepository.lastPerformed] for how
+     * [cloud.trotter.log.strength.data.HistoryRepository.lastPerformed] for how
      * the flat result collapses to one row per exercise. For a ramped main lift,
      * every round (ramp/top/back-off) shares one `exerciseId`, so "heaviest
      * weight in the session" naturally picks its TOP set. The `reps`/`seconds`
@@ -156,7 +156,7 @@ interface SessionDao {
      * Every done set for [exerciseIds], oldest first, for the profile "Best" chip.
      * Ranking lives in [cloud.trotter.log.strength.domain.records.PersonalBests].
      * One query for a whole day's exercise ids, like [lastPerformedRows]; see
-     * [cloud.trotter.log.strength.data.TrackerRepository.personalRecords] for the reduction.
+     * [cloud.trotter.log.strength.data.HistoryRepository.personalRecords] for the reduction.
      */
     @Query(
         """

@@ -142,7 +142,7 @@ class SetEditApplierRunTest {
         val edit = delta(planId, runId)
         assertNotNull(repo.finishRun(runId))
         assertEquals(SetEditApplier.Outcome.REJECTED, applier.apply(edit))
-        assertEquals(1, repo.sessionsFlow.first().size)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
         assertNull(repo.openRunFlow.first())
     }
 
@@ -281,7 +281,7 @@ class SetEditApplierRunTest {
             .first { it.programExerciseId == id }.exercise.exerciseId)
         assertTrue(repo.dayTracksFlow(planId, "A").first().tracks.isEmpty())
         assertNull(repo.openRunFlow.first())
-        assertEquals(1, repo.sessionsFlow.first().size)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
     }
 
     /** [F] */

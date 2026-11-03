@@ -4,7 +4,7 @@ package cloud.trotter.log.strength.transfer.csv
  * Every way a CSV history import can refuse a file, as a typed hierarchy
  * (mirrors [cloud.trotter.log.strength.transfer.backup.BackupError]).
  * Every case is thrown while building the pure preview, strictly before
- * [cloud.trotter.log.strength.data.TrackerRepository.importSessionHistory]
+ * [cloud.trotter.log.strength.data.HistoryRepository.importSessionHistory]
  * is ever called, so a rejected file always leaves the device untouched.
  */
 sealed class CsvImportError(message: String, cause: Throwable? = null) : Exception(message, cause) {

@@ -125,7 +125,7 @@ class TrackerRepositoryRunEditsTest {
         val active = repo.openRunFlow.first()!!.tracks.single { !it.retired }
         assertEquals("hack_squat", active.exerciseId)
         val session = repo.finishRun(runId)!!
-        val rows = repo.sessionSets(session)
+        val rows = repo.history.sessionSets(session)
         val squatRows = rows.filter { it.exerciseId == "bb_back_squat" }
         assertEquals(2, squatRows.size)
         assertTrue(squatRows.all { it.done })
@@ -188,7 +188,7 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(original, restored.single { it.exerciseId == "bb_back_squat" })
         assertEquals(alternate.copy(retired = true), restored.single { it.exerciseId == "hack_squat" })
         val session = repo.finishRun(runId)!!
-        val archived = repo.sessionSets(session)
+        val archived = repo.history.sessionSets(session)
         val alternateRows = archived.filter { it.exerciseId == "hack_squat" }
         assertEquals(2, alternateRows.size)
         assertTrue(alternateRows.all { it.done })
@@ -596,7 +596,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(retired.retired)
         assertEquals(slots[0].id, retired.programExerciseId)
         val session = repo.finishRun(runId)!!
-        val archived = repo.sessionSets(session)
+        val archived = repo.history.sessionSets(session)
         assertEquals(1, archived.size)
         assertTrue(archived.single().done)
         assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
@@ -709,9 +709,9 @@ class TrackerRepositoryRunEditsTest {
         val active = repo.openRunFlow.first()!!.tracks.single { !it.retired }
         repo.writeTestRows(runId, "A", id, Slot.MAIN, active.sets.mapIndexed { index, set -> set.copy(done = index == 0) })
         val session = repo.finishRun(runId)!!
-        val done = repo.sessionSets(session).filter { it.done }
+        val done = repo.history.sessionSets(session).filter { it.done }
         assertEquals(setOf("bb_back_squat", "hack_squat"), done.map { it.exerciseId }.toSet())
-        assertEquals(1, repo.sessionSets(session).count { it.exerciseId == "bb_back_squat" })
+        assertEquals(1, repo.history.sessionSets(session).count { it.exerciseId == "bb_back_squat" })
         assertEquals(before, db.programDao().logsForDay(plan, "A"))
     }
 
@@ -894,7 +894,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
         assertEquals(0, repo.dayTracksFlow(plan, "A").first().retiredRoundsDone)
         val session = repo.finishRun(runId)!!
-        val archived = repo.sessionSets(session).filter { it.slot == Slot.SS }
+        val archived = repo.history.sessionSets(session).filter { it.slot == Slot.SS }
         assertEquals(1, archived.size)
         assertTrue(archived.single().done)
         assertEquals(175.0, archived.single().weightLb, 0.0)

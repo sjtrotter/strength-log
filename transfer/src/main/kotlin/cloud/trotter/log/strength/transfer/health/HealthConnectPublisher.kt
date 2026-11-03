@@ -5,7 +5,7 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.HistoryRepository
 import java.time.ZoneId
 
 /**
@@ -34,7 +34,7 @@ import java.time.ZoneId
  */
 class HealthConnectPublisher(
     private val clientProvider: HealthConnectClientProvider,
-    private val repository: TrackerRepository,
+    private val repository: HistoryRepository,
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) : SessionPublisher {
 

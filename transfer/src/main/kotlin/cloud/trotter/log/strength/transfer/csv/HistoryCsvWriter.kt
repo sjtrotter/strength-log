@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter
  * cardio without sets, using [HISTORY_CSV_HEADER]'s column layout. Pure and
  * Android-free — [cloud.trotter.log.strength.transfer.csv.CsvHistoryService]
  * supplies the data from
- * [cloud.trotter.log.strength.data.TrackerRepository.exportSessionHistory].
+ * [cloud.trotter.log.strength.data.HistoryRepository.exportSessionHistory].
  *
  * Strength Duration is `H:MM:SS` of `completedAt - startedAt` (Strong's own
  * on-disk format) when the session carries a real start stamp (session-start

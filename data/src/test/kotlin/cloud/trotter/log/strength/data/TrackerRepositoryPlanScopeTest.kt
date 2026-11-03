@@ -345,7 +345,7 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(Instant.parse("2026-10-19T12:00:00Z").toEpochMilli(), session.completedAt)
         assertEquals(plan.id, session.planId)
         assertEquals(plan.name, session.planName)
-        val recordedSet = repo.sessionSets(sessionId).single()
+        val recordedSet = repo.history.sessionSets(sessionId).single()
         assertTrue(recordedSet.done)
         assertEquals(30, recordedSet.seconds)
         assertEquals(coreSets.map { it.copy(done = false) }, repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets)
@@ -717,17 +717,17 @@ class TrackerRepositoryPlanScopeTest {
             planId = 1, planName = "Old name",
         )
         val existingId = repo.logCardioSession(cardio)
-        assertEquals(1L, repo.cardioSession(existingId)?.planId)
-        assertEquals("One", repo.cardioSession(existingId)?.planName)
+        assertEquals(1L, repo.history.cardioSession(existingId)?.planId)
+        assertEquals("One", repo.history.cardioSession(existingId)?.planName)
         val missingId = repo.logCardioSession(cardio.copy(planId = 99, planName = "Archived elsewhere"))
-        assertEquals(99L, repo.cardioSession(missingId)?.planId)
-        assertEquals("Archived elsewhere", repo.cardioSession(missingId)?.planName)
+        assertEquals(99L, repo.history.cardioSession(missingId)?.planId)
+        assertEquals("Archived elsewhere", repo.history.cardioSession(missingId)?.planName)
         db.planDao().updateSuggestedDay(2, "A")
         db.programDao().upsertDay(ProgramDayEntity(2, "B", 1, "Next", "", null))
         val before = db.planDao().allPlans()
         val legacyId = repo.logCardioSession(cardio.copy(planId = null), finishDay = true)
-        assertNull(repo.cardioSession(legacyId)?.planId)
-        assertNull(repo.cardioSession(legacyId)?.planName)
+        assertNull(repo.history.cardioSession(legacyId)?.planId)
+        assertNull(repo.history.cardioSession(legacyId)?.planName)
         assertEquals(before, db.planDao().allPlans())
     }
 
@@ -792,7 +792,7 @@ class TrackerRepositoryPlanScopeTest {
 
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
-        val row = repo.sessionSets(sessionId).single()
+        val row = repo.history.sessionSets(sessionId).single()
         assertEquals(0.0, row.weightLb, 0.0)
         assertEquals(42, row.reps)
         assertEquals(0, row.seconds)
@@ -913,7 +913,7 @@ class TrackerRepositoryPlanScopeTest {
         }
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
-        val archived = repo.sessionSets(sessionId)
+        val archived = repo.history.sessionSets(sessionId)
         assertEquals(mapOf("bb_back_squat" to 50.0, "bb_bench" to 135.0), archived.associate { it.exerciseId to it.weightLb })
         assertTrue(archived.all { it.done })
         assertEquals(listOf(generatedId), db.programDao().logsForDay(plan.id, "A").map { it.programExerciseId })
@@ -931,7 +931,7 @@ class TrackerRepositoryPlanScopeTest {
         val logs = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().associate { it.programExerciseId to it.sets }
         assertEquals(List(2) { LoggedSet(37.5, 8, SetKind.WORK) }, logs[authoredId])
         assertEquals(sets(135.0).map { it.copy(done = false) }, logs[generatedId])
-        assertEquals(archived, repo.sessionSets(sessionId))
+        assertEquals(archived, repo.history.sessionSets(sessionId))
     }
 
     @Test

@@ -101,7 +101,7 @@ class DayViewModelWorkoutTest {
         syncStore = WearSyncStore(PreferenceDataStoreFactory.create(scope = storeScope) {
             File.createTempFile("workout-watch", ".preferences_pb")
         })
-        share = ShareCardService(context, repo, settings = settings)
+        share = ShareCardService(context, repo.history, settings = settings)
     }
 
     @After
@@ -144,6 +144,7 @@ class DayViewModelWorkoutTest {
             settings = settings,
             plans = repo.plans,
             catalog = repo.catalog,
+            historyRepository = repo.history,
         ).also { vms += it }
         backgroundScope.launch { vm.uiState.collect {} }
         runCurrent()
@@ -964,7 +965,7 @@ class DayViewModelWorkoutTest {
         at(clock.now + 10_000)
         vm.endCardioBlock()
         runCurrent()
-        val session = repo.cardioSessionsFlow.first().single()
+        val session = repo.history.cardioSessionsFlow.first().single()
         assertEquals(10, session.seconds)
         assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
         assertEquals(WorkoutSelection.Shown.Group("cardio", true), vm.uiState.value.workout?.shown)
@@ -972,7 +973,7 @@ class DayViewModelWorkoutTest {
         vm.completeDay()
         runCurrent()
         assertEquals("B", db.planDao().plan(plan)?.suggestedDayId)
-        assertEquals(listOf(session), repo.cardioSessionsFlow.first())
+        assertEquals(listOf(session), repo.history.cardioSessionsFlow.first())
     }
 
     @Test fun `jumping away from a running timed rep keeps its clock`() = test {
@@ -1016,13 +1017,13 @@ class DayViewModelWorkoutTest {
         assertTrue(failed.saveFailed)
         assertTrue(failed.complete)
         assertEquals(WorkoutSelection.Shown.Group("cardio", false), vm.uiState.value.workout?.shown)
-        assertTrue(repo.cardioSessionsFlow.first().isEmpty())
+        assertTrue(repo.history.cardioSessionsFlow.first().isEmpty())
         db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_cardio")
         vm.retryCardioSave()
         vm.retryCardioSave()
         runCurrent()
-        assertEquals(1, repo.cardioSessionsFlow.first().size)
-        assertEquals(10, repo.cardioSessionsFlow.first().single().seconds)
+        assertEquals(1, repo.history.cardioSessionsFlow.first().size)
+        assertEquals(10, repo.history.cardioSessionsFlow.first().single().seconds)
         assertEquals(WorkoutSelection.Shown.Group("cardio", true), vm.uiState.value.workout?.shown)
         assertEquals("A", db.planDao().plan(plan)?.suggestedDayId)
     }

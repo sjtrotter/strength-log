@@ -101,7 +101,7 @@ class BackupViewModelRestoreTest {
         viewModel = BackupViewModel(
             context,
             BackupService(repo, RestoreJournal(journalStore, settings)),
-            CsvHistoryService(repo, catalog = repo.catalog),
+            CsvHistoryService(repo.history, catalog = repo.catalog),
             settings,
             appScope,
         )

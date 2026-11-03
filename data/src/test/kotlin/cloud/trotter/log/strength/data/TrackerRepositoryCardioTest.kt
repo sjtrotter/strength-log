@@ -35,16 +35,18 @@ class TrackerRepositoryCardioTest {
         val settings = SettingsStore(PreferenceDataStoreFactory.create(scope = scope) {
             File.createTempFile("cardio-repo", ".preferences_pb")
         })
-        val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings)
+        val plans = PlanRepository(db, settings)
+        val history = HistoryRepository(db, settings, plans)
+        val repo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), settings, plans = plans, history = history)
         try {
             repo.logCardioSession(cardio("Easy Zone 2", 2_000))
             val id = repo.logCardioSession(cardio("Tempo", 3_000))
             repo.logCardioSession(cardio("Later id at same time", 3_000))
             assertEquals(
                 listOf("Later id at same time", "Tempo", "Easy Zone 2"),
-                repo.cardioSessionsFlow.first().map { it.label },
+                history.cardioSessionsFlow.first().map { it.label },
             )
-            assertEquals("Tempo", repo.cardioSession(id)?.label)
+            assertEquals("Tempo", history.cardioSession(id)?.label)
         } finally { db.close(); scope.cancel() }
     }
 

@@ -85,7 +85,7 @@ class DayViewModelTimedRepExecutionTest {
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
         )
-        share = ShareCardService(context, repo, settings = settings)
+        share = ShareCardService(context, repo.history, settings = settings)
     }
 
     @After
@@ -103,6 +103,7 @@ class DayViewModelTimedRepExecutionTest {
         settings = settings,
         plans = repo.plans,
         catalog = repo.catalog,
+        historyRepository = repo.history,
     ).also { vms += it }
 
     private suspend fun prepare() {

@@ -128,7 +128,7 @@ class TrackerRepositoryFinishArchiveTest {
         val ids = seedTracks()
         for (id in ids) tickSets(id, setOf(0, 1))
         val firstSessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
-        val firstArchive = repo.sessionSets(firstSessionId)
+        val firstArchive = repo.history.sessionSets(firstSessionId)
         assertEquals(4, firstArchive.size)
         firstArchive.forEach {
             assertTrue(it.done)
@@ -140,7 +140,7 @@ class TrackerRepositoryFinishArchiveTest {
         tickSets(ids.first(), setOf(0))
         val secondSessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
-        val untouched = repo.sessionSets(secondSessionId).filter { it.exerciseId == "bb_bench" }
+        val untouched = repo.history.sessionSets(secondSessionId).filter { it.exerciseId == "bb_bench" }
         assertEquals(2, untouched.size)
         untouched.forEach {
             assertFalse(it.done)
@@ -159,7 +159,7 @@ class TrackerRepositoryFinishArchiveTest {
         tickSets(ids.first(), setOf(0))
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
-        val archived = repo.sessionSets(sessionId)
+        val archived = repo.history.sessionSets(sessionId)
         val untouched = archived.filter { it.exerciseId == "bb_bench" }
         assertEquals(2, untouched.size)
         untouched.forEach {
@@ -184,7 +184,7 @@ class TrackerRepositoryFinishArchiveTest {
         assertEquals("2026-07-07", LocalDate.now(clock).toString())
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
 
-        val archived = repo.sessionSets(sessionId).single { it.exerciseId == "bb_back_squat" && it.setIndex == 0 }
+        val archived = repo.history.sessionSets(sessionId).single { it.exerciseId == "bb_back_squat" && it.setIndex == 0 }
         assertTrue(archived.done)
         assertNotNull(ticked.startedAtMillis)
         assertNotNull(ticked.completedAtMillis)

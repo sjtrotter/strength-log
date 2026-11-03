@@ -8,6 +8,7 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
 import cloud.trotter.log.strength.icon.LauncherAliasMigration
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.di.ApplicationScope
@@ -40,6 +41,7 @@ class StrengthLogApp : Application() {
     interface RepositoryEntryPoint {
         fun trackerRepository(): TrackerRepository
         fun planRepository(): PlanRepository
+        fun historyRepository(): HistoryRepository
     }
 
     @EntryPoint
@@ -104,6 +106,10 @@ class StrengthLogApp : Application() {
             .fromApplication(this, RepositoryEntryPoint::class.java)
             .planRepository()
 
+        val history = EntryPointAccessors
+            .fromApplication(this, RepositoryEntryPoint::class.java)
+            .historyRepository()
+
         appScope.launch {
             runCatching {
                 EntryPointAccessors.fromApplication(this@StrengthLogApp, LauncherEntryPoint::class.java)
@@ -136,7 +142,7 @@ class StrengthLogApp : Application() {
                 .onFailure { Log.e(TAG, "Legacy session start adoption failed", it) }
             runCatching { plans.runPlanSettingsFixupIfNeeded() }
                 .onFailure { Log.e(TAG, "Plan settings fixup failed; will retry next launch", it) }
-            runCatching { repository.ensureSessionNotesMoved() }
+            runCatching { history.ensureSessionNotesMoved() }
                 .onFailure { Log.e(TAG, "Session notes move failed; will retry next launch", it) }
         }
     }

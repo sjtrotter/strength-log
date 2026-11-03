@@ -201,7 +201,7 @@ class TrackerRepositoryAuthoredPlanTest {
         val sets = listOf(LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 30))
         repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slot) ?: -1, "B").first().runId.orEmpty(), "B", slot, Slot.MAIN, sets)
         val session = repo.finishRun(repo.openRunFlow.first()!!.id)!!
-        val archivedSets = repo.sessionSets(session)
+        val archivedSets = repo.history.sessionSets(session)
         repo.writeTestRows(repo.dayTracksFlow(repo.plans.planIdOfSlot(slot) ?: -1, "B").first().runId.orEmpty(), "B", slot, Slot.MAIN, sets)
         db.planDao().updateSuggestedDay(id, "B")
         repo.addExercise("A", ProgramExercise("plank"))
@@ -214,7 +214,7 @@ class TrackerRepositoryAuthoredPlanTest {
         assertTrue(db.programDao().exercisesForDay(id, "B").isEmpty())
         assertNull(db.programDao().day(id, "B"))
         assertEquals(otherDay, db.programDao().exercisesForDay(id, "A"))
-        assertEquals(archivedSets, repo.sessionSets(session))
+        assertEquals(archivedSets, repo.history.sessionSets(session))
         assertEquals("Day B", db.sessionDao().sessionById(session)!!.dayTitle)
         assertTrue(repo.removeDay(id, "C"))
         assertEquals("A", db.planDao().plan(id)!!.suggestedDayId)

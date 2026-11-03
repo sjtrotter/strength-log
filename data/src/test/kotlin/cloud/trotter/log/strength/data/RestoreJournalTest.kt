@@ -283,15 +283,15 @@ class RestoreJournalTest {
         journalStore.edit { it[stringPreferencesKey("session_notes")] = """{"11":"Recovered note","999":"Orphan"}""" }
         settingsStore.edit { it[stringPreferencesKey("session_notes")] = """{"11":"Stale device note"}""" }
 
-        repo.ensureSessionNotesMoved()
-        assertEquals("", repo.session(11)!!.note)
+        repo.history.ensureSessionNotesMoved()
+        assertEquals("", repo.history.session(11)!!.note)
         assertTrue(repo.reconcilePendingRestore(journal))
 
-        assertEquals("Recovered note", repo.session(11)!!.note)
+        assertEquals("Recovered note", repo.history.session(11)!!.note)
         assertTrue(settings.legacySessionNotesFlow.first().isEmpty())
         assertNull(db.restoreMarkerDao().nonce())
         assertFalse(repo.reconcilePendingRestore(journal))
-        assertEquals("Recovered note", repo.session(11)!!.note)
+        assertEquals("Recovered note", repo.history.session(11)!!.note)
     }
 
     @Test

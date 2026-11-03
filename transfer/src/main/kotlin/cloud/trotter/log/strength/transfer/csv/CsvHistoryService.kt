@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.transfer.csv
 
-import cloud.trotter.log.strength.data.TrackerRepository
+import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import java.io.InputStream
@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.first
  * after the caller has let the user review and, if needed,
  * correct each unmatched exercise name's pattern (PLAN.md A2).
  */
-class CsvHistoryService(private val repository: TrackerRepository, private val catalog: CatalogRepository) {
+class CsvHistoryService(private val repository: HistoryRepository, private val catalog: CatalogRepository) {
 
     suspend fun exportTo(out: OutputStream) {
         val history = repository.exportSessionHistory()
@@ -44,7 +44,7 @@ class CsvHistoryService(private val repository: TrackerRepository, private val c
      * for each unmatched name using [approvedPatterns], then appends every
      * session not already present with the same title, second-precision completion
      * time, and ordered CSV-normalized sets in one `:data` staging transaction
-     * ([TrackerRepository.importSessionHistory]). Two truly identical sessions
+     * ([HistoryRepository.importSessionHistory]). Two truly identical sessions
      * completed within one second collide; that is an acceptable interchange
      * limitation because CSV stores no finer completion time or set identity.
      * Throws [CsvImportError.MissingApproval] — writing nothing — if

@@ -927,7 +927,7 @@ class SetEditApplierTest {
         )
 
         val sessionId = repo.finishRun(repo.openRunFlow.first()!!.id)!!
-        val archived = repo.sessionSets(sessionId)
+        val archived = repo.history.sessionSets(sessionId)
             .first { it.slot == Slot.MAIN && it.setIndex == 4 && it.exerciseId == "bb_back_squat" }
 
         assertEquals(1_000L, archived.startedAtMillis)

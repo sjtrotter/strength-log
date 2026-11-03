@@ -71,13 +71,11 @@ class TrackerRepositoryRunEditsTest {
 
     private fun work() = SetSeeder.seedPrescribed(3, load)
     private fun squat() = SetSeeder.seed(ProgramExercise("bb_back_squat", isMain = true), 235.0, LifterConfig())
-    private suspend fun generated(): Long {
+    private suspend fun generated(extraSlot: Boolean = false): Long {
         repo.replaceProgram(Program(listOf(
             ProgramDay("A", "Day A", "", listOf(
                 ProgramExercise("bb_back_squat", isMain = true),
-                ProgramExercise("bb_bench"), ProgramExercise("ez_curl"), ProgramExercise("face_pull"),
-                ProgramExercise("db_lateral"),
-            )),
+            ) + if (extraSlot) listOf(ProgramExercise("bb_bench"), ProgramExercise("missing_exercise")) else emptyList()),
             ProgramDay("B", "Day B", "", listOf(ProgramExercise("bb_bench"))),
         )))
         return repo.selectedPlanIdFlow.first()!!
@@ -92,19 +90,22 @@ class TrackerRepositoryRunEditsTest {
     private suspend fun slot(plan: Long) = db.programDao().exercisesForDay(plan, "A").first().id
     private suspend fun start(plan: Long, doneCount: Int = 1, sets: List<LoggedSet> = squat()): String {
         val runId = db.programDao().day(plan, "A")!!.nextRunId
-        assertEquals(RunWriteResult.InRun(runId, true), repo.updateSets(runId, "A", slot(plan), Slot.MAIN,
-            sets.mapIndexed { i, row -> row.copy(done = i < doneCount) }))
+        db.storeTestRows("A", slot(plan), Slot.MAIN, sets)
+        assertEquals(RunWriteResult.InRun(runId, true), repo.applyToRun(runId, plan, "A", listOf(
+            TrackEdit(slot(plan), Slot.MAIN) { rows -> rows.mapIndexed { i, row -> row.copy(done = i < doneCount) } },
+        )))
         return runId
     }
-    private suspend fun seed(runId: String, slotId: Long, sets: List<LoggedSet> = work(), trackSlot: String = Slot.MAIN) {
-        repo.seedRunTracksIfMissing(runId, listOf(RunSeed(slotId, trackSlot, sets)))
+    private suspend fun seed(runId: String) {
+        val run = checkNotNull(db.runDao().openRun()).also { check(it.id == runId) }
+        repo.ensureSeeded(requireNotNull(run.planId), requireNotNull(run.dayId))
     }
 
     /** [F] */
     @Test fun `swap retires done work and finish archives both captured prescriptions`() = runTest {
         val plan = generated()
         val slot = slot(plan)
-        repo.seedIfEmpty("A", slot, Slot.MAIN, squat())
+        db.storeTestRows("A", slot, Slot.MAIN, squat())
         val runId = start(plan, doneCount = 2)
         val before = db.runDao().tracks(runId).single()
         repo.swapExerciseById("A", slot, "hack_squat")
@@ -114,7 +115,7 @@ class TrackerRepositoryRunEditsTest {
         val tracks = repo.dayTracksFlow(plan, "A").first()
         assertTrue(tracks.tracks.none { it.programExerciseId == slot && it.slot == Slot.MAIN })
         assertEquals(listOf("bb_back_squat"), tracks.retired.map { it.exerciseId })
-        seed(runId, slot)
+        seed(runId)
         val active = repo.openRunFlow.first()!!.tracks.single { !it.retired }
         assertEquals("hack_squat", active.exerciseId)
         val session = repo.finishRun(runId)!!
@@ -147,14 +148,14 @@ class TrackerRepositoryRunEditsTest {
         val runId = start(plan)
         val before = db.runDao().tracks(runId).single()
         repo.swapExerciseById("A", slot, "hack_squat")
-        seed(runId, slot)
+        seed(runId)
         val swapped = db.runDao().tracks(runId)
         assertEquals(before.copy(retired = true), swapped.single { it.exerciseId == "bb_back_squat" })
         val alternate = swapped.single { it.exerciseId == "hack_squat" }
         assertFalse(alternate.retired)
         assertTrue(SetJson.decodeSets(alternate.setsJson).none { it.done })
         repo.swapExerciseById("A", slot, "bb_back_squat")
-        seed(runId, slot, squat())
+        seed(runId)
         assertEquals(listOf(before), db.runDao().tracks(runId))
         assertTrue(repo.dayTracksFlow(plan, "A").first().retired.isEmpty())
     }
@@ -169,14 +170,14 @@ class TrackerRepositoryRunEditsTest {
         val runId = start(plan, sets = restoredRows)
         val original = db.runDao().tracks(runId).single()
         repo.swapExerciseById("A", slot, "hack_squat")
-        seed(runId, slot)
+        seed(runId)
         val swapped = db.runDao().tracks(runId)
         assertEquals(original.copy(retired = true), swapped.single { it.exerciseId == "bb_back_squat" })
         assertFalse(swapped.single { it.exerciseId == "hack_squat" }.retired)
         repo.updateSets(runId, "A", slot, Slot.MAIN, work().mapIndexed { i, row -> row.copy(done = i < 2) })
         val alternate = db.runDao().tracks(runId).single { it.exerciseId == "hack_squat" }
         repo.swapExerciseById("A", slot, "bb_back_squat")
-        seed(runId, slot, squat())
+        seed(runId)
         val restored = db.runDao().tracks(runId)
         assertEquals(original, restored.single { it.exerciseId == "bb_back_squat" })
         assertEquals(alternate.copy(retired = true), restored.single { it.exerciseId == "hack_squat" })
@@ -198,7 +199,7 @@ class TrackerRepositoryRunEditsTest {
         val zeroLoad = Prescription(PrescribedTarget.LoadReps(0.0, 10))
         repo.setPrescription(slot, zeroLoad, sets = 3)
         val seeded = SetSeeder.seedPrescribed(3, zeroLoad)
-        repo.seedIfEmpty("A", slot, Slot.MAIN, seeded)
+        db.storeTestRows("A", slot, Slot.MAIN, seeded)
         val runId = start(plan, sets = seeded)
         val before = db.runDao().tracks(runId).single()
         val changed = Prescription(PrescribedTarget.LoadReps(135.0, 8))
@@ -218,8 +219,8 @@ class TrackerRepositoryRunEditsTest {
         repo.setSupersetPartner("A", slot, "ez_curl")
         assertEquals("ez_curl", db.programDao().exercise(slot)!!.supersetExerciseId)
         val partner = SetSeeder.seedPartner(3, 45.0)
-        repo.seedIfEmpty("A", slot, Slot.MAIN, work())
-        repo.seedIfEmpty("A", slot, Slot.SS, partner)
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        db.storeTestRows("A", slot, Slot.SS, partner)
         val runId = db.programDao().day(plan, "A")!!.nextRunId
         val completed = partner.mapIndexed { i, row -> row.copy(done = i == 2, watchEditedAt = 123L) }
         assertEquals(RunWriteResult.InRun(runId, true), repo.updateSets(runId, "A", slot, Slot.SS, completed))
@@ -249,8 +250,8 @@ class TrackerRepositoryRunEditsTest {
         val slot = slot(plan)
         repo.setSupersetPartner("A", slot, "ez_curl")
         val partner = SetSeeder.seedPartner(3, 45.0)
-        repo.seedIfEmpty("A", slot, Slot.MAIN, work())
-        repo.seedIfEmpty("A", slot, Slot.SS, partner)
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        db.storeTestRows("A", slot, Slot.SS, partner)
         val runId = start(plan, sets = work())
         val before = db.runDao().tracks(runId).associateBy { it.slot }
         val changed = Prescription(PrescribedTarget.LoadReps(60.0, 8))
@@ -280,8 +281,8 @@ class TrackerRepositoryRunEditsTest {
         val slot = slot(plan)
         repo.setSupersetPartner("A", slot, "missing_partner")
         val partner = SetSeeder.seedPartner(3, 45.0)
-        repo.seedIfEmpty("A", slot, Slot.MAIN, work())
-        repo.seedIfEmpty("A", slot, Slot.SS, partner)
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        db.storeTestRows("A", slot, Slot.SS, partner)
         val runId = start(plan, sets = work())
         val before = db.runDao().tracks(runId).single { it.slot == Slot.SS }
         val changed = Prescription(PrescribedTarget.LoadReps(60.0, 8))
@@ -299,8 +300,8 @@ class TrackerRepositoryRunEditsTest {
         val plan = authored()
         val slot = slot(plan)
         repo.setSupersetPartner("A", slot, "ez_curl")
-        repo.seedIfEmpty("A", slot, Slot.MAIN, work())
-        repo.seedIfEmpty("A", slot, Slot.SS, SetSeeder.seedPartner(3, 35.0))
+        db.storeTestRows("A", slot, Slot.MAIN, work())
+        db.storeTestRows("A", slot, Slot.SS, SetSeeder.seedPartner(3, 35.0))
         val runId = start(plan, sets = work())
         val before = db.runDao().tracks(runId)
         assertEquals(2, before.size)
@@ -331,7 +332,7 @@ class TrackerRepositoryRunEditsTest {
         val runId = start(plan)
         val original = db.runDao().tracks(runId).single()
         repo.swapExerciseById("A", slot, "hack_squat")
-        seed(runId, slot)
+        seed(runId)
         assertTrue(db.runDao().tracks(runId).single { it.exerciseId == "bb_back_squat" }.retired)
         repo.swapExerciseById("A", slot, "bb_back_squat")
         val result = repo.applyToRun(runId, plan, "A", listOf(TrackEdit(slot, Slot.MAIN) { rows ->
@@ -353,7 +354,7 @@ class TrackerRepositoryRunEditsTest {
         val runId = start(plan, doneCount = 2)
         val original = db.runDao().tracks(runId).single()
         repo.swapExerciseById("A", slot, "hack_squat")
-        seed(runId, slot)
+        seed(runId)
         repo.swapExerciseById("A", slot, "bb_back_squat")
         val retired = db.runDao().tracks(runId)
         assertEquals(listOf(original.copy(retired = true)), retired)
@@ -366,7 +367,7 @@ class TrackerRepositoryRunEditsTest {
             assertEquals(RunWriteResult.Rejected, repo.updateSets(runId, "A", slot, Slot.MAIN, replacement))
             assertEquals(retired, db.runDao().tracks(runId))
         }
-        seed(runId, slot, squat())
+        seed(runId)
         val ticked = SetJson.decodeSets(db.runDao().tracks(runId).single().setsJson).mapIndexed { i, row ->
             if (i == 2) row.copy(done = true) else row
         }
@@ -384,21 +385,17 @@ class TrackerRepositoryRunEditsTest {
         val runId = start(plan, sets = work())
         val original = db.runDao().tracks(runId).single()
         repo.swapExerciseById("A", slot, "hack_squat")
-        seed(runId, slot)
+        seed(runId)
         val hold = Prescription(PrescribedTarget.Hold(45))
         repo.setPrescription(slot, hold)
         assertEquals(hold, PrescriptionJson.decode(db.programDao().exercise(slot)!!.prescriptionJson))
         repo.swapExerciseById("A", slot, "bb_back_squat")
-        val holds = SetSeeder.seedPrescribed(3, hold)
-        seed(runId, slot, holds)
+        seed(runId)
         assertEquals(listOf(original), db.runDao().tracks(runId))
         repo.swapExerciseById("A", slot, "hack_squat")
-        seed(runId, slot, holds)
+        seed(runId)
         repo.swapExerciseById("A", slot, "bb_back_squat")
-        assertEquals(RunWriteResult.InRun(runId, false), repo.applyToRun(
-            runId, plan, "A", listOf(TrackEdit(slot, Slot.MAIN) { it }),
-            seeds = listOf(RunSeed(slot, Slot.MAIN, holds)),
-        ))
+        assertEquals(RunWriteResult.InRun(runId, false), repo.applyToRun(runId, plan, "A", listOf(TrackEdit(slot, Slot.MAIN) { it })))
         assertEquals(listOf(original), db.runDao().tracks(runId))
     }
 
@@ -409,13 +406,13 @@ class TrackerRepositoryRunEditsTest {
         val runId = start(plan, sets = work())
         val original = db.runDao().tracks(runId).single()
         repo.swapExerciseById("A", slot, "hack_squat")
-        seed(runId, slot)
+        seed(runId)
         assertTrue(db.runDao().tracks(runId).single { it.exerciseId == "bb_back_squat" }.retired)
         val changed = Prescription(PrescribedTarget.LoadReps(55.0, 8))
         repo.setPrescription(slot, changed, sets = 4)
         assertEquals(original.copy(retired = true), db.runDao().tracks(runId).single { it.exerciseId == "bb_back_squat" })
         repo.swapExerciseById("A", slot, "bb_back_squat")
-        seed(runId, slot, SetSeeder.seedPrescribed(4, changed))
+        seed(runId)
         val reopened = db.runDao().tracks(runId).single()
         assertFalse(reopened.retired)
         assertEquals(original.id, reopened.id)
@@ -435,14 +432,14 @@ class TrackerRepositoryRunEditsTest {
         val runId = start(plan, sets = work())
         val original = db.runDao().tracks(runId).single()
         repo.swapExerciseById("A", slot, "hack_squat")
-        seed(runId, slot)
+        seed(runId)
         assertTrue(db.runDao().tracks(runId).single { it.exerciseId == "bb_back_squat" }.retired)
         val changed = Prescription(PrescribedTarget.LoadReps(55.0, 8))
         repo.setPrescription(slot, changed, sets = 4)
         repo.swapExerciseById("A", slot, "bb_back_squat")
         val result = repo.applyToRun(runId, plan, "A", listOf(TrackEdit(slot, Slot.MAIN, "bb_back_squat") { rows ->
             rows.mapIndexed { i, row -> if (i == 1) row.copy(done = true) else row }
-        }), seeds = listOf(RunSeed(slot, Slot.MAIN, SetSeeder.seedPrescribed(4, changed))))
+        }))
         assertEquals(RunWriteResult.InRun(runId, false), result)
         val reopened = db.runDao().tracks(runId).single()
         assertFalse(reopened.retired)
@@ -458,10 +455,10 @@ class TrackerRepositoryRunEditsTest {
 
     /** [F] */
     @Test fun `remove retires done tracks skips carry forward and deletes undone tracks`() = runTest {
-        val plan = generated()
+        val plan = generated(extraSlot = true)
         val slots = db.programDao().exercisesForDay(plan, "A")
         val runId = start(plan)
-        seed(runId, slots[1].id)
+        seed(runId)
         assertTrue(repo.removeExercise(slots[0].id))
         assertTrue(repo.removeExercise(slots[1].id))
         val retired = db.runDao().tracks(runId).single()
@@ -480,7 +477,7 @@ class TrackerRepositoryRunEditsTest {
         val runId = start(plan)
         repo.addExercise("A", ProgramExercise("rdl"))
         val added = db.programDao().exercisesForDay(plan, "A").last()
-        seed(runId, added.id)
+        seed(runId)
         val track = db.runDao().tracks(runId).single { it.programExerciseId == added.id }
         assertEquals(added.position, track.position)
         assertEquals("rdl", track.exerciseId)
@@ -493,7 +490,7 @@ class TrackerRepositoryRunEditsTest {
         val slot = slot(plan)
         repo.setSupersetPartner("A", slot, "ez_curl")
         val runId = start(plan)
-        seed(runId, slot, work(), Slot.SS)
+        seed(runId)
         repo.updateSets(runId, "A", slot, Slot.SS, work().mapIndexed { i, row -> row.copy(done = i == 0) })
         val before = db.runDao().tracks(runId).single { it.slot == Slot.SS }
         repo.setSupersetPartner("A", slot, "rope_pushdown")
@@ -501,7 +498,7 @@ class TrackerRepositoryRunEditsTest {
         val existing = repo.dayTracksFlow(plan, "A").first().tracks
             .associate { (it.programExerciseId to it.slot) to it.sets.size }
         assertEquals(6, existing[slot to Slot.MAIN])
-        seed(runId, slot, SetSeeder.seedPartner(existing.getValue(slot to Slot.MAIN), 50.0), Slot.SS)
+        seed(runId)
         val partner = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.SS && !it.retired }
         assertEquals("rope_pushdown", partner.exerciseId)
         assertEquals(6, partner.sets.size)
@@ -513,7 +510,7 @@ class TrackerRepositoryRunEditsTest {
         val slot = slot(plan)
         repo.setSupersetPartner("A", slot, "ez_curl")
         val runId = start(plan)
-        seed(runId, slot, work(), Slot.SS)
+        seed(runId)
         val beforeDay = db.programDao().day(plan, "A")!!
         val before = db.runDao().tracks(runId).single { it.slot == Slot.MAIN }
         repo.resetDayToTemplate("A")
@@ -528,51 +525,56 @@ class TrackerRepositoryRunEditsTest {
 
     private suspend fun explicitStart(plan: Long, rows: List<LoggedSet> = work()): String {
         val id = db.programDao().day(plan, "A")!!.nextRunId
-        assertEquals(RunStartResult.Started(id), repo.startRun(plan, "A", listOf(RunSeed(slot(plan), Slot.MAIN, rows))))
+        db.storeTestRows("A", slot(plan), Slot.MAIN, rows)
+        val pe = db.programDao().exercise(slot(plan))!!
+        if (pe.supersetExerciseId != null && db.programDao().logForSlot(plan, "A", pe.id, Slot.SS) == null) {
+            db.storeTestRows("A", pe.id, Slot.SS, SetSeeder.seedPartner(3, 45.0))
+        }
+        assertEquals(RunStartResult.Started(id), repo.startRun(plan, "A"))
         return id
     }
 
-    private suspend fun substituteSeed(plan: Long, exerciseId: String): RunSeed {
+    private suspend fun substituteSeed(plan: Long, exerciseId: String): List<LoggedSet> {
         val pe = repo.slotsFor(plan, "A").first().first().exercise.copy(exerciseId = exerciseId, prescription = null)
         val config = repo.wizardAnswersFor(plan).first().config
         val target = GoalCalculator.targetFor(repo.catalogFlow.first().get(exerciseId), config)
-        return RunSeed(slot(plan), Slot.MAIN, SetSeeder.seed(pe, target, config))
+        return SetSeeder.seed(pe, target, config)
     }
 
     @Test fun `workout swap before any set retires the original and swap back restores its prescription rows`() = runTest {
         val plan = authored()
         val id = slot(plan)
-        repo.seedIfEmpty("A", id, Slot.MAIN, work())
+        db.storeTestRows("A", id, Slot.MAIN, work())
         val runId = explicitStart(plan)
         val original = db.runDao().tracks(runId).single()
         val seed = substituteSeed(plan, "hack_squat")
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", seed))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         val tracks = repo.openRunFlow.first()!!.tracks
         assertTrue(tracks.single { it.exerciseId == "bb_back_squat" }.retired)
-        assertEquals(seed.sets, tracks.single { !it.retired }.planned)
+        assertEquals(seed, tracks.single { !it.retired }.planned)
         assertEquals("bb_back_squat", db.programDao().exercise(id)!!.exerciseId)
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat", null))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
         assertEquals(original, db.runDao().tracks(runId).single { !it.retired })
         assertEquals(work(), SetJson.decodeSets(db.programDao().logForSlot(plan, "A", id, Slot.MAIN)!!.setsJson))
     }
 
-    @Test fun `workout swap refuses an unknown substitute without a seed without retiring anything`() = runTest {
+    @Test fun `workout swap refuses an unknown substitute without retiring anything`() = runTest {
         val plan = authored()
         val runId = explicitStart(plan)
         val before = db.runDao().tracks(runId)
-        assertFalse(repo.swapInRun(runId, slot(plan), Slot.MAIN, "hack_squat", null))
+        assertFalse(repo.swapInRun(runId, slot(plan), Slot.MAIN, "unknown_substitute"))
         assertEquals(before, db.runDao().tracks(runId))
-        assertFalse(repo.swapInRun("closed", slot(plan), Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
+        assertFalse(repo.swapInRun("closed", slot(plan), Slot.MAIN, "hack_squat"))
         assertEquals(before, db.runDao().tracks(runId))
     }
 
     @Test fun `workout swap archives each performed exercise and leaves the slots remembered values alone`() = runTest {
         val plan = authored()
         val id = slot(plan)
-        repo.seedIfEmpty("A", id, Slot.MAIN, work())
+        db.storeTestRows("A", id, Slot.MAIN, work())
         val before = db.programDao().logsForDay(plan, "A")
         val runId = start(plan, sets = work())
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         val active = repo.openRunFlow.first()!!.tracks.single { !it.retired }
         repo.updateSets(runId, "A", id, Slot.MAIN, active.sets.mapIndexed { index, set -> set.copy(done = index == 0) })
         val session = repo.finishRun(runId)!!
@@ -587,14 +589,14 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val partner = SetSeeder.seedPartner(3, 45.0)
-        repo.seedIfEmpty("A", id, Slot.SS, partner)
+        db.storeTestRows("A", id, Slot.SS, partner)
         val longMain = work() + work().take(2)
         val runId = explicitStart(plan, longMain)
         repo.updateSets(runId, "A", id, Slot.SS, partner.mapIndexed { index, set -> set.copy(done = index == 2) })
         val before = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.SS }.sets
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, work())))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         assertEquals(before, repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.SS }.sets)
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat", null))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
         val padded = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.SS }.sets
         assertEquals(5, padded.size)
         assertEquals(before, padded.take(3))
@@ -609,12 +611,12 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan, work() + work().take(1))
-        seed(runId, id, SetSeeder.seedPartner(4, 45.0), Slot.SS)
+        seed(runId)
         val main = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.MAIN }
         val config = repo.wizardAnswersFor(plan).first().config
         val goal = GoalCalculator.targetFor(repo.catalogFlow.first().get("rope_pushdown"), config)
         val rows = SetSeeder.seedPartner(4, goal)
-        assertTrue(repo.swapInRun(runId, id, Slot.SS, "rope_pushdown", RunSeed(id, Slot.SS, rows)))
+        assertTrue(repo.swapInRun(runId, id, Slot.SS, "rope_pushdown"))
         val tracks = repo.openRunFlow.first()!!.tracks
         assertEquals(main, tracks.single { it.slot == Slot.MAIN })
         assertEquals(rows, tracks.single { it.slot == Slot.SS && !it.retired }.planned)
@@ -624,9 +626,9 @@ class TrackerRepositoryRunEditsTest {
     @Test fun `prescription edit on a substituted slot leaves the substitute unchanged and clears working values`() = runTest {
         val plan = authored()
         val id = slot(plan)
-        repo.seedIfEmpty("A", id, Slot.MAIN, work())
+        db.storeTestRows("A", id, Slot.MAIN, work())
         val runId = explicitStart(plan)
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         val before = repo.openRunFlow.first()!!.tracks.single { !it.retired }
         repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(80.0, 8)), sets = 4)
         assertEquals(before, repo.openRunFlow.first()!!.tracks.single { !it.retired })
@@ -637,12 +639,12 @@ class TrackerRepositoryRunEditsTest {
         val plan = authored()
         val id = slot(plan)
         val runId = explicitStart(plan)
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         val rows = repo.openRunFlow.first()!!.tracks.single { !it.retired }.sets
         repo.updateSets(runId, "A", id, Slot.MAIN, rows.mapIndexed { i, row -> row.copy(done = i == 0) })
         val substitute = db.runDao().tracks(runId).single { !it.retired }
         repo.swapExerciseById("A", id, "leg_press")
-        seed(runId, id)
+        seed(runId)
         assertEquals(substitute.copy(retired = true), db.runDao().tracks(runId).single { it.exerciseId == "hack_squat" })
         assertEquals("leg_press", repo.openRunFlow.first()!!.tracks.single { !it.retired }.exerciseId)
     }
@@ -652,14 +654,14 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setKeepToPlan(id, false)
         repo.setSupersetPartner("A", id, "ez_curl")
-        repo.seedIfEmpty("A", id, Slot.MAIN, work())
-        repo.seedIfEmpty("A", id, Slot.SS, work())
+        db.storeTestRows("A", id, Slot.MAIN, work())
+        db.storeTestRows("A", id, Slot.SS, work())
         val runId = explicitStart(plan)
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         repo.setPrescription(id, Prescription(PrescribedTarget.Hold(45)))
         // New working values can arrive while the original track remains retired.
-        repo.seedIfEmpty("A", id, Slot.MAIN, work())
-        repo.seedIfEmpty("A", id, Slot.SS, work())
+        db.storeTestRows("A", id, Slot.MAIN, work())
+        db.storeTestRows("A", id, Slot.SS, work())
         repo.finishRun(runId)
         assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
     }
@@ -667,11 +669,11 @@ class TrackerRepositoryRunEditsTest {
     @Test fun `same exercise plan swap during a workout reopens the original without clearing working values`() = runTest {
         val plan = authored()
         val id = slot(plan)
-        repo.seedIfEmpty("A", id, Slot.MAIN, work())
+        db.storeTestRows("A", id, Slot.MAIN, work())
         val logs = db.programDao().logsForDay(plan, "A")
         val runId = explicitStart(plan)
         val original = repo.openRunFlow.first()!!.tracks.single()
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         assertTrue(repo.swapExerciseById("A", id, "bb_back_squat"))
         assertEquals(original, repo.openRunFlow.first()!!.tracks.single { !it.retired })
         assertEquals(logs, db.programDao().logsForDay(plan, "A"))
@@ -682,13 +684,12 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan, work())
-        seed(runId, id, SetSeeder.seedPartner(3, 45.0), Slot.SS)
+        seed(runId)
         val original = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.MAIN }
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         repo.updateSets(runId, "A", id, Slot.SS, SetSeeder.seedPartner(5, 45.0))
         val partner = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.SS }
-        val goalSeed = RunSeed(id, Slot.MAIN, squat())
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat", goalSeed))
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "bb_back_squat"))
         val open = repo.openRunFlow.first()!!
         val main = open.tracks.single { it.slot == Slot.MAIN && !it.retired }
         assertEquals(original.sets, main.sets.take(3))
@@ -701,9 +702,11 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan)
-        seed(runId, id, SetSeeder.seedPartner(3, 45.0), Slot.SS)
+        seed(runId)
         val substitute = SetSeeder.seedPartner(5, 35.0)
-        assertTrue(repo.swapInRun(runId, id, Slot.SS, "rope_pushdown", RunSeed(id, Slot.SS, substitute)))
+        val mainBeforeSwap = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.MAIN }.sets
+        repo.updateSets(runId, "A", id, Slot.MAIN, mainBeforeSwap + work().take(2))
+        assertTrue(repo.swapInRun(runId, id, Slot.SS, "rope_pushdown"))
         repo.updateSets(runId, "A", id, Slot.SS, substitute.mapIndexed { index, row -> row.copy(done = index == 4) })
         val mainRows = repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.MAIN && !it.retired }.sets
         repo.updateSets(runId, "A", id, Slot.MAIN, mainRows.mapIndexed { index, row -> row.copy(done = index == 3) })
@@ -744,7 +747,7 @@ class TrackerRepositoryRunEditsTest {
         repo.setSupersetPartner("A", id, "ez_curl")
         val result = repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
         val before = db.runDao().tracks(result.runId)
-        seed(result.runId, id, work(), Slot.SS)
+        seed(result.runId)
         assertEquals(before, db.runDao().tracks(result.runId))
     }
 
@@ -752,10 +755,10 @@ class TrackerRepositoryRunEditsTest {
         val plan = authored()
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
-        repo.seedIfEmpty("A", id, Slot.SS, work())
+        db.storeTestRows("A", id, Slot.SS, work())
         val working = db.programDao().logForSlot(plan, "A", id, Slot.SS)
         val runId = explicitStart(plan)
-        seed(runId, id, work(), Slot.SS)
+        seed(runId)
         repo.updateSets(runId, "A", id, Slot.SS, work().mapIndexed { i, set -> set.copy(weightLb = 175.0, done = i == 0) })
         assertTrue(repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
         assertEquals(0, repo.dayTracksFlow(plan, "A").first().retiredRoundsDone)
@@ -773,7 +776,7 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan)
-        seed(runId, id, work(), Slot.SS)
+        seed(runId)
         repo.updateSets(runId, "A", id, Slot.SS, work().mapIndexed { i, set -> set.copy(done = i == 0) })
         val original = repo.openRunFlow.first()!!.tracks
         assertTrue(repo.dropSupersetHalf(plan, "A", id, Slot.SS, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
@@ -796,7 +799,7 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(RunWriteResult.Rejected, repo.dropSupersetHalf(plan, "A", id, Slot.MAIN, "bb_back_squat", "rope_pushdown"))
         assertNull(repo.openRunFlow.first())
         val result = repo.dropSupersetHalf(plan, "A", id, Slot.SS, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
-        assertTrue(repo.swapInRun(result.runId, id, Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
+        assertTrue(repo.swapInRun(result.runId, id, Slot.MAIN, "hack_squat"))
         val before = db.runDao().tracks(result.runId)
         assertEquals(RunWriteResult.Rejected, repo.restoreSkipped(result.runId, id, Slot.MAIN))
         assertEquals(before, db.runDao().tracks(result.runId))
@@ -840,7 +843,7 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan)
-        seed(runId, id, SetSeeder.seedPartner(3, 45.0), Slot.SS)
+        seed(runId)
         val mainRows = work().mapIndexed { index, row ->
             row.copy(weightLb = 60.0 + index * 5, reps = 8 + index, done = index != 1,
                 plannedIndex = index, watchEditedAt = 100L + index)
@@ -867,7 +870,7 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan)
-        seed(runId, id, SetSeeder.seedPartner(3, 45.0), Slot.SS)
+        seed(runId)
         val mainRows = work().mapIndexed { index, row ->
             row.copy(weightLb = 60.0 + index * 5, reps = 8 + index, done = index == 0, plannedIndex = index)
         }
@@ -907,8 +910,8 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan)
-        seed(runId, id, work(), Slot.SS)
-        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", substituteSeed(plan, "hack_squat")))
+        seed(runId)
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
         assertTrue(repo.dropSupersetHalf(plan, "A", id, Slot.SS, "hack_squat", "ez_curl") is RunWriteResult.InRun)
         assertTrue(repo.restoreSkipped(runId, id, Slot.MAIN) is RunWriteResult.InRun)
         assertEquals("hack_squat", repo.openRunFlow.first()!!.tracks.single { it.slot == Slot.MAIN && !it.retired }.exerciseId)
@@ -936,13 +939,11 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(before.single { it.programExerciseId == id && it.slot == Slot.MAIN }.let { it.retired && it.dropped })
         assertEquals(setOf(id), repo.dayTracksFlow(plan, "A").first().skippedLifts)
         assertTrue(repo.dayTracksFlow(plan, "A").first().retired.isEmpty())
-        seed(runId, id, work())
+        seed(runId)
         assertEquals(RunWriteResult.Rejected, repo.updateSets(runId, "A", id, Slot.MAIN, work().take(1)))
         assertEquals(before, db.runDao().tracks(runId))
         assertTrue(repo.restoreSkippedLift(runId, id) is RunWriteResult.InRun)
-        repo.seedRunTracksIfMissing(runId, listOf(
-            RunSeed(id, Slot.MAIN, work()),
-        ), alignPairs = true)
+
         assertTrue(repo.dayTracksFlow(plan, "A").first().skippedLifts.isEmpty())
         assertEquals(rows, repo.openRunFlow.first()!!.tracks.single { it.programExerciseId == id && !it.retired }.sets)
     }
@@ -956,9 +957,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", null) is RunWriteResult.InRun)
         assertEquals(setOf(id), repo.dayTracksFlow(plan, "A").first().skippedLifts)
         assertTrue(repo.restoreSkippedLift(drop.runId, id) is RunWriteResult.InRun)
-        repo.seedRunTracksIfMissing(drop.runId, listOf(
-            RunSeed(id, Slot.MAIN, work()), RunSeed(id, Slot.SS, work()),
-        ), alignPairs = true)
+
         val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
         assertFalse(tracks.single { it.slot == Slot.MAIN }.retired)
         assertFalse(tracks.single { it.slot == Slot.SS }.retired)
@@ -972,15 +971,13 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan, work() + work().take(1))
-        seed(runId, id, work(), Slot.SS)
+        seed(runId)
         val drop = repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
         assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "ez_curl", null) is RunWriteResult.InRun)
         assertTrue(repo.clearRunChecks(runId))
         assertEquals(setOf(clock.millis()), db.runDao().tracks(runId).map { it.updatedAt }.toSet())
         assertTrue(repo.restoreSkippedLift(drop.runId, id) is RunWriteResult.InRun)
-        repo.seedRunTracksIfMissing(drop.runId, listOf(
-            RunSeed(id, Slot.MAIN, work()), RunSeed(id, Slot.SS, work()),
-        ), alignPairs = true)
+
         val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
         assertEquals(2, tracks.size)
         assertTrue(tracks.none { it.retired || it.dropped })
@@ -1002,9 +999,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(repo.updateSets(drop.runId, "A", id, Slot.MAIN, doneRows) is RunWriteResult.InRun)
         assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "ez_curl", null) is RunWriteResult.InRun)
         assertTrue(repo.restoreSkippedLift(drop.runId, id) is RunWriteResult.InRun)
-        repo.seedRunTracksIfMissing(drop.runId, listOf(
-            RunSeed(id, Slot.MAIN, work()), RunSeed(id, Slot.SS, work()),
-        ), alignPairs = true)
+
         val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
         assertEquals("bb_back_squat", tracks.single { it.slot == Slot.MAIN && !it.retired }.exerciseId)
         assertEquals(doneRows, tracks.single { it.id == promoted.id }.sets)
@@ -1023,9 +1018,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(repo.updateSets(skip.runId, "A", id, Slot.MAIN, extended) is RunWriteResult.InRun)
         assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", null) is RunWriteResult.InRun)
         assertTrue(repo.restoreSkippedLift(skip.runId, id) is RunWriteResult.InRun)
-        repo.seedRunTracksIfMissing(skip.runId, listOf(
-            RunSeed(id, Slot.MAIN, work()), RunSeed(id, Slot.SS, work()),
-        ), alignPairs = true)
+
         val active = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id && !it.retired }
         assertEquals(extended, active.single { it.slot == Slot.MAIN }.sets)
         assertEquals(extended.size, active.single { it.slot == Slot.SS }.sets.size)
@@ -1051,8 +1044,7 @@ class TrackerRepositoryRunEditsTest {
         repo.setSupersetPartner("A", id, "ez_curl")
         val skip = repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") as RunWriteResult.InRun
         assertTrue(repo.swapExerciseById("A", id, "hack_squat"))
-        seed(skip.runId, id)
-        seed(skip.runId, id, work(), Slot.SS)
+        seed(skip.runId)
         val tracks = repo.openRunFlow.first()!!.tracks.filter { it.programExerciseId == id }
         assertTrue(tracks.none { it.dropped })
         assertEquals("hack_squat", tracks.single { it.slot == Slot.MAIN && !it.retired }.exerciseId)
@@ -1069,7 +1061,7 @@ class TrackerRepositoryRunEditsTest {
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan)
-        seed(runId, id, work(), Slot.SS)
+        seed(runId)
         val done = work().mapIndexed { index, set -> set.copy(done = index == 0) }
         repo.updateSetsPaired(runId, "A", id, done, done)
         assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)
@@ -1081,8 +1073,7 @@ class TrackerRepositoryRunEditsTest {
         assertTrue(retired.all { it.retired && !it.dropped })
         assertTrue(retired.all { it.sets == done })
         assertTrue(retired.any { it.id == promoted.id })
-        seed(runId, id)
-        seed(runId, id, work(), Slot.SS)
+        seed(runId)
         val active = repo.openRunFlow.first()!!.tracks.filterNot { it.retired }
         assertEquals("bb_back_squat", active.single { it.slot == Slot.MAIN }.exerciseId)
         assertEquals("rope_pushdown", active.single { it.slot == Slot.SS }.exerciseId)
@@ -1095,7 +1086,7 @@ class TrackerRepositoryRunEditsTest {
         repo.addExercise("A", ProgramExercise("bb_bench"))
         repo.setSupersetPartner("A", id, "ez_curl")
         val runId = explicitStart(plan)
-        seed(runId, id, work(), Slot.SS)
+        seed(runId)
         val done = work().mapIndexed { index, set -> set.copy(done = index == 0) }
         repo.updateSetsPaired(runId, "A", id, done, done)
         assertTrue(repo.skipLift(plan, "A", id, Slot.MAIN, "bb_back_squat", "ez_curl") is RunWriteResult.InRun)

@@ -6,10 +6,8 @@ import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.ExerciseSwapResult
 import cloud.trotter.log.strength.data.TrackEdit
 import cloud.trotter.log.strength.data.RunWriteResult
-import cloud.trotter.log.strength.data.RunSeed
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.seeding.SetEditor
@@ -94,18 +92,17 @@ class SetEditApplier(
                 }
             }
         }
-        val seeds = if (delta.runId == null) emptyList() else {
-            val existing = tracks
-                .associate { (it.programExerciseId to it.slot) to it.sets.size }
-            val cfg = repo.wizardAnswersFor(planId).first().config
-            DaySeeds.plan(slots, existing, cfg, catalog)
-                .map { (key, sets) -> RunSeed(key.first, key.second, sets) }
-        }
         edits.add(edit(delta.slot, true))
         if (delta.done != null) {
+            val seeds = if (delta.runId == null) emptyMap() else {
+                val existing = tracks
+                    .associate { (it.programExerciseId to it.slot) to it.sets.size }
+                val cfg = repo.wizardAnswersFor(planId).first().config
+                DaySeeds.plan(slots, existing, cfg, catalog)
+            }
             val otherSlot = if (delta.slot == Slot.MAIN) Slot.SS else Slot.MAIN
             if (tracks.any { it.programExerciseId == delta.programExerciseId && it.slot == otherSlot && it.sets.isNotEmpty() } ||
-                seeds.any { it.programExerciseId == delta.programExerciseId && it.slot == otherSlot && it.sets.isNotEmpty() }) {
+                seeds[delta.programExerciseId to otherSlot]?.isNotEmpty() == true) {
                 edits.add(edit(otherSlot, false))
             }
         }
@@ -113,7 +110,7 @@ class SetEditApplier(
         val result = if (runId == null) {
             repo.applyToOpenRun(planId, delta.dayId, delta.editedAtMillis, edits)
         } else {
-            repo.applyToRun(runId, planId, delta.dayId, edits, seeds)
+            repo.applyToRun(runId, planId, delta.dayId, edits)
         }
         return when (result) {
             is RunWriteResult.InRun -> Outcome.APPLIED
@@ -170,46 +167,19 @@ class SetEditApplier(
                     .none { it.exerciseId == swap.exerciseId } -> Outcome.INVALID
             else -> null
         }
-        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
         val runId = swap.runId
-        val seeds = if (runId != null && declined == null) {
-            DaySeeds.plan(slots, existing, answers.config, catalog)
-                .map { (key, sets) -> RunSeed(key.first, key.second, sets) }
-        } else emptyList()
-        val seed = if (runId != null && declined == null) {
-            DaySeeds.swap(slot, Slot.MAIN, swap.exerciseId, existing, answers.config, catalog)
-                ?.let { RunSeed(slot.programExerciseId, Slot.MAIN, it) }
-        } else null
         when (repo.applyExerciseSwap(
-            planId, swap.dayId, slot.programExerciseId, swap.exerciseId, runId, seed, seeds,
+            planId, swap.dayId, slot.programExerciseId, swap.exerciseId, runId,
             allowChange = declined == null,
         )) {
             ExerciseSwapResult.ALREADY_THERE -> return Outcome.APPLIED
             ExerciseSwapResult.REJECTED -> return declined ?: Outcome.REJECTED
             ExerciseSwapResult.CHANGED -> if (runId == null) {
-                seedSwappedSlot(planId, swap.dayId, swap.programExerciseId, catalog)
+                repo.ensureSeeded(planId, swap.dayId)
             }
         }
         markers.markApplied(rowKey, swap.editedAtMillis)
         return Outcome.APPLIED
-    }
-
-    /** Seeds the swapped slot from its current prescription or goal, aligned to existing tracks.
-     * A swap during a run retires the old track with done work and seeds the new one into the run. */
-    private suspend fun seedSwappedSlot(planId: Long, dayId: String, programExerciseId: Long, catalog: ExerciseCatalog) {
-        val slots = repo.slotsFor(planId, dayId).first()
-        val tracks = repo.dayTracksFlow(planId, dayId).first()
-        val existing = tracks.tracks.associate { (it.programExerciseId to it.slot) to it.sets.size }
-        val cfg = repo.wizardAnswersFor(planId).first().config
-        val seeds = DaySeeds.plan(slots, existing, cfg, catalog)
-            .filterKeys { it.first == programExerciseId }
-            .map { (key, sets) -> RunSeed(key.first, key.second, sets) }
-        val runId = tracks.runId
-        if (tracks.runOpen && runId != null) {
-            repo.seedRunTracksIfMissing(runId, seeds)
-        } else {
-            seeds.forEach { repo.seedIfEmpty(dayId, it.programExerciseId, it.slot, it.sets) }
-        }
     }
 
     /** Writes the watch-observed start/complete millis onto the delta's row. They are

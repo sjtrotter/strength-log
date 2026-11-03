@@ -264,11 +264,15 @@ class TrackerRepositoryPlanScopeTest {
     @Test
     fun `seed writes under the slot plan despite another selection and never overwrites`() = runTest {
         insertTwoProgramsAndSelectPlanTwo()
-        val main = sets(225.0)
 
-        assertTrue(repo.seedIfEmpty("A", 11, Slot.MAIN, main))
-        assertFalse(repo.seedIfEmpty("A", 11, Slot.MAIN, sets(235.0)))
+        repo.ensureSeeded(1, "A")
+        val seeded = db.programDao().allLogs()
+        val main = SetJson.decodeSets(seeded.single().setsJson)
+        // A heavier lifter would seed a different squat goal; the stored track must not follow it.
+        settings.updateGlobalLifter { it.copy(bodyweightLb = it.bodyweightLb + 60) }
+        repo.ensureSeeded(1, "A")
 
+        assertEquals(seeded, db.programDao().allLogs())
         assertSlotLogsInPlanOne(mapOf(Slot.MAIN to main))
     }
 
@@ -278,7 +282,7 @@ class TrackerRepositoryPlanScopeTest {
         val emptyLog = log(1, 11, emptyList())
         db.programDao().upsertLog(emptyLog)
 
-        assertFalse(repo.seedIfEmpty("A", 11, Slot.MAIN, sets(225.0)))
+        repo.ensureSeeded(1, "A")
 
         assertEquals(listOf(emptyLog), db.programDao().allLogs())
     }
@@ -292,7 +296,7 @@ class TrackerRepositoryPlanScopeTest {
 
         repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, Slot.MAIN, sets(235.0))
         repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(11) ?: -1, "B").first().runId.orEmpty(), "B", 11, sets(245.0), sets(115.0))
-        assertFalse(repo.seedIfEmpty("B", 11, Slot.SS, sets(125.0)))
+        repo.ensureSeeded(1, "B")
         repo.swapExerciseById("B", 11, "db_goblet_squat")
 
         assertEquals(listOf(storedLog), db.programDao().allLogs())
@@ -306,7 +310,7 @@ class TrackerRepositoryPlanScopeTest {
 
         repo.updateSets(repo.dayTracksFlow(repo.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, Slot.MAIN, sets(235.0))
         repo.updateSetsPaired(repo.dayTracksFlow(repo.planIdOfSlot(99) ?: -1, "A").first().runId.orEmpty(), "A", 99, sets(245.0), sets(115.0))
-        assertFalse(repo.seedIfEmpty("A", 99, Slot.MAIN, sets(125.0)))
+        repo.ensureSeeded(-1, "A")
         repo.swapExerciseById("A", 99, "db_goblet_squat")
 
         assertTrue(db.programDao().allLogs().isEmpty())
@@ -377,11 +381,17 @@ class TrackerRepositoryPlanScopeTest {
         insertProgram(2, "Plan two", "bb_bench", id = 22)
         settings.setSelectedPlanId(1)
 
-        assertTrue(repo.seedIfEmpty("A", 11, Slot.MAIN, sets(100.0)))
-        assertFalse(repo.seedIfEmpty("A", 11, Slot.MAIN, sets(110.0)))
+        repo.setPrescription(11, Prescription(PrescribedTarget.LoadReps(100.0, 5)), 1)
+        repo.setPrescription(22, Prescription(PrescribedTarget.LoadReps(200.0, 5)), 1)
+        repo.ensureSeeded(1, "A")
+        val first = db.programDao().logsForDay(1, "A")
+        repo.ensureSeeded(1, "A")
+        assertEquals(first, db.programDao().logsForDay(1, "A"))
         settings.setSelectedPlanId(2)
-        assertTrue(repo.seedIfEmpty("A", 22, Slot.MAIN, sets(200.0)))
-        assertFalse(repo.seedIfEmpty("A", 22, Slot.MAIN, sets(210.0)))
+        repo.ensureSeeded(2, "A")
+        val second = db.programDao().logsForDay(2, "A")
+        repo.ensureSeeded(2, "A")
+        assertEquals(second, db.programDao().logsForDay(2, "A"))
 
         assertEquals(100.0, SetJson.decodeSets(db.programDao().logsForDay(1, "A").single().setsJson).single().weightLb, 0.0)
         assertEquals(200.0, SetJson.decodeSets(db.programDao().logsForDay(2, "A").single().setsJson).single().weightLb, 0.0)
@@ -913,10 +923,10 @@ class TrackerRepositoryPlanScopeTest {
         assertEquals(plan.name, session.planName)
 
         // The next observation sees the missing authored track and uses the stored target.
-        val next = repo.daySlotsFlow("A").first().first().exercise
-        val seed = SetSeeder.seedPrescribed(next.targetSets, next.prescription!!)
-        assertTrue(repo.seedIfEmpty("A", authoredId, Slot.MAIN, seed))
-        assertFalse(repo.seedIfEmpty("A", generatedId, Slot.MAIN, seed))
+        repo.ensureSeeded(plan.id, "A")
+        val seeded = db.programDao().logsForDay(plan.id, "A")
+        repo.ensureSeeded(plan.id, "A")
+        assertEquals(seeded, db.programDao().logsForDay(plan.id, "A"))
         val logs = repo.dayTracksFlow(repo.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().associate { it.programExerciseId to it.sets }
         assertEquals(List(2) { LoggedSet(37.5, 8, SetKind.WORK) }, logs[authoredId])
         assertEquals(sets(135.0).map { it.copy(done = false) }, logs[generatedId])

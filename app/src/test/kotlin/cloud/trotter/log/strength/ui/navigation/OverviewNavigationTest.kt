@@ -246,7 +246,7 @@ class OverviewNavigationTest {
     }
 
     @Test fun todayConflictingStartRequiresConfirmationThenReachesRequestedDay() {
-        runBlocking { repo.startRun(other, "B", emptyList()) }
+        runBlocking { repo.startRun(other, "B") }
         val oldId = runBlocking { repo.openRunFlow.first()!!.id }
         render()
         rule.onNodeWithText("Start").performClick()

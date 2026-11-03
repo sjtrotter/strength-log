@@ -7,7 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.OpenRun
 import cloud.trotter.log.strength.data.RunWriteResult
-import cloud.trotter.log.strength.data.RunSeed
+import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -111,19 +111,19 @@ class SetEditApplierRunTest {
     private suspend fun squatId(planId: Long): Long = repo.slotsFor(planId, "A").first()
         .first { it.exercise.exerciseId == "bb_back_squat" }.programExerciseId
 
-    private suspend fun seeds(planId: Long): List<RunSeed> = DaySeeds.plan(
+    private suspend fun seeds(planId: Long): Map<Pair<Long, String>, List<LoggedSet>> = DaySeeds.plan(
         repo.slotsFor(planId, "A").first(), emptyMap(),
         repo.wizardAnswersFor(planId).first().config, repo.catalogFlow.first(),
-    ).map { (key, sets) -> RunSeed(key.first, key.second, sets) }
+    )
 
     private suspend fun phoneStart(planId: Long): String {
         val seeds = seeds(planId)
-        for (seed in seeds) repo.seedIfEmpty("A", seed.programExerciseId, seed.slot, seed.sets)
+        repo.ensureSeeded(planId, "A")
         val runId = repo.dayTracksFlow(planId, "A").first().runId!!
         val id = squatId(planId)
-        val main = seeds.first { it.programExerciseId == id && it.slot == Slot.MAIN }
-        repo.updateSets(runId, "A", main.programExerciseId, Slot.MAIN,
-            main.sets.mapIndexed { index, set -> if (index == 0) set.copy(done = true) else set })
+        val main = seeds.getValue(id to Slot.MAIN)
+        repo.updateSets(runId, "A", id, Slot.MAIN,
+            main.mapIndexed { index, set -> if (index == 0) set.copy(done = true) else set })
         assertEquals(runId, repo.openRunFlow.first()!!.id)
         return runId
     }
@@ -172,7 +172,7 @@ class SetEditApplierRunTest {
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit))
         val open = repo.openRunFlow.first()!!
         assertEquals(runId, open.id)
-        assertEquals(seeds(planId).map { it.programExerciseId to it.slot }.toSet(),
+        assertEquals(seeds(planId).keys,
             open.tracks.map { it.programExerciseId to it.slot }.toSet())
         assertTrue(open.tracks.all { it.sets.isNotEmpty() })
         assertTrue(open.tracks.filter { it.programExerciseId == curl }.all { it.sets.first().done })
@@ -227,7 +227,7 @@ class SetEditApplierRunTest {
         val runId = phoneStart(planId)
         val edit = delta(planId, runId, index = 2)
         repo.swapExerciseById("A", edit.programExerciseId, "hack_squat")
-        repo.seedRunTracksIfMissing(runId, seeds(planId))
+        repo.ensureSeeded(planId, "A")
         val before = repo.openRunFlow.first()!!.tracks.first { it.exerciseId == "hack_squat" }
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(edit))
         val tracks = repo.openRunFlow.first()!!.tracks
@@ -430,8 +430,7 @@ class SetEditApplierRunTest {
     @Test fun `a duplicate next run swap is applied without opening a run or changing working values`() = runTest {
         val plan = authored()
         val id = squatId(plan)
-        val seed = seeds(plan).first { it.programExerciseId == id }
-        repo.seedIfEmpty("A", id, Slot.MAIN, seed.sets)
+        repo.ensureSeeded(plan, "A")
         val before = db.programDao().logsForDay(plan, "A")
         val next = db.programDao().day(plan, "A")!!.nextRunId
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
@@ -447,11 +446,9 @@ class SetEditApplierRunTest {
         val plan = authored()
         val id = squatId(plan)
         val runId = phoneStart(plan)
-        val seed = DaySeeds.swap(repo.slotsFor(plan, "A").first().first(), Slot.MAIN,
-            "hack_squat", emptyMap(), repo.wizardAnswersFor(plan).first().config, repo.catalogFlow.first())!!
         var afterPhoneSwap: OpenRun? = null
         val markers = RecordingMarkers {
-            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, seed)))
+            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
             afterPhoneSwap = repo.openRunFlow.first()
         }
         markers.markApplied("A|$id|swap", 200)
@@ -484,7 +481,7 @@ class SetEditApplierRunTest {
         val plan = authored()
         val curl = repo.slotsFor(plan, "A").first().first { it.exercise.exerciseId == "ez_curl" }
         val remembered = List(5) { LoggedSet(60.0, 8, SetKind.WORK) }
-        repo.seedIfEmpty("A", curl.programExerciseId, Slot.MAIN, remembered)
+        db.storeTestRows("A", curl.programExerciseId, Slot.MAIN, remembered)
         assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(ExerciseSwapDelta(
             dayId = "A", programExerciseId = squatId(plan), exerciseId = "hack_squat", exerciseName = "Hack Squat",
             editedAtMillis = 100, planId = plan, runId = db.programDao().day(plan, "A")!!.nextRunId,
@@ -498,11 +495,9 @@ class SetEditApplierRunTest {
         val plan = authored()
         val id = squatId(plan)
         val runId = phoneStart(plan)
-        val seed = DaySeeds.swap(repo.slotsFor(plan, "A").first().first(), Slot.MAIN,
-            "hack_squat", emptyMap(), repo.wizardAnswersFor(plan).first().config, repo.catalogFlow.first())!!
         var afterPhoneSwap: OpenRun? = null
         val markers = RecordingMarkers {
-            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat", RunSeed(id, Slot.MAIN, seed)))
+            assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
             afterPhoneSwap = repo.openRunFlow.first()
         }
         markers.markApplied("A|$id|swap", 200)

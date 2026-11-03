@@ -184,6 +184,10 @@ class PersistenceProcessDeathTest {
         val rowRowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 1)!!.id
         val benchRowId = db.programDao().exerciseAt(PlanEntity.LEGACY_ID, "A", 2)!!.id
 
+        db.storeTestRows("A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP)))
+        db.storeTestRows("A", rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK)))
+        db.storeTestRows("A", benchRowId, Slot.MAIN, emptyList())
+
         // --- a completed workout: log, then DONE — advance ---------------------
         repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(squatRowId) ?: -1, "A").first().runId.orEmpty(), "A", squatRowId, Slot.MAIN, listOf(LoggedSet(245.0, 5, SetKind.TOP, done = true)))
         repository.updateSets(repository.dayTracksFlow(repository.planIdOfSlot(rowRowId) ?: -1, "A").first().runId.orEmpty(), "A", rowRowId, Slot.MAIN, listOf(LoggedSet(95.0, 10, SetKind.WORK, done = true)))

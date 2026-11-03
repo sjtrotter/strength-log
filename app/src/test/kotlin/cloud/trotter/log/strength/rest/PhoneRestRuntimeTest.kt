@@ -270,7 +270,7 @@ class PhoneRestRuntimeTest {
     @Test fun previewDiscardAndStartClearsTheOldDaysRestAlarmAndNotification() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.selectedPlanIdFlow.first()!!
-        repo.startRun(plan, "A", emptyList())
+        repo.startRun(plan, "A")
         startRest()
         val preview = PreviewViewModel(repo, SavedStateHandle(mapOf(
             Routes.PLAN_ID_ARG to plan.toString(), Routes.DAY_ID_ARG to "B",

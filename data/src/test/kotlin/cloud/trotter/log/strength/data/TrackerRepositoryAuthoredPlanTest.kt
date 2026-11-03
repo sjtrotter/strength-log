@@ -330,9 +330,9 @@ class TrackerRepositoryAuthoredPlanTest {
         assertTrue(slots.all { it.exercise.prescription == null && !it.exercise.keepToPlan })
         val config = repo.configFlow.first()
         val catalog = repo.catalogFlow.first()
+        repo.ensureSeeded(id, "A")
         for (slot in slots) {
             val expected = SetSeeder.seed(slot.exercise, GoalCalculator.targetFor(catalog.get(slot.exercise.exerciseId), config), config)
-            assertTrue(repo.seedIfEmpty("A", slot.programExerciseId, Slot.MAIN, expected))
             val actual = repo.dayTracksFlow(id, "A").first().tracks.single { it.programExerciseId == slot.programExerciseId }.sets
             assertEquals(expected, actual)
             assertTrue(actual.first().weightLb > 0.0 || actual.first().reps > 0 || actual.first().seconds > 0)

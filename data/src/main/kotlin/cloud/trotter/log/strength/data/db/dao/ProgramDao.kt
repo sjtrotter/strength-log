@@ -72,7 +72,7 @@ interface ProgramDao {
     suspend fun logsForDay(planId: Long, dayId: String): List<ExerciseLogEntity>
 
     /** One track, read inside the transaction that is about to decide whether to
-     *  seed it (`TrackerRepository.seedIfEmpty`). Null means "never seeded". */
+     *  seed it (`TrackerRepository.ensureSeeded`). Null means "never seeded". */
     @Query(
         "SELECT * FROM exercise_log " +
             "WHERE planId = :planId AND dayId = :dayId " +

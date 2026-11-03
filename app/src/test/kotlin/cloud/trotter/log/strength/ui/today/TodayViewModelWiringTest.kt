@@ -53,7 +53,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
     @Test fun openRunAddsResumeWithoutReplacingSuggestedRows() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.selectedPlanIdFlow.first()!!
-        assertTrue(repo.startRun(plan, "B", emptyList()) is RunStartResult.Started)
+        assertTrue(repo.startRun(plan, "B") is RunStartResult.Started)
         val vm = today()
         advanceUntilIdle()
         assertEquals(DaySelection(plan, "B"), vm.uiState.value.resume?.selection)
@@ -63,7 +63,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
     @Test fun pausedOpenWorkoutStillHasResumeWithItsOwnDayAccent() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.selectedPlanIdFlow.first()!!
-        repo.startRun(plan, "B", emptyList())
+        repo.startRun(plan, "B")
         repo.pause(plan)
         val vm = today()
         advanceUntilIdle()
@@ -141,7 +141,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
     @Test fun conflictingStartConfirmsThenDiscardsAndStartsRequestedDay() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.selectedPlanIdFlow.first()!!
-        repo.startRun(plan, "B", emptyList())
+        repo.startRun(plan, "B")
         val old = repo.openRunFlow.first()!!
         val handle = SavedStateHandle()
         val vm = today(handle)
@@ -168,7 +168,7 @@ class TodayViewModelWiringTest : OverviewFixture() {
     @Test fun conflictResumeKeepsTheOpenRun() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.selectedPlanIdFlow.first()!!
-        repo.startRun(plan, "B", emptyList())
+        repo.startRun(plan, "B")
         val vm = today()
         advanceUntilIdle()
         vm.workoutStart.start(DaySelection(plan, "A"))

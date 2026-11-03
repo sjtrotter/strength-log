@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
@@ -21,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -60,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioRole
@@ -175,6 +179,8 @@ fun DayEditSheet(
             }
             state.prescriptionDraft != null -> PrescriptionPage(
                 draft = state.prescriptionDraft,
+                structure = state.slots.firstOrNull { it.programExerciseId == state.prescriptionDraft.slotId }?.structure
+                    ?: SetStructure.STRAIGHT,
                 unit = state.unit,
                 onChange = actions.onPrescriptionDraft,
                 onSave = actions.onSavePrescription,
@@ -278,6 +284,7 @@ fun DayEditSheet(
                 runOpen = state.runOpen,
                 onKeepToPlanChange = { actions.onSetKeepToPlan(optionsSlot.programExerciseId, it) },
                 onResetToPlanClick = { actions.onResetSlotToPlan(optionsSlot.programExerciseId) },
+                onStructureChange = { actions.onStructureChange(optionsSlot.programExerciseId, it) },
             )
             else -> DaySlotList(
                 state = state,
@@ -389,6 +396,7 @@ private fun SlotOptionsScreen(
     runOpen: Boolean,
     onKeepToPlanChange: (Boolean) -> Unit,
     onResetToPlanClick: () -> Unit,
+    onStructureChange: (SetStructure) -> Unit,
 ) {
     var confirmingReset by rememberSaveable(slot.programExerciseId, slot.keepToPlan, runOpen) { mutableStateOf(false) }
     if (confirmingReset && !slot.keepToPlan && !runOpen) {
@@ -423,6 +431,34 @@ private fun SlotOptionsScreen(
         if (!slot.keepToPlan && !runOpen) {
             TextButton(onClick = { confirmingReset = true }) {
                 Text(stringResource(R.string.day_edit_reset_to_plan))
+            }
+        }
+        if (slot.weightedTarget) {
+            Spacer(Modifier.size(12.dp))
+            Text(stringResource(R.string.day_edit_set_structure), style = MaterialTheme.typography.titleSmall)
+            Column(Modifier.selectableGroup()) {
+                listOf(SetStructure.STRAIGHT, SetStructure.RAMP_TOP, SetStructure.RAMP_TOP_BACKOFF).forEach { structure ->
+                    val headline = stringResource(when (structure) {
+                        SetStructure.STRAIGHT -> R.string.day_edit_structure_straight
+                        SetStructure.RAMP_TOP -> R.string.day_edit_structure_ramp_top
+                        SetStructure.RAMP_TOP_BACKOFF -> R.string.day_edit_structure_ramp_top_backoff
+                    })
+                    val supporting = stringResource(when (structure) {
+                        SetStructure.STRAIGHT -> R.string.day_edit_structure_straight_description
+                        SetStructure.RAMP_TOP -> R.string.day_edit_structure_ramp_top_description
+                        SetStructure.RAMP_TOP_BACKOFF -> R.string.day_edit_structure_ramp_top_backoff_description
+                    })
+                    ListItem(
+                        headlineContent = { Text(headline) },
+                        supportingContent = { Text(supporting) },
+                        leadingContent = { RadioButton(selected = slot.structure == structure, onClick = null) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(
+                            selected = slot.structure == structure,
+                            role = Role.RadioButton,
+                            onClick = { onStructureChange(structure) },
+                        ),
+                    )
+                }
             }
         }
         Spacer(Modifier.size(12.dp))
@@ -464,6 +500,7 @@ internal fun PrescriptionPage(
     onChange: (PrescriptionDraft) -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
+    structure: SetStructure = SetStructure.STRAIGHT,
 ) {
     Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
         PickerHeader(stringResource(R.string.day_edit_prescription), onBack)
@@ -484,7 +521,9 @@ internal fun PrescriptionPage(
                 )
             }
         }
-        PrescriptionNumber(stringResource(R.string.prescription_sets), draft.sets, 1, 20) { onChange(draft.copy(sets = it)) }
+        if (structure == SetStructure.STRAIGHT) {
+            PrescriptionNumber(stringResource(R.string.prescription_sets), draft.sets, 1, 20) { onChange(draft.copy(sets = it)) }
+        }
         if (draft.kind == PrescriptionKind.LOAD_REPS || draft.kind == PrescriptionKind.REPS) {
             PrescriptionNumber(stringResource(R.string.prescription_reps), draft.reps, 1, 999) { onChange(draft.copy(reps = it)) }
         }

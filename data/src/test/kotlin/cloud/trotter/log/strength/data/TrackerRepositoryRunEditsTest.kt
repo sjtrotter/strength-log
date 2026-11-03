@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.standards.GoalCalculator
+import cloud.trotter.log.strength.domain.seeding.RunReplan
 import cloud.trotter.log.strength.domain.seeding.CarryForward
 import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
@@ -195,6 +196,139 @@ class TrackerRepositoryRunEditsTest {
         val carried = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot, Slot.MAIN)!!.setsJson)
         assertEquals(restoredRows, carried)
         assertEquals("bb_back_squat", db.programDao().exercise(slot)!!.exerciseId)
+    }
+
+    @Test fun `structure change keeps done rows and watch identities reshapes undone rows and clears only its working values`() = runTest {
+        val plan = generated(extraSlot = true)
+        val id = slot(plan)
+        val other = db.programDao().exercisesForDay(plan, "A")[1].id
+        val runId = start(plan, doneCount = 2)
+        val main = db.runDao().tracks(runId).single { it.programExerciseId == id }
+        val current = SetJson.decodeSets(main.setsJson).mapIndexed { index, row ->
+            row.copy(watchEditedAt = 100L + index, startedAtMillis = 200L + index,
+                completedAtMillis = (300L + index).takeIf { row.done })
+        }
+        db.runDao().updateTrack(main.copy(setsJson = SetJson.encodeSets(current)))
+        db.storeTestRows("A", id, Slot.SS, work())
+        db.storeTestRows("A", other, Slot.MAIN, work())
+        val otherLog = db.programDao().logForSlot(plan, "A", other, Slot.MAIN)
+        val config = repo.wizardAnswersFor(plan).first().config
+        val expected = SetSeeder.seed(ProgramExercise("bb_back_squat", structure = SetStructure.RAMP_TOP),
+            GoalCalculator.targetFor(repo.catalogFlow.first().get("bb_back_squat"), config), config)
+
+        repo.setStructure(id, SetStructure.RAMP_TOP)
+
+        val after = db.runDao().tracks(runId).single { it.id == main.id }
+        val rows = SetJson.decodeSets(after.setsJson)
+        assertEquals(RunReplan.represcribe(current, expected), rows)
+        assertEquals(current.take(2), rows.take(2))
+        assertEquals(5, rows.size)
+        assertEquals(SetKind.TOP, rows.last().kind)
+        assertEquals(main.plannedJson, after.plannedJson)
+        assertEquals(SetStructure.RAMP_TOP, repo.slotsFor(plan, "A").first().first().exercise.structure)
+        assertTrue(db.programDao().logsForDay(plan, "A").none { it.programExerciseId == id })
+        assertEquals(otherLog, db.programDao().logForSlot(plan, "A", other, Slot.MAIN))
+    }
+
+    @Test fun `structure shrink keeps a completed backoff beyond the new row count`() = runTest {
+        val plan = generated()
+        val id = slot(plan)
+        val runId = start(plan, doneCount = 6)
+        val before = db.runDao().tracks(runId).single()
+
+        repo.setStructure(id, SetStructure.RAMP_TOP)
+
+        assertEquals(before, db.runDao().tracks(runId).single())
+        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+    }
+
+    @Test fun `straight prescribed 225 by 5 changes to the pinned ramp top backoff column`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        val prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5))
+        repo.setPrescription(id, prescription)
+        val runId = explicitStart(plan, SetSeeder.seedPrescribed(3, prescription))
+        val before = db.runDao().tracks(runId).single()
+
+        repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
+
+        val after = db.runDao().tracks(runId).single()
+        val rows = SetJson.decodeSets(after.setsJson)
+        assertEquals(listOf(125.0, 160.0, 180.0, 205.0, 225.0, 170.0), rows.map { it.weightLb })
+        assertEquals(listOf(5, 5, 5, 3, 5, 8), rows.map { it.reps })
+        assertEquals(List(4) { SetKind.RAMP } + listOf(SetKind.TOP, SetKind.BACKOFF), rows.map { it.kind })
+        assertEquals(listOf(0, 1, 2, null, null, null), rows.map { it.plannedIndex })
+        assertEquals(before.plannedJson, after.plannedJson)
+        assertTrue(rows.none { it.done })
+        assertNull(db.programDao().logForSlot(plan, "A", id, Slot.MAIN))
+    }
+
+    @Test fun `structure growth aligns partners to ramp count and shrink retains a partners completed tail`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = explicitStart(plan)
+        val original = db.runDao().tracks(runId).associateBy { it.slot }
+        val partnerBefore = SetJson.decodeSets(original.getValue(Slot.SS).setsJson)
+        val config = repo.wizardAnswersFor(plan).first().config
+        val partnerGoal = GoalCalculator.targetFor(repo.catalogFlow.first().get("ez_curl"), config)
+
+        repo.setStructure(id, SetStructure.RAMP_TOP_BACKOFF)
+
+        val grown = db.runDao().tracks(runId).associateBy { it.slot }
+        val partner = SetJson.decodeSets(grown.getValue(Slot.SS).setsJson)
+        assertEquals(6, SetJson.decodeSets(grown.getValue(Slot.MAIN).setsJson).size)
+        assertEquals(partnerBefore, partner.take(3))
+        assertEquals(SetSeeder.seedPartner(3, partnerGoal), partner.drop(3))
+        assertTrue(partner.all { it.kind == SetKind.WORK })
+        assertEquals(original.mapValues { it.value.plannedJson }, grown.mapValues { it.value.plannedJson })
+        val completedPartner = partner.mapIndexed { index, row -> row.copy(done = index == 5) }
+        repo.writeTestRows(runId, "A", id, Slot.SS, completedPartner)
+        val beforeShrink = db.runDao().tracks(runId).associateBy { it.slot }
+
+        repo.setStructure(id, SetStructure.RAMP_TOP)
+
+        val shrunk = db.runDao().tracks(runId).associateBy { it.slot }
+        val main = SetJson.decodeSets(shrunk.getValue(Slot.MAIN).setsJson)
+        assertEquals(6, main.size)
+        assertEquals(SetJson.decodeSets(beforeShrink.getValue(Slot.MAIN).setsJson).last(), main.last())
+        assertEquals(SetJson.decodeSets(beforeShrink.getValue(Slot.SS).setsJson),
+            SetJson.decodeSets(shrunk.getValue(Slot.SS).setsJson))
+        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
+    }
+
+    @Test fun `prescription edits on ramped slots retain their structure and align the partner`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        repo.setStructure(id, SetStructure.RAMP_TOP)
+        repo.setSupersetPartner("A", id, "ez_curl")
+        val runId = explicitStart(plan, SetSeeder.seedPrescribed(3, load, SetStructure.RAMP_TOP))
+        val before = db.runDao().tracks(runId).single { it.slot == Slot.MAIN }
+        val prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5))
+
+        repo.setPrescription(id, prescription, sets = 2)
+
+        val tracks = db.runDao().tracks(runId).associateBy { it.slot }
+        val main = SetJson.decodeSets(tracks.getValue(Slot.MAIN).setsJson)
+        assertEquals(listOf(125.0, 160.0, 180.0, 205.0, 225.0), main.map { it.weightLb })
+        assertEquals(SetKind.TOP, main.last().kind)
+        assertEquals(5, SetJson.decodeSets(tracks.getValue(Slot.SS).setsJson).size)
+        assertEquals(before.plannedJson, tracks.getValue(Slot.MAIN).plannedJson)
+        assertEquals(2, db.programDao().exercise(id)!!.targetSets)
+    }
+
+    @Test fun `structure edits on a substituted main leave the active and retired tracks unchanged`() = runTest {
+        val plan = authored()
+        val id = slot(plan)
+        val runId = explicitStart(plan)
+        assertTrue(repo.swapInRun(runId, id, Slot.MAIN, "hack_squat"))
+        val before = db.runDao().tracks(runId)
+
+        repo.setStructure(id, SetStructure.RAMP_TOP)
+
+        assertEquals(before, db.runDao().tracks(runId))
+        assertEquals(SetStructure.RAMP_TOP.name, db.programDao().exercise(id)!!.structure)
+        assertTrue(db.programDao().logsForDay(plan, "A").isEmpty())
     }
 
     /** [F] */

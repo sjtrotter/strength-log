@@ -64,6 +64,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SetKind
 import java.io.IOException
 import java.time.Clock
@@ -502,47 +503,62 @@ open class TrackerRepository(
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction
             val count = sets ?: row.targetSets
             require(count in 1..20)
-            programDao.setPrescription(row.id, PrescriptionJson.encode(prescription), count)
-            val run = runDao.openRun()
-            if (run?.planId == row.planId && run.dayId == row.dayId) {
-                val tracks = runDao.tracks(run.id).filter {
-                    it.programExerciseId == row.id && !it.retired
-                }
-                val main = tracks.firstOrNull { it.slot == Slot.MAIN && it.exerciseId == row.exerciseId }
-                if (main != null && main.canReplan(prescription.tracking == TrackingType.TIMED)) {
-                    val current = SetJson.decodeSets(main.setsJson)
-                    val seeded = SlotSeeds.prescribed(count, prescription)
-                    val partner = tracks.firstOrNull { it.slot == Slot.SS }
-                    val mainRows = if (partner == null) RunReplan.represcribe(current, seeded) else if (
-                        partner.exerciseId != row.exerciseIdFor(Slot.SS)
-                    ) {
-                        val partnerRows = SetJson.decodeSets(partner.setsJson)
-                        val alignedSeed = RunReplan.alignPaired(
-                            seeded, partnerRows, seeded, partnerRows.ifEmpty { seeded },
-                        ).first
-                        RunReplan.represcribe(current, alignedSeed)
-                    } else {
-                        val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
-                        val entry = catalog.find(partner.exerciseId)
-                        if (entry == null) RunReplan.represcribe(current, seeded) else {
-                            val config = answersForPlan(planDao.plan(row.planId), global).config
-                            val partnerSeed = requireNotNull(SlotSeeds.partner(entry, count, config))
-                            val paired = RunReplan.represcribePaired(
-                                current, SetJson.decodeSets(partner.setsJson), seeded, partnerSeed,
-                            )
-                            runDao.updateTrack(partner.copy(
-                                setsJson = SetJson.encodeSets(paired.second), updatedAt = clock.millis(),
-                            ))
-                            paired.first
-                        }
-                    }
-                    runDao.updateTrack(main.copy(
-                        setsJson = SetJson.encodeSets(mainRows), updatedAt = clock.millis(),
-                    ))
-                }
-            }
+            val json = PrescriptionJson.encode(prescription)
+            val updated = row.copy(prescriptionJson = json, targetSets = count)
+            programDao.setPrescription(row.id, json, count)
+            replanSlot(updated, answersForPlan(planDao.plan(row.planId), global).config)
             programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
         }
+    }
+
+    suspend fun setStructure(programExerciseId: Long, structure: SetStructure) {
+        ensurePlanSettingsMigrated()
+        val global = settings.globalLifterFlow.first()
+        db.withTransaction {
+            val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+            val updated = row.copy(structure = structure.name)
+            programDao.setStructure(row.id, structure.name)
+            replanSlot(updated, answersForPlan(planDao.plan(row.planId), global).config)
+            programDao.deleteLogsForExercise(row.planId, row.dayId, row.id)
+        }
+    }
+
+    private suspend fun replanSlot(row: ProgramExerciseEntity, config: LifterConfig) {
+        val run = runDao.openRun() ?: return
+        if (run.planId != row.planId || run.dayId != row.dayId) return
+        val tracks = runDao.tracks(run.id).filter { it.programExerciseId == row.id && !it.retired }
+        val main = tracks.firstOrNull { it.slot == Slot.MAIN && it.exerciseId == row.exerciseId } ?: return
+        val catalog = ExerciseCatalog(customExerciseDao.getAll().map { it.toEntry() })
+        val exercise = row.toDomain()
+        val entry = catalog.find(row.exerciseId)
+        if (!main.canReplan((exercise.prescription?.tracking ?: entry?.tracking) == TrackingType.TIMED)) return
+        val seeded = SlotSeeds.main(exercise, entry, config) ?: return
+        val current = SetJson.decodeSets(main.setsJson)
+        val partner = tracks.firstOrNull { it.slot == Slot.SS }
+        val mainRows = if (partner == null) RunReplan.represcribe(current, seeded) else if (
+            partner.exerciseId != row.exerciseIdFor(Slot.SS)
+        ) {
+            val partnerRows = SetJson.decodeSets(partner.setsJson)
+            val alignedSeed = RunReplan.alignPaired(
+                seeded, partnerRows, seeded, partnerRows.ifEmpty { seeded },
+            ).first
+            RunReplan.represcribe(current, alignedSeed)
+        } else {
+            val partnerEntry = catalog.find(partner.exerciseId)
+            if (partnerEntry == null) RunReplan.represcribe(current, seeded) else {
+                val partnerSeed = requireNotNull(SlotSeeds.partner(partnerEntry, seeded.size, config))
+                val paired = RunReplan.represcribePaired(
+                    current, SetJson.decodeSets(partner.setsJson), seeded, partnerSeed,
+                )
+                runDao.updateTrack(partner.copy(
+                    setsJson = SetJson.encodeSets(paired.second), updatedAt = clock.millis(),
+                ))
+                paired.first
+            }
+        }
+        runDao.updateTrack(main.copy(
+            setsJson = SetJson.encodeSets(mainRows), updatedAt = clock.millis(),
+        ))
     }
 
     /** Slot-owned ordering, independent of whichever plan is selected. */

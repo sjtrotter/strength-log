@@ -1,11 +1,13 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -36,6 +38,9 @@ class DayEditSheetTest {
         runOpen: Boolean = false,
         onKeepToPlan: (Long, Boolean) -> Unit = { _, _ -> },
         onResetSlot: (Long) -> Unit = {},
+        weightedTarget: Boolean = false,
+        structure: SetStructure = SetStructure.STRAIGHT,
+        onStructureChange: (Long, SetStructure) -> Unit = { _, _ -> },
     ) {
         val slot = DayEditSlotState(
             programExerciseId = 1L,
@@ -47,6 +52,8 @@ class DayEditSheetTest {
             partnerExerciseId = partnerExerciseId,
             prescription = prescription,
             keepToPlan = keepToPlan,
+            weightedTarget = weightedTarget,
+            structure = structure,
         )
         composeTestRule.setContent {
             AppTheme {
@@ -66,6 +73,7 @@ class DayEditSheetTest {
                         onRemoveCardio = onRemoveCardio,
                         onSetKeepToPlan = onKeepToPlan,
                         onResetSlotToPlan = onResetSlot,
+                        onStructureChange = onStructureChange,
                     ),
                     accent = Color.White,
                     onDismiss = {},
@@ -74,6 +82,30 @@ class DayEditSheetTest {
             }
         }
         if (edit) composeTestRule.onNodeWithText("Edit").performClick()
+    }
+
+    @Test
+    fun weightedTargetOffersLabeledRadioRowsAndWritesTheSelectedStructure() {
+        var changed: Pair<Long, SetStructure>? = null
+        show(weightedTarget = true, structure = SetStructure.RAMP_TOP,
+            onStructureChange = { id, structure -> changed = id to structure })
+        composeTestRule.onNodeWithText("Set structure").assertExists()
+        composeTestRule.onNodeWithText("Straight sets").assertExists()
+        composeTestRule.onNodeWithText("Every set at one weight.").assertExists()
+        composeTestRule.onNodeWithText("Ramp to a top set").assertIsSelected()
+        composeTestRule.onNodeWithText("Four warm-ups, then the top set.").assertExists()
+        composeTestRule.onNodeWithText("Four warm-ups, the top set, one lighter set of 8.").assertExists()
+        composeTestRule.onNodeWithText("Ramp, top set, back-off").performClick()
+        composeTestRule.runOnIdle { assertEquals(1L to SetStructure.RAMP_TOP_BACKOFF, changed) }
+    }
+
+    @Test
+    fun holdTargetHidesStructureEvenWhenTheStoredStructureRamps() {
+        show(prescription = Prescription(PrescribedTarget.Hold(45)), structure = SetStructure.RAMP_TOP)
+        composeTestRule.onNodeWithText("Set structure").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Straight sets").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Ramp to a top set").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Ramp, top set, back-off").assertDoesNotExist()
     }
 
     @Test

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.day
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LifterConfig
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -57,6 +58,8 @@ data class DayEditSlotState(
     val canMoveUp: Boolean = false,
     val canMoveDown: Boolean = false,
     val keepToPlan: Boolean = false,
+    val structure: SetStructure = SetStructure.STRAIGHT,
+    val weightedTarget: Boolean = false,
 )
 
 /** Callbacks the day-edit sheet forwards to [DayViewModel]. */
@@ -80,6 +83,7 @@ data class DayEditActions(
     val onBackCardio: () -> Unit = {},
     val onRemoveCardio: () -> Unit = {},
     val onSetKeepToPlan: (slotId: Long, keep: Boolean) -> Unit = { _, _ -> },
+    val onStructureChange: (slotId: Long, structure: SetStructure) -> Unit = { _, _ -> },
     val onResetSlotToPlan: (slotId: Long) -> Unit = {},
     val onWorkoutSwapHalf: (position: Int, newExerciseId: String, slot: String) -> Unit = { _, _, _ -> },
     val onMessageShown: () -> Unit = {},

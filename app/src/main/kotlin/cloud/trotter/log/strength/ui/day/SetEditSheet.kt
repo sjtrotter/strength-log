@@ -141,7 +141,11 @@ internal fun SetEditSheet(
             )
             val plateText = plate?.let { stringResource(R.string.set_edit_plates, it) }
             val effectText = stringResource(
-                if (row.isTop) R.string.set_edit_top_cascades else R.string.set_edit_only_this,
+                when {
+                    !row.isTop -> R.string.set_edit_only_this
+                    card.rows.any { it.kind == SetKind.BACKOFF } -> R.string.set_edit_top_cascades
+                    else -> R.string.set_edit_top_cascades_without_backoff
+                },
             )
             Text(
                 text = listOfNotNull(plateText, effectText).joinToString(" "),

@@ -525,6 +525,7 @@
     <string name="set_edit_reps">Reps</string>
     <string name="set_edit_seconds">Seconds</string>
     <string name="set_edit_only_this">Only this set changes.</string>
+    <string name="set_edit_top_cascades_without_backoff">Warm-ups follow this weight.</string>
     <string name="set_edit_top_cascades">Warm-ups and back-off follow this weight.</string>
     <string name="set_edit_plates">%1$s a side on the bar.</string>
     <string name="set_edit_remove">Remove set</string>
@@ -627,6 +628,13 @@
 <string name="cardio_edit_hard">Hard</string>
 <string name="cardio_edit_hard_summary">%1$s · Hard</string>
 <string name="plan_cardio_summary">%1$s · %2$s</string>
+    <string name="day_edit_set_structure">Set structure</string>
+    <string name="day_edit_structure_straight">Straight sets</string>
+    <string name="day_edit_structure_straight_description">Every set at one weight.</string>
+    <string name="day_edit_structure_ramp_top">Ramp to a top set</string>
+    <string name="day_edit_structure_ramp_top_description">Four warm-ups, then the top set.</string>
+    <string name="day_edit_structure_ramp_top_backoff">Ramp, top set, back-off</string>
+    <string name="day_edit_structure_ramp_top_backoff_description">Four warm-ups, the top set, one lighter set of 8.</string>
     <string name="day_edit_next_time">Next time</string>
     <string name="day_edit_next_time_last">Last results</string>
     <string name="day_edit_next_time_plan">Plan</string>

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -22,6 +23,26 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class PrescriptionPageTest {
     @get:Rule val rule = createComposeRule()
+
+    @Test
+    fun setsStepperOnlyShowsForStraightSlotsAndPreservesTheStoredCount() {
+        val structure = mutableStateOf(SetStructure.STRAIGHT)
+        val draft = mutableStateOf(PrescriptionDraft(slotId = 1, sets = 4))
+        var savedSets: Int? = null
+        rule.setContent { AppTheme {
+            PrescriptionPage(draft.value, WeightUnit.LB, { draft.value = it }, { savedSets = draft.value.sets }, {},
+                structure = structure.value)
+        } }
+        rule.onNodeWithText("Sets").assertExists()
+        for (ramped in listOf(SetStructure.RAMP_TOP, SetStructure.RAMP_TOP_BACKOFF)) {
+            rule.runOnIdle { structure.value = ramped }
+            rule.onNodeWithText("Sets").assertDoesNotExist()
+        }
+        rule.onNodeWithText("Save").performScrollTo().performClick()
+        assertEquals(4, savedSets)
+        rule.runOnIdle { structure.value = SetStructure.STRAIGHT }
+        rule.onNodeWithText("Sets").assertExists()
+    }
 
     @Test
     fun repsInTimeAllowsAnOptionalAimEachSideAndBandThenSaves() {

@@ -29,6 +29,7 @@ import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.cardio.BootAnchor
 import cloud.trotter.log.strength.domain.generator.ProgramGenerator
 import cloud.trotter.log.strength.domain.generator.Rotation
+import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.glance.GlanceLines
 import cloud.trotter.log.strength.domain.model.Equipment
@@ -43,6 +44,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
@@ -1747,13 +1749,14 @@ class DayViewModel @Inject constructor(
         }
     }
 
-    /** Appends a new slot for the picked exercise (spec §8.3 add flow). Mirrors
-     *  `ProgramGenerator`'s plain-accessory shape (3 sets, "8–12") — a sane
-     *  default for a manually added exercise, not a re-seed of pinned math. */
     fun addDaySlot(exerciseId: String) {
         val day = currentDay() ?: return
         val planId = dayState.value.takeIf { it.viewDayId == day }?.planId ?: return
-        mutate { repo.addExercise(day, ProgramExercise(exerciseId = exerciseId), targetPlanId = planId) }
+        mutate {
+            val entry = repo.catalogFlow.first().find(exerciseId)
+            val structure = entry?.let { SetStructure.defaultFor(it) } ?: SetStructure.STRAIGHT
+            repo.addExercise(day, ProgramExercise(exerciseId, structure = structure), targetPlanId = planId)
+        }
     }
 
     /** Removes a slot; the repository enforces its owning day's floor atomically. */
@@ -1780,6 +1783,10 @@ class DayViewModel @Inject constructor(
             repo.setKeepToPlan(slotId, keep)
             if (keep) seedWorkingValues(planId, day)
         }
+    }
+
+    fun setDaySlotStructure(slotId: Long, structure: SetStructure) {
+        mutate { repo.setStructure(slotId, structure) }
     }
 
     fun resetDaySlotToPlan(slotId: Long) {
@@ -2276,6 +2283,9 @@ class DayViewModel @Inject constructor(
                 partnerTitle = partnerId?.let { catalog.find(it)?.name ?: it },
                 prescription = pe.prescription,
                 keepToPlan = pe.keepToPlan,
+                structure = pe.structure,
+                weightedTarget = entry?.tracking == TrackingType.WEIGHTED &&
+                    (pe.prescription == null || pe.prescription.target is PrescribedTarget.LoadReps),
                 targetSets = pe.targetSets,
                 canMoveUp = index > 0,
                 canMoveDown = index < slots.lastIndex,

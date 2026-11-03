@@ -3,10 +3,7 @@ package cloud.trotter.log.strength.ui.preview
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cloud.trotter.log.strength.data.DaySeeds
 import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.data.performedExercise
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.SetFormatter
@@ -15,9 +12,8 @@ import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.WorkoutStart
-import cloud.trotter.log.strength.ui.day.dayHistoryKeys
 import cloud.trotter.log.strength.ui.day.activityLabel
-import cloud.trotter.log.strength.ui.day.performedDayExerciseIds
+import cloud.trotter.log.strength.ui.day.dayHistoryKeys
 import cloud.trotter.log.strength.ui.day.plannedTimeDetail
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -41,51 +37,34 @@ class PreviewViewModel @Inject constructor(
     private val dayId = checkNotNull(savedState.get<String>(Routes.DAY_ID_ARG))
     val selection = DaySelection(planId, dayId)
     val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
-    private val context = combine(
-        repo.programFor(planId), repo.wizardAnswersFor(planId), repo.catalogFlow, settings.unitFlow,
-    ) { program, answers, catalog, unit -> PreviewContext(program, answers.config, catalog, unit) }.distinctUntilChanged()
+    private val history = repo.dayHistoryKeys(planId, dayId).flatMapLatest { ids ->
+        flow { emit(repo.lastPerformed(ids)) }
+    }
 
-    val uiState = context.flatMapLatest { ctx ->
-        val history = repo.dayHistoryKeys(planId, dayId).flatMapLatest { (slots, ids) ->
-            flow { emit(slots to repo.lastPerformed(performedDayExerciseIds(slots, ids, ctx.catalog))) }
-        }
-        combine(history, repo.dayTracksFlow(planId, dayId), repo.plansFlow) { (slots, last), tracks, plans ->
-            val day = ctx.program.days.firstOrNull { it.id == dayId }
-            val stored = tracks.tracks.associateBy { it.programExerciseId to it.slot }
-            val seeds = DaySeeds.plan(slots, stored.mapValues { it.value.sets.size }, ctx.config, ctx.catalog)
-            PreviewUiState(
-                loading = false, selection = selection,
-                planName = plans.firstOrNull { it.id == planId }?.name.orEmpty(),
-                dayIndex = ctx.program.strengthDays.indexOfFirst { it.id == dayId }.coerceAtLeast(0),
-                title = day?.title.orEmpty(), emphasis = day?.emphasisLine.orEmpty(),
-                lifts = slots.map { slot ->
-                    val trackSlots = listOfNotNull(Slot.MAIN, Slot.SS.takeIf { slot.exercise.superset != null })
-                    val performed = trackSlots.map { trackSlot ->
-                        val key = slot.programExerciseId to trackSlot
-                        performedExercise(slot, stored[key]?.exerciseId, ctx.catalog, trackSlot)
+    val uiState = combine(
+        repo.observeDay(planId, dayId), settings.unitFlow, history, repo.plansFlow,
+    ) { performedDay, unit, last, plans ->
+        val day = performedDay.day
+        PreviewUiState(
+            loading = false, selection = selection,
+            planName = plans.firstOrNull { it.id == planId }?.name.orEmpty(),
+            dayIndex = performedDay.program.strengthDays.indexOfFirst { it.id == dayId }.coerceAtLeast(0),
+            title = day?.title.orEmpty(), emphasis = day?.emphasisLine.orEmpty(),
+            lifts = performedDay.slots.map { slot ->
+                val tracks = listOfNotNull(slot.main, slot.partner)
+                val working = tracks.mapNotNull { track ->
+                    track.sets.firstOrNull { it.kind != SetKind.RAMP }?.let { set ->
+                        SetFormatter.summary(track.tracking, set.weightLb, set.reps, set.seconds, unit, spaced = true).trim()
                     }
-                    val working = trackSlots.mapIndexedNotNull { index, trackSlot ->
-                        val key = slot.programExerciseId to trackSlot
-                        val sets = stored[key]?.sets ?: seeds[key].orEmpty()
-                        sets.firstOrNull { it.kind != SetKind.RAMP }?.let { set ->
-                            SetFormatter.summary(performed[index].tracking, set.weightLb, set.reps, set.seconds, ctx.unit, spaced = true).trim()
-                        }
-                    }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
-                    val lastDisplay = performed.mapNotNull { DayScreenBuilder.lastTimeDisplay(last[it.exerciseId], ctx.unit) }
-                        .takeIf { it.isNotEmpty() }?.joinToString(" + ")
-                    PreviewLift(performed.joinToString(" + ") { it.entry?.name ?: it.exerciseId }, working, lastDisplay)
-                },
-                cardio = day?.cardioBlock?.let { PreviewCardio(activityLabel(it.activity), it.plannedTimeDetail()) },
-            )
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PreviewUiState(selection = selection))
+                }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
+                val lastDisplay = tracks.mapNotNull { DayScreenBuilder.lastTimeDisplay(last[it.performed.exerciseId], unit) }
+                    .takeIf { it.isNotEmpty() }?.joinToString(" + ")
+                PreviewLift(tracks.joinToString(" + ") { it.performed.entry?.name ?: it.performed.exerciseId }, working, lastDisplay)
+            },
+            cardio = day?.cardioBlock?.let { PreviewCardio(activityLabel(it.activity), it.plannedTimeDetail()) },
+        )
+    }.distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PreviewUiState(selection = selection))
 
     fun start() = workoutStart.start(selection)
-
-    private data class PreviewContext(
-        val program: cloud.trotter.log.strength.domain.model.Program,
-        val config: cloud.trotter.log.strength.domain.model.LifterConfig,
-        val catalog: cloud.trotter.log.strength.data.catalog.ExerciseCatalog,
-        val unit: cloud.trotter.log.strength.domain.units.WeightUnit,
-    )
 }

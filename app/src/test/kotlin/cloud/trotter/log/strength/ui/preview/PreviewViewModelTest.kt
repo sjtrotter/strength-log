@@ -53,6 +53,25 @@ class PreviewViewModelTest : OverviewFixture() {
             })
     }
 
+    @Test fun openRunWithASkippedLiftLeavesItOutOfThePreview() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Push", "", listOf(
+            ProgramExercise("bb_bench"), ProgramExercise("pushup"),
+        )))))
+        val plan = repo.selectedPlanIdFlow.first()!!
+        val skipped = repo.slotsFor(plan, "A").first().first()
+        repo.startRun(plan, "A")
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        assertEquals(2, vm.uiState.value.lifts.size)
+
+        repo.skipLift(plan, "A", skipped.programExerciseId, Slot.MAIN, "bb_bench", null)
+        advanceUntilIdle()
+
+        assertTrue(repo.dayTracksFlow(plan, "A").first().runOpen)
+        assertEquals(setOf(skipped.programExerciseId), repo.dayTracksFlow(plan, "A").first().skippedLifts)
+        assertEquals(listOf(repo.catalogFlow.first().get("pushup").name), vm.uiState.value.lifts.map { it.name })
+    }
+
     @Test fun repsOnlyWorkingValueHasNoLeadingSpace() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf(ProgramDay("A", "Push", "", listOf(ProgramExercise("pushup"))))))
         val plan = repo.selectedPlanIdFlow.first()!!

@@ -38,10 +38,11 @@ object ReceiptBuilder {
             val partners = captured.filter {
                 it.slot == Slot.SS && ((!it.retired && !it.dropped) || it.sets.any { set -> set.done })
             }
-            // Skipping the first half promotes the partner's exercise into MAIN; its retired SS
-            // work is then a lift of its own, not the second half of the pair.
+            // Skipping the first half drops that MAIN and promotes the partner's exercise into it;
+            // the retired SS work is then a lift of its own, not the second half of the pair.
+            val promoted = mains.any { it.retired && it.dropped }
             val partner = partners.firstOrNull { !it.retired }
-                ?: partners.lastOrNull()?.takeIf { it.exerciseId != main?.exerciseId }
+                ?: partners.lastOrNull()?.takeIf { !promoted || it.exerciseId != main?.exerciseId }
             val singles = mains.filter { it.retired && it.sets.any { set -> set.done } } +
                 partners.filter { it != partner || main == null }
             for (track in singles.sortedBy { it.position }) {

@@ -226,6 +226,16 @@ class ReceiptBuilderTest {
     }
 
     @Test
+    fun `dropping the second half of a same-exercise superset keeps the pair`() {
+        val first = track(exerciseId = "bb_back_squat", sets = listOf(work(225.0, 5), work(225.0, 5)))
+        val second = track(exerciseId = "bb_back_squat", slot = Slot.SS, position = 1,
+            sets = listOf(work(185.0, 8), work(185.0, 8)), retired = true, dropped = true)
+        val group = ReceiptBuilder.strength(listOf(first, second), listOf(supersetSlot()), { it }, emptyMap()).single()
+        assertEquals(2, group.rounds)
+        assertEquals(2, group.rows.size)
+    }
+
+    @Test
     fun `a weighted partner of a ramped lift is straight sets`() {
         val bench = track(exerciseId = "bb_bench", sets = listOf(work(225.0, 5, kind = SetKind.TOP)))
         val partner = track(exerciseId = "db_curl", slot = Slot.SS, position = 1,

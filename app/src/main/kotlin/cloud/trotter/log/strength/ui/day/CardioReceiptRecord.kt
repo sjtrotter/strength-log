@@ -53,4 +53,4 @@ internal fun CardioRun.receiptRecords(standingBests: List<SavedCardioBest>): Lis
     }
 }
 
-private fun formatRecordMetres(metres: Int): String = String.format(Locale.US, "%,d m", metres)
+internal fun formatRecordMetres(metres: Int): String = String.format(Locale.US, "%,d m", metres)

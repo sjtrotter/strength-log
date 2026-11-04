@@ -14,7 +14,7 @@ import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.day.DayScreen
 import cloud.trotter.log.strength.ui.day.CascadeLift
 import cloud.trotter.log.strength.ui.day.SessionReceipt
-import cloud.trotter.log.strength.ui.day.SessionReceiptScreen
+import cloud.trotter.log.strength.ui.day.LegacySessionReceiptScreen
 import cloud.trotter.log.strength.ui.day.workoutActions
 import cloud.trotter.log.strength.ui.day.workoutEditActions
 import cloud.trotter.log.strength.ui.day.workoutDayFixture
@@ -77,7 +77,7 @@ class WindowSizeTest {
     fun theReceiptCoversTheWindowButItsContentKeepsTheReadableCap() {
         composeTestRule.setContent {
             AppTheme {
-                SessionReceiptScreen(
+                LegacySessionReceiptScreen(
                     receipt = SessionReceipt(
                         sessionId = 1L,
                         dayIndex = 0,

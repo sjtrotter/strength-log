@@ -186,7 +186,7 @@ class SessionLifecycleScreenTest {
         composeTestRule.mainClock.autoAdvance = false
         restoration.setContent {
             CompositionLocalProvider(LocalHapticFeedback provides haptics) {
-                AppTheme { SessionReceiptScreen(receipt, {}, {}) }
+                AppTheme { LegacySessionReceiptScreen(receipt, {}, {}) }
             }
         }
         composeTestRule.mainClock.advanceTimeBy(160)
@@ -215,7 +215,7 @@ class SessionLifecycleScreenTest {
     fun noteOpensOnTheReceiptAndReportsThroughTheSharedSheet() {
         var savedNote = ""
         composeTestRule.setContent {
-            AppTheme { SessionReceiptScreen(receipt, {}, {}, onSetReceiptNote = { savedNote = it }) }
+            AppTheme { LegacySessionReceiptScreen(receipt, {}, {}, onSetReceiptNote = { savedNote = it }) }
         }
         composeTestRule.onNodeWithText("Add a note").performClick()
         composeTestRule.onNodeWithText("NOTE").performTextReplacement("Felt steady")
@@ -236,7 +236,7 @@ class SessionLifecycleScreenTest {
         composeTestRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
-                AppTheme { SessionReceiptScreen(receipt.copy(note = "A note about the session"), {}, {}) }
+                AppTheme { LegacySessionReceiptScreen(receipt.copy(note = "A note about the session"), {}, {}) }
             }
         }
         composeTestRule.onNodeWithText("Done").performScrollTo().assertIsDisplayed()

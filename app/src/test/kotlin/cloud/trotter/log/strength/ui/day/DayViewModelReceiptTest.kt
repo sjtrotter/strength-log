@@ -14,6 +14,7 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.dao.PersonalRecordRow
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.model.CardioMode
@@ -99,7 +100,9 @@ class DayViewModelReceiptTest {
     private var failSessionByRunId = false
     private var failPersonalRecords = false
     private var failSetNote = false
+    private var failSessionById = false
     private var beforeSessionsRead: (() -> Unit)? = null
+    private var beforeFinishBaseline: (suspend () -> Unit)? = null
     private val published = mutableListOf<Long>()
     private val publisher = object : SessionPublisher by SessionPublisher.NoOp {
         override suspend fun publish(sessionId: Long) { published += sessionId }
@@ -133,9 +136,17 @@ class DayViewModelReceiptTest {
                 }
 
                 override suspend fun personalRecordRows(exerciseIds: List<String>, excludedRunId: String?): List<PersonalRecordRow> {
-                    if (excludedRunId != null) finishBaselineReads++
+                    if (excludedRunId != null) {
+                        finishBaselineReads++
+                        beforeFinishBaseline?.also { beforeFinishBaseline = null }?.invoke()
+                    }
                     check(!failPersonalRecords || excludedRunId == null)
                     return db.sessionDao().personalRecordRows(exerciseIds, excludedRunId)
+                }
+
+                override suspend fun sessionById(sessionId: Long): WorkoutSessionEntity? {
+                    check(!failSessionById)
+                    return db.sessionDao().sessionById(sessionId)
                 }
 
                 override suspend fun setNote(sessionId: Long, note: String) {
@@ -524,6 +535,51 @@ class DayViewModelReceiptTest {
         assertEquals(readsAtFinish, finishBaselineReads)
         assertEquals(receipt, restored.finisher.receipt.value)
         assertEquals(receipt, restoredHandle.get<WorkoutReceipt>("day_workout_receipt"))
+    }
+
+    @Test
+    fun aFailureAfterTheCommitStillPublishesOnceAndTryAgainClears() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        tickWholeTrack(vm)
+        advanceUntilIdle()
+        failSessionById = true
+        vm.completeDay()
+        advanceUntilIdle()
+        assertTrue(requireNotNull(vm.finisher.attempt.value).failed)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
+        assertEquals(1, published.size)
+        failSessionById = false
+        vm.finisher.retry()
+        advanceUntilIdle()
+        assertNull(vm.finisher.attempt.value)
+        assertEquals(1, published.size)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
+    }
+
+    @Test
+    fun anEditLandingBeforeTheCommitIsWhatTheReceiptShows() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        tickWholeTrack(vm)
+        advanceUntilIdle()
+        // A watch edit lands between the finisher's read of the run and the commit; the watch's
+        // applier does not take the phone's mutation lock.
+        beforeFinishBaseline = {
+            val run = requireNotNull(db.runDao().openRun())
+            val track = db.runDao().tracks(run.id).first { it.slot == Slot.MAIN && !it.retired }
+            val sets = SetJson.decodeSets(track.setsJson)
+            val top = sets.indices.maxBy { sets[it].weightLb }
+            val edited = sets.mapIndexed { i, set -> if (i == top) set.copy(weightLb = set.weightLb + 20.0) else set }
+            db.runDao().updateTrack(track.copy(setsJson = SetJson.encodeSets(edited)))
+        }
+        vm.completeDay()
+        advanceUntilIdle()
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        val committed = repo.history.sessionSets(receipt.sessionId).filter { it.done }.maxOf { it.weightLb }
+        assertEquals(committed, receipt.groups.single().rows.single().sets.maxOf { it.weightLb }, 0.0)
     }
 
     @Test

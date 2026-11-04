@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.lifecycle.SavedStateHandle
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.PersonalRecord
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -108,18 +109,23 @@ internal class SessionFinisher(
         // DataStore reads must finish before finishRun opens its Room transaction.
         val unit = settings.unitFlow.first()
         val program = plans.programFor(planId).first()
-        val standing = try {
-            historyRepository.personalRecords(run.tracks.map { it.exerciseId }.distinct(), excludingRunId = runId)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            null
-        }
-        val groups = ReceiptBuilder.strength(run.tracks, slots, { exercises.find(it)?.name ?: it }, standing.orEmpty())
-        val sessionId = repo.finishRun(runId) ?: run {
+        val ids = run.tracks.map { it.exerciseId }.distinct()
+        var standing = baseline(ids, runId)
+        val finished = repo.finishRunCapturing(runId) ?: run {
             savedState[KEY_FINISH] = null
             return
         }
+        val sessionId = finished.sessionId
+        // Publish as soon as the commit lands, so a failed receipt read never skips Health Connect.
+        // Null tracks: an earlier finish archived this run and published it.
+        if (finished.tracks != null) scope.launch { sessionPublisher.publish(sessionId) }
+        // Describe what the transaction archived, not the earlier read: a watch edit can land in between.
+        val tracks = finished.tracks ?: run.tracks
+        val swappedIn = tracks.map { it.exerciseId }.distinct() - ids.toSet()
+        if (standing != null && swappedIn.isNotEmpty()) {
+            standing = baseline(swappedIn, runId)?.let { standing.orEmpty() + it }
+        }
+        val groups = ReceiptBuilder.strength(tracks, slots, { exercises.find(it)?.name ?: it }, standing.orEmpty())
         val nextDayId = plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
         afterCommit(dayId, nextDayId)
         val session = historyRepository.session(sessionId)
@@ -134,7 +140,16 @@ internal class SessionFinisher(
             groups = groups, activity = null, cardioRows = emptyList(),
         )
         savedState[KEY_FINISH] = null
-        scope.launch { sessionPublisher.publish(sessionId) }
+    }
+
+    /** The standing bests, or null when they could not be read: the receipt then says records
+     *  weren't checked instead of showing none. */
+    private suspend fun baseline(ids: List<String>, runId: String): Map<String, PersonalRecord>? = try {
+        historyRepository.personalRecords(ids, excludingRunId = runId)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        null
     }
 
     fun backToWorkout() {

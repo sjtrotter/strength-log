@@ -164,4 +164,24 @@ class PersonalBestsTest {
             PersonalBests.prKind(set(weightLb = 25.000001, seconds = 60), set(weightLb = 25.0, seconds = 60)),
         )
     }
+
+    @Test
+    fun `prKinds returns every improved dimension with the existing label first`() {
+        val cases = listOf(
+            Triple(set(245.0, 6), set(240.0, 5), listOf(PrKind.WEIGHT, PrKind.REPS)),
+            Triple(set(245.0, 4), set(240.0, 5), listOf(PrKind.WEIGHT)),
+            Triple(set(235.0, 5), set(235.0, 3), listOf(PrKind.REPS)),
+            Triple(set(235.0, 5), set(235.0, 5), emptyList()),
+            Triple(set(reps = 12), set(reps = 10), listOf(PrKind.REPS)),
+            Triple(set(weightLb = 25.0, seconds = 90), set(seconds = 75), listOf(PrKind.HOLD, PrKind.WEIGHT)),
+            Triple(set(weightLb = 25.0, seconds = 75), set(seconds = 75), listOf(PrKind.WEIGHT)),
+            Triple(set(245.0, 6, SetKind.RAMP), set(240.0, 5), emptyList()),
+            Triple(set(245.0, 6), null, emptyList()),
+        )
+        for ((candidate, standing, expected) in cases) {
+            val kinds = PersonalBests.prKinds(candidate, standing)
+            assertEquals(expected, kinds)
+            assertEquals(kinds.firstOrNull(), PersonalBests.prKind(candidate, standing))
+        }
+    }
 }

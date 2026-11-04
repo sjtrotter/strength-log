@@ -189,6 +189,8 @@ class HistoryRepository(
      *  with [sessionSets] to build the exported record. */
     suspend fun session(sessionId: Long): WorkoutSessionEntity? = sessionDao.sessionById(sessionId)
 
+    suspend fun sessionByRunId(runId: String): WorkoutSessionEntity? = sessionDao.sessionByRunId(runId)
+
     /** Exact rows removed by [deleteSession], retained briefly by the Log screen
      *  so undo can restore their primary keys and denormalized history verbatim. */
     data class DeletedSession(
@@ -246,9 +248,12 @@ class HistoryRepository(
      * simply absent from the result. Purely derived from session history —
      * never stored, never touches GOAL math.
      */
-    suspend fun personalRecords(exerciseIds: List<String>): Map<String, PersonalRecord> {
+    suspend fun personalRecords(
+        exerciseIds: List<String>,
+        excludingRunId: String? = null,
+    ): Map<String, PersonalRecord> {
         if (exerciseIds.isEmpty()) return emptyMap()
-        return sessionDao.personalRecordRows(exerciseIds).toPersonalRecordsByExercise()
+        return sessionDao.personalRecordRows(exerciseIds, excludingRunId).toPersonalRecordsByExercise()
     }
 
     // --- CSV history export/import --------------------------------------------

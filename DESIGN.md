@@ -53,7 +53,7 @@ Symbols, filled when selected), with each tab's title in its top bar (`ui/naviga
 | Timed-rep count and cardio distance | `ui/day/TimedRepCountSheet.kt`, `CardioExecution.kt` | The moment a timer ends | Record the count or distance just done |
 | Cardio page | `ui/day/CardioPresentation.kt` | Treadmill or road, between intervals | Run the current cardio set |
 | Day edit and swap | `ui/day/DayEditSheet.kt` | Station taken, equipment missing | Change what today's day contains |
-| Receipt | `ui/day/SessionReceiptScreen.kt` | After Finish | Confirm the session saved, show a new top set, say what comes next |
+| Receipt | `ui/day/SessionReceiptScreen.kt` | After Finish | Confirm the session saved, show every lift's work and any record |
 | Share card | `ui/log/share/` | By explicit tap only | Make an image of one session |
 | History | `ui/log/LogScreen.kt`, `JournalSections.kt` | At home, later | Show what I did |
 | Plans | `ui/plan/PlansScreen.kt` | At home, or when the program changes | Pick a plan; open You to edit lifter facts |
@@ -171,8 +171,9 @@ day: C (goldenrod) takes dark text, the rest light (`onDayAccent`). The widget
 reads copies in `app/src/main/res/values/colors.xml`, since resources cannot read
 Kotlin; those copies change with the SSOT.
 
-Done green marks completed work only (dark `#3E8E5A`, light `#37774E`). Error is crimson
-`#C2334D` in both, so an error never reads as Day A. Numerals and display text are Barlow
+Done green marks completed work only (dark `#3E8E5A`, light `#37774E`). Error is
+`#E5677D` on dark (6.07:1 as text on `#0D0D0F`, 5.64:1 on `#16161A`) and `#B02A43` on light
+(5.61:1 on `#F1EFEA`), crimson so an error never reads as Day A. Numerals and display text are Barlow
 Condensed with tabular figures; body text is the platform sans. Corners are 4, 8, 10 and
 12 dp, 28 dp for dialogs and sheets, with pills outside the scale.
 
@@ -194,8 +195,7 @@ Known issue: `app/src/main/kotlin/cloud/trotter/log/strength/ui/theme/Theme.kt` 
 `primaryFixed` follow (lines 68, 94, 127, 145). Every stock control reading `primary` is Day A
 terracotta on every day and on admin screens. As text, `#C1440E` is 3.79:1 on `#0D0D0F`,
 3.52:1 on `#16161A` and 4.46:1 on `#F1EFEA`, all under 4.5:1. The 2026-10-30 audit (item 1)
-proposes a day-scoped scheme on the workout and a neutral primary elsewhere. Related: Error
-`#C2334D` as text on `#0D0D0F` is 3.58:1; only on-error text was measured when it was chosen.
+proposes a day-scoped scheme on the workout and a neutral primary elsewhere.
 
 ### Watch
 
@@ -215,6 +215,8 @@ Both surfaces:
 - Color means one thing. The day accent identifies the day and its one primary action;
   green marks completed work; accent text uses the derived foreground, raw accents are fills.
 - No emoji, confetti, streaks, badges or gradients. The new top set on the receipt is the one ceremony.
+- The PR label on the receipt is the one tonal tag: 15 % day accent over the background on dark,
+  10 % over the surface on light, emphasis text, pinned by `DayAccentTest`.
 - A missing value shows as missing: blank distance means unknown (`cardio-sets.md` §3); plate
   math says nothing rather than something wrong (`plate-math.md`).
 
@@ -309,7 +311,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 3. Dynamic color would replace the earth palette with the wallpaper's. Opt-in for neutral
    roles only, fully, or not at all?
 4. Light mode gaps: a light widget, a splash that follows the in-app choice, the share card
-   still dark? Error text on near-black needs a foreground variant or a rule against it.
+   still dark?
 5. Health Connect in Settings (#320): Settings has no row to grant or review permissions.
 6. Wear Material 3: move `:wear` to `compose-material3`? The direct cost is small (theme and
    `Text`); the question is whether any of its components fit the dial, and whether the tile

@@ -112,4 +112,20 @@ class DayAccentTest {
         val ratio = contrastRatio(DarkError, DarkBackground)
         assertTrue(ratio >= 4.5, "Error/on-error contrast is $ratio, below WCAG AA's 4.5:1")
     }
+
+    @Test
+    fun `every PR label container clears WCAG AA with the emphasis text`() {
+        for (isDark in listOf(true, false)) {
+            for (dayIndex in 0..6) {
+                val emphasis = if (isDark) accentBright(dayIndex) else accentDeep(dayIndex)
+                val ratio = contrastRatio(accentLabelContainer(dayIndex, isDark), emphasis)
+                assertTrue(
+                    ratio >= 4.5,
+                    "Day index $dayIndex PR label contrast is $ratio in ${if (isDark) "dark" else "light"}, below WCAG AA's 4.5:1",
+                )
+            }
+        }
+        assertEquals(Color(0xFF28150F), accentLabelContainer(0, true))
+        assertEquals(Color(0xFFF4E7DF), accentLabelContainer(0, false))
+    }
 }

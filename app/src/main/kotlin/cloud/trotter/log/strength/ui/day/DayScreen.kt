@@ -59,7 +59,7 @@ fun DayScreen(
     // A receipt replaces the workout, including its back handler and auto-sheet
     // effects. No workout nodes or sheet requests survive underneath it.
     if (sessionReceipt != null) {
-        SessionReceiptScreen(
+        LegacySessionReceiptScreen(
             receipt = sessionReceipt,
             onShare = onShareSession,
             onFinishSession = onFinishSession,

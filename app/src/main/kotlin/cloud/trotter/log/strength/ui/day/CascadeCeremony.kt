@@ -1,20 +1,10 @@
 package cloud.trotter.log.strength.ui.day
 
-import android.os.Parcelable
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import kotlinx.parcelize.Parcelize
-
-/** One new top set on the receipt: the previous high and its replacement. */
-@Parcelize
-data class CascadeLift(
-    val name: String,
-    val metDisplay: String,
-    val newDisplay: String,
-) : Parcelable
 
 object CascadeCeremonyBuilder {
 

@@ -149,11 +149,11 @@ internal fun SessionReceiptScreen(
             }
         }
     }
+    // A closed sheet consumes the result, including one that lands after it closed, so the next
+    // sheet never opens on a stale Saved or Failed.
+    LaunchedEffect(noteOpen, noteSave) { if (!noteOpen && noteSave != null) onNoteSaveHandled() }
     if (noteOpen && !receipt.cardio) {
-        NoteSheet(initialText = receipt.note, onSave = onSetNote, save = noteSave, onDismiss = {
-            noteOpen = false
-            onNoteSaveHandled()
-        })
+        NoteSheet(initialText = receipt.note, onSave = onSetNote, save = noteSave, onDismiss = { noteOpen = false })
     }
 }
 

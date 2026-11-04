@@ -28,7 +28,6 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -57,6 +56,7 @@ import java.time.ZoneId
 import kotlin.math.abs
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -160,6 +160,7 @@ class ReceiptScreenTest {
     fun kilogramsConvertBothCurrentAndPreviousValuesAndSpeech() {
         val row = receiptFixture().groups.first().rows.single().copy(
             sets = listOf(ReceiptSet(231.485, 5, 0)),
+            lines = listOf(ValueLine(231.485, listOf(0))),
             record = RecordMark(PrKind.WEIGHT, null, 0, ReceiptSet(220.462, 5, 0)),
         )
         setReceipt(receiptFixture().copy(unit = WeightUnit.KG, groups = listOf(ReceiptGroup(null, listOf(row)))))
@@ -475,6 +476,23 @@ class ReceiptScreenTest {
         rule.runOnIdle { save.value = NoteSave.Saved("Felt steady") }
         rule.onNodeWithText("NOTE").assertDoesNotExist()
         assertEquals(1, handled)
+    }
+
+    @Test
+    fun aNoteResultArrivingAfterTheSheetClosedNeverReachesTheNextSheet() {
+        val save = mutableStateOf<NoteSave?>(null)
+        var handled = 0
+        rule.setContent {
+            AppTheme {
+                SessionReceiptScreen(receiptFixture(), {}, {}, onSetNote = {}, noteSave = save.value,
+                    onNoteSaveHandled = { handled++; save.value = null })
+            }
+        }
+        // The sheet is closed when the late result lands.
+        rule.runOnIdle { save.value = NoteSave.Saved("Felt steady") }
+        rule.runOnIdle { assertNull(save.value); assertEquals(1, handled) }
+        rule.onNodeWithText("Add a note").performScrollTo().performClick()
+        rule.onNodeWithText("NOTE").assertExists()
     }
 
     @Test

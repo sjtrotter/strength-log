@@ -14,7 +14,6 @@ import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
-import cloud.trotter.log.strength.ui.day.formatRecordMetres
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -171,7 +170,7 @@ internal fun bestInterval(row: CardioReceiptRow): CardioInterval? {
 }
 
 @Composable
-internal fun visibleMetres(metres: Int): String = formatRecordMetres(metres)
+internal fun visibleMetres(metres: Int): String = String.format(Locale.US, "%,d m", metres)
 
 @Composable
 internal fun spokenMetres(metres: Int): String = String.format(Locale.US, "%,d", metres) + " " + stringResource(R.string.receipt_say_meters)

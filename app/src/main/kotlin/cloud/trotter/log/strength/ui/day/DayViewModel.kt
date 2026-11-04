@@ -1,6 +1,5 @@
 package cloud.trotter.log.strength.ui.day
 
-import android.content.Intent
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,6 +29,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.cardio.BootAnchor
+import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.generator.Rotation
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.glance.GlanceLines
@@ -412,22 +412,7 @@ class DayViewModel @Inject constructor(
 
     fun markNotificationPermissionAsked() = viewModelScope.launch { settings.markPhoneRestNotificationAsked() }
 
-    /**
-     * The finished session's receipt, with its new-top-set rows frozen at
-     * Finish. It lives in saved state until Done, so rotation and process death
-     * keep it; history is never read again to rebuild it. A deferred cardio
-     * receipt waits under its own key until no execution owns the screen.
-     */
-    val sessionReceipt = savedState.getStateFlow<SessionReceipt?>(KEY_SESSION_RECEIPT, null)
-
-    // Keep additions outside the legacy Parcelize layouts. Each payload belongs
-    // to one run, including while its receipt is deferred or distance is pending.
-    val sessionCardioRecords: StateFlow<List<CardioReceiptRecord>> = sessionReceipt.map { receipt ->
-        receipt?.cardio?.let { savedState.get<ArrayList<CardioReceiptRecord>>(cardioRecordsKey(it)) }.orEmpty()
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
     private fun cardioBestsKey(run: CardioRun) = "day_cardio_standing_bests:${run.runId}"
-    private fun cardioRecordsKey(run: CardioRun) = "day_cardio_receipt_records:${run.runId}"
 
     private suspend fun standingBestsFor(run: CardioRun): List<SavedCardioBest> {
         savedState.get<ArrayList<SavedCardioBest>>(cardioBestsKey(run))?.let { return it }
@@ -442,21 +427,7 @@ class DayViewModel @Inject constructor(
 
     private fun clearCardioRecordState(run: CardioRun) {
         savedState.remove<ArrayList<SavedCardioBest>>(cardioBestsKey(run))
-        savedState.remove<ArrayList<CardioReceiptRecord>>(cardioRecordsKey(run))
     }
-
-    private fun clearReceiptRecords() {
-        sessionReceipt.value?.cardio?.let(::clearCardioRecordState)
-    }
-
-    /**
-     * The receipt's SHARE payoff, built by the one service that builds share
-     * intents anywhere in this app (session-share brief §4). Set only by
-     * [shareSession] and cleared by [shareHandled] once the screen has launched
-     * it, so a rotation mid-chooser doesn't fire a second one.
-     */
-    private val _pendingShare = MutableStateFlow<Intent?>(null)
-    val pendingShare: StateFlow<Intent?> = _pendingShare.asStateFlow()
 
     /**
      * The standing undo offers for removed sets, oldest first — a bounded LIFO
@@ -476,6 +447,7 @@ class DayViewModel @Inject constructor(
     private var undoWindowJob: Job? = null
 
     internal val editor: DayEditor
+    internal val finisher: SessionFinisher
 
     init {
         viewModelScope.launch {
@@ -518,6 +490,30 @@ class DayViewModel @Inject constructor(
             otherWorkoutOpenMessage = otherWorkoutOpenMessage,
             plans = plans,
             catalog = catalog,
+        )
+
+        finisher = SessionFinisher(
+            repo = repo,
+            historyRepository = historyRepository,
+            plans = plans,
+            catalog = catalog,
+            settings = settings,
+            sessionPublisher = sessionPublisher,
+            shareCardService = shareCardService,
+            savedState = savedState,
+            scope = viewModelScope,
+            mutationLock = mutationLock,
+            clock = clock,
+            afterCommit = { day, nextDayId ->
+                phoneRest.skip()
+                if (timedRepEvent.value?.dayId == day) clearTimedRep()
+                closeUndoWindow()
+                savedState[KEY_VIEW_SELECTION] = null
+                pinHeldFor = day.takeIf { nextDayId != day && effectiveDayId.value == day }
+                savedState[KEY_SELECTED_PAGE] = null
+                closeSheet()
+            },
+            executionActive = { executionActive },
         )
 
         viewModelScope.launch {
@@ -875,8 +871,6 @@ class DayViewModel @Inject constructor(
         }
         // Keep the first due receipt when another run finishes before the screen is free.
         if (deferredCardioReceipt.value == null) {
-            savedState[cardioRecordsKey(run)] = ArrayList(run.receiptRecords(standingBestsFor(run)))
-            savedState.remove<ArrayList<SavedCardioBest>>(cardioBestsKey(run))
             savedState[KEY_DEFERRED_CARDIO_RECEIPT] = run
         } else {
             clearCardioRecordState(run)
@@ -892,16 +886,19 @@ class DayViewModel @Inject constructor(
         val run = deferredCardioReceipt.value ?: return
         val advancedTo = plans.plansFlow.first().firstOrNull { it.id == run.planId }?.suggestedDayId
         val sessionId = requireNotNull(run.sessionId)
-        val completedAt = historyRepository.cardioSession(sessionId)?.completedAt ?: cardioClock.wallMillis()
+        val standing = try {
+            standingBestsFor(run)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
+        }
+        val session = historyRepository.cardioSession(sessionId)
         if (executionActive) return
+        finisher.showCardio(run, standing?.let { CardioBests.bests(run.block.activity, it.map(SavedCardioBest::toDomain)) }, session)
+        if (executionActive) return
+        savedState.remove<ArrayList<SavedCardioBest>>(cardioBestsKey(run))
         savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
-        clearReceiptRecords()
-        savedState[KEY_SESSION_RECEIPT] = SessionReceipt(
-            sessionId = sessionId, dayId = run.dayId, dayIndex = run.dayIndex,
-            completedAt = completedAt, minutes = null,
-            completedSetCount = 0, totalSetCount = 0, setCount = 0, newTopSets = emptyList(),
-            nextDayLine = run.nextDayTitle, cardio = run,
-        )
         if (currentDay() == run.dayId) {
             savedState[KEY_VIEW_SELECTION] = null
             pinHeldFor = run.dayId.takeIf { advancedTo != it && effectiveDayId.value == it }
@@ -1426,105 +1423,12 @@ class DayViewModel @Inject constructor(
         viewModelScope.launch { repo.setExerciseNote(programExerciseId, text) }
     }
 
-    fun setReceiptNote(text: String) {
-        val sessionId = sessionReceipt.value?.sessionId ?: return
-        val clean = text.trim().take(120)
-        viewModelScope.launch {
-            historyRepository.setSessionNote(sessionId, clean)
-            sessionReceipt.value?.takeIf { it.sessionId == sessionId }?.let {
-                savedState[KEY_SESSION_RECEIPT] = it.copy(note = clean)
-            }
-        }
-    }
-
-    /** DONE — advance: record the session (A1), follow the new suggested day,
-     *  then hand the just-written session to Health Connect (D7 trigger
-     *  point). The publish is fired after `finishRun` returns and never
-     *  blocks or fails the completion — [SessionPublisher] swallows every
-     *  failure path, and the no-op binding covers devices without HC.
-     *
-     *  The all-time top-set highs are read *before* the advance appends to
-     *  history; comparing them with what the session actually recorded is the
-     *  new-top-set trigger. Those rows are frozen in saved state with the
-     *  receipt, from one fetch of the committed session's sets. The completed
-     *  day's id is captured before [TrackerRepository.finishRun]
-     *  moves the pointer, when "the current day" becomes the next one. */
     fun completeDay() {
         val day = currentDay() ?: return
         val state = dayState.value.takeIf { it.viewDayId == day && it.runOpen } ?: return
         val planId = state.planId ?: return
         val runId = state.runId ?: return
-        mutate {
-            // Counted from the log itself, under the lock: uiState is either
-            // the loading placeholder (nobody collecting) or fed by a flow
-            // that seeds under this same lock, so waiting on it here would
-            // deadlock. Rounds only — the header counts the same way.
-            val tracks = repo.dayTracksFlow(planId, day).first()
-            if (!tracks.runOpen || tracks.runId != runId) return@mutate
-            closeUndoWindow()
-            val rounds = tracks.tracks.filter { Slot.isRound(it.slot) }
-            val completedSetCount = rounds.sumOf { track -> track.sets.count { it.done } } + tracks.retiredRoundsDone
-            val totalSetCount = rounds.sumOf { it.sets.size } + tracks.retiredRoundsDone
-            if (tracks.tracks.none { track -> track.sets.any { it.done } } &&
-                tracks.retired.none { track -> track.sets.any { it.done } }
-            ) return@mutate
-            val program = plans.programFor(planId).first()
-            val previousHighs = CascadeCeremonyBuilder.allTimeHighs(historyRepository.topSetHistoryFlow.first())
-            val sessionId = repo.finishRun(runId) ?: return@mutate
-            phoneRest.skip()
-            if (timedRepEvent.value?.dayId == day) clearTimedRep()
-            savedState[KEY_VIEW_SELECTION] = null
-            val nextDayId = plans.plansFlow.first().firstOrNull { it.id == planId }?.suggestedDayId
-            pinHeldFor = day.takeIf { nextDayId != day && effectiveDayId.value == day }
-            savedState[KEY_SELECTED_PAGE] = null
-            closeSheet()
-            val unit = settings.unitFlow.first()
-            val sessionSets = historyRepository.sessionSets(sessionId)
-            val session = historyRepository.session(sessionId)
-            val newTopSets = CascadeCeremonyBuilder.from(
-                previousHighs = previousHighs,
-                sessionSets = sessionSets,
-                unit = unit,
-            )
-            clearReceiptRecords()
-            savedState[KEY_SESSION_RECEIPT] = SessionReceiptBuilder.from(
-                sessionId = sessionId,
-                dayId = day,
-                dayIndex = Program.accentIndex(day),
-                startedAt = session?.startedAt,
-                completedAt = session?.completedAt ?: cardioClock.wallMillis(),
-                completedSetCount = completedSetCount,
-                totalSetCount = totalSetCount,
-                sessionSets = sessionSets,
-                newTopSets = newTopSets,
-                nextDayId = nextDayId,
-                nextDayTitle = program.days.firstOrNull { it.id == nextDayId }?.title.orEmpty(),
-            )
-            viewModelScope.launch { sessionPublisher.publish(sessionId) }
-        }
-    }
-
-    /** Returns whether the receipt closed and navigation back to Today is safe. */
-    fun dismissSessionReceipt(): Boolean {
-        if (executionActive || sessionReceipt.value == null) return false
-        clearReceiptRecords()
-        savedState[KEY_SESSION_RECEIPT] = null
-        return true
-    }
-
-    /** The receipt's SHARE. Renders off the main thread inside
-     *  [ShareCardService]; a session that somehow no longer resolves simply
-     *  produces no intent and no chooser. */
-    fun shareSession() {
-        val sessionId = sessionReceipt.value?.sessionId ?: return
-        viewModelScope.launch {
-            shareCardService.buildShareIntent(sessionId)?.let { _pendingShare.value = it }
-        }
-    }
-
-    /** Called once the screen has launched [pendingShare], so it doesn't fire again. */
-    fun shareHandled() {
-        _pendingShare.value = null
+        finisher.start(runId, planId, day, Program.accentIndex(day), dayState.value.dayTitle)
     }
 
     fun skipLift(programExerciseId: Long, half: String) {
@@ -2072,7 +1976,6 @@ class DayViewModel @Inject constructor(
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"
         const val KEY_CARDIO_RUN = "day_cardio_run"
         const val KEY_CARDIO_DISTANCES = "day_cardio_distances"
-        const val KEY_SESSION_RECEIPT = "day_session_receipt"
         const val KEY_DEFERRED_CARDIO_RECEIPT = "day_deferred_cardio_receipt"
         const val STOP_TIMEOUT_MS = 5_000L
         const val CARDIO_TICK_MS = 1_000L

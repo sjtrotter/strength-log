@@ -1300,11 +1300,20 @@ class TrackerRepository(
     }
 
     /** Archives a run once, carries forward its working values, and advances its day. */
-    suspend fun finishRun(runId: String): Long? {
+    suspend fun finishRun(runId: String): Long? = finishRunCapturing(runId)?.sessionId
+
+    /** A finished run's session and the tracks it archived; [tracks] is null when an
+     *  earlier finish already archived the run. */
+    data class FinishedRun(val sessionId: Long, val tracks: List<RunTrack>?)
+
+    /** [finishRun], also returning the exact tracks the transaction archived, so a caller
+     *  describing the session cannot disagree with it after a concurrent edit (the watch's
+     *  applier does not share the phone's lock). */
+    suspend fun finishRunCapturing(runId: String): FinishedRun? {
         val bodyweight = plans.configFlow.first().bodyweightLb
         val catalog = this.catalog.snapshot()
         return db.withTransaction {
-            sessionDao.sessionByRunId(runId)?.let { return@withTransaction it.id }
+            sessionDao.sessionByRunId(runId)?.let { return@withTransaction FinishedRun(it.id, null) }
             val run = runDao.openRun()?.takeIf { it.id == runId } ?: return@withTransaction null
             val tracks = runDao.tracks(runId)
             val now = clock.millis()
@@ -1317,7 +1326,7 @@ class TrackerRepository(
             }
             runDao.deleteTracks(runId)
             runDao.deleteRun(runId)
-            sessionId
+            FinishedRun(sessionId, tracks.map { it.toRunTrack() })
         }
     }
 

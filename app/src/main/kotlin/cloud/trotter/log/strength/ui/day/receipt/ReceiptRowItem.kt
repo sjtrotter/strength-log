@@ -20,9 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -37,7 +35,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,7 +42,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -110,10 +109,16 @@ internal fun ExpandableReceiptRow(
             leadingContent = gutter?.let { { Text(it, style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(32.dp)) } },
             supportingContent = {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
-                    maxItemsInEachRow = if (labelOnOwnLine) 1 else Int.MAX_VALUE) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp), content = values)
-                    if (recordKind != null) PrLabel(recordKind, dayIndex)
+                if (labelOnOwnLine) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp), content = values)
+                        if (recordKind != null) PrLabel(recordKind, dayIndex)
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp), content = values)
+                        if (recordKind != null) PrLabel(recordKind, dayIndex)
+                    }
                 }
             },
             colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0f)),
@@ -139,10 +144,7 @@ internal fun ExpandableReceiptRow(
 
 @Composable
 private fun ReceiptChildren(content: @Composable () -> Unit) {
-    Row(Modifier.padding(start = 24.dp, end = 16.dp, bottom = 8.dp).height(IntrinsicSize.Min)) {
-        VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.fillMaxHeight())
-        Column(Modifier.padding(start = 15.dp)) { content() }
-    }
+    Column(Modifier.padding(start = 24.dp, end = 16.dp, bottom = 8.dp).indentRule().padding(start = 16.dp)) { content() }
 }
 
 @Composable
@@ -164,10 +166,7 @@ internal fun SupersetGroup(rounds: Int, content: @Composable ColumnScope.() -> U
     Text(pluralStringResource(R.plurals.receipt_superset_rounds, rounds, rounds),
         style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp))
-    Row(Modifier.padding(start = 24.dp, top = 4.dp, bottom = 4.dp).height(IntrinsicSize.Min)) {
-        VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.fillMaxHeight())
-        Column(content = content)
-    }
+    Column(Modifier.padding(start = 24.dp, top = 4.dp, bottom = 4.dp).indentRule(), content = content)
 }
 
 /**
@@ -325,4 +324,15 @@ internal fun CardioReceiptRowItem(row: CardioReceiptRow, dayIndex: Int, rowKey: 
             }
             if (row.recoverySeconds.isNotEmpty()) ReceiptAfter(recoveryText(row.recoverySeconds), recoveryText(row.recoverySeconds, spoken = true))
         })
+}
+
+/** The rule down the left of indented content, drawn rather than laid out: a VerticalDivider
+ *  needs an intrinsic-height parent, and the rows inside report unreliable intrinsics. */
+@Composable
+private fun Modifier.indentRule(): Modifier {
+    val color = MaterialTheme.colorScheme.outlineVariant
+    return drawBehind {
+        val x = 0.5.dp.toPx()
+        drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1.dp.toPx())
+    }
 }

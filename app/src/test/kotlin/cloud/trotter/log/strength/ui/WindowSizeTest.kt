@@ -12,9 +12,8 @@ import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.ui.day.DayEditUiState
 import cloud.trotter.log.strength.ui.day.withWorkoutSelection
 import cloud.trotter.log.strength.ui.day.DayScreen
-import cloud.trotter.log.strength.ui.day.CascadeLift
-import cloud.trotter.log.strength.ui.day.SessionReceipt
-import cloud.trotter.log.strength.ui.day.LegacySessionReceiptScreen
+import cloud.trotter.log.strength.ui.day.SessionReceiptScreen
+import cloud.trotter.log.strength.ui.day.receipt.receiptFixture
 import cloud.trotter.log.strength.ui.day.workoutActions
 import cloud.trotter.log.strength.ui.day.workoutEditActions
 import cloud.trotter.log.strength.ui.day.workoutDayFixture
@@ -77,19 +76,8 @@ class WindowSizeTest {
     fun theReceiptCoversTheWindowButItsContentKeepsTheReadableCap() {
         composeTestRule.setContent {
             AppTheme {
-                LegacySessionReceiptScreen(
-                    receipt = SessionReceipt(
-                        sessionId = 1L,
-                        dayIndex = 0,
-                        dayId = "A",
-                        completedAt = 1_793_361_600_000L,
-                        minutes = 52,
-                        completedSetCount = 18,
-                        totalSetCount = 18,
-                        setCount = 18,
-                        newTopSets = listOf(CascadeLift("Barbell Back Squat", "235", "245")),
-                        nextDayLine = "Day B, Upper",
-                    ),
+                SessionReceiptScreen(
+                    receipt = receiptFixture(),
                     onShare = {},
                     onFinishSession = {},
                     modifier = Modifier.testTag("receipt"),
@@ -101,7 +89,7 @@ class WindowSizeTest {
         assertEquals("the receipt must cover the whole window", root,
             composeTestRule.onNodeWithTag("receipt").fetchSemanticsNode().size)
         val readable = with(composeTestRule.density) { ReadableWidth.toPx() }
-        val headline = composeTestRule.onNodeWithText("Day A, done.").fetchSemanticsNode().boundsInRoot
+        val headline = composeTestRule.onNodeWithText("Squat focus, done.").fetchSemanticsNode().boundsInRoot
         val back = composeTestRule.onNodeWithText("Done").fetchSemanticsNode().boundsInRoot
 
         assertTrue(

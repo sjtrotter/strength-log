@@ -312,7 +312,7 @@ class OverviewNavigationTest {
         }
         rule.waitUntil(5_000) { rule.runOnIdle { dayVm.uiState.value.doneSets > 0 } }
         rule.runOnIdle { dayVm.completeDay() }
-        rule.waitUntil(5_000) { rule.runOnIdle { dayVm.sessionReceipt.value != null } }
+        rule.waitUntil(5_000) { rule.runOnIdle { dayVm.finisher.receipt.value != null } }
         rule.waitUntil(5_000) { rule.onAllNodes(hasText("Done")).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("Done").performClick()
         rule.waitUntil(5_000) { rule.runOnIdle { nav.currentDestination?.route == Routes.TODAY } }

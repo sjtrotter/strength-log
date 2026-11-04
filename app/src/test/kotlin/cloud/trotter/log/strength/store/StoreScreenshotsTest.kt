@@ -46,8 +46,8 @@ import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.ExerciseCardState
 import cloud.trotter.log.strength.ui.day.OpenSheet
 import cloud.trotter.log.strength.ui.day.PartnerRowState
-import cloud.trotter.log.strength.ui.day.CascadeLift
-import cloud.trotter.log.strength.ui.day.SessionReceipt
+import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.ui.day.receipt.receiptFixture
 import cloud.trotter.log.strength.ui.day.SetRowState
 import cloud.trotter.log.strength.ui.log.JournalUiState
 import cloud.trotter.log.strength.ui.log.LogActions
@@ -238,23 +238,12 @@ class StoreScreenshotsTest {
         renderDay(
             "06-receipt.png",
             day,
-            SessionReceipt(
-                sessionId = 1L,
-                dayIndex = day.dayIndex,
-                dayId = "A",
-                completedAt = Instant.parse("2026-10-30T18:00:00Z").toEpochMilli(),
-                minutes = 52,
-                completedSetCount = 18,
-                totalSetCount = 18,
-                setCount = 18,
-                newTopSets = listOf(CascadeLift("Barbell Back Squat", "235", "245")),
-                nextDayLine = "Day B, Upper",
-            ),
-            // render() advances 2 s: the 300 ms strike and 500 ms roll are finished.
+            receiptFixture(),
+            // render() advances 2 s, past the 300 ms delay and 400 ms roll.
             beforeCapture = {
-                composeTestRule.onNodeWithText("235", useUnmergedTree = true).assertExists()
-                composeTestRule.onNodeWithText("245", useUnmergedTree = true).assertExists()
-                composeTestRule.onNodeWithText("18 sets in 52 min").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Squat focus, done.").assertIsDisplayed()
+                composeTestRule.onNodeWithText("Weight PR", useUnmergedTree = true).assertIsDisplayed()
+                composeTestRule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
             },
         )
     }
@@ -348,7 +337,7 @@ class StoreScreenshotsTest {
     private fun renderDay(
         name: String,
         state: DayUiState,
-        receipt: SessionReceipt? = null,
+        receipt: WorkoutReceipt? = null,
         edit: DayEditUiState = dayEditState(state),
         beforeCapture: () -> Unit = {},
     ) {
@@ -358,7 +347,7 @@ class StoreScreenshotsTest {
                 actions = dayActions(),
                 dayEditState = edit,
                 dayEditActions = dayEditActions(),
-                sessionReceipt = receipt,
+                receipt = receipt,
                 onBack = {},
             )
         }
@@ -366,7 +355,6 @@ class StoreScreenshotsTest {
 
     @OptIn(ExperimentalRoborazziApi::class)
     private fun render(name: String, beforeCapture: () -> Unit = {}, content: @Composable () -> Unit) {
-        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             AppTheme(preference = ThemePreference.DARK, content = content)
         }

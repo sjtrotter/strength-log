@@ -22,7 +22,7 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.db.dao.LastPerformedRow
 import cloud.trotter.log.strength.data.db.dao.SessionDao
-import cloud.trotter.log.strength.data.db.dao.TopSetRow
+import cloud.trotter.log.strength.data.db.dao.PersonalRecordRow
 import kotlinx.coroutines.flow.emitAll
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
@@ -134,10 +134,12 @@ class DayViewModelWiringTest {
                     return db.sessionDao().lastPerformedRows(exerciseIds)
                 }
 
-                override fun observeTopSets(topKind: String): Flow<List<TopSetRow>> = flow {
-                    finishReadReady?.complete(Unit)
-                    finishReadGate?.await()
-                    emitAll(db.sessionDao().observeTopSets(topKind))
+                override suspend fun personalRecordRows(exerciseIds: List<String>, excludedRunId: String?): List<PersonalRecordRow> {
+                    if (excludedRunId != null) {
+                        finishReadReady?.complete(Unit)
+                        finishReadGate?.await()
+                    }
+                    return db.sessionDao().personalRecordRows(exerciseIds, excludedRunId)
                 }
             },
             customExerciseDao = db.customExerciseDao(),
@@ -882,8 +884,8 @@ class DayViewModelWiringTest {
 
         assertTrue(repo.history.sessionSummariesFlow.first().isNotEmpty())
         assertEquals("A", vm.uiState.value.viewDayId)
-        // The receipt reads the plan as committed after Finish: only Day A is left, so A is up next.
-        assertEquals("Day A, Day A", vm.sessionReceipt.value?.nextDayLine)
+        assertEquals("A", repo.plans.suggestedDayFlow.first())
+        assertEquals("Day A", vm.finisher.receipt.value?.dayTitle)
         assertNull(handle.get<OpenSheet>("day_open_sheet"))
         assertNull(vm.uiState.value.openSheet)
         val pageKey = "exercise:${slotId("ez_curl")}"
@@ -1424,10 +1426,12 @@ class DayViewModelWiringTest {
             }
             vm.completeDay()
             advanceUntilIdle()
-            val receipt = requireNotNull(vm.sessionReceipt.value)
-            assertEquals(0, receipt.setCount)
-            assertEquals(0, receipt.completedSetCount)
-            assertTrue(repo.history.sessionSets(receipt.sessionId).any { it.slot == Slot.SS && it.done })
+            val receipt = requireNotNull(vm.finisher.receipt.value)
+            assertTrue(receipt.groups.filter { it.rounds != null }.all { it.rounds == 0 })
+            assertTrue(receipt.groups.flatMap { it.rows }.any { it.sets.isNotEmpty() })
+            val archived = repo.history.sessionSets(receipt.sessionId)
+            assertEquals(0, archived.count { Slot.isRound(it.slot) && it.done })
+            assertTrue(archived.any { it.slot == Slot.SS && it.done })
             collect.cancel()
             vm.viewModelScope.cancel()
         }
@@ -1955,7 +1959,7 @@ class DayViewModelWiringTest {
 
         assertTrue(repo.history.sessionSummariesFlow.first().isEmpty())
         assertEquals("A", repo.plans.suggestedDayFlow.first())
-        assertNull(vm.sessionReceipt.value)
+        assertNull(vm.finisher.receipt.value)
         collect.cancel()
     }
 
@@ -2523,11 +2527,13 @@ class DayViewModelWiringTest {
         val total = vm.uiState.value.totalSets
         vm.completeDay()
         advanceUntilIdle()
-        val receipt = vm.sessionReceipt.value!!
-        assertEquals(2, receipt.completedSetCount)
-        assertEquals(total, receipt.totalSetCount)
-        assertEquals(2, receipt.setCount)
+        val receipt = vm.finisher.receipt.value!!
+        val rows = receipt.groups.flatMap { it.rows }
+        assertEquals(2, rows.sumOf { it.sets.size })
+        assertEquals(listOf("Barbell Bench Press", "DB Bench Press"), rows.map { it.name })
+        assertEquals(listOf(2, 0), rows.map { it.sets.size })
         val archived = repo.history.sessionSets(receipt.sessionId)
+        assertEquals(total, archived.count { Slot.isRound(it.slot) })
         val completed = archived.filter { it.done }
         assertEquals(2, completed.size)
         assertTrue(completed.all { it.exerciseId == "bb_bench" })
@@ -2556,9 +2562,12 @@ class DayViewModelWiringTest {
         assertEquals(total, vm.uiState.value.totalSets)
         vm.completeDay()
         advanceUntilIdle()
-        assertEquals(1, vm.sessionReceipt.value!!.completedSetCount)
-        assertEquals(total, vm.sessionReceipt.value!!.totalSetCount)
-        assertEquals(1, vm.sessionReceipt.value!!.setCount)
+        val groups = vm.finisher.receipt.value!!.groups
+        assertEquals(1, groups.single { it.rounds != null }.rounds)
+        assertEquals(2, groups.flatMap { it.rows }.sumOf { it.sets.size })
+        val archived = repo.history.sessionSets(vm.finisher.receipt.value!!.sessionId)
+        assertEquals(total, archived.count { Slot.isRound(it.slot) })
+        assertEquals(1, archived.count { Slot.isRound(it.slot) && it.done })
         collect.cancel()
     }
 

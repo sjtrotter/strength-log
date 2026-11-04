@@ -189,8 +189,6 @@ class HistoryRepository(
      *  with [sessionSets] to build the exported record. */
     suspend fun session(sessionId: Long): WorkoutSessionEntity? = sessionDao.sessionById(sessionId)
 
-    suspend fun sessionByRunId(runId: String): WorkoutSessionEntity? = sessionDao.sessionByRunId(runId)
-
     /** Exact rows removed by [deleteSession], retained briefly by the Log screen
      *  so undo can restore their primary keys and denormalized history verbatim. */
     data class DeletedSession(

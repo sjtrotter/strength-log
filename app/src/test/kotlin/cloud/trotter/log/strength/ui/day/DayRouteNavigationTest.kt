@@ -279,7 +279,7 @@ class DayRouteNavigationTest {
         }
         rule.runOnIdle {
             assertTrue(viewModel.executionActive)
-            assertNull(viewModel.sessionReceipt.value)
+            assertNull(viewModel.finisher.receipt.value)
             assertNull(viewModel.uiState.value.openSheet)
             assertTrue(view.keepScreenOn)
             assertNotNull(alarm.deadline)

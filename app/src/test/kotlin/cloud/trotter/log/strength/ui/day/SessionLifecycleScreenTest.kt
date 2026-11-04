@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
@@ -15,16 +16,18 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
-import cloud.trotter.log.strength.data.serialization.CardioBlockJson
-import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
-import java.time.LocalDate
-import java.time.ZoneId
+import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
+import cloud.trotter.log.strength.ui.day.receipt.NoteSave
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSet
+import cloud.trotter.log.strength.ui.day.receipt.ValueLine
+import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.ui.day.receipt.cardioReceiptFixture
+import cloud.trotter.log.strength.ui.day.receipt.receiptFixture
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -100,26 +103,34 @@ class SessionLifecycleScreenTest {
     fun theReceiptReadsBackTheSessionThatJustEnded() {
         setDayContent(dayState(done = 3), receipt = receipt)
 
-        listOf("Day A, done.", "Friday, Oct 30", "18 sets in 52 min", "New top set",
-            "Next", "Day B, Upper", "Add a note", "Done").forEach {
-            composeTestRule.onNodeWithText(it).assertExists()
+        listOf("Squat focus, done.", "Four-day strength", "Tuesday, Nov 3, 58 min", "Weight PR",
+            "Add a note", "Done").forEach {
+            composeTestRule.onNodeWithText(it, useUnmergedTree = true).assertExists()
         }
-        composeTestRule.onNodeWithContentDescription("Barbell Back Squat, new top set 245, up from 235").assertExists()
+        composeTestRule.onNodeWithContentDescription("Barbell Back Squat. Top set, 245 pounds for 5 reps. Weight record, up from 240 pounds for 5 reps.").assertExists()
         composeTestRule.onNodeWithContentDescription("Share").assertHasClickAction()
     }
 
     @Test
-    fun partialReceiptShowsCompletedAndTotalSetsAndMinutes() {
-        setDayContent(dayState(done = 3), receipt = receipt.copy(completedSetCount = 9, minutes = 31))
-        composeTestRule.onNodeWithText("Day A, done.").assertExists()
-        composeTestRule.onNodeWithText("9 of 18 sets in 31 min").assertExists()
+    fun partialReceiptShowsOnlyTheLoggedSetsAndMinutes() {
+        val curlGroup = receiptFixture().groups.first { group -> group.rows.any { it.name == "Dumbbell Curl" } }
+        val curl = curlGroup.rows.single()
+        val partial = curl.copy(sets = curl.sets.take(2), lines = listOf(ValueLine(35.0, listOf(0, 1))))
+        setDayContent(dayState(done = 2), receipt = receipt.copy(minutes = 31,
+            groups = listOf(curlGroup.copy(rows = listOf(partial)))))
+        composeTestRule.onNodeWithText("Squat focus, done.").assertExists()
+        composeTestRule.onNodeWithText("Tuesday, Nov 3, 31 min").assertExists()
+        composeTestRule.onNodeWithText("35 × 10, 10", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithContentDescription("Dumbbell Curl. 35 pounds: 10 and 10 reps. Rep record on set 1, up from 35 pounds for 9 reps.").performClick()
+        composeTestRule.onNodeWithText("Planned 3 × 10 at 35", useUnmergedTree = true).assertExists()
     }
 
     @Test
-    fun unknownStartShowsSetsWithoutInventingMinutes() {
-        setDayContent(dayState(done = 3), receipt = receipt.copy(minutes = null, newTopSets = emptyList()))
-        composeTestRule.onNodeWithText("18 sets").assertExists()
-        composeTestRule.onNodeWithText("New top set").assertDoesNotExist()
+    fun unknownStartShowsTheDateWithoutInventingMinutes() {
+        setDayContent(dayState(done = 3), receipt = receipt.copy(minutes = null, groups = receipt.groups.map { group -> group.copy(rows = group.rows.map { it.copy(record = null) }) }))
+        composeTestRule.onNodeWithText("Tuesday, Nov 3").assertExists()
+        composeTestRule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("Weight PR", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -151,13 +162,11 @@ class SessionLifecycleScreenTest {
 
     @Test
     fun cardioKeepsItsResultsWithoutShareOrNote() {
-        val json = CardioBlockJson.encode(requireNotNull(cardioFixture().block))
-        val cardio = CardioRun(1L, "Plan", "A", 0, json, json, true, "Day B, Upper",
-            results = listOf(SavedCardioResult(CardioSetStatus.FINISHED.name, 300)))
-        setDayContent(dayState(done = 3), receipt = receipt.copy(cardio = cardio, newTopSets = emptyList(), note = "Strength note"))
-        composeTestRule.onNodeWithText("Day A, done.").assertExists()
-        composeTestRule.onNodeWithText("Road run").assertExists()
-        composeTestRule.onNodeWithText("Logged 5:00").assertExists()
+        setDayContent(dayState(done = 3), receipt = cardioReceiptFixture().copy(note = "Strength note"))
+        composeTestRule.onNodeWithText("Intervals, done.").assertExists()
+        composeTestRule.onNodeWithText("Track run").assertExists()
+        composeTestRule.onNodeWithText("1:38", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("5:00", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithContentDescription("Share").assertDoesNotExist()
         composeTestRule.onNodeWithText("Add a note").assertDoesNotExist()
         composeTestRule.onNodeWithText("Edit note").assertDoesNotExist()
@@ -168,14 +177,13 @@ class SessionLifecycleScreenTest {
     @Test
     fun reducedMotionShowsBothFinalNumbersImmediately() {
         setAnimatorScale(0f)
-        composeTestRule.mainClock.autoAdvance = false
         setDayContent(dayState(done = 3), receipt = receipt)
-        composeTestRule.onNodeWithText("235", useUnmergedTree = true).assertExists()
-        composeTestRule.onNodeWithText("245", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
     }
 
     @Test
-    fun restoringDuringTheStrikeShowsTheEndStateWithoutAnotherHaptic() {
+    fun restoringDuringTheRollShowsTheEndStateWithoutAnotherHaptic() {
         val restoration = StateRestorationTester(composeTestRule)
         val feedback = mutableListOf<HapticFeedbackType>()
         val haptics = object : HapticFeedback {
@@ -183,44 +191,52 @@ class SessionLifecycleScreenTest {
                 feedback += hapticFeedbackType
             }
         }
-        composeTestRule.mainClock.autoAdvance = false
         restoration.setContent {
             CompositionLocalProvider(LocalHapticFeedback provides haptics) {
-                AppTheme { LegacySessionReceiptScreen(receipt, {}, {}) }
+                AppTheme { SessionReceiptScreen(receipt, {}, {}) }
             }
         }
         composeTestRule.mainClock.advanceTimeBy(160)
         assertEquals(listOf(HapticFeedbackType.Confirm), feedback)
 
-        // A paused test clock never recomposes the restored content, so the clock
-        // runs from here. The saved `played` flag gates both the haptic and the
-        // animation, so a single haptic after restore also means no replay.
-        composeTestRule.mainClock.autoAdvance = true
         restoration.emulateSavedInstanceStateRestore()
 
-        composeTestRule.onNodeWithText("235", useUnmergedTree = true).assertExists()
-        composeTestRule.onNodeWithText("245", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
         assertEquals(listOf(HapticFeedbackType.Confirm), feedback)
     }
 
     @Test
     fun theRollPreservesFractionalWeights() {
-        setDayContent(dayState(done = 3), receipt = receipt.copy(
-            newTopSets = listOf(CascadeLift("Barbell Back Squat", "100.25", "102.75"))))
-        composeTestRule.onNodeWithText("100.25", useUnmergedTree = true).assertExists()
-        composeTestRule.onNodeWithText("102.75", useUnmergedTree = true).assertExists()
+        val group = receipt.groups.single()
+        val row = group.rows.single()
+        setDayContent(dayState(done = 3), receipt = receipt.copy(groups = listOf(group.copy(rows = listOf(row.copy(
+            sets = listOf(ReceiptSet(102.75, 5, 0)),
+            lines = row.lines.map { it.copy(weightLb = 102.75) },
+            record = requireNotNull(row.record).copy(previous = ReceiptSet(100.25, 5, 0)),
+        ))))))
+        composeTestRule.onNodeWithText("100.25 × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("102.75 × 5", useUnmergedTree = true).assertExists()
     }
 
     @Test
     fun noteOpensOnTheReceiptAndReportsThroughTheSharedSheet() {
         var savedNote = ""
+        val save = mutableStateOf<NoteSave?>(null)
         composeTestRule.setContent {
-            AppTheme { LegacySessionReceiptScreen(receipt, {}, {}, onSetReceiptNote = { savedNote = it }) }
+            AppTheme {
+                DayScreen(dayState(done = 3), dayActions().copy(onSetSessionNote = {
+                    savedNote = it
+                    save.value = NoteSave.Saved(it)
+                }), dayEditState, noopEditActions(), receipt = receipt, noteSave = save.value,
+                    onNoteSaveHandled = { save.value = null })
+            }
         }
         composeTestRule.onNodeWithText("Add a note").performClick()
         composeTestRule.onNodeWithText("NOTE").performTextReplacement("Felt steady")
         composeTestRule.onNodeWithText("DONE").performClick()
         assertEquals("Felt steady", savedNote)
+        composeTestRule.onNodeWithText("NOTE").assertDoesNotExist()
     }
 
     @Test
@@ -232,14 +248,14 @@ class SessionLifecycleScreenTest {
     }
 
     @Test
-    fun largeFontCanScrollToDone() {
+    fun largeFontKeepsDoneVisible() {
         composeTestRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
-                AppTheme { LegacySessionReceiptScreen(receipt.copy(note = "A note about the session"), {}, {}) }
+                AppTheme { SessionReceiptScreen(receipt.copy(note = "A note about the session"), {}, {}) }
             }
         }
-        composeTestRule.onNodeWithText("Done").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Done").assertIsDisplayed()
     }
 
     @Test
@@ -255,13 +271,40 @@ class SessionLifecycleScreenTest {
             AppTheme {
                 DayScreen(state.copy(cardio = cardioFixture().copy(distanceRuns = listOf(run))),
                     actions = dayActions().copy(onOpenTimedRepCount = { countSheets++ }, onOpenCardioDistance = { distanceSheets++ }),
-                    dayEditState = dayEditState, dayEditActions = noopEditActions(), sessionReceipt = receipt)
+                    dayEditState = dayEditState, dayEditActions = noopEditActions(), receipt = receipt)
             }
         }
         composeTestRule.waitForIdle()
         assertEquals(0, countSheets)
         assertEquals(0, distanceSheets)
     }
+
+    @Test
+    fun finishingReplacesTheWorkoutAndSwallowsBack() {
+        var backs = 0
+        setDayContent(dayState(done = 3), finish = attempt(), onBackToWorkout = { backs++ })
+        composeTestRule.onNodeWithContentDescription("Finishing workout").assertExists()
+        composeTestRule.onNodeWithText("Finish", useUnmergedTree = true).assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Day A lifts, 3 of 3 sets").assertDoesNotExist()
+        pressBack()
+        assertEquals(0, backs)
+    }
+
+    @Test
+    fun failedFinishOffersRetryAndBackWithoutTheWorkout() {
+        var retries = 0
+        var backs = 0
+        setDayContent(dayState(done = 3), finish = attempt().copy(failed = true),
+            onRetry = { retries++ }, onBackToWorkout = { backs++ })
+        composeTestRule.onNodeWithText("Try again").performClick()
+        composeTestRule.onNodeWithText("Back to workout").performClick()
+        pressBack()
+        assertEquals(1, retries)
+        assertEquals(2, backs)
+        composeTestRule.onNodeWithText("Finish", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    private fun attempt() = FinishAttempt("run", 1L, "A", 0, receipt.dayTitle, receipt.planName, null, receipt.completedAt)
 
     private var backDispatcher: OnBackPressedDispatcher? = null
 
@@ -270,18 +313,7 @@ class SessionLifecycleScreenTest {
         composeTestRule.waitForIdle()
     }
 
-    private val receipt = SessionReceipt(
-        sessionId = 1L,
-        dayId = "A",
-        dayIndex = 0,
-        completedAt = LocalDate.of(2026, 10, 30).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-        minutes = 52,
-        completedSetCount = 18,
-        totalSetCount = 18,
-        setCount = 18,
-        newTopSets = listOf(CascadeLift("Barbell Back Squat", "235", "245")),
-        nextDayLine = "Day B, Upper",
-    )
+    private val receipt = receiptFixture().let { it.copy(groups = it.groups.take(1)) }
 
     private fun dayState(done: Int) = DayUiState(
         hasProgram = true,
@@ -318,7 +350,10 @@ class SessionLifecycleScreenTest {
 
     private fun setDayContent(
         state: DayUiState,
-        receipt: SessionReceipt? = null,
+        receipt: WorkoutReceipt? = null,
+        finish: FinishAttempt? = null,
+        onRetry: () -> Unit = {},
+        onBackToWorkout: () -> Unit = {},
         onShare: () -> Unit = {},
         onFinish: () -> Unit = {},
     ) {
@@ -330,7 +365,11 @@ class SessionLifecycleScreenTest {
                     actions = dayActions(),
                     dayEditState = dayEditState,
                     dayEditActions = noopEditActions(),
-                    sessionReceipt = receipt,
+                    receipt = receipt,
+                    finish = finish,
+                    onRetryFinish = onRetry,
+                    onBackToWorkout = onBackToWorkout,
+                    onBack = onBackToWorkout,
                     onShareSession = onShare,
                     onFinishSession = onFinish,
                 )

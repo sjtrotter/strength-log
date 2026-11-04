@@ -515,16 +515,6 @@
 <string name="receipt_superset_gutter">A%1$d</string>
 <string name="receipt_say_interval_record">Interval %1$d, %2$s, %3$s, up from %4$s.</string>
 
-<string name="receipt_headline">Day %1$s, done.</string>
-<plurals name="receipt_sets">
-    <item quantity="one">%d set</item>
-    <item quantity="other">%d sets</item>
-</plurals>
-<string name="receipt_sets_partial">%1$d of %2$d sets</string>
-<string name="receipt_sets_in_minutes">%1$s in %2$d min</string>
-<string name="receipt_new_top_set">New top set</string>
-<string name="receipt_top_set_description">%1$s, new top set %2$s, up from %3$s</string>
-<string name="receipt_next">Next</string>
 <string name="receipt_done">Done</string>
 <string name="note_edit_action">Edit note</string>
 <string name="receipt_share_button">Share</string>

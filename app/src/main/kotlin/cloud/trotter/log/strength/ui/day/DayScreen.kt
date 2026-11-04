@@ -27,6 +27,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
+import cloud.trotter.log.strength.ui.day.receipt.NoteSave
+import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 import cloud.trotter.log.strength.ui.components.AppHaptics
@@ -48,7 +51,12 @@ fun DayScreen(
     actions: DayActions,
     dayEditState: DayEditUiState,
     dayEditActions: DayEditActions,
-    sessionReceipt: SessionReceipt? = null,
+    receipt: WorkoutReceipt? = null,
+    finish: FinishAttempt? = null,
+    noteSave: NoteSave? = null,
+    onRetryFinish: () -> Unit = {},
+    onBackToWorkout: () -> Unit = {},
+    onNoteSaveHandled: () -> Unit = {},
     onShareSession: () -> Unit = {},
     onFinishSession: () -> Unit = {},
     onBack: (() -> Unit)? = null,
@@ -58,13 +66,20 @@ fun DayScreen(
 ) {
     // A receipt replaces the workout, including its back handler and auto-sheet
     // effects. No workout nodes or sheet requests survive underneath it.
-    if (sessionReceipt != null) {
-        LegacySessionReceiptScreen(
-            receipt = sessionReceipt,
+    if (receipt != null) {
+        SessionReceiptScreen(
+            receipt = receipt,
             onShare = onShareSession,
             onFinishSession = onFinishSession,
-            onSetReceiptNote = actions.onSetSessionNote,
+            onSetNote = actions.onSetSessionNote,
+            noteSave = noteSave,
+            onNoteSaveHandled = onNoteSaveHandled,
         )
+        return
+    }
+    if (finish != null) {
+        if (finish.failed) FinishFailedScreen(finish, onRetryFinish, onBackToWorkout)
+        else FinishingScreen(finish, state)
         return
     }
     val accent = dayAccent(state.dayIndex)

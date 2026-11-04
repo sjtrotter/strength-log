@@ -13,6 +13,23 @@ import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.SessionDao
+import cloud.trotter.log.strength.data.db.dao.PersonalRecordRow
+import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.domain.model.CardioMode
+import cloud.trotter.log.strength.domain.model.CardioBlock
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
+import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.records.PrKind
+import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
+import cloud.trotter.log.strength.ui.day.receipt.NoteSave
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
+import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.glance.DayProgress
@@ -43,6 +60,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -55,7 +73,7 @@ import org.robolectric.annotation.Config
 /**
  * The session receipt's *wiring*: that it comes off the DONE-advance
  * transition, reports the committed session and survives process death until
- * dismissed. [SessionReceiptBuilderTest] pins what it contains.
+ * dismissed. [cloud.trotter.log.strength.ui.day.receipt.ReceiptBuilderTest] pins the rows.
  *
  * The SHARE render itself is not re-tested here. [ShareCardService] hops onto
  * `Dispatchers.IO` for the Canvas work, which this class's virtual-time
@@ -76,7 +94,16 @@ class DayViewModelReceiptTest {
     private lateinit var repo: TrackerRepository
     private lateinit var shareCardService: ShareCardService
     private lateinit var storeScope: CoroutineScope
-    private var topSetHistoryReads = 0
+    private var finishBaselineReads = 0
+    private var sessionByRunIdCalls = 0
+    private var failSessionByRunId = false
+    private var failPersonalRecords = false
+    private var failSetNote = false
+    private var beforeSessionsRead: (() -> Unit)? = null
+    private val published = mutableListOf<Long>()
+    private val publisher = object : SessionPublisher by SessionPublisher.NoOp {
+        override suspend fun publish(sessionId: Long) { published += sessionId }
+    }
     private val vms = mutableListOf<DayViewModel>()
 
     @Before
@@ -96,8 +123,25 @@ class DayViewModelReceiptTest {
             db = db,
             programDao = db.programDao(),
             sessionDao = object : SessionDao by db.sessionDao() {
-                override fun observeTopSets(topKind: String) = db.sessionDao().observeTopSets(topKind)
-                    .onStart { topSetHistoryReads++ }
+                override fun observeSessions() = db.sessionDao().observeSessions()
+                    .onStart { beforeSessionsRead?.invoke() }
+
+                override suspend fun sessionByRunId(runId: String): WorkoutSessionEntity? {
+                    sessionByRunIdCalls++
+                    check(!failSessionByRunId)
+                    return db.sessionDao().sessionByRunId(runId)
+                }
+
+                override suspend fun personalRecordRows(exerciseIds: List<String>, excludedRunId: String?): List<PersonalRecordRow> {
+                    if (excludedRunId != null) finishBaselineReads++
+                    check(!failPersonalRecords || excludedRunId == null)
+                    return db.sessionDao().personalRecordRows(exerciseIds, excludedRunId)
+                }
+
+                override suspend fun setNote(sessionId: Long, note: String) {
+                    check(!failSetNote)
+                    db.sessionDao().setNote(sessionId, note)
+                }
             },
             customExerciseDao = db.customExerciseDao(),
             settings = settings,
@@ -131,14 +175,14 @@ class DayViewModelReceiptTest {
         vm.completeDay()
         advanceUntilIdle()
 
-        assertEquals("C", vm.sessionReceipt.value?.dayId)
-        assertEquals(2, vm.sessionReceipt.value?.dayIndex)
+        assertEquals("C", vm.finisher.receipt.value?.dayId)
+        assertEquals(2, vm.finisher.receipt.value?.dayIndex)
         assertEquals("A", repo.plans.suggestedDayFlow.first())
-        assertEquals("Day A, Lower", vm.sessionReceipt.value?.nextDayLine)
+        assertEquals("Upper", vm.finisher.receipt.value?.dayTitle)
     }
 
     @Test
-    fun finishingCWhileBIsSuggestedReportsBOnTheReceipt() = runVmTest {
+    fun finishingCWhileBIsSuggestedKeepsBAndReportsCOnTheReceipt() = runVmTest {
         insertProgram()
         val program = repo.plans.programFlow.first()
         repo.replaceProgram(Program(program.days + program.days[0].copy(id = "C", title = "Full body")))
@@ -155,15 +199,16 @@ class DayViewModelReceiptTest {
         vm.completeDay()
         advanceUntilIdle()
 
-        val receipt = requireNotNull(vm.sessionReceipt.value)
+        val receipt = requireNotNull(vm.finisher.receipt.value)
         assertEquals("C", receipt.dayId)
+        assertEquals("Full body", receipt.dayTitle)
         assertEquals(plan, repo.history.session(receipt.sessionId)?.planId)
         assertEquals("B", db.planDao().plan(plan)!!.suggestedDayId)
-        assertEquals("Day B, Upper", receipt.nextDayLine)
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
     }
 
     @Test
-    fun finishingAPausedNonpreferredRunReportsItsOwnNextDay() = runVmTest {
+    fun finishingAPausedNonpreferredRunAdvancesItsOwnPlan() = runVmTest {
         insertProgram()
         val owner = repo.plans.selectedPlanIdFlow.first()!!
         val other = repo.plans.duplicatePlan(owner, "Preferred")
@@ -179,8 +224,8 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         assertEquals("B", db.planDao().plan(owner)!!.suggestedDayId)
         assertEquals("A", db.planDao().plan(other)!!.suggestedDayId)
-        assertEquals("Day B, Upper", vm.sessionReceipt.value?.nextDayLine)
-        assertEquals(owner, repo.history.session(vm.sessionReceipt.value!!.sessionId)?.planId)
+        assertEquals("Lower", vm.finisher.receipt.value?.dayTitle)
+        assertEquals(owner, repo.history.session(vm.finisher.receipt.value!!.sessionId)?.planId)
     }
 
     @Test
@@ -204,18 +249,18 @@ class DayViewModelReceiptTest {
         vm.completeDay()
         advanceUntilIdle()
 
-        val receipt = vm.sessionReceipt.value!!
+        val receipt = vm.finisher.receipt.value!!
         assertEquals("C", receipt.dayId)
         assertEquals(2, completedSetCount)
-        assertEquals(completedSetCount, receipt.setCount)
-        assertEquals("Day B, Upper", receipt.nextDayLine)
+        assertEquals(completedSetCount, receipt.groups.single().rows.single().sets.size)
+        assertEquals("Cardio + Core", receipt.dayTitle)
         assertEquals("B", repo.plans.suggestedDayFlow.first())
         assertEquals("C", repo.history.session(receipt.sessionId)?.dayId)
         assertEquals(false, repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "C").map { it.tracks }.first().single().sets.any { it.done })
     }
 
     @Test
-    fun authoredStrengthCompletionAndReceiptBothSelectTheFollowingCardioDay() = runVmTest {
+    fun authoredStrengthCompletionSelectsTheFollowingCardioDay() = runVmTest {
         val planId = repo.plans.createAuthoredPlan("Mixed plan", "Lower")
         repo.plans.publishCreatedAuthoredPlan(planId)
         insertProgram()
@@ -229,11 +274,11 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         completeOneSession(vm)
         assertEquals("B", repo.plans.suggestedDayFlow.first())
-        assertEquals("Day B, Cardio", vm.sessionReceipt.value?.nextDayLine)
+        assertEquals("Lower", vm.finisher.receipt.value?.dayTitle)
     }
 
     @Test
-    fun generatedStrengthCompletionAndReceiptSkipTheFollowingStandaloneCardioDay() = runVmTest {
+    fun generatedStrengthCompletionSkipsTheFollowingStandaloneCardioDay() = runVmTest {
         insertProgram()
         val days = repo.plans.programFlow.first().days
         repo.replaceProgram(Program(listOf(
@@ -246,7 +291,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         completeOneSession(vm)
         assertEquals("B", repo.plans.suggestedDayFlow.first())
-        assertEquals("Day B, Upper", vm.sessionReceipt.value?.nextDayLine)
+        assertEquals("Lower", vm.finisher.receipt.value?.dayTitle)
     }
 
     @Test
@@ -258,21 +303,21 @@ class DayViewModelReceiptTest {
         tickWholeTrack(vm)
         advanceUntilIdle()
 
-        assertNull("a ticked-but-unfinished day is not a receipt", vm.sessionReceipt.value)
+        assertNull("a ticked-but-unfinished day is not a receipt", vm.finisher.receipt.value)
     }
 
     @Test
-    fun reportsTheDayThatWasCompletedAndTheOneTheRotationMovedTo() = runVmTest {
+    fun reportsTheCompletedDayWhileTheRotationMovesToTheNext() = runVmTest {
         insertProgram()
         val vm = newViewModel()
         advanceUntilIdle()
         completeOneSession(vm)
 
-        val receipt = vm.sessionReceipt.value
+        val receipt = vm.finisher.receipt.value
         assertNotNull(receipt)
         assertEquals("A", receipt!!.dayId)
         assertEquals(repo.history.session(receipt.sessionId)?.completedAt, receipt.completedAt)
-        assertEquals("Day B, Upper", receipt.nextDayLine)
+        assertEquals("B", repo.plans.suggestedDayFlow.first())
         // The completed day's accent, not the one the pointer now stands on.
         assertEquals(0, receipt.dayIndex)
     }
@@ -285,7 +330,7 @@ class DayViewModelReceiptTest {
         val rows = mainTrackRowCount()
         completeOneSession(vm)
 
-        assertEquals(rows, vm.sessionReceipt.value?.setCount)
+        assertEquals(rows, vm.finisher.receipt.value?.groups?.single()?.rows?.single()?.sets?.size)
     }
 
     /**
@@ -310,7 +355,8 @@ class DayViewModelReceiptTest {
         // The partner track really is populated, so this isn't passing by having
         // nothing to over-count.
         assertEquals(headerCount, partnerRows)
-        assertEquals(headerCount, vm.sessionReceipt.value?.setCount)
+        assertEquals(headerCount, vm.finisher.receipt.value?.groups?.single()?.rounds)
+        assertEquals(listOf(headerCount, partnerRows), vm.finisher.receipt.value?.groups?.single()?.rows?.map { it.sets.size })
     }
 
     @Test
@@ -340,10 +386,15 @@ class DayViewModelReceiptTest {
             assertEquals(DayProgress(expectedDone, 1), DayProgress.of(snapshot))
             vm.completeDay()
             advanceUntilIdle()
-            val receipt = requireNotNull(vm.sessionReceipt.value)
-            assertEquals(expectedDone, receipt.completedSetCount)
-            assertEquals(expectedDone, receipt.setCount)
-            assertEquals(1, receipt.totalSetCount)
+            val receipt = requireNotNull(vm.finisher.receipt.value)
+            val group = receipt.groups.single()
+            assertEquals(expectedDone, group.rounds)
+            assertEquals(listOf(if (mainDone) 1 else 0, if (partnerDone) 1 else 0), group.rows.map { it.sets.size })
+            assertEquals(if (mainDone) ReceiptRow.Shape.STRAIGHT else ReceiptRow.Shape.SKIPPED, group.rows[0].shape)
+            assertEquals(if (partnerDone) ReceiptRow.Shape.STRAIGHT else ReceiptRow.Shape.SKIPPED, group.rows[1].shape)
+            val archived = repo.history.sessionSets(receipt.sessionId)
+            assertEquals(1, archived.count { Slot.isRound(it.slot) })
+            assertEquals(expectedDone, archived.count { Slot.isRound(it.slot) && it.done })
             vm.viewModelScope.cancel()
         }
     }
@@ -357,7 +408,7 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         completeOneSession(vm)
 
-        assertEquals(repo.history.sessionsFlow.first().single().id, vm.sessionReceipt.value?.sessionId)
+        assertEquals(repo.history.sessionsFlow.first().single().id, vm.finisher.receipt.value?.sessionId)
     }
 
     /** One Finish captures the new top set inside the committed day's receipt. */
@@ -367,14 +418,18 @@ class DayViewModelReceiptTest {
         val vm = newViewModel()
         advanceUntilIdle()
         completeOneSession(vm)
-        vm.dismissSessionReceipt()
+        vm.finisher.dismissReceipt()
         raiseTopSet(vm)
         completeOneSession(vm)
 
-        val receipt = requireNotNull(vm.sessionReceipt.value)
+        val receipt = requireNotNull(vm.finisher.receipt.value)
         assertEquals("A", receipt.dayId)
         assertEquals(0, receipt.dayIndex)
-        assertEquals(listOf(CascadeLift("Barbell Back Squat", "235", "245")), receipt.newTopSets)
+        val row = receipt.groups.single().rows.single()
+        val record = requireNotNull(row.record)
+        assertEquals(PrKind.WEIGHT, record.kind)
+        assertEquals(235.0, record.previous.weightLb, 0.0)
+        assertEquals(245.0, row.sets[record.setIndex].weightLb, 0.0)
     }
 
     // --- and it goes ---------------------------------------------------------
@@ -386,12 +441,12 @@ class DayViewModelReceiptTest {
         val vm = newViewModel(handle)
         advanceUntilIdle()
         completeOneSession(vm)
-        assertNotNull(handle.get<SessionReceipt>("day_session_receipt"))
+        assertNotNull(handle.get<WorkoutReceipt>("day_workout_receipt"))
 
-        assertTrue(vm.dismissSessionReceipt())
+        assertTrue(vm.finisher.dismissReceipt())
 
-        assertNull(vm.sessionReceipt.value)
-        assertNull(handle.get<SessionReceipt>("day_session_receipt"))
+        assertNull(vm.finisher.receipt.value)
+        assertNull(handle.get<WorkoutReceipt>("day_workout_receipt"))
     }
 
     /** A configuration change keeps the ViewModel, so it keeps the receipt. */
@@ -405,32 +460,36 @@ class DayViewModelReceiptTest {
         vm.selectDay("B")
         advanceUntilIdle()
 
-        assertNotNull(vm.sessionReceipt.value)
+        assertNotNull(vm.finisher.receipt.value)
     }
 
     /** Restoring a frozen receipt must not re-read history to derive its top sets. */
     @Test
-    fun aNewViewModelKeepsTheReceiptAndTopSetsFromTheSameHandleWithoutReadingHistory() = runVmTest {
+    fun aNewViewModelKeepsTheReceiptAndRecordsWithoutReadingAFinishBaseline() = runVmTest {
         insertProgram()
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
         advanceUntilIdle()
         completeOneSession(vm)
-        vm.dismissSessionReceipt()
+        vm.finisher.dismissReceipt()
         raiseTopSet(vm)
         completeOneSession(vm)
-        val receipt = requireNotNull(vm.sessionReceipt.value)
-        assertEquals(listOf(CascadeLift("Barbell Back Squat", "235", "245")), receipt.newTopSets)
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        val row = receipt.groups.single().rows.single()
+        val record = requireNotNull(row.record)
+        assertEquals(PrKind.WEIGHT, record.kind)
+        assertEquals(235.0, record.previous.weightLb, 0.0)
+        assertEquals(245.0, row.sets[record.setIndex].weightLb, 0.0)
         vm.viewModelScope.cancel()
-        val readsAtFinish = topSetHistoryReads
+        val readsAtFinish = finishBaselineReads
         assertTrue("the counter must observe Finish's history fetch", readsAtFinish > 0)
 
         val restored = newViewModel(handle)
-        assertEquals(receipt, restored.sessionReceipt.value)
+        assertEquals(receipt, restored.finisher.receipt.value)
         advanceUntilIdle()
 
-        assertEquals(receipt, restored.sessionReceipt.value)
-        assertEquals("restore must not derive new top sets", readsAtFinish, topSetHistoryReads)
+        assertEquals(receipt, restored.finisher.receipt.value)
+        assertEquals("restore must not rebuild records", readsAtFinish, finishBaselineReads)
     }
 
     @Test
@@ -440,28 +499,307 @@ class DayViewModelReceiptTest {
         val vm = newViewModel(handle)
         advanceUntilIdle()
         completeOneSession(vm)
-        vm.dismissSessionReceipt()
+        vm.finisher.dismissReceipt()
         raiseTopSet(vm)
         completeOneSession(vm)
-        vm.setReceiptNote("  Felt steady  ")
+        vm.finisher.setNote("  Felt steady  ")
         advanceUntilIdle()
-        val receipt = requireNotNull(vm.sessionReceipt.value)
+        val receipt = requireNotNull(vm.finisher.receipt.value)
         assertEquals("Felt steady", receipt.note)
+        assertEquals(NoteSave.Saved("Felt steady"), vm.finisher.noteSave.value)
         assertEquals(receipt.note, repo.history.session(receipt.sessionId)?.note)
         vm.viewModelScope.cancel()
         val parcel = Parcel.obtain()
         val restoredHandle = try {
             parcel.writeBundle(handle.savedStateProvider().saveState())
             parcel.setDataPosition(0)
-            SavedStateHandle.createHandle(parcel.readBundle(SessionReceipt::class.java.classLoader), null)
+            SavedStateHandle.createHandle(parcel.readBundle(WorkoutReceipt::class.java.classLoader), null)
         } finally {
             parcel.recycle()
         }
 
+        val readsAtFinish = finishBaselineReads
         val restored = newViewModel(restoredHandle)
         advanceUntilIdle()
-        assertEquals(receipt, restored.sessionReceipt.value)
-        assertEquals(receipt, restoredHandle.get<SessionReceipt>("day_session_receipt"))
+        assertEquals(readsAtFinish, finishBaselineReads)
+        assertEquals(receipt, restored.finisher.receipt.value)
+        assertEquals(receipt, restoredHandle.get<WorkoutReceipt>("day_workout_receipt"))
+    }
+
+    @Test
+    fun completeDaySavesTheAttemptThenTheReceiptAndClearsTheAttempt() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        tickWholeTrack(vm)
+        advanceUntilIdle()
+        val attempts = mutableListOf<FinishAttempt?>()
+        val collecting = backgroundScope.launch(kotlinx.coroutines.test.UnconfinedTestDispatcher(testScheduler)) {
+            handle.getStateFlow<FinishAttempt?>("day_finish", null).collect { attempts += it }
+        }
+        vm.completeDay()
+        advanceUntilIdle()
+        assertTrue(attempts.any { it != null && !it.failed && it.dayTitle == "Lower" })
+        assertNull(handle.get<FinishAttempt>("day_finish"))
+        val receipt = requireNotNull(handle.get<WorkoutReceipt>("day_workout_receipt"))
+        assertEquals(receipt, vm.finisher.receipt.value)
+        assertEquals("Lower", receipt.dayTitle)
+        assertEquals(repo.plans.plansFlow.first().single().name, receipt.planName)
+        assertEquals(ReceiptRow.Shape.TOP_SET, receipt.groups.single().rows.single().shape)
+        assertFalse(receipt.allPlansDone)
+        assertEquals(listOf(receipt.sessionId), published)
+        collecting.cancel()
+    }
+
+    @Test
+    fun anUncommittedFailureCanRetryOnceWithoutLosingTheRunOrAdvancingThePlan() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        tickWholeTrack(vm)
+        advanceUntilIdle()
+        val runId = requireNotNull(repo.openRunFlow.first()).id
+        val suggested = repo.plans.suggestedDayFlow.first()
+        failSessionByRunId = true
+        vm.completeDay()
+        advanceUntilIdle()
+        assertTrue(requireNotNull(handle.get<FinishAttempt>("day_finish")).failed)
+        assertEquals(runId, repo.openRunFlow.first()?.id)
+        assertEquals(suggested, repo.plans.suggestedDayFlow.first())
+        assertTrue(repo.history.sessionsFlow.first().isEmpty())
+        assertNull(vm.finisher.receipt.value)
+        assertTrue(published.isEmpty())
+        failSessionByRunId = false
+        val calls = sessionByRunIdCalls
+        vm.finisher.retry()
+        vm.finisher.retry()
+        advanceUntilIdle()
+        assertEquals(calls + 1, sessionByRunIdCalls)
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
+        assertEquals(listOf(receipt.sessionId), published)
+        assertNull(handle.get<FinishAttempt>("day_finish"))
+    }
+
+    @Test
+    fun aBaselineFailureStillFinishesWithoutClaimingRecords() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        completeOneSession(vm)
+        vm.finisher.dismissReceipt()
+        raiseTopSet(vm)
+        tickWholeTrack(vm)
+        advanceUntilIdle()
+        failPersonalRecords = true
+        vm.completeDay()
+        advanceUntilIdle()
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertFalse(receipt.recordsChecked)
+        assertTrue(receipt.groups.flatMap { it.rows }.none { it.record != null })
+        assertEquals(245.0, receipt.groups.single().rows.single().sets.maxOf { it.weightLb }, 0.0)
+        assertEquals(2, repo.history.sessionsFlow.first().size)
+        assertEquals(2, published.size)
+    }
+
+    @Test
+    fun anUnfailedAttemptResumesTheOpenRunWithoutATap() = runVmTest {
+        insertProgram()
+        val first = newViewModel()
+        advanceUntilIdle()
+        tickWholeTrack(first)
+        advanceUntilIdle()
+        val run = requireNotNull(repo.openRunFlow.first())
+        val attempt = FinishAttempt(run.id, requireNotNull(run.planId), "A", 0, "Lower", run.planName.orEmpty(), run.startedAt, 100L)
+        first.viewModelScope.cancel()
+        val calls = sessionByRunIdCalls
+        val handle = SavedStateHandle(mapOf("day_finish" to attempt))
+        val restored = newViewModel(handle)
+        advanceUntilIdle()
+        assertNotNull(restored.finisher.receipt.value)
+        assertNull(handle.get<FinishAttempt>("day_finish"))
+        assertEquals(calls + 1, sessionByRunIdCalls)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
+        assertEquals(1, published.size)
+    }
+
+    @Test
+    fun aFailedAttemptRestoresWithoutRetryingUntilAsked() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val first = newViewModel(handle)
+        advanceUntilIdle()
+        tickWholeTrack(first)
+        advanceUntilIdle()
+        failSessionByRunId = true
+        first.completeDay()
+        advanceUntilIdle()
+        val failed = requireNotNull(first.finisher.attempt.value)
+        assertTrue(failed.failed)
+        first.viewModelScope.cancel()
+        failSessionByRunId = false
+        val calls = sessionByRunIdCalls
+        val restored = newViewModel(handle)
+        advanceUntilIdle()
+        assertEquals(failed, restored.finisher.attempt.value)
+        assertEquals(calls, sessionByRunIdCalls)
+        assertEquals(failed.runId, repo.openRunFlow.first()?.id)
+        assertTrue(published.isEmpty())
+        restored.finisher.retry()
+        advanceUntilIdle()
+        assertNotNull(restored.finisher.receipt.value)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
+        assertEquals(1, published.size)
+    }
+
+    @Test
+    fun anAttemptRestoredAfterCommitClearsWithoutFinishingAgain() = runVmTest {
+        insertProgram()
+        val first = newViewModel()
+        advanceUntilIdle()
+        tickWholeTrack(first)
+        advanceUntilIdle()
+        val run = requireNotNull(repo.openRunFlow.first())
+        val attempt = FinishAttempt(run.id, requireNotNull(run.planId), "A", 0, "Lower", run.planName.orEmpty(), run.startedAt, 100L)
+        repo.finishRun(run.id)
+        first.viewModelScope.cancel()
+        val handle = SavedStateHandle(mapOf("day_finish" to attempt))
+        val restored = newViewModel(handle)
+        advanceUntilIdle()
+        assertNull(handle.get<FinishAttempt>("day_finish"))
+        assertNull(restored.finisher.receipt.value)
+        assertEquals(1, repo.history.sessionsFlow.first().size)
+        assertTrue(published.isEmpty())
+    }
+
+    @Test
+    fun backToWorkoutClearsOnlyTheFailedAttemptAndKeepsTheSelectedPage() = runVmTest {
+        insertProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        tickWholeTrack(vm)
+        advanceUntilIdle()
+        val runId = repo.openRunFlow.first()?.id
+        val selected = "exercise:${slotId()}"
+        handle["selectedPageKey"] = selected
+        failSessionByRunId = true
+        vm.completeDay()
+        advanceUntilIdle()
+        assertTrue(requireNotNull(vm.finisher.attempt.value).failed)
+        vm.finisher.backToWorkout()
+        assertNull(handle.get<FinishAttempt>("day_finish"))
+        assertEquals(selected, handle.get<String>("selectedPageKey"))
+        assertEquals(runId, repo.openRunFlow.first()?.id)
+    }
+
+    @Test
+    fun aFailedNoteWriteKeepsTheReceiptAndDatabaseNote() = runVmTest {
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        completeOneSession(vm)
+        vm.finisher.setNote("Saved note")
+        advanceUntilIdle()
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        failSetNote = true
+        vm.finisher.setNote("  Felt steady  ")
+        advanceUntilIdle()
+        assertEquals(NoteSave.Failed("Felt steady"), vm.finisher.noteSave.value)
+        assertEquals(receipt, vm.finisher.receipt.value)
+        assertEquals("Saved note", repo.history.session(receipt.sessionId)?.note)
+        failSetNote = false
+        vm.finisher.setNote("  Felt steady  ")
+        advanceUntilIdle()
+        assertEquals(NoteSave.Saved("Felt steady"), vm.finisher.noteSave.value)
+        assertEquals("Felt steady", vm.finisher.receipt.value?.note)
+        assertEquals("Felt steady", repo.history.session(receipt.sessionId)?.note)
+        vm.finisher.noteSaveHandled()
+        assertNull(vm.finisher.noteSave.value)
+    }
+
+    @Test
+    fun aLegacyReceiptBundleIsDroppedAtStartup() = runVmTest {
+        val legacy = SessionReceipt(1L, "A", 0, 100L, 1, 1, 1, 1,
+            listOf(CascadeLift("Squat", "235", "245")), null)
+        val record = CardioReceiptRecord("400 m", "1:38", "1:42", PrKind.FASTER)
+        val handle = SavedStateHandle(mapOf(
+            "day_session_receipt" to legacy,
+            "day_cardio_receipt_records:x" to arrayListOf(record),
+            "day_cardio_receipt_records:y" to arrayListOf(record),
+            "day_cardio_standing_bests:x" to arrayListOf(SavedCardioBest("frozen", 102, null)),
+        ))
+        val vm = newViewModel(handle)
+        assertFalse(handle.keys().contains("day_session_receipt"))
+        assertFalse(handle.keys().any { it.startsWith("day_cardio_receipt_records:") })
+        assertTrue(handle.keys().contains("day_cardio_standing_bests:x"))
+        assertNull(vm.finisher.receipt.value)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun allPlansDoneIncludesStrengthAndCardioOnTheSameCivilDay() = runVmTest {
+        insertProgram()
+        val strength = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val cardio = repo.plans.createAuthoredPlan("Running", "Run")
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(10))
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        repo.setCardioBlock(cardio, "A", block)
+        repo.plans.useAlongside(cardio)
+        val vm = newViewModel()
+        advanceUntilIdle()
+        completeOneSession(vm)
+        assertFalse(requireNotNull(vm.finisher.receipt.value).allPlansDone)
+        val completedAt = requireNotNull(vm.finisher.receipt.value).completedAt
+        val json = CardioBlockJson.encode(block)
+        val run = CardioRun(cardio, "Running", "A", 0, json, json, true, null,
+            results = listOf(SavedCardioResult(CardioSetStatus.FINISHED.name, 10)),
+            startedAt = completedAt - 10_000, completedAt = completedAt)
+        val session = CardioSessionEntity(
+            dayId = run.dayId, mode = CardioMode.OUTDOOR_RUN.name, hard = false, label = "Run",
+            startedAt = completedAt - 10_000, completedAt = completedAt, seconds = 10, stepsCompleted = 1,
+            planId = cardio, planName = "Running", activity = CardioActivity.ROAD_RUN.name,
+        )
+        val result = CardioSetResult(spec, CardioSetStatus.FINISHED, 10)
+        val id = repo.logCardioSession(session, listOf(result), finishDay = true)
+        vm.finisher.showCardio(run.copy(sessionId = id), emptyMap(), session.copy(id = id))
+        assertTrue(requireNotNull(vm.finisher.receipt.value).allPlansDone)
+        assertEquals(strength, repo.history.sessionsFlow.first().single().planId)
+        assertEquals(cardio, repo.history.cardioSessionsFlow.first().single().planId)
+    }
+
+    @Test
+    fun aCardioReceiptWaitsIfExecutionTakesOwnershipDuringItsReads() = runVmTest {
+        insertProgram()
+        val planId = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val block = requireNotNull(cardioFixture().block)
+        val json = CardioBlockJson.encode(block)
+        val now = System.currentTimeMillis()
+        val session = CardioSessionEntity(
+            dayId = "A", mode = CardioMode.OUTDOOR_RUN.name, hard = false, label = "Run",
+            startedAt = now - 300_000, completedAt = now, seconds = 300, stepsCompleted = 1,
+            planId = planId, activity = block.activity.name,
+        )
+        val id = repo.logCardioSession(session,
+            listOf(CardioSetResult(block.sets.single(), CardioSetStatus.FINISHED, 300)))
+        val run = CardioRun(planId, "Plan", "A", 0, json, json, true, null,
+            results = listOf(SavedCardioResult(CardioSetStatus.FINISHED.name, 300)),
+            startedAt = session.startedAt, completedAt = now, sessionId = id)
+        var executionActive = false
+        val finisher = SessionFinisher(
+            repo, repo.history, repo.plans, repo.catalog, settings, publisher, shareCardService,
+            SavedStateHandle(), backgroundScope, kotlinx.coroutines.sync.Mutex(), java.time.Clock.systemUTC(),
+            afterCommit = { _, _ -> }, executionActive = { executionActive },
+        )
+        beforeSessionsRead = { executionActive = true }
+        finisher.showCardio(run, emptyMap(), session.copy(id = id))
+        assertNull(finisher.receipt.value)
+        beforeSessionsRead = null
+        executionActive = false
+        finisher.showCardio(run, emptyMap(), session.copy(id = id))
+        assertEquals(id, finisher.receipt.value?.sessionId)
     }
 
     // --- share ---------------------------------------------------------------
@@ -472,10 +810,10 @@ class DayViewModelReceiptTest {
         val vm = newViewModel()
         advanceUntilIdle()
 
-        vm.shareSession()
+        vm.finisher.share()
         advanceUntilIdle()
 
-        assertNull(vm.pendingShare.value)
+        assertNull(vm.finisher.pendingShare.value)
     }
 
     // --- fixtures ------------------------------------------------------------
@@ -483,7 +821,7 @@ class DayViewModelReceiptTest {
     private fun runVmTest(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
 
     private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): DayViewModel =
-        DayViewModel(repo, SessionPublisher.NoOp, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
+        DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, NoOpRestRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
 
     /** [DayViewModel.uiState] is `WhileSubscribed`: without a live collector its
      *  `.value` never leaves the initial state, and the header count would read

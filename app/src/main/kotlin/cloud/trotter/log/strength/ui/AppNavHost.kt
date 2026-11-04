@@ -449,13 +449,15 @@ internal fun DayRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayEditState by viewModel.dayEditState.collectAsStateWithLifecycle()
-    val sessionReceipt by viewModel.sessionReceipt.collectAsStateWithLifecycle()
+    val receipt by viewModel.finisher.receipt.collectAsStateWithLifecycle()
+    val finish by viewModel.finisher.attempt.collectAsStateWithLifecycle()
+    val noteSave by viewModel.finisher.noteSave.collectAsStateWithLifecycle()
     val removedSets by viewModel.removedSets.collectAsStateWithLifecycle()
     // The receipt's SHARE, launched exactly the way the Log screen's is
     // (session-share brief §3): the ViewModel only ever builds the Intent, and
     // this is the call site that hands it to the chooser.
     val context = LocalContext.current
-    val pendingShare by viewModel.pendingShare.collectAsStateWithLifecycle()
+    val pendingShare by viewModel.finisher.pendingShare.collectAsStateWithLifecycle()
     val notificationAsked by viewModel.notificationPermissionAsked.collectAsStateWithLifecycle()
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     LaunchedEffect(state.rest, notificationAsked) {
@@ -468,7 +470,7 @@ internal fun DayRoute(
     LaunchedEffect(pendingShare) {
         pendingShare?.let { intent ->
             context.startActivity(intent)
-            viewModel.shareHandled()
+            viewModel.finisher.shareHandled()
         }
     }
     val actions = DayActions(
@@ -522,7 +524,7 @@ internal fun DayRoute(
         onCreateExercise = onCreateExercise,
         onSetUpProgram = onSetUpProgram,
         onSetExerciseNote = viewModel::setExerciseNote,
-        onSetSessionNote = viewModel::setReceiptNote,
+        onSetSessionNote = viewModel.finisher::setNote,
     )
     val dayEditActions = DayEditActions(
         onSwap = viewModel.editor::swapDaySlot,
@@ -553,10 +555,15 @@ internal fun DayRoute(
         actions = actions,
         dayEditState = dayEditState,
         dayEditActions = dayEditActions,
-        sessionReceipt = sessionReceipt,
-        onShareSession = viewModel::shareSession,
+        receipt = receipt,
+        finish = finish,
+        noteSave = noteSave,
+        onRetryFinish = viewModel.finisher::retry,
+        onBackToWorkout = viewModel.finisher::backToWorkout,
+        onNoteSaveHandled = viewModel.finisher::noteSaveHandled,
+        onShareSession = viewModel.finisher::share,
         onFinishSession = {
-            if (viewModel.dismissSessionReceipt()) onFinishSession()
+            if (viewModel.finisher.dismissReceipt()) onFinishSession()
         },
         onBack = onBack,
         removedSets = removedSets,

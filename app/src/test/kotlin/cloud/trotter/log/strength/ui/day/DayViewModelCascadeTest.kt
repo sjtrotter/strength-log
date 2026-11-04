@@ -35,7 +35,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -43,13 +42,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * The cascade ceremony's *wiring* (docs/briefs/journal.md §2): that it comes off
- * the DONE-advance transition and nothing else. [CascadeCeremonyTest] pins what
- * the rows contain; this pins when Finish adds them to the receipt. A fresh
- * route never recomputes them from history; saved-state restoration is pinned
- * by [DayViewModelReceiptTest].
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -136,6 +128,9 @@ class DayViewModelCascadeTest {
         advanceUntilIdle()
     }
 
+    private fun DayViewModel.hasRecord(): Boolean =
+        finisher.receipt.value?.groups.orEmpty().flatMap { it.rows }.any { it.record != null }
+
     // --- it fires ------------------------------------------------------------
 
     @Test
@@ -146,17 +141,22 @@ class DayViewModelCascadeTest {
 
         // A first session at the seeded 235 establishes the standing high.
         completeOneSession(vm)
-        assertEquals(emptyList<CascadeLift>(), vm.sessionReceipt.value?.newTopSets)
+        assertTrue(!vm.hasRecord())
 
         // Cascade the TOP to spec §11's 245 and earn it.
         vm.changeWeight(slotId(), Slot.MAIN, topIndex(), 245.0)
         advanceUntilIdle()
         completeOneSession(vm)
 
-        val ceremony = requireNotNull(vm.sessionReceipt.value?.newTopSets) { "expected a cascade ceremony" }
-        assertEquals(1, ceremony.size)
-        assertEquals("235", ceremony.single().metDisplay)
-        assertEquals("245", ceremony.single().newDisplay)
+        assertTrue(vm.hasRecord())
+        val row = requireNotNull(vm.finisher.receipt.value).groups.single().rows.single()
+        val record = requireNotNull(row.record)
+        assertEquals(235.0, record.previous.weightLb, 0.0)
+        assertEquals(245.0, row.sets[record.setIndex].weightLb, 0.0)
+        vm.finisher.dismissReceipt()
+        completeOneSession(vm)
+        assertTrue(!vm.hasRecord())
+        assertEquals(3, repo.history.sessionsFlow.first().size)
     }
 
     @Test
@@ -168,15 +168,15 @@ class DayViewModelCascadeTest {
         vm.changeWeight(slotId(), Slot.MAIN, topIndex(), 245.0)
         advanceUntilIdle()
         completeOneSession(vm)
-        assertNotNull(vm.sessionReceipt.value?.newTopSets)
+        assertTrue(vm.hasRecord())
 
-        vm.dismissSessionReceipt()
-        assertTrue(vm.sessionReceipt.value?.newTopSets.isNullOrEmpty())
+        vm.finisher.dismissReceipt()
+        assertTrue(!vm.hasRecord())
 
         // Re-collecting state, re-reading the day, re-emitting uiState: all inert.
         vm.selectDay("A")
         advanceUntilIdle()
-        assertTrue("a state re-emission must not resurrect the moment", vm.sessionReceipt.value?.newTopSets.isNullOrEmpty())
+        assertTrue("a state re-emission must not resurrect the moment", !vm.hasRecord())
     }
 
     // --- it stays silent -----------------------------------------------------
@@ -189,7 +189,7 @@ class DayViewModelCascadeTest {
         completeOneSession(vm)
         completeOneSession(vm) // same prescription a second time
 
-        assertTrue(vm.sessionReceipt.value?.newTopSets.isNullOrEmpty())
+        assertTrue(!vm.hasRecord())
     }
 
     @Test
@@ -201,13 +201,13 @@ class DayViewModelCascadeTest {
         first.changeWeight(slotId(), Slot.MAIN, topIndex(), 245.0)
         advanceUntilIdle()
         completeOneSession(first)
-        assertNotNull(first.sessionReceipt.value?.newTopSets)
+        assertTrue(first.hasRecord())
 
         // A fresh route has no pending receipt. History alone is not a trigger.
         val restored = newViewModel()
         advanceUntilIdle()
 
-        assertTrue("a fresh route must not derive a moment from history", restored.sessionReceipt.value?.newTopSets.isNullOrEmpty())
+        assertTrue("a fresh route must not derive a moment from history", !restored.hasRecord())
     }
 
     @Test
@@ -219,7 +219,7 @@ class DayViewModelCascadeTest {
         first.changeWeight(slotId(), Slot.MAIN, topIndex(), 245.0)
         advanceUntilIdle()
         completeOneSession(first)
-        first.dismissSessionReceipt()
+        first.finisher.dismissReceipt()
 
         // Navigating away and back builds a fresh ViewModel over the same DB.
         val reEntered = newViewModel()
@@ -227,7 +227,7 @@ class DayViewModelCascadeTest {
         reEntered.selectDay("A")
         advanceUntilIdle()
 
-        assertTrue(reEntered.sessionReceipt.value?.newTopSets.isNullOrEmpty())
+        assertTrue(!reEntered.hasRecord())
     }
 
     @Test
@@ -248,6 +248,6 @@ class DayViewModelCascadeTest {
         vm.completeDay()
         advanceUntilIdle()
 
-        assertTrue(vm.sessionReceipt.value?.newTopSets.isNullOrEmpty())
+        assertTrue(!vm.hasRecord())
     }
 }

@@ -31,24 +31,27 @@ object ReceiptBuilder {
         for (slot in slots.sortedBy { it.position }) {
             val captured = tracks.filter { it.programExerciseId == slot.programExerciseId }.sortedBy { it.position }
             val mains = captured.filter { it.slot == Slot.MAIN }
+            // A skipped lift is a dropped MAIN with no live MAIN, as OpenRun.isLiftSkipped reads it;
+            // one with done work is already a single row.
             val main = mains.firstOrNull { !it.retired }
-                ?: mains.singleOrNull()?.takeIf { it.dropped && it.sets.none { set -> set.done } }
+                ?: mains.lastOrNull { it.dropped }?.takeIf { it.sets.none { set -> set.done } }
             val partners = captured.filter {
                 it.slot == Slot.SS && ((!it.retired && !it.dropped) || it.sets.any { set -> set.done })
             }
-            val partner = partners.firstOrNull { !it.retired } ?: partners.lastOrNull()
+            // Skipping the first half promotes the partner's exercise into MAIN; its retired SS
+            // work is then a lift of its own, not the second half of the pair.
+            val partner = partners.firstOrNull { !it.retired }
+                ?: partners.lastOrNull()?.takeIf { it.exerciseId != main?.exerciseId }
             val singles = mains.filter { it.retired && it.sets.any { set -> set.done } } +
                 partners.filter { it != partner || main == null }
             for (track in singles.sortedBy { it.position }) {
-                add(ReceiptGroup(null, listOf(row(track, slot.exercise.structure, names(track.exerciseId), standing))))
+                add(ReceiptGroup(null, listOf(row(track, slot.structureOf(track), names(track.exerciseId), standing))))
             }
             if (main != null) {
                 val rows = listOfNotNull(main, partner).map {
-                    row(it, slot.exercise.structure, names(it.exerciseId), standing)
+                    row(it, slot.structureOf(it), names(it.exerciseId), standing)
                 }
-                // Either half can be skipped, so the rounds are the half that did more.
-                val rounds = partner?.let { maxOf(main.sets.count { it.done }, it.sets.count { set -> set.done }) }
-                add(ReceiptGroup(rounds, rows))
+                add(ReceiptGroup(if (partner == null) null else main.sets.count { it.done }, rows))
             }
         }
         val slotIds = slots.map { it.programExerciseId }.toSet()
@@ -56,6 +59,10 @@ object ReceiptBuilder {
             add(ReceiptGroup(null, listOf(row(track, SetStructure.STRAIGHT, names(track.exerciseId), standing))))
         }
     }
+
+    /** A superset partner has no structure of its own; it is seeded as straight work sets. */
+    private fun ProgramSlot.structureOf(track: RunTrack): SetStructure =
+        if (track.slot == Slot.SS) SetStructure.STRAIGHT else exercise.structure
 
     private fun row(
         track: RunTrack,
@@ -75,7 +82,8 @@ object ReceiptBuilder {
         val record = bestIndex?.let { record(done, it, standing[track.exerciseId]) }
         if (structure.hasTopSet && tracking == TrackingType.WEIGHTED) {
             val top = highestIndex(done, indices.filter { done[it].kind == SetKind.TOP })
-            val index = top ?: requireNotNull(highestIndex(done, indices))
+            // With no top set, a record set must be the one shown: these rows never open.
+            val index = top ?: record?.setIndex ?: requireNotNull(highestIndex(done, indices))
             val shape = if (top == null) ReceiptRow.Shape.HEAVIEST_NO_TOP else ReceiptRow.Shape.TOP_SET
             return ReceiptRow(name, tracking, shape, sets, listOf(ValueLine(done[index].weightLb, listOf(index))), 0, null, record)
         }

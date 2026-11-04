@@ -204,13 +204,56 @@ class ReceiptBuilderTest {
     }
 
     @Test
-    fun `a skipped first half still counts the partner's rounds`() {
-        val bench = track(exerciseId = "bb_bench", sets = emptyList(), retired = true, dropped = true)
+    fun `rounds count the main half even when the partner did more`() {
+        val bench = track(exerciseId = "bb_bench", sets = listOf(work(185.0, 5)))
         val partner = track(exerciseId = "bb_row", slot = Slot.SS, position = 1,
             sets = listOf(work(155.0, 8), work(155.0, 8), work(155.0, 8)))
         val group = ReceiptBuilder.strength(listOf(bench, partner), listOf(supersetSlot()), { it }, emptyMap()).single()
-        assertEquals(3, group.rounds)
-        assertEquals(listOf(ReceiptRow.Shape.SKIPPED, ReceiptRow.Shape.STRAIGHT), group.rows.map { it.shape })
+        assertEquals(1, group.rounds)
+    }
+
+    @Test
+    fun `skipping the first half after two rounds leaves the promoted partner as its own lifts`() {
+        // dropSupersetHalf(keep = SS): partner retired and dropped, its exercise swapped into MAIN.
+        val bench = track(exerciseId = "bb_bench", sets = listOf(work(185.0, 5), work(185.0, 5)),
+            retired = true, dropped = true)
+        val oldPartner = track(exerciseId = "bb_row", slot = Slot.SS, position = 1,
+            sets = listOf(work(155.0, 8), work(155.0, 8)), retired = true, dropped = true)
+        val promoted = track(exerciseId = "bb_row", position = 2, sets = listOf(work(155.0, 8)))
+        val groups = ReceiptBuilder.strength(listOf(bench, oldPartner, promoted), listOf(supersetSlot()), { it }, emptyMap())
+        assertEquals(listOf("bb_bench", "bb_row", "bb_row"), groups.flatMap { g -> g.rows.map { it.name } })
+        assertTrue(groups.all { it.rounds == null && it.rows.size == 1 })
+    }
+
+    @Test
+    fun `a weighted partner of a ramped lift is straight sets`() {
+        val bench = track(exerciseId = "bb_bench", sets = listOf(work(225.0, 5, kind = SetKind.TOP)))
+        val partner = track(exerciseId = "db_curl", slot = Slot.SS, position = 1,
+            sets = listOf(work(35.0, 10), work(35.0, 10), work(30.0, 8)),
+            planned = List(3) { work(35.0, 10, done = false) })
+        val slot = ProgramSlot(1, 0, ProgramExercise("bb_bench", SetStructure.RAMP_TOP_BACKOFF,
+            superset = SupersetPartner("db_curl")))
+        val rows = ReceiptBuilder.strength(listOf(bench, partner), listOf(slot), { it }, emptyMap()).single().rows
+        assertEquals(listOf(ReceiptRow.Shape.TOP_SET, ReceiptRow.Shape.STRAIGHT), rows.map { it.shape })
+        assertEquals(PlannedSets(3, 35.0, 10, 0), rows[1].planned)
+        assertEquals(2, rows[1].lines.size)
+    }
+
+    @Test
+    fun `a lift swapped and then skipped still shows as skipped`() {
+        val bench = track(exerciseId = "bb_bench", sets = emptyList(), retired = true)
+        val press = track(exerciseId = "db_bench_press", position = 1, sets = emptyList(), retired = true, dropped = true)
+        val row = ReceiptBuilder.strength(listOf(bench, press), listOf(slot()), { it }, emptyMap()).single().rows.single()
+        assertEquals("db_bench_press", row.name)
+        assertEquals(ReceiptRow.Shape.SKIPPED, row.shape)
+    }
+
+    @Test
+    fun `with no top set a record on the back-off set is the set shown`() {
+        val row = row(squat(topDone = false), SetStructure.RAMP_TOP_BACKOFF, baseline(180.0, 8))
+        assertEquals(ReceiptRow.Shape.HEAVIEST_NO_TOP, row.shape)
+        assertEquals(listOf(ValueLine(185.0, listOf(4))), row.lines)
+        assertEquals(4, row.record?.setIndex)
     }
 
     @Test

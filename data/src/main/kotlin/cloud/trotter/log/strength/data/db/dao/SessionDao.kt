@@ -164,10 +164,11 @@ interface SessionDao {
         FROM session_set ss
         INNER JOIN workout_session ws ON ws.id = ss.sessionId
         WHERE ss.exerciseId IN (:exerciseIds) AND ss.done = 1
+        AND (:excludedRunId IS NULL OR ws.runId IS NOT :excludedRunId)
         ORDER BY ws.completedAt ASC, ss.id ASC
         """,
     )
-    suspend fun personalRecordRows(exerciseIds: List<String>): List<PersonalRecordRow>
+    suspend fun personalRecordRows(exerciseIds: List<String>, excludedRunId: String?): List<PersonalRecordRow>
 
     /**
      * The trajectory series for every ramped lift at once (journal §1.1),

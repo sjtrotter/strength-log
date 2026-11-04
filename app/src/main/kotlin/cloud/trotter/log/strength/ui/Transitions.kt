@@ -17,7 +17,7 @@ private const val ROUTE_TRANSITION_MILLIS = 240
 private const val DAY_FADE_THROUGH_MILLIS = 220
 private const val WIZARD_TRANSITION_MILLIS = 200
 
-private val emphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+internal val emphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
 private val emphasizedAccelerate = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
 
 internal val routeEnterTransition: EnterTransition

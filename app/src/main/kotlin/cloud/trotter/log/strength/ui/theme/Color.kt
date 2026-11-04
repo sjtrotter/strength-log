@@ -104,6 +104,24 @@ internal fun onDayAccent(dayIndex: Int, isDark: Boolean): Color {
     }
 }
 
+/** PR-label container: the day accent sunk into the ground the receipt rows sit on, 15% over the
+ *  near-black background and 10% over warm paper's surface. [accentEmphasis] text on it clears
+ *  4.5:1 on every day in both expressions; `DayAccentTest` pins that. */
+@Composable
+fun accentLabelContainer(dayIndex: Int): Color = accentLabelContainer(dayIndex, LocalAppPalette.current.isDark)
+
+/** Blend before constructing the opaque color so 8-bit alpha rounding cannot change the pinned tokens. */
+internal fun accentLabelContainer(dayIndex: Int, isDark: Boolean): Color {
+    val accent = dayAccent(dayIndex)
+    val ground = if (isDark) DarkBackground else LightSurface
+    val alpha = if (isDark) 0.15f else 0.10f
+    return Color(
+        red = accent.red * alpha + ground.red * (1f - alpha),
+        green = accent.green * alpha + ground.green * (1f - alpha),
+        blue = accent.blue * alpha + ground.blue * (1f - alpha),
+    )
+}
+
 // The low-luminance accents (B/D/E/G); colors.css gives them slightly more
 // soft-fill/border presence (14%/60%) than the brighter A/C/F (12%/55%) so
 // they read at the same visual weight against the near-black surfaces.

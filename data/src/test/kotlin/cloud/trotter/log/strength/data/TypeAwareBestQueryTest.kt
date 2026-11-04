@@ -57,7 +57,7 @@ class TypeAwareBestQueryTest {
         )
 
         val prs = db.sessionDao()
-            .personalRecordRows(listOf("pushup", "plank", "bb_back_squat"))
+            .personalRecordRows(listOf("pushup", "plank", "bb_back_squat"), excludedRunId = null)
             .toPersonalRecordsByExercise()
 
         assertEquals(20, prs.getValue("pushup").reps)
@@ -73,5 +73,27 @@ class TypeAwareBestQueryTest {
         assertEquals(20, last.getValue("pushup").reps)
         assertEquals(75, last.getValue("plank").seconds)
         assertEquals(235.0, last.getValue("bb_back_squat").weightLb, 0.0)
+    }
+
+    @Test
+    fun `personalRecordRows excludes only the requested run and retains null run ids`() = runTest {
+        val dao = db.sessionDao()
+        dao.insertSession(WorkoutSessionEntity(1, "A", "Day A", null, 1_000, 235, runId = "r1"))
+        dao.insertSession(WorkoutSessionEntity(2, "A", "Day A", null, 2_000, 235, runId = "r2"))
+        dao.insertSets(listOf(
+            set("bb_back_squat", 235.0, 5, 0),
+            set("bb_back_squat", 245.0, 5, 0).copy(sessionId = 2),
+        ))
+        val ids = listOf("bb_back_squat")
+
+        assertEquals(listOf(235.0), dao.personalRecordRows(ids, excludedRunId = "r2").map { it.weightLb })
+        assertEquals(listOf(235.0, 245.0), dao.personalRecordRows(ids, excludedRunId = null).map { it.weightLb })
+
+        dao.insertSession(WorkoutSessionEntity(3, "A", "Day A", null, 3_000, 235, runId = null))
+        dao.insertSets(listOf(set("bb_back_squat", 225.0, 5, 0).copy(sessionId = 3)))
+
+        assertEquals(listOf(235.0, 225.0), dao.personalRecordRows(ids, excludedRunId = "r2").map { it.weightLb })
+        assertEquals(listOf(245.0, 225.0), dao.personalRecordRows(ids, excludedRunId = "r1").map { it.weightLb })
+        assertEquals(listOf(235.0, 245.0, 225.0), dao.personalRecordRows(ids, excludedRunId = null).map { it.weightLb })
     }
 }

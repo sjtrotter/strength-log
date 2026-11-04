@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Receipt v7</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Roboto:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<style>
+  :root { --page: #050506; --pageText: #F2F2F0; --pageMuted: #9A9AA2; color-scheme: dark; }
+  /* Theme roles, values from ui/theme/Color.kt. */
+  .dark  { --bg: #0D0D0F; --surface: #16161A; --rule: #3A3A42; --ghost: #23232A; --on: #F2F2F0; --var: #9A9AA2; --off: #6B6B73;
+           --done: #3E8E5A; --error: #E5677D; --inv: #F2F2F0; --onInv: #1B1B1E; --scrim: #000000AA; --sheet: #16161A; }
+  .light { --bg: #F1EFEA; --surface: #FAF9F6; --rule: #C4BFB5; --ghost: #E1DDD5; --on: #1B1B1E; --var: #5C5C64; --off: #8B8B92;
+           --done: #37774E; --error: #B02A43; --inv: #1B1B1E; --onInv: #F2F2F0; --scrim: #00000055; --sheet: #FAF9F6; }
+  /* Day roles: raw accent is the fill; emphasis text is brightHex on dark, deepHex on light; the PR label
+     container is 15% accent over the background on dark, 10% over the surface on light (all seven days pass 4.5:1). */
+  .dark.dayA  { --accent: #C1440E; --emph: #D2815D; --tag: #28150F; --onAccent: #F2F2F0; }
+  .dark.dayB  { --accent: #2D5A3D; --emph: #728F7C; --tag: #121916; --onAccent: #F2F2F0; }
+  .light.dayA { --accent: #C1440E; --emph: #8F3813; --tag: #F4E7DF; --onAccent: #F2F2F0; }
+  .light.dayB { --accent: #2D5A3D; --emph: #284734; --tag: #E6E9E4; --onAccent: #F2F2F0; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--page); color: var(--pageText); font-family: Roboto, system-ui, sans-serif;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+  .intro { max-width: 72ch; margin-bottom: 32px; }
+  .intro h1 { font: 700 40px/1.1 'Barlow Condensed', 'Arial Narrow', sans-serif; margin-bottom: 12px; }
+  .intro p, .intro li, .prose p, .prose li { color: var(--pageMuted); font-size: 15px; line-height: 1.55; margin-bottom: 8px; }
+  .intro ul, .prose ul { padding-left: 20px; }
+  .intro b, .prose b { color: var(--pageText); font-weight: 500; }
+  .prose { max-width: 72ch; }
+  h2.sec { font: 700 28px/1.2 'Barlow Condensed', 'Arial Narrow', sans-serif; margin: 56px 0 16px; }
+  .frames { display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; }
+  figure { width: 412px; max-width: 100%; }
+  figcaption { color: var(--pageMuted); font-size: 13px; line-height: 18px; margin-bottom: 10px; }
+  .stack { display: flex; flex-direction: column; gap: 24px; }
+
+  .phone { width: 412px; max-width: 100%; height: 915px; background: var(--bg); color: var(--on); border-radius: 28px; overflow: hidden;
+    display: flex; flex-direction: column; outline: 1px solid #2A2A30; position: relative; }
+  .phone.part { height: auto; border-radius: 16px; padding-bottom: 8px; }
+  .part-label { font-size: 12px; color: var(--var); padding: 12px 16px 4px; }
+  .status { height: 24px; flex: none; font-size: 12px; color: var(--var); padding: 4px 20px; display: flex; justify-content: space-between; }
+  .appbar { height: 64px; flex: none; display: flex; justify-content: flex-end; align-items: center; padding: 0 4px; }
+  .icon-btn { width: 48px; height: 48px; display: grid; place-items: center; color: var(--on); }
+  .icon-btn.off { color: var(--off); opacity: .38; }
+  .ms { font-family: 'Material Symbols Outlined'; font-size: 24px; line-height: 1; font-weight: normal; font-style: normal; }
+  .scroll { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+  .head { padding: 0 16px 16px; }
+
+  /* Type roles from ui/theme/Type.kt. */
+  .displaySmall { font: 700 30px/34px 'Barlow Condensed', 'Arial Narrow', sans-serif; font-variant-numeric: tabular-nums; }
+  .headlineSmall { font: 700 24px/28px 'Barlow Condensed', 'Arial Narrow', sans-serif; font-variant-numeric: tabular-nums; }
+  .titleMedium { font: 600 17px/21px 'Barlow Condensed', 'Arial Narrow', sans-serif; font-variant-numeric: tabular-nums; }
+  .labelMedium { font: 500 12px/15px 'Barlow Condensed', 'Arial Narrow', sans-serif; letter-spacing: 1px; }
+  .labelLarge { font: 500 14px/18px 'Barlow Condensed', 'Arial Narrow', sans-serif; letter-spacing: .5px; }
+  .bodyLarge { font: 400 16px/22px Roboto, system-ui, sans-serif; }
+  .bodyMedium { font: 400 14px/20px Roboto, system-ui, sans-serif; }
+
+  .headline { margin-top: 8px; }
+  .plan { font-weight: 500; margin-top: 4px; }
+  .meta { color: var(--var); }
+  .activity { font-weight: 500; padding: 8px 16px 4px; }
+
+  /* Row: ListItem anatomy. headlineContent = name, supportingContent = the work, trailingContent = chevron over PR label. */
+  .row { --pl: 16px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start;
+    padding: 10px 16px 10px var(--pl); min-height: 72px; }
+  .row.one { min-height: 56px; align-items: center; }
+  .in > .item > .row { --pl: 0px; }
+  .item.tap > .row { cursor: pointer; }
+  .gut { color: var(--var); width: 32px; }
+  .gut:empty { width: 0; }
+  .name { overflow-wrap: anywhere; }
+  .chev { justify-self: end; color: var(--var); transition: transform 200ms cubic-bezier(.2,0,0,1); }
+  .item.open > .row .chev { transform: rotate(180deg); }
+  .vals { grid-column: 2; display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+  .line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .lbl, .more { color: var(--var); }
+  .hi { color: var(--emph); }
+  .rec { color: var(--emph); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  .old { color: var(--var); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+  .tagslot { grid-column: 3; justify-self: end; padding-left: 12px; margin-top: 8px; }
+  .tag { display: inline-block; background: var(--tag); color: var(--emph); padding: 3px 6px; border-radius: 4px; white-space: nowrap; }
+  .muted .name { color: var(--var); }
+  .group-head { padding: 12px 16px 2px; font-weight: 500; }
+
+  .in { margin-left: calc(var(--pl, 16px) + 8px); border-left: 1px solid var(--rule); padding-left: 15px; }
+  .kids { display: none; margin: 0 16px 8px 0; }
+  .item.open > .kids { display: block; }
+  .group > .in { margin: 4px 0 4px 24px; }
+  .set { display: grid; grid-template-columns: 28px auto 1fr; align-items: baseline; min-height: 32px; padding-top: 4px; }
+  .set .g { color: var(--var); }
+  .prnote { color: var(--emph); margin-left: 12px; }
+  .after { color: var(--var); min-height: 30px; line-height: 30px; }
+
+  .textbtn { margin: 4px 0 16px 4px; min-height: 48px; padding: 0 12px; display: inline-flex; align-items: center; color: var(--emph); font: 500 14px Roboto, sans-serif; }
+  .bottom { flex: none; border-top: 1px solid var(--rule); padding: 12px 16px; background: var(--bg); }
+  .allset { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+  .allset .ms { color: var(--done); }
+  .btn { min-height: 48px; border-radius: 24px; display: grid; place-items: center; font: 500 14px Roboto, sans-serif; letter-spacing: .1px; padding: 0 24px; }
+  .filled { background: var(--accent); color: var(--onAccent); }
+  .filled.off { background: color-mix(in srgb, var(--on) 12%, transparent); color: color-mix(in srgb, var(--on) 38%, transparent); }
+  .outlined { color: var(--emph); outline: 1px solid var(--rule); outline-offset: -1px; }
+  .allset + .btn { margin-top: 12px; }
+  .btns { display: flex; gap: 8px; } .btns > .btn { flex: 1; }
+  .gesture { height: 24px; flex: none; display: grid; place-items: center; }
+  .gesture::after { content: ""; width: 108px; height: 4px; border-radius: 2px; background: var(--off); }
+
+  .ghost { display: inline-block; background: var(--ghost); border-radius: 4px; height: 22px; margin-top: 6px; }
+  .pulse { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+  .msg { padding: 8px 16px 16px; display: flex; gap: 12px; }
+  .msg .ms { color: var(--error); }
+  .msg .t { color: var(--on); font-weight: 500; }
+  .msg .s { color: var(--var); margin-top: 4px; }
+  .notice { margin: 0 16px 8px; color: var(--var); }
+  .snack { margin: 8px; background: var(--inv); color: var(--onInv); border-radius: 4px; padding: 6px 8px 6px 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 48px; box-shadow: 0 3px 8px #0006; }
+  .snack .act { font: 500 14px Roboto, sans-serif; padding: 0 12px; min-height: 48px; display: grid; place-items: center; }
+  .sheetwrap { background: var(--scrim); padding-top: 120px; }
+  .sheet { background: var(--sheet); border-radius: 28px 28px 0 0; padding: 8px 16px 16px; }
+  .handle { width: 32px; height: 4px; border-radius: 2px; background: var(--off); margin: 8px auto 16px; }
+  .field { border: 1px solid var(--var); border-radius: 4px; padding: 14px 16px; min-height: 96px; margin: 8px 0 12px; color: var(--on); }
+  .sheet .row-end { display: flex; justify-content: flex-end; }
+
+  /* Largest font: Android's nonlinear 200% table (12->24, 14->28, 16->30, 17->31, 24->40, 30->50). */
+  .big .displaySmall { font-size: 50px; line-height: 56px; }
+  .big .headlineSmall { font-size: 40px; line-height: 46px; }
+  .big .titleMedium { font-size: 31px; line-height: 38px; }
+  .big .labelMedium { font-size: 24px; line-height: 30px; }
+  .big .labelLarge { font-size: 28px; line-height: 34px; }
+  .big .bodyLarge { font-size: 30px; line-height: 38px; }
+  .big .bodyMedium { font-size: 28px; line-height: 34px; }
+  .big .tagslot { grid-column: 2; justify-self: start; padding-left: 0; margin-top: 6px; }
+  .big .gut { width: 56px; }
+  .big .gut:empty { width: 0; }
+  .big .btn { font-size: 28px; min-height: 64px; border-radius: 32px; }
+
+  /* The one ceremony: record values roll in once per receipt, emphasized-decelerate, medium4 (400 ms). */
+  @keyframes roll { from { transform: translateY(60%); opacity: 0; } to { transform: none; opacity: 1; } }
+  .roll { display: inline-block; animation: roll 400ms cubic-bezier(.05,.7,.1,1) 300ms both; }
+  @media (prefers-reduced-motion: reduce) { .chev { transition: none; } .roll, .pulse { animation: none; } }
+
+  .tw { overflow-x: auto; max-width: 1100px; }
+  table.rules { border-collapse: collapse; width: 100%; min-width: 760px; }
+  table.rules th, table.rules td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid #2A2A30; font-size: 14px; line-height: 20px; color: var(--pageText); }
+  table.rules th { color: var(--pageMuted); font-weight: 500; }
+  table.rules td.v { font: 700 20px/24px 'Barlow Condensed', sans-serif; white-space: nowrap; }
+  table.rules td.v small { font: 400 13px Roboto, sans-serif; color: var(--pageMuted); }
+  table.rules td.say { color: var(--pageMuted); font-style: italic; }
+  .u { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; color: #D2815D; }
+</style>
+</head>
+<body>
+<header class="intro">
+  <h1>Receipt v7</h1>
+  <p>v6 with every finding from the Material 3 audit applied. The layout is unchanged: name on top, the work under it, chevron and PR label on the right.</p>
+  <ul>
+    <li><b>Theme roles only.</b> Type uses the app's roles (session name in displaySmall, numbers in headlineSmall, old bests in titleMedium, PR labels in labelMedium), and every color comes from the theme.</li>
+    <li><b>Contrast.</b> PR labels use a new container rule (15% day color on dark, 10% on light) that clears 4.5:1 on all seven days in both themes. The snackbar is the stock one.</li>
+    <li><b>Not color alone.</b> The rep that set a record is underlined as well as colored.</li>
+    <li><b>At most three lines per row.</b> Two weights get a line each; three or more show the heaviest set and "and 2 lighter sets".</li>
+    <li><b>TalkBack.</b> Every row has a spoken version (table below); rows that open announce expanded or collapsed.</li>
+    <li><b>New:</b> light-theme frames, a full 200% font frame, the note-sheet failure, and rules for a missing top set, a blank distance and two records on one row.</li>
+  </ul>
+</header>
+
+<h2 class="sec">Dark</h2>
+<div class="frames" id="dark"></div>
+<h2 class="sec">Light</h2>
+<div class="frames" id="light"></div>
+<h2 class="sec">The value line and what TalkBack says</h2>
+<div class="tw"><table class="rules" id="rules"></table></div>
+<h2 class="sec">Screen states</h2>
+<div class="frames" id="states"></div>
+<h2 class="sec">Behavior the build follows</h2>
+<div class="prose">
+  <ul>
+    <li><b>Finishing.</b> Done is disabled until Finish has saved, so leaving can never cut a save short. Back waits too. TalkBack hears "Finishing workout" once. Placeholder bars appear only after 260 ms, the app's existing delay.</li>
+    <li><b>Finish failed.</b> The day is not marked done and the plan does not move on. Try again repeats Finish and is ignored while a try is running. Back, and Back to workout, return to the last set. Nothing on this screen counts as Done.</li>
+    <li><b>Receipt open.</b> Back means Done, as today. Records roll in once per receipt, never again after rotation or reopening, and not at all with reduced motion on.</li>
+    <li><b>Note not saved.</b> The sheet stays open with your text, and a snackbar above it offers Try again. The snackbar stays until you act or close the sheet.</li>
+    <li><b>Records not checked.</b> If the old bests can't be read, the receipt still shows and says so in one gray line. It never shows zero records as if that were the result.</li>
+  </ul>
+</div>
+<h2 class="sec">Departures from Material, recorded in KDoc</h2>
+<div class="prose">
+  <ul>
+    <li><b>Rows open and close.</b> Material has no expandable list item. It is built from ListItem plus AnimatedVisibility, with expanded/collapsed state in semantics.</li>
+    <li><b>PR label.</b> A non-interactive tonal Surface with words. Material's Badge holds counts and chips are interactive. This is also the one exception to DESIGN.md's "no badges".</li>
+    <li><b>Placeholder bars while finishing.</b> Material has no skeleton component. The receipt already knows the exercise names, so bars in place of the numbers keep the layout from jumping. #447 decides whether other screens adopt them.</li>
+    <li><b>Work figures larger than ListItem's supporting text</b> (headlineSmall instead of bodyMedium). The numbers are the receipt's content.</li>
+  </ul>
+</div>
+
+<script>
+'use strict';
+const ms = n => `<span class="ms" aria-hidden="true">${n}</span>`;
+const chev = '<span class="ms chev" aria-hidden="true">expand_more</span>';
+const tag = t => `<span class="tag labelMedium">${t}</span>`;
+const num = (v, cls = '') => `<span class="headlineSmall${cls ? ' ' + cls : ''}">${v}</span>`;
+const line = (...p) => `<div class="line">${p.join('')}</div>`;
+const old = v => `<span class="old titleMedium">${v}</span>`;
+const lbl = t => `<span class="lbl bodyMedium">${t}</span>`;
+const more = t => `<span class="more bodyMedium">${t}</span>`;
+const roll = h => `<span class="roll">${h}</span>`;
+
+function row({ gut = '', name, lines = [], pr = '', kids = '', open = false, muted = false, one = false, right = '' }) {
+  const tap = !!kids;
+  const top = `<span class="gut labelLarge">${gut}</span><div class="name bodyLarge">${name}</div>${tap ? chev : right ? `<span>${right}</span>` : '<span></span>'}`;
+  const bottom = lines.length ? `<span></span><div class="vals">${lines.join('')}</div><div class="tagslot">${pr ? tag(pr) : ''}</div>` : '';
+  return `<div class="item${tap ? ' tap' : ''}${open ? ' open' : ''}${muted ? ' muted' : ''}"><div class="row${one ? ' one' : ''}">${top}${bottom}</div>${tap ? `<div class="kids in">${kids}</div>` : ''}</div>`;
+}
+const set = (g, v, note = '') => `<div class="set"><span class="g labelLarge">${g}</span><span class="titleMedium${note ? ' hi' : ''}">${v}</span>${note ? `<span class="prnote labelMedium">${note}</span>` : '<span></span>'}</div>`;
+const after = t => `<div class="after bodyMedium">${t}</div>`;
+const reps = (w, rs, recAt = -1) => num(`${w ? w + ' × ' : ''}${rs.map((r, i) => i === recAt ? `<span class="rec">${r}</span>` : r).join(', ')}`);
+
+const squat = (r = true) => row({ name: 'Barbell Back Squat', pr: 'Weight PR',
+  lines: [line(lbl('Top set'), r ? roll(num('245 × 5', 'hi')) : num('245 × 5', 'hi'), old('240 × 5'))] });
+const rdl = () => row({ name: 'Romanian Deadlift', pr: 'Rep PR', lines: [line(lbl('Top set'), num('205 × 6', 'hi'), old('205 × 5'))] });
+function superset(open = false) {
+  return `<div class="group"><div class="group-head bodyLarge">Superset, 3 rounds</div><div class="in">
+    ${row({ gut: 'A1', name: 'Barbell Bench Press', open, lines: [line(reps('185', [5, 5, 4]))],
+      kids: set('1', '185 × 5') + set('2', '185 × 5') + set('3', '185 × 4') + after('Planned 3 × 5') })}
+    ${row({ gut: 'A2', name: 'Barbell Row', open, lines: [line(reps('155', [8, 8])), line(reps('135', [10]))],
+      kids: set('1', '155 × 8') + set('2', '155 × 8') + set('3', '135 × 10') + after('Planned 3 × 8 at 155') })}
+  </div></div>`;
+}
+const curl = (open = false) => row({ name: 'Dumbbell Curl', open, pr: 'Rep PR',
+  lines: [line(reps('35', [10, 10], 0)), line(reps('30', [8]))],
+  kids: set('1', '35 × 10', 'PR, up from 35 × 9') + set('2', '35 × 10') + set('3', '30 × 8') + after('Planned 3 × 10 at 35') });
+const lateral = (open = false) => row({ name: 'Dumbbell Lateral Raise', open,
+  lines: [line(num('25 × 12'), more('and 3 lighter sets'))],
+  kids: set('1', '25 × 12') + set('2', '20 × 10') + set('3', '15 × 10') + set('4', '10 × 12') + after('Planned 3 × 12 at 25') });
+const pullup = () => row({ name: 'Pull-up', lines: [line(reps('', [12, 10, 9]))],
+  kids: set('1', '12') + set('2', '10') + set('3', '9') + after('Planned 3 × 10') });
+const plank = () => row({ name: 'Plank', pr: 'Hold PR', lines: [line(reps('', ['1:15', '1:10'], 0))],
+  kids: set('1', '1:15', 'PR, up from 1:10') + set('2', '1:10') + after('Planned 2 × 1:00') });
+const facePull = () => row({ name: 'Face Pull', muted: true, one: true, right: '<span class="bodyMedium" style="color:var(--var)">Skipped</span>' });
+const note = '<div class="textbtn">Add a note</div>';
+const barDone = `<div class="bottom"><div class="btn filled">Done</div></div>`;
+const barAllDone = `<div class="bottom"><div class="allset bodyLarge">${ms('check_circle')}<span>All plans done for today.</span></div><div class="btn filled">Done</div></div>`;
+
+function phone({ theme = 'dark', day, time = '6:42', head, body, bar, share = true, cls = '', overlay = '' }) {
+  return `<div class="phone ${theme} ${day} ${cls}">
+    <div class="status"><span>${time}</span><span>100%</span></div>
+    <div class="appbar"><div class="icon-btn${share ? '' : ' off'}">${ms('share')}</div></div>
+    <div class="scroll"><div class="head">${head}</div>${body}</div>${bar}<div class="gesture"></div>${overlay}</div>`;
+}
+const head = (title, plan, meta) => `<div class="headline displaySmall">${title}</div><div class="plan bodyLarge">${plan}</div><div class="meta bodyLarge">${meta}</div>`;
+const strengthHead = head('Squat focus, done.', 'Four-day strength', 'Tuesday, Nov 3, 58 min');
+const part = (theme, day, label, body, cls = '') => `<div class="phone part ${theme} ${day} ${cls}"><div class="part-label">${label}</div>${body}</div>`;
+const fig = (cap, inner) => `<figure><figcaption>${cap}</figcaption>${inner}</figure>`;
+const strengthBody = o => squat() + rdl() + superset(o) + curl(o) + lateral(o) + pullup() + plank() + facePull() + note;
+
+const intervals = row({ name: '6 × 400 m', open: true, pr: 'Faster PR',
+  lines: [line(lbl('Fastest'), roll(num('1:38', 'hi')), old('1:42'))],
+  kids: set('1', '1:41') + set('2', '1:38', 'PR, up from 1:42') + set('3', '1:44') + set('4', '1:40') + set('5', '1:39') + set('6', '1:45') + after('Recovery 1:30 each') });
+const cardioBody = `<div class="activity bodyLarge">Track run</div>` + row({ name: 'Warm-up', lines: [line(num('10:00'))] }) + intervals
+  + row({ name: 'Cool-down', lines: [line(num('5:00'))] }) + note;
+const cardioHead = head('Intervals, done.', '5K build', 'Tuesday, Nov 3, 34 min');
+const easyRun = theme => `<div class="head" style="padding-top:4px">${head('Easy run, done.', '5K build', 'Thursday, Nov 5, 30 min')}</div><div class="activity bodyLarge">Road run</div>`
+  + row({ name: '30:00', pr: 'Farther PR', lines: [line(lbl('Distance'), roll(num('5.6 km', 'hi')), old('5.4 km'))] }) + note;
+
+document.getElementById('dark').innerHTML = [
+  fig('(a) Strength, collapsed. Barbell Row and Dumbbell Curl changed weight partway, one line per weight. The record rep in the curl (the first 10) is underlined. Lateral raise used four weights: heaviest set plus a count.',
+    phone({ day: 'dayA', head: strengthHead, body: strengthBody(false), bar: barDone })),
+  fig('(b) Open rows: every set, the record set marked with what it beat, the plan as the last gray line. Ramped lifts never open.',
+    phone({ day: 'dayA', head: strengthHead, body: strengthBody(true), bar: barDone })),
+  fig('(c) Cardio. Two plans on Today, both done today, so the completion line shows. Below: a time-target run with a farther PR.',
+    `<div class="stack">${phone({ day: 'dayB', time: '7:15', head: cardioHead, body: cardioBody, bar: barAllDone })}${part('dark', 'dayB', 'Time-target run', easyRun('dark'))}</div>`),
+].join('');
+
+document.getElementById('light').innerHTML = [
+  fig('(d) Light theme, strength. Emphasis text is the day\'s deep tone; the PR label container is 10% day color over the surface.',
+    phone({ theme: 'light', day: 'dayA', head: strengthHead, body: strengthBody(false), bar: barDone })),
+  fig('(e) Light theme, cardio, Day B, with the completion line.',
+    `<div class="stack">${phone({ theme: 'light', day: 'dayB', time: '7:15', head: cardioHead, body: cardioBody, bar: barAllDone })}${part('light', 'dayB', 'Time-target run', easyRun('light'))}</div>`),
+].join('');
+
+const R = (c, v, say) => `<tr><td>${c}</td><td class="v">${v}</td><td class="say">${say}</td></tr>`;
+document.getElementById('rules').innerHTML = `<tr><th>What you did</th><th>Collapsed row</th><th>TalkBack says</th></tr>`
+  + R('Ramped lift, top set logged', 'Top set 245 × 5 <small>(record: old best struck after it)</small>', 'Barbell back squat. Top set, 245 pounds for 5 reps. Weight record, up from 240 pounds for 5.')
+  + R('Ramped lift, top set never logged', 'Heaviest 210 × 3 <small>top set not logged</small>', 'Romanian deadlift. Top set not logged. Heaviest set, 210 pounds for 3 reps.')
+  + R('Straight sets, one weight', '35 × 10, 10, 8', 'Dumbbell curl. 35 pounds: 10, 10 and 8 reps.')
+  + R('Two weights', '35 × <span class="u">10</span>, 10<br>30 × 8', 'Dumbbell curl. 35 pounds: 10 and 10 reps. 30 pounds: 8 reps. Rep record on set 1, up from 9. Collapsed. Double-tap to expand.')
+  + R('Three or more weights', '25 × 12 <small>and 3 lighter sets</small>', 'Dumbbell lateral raise. Heaviest set, 25 pounds for 12 reps, and 3 lighter sets.')
+  + R('Reps only', '12, 10, 9', 'Pull-up. 12, 10 and 9 reps.')
+  + R('Added weight', '+25 × 8, 8, 6', 'Weighted dip. Plus 25 pounds: 8, 8 and 6 reps.')
+  + R('Holds', '1:15, 1:10', 'Plank. Holds of 1 minute 15 seconds and 1 minute 10 seconds. Hold record on hold 1.')
+  + R('Two records on one row', '<small>label shows the first of Weight PR, Rep PR, Hold PR</small>', 'Both are spoken: "Weight record and rep record."')
+  + R('Skipped', '<small>name in gray, "Skipped" on the right</small>', 'Face pull, skipped.')
+  + R('Fewer sets than planned', '35 × 10, 10', 'Nothing extra. Opening the row shows "Planned 3 × 10 at 35".')
+  + R('Cardio distance left blank', '<small>Distance not entered</small>', 'Never 0 km. No distance record is possible for that run.')
+  + R('Units', '<small>none on the row, as on the workout screen</small>', 'Pounds or kilograms, from Settings, in every spoken line.');
+
+const ghostRow = (n, w, g = '') => `<div class="row"><span class="gut labelLarge">${g}</span><div class="name bodyLarge">${n}</div><span></span><span></span><div class="vals"><span class="ghost pulse" style="width:${w}px"></span></div><div class="tagslot"></div></div>`;
+const finishing = phone({ day: 'dayA', share: false, head: strengthHead,
+  body: ghostRow('Barbell Back Squat', 150) + ghostRow('Romanian Deadlift', 140)
+    + `<div class="group-head bodyLarge">Superset, 3 rounds</div><div class="in" style="margin:4px 0 4px 24px">${ghostRow('Barbell Bench Press', 110, 'A1')}${ghostRow('Barbell Row', 110, 'A2')}</div>`
+    + ghostRow('Dumbbell Curl', 120) + ghostRow('Dumbbell Lateral Raise', 130) + ghostRow('Pull-up', 90),
+  bar: `<div class="bottom"><div class="btn filled off">Done</div></div>` });
+const failed = phone({ day: 'dayA', share: false, head: head('Squat focus', 'Four-day strength', 'Tuesday, Nov 3, 58 min'),
+  body: `<div class="msg">${ms('error')}<div><div class="t bodyLarge">Couldn't finish the workout.</div><div class="s bodyMedium">Every set you logged is saved. Try again, or go back to the workout.</div></div></div>`,
+  bar: `<div class="bottom"><div class="btns"><div class="btn outlined">Back to workout</div><div class="btn filled">Try again</div></div></div>` });
+const unchecked = part('dark', 'dayA', 'Records not checked', `<div class="notice bodyMedium">Records weren't checked for this workout.</div>`
+  + row({ name: 'Barbell Back Squat', lines: [line(lbl('Top set'), num('245 × 5'))] })
+  + row({ name: 'Dumbbell Curl', lines: [line(reps('35', [10, 10])), line(reps('30', [8]))], kids: set('1', '35 × 10') }));
+const noteFail = part('dark', 'dayA', 'Note not saved', `<div class="sheetwrap"><div class="snack"><span class="bodyMedium">Couldn't save the note.</span><span class="act">Try again</span></div>
+  <div class="sheet"><div class="handle"></div><div class="bodyLarge" style="font-weight:500">Note</div>
+  <div class="field bodyLarge">Left knee a bit sore on the last squat set. Belt on for the top set next time.</div>
+  <div class="row-end"><div class="btn filled">Save</div></div></div></div>`);
+const big = phone({ day: 'dayA', cls: 'big', head: strengthHead, body: squat(false) + curl(false) + lateral(false)
+  + `<div class="group"><div class="group-head bodyLarge">Superset, 3 rounds</div><div class="in">${row({ gut: 'A1', name: 'Barbell Bench Press', lines: [line(reps('185', [5, 5, 4]))], kids: set('1', '185 × 5') })}</div></div>` + note,
+  bar: barAllDone });
+
+document.getElementById('states').innerHTML = [
+  fig('(f) Finishing, after 260 ms. Real header and names, bars where the numbers go. Done and Share are disabled until the save lands.', finishing),
+  fig('(g) Finish failed. Error icon in the theme\'s error color, the message in normal text. The headline drops "done."', failed),
+  fig('(h) Records not checked, and the note sheet after a failed save: text kept, the stock snackbar above the sheet.', `<div class="stack">${unchecked}${noteFail}</div>`),
+  fig('(i) Largest font, 200%, using Android\'s nonlinear scaling. Names and numbers wrap, the PR label drops under the numbers, and the bottom bar grows with its text. Scroll the frame.', big),
+].join('');
+
+document.querySelectorAll('.item.tap > .row').forEach(r => r.addEventListener('click', () => r.parentElement.classList.toggle('open')));
+</script>
+</body>
+</html>

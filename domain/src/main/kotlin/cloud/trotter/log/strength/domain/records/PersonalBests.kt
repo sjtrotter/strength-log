@@ -49,15 +49,25 @@ object PersonalBests {
 
     fun best(sets: List<LoggedSet>): LoggedSet? = bestIndex(sets)?.let(sets::get)
 
-    fun prKind(candidate: LoggedSet, standing: LoggedSet?): PrKind? {
+    /** Every dimension the candidate improved on, label first. Empty when it is not a PR. */
+    fun prKinds(candidate: LoggedSet, standing: LoggedSet?): List<PrKind> {
         if (!counts(candidate) || standing == null ||
             tracking(candidate) != tracking(standing) || compare(candidate, standing) <= 0
-        ) return null
+        ) return emptyList()
 
         return when (tracking(candidate)) {
-            TrackingType.WEIGHTED -> if (candidate.weightLb > standing.weightLb) PrKind.WEIGHT else PrKind.REPS
-            TrackingType.REPS -> PrKind.REPS
-            TrackingType.TIMED -> if (candidate.seconds > standing.seconds) PrKind.HOLD else PrKind.WEIGHT
+            TrackingType.WEIGHTED -> listOfNotNull(
+                PrKind.WEIGHT.takeIf { candidate.weightLb > standing.weightLb },
+                PrKind.REPS.takeIf { candidate.reps > standing.reps },
+            )
+            TrackingType.REPS -> listOf(PrKind.REPS)
+            TrackingType.TIMED -> listOfNotNull(
+                PrKind.HOLD.takeIf { candidate.seconds > standing.seconds },
+                PrKind.WEIGHT.takeIf { candidate.weightLb > standing.weightLb },
+            )
         }
     }
+
+    fun prKind(candidate: LoggedSet, standing: LoggedSet?): PrKind? =
+        prKinds(candidate, standing).firstOrNull()
 }

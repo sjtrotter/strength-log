@@ -261,6 +261,11 @@ Ramp and back-off rows carry as logged when the top held.
 An increase is offered (opening plus one stepper increment on full success, or a
 heavier set that made its reps; the larger, never stacked) and applied only when
 the lifter accepts; §11 numbers do not move.
+Choosing Plan parks the slot's Progress values on the slot and choosing Progress
+again restores them.
+
+Room v20 adds nullable `program_exercise.parkedLogsJson` through migration 19→20.
+Backup v18 carries the optional field; older backups restore it as null.
 
 ## Architecture
 

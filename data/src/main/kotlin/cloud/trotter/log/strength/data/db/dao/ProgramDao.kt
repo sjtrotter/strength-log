@@ -62,6 +62,9 @@ interface ProgramDao {
     @Query("UPDATE program_exercise SET keepToPlan = :keep WHERE id = :id")
     suspend fun setKeepToPlan(id: Long, keep: Boolean)
 
+    @Query("UPDATE program_exercise SET parkedLogsJson = :json WHERE id = :id")
+    suspend fun setParkedLogs(id: Long, json: String?)
+
     @Query("SELECT * FROM program_exercise WHERE id = :id")
     suspend fun exercise(id: Long): ProgramExerciseEntity?
 

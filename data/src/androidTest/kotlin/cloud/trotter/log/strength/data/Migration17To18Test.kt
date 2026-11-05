@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import cloud.trotter.log.strength.data.db.MIGRATION_17_18
 import cloud.trotter.log.strength.data.db.MIGRATION_18_19
+import cloud.trotter.log.strength.data.db.MIGRATION_19_20
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
@@ -52,7 +53,7 @@ class Migration17To18Test {
         helper.close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_17_18, MIGRATION_18_19).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20).allowMainThreadQueries().build()
             try {
                 val sql = db.openHelper.writableDatabase
                 assertEquals(before, rows(sql, "SELECT $retainedColumns FROM program_exercise ORDER BY id"))

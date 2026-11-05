@@ -21,8 +21,9 @@ import kotlinx.serialization.Serializable
  * v15 adds each plan’s onToday membership.
  * v16 replaces legacy slot flags with a named set structure.
  * v17 adds bodyweight at tenths-of-a-pound precision.
+ * v18 carries parked Progress working values while Next time is Plan.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 17
+const val CURRENT_SCHEMA_VERSION: Int = 18
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -206,6 +207,7 @@ data class ProgramExerciseBackup(
     val note: String,
     val prescriptionJson: String? = null,
     val keepToPlan: Boolean? = null,
+    val parkedLogsJson: String? = null,
     @OptIn(ExperimentalSerializationApi::class)
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val isMain: Boolean? = null,

@@ -176,13 +176,61 @@
    "checkpoint": "cardio-day-detail"
   },
   {
+   "note": "I tapped the cardio day to log a run and it dropped me into planks. Where's the run?"
+  },
+  {
    "tap": {
-    "textContains": "Start day"
+    "desc": "Day C1 lifts, 0 of 3 sets"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "cardio-started"
+   "checkpoint": "c1-overview"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "c1-allsets-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "note": "Not doing planks on a run day. Skipping to see if the run is behind them."
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "c1-after-skip-plank"
   }
  ]
 }

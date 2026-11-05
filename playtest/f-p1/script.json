@@ -165,6 +165,22 @@
   },
   {
    "checkpoint": "day-a-detail"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "edit-day"
+  },
+  {
+   "tap": {
+    "textContains": "Cable Lateral Raise"
+   }
+  },
+  {
+   "checkpoint": "edit-day-row"
   }
  ]
 }

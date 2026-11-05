@@ -1,7 +1,8 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -58,10 +59,10 @@ class DayEditPickerRestorationTest {
     private fun assertDraftSurvives(restoration: StateRestorationTester) {
         composeTestRule.onNode(hasSetTextAction()).performTextInput("press")
         composeTestRule.onNodeWithText("Barbell").performClick()
-        composeTestRule.onNodeWithText("Barbell").assertIsOn()
+        composeTestRule.onNodeWithText("Barbell").assertIsSelected()
         restoration.emulateSavedInstanceStateRestore()
         composeTestRule.onNode(hasSetTextAction()).assertTextContains("press")
-        composeTestRule.onNodeWithText("Barbell").assertIsOn()
+        composeTestRule.onNodeWithText("Barbell").assertIsSelected()
     }
 
     @Test
@@ -72,4 +73,42 @@ class DayEditPickerRestorationTest {
 
     @Test
     fun supersetPickerDraftSurvivesRestoration() = assertDraftSurvives(show(key = "ss:1"))
+    @Test
+    fun searchStaysDisplayedAndStationaryWhenNothingMatches() {
+        show(key = "empty-results")
+        val search = composeTestRule.onNode(hasSetTextAction())
+        val before = search.fetchSemanticsNode().boundsInRoot.top
+        search.performTextInput("zzzz-no-such-exercise")
+        search.assertIsDisplayed()
+        composeTestRule.onNodeWithText("No matching exercises").assertIsDisplayed()
+        org.junit.Assert.assertEquals(before, search.fetchSemanticsNode().boundsInRoot.top)
+    }
+
+    @Test
+    fun clearingAnEmptyEquipmentSelectionRestoresResultsAndSelectsEveryOption() {
+        show(key = "clear-empty-equipment")
+        composeTestRule.onNodeWithText("Barbell Back Squat").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Clear filters").performClick()
+        composeTestRule.onNodeWithText("Barbell Back Squat").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Hack Squat").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Barbell").assertIsSelected()
+        composeTestRule.onNodeWithText("Rack").assertIsSelected()
+
+        // An unmatched query alone is not an equipment restriction.
+        composeTestRule.onNode(hasSetTextAction()).performTextInput("zzzz-no-such-exercise")
+        composeTestRule.onNodeWithText("No matching exercises").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Clear filters").assertDoesNotExist()
+    }
+
+    @Test
+    fun clearingAPartialEquipmentSelectionRestoresMultiEquipmentExercises() {
+        show(key = "clear-partial-equipment")
+        composeTestRule.onNodeWithText("Barbell").performClick()
+        // The squat needs both the barbell and rack; selecting only the barbell still excludes it.
+        composeTestRule.onNodeWithText("Barbell Back Squat").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Clear filters").performClick()
+        composeTestRule.onNodeWithText("Barbell Back Squat").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Rack").assertIsSelected()
+    }
+
 }

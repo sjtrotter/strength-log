@@ -1,43 +1,43 @@
 package cloud.trotter.log.strength.ui.day
 
 import android.view.View
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.platform.LocalView
-import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -998,12 +998,15 @@ class WorkoutSetScreenTest {
             onCloseAllSets = { state = state.copy(openSheet = null) }, onSkipCardioSet = { skips = it },
             onAddCardioSet = { adds++ }, onEndCardioBlock = { ends++ },
         )) } }
+        rule.onNodeWithContentDescription("More").performClick()
         rule.onNodeWithText("Add set").performClick()
+        rule.onNodeWithContentDescription("More").performClick()
         rule.onNodeWithText("Skip set").performClick()
         rule.runOnIdle {
             assertEquals(1, adds); assertEquals(CardioSetAction("A", null, 0), skips)
             state = state.copy(openSheet = OpenSheet("A", OpenSheet.Kind.CARDIO_SETS, 0L, 0))
         }
+        rule.onNodeWithContentDescription("More").performClick()
         rule.onNodeWithText("End cardio").performClick()
         rule.onNodeWithText("End cardio?").assertIsDisplayed()
         rule.onNodeWithText("End and log").performClick()

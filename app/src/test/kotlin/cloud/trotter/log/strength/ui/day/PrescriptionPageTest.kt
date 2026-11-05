@@ -7,9 +7,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
-import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
@@ -38,7 +38,7 @@ class PrescriptionPageTest {
             rule.runOnIdle { structure.value = ramped }
             rule.onNodeWithText("Sets").assertDoesNotExist()
         }
-        rule.onNodeWithText("Save").performScrollTo().performClick()
+        rule.onNodeWithText("Save").performClick()
         assertEquals(4, savedSets)
         rule.runOnIdle { structure.value = SetStructure.STRAIGHT }
         rule.onNodeWithText("Sets").assertExists()
@@ -51,13 +51,14 @@ class PrescriptionPageTest {
         rule.setContent { AppTheme {
             PrescriptionPage(draft.value, WeightUnit.LB, { draft.value = it }, { saved = draft.value.prescription() }, {})
         } }
+        rule.onNodeWithText("Tracking").performClick()
         rule.onNodeWithText("Reps in time").performClick()
         rule.onNodeWithContentDescription("Rep aim").performScrollTo().performClick()
         rule.onNodeWithText("40").assertExists()
         rule.onNodeWithContentDescription("Each side").performScrollTo().performClick()
         rule.onNodeWithText("Band or resistance").performScrollTo().performTextReplacement("x".repeat(45))
         assertEquals(40, draft.value.resistance.length)
-        rule.onNodeWithText("Save").performScrollTo().performClick()
+        rule.onNodeWithText("Save").performClick()
         assertEquals(Prescription(PrescribedTarget.RepsInTime(120, 40), true, "x".repeat(40)), saved)
     }
 }

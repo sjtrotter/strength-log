@@ -1,7 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -76,6 +76,7 @@ class LiftSwapScreenTest {
         setDayContent(dayEditActions = swapRecorder(swaps))
 
         composeTestRule.onNodeWithText("All sets").performClick()
+        composeTestRule.onNodeWithContentDescription("More").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("The plan").performClick()
@@ -94,6 +95,7 @@ class LiftSwapScreenTest {
 
         // From the Lift sheet: Swap exercise -> pick.
         composeTestRule.onNodeWithText("All sets").performClick()
+        composeTestRule.onNodeWithContentDescription("More").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("The plan").performClick()
@@ -101,9 +103,10 @@ class LiftSwapScreenTest {
 
         // From the Day sheet: Edit day -> Edit -> Swap exercise -> pick.
         composeTestRule.onNodeWithContentDescription("Day A lifts", substring = true).performClick()
+        composeTestRule.onNodeWithContentDescription("More").performClick()
         composeTestRule.onNodeWithText("Edit day").performClick()
-        composeTestRule.onNodeWithText("Edit").performClick()
-        composeTestRule.onNodeWithText("Swap exercise").performClick()
+        composeTestRule.onNodeWithContentDescription("More options for Barbell Back Squat").performClick()
+        composeTestRule.onNodeWithText("Swap").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("The plan").performClick()
         composeTestRule.onNodeWithText("Swap").performClick()
@@ -121,6 +124,7 @@ class LiftSwapScreenTest {
                 onWorkoutSwapHalf = { position, id, _ -> workoutSwaps += position to id },
             ))
         composeTestRule.onNodeWithText("All sets").performClick()
+        composeTestRule.onNodeWithContentDescription("More").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("Swap").performClick()
@@ -137,6 +141,7 @@ class LiftSwapScreenTest {
             onWorkoutSwapHalf = { position, id, _ -> workoutSwaps += position to id },
         ))
         composeTestRule.onNodeWithText("All sets").performClick()
+        composeTestRule.onNodeWithContentDescription("More").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("This workout").performClick()

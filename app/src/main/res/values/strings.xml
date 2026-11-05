@@ -856,4 +856,50 @@
     <string name="log_top_set_goal_met">Goal met</string>
     <string name="log_top_set_date_range">%1$s to %2$s</string>
     <string name="log_top_set_series_description">%1$s top sets: %2$s, %3$s %6$s; %4$s, %5$s %6$s. Goal %7$s %6$s.</string>
+
+    <!-- Round 1 sheets: shared entry layout and plain exercise lists. -->
+    <string name="sheet_save_set">Save set</string>
+    <string name="sheet_save_note">Save note</string>
+    <string name="sheet_save_distance">Save distance</string>
+    <string name="sheet_without_distance">Continue without distance</string>
+    <string name="sheet_note_failed">Note not saved.</string>
+    <string name="sheet_weight">Weight (%1$s)</string>
+    <string name="sheet_duration">Duration</string>
+    <string name="sheet_distance_field">Distance</string>
+    <string name="sheet_decrease">Decrease %1$s</string>
+    <string name="sheet_increase">Increase %1$s</string>
+    <string name="sheet_more">More</string>
+    <string name="sheet_lift_menu">More options for %1$s</string>
+    <string name="sheet_lift_options">Lift options</string>
+    <string name="sheet_add_exercise">Add exercise</string>
+    <string name="sheet_create_exercise">Create exercise</string>
+    <string name="sheet_superset_with">Superset with %1$s</string>
+    <string name="sheet_no_sets">No sets yet</string>
+    <string name="sheet_load_prescription">%1$d at %2$s %3$s</string>
+    <string name="sheet_hold_prescription">%1$d s</string>
+    <string name="sheet_timed_prescription">%1$d reps in %2$s</string>
+    <string name="sheet_sets_prescription">%1$d × %2$s</string>
+    <string name="sheet_keep_one_lift">A day keeps at least one lift</string>
+    <string name="sheet_tracking">Tracking</string>
+    <string name="sheet_weight_reps">Weight × reps</string>
+    <string name="sheet_hold_time">Hold time</string>
+    <string name="sheet_aim_distance">Adds a distance target without changing the timer.</string>
+    <string name="sheet_aim_time">Adds a time target without changing the distance.</string>
+    <string name="sheet_hard_description">Marks work sets as hard cardio in history.</string>
+    <string name="sheet_no_matching_exercises">No matching exercises</string>
+    <string name="sheet_clear_filters">Clear filters</string>
+    <string name="sheet_swap_for">Swap for</string>
+    <string name="sheet_note_label">Note</string>
+    <string name="sheet_superset_pattern_title">Pick a superset movement</string>
+    <string name="sheet_superset_exercise_title">Superset with %1$s</string>
+    <string name="sheet_add_pattern_title">Pick a movement</string>
+    <string name="sheet_add_exercise_title">Add %1$s</string>
+    <string name="sheet_swap_title">Swap %1$s</string>
+    <string name="sheet_reset_confirm_body">This regenerates the day from your setup wizard answers. Any swaps, adds, or removes you made here are discarded. Logged history is not affected.</string>
+    <string name="sheet_ramp_prescription">Ramp to %1$s %2$s</string>
+    <plurals name="sheet_ramp_backoffs">
+        <item quantity="one">%1$s, then %2$d back-off</item>
+        <item quantity="other">%1$s, then %2$d back-offs</item>
+    </plurals>
+    <string name="sheet_loaded_hold_prescription">%1$d s at %2$s %3$s</string>
 </resources>

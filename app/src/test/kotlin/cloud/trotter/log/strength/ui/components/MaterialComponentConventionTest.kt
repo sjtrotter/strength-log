@@ -94,8 +94,6 @@ class MaterialComponentConventionTest {
         // sourceRoot.
         val standingExceptions = setOf(
             "SelectionCard",
-            "EquipmentFilterRow",
-            "SheetButton",
         )
     }
 }

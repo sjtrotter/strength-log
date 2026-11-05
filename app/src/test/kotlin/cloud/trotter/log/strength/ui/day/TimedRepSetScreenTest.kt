@@ -70,9 +70,9 @@ class TimedRepSetScreenTest {
         rule.onNodeWithText("Reps").performTextReplacement("38")
         rule.onNodeWithText("38 / 40 reps").assertExists()
         rule.onNodeWithText("Log 38 reps").performClick()
-        rule.onNodeWithContentDescription("Reps, one less").performClick()
+        rule.onNodeWithContentDescription("Decrease reps").performClick()
         rule.onNodeWithText("Log 37 reps").assertIsEnabled()
-        rule.onNodeWithContentDescription("Reps, one more").performClick()
+        rule.onNodeWithContentDescription("Increase reps").performClick()
         rule.onNodeWithText("Log 38 reps").assertIsEnabled()
         assertEquals(listOf(40, 38), logged)
     }
@@ -140,7 +140,7 @@ class TimedRepSetScreenTest {
         )
         rule.setContent { AppTheme { WorkoutSetHost(state.withWorkoutSelection(), actions, DayEditUiState(), workoutEditActions()) } }
         rule.runOnIdle { assertEquals(0, requests) }
-        rule.onNodeWithText("Done").performClick()
+        rule.onNodeWithText("Save set").performClick()
         rule.onNodeWithText("Push-ups · Set 1").assertExists()
         rule.runOnIdle { assertEquals(1, requests) }
         rule.runOnIdle { state = state.copy(watchStatus = WatchStatus(WatchStatusKind.ACTIVE)) }
@@ -160,12 +160,12 @@ class TimedRepSetScreenTest {
             row = row.copy(reps = count)
         })
         rule.setContent { AppTheme { SetEditSheet(card, row, WeightUnit.LB, 3, actions, {}) } }
-        rule.onNodeWithText("Weight, lb").assertDoesNotExist()
-        rule.onNodeWithText("Seconds").assertDoesNotExist()
+        rule.onNodeWithText("Weight (lb)").assertDoesNotExist()
+        rule.onNodeWithText("Duration").assertDoesNotExist()
         rule.onNodeWithText("38 / 40 reps").assertExists()
         rule.onNodeWithText("Reps").performTextReplacement("0")
         rule.onNodeWithText("0 / 40 reps").assertExists()
-        rule.onNodeWithText("Done").assertExists()
+        rule.onNodeWithText("Save set").assertExists()
         rule.runOnIdle { assertEquals(listOf(0), edits) }
     }
 }

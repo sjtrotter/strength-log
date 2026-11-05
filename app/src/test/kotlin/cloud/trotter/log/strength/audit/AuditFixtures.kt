@@ -70,6 +70,7 @@ internal fun auditPreviewFixture(day: DayUiState = workoutLiftSheetFixture()) = 
 internal fun auditEditFixture(state: DayUiState) = DayEditUiState(
     dayId = state.viewDayId, planId = state.planId, runOpen = state.runOpen,
     cardioBlock = state.cardio?.block,
+    canRemove = cloud.trotter.log.strength.ui.day.DayEditRules.canRemove(state.exercises.size, state.cardio?.block != null),
     slots = state.exercises.map { card ->
         DayEditSlotState(
             card.programExerciseId, card.position, card.exerciseId, card.title,

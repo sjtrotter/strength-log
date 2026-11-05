@@ -2,39 +2,26 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.cardio.cardioActivityLabel
-import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
+import cloud.trotter.log.strength.ui.components.SheetCommitButton
 
 /** History's stored label is a title-cased activity, independent of the former interval labels. */
 internal fun activityLabel(activity: CardioActivity): String =
@@ -115,27 +102,40 @@ internal val CardioCardState.position: Int get() {
 @Composable
 internal fun CardioDistanceSheet(run: CardioRun, position: Int, actions: DayActions) {
     val draft = run.drafts.firstOrNull { it.position == position } ?: return
-    AppModalBottomSheet(onDismissRequest = actions.onCloseSetEditor,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(stringResource(if (draft.stopped) R.string.cardio_set_stopped else R.string.cardio_times_up),
-                style = MaterialTheme.typography.titleLarge)
-            Text(stringResource(R.string.cardio_entry_identity, cardioActivityName(run.block.activity), position + 1))
-            Row {
-                IconButton(modifier = Modifier.size(48.dp), onClick = {
-                    actions.onCardioDistanceChange(((draft.metres ?: 1) - 1).takeIf { it > 0 }?.toString().orEmpty())
-                }) { Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.cardio_decrease_distance)) }
-                OutlinedTextField(value = draft.text, onValueChange = actions.onCardioDistanceChange,
-                    label = { Text(stringResource(R.string.cardio_distance_label)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = !draft.valid, modifier = Modifier.weight(1f))
-                IconButton(modifier = Modifier.size(48.dp), onClick = {
-                    actions.onCardioDistanceChange(((draft.metres ?: 0).toLong() + 1).coerceAtMost(Int.MAX_VALUE.toLong()).toString())
-                }) { Icon(Icons.Default.Add, stringResource(R.string.cardio_increase_distance)) }
+    AppModalBottomSheet(
+        onDismissRequest = actions.onCloseSetEditor,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        footer = {
+            SheetCommitButton(
+                label = stringResource(if (draft.text.isBlank()) R.string.sheet_without_distance else R.string.sheet_save_distance),
+                onClick = { actions.onSaveCardioDistance(run.action(position)) },
+                enabled = draft.valid,
+            )
+        },
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(if (draft.stopped) R.string.cardio_set_stopped else R.string.cardio_times_up),
+                    style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.cardio_entry_identity, cardioActivityName(run.block.activity), position + 1))
             }
+        },
+        body = {
+            NumericSetField(
+                identity = "distance:${run.action(position)}",
+                value = (draft.metres ?: 0).toDouble(),
+                label = stringResource(R.string.cardio_distance_label),
+                field = stringResource(R.string.sheet_distance_field),
+                partnerName = null,
+                modifier = Modifier.fillMaxWidth(),
+                minimum = 0.0,
+                maximum = Int.MAX_VALUE.toDouble(),
+                step = { 1.0 },
+                onChange = { actions.onCardioDistanceChange(it.toInt().takeIf { metres -> metres > 0 }?.toString().orEmpty()) },
+                textOverride = draft.text,
+                onTextChange = actions.onCardioDistanceChange,
+                isError = !draft.valid,
+            )
             if (!draft.valid) Text(stringResource(R.string.cardio_distance_invalid), color = MaterialTheme.colorScheme.error)
-            Button(onClick = { actions.onSaveCardioDistance(run.action(position)) }, enabled = draft.valid) { Text(stringResource(R.string.cardio_done)) }
-        }
-    }
+        },
+    )
 }

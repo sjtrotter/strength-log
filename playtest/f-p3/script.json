@@ -227,8 +227,15 @@
    }
   },
   {
-   "scrollTo": {
-    "text": "Reset to defaults"
+   "swipe": {
+    "text": "Rest timer",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Theme",
+    "direction": "up"
    }
   },
   {
@@ -249,8 +256,15 @@
    }
   },
   {
-   "scrollTo": {
-    "text": "Goals"
+   "swipe": {
+    "text": "Day C",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Add day",
+    "direction": "up"
    }
   },
   {

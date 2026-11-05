@@ -202,6 +202,9 @@ data class WorkoutSwapUndo(
     val skippedSlot: String? = null,
 ) : Parcelable
 
+/** A distinct draft sentinel lets the sheet initialize once without replacing an explicit zero or blank. */
+internal const val UNINITIALIZED_TIMED_REP_DRAFT = "-1"
+
 /** One atomic saved event: anchors while running, then a count draft and sheet delivery state. */
 @Parcelize
 @Immutable
@@ -215,7 +218,7 @@ data class TimedRepEvent(
     val elapsedStart: Long,
     val bootCount: Int,
     val awaitingCount: Boolean = false,
-    val draft: String = "0",
+    val draft: String = UNINITIALIZED_TIMED_REP_DRAFT,
     val sheetRequested: Boolean = false,
     val sheetDismissed: Boolean = false,
 ) : Parcelable {
@@ -310,11 +313,6 @@ data class ExerciseCardState(
      *  when the card has no TOP set to compare — see
      *  [DayScreenBuilder.topSetComparison]. */
     val topSetComparison: String? = null,
-    /** Per-side plate values, e.g. "45 + 25 + 2.5" (docs/briefs/plate-math.md),
-     *  keyed to the first undone MAIN-slot set's weight; null for non-barbell
-     *  exercises, finished cards, or an unloadable weight — see
-     *  [DayScreenBuilder.plateLine]. */
-    val plateLine: String? = null,
     val allDone: Boolean,
     val rows: List<SetRowState>,
     val focusIndex: Int = DayScreenBuilder.focusIndex(rows),

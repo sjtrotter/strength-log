@@ -35,6 +35,29 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PreviewViewModelTest : OverviewFixture() {
+    @Test fun lastHoldUsesSecondsAndSuppressesMismatchedLegacyHistory() = runTest(dispatcher) {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Core", "", listOf(ProgramExercise("plank"))))))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val vm = preview(plan, "A")
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.lifts.single().previous.single().last)
+        assertTrue(vm.uiState.value.lifts.single().previous.single().comparable)
+
+        val weightedSession = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Core", null, 1000, 235, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, weightedSession, "plank", "Plank", Slot.MAIN, 0,
+            SetKind.WORK.name, 235.0, 5, true)))
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.lifts.single().previous.single().last)
+        assertFalse(vm.uiState.value.lifts.single().previous.single().comparable)
+
+        val holdSession = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Core", null, 2000, 235, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, holdSession, "plank", "Plank", Slot.MAIN, 0,
+            SetKind.WORK.name, 0.0, 0, true, seconds = 45)))
+        advanceUntilIdle()
+        assertEquals("45 s", vm.uiState.value.lifts.single().previous.single().last)
+        assertTrue(vm.uiState.value.lifts.single().previous.single().comparable)
+    }
+
     @Test fun aGapInDayLettersKeepsTheThirdAccentInPreview() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
@@ -52,16 +75,16 @@ class PreviewViewModelTest : OverviewFixture() {
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("235 × 5", vm.uiState.value.lifts.single().working)
+        assertEquals("235 lb × 5", vm.uiState.value.lifts.single().working)
         assertEquals("Barbell Back Squat", vm.uiState.value.lifts.single().name)
-        assertNull(vm.uiState.value.lifts.single().last)
+        assertNull(vm.uiState.value.lifts.single().previous.single().last)
         assertTrue(repo.dayTracksFlow(plan, "A").first().tracks.isEmpty())
         assertNull(repo.openRunFlow.first())
         val workout = day()
         advanceUntilIdle()
         assertEquals(vm.uiState.value.lifts.single().working,
             workout.uiState.value.exercises.single().rows.first { it.kind == SetKind.TOP }.let {
-                "${it.weightDisplay.toInt()} × ${it.reps}"
+                "${it.weightDisplay.toInt()} lb × ${it.reps}"
             })
     }
 
@@ -91,7 +114,7 @@ class PreviewViewModelTest : OverviewFixture() {
         db.storeTestRows("A", slot, Slot.MAIN, listOf(LoggedSet(0.0, 8, SetKind.WORK)))
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("× 8", vm.uiState.value.lifts.single().working)
+        assertEquals("8 reps", vm.uiState.value.lifts.single().working)
     }
 
     @Test fun previewUsesStoredFirstWorkingValuesRatherThanTheGoalOrRamp() = runTest(dispatcher) {
@@ -103,7 +126,7 @@ class PreviewViewModelTest : OverviewFixture() {
         ))
         val vm = preview(plan, "A")
         advanceUntilIdle()
-        assertEquals("225 × 7", vm.uiState.value.lifts.single().working)
+        assertEquals("225 lb × 7", vm.uiState.value.lifts.single().working)
         vm.start()
         advanceUntilIdle()
         val track = repo.openRunFlow.first()!!.tracks.single()
@@ -121,13 +144,13 @@ class PreviewViewModelTest : OverviewFixture() {
         val vm = preview(plan, "A")
         advanceUntilIdle()
         assertEquals("Hack Squat", vm.uiState.value.lifts.single().name)
-        assertEquals("180 × 8", vm.uiState.value.lifts.single().working)
-        assertNull(vm.uiState.value.lifts.single().last)
+        assertEquals("180 lb × 8", vm.uiState.value.lifts.single().working)
+        assertNull(vm.uiState.value.lifts.single().previous.single().last)
         val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, 1000, 235, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "hack_squat", "Hack Squat", Slot.MAIN, 0,
             SetKind.WORK.name, 170.0, 9, true)))
         advanceUntilIdle()
-        assertEquals("170 × 9", vm.uiState.value.lifts.single().last)
+        assertEquals("170 lb × 9", vm.uiState.value.lifts.single().previous.single().last)
         assertEquals("bb_back_squat", repo.plans.slotsFor(plan, "A").first().single().exercise.exerciseId)
     }
 
@@ -145,6 +168,41 @@ class PreviewViewModelTest : OverviewFixture() {
         repo.swapInRun(repo.openRunFlow.first()!!.id, slot, Slot.SS, "bb_bench")
         advanceUntilIdle()
         assertEquals("${catalog.find("ez_curl")!!.name} + ${catalog.find("bb_bench")!!.name}", vm.uiState.value.lifts.single().name)
+    }
+
+    @Test fun supersetKeepsMainHistoryWhenPartnerHasNoHistory() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Arms", null, 1000, 235, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "ez_curl", "EZ-Bar Curl", Slot.MAIN, 0,
+            SetKind.WORK.name, 50.0, 10, true)))
+        val vm = preview(plan, "B")
+        advanceUntilIdle()
+
+        assertEquals(listOf(PreviewPreviousResult("50 lb × 10"), PreviewPreviousResult(null)),
+            vm.uiState.value.lifts.single().previous)
+
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, session, "rope_pushdown", "Rope Pushdown", Slot.SS, 0,
+            SetKind.WORK.name, 60.0, 12, true)))
+        advanceUntilIdle()
+        assertEquals(listOf(PreviewPreviousResult("50 lb × 10"), PreviewPreviousResult("60 lb × 12")),
+            vm.uiState.value.lifts.single().previous)
+    }
+
+    @Test fun supersetKeepsMainHistoryWhenPartnerHistoryHasMismatchedTracking() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val session = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Arms", null, 1000, 235, planId = plan))
+        db.sessionDao().insertSets(listOf(
+            SessionSetEntity(0, session, "ez_curl", "EZ-Bar Curl", Slot.MAIN, 0, SetKind.WORK.name, 50.0, 10, true),
+            SessionSetEntity(0, session, "rope_pushdown", "Rope Pushdown", Slot.SS, 0, SetKind.WORK.name,
+                0.0, 0, true, seconds = 45),
+        ))
+        val vm = preview(plan, "B")
+        advanceUntilIdle()
+
+        assertEquals(listOf(PreviewPreviousResult("50 lb × 10"), PreviewPreviousResult(null, comparable = false)),
+            vm.uiState.value.lifts.single().previous)
     }
 
     @Test fun previewStartSeedsBothTracksAndEmitsItsOwnPlanAndDay() = runTest(dispatcher) {

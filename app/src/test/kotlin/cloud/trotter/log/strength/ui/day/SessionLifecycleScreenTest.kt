@@ -123,16 +123,16 @@ class SessionLifecycleScreenTest {
             groups = listOf(curlGroup.copy(rows = listOf(partial)))))
         composeTestRule.onNodeWithText("Squat focus, done.").assertExists()
         composeTestRule.onNodeWithText("Tuesday, Nov 3, 31 min").assertExists()
-        composeTestRule.onNodeWithText("35 × 10, 10", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("35 lb × 10, 10", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithContentDescription("Dumbbell Curl. 35 pounds: 10 and 10 reps. Rep record on set 1, up from 35 pounds for 9 reps.").performClick()
-        composeTestRule.onNodeWithText("Planned 3 × 10 at 35", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("Planned 3 × 10 at 35 lb", useUnmergedTree = true).assertExists()
     }
 
     @Test
     fun unknownStartShowsTheDateWithoutInventingMinutes() {
         setDayContent(dayState(done = 3), receipt = receipt.copy(minutes = null, groups = receipt.groups.map { group -> group.copy(rows = group.rows.map { it.copy(record = null) }) }))
         composeTestRule.onNodeWithText("Tuesday, Nov 3").assertExists()
-        composeTestRule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithText("Weight PR", useUnmergedTree = true).assertDoesNotExist()
     }
 
@@ -181,8 +181,8 @@ class SessionLifecycleScreenTest {
     fun reducedMotionShowsBothFinalNumbersImmediately() {
         setAnimatorScale(0f)
         setDayContent(dayState(done = 3), receipt = receipt)
-        composeTestRule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
-        composeTestRule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("240 lb × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -204,8 +204,8 @@ class SessionLifecycleScreenTest {
 
         restoration.emulateSavedInstanceStateRestore()
 
-        composeTestRule.onNodeWithText("240 × 5", useUnmergedTree = true).assertExists()
-        composeTestRule.onNodeWithText("245 × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("240 lb × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("245 lb × 5", useUnmergedTree = true).assertExists()
         assertEquals(listOf(HapticFeedbackType.Confirm), feedback)
     }
 
@@ -218,8 +218,8 @@ class SessionLifecycleScreenTest {
             lines = row.lines.map { it.copy(weightLb = 102.75) },
             record = requireNotNull(row.record).copy(previous = ReceiptSet(100.25, 5, 0)),
         ))))))
-        composeTestRule.onNodeWithText("100.25 × 5", useUnmergedTree = true).assertExists()
-        composeTestRule.onNodeWithText("102.75 × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("100.25 lb × 5", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("102.75 lb × 5", useUnmergedTree = true).assertExists()
     }
 
     @Test

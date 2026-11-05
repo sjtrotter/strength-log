@@ -61,7 +61,7 @@ class SetEditSheetTest {
                 row = row.copy(weightDisplay = value)
             }), onDismiss = { dismissed++ })
         } }
-        rule.onNodeWithText("25 a side on the bar. Only this set changes.").assertExists()
+        rule.onNodeWithText("25 lb a side on the bar. Only this set changes.").assertExists()
         rule.onNodeWithText("Weight, lb").performTextReplacement("100")
         rule.runOnIdle { assertEquals(listOf(100.0), writes) }
         rule.onNodeWithText("Done").performClick()

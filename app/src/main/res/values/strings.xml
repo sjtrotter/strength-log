@@ -604,7 +604,6 @@
     <string name="set_edit_only_this">Only this set changes.</string>
     <string name="set_edit_top_cascades_without_backoff">Warm-ups follow this weight.</string>
     <string name="set_edit_top_cascades">Warm-ups and back-off follow this weight.</string>
-    <string name="set_edit_plates">%1$s a side on the bar.</string>
     <string name="set_edit_remove">Remove set</string>
     <string name="set_edit_done">Done</string>
     <string name="day_add_set">Add a set</string>
@@ -746,7 +745,6 @@
     <string name="preview_start_day">Start day %1$s</string>
     <string name="workout_set_kind">Set %1$d of %2$d (%3$s)</string>
     <string name="workout_edit_set">Edit set %1$d</string>
-    <string name="workout_plates">%1$s a side</string>
     <string name="workout_empty_bar">Empty bar</string>
     <string name="workout_superset_round">Superset, round %1$d of %2$d</string>
     <string name="workout_then_rest">Then rest</string>
@@ -761,17 +759,10 @@
     <string name="workout_exercises">Day %1$s lifts, %2$d of %3$d sets</string>
     <string name="workout_announce_set">%1$s, set %2$d of %3$d</string>
     <string name="workout_announce_round">%1$s, round %2$d of %3$d</string>
-    <string name="workout_seconds">%1$d s</string>
-    <string name="workout_weight_reps">%1$s × %2$d</string>
     <string name="workout_times_reps">× %1$d</string>
-    <string name="workout_hold_load">%1$d s at %2$s %3$s</string>
     <string name="workout_at_weight">at %1$s %2$s</string>
     <string name="workout_undo">Undo %1$s</string>
     <string name="workout_undo_lift">Undo %1$s %2$s</string>
-    <plurals name="workout_rest_remaining">
-        <item quantity="one">%d minute of rest remaining</item>
-        <item quantity="other">%d minutes of rest remaining</item>
-    </plurals>
     <string name="lift_sheet_goal">Goal %1$s.</string>
     <string name="lift_sheet_target">Target %1$s.</string>
     <string name="lift_sheet_last">Last time %1$s.</string>
@@ -804,12 +795,26 @@
     <string name="workout_cardio_position">%1$s, set %2$d of %3$d</string>
     <string name="workout_cardio_aim">Aim %1$s</string>
     <string name="workout_cardio_to">to %1$s</string>
-    <string name="workout_aim_reps">Aim %1$d</string>
     <string name="workout_cardio_save_failed">Couldn’t save the cardio. The sets are still here.</string>
     <string name="workout_cardio_status_distance">%1$s, %2$d m</string>
     <string name="workout_end_cardio">End cardio</string>
     <string name="workout_metres_unit">m</string>
     <string name="day_finish_without_cardio_title">Finish without %1$s?</string>
+    <string name="workout_plates_with_unit">%1$s %2$s a side</string>
+    <string name="workout_log_measurement">Log %1$s</string>
+    <string name="workout_clock_remaining">Remaining</string>
+    <string name="workout_clock_elapsed">Elapsed</string>
+    <string name="workout_rest_remaining_clock">Rest remaining: %1$s</string>
+    <string name="workout_timed_rep_target">%1$d reps in %2$s</string>
+    <string name="timed_rep_log_empty">Log reps</string>
+    <string name="preview_no_previous_result">No previous result</string>
+    <string name="preview_no_comparable_result">No comparable previous result</string>
+    <string name="set_edit_plates_with_unit">%1$s %2$s a side on the bar.</string>
+    <string name="set_edit_empty_bar">Empty bar.</string>
+    <plurals name="workout_rest_remaining_minutes">
+        <item quantity="one">Rest remaining: %d minute</item>
+        <item quantity="other">Rest remaining: %d minutes</item>
+    </plurals>
     <!-- Round 1 screen states and Today action slot. -->
     <string name="screen_no_plan_title">No plan yet</string>
     <string name="screen_no_plan_body">Answer a few questions and the app builds one.</string>

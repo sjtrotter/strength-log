@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.units.SecondsStepper
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import java.util.Locale
 
 /**
  * The single place a *performed* set's actuals (weight/reps/seconds) become a
@@ -17,6 +18,25 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  * targets the same three ways.
  */
 object SetFormatter {
+
+    fun weight(weightLb: Double, unit: WeightUnit): String =
+        "${WeightStepper.format(unit.fromLb(weightLb))} ${unit.name.lowercase(Locale.ROOT)}"
+
+    /** Explicit measurements for workout actions, previews and receipts; weights arrive in lb. */
+    fun display(
+        tracking: TrackingType,
+        weightLb: Double,
+        reps: Int,
+        seconds: Int,
+        unit: WeightUnit,
+    ): String {
+        val weight = weight(weightLb, unit)
+        return when (tracking) {
+            TrackingType.WEIGHTED -> "$weight × $reps"
+            TrackingType.REPS -> "$reps ${if (reps == 1) "rep" else "reps"}"
+            TrackingType.TIMED -> "$seconds s" + if (weightLb > 0.0) " at $weight" else ""
+        }
+    }
 
     /**
      * The `w×r` / `×r` / `Ns (+load)` summary for one performed set in [unit].

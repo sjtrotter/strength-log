@@ -9,6 +9,19 @@ import kotlin.test.assertEquals
 class SetFormatterTest {
 
     @Test
+    fun `explicit measurements include the unit for every tracking type in lb and kg`() {
+        for (unit in WeightUnit.entries) {
+            val label = unit.name.lowercase()
+            val weightLb = unit.toLb(102.5)
+            assertEquals("102.5 $label × 12", SetFormatter.display(TrackingType.WEIGHTED, weightLb, 12, 0, unit))
+            assertEquals("20 reps", SetFormatter.display(TrackingType.REPS, weightLb, 20, 0, unit))
+            assertEquals("1 rep", SetFormatter.display(TrackingType.REPS, 0.0, 1, 0, unit))
+            assertEquals("45 s", SetFormatter.display(TrackingType.TIMED, 0.0, 0, 45, unit))
+            assertEquals("90 s at 102.5 $label", SetFormatter.display(TrackingType.TIMED, weightLb, 0, 90, unit))
+        }
+    }
+
+    @Test
     fun `weighted renders weight by reps, unchanged from the old w by r form`() {
         assertEquals("225×5", SetFormatter.summary(TrackingType.WEIGHTED, 225.0, 5, 0, WeightUnit.LB))
     }

@@ -28,7 +28,7 @@ internal fun workoutSetSingleFixture(): DayUiState {
     val card = ExerciseCardState(
         programExerciseId = 1L, position = 0, title = "Barbell Back Squat", exerciseId = "bb_back_squat",
         isSuperset = false, headerTarget = HeaderTarget.Goal("235"), perHand = false,
-        equipment = listOf(Equipment.BARBELL), allDone = false, rows = rows, plateLine = "45 + 25 + 2.5",
+        equipment = listOf(Equipment.BARBELL), allDone = false, rows = rows,
     )
     return DayUiState(hasProgram = true, viewDayId = "A", exercises = listOf(card), workout = WorkoutState(
         WorkoutSelection.Shown.Group("exercise:1", false), WorkoutFocus(1L, Slot.MAIN, 2), false, null, null,
@@ -38,8 +38,8 @@ internal fun workoutSetSingleFixture(): DayUiState {
 internal fun workoutSetSupersetFixture(): DayUiState {
     val state = workoutSetSingleFixture()
     val card = state.exercises.single().copy(
-        title = "DB Bench Press", exerciseId = "db_bench", isSuperset = true, partnerExerciseId = "cable_row", partnerTitle = "Seated Cable Row", partnerTracking = TrackingType.WEIGHTED,
-        plateLine = null, rows = List(3) { index -> SetRowState(index, "${index + 1}", false, 80.0, 10, index == 0,
+        title = "DB Bench Press", exerciseId = "db_bench", equipment = listOf(Equipment.DUMBBELL), isSuperset = true, partnerExerciseId = "cable_row", partnerTitle = "Seated Cable Row", partnerTracking = TrackingType.WEIGHTED,
+        rows = List(3) { index -> SetRowState(index, "${index + 1}", false, 80.0, 10, index == 0,
             partner = PartnerRowState(120.0, 10, done = index == 0)) },
     )
     return state.copy(exercises = listOf(card), workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 1)))
@@ -68,7 +68,7 @@ internal fun workoutDaySheetFixture(): DayUiState {
         title = "Barbell Bench Press", exerciseId = "bb_bench",
         rows = single.rows.map { it.copy(done = false) })
     val plank = single.copy(programExerciseId = 4L, position = 3,
-        title = "Plank", exerciseId = "plank", tracking = TrackingType.TIMED,
+        title = "Plank", exerciseId = "plank", tracking = TrackingType.TIMED, lastTimeDisplay = "45 s",
         rows = List(3) { SetRowState(it, "${it + 1}", false, 0.0, 0, false, seconds = 45) })
     return state.copy(dayTitle = "Squat focus", runOpen = true,
         exercises = listOf(squat, bench, state.exercises.single().copy(position = 2), plank),
@@ -78,7 +78,7 @@ internal fun workoutDaySheetFixture(): DayUiState {
 internal fun workoutSetTimedRepFixture(): DayUiState {
     val state = workoutSetSingleFixture()
     val card = state.exercises.single().copy(
-        title = "Push-Up", exerciseId = "pushup", tracking = TrackingType.REPS, plateLine = null,
+        title = "Push-Up", exerciseId = "pushup", tracking = TrackingType.REPS,
         timedRepDurationSeconds = 40, timedRepAim = 20, headerTarget = HeaderTarget.Prescribed("40 s"),
         rows = List(2) { SetRowState(it, "${it + 1}", false, 0.0, 20, false) },
     )
@@ -89,7 +89,7 @@ internal fun workoutSetTimedRepRunningFixture(awaiting: Boolean = false, index: 
     val state = workoutSetTimedRepFixture()
     return state.copy(executionBusy = true, timedRep = TimedRepState(
         TimedRepEvent("A", 1L, "pushup", index, 40, 1_000L, 1_000L, 1,
-            awaitingCount = awaiting, sheetDismissed = awaiting), if (awaiting) 0 else 27,
+            awaitingCount = awaiting, sheetDismissed = awaiting, draft = "20"), if (awaiting) 0 else 27,
     ))
 }
 

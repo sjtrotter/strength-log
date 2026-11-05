@@ -485,14 +485,20 @@
    "checkpoint": "custom-pattern-list"
   },
   {
-   "scrollTo": {
-    "text": "Squat bilateral"
+   "tap": {
+    "text": "Choose a movement pattern"
    }
   },
   {
+   "checkpoint": "pattern-dropdown"
+  },
+  {
    "tap": {
-    "text": "Squat bilateral"
+    "textContains": "Squat"
    }
+  },
+  {
+   "checkpoint": "pattern-picked"
   },
   {
    "tap": {

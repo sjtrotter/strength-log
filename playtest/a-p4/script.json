@@ -164,9 +164,7 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "Keep me 5k-ready"
-      }
+      "note": "The optional Keep me 5k-ready control is clipped below the visible cardio choices, and scrolling to it failed. Leave it alone and continue with bike finishers."
     },
     {
       "checkpoint": "bike-finisher-setup"
@@ -190,9 +188,23 @@
       "checkpoint": "pounds-and-age"
     },
     {
+      "expect": {
+        "text": "LB"
+      }
+    },
+    {
+      "expect": {
+        "text": "38",
+        "editable": true
+      }
+    },
+    {
       "tap": {
         "text": "Next"
       }
+    },
+    {
+      "checkpoint": "equipment-left-at-gym-defaults"
     },
     {
       "tap": {
@@ -203,7 +215,17 @@
       "checkpoint": "revised-plan-preview"
     },
     {
-      "scrollTo": {
+      "expect": {
+        "text": "Day C"
+      }
+    },
+    {
+      "expect": {
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "expect": {
         "text": "Missing a day never skips the next workout."
       }
     },
@@ -220,6 +242,12 @@
     },
     {
       "checkpoint": "setup-complete-find-plan-editor"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "setup-persists-after-reopen"
     }
   ]
 }

@@ -800,7 +800,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -808,7 +808,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -816,7 +816,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -824,15 +824,53 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "desc": "Edit set 5"
    }
   },
   {
-   "advance": "2m"
+   "tap": {
+    "desc": "Decrease reps"
+   }
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "bench-top-edited"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
    }
   },
   {
@@ -843,7 +881,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -851,7 +889,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -859,7 +897,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -867,7 +905,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -875,7 +913,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -883,7 +921,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -894,7 +932,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -917,7 +955,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -948,7 +986,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -959,7 +997,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -967,7 +1005,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {
@@ -975,7 +1013,7 @@
   },
   {
    "tap": {
-    "tag": "workout-action-filled"
+    "textContains": "Log "
    }
   },
   {

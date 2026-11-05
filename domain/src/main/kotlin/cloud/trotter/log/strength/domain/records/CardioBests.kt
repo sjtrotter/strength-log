@@ -18,7 +18,10 @@ data class CardioRecord(
 object CardioBests {
     fun counts(result: CardioSetResult): Boolean =
         result.spec.role == CardioRole.WORK && result.status == CardioSetStatus.FINISHED &&
-            (result.spec.end is Measure.Distance || result.metres != null)
+            when (val end = result.spec.end) {
+                is Measure.Distance -> true
+                is Measure.Time -> result.metres != null && result.elapsedSeconds == end.seconds
+            }
 
     /** Positive means [a] is better; both results must have the same planned end measure. */
     fun compare(a: CardioSetResult, b: CardioSetResult): Int {

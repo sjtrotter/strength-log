@@ -229,7 +229,7 @@ strength day; the shipped cardio vectors stay pinned.
   unless it has a cardio block, and rotation visits strength days (all days
   when none are strength).
 - **Set structures amendment (owner decision 2026-11-02, #415):** a ramped structure on an authored load × reps uses that load as the top set and cascades; straight-set prescriptions never cascade.
-- **Cardio and Finish (owner decision 2026-11-05, #469):** logged cardio counts toward Finish and appears on the day’s receipt; Finish ends an open cardio run and logs the rounds done; Discard keeps saved cardio.
+- **Cardio and Finish (owner decision 2026-11-05, #469):** logged cardio counts toward Finish and appears on the day’s receipt; Finish ends an open cardio run and logs the rounds done; Discard keeps saved cardio; a block of one timed set counts up and ends when the lifter stops.
 - **Timed rep events.** The clock runs with the screen kept on (no dimming,
   no lock), and when time ends the count entry (a stepper) comes up by
   itself. The lifter records the count.

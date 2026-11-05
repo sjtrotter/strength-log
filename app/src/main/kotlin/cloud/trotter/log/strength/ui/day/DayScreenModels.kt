@@ -148,7 +148,8 @@ data class DayUiState(
             val cardio = cardio ?: return null
             val run = cardio.run?.takeIf { it.running } ?: return null
             if (shown?.key == "cardio") return null
-            val seconds = if (run.block.sets.getOrNull(run.position)?.end is Measure.Time) cardio.stepSecondsLeft else cardio.elapsedSeconds
+            val end = run.block.sets.getOrNull(run.position)?.end
+            val seconds = if (end is Measure.Time && !run.block.openEnded) cardio.stepSecondsLeft else cardio.elapsedSeconds
             return ClockChip("cardio", stringResource(R.string.workout_clock_chip,
                 cardioActivityName(run.block.activity), formatCardioTime(seconds)))
         }
@@ -269,6 +270,7 @@ data class CardioCardState(
     val distanceRuns: List<CardioRun> = emptyList(),
     val canAddSet: Boolean = true,
     val finishesDay: Boolean = false,
+    val runDistanceText: String = "",
 )
 
 enum class CardioPhase { SUGGESTION, EXECUTING }

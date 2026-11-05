@@ -49,7 +49,7 @@ class WindowSizeTest {
 
         val rootWidth = composeTestRule.onRoot().fetchSemanticsNode().size.width.toFloat()
         val dayLabel = composeTestRule.onNodeWithText("Strength · Day B").fetchSemanticsNode().boundsInRoot
-        val start = composeTestRule.onNodeWithText("Start").fetchSemanticsNode().boundsInRoot
+        val start = composeTestRule.onNodeWithText("Start day B").fetchSemanticsNode().boundsInRoot
         val readable = with(composeTestRule.density) { ReadableWidth.toPx() }
         val gutters = with(composeTestRule.density) { 32.dp.toPx() }
 
@@ -145,7 +145,7 @@ class WindowSizeTest {
         val rootHeight = composeTestRule.onRoot().fetchSemanticsNode().size.height.toFloat()
         val headerBottom = composeTestRule.onNodeWithText("Strength · Day B")
             .fetchSemanticsNode().boundsInRoot.bottom
-        val start = composeTestRule.onNodeWithText("Start")
+        val start = composeTestRule.onNodeWithText("Start day B")
             .fetchSemanticsNode().boundsInRoot
 
         assertTrue(

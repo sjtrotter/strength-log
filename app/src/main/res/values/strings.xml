@@ -671,11 +671,13 @@
     <string name="day_edit_structure_ramp_top_backoff">Ramp, top set, back-off</string>
     <string name="day_edit_structure_ramp_top_backoff_description">Four warm-ups, the top set, one lighter set of 8.</string>
     <string name="day_edit_next_time">Next time</string>
-    <string name="day_edit_next_time_last">Last results</string>
+    <string name="day_edit_next_time_progress">Progress</string>
+    <string name="day_edit_next_time_disclosure">Planned reps; increases need your approval.</string>
+    <string name="next_time_repeat">Repeat</string>
     <string name="day_edit_next_time_plan">Plan</string>
     <string name="day_edit_reset_to_plan">Reset to plan</string>
     <string name="day_edit_reset_to_plan_confirm_title">Reset to plan?</string>
-    <string name="day_edit_reset_to_plan_confirm_body">Next time starts from the plan instead of your last results.</string>
+    <string name="day_edit_reset_to_plan_confirm_body">Next time starts from the plan instead of your progress.</string>
     <string name="nothing_on_today">Nothing on Today</string>
     <string name="plans_on_today">On Today</string>
     <string name="plans_paused">Paused</string>
@@ -699,6 +701,8 @@
     <string name="workout_discard_start">Discard and start</string>
     <string name="preview_working">Today %1$s</string>
     <string name="preview_last">Last %1$s</string>
+    <string name="preview_last_elsewhere">Last %1$s · %2$s</string>
+    <string name="preview_last_day">Day %1$s</string>
     <string name="preview_no_lifts">No lifts yet</string>
     <string name="preview_edit">Edit</string>
     <string name="preview_start_day">Start day %1$s</string>

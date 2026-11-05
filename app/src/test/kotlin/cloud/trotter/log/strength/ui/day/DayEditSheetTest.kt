@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -18,6 +19,7 @@ import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -205,7 +207,10 @@ class DayEditSheetTest {
         var choice: Pair<Long, Boolean>? = null
         show(onKeepToPlan = { slot, keep -> choice = slot to keep })
         composeTestRule.onNodeWithText("Next time").assertExists()
-        composeTestRule.onNodeWithText("Last results").assertExists()
+        val progress = composeTestRule.onNodeWithText("Progress").assertIsSelected().fetchSemanticsNode().boundsInRoot
+        val disclosure = composeTestRule.onNodeWithText("Planned reps; increases need your approval.")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue(disclosure.top >= progress.bottom)
         composeTestRule.onNodeWithText("Plan").performClick()
         composeTestRule.runOnIdle { assertEquals(1L to true, choice) }
     }
@@ -213,7 +218,8 @@ class DayEditSheetTest {
     @Test
     fun authoredSlotOffersNextTimeAndReset() {
         show()
-        composeTestRule.onNodeWithText("Last results").assertExists()
+        composeTestRule.onNodeWithText("Progress").assertExists()
+        composeTestRule.onNodeWithText("Planned reps; increases need your approval.").assertExists()
         composeTestRule.onNodeWithText("Plan").assertExists()
         composeTestRule.onNodeWithText("Reset to plan").assertExists()
     }
@@ -224,6 +230,7 @@ class DayEditSheetTest {
         show(onResetSlot = { resetSlot = it })
         composeTestRule.onNodeWithText("Reset to plan").performClick()
         composeTestRule.onNodeWithText("Reset to plan?").assertExists()
+        composeTestRule.onNodeWithText("Next time starts from the plan instead of your progress.").assertExists()
         composeTestRule.runOnIdle { assertEquals(null, resetSlot) }
         composeTestRule.onNodeWithText("Cancel").performClick()
         composeTestRule.runOnIdle { assertEquals(null, resetSlot) }

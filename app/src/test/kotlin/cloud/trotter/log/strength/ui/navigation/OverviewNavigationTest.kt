@@ -182,7 +182,7 @@ class OverviewNavigationTest {
                             Routes.DAY_ID_ARG to previewEntry.arguments?.getString(Routes.DAY_ID_ARG),
                         )), PhoneRestController(settings, NoOpRestRuntime), settings = settings,
                             plans = repo.plans,
-                            historyRepository = repo.history,
+                            historyRepository = repo.history, context = context,
                         )) }
                         PreviewRoute(onBack = { nav.popBackStack() }, onOpenDay = { selection, edit ->
                             nav.navigate(Routes.day(selection.dayId, selection.planId, edit))

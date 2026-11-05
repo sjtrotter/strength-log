@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,6 +18,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -59,13 +61,14 @@ internal fun LiftSheet(
     val partner = slot == Slot.SS
     val title = if (partner) card.partnerTitle.orEmpty() else card.title
     val target = if (partner) card.partnerHeaderTarget else card.headerTarget
+    val workingHeading = if (partner) card.partnerWorkingHeading else card.workingHeading
+    val nextTime = if (partner) card.partnerNextTime else card.nextTime
     val last = if (partner) card.partnerLastTimeDisplay else card.lastTimeDisplay
     val date = if (partner) card.partnerLastTimeDate else card.lastTimeDate
-    val aimTemplate = stringResource(R.string.day_target_aim)
     val support = listOfNotNull(
-        target?.takeIf { it.display.isNotBlank() && it.display.any { digit -> digit in '1'..'9' } }?.let {
-            val label = DayScreenBuilder.headerTargetLabel(it) { display, reps -> aimTemplate.format(display, reps) }
-            stringResource(if (it is HeaderTarget.Goal) R.string.lift_sheet_goal else R.string.lift_sheet_target, label)
+        workingHeading?.let { stringResource(R.string.lift_sheet_target, it) },
+        (target as? HeaderTarget.Goal)?.takeIf { it.display.isNotBlank() && it.display.any { digit -> digit in '1'..'9' } }?.let {
+            stringResource(R.string.lift_sheet_goal, it.display)
         },
         last?.takeIf { it.isNotBlank() }?.let {
             if (date == null) stringResource(R.string.lift_sheet_last, it)
@@ -97,11 +100,23 @@ internal fun LiftSheet(
                         }
                     }
                 }
-                if (support.isNotEmpty()) Text(support, style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = if (target is HeaderTarget.Prescribed) Modifier.semantics {
-                        contentDescription = support
-                    } else Modifier)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (support.isNotEmpty()) Text(support, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f).semantics { contentDescription = support })
+                    when (nextTime) {
+                        NextTime.Repeat -> Text(stringResource(R.string.next_time_repeat),
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        is NextTime.Offer -> FilterChip(
+                            selected = nextTime.applied,
+                            onClick = { actions.onNextTime(card.programExerciseId, slot,
+                                if (nextTime.applied) nextTime.openingLb else nextTime.offerLb) },
+                            label = { Text(nextTime.label) },
+                            modifier = Modifier.testTag("next-time-offer-$slot"),
+                        )
+                        null -> Unit
+                    }
+                }
                 if (card.isSuperset) Text(
                     stringResource(R.string.lift_sheet_superset_with, if (partner) card.title else card.partnerTitle.orEmpty()),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,

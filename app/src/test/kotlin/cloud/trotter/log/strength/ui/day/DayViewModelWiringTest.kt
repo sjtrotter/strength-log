@@ -167,6 +167,50 @@ class DayViewModelWiringTest {
         DayViewModel(repo, publisher, shareCardService, handle, FixedCardioClock(), InertCardioAlarm, PhoneRestController(settings, restRuntime), settings = settings, plans = repo.plans, catalog = repo.catalog, historyRepository = repo.history).also { vms += it }
 
     @Test
+    fun nextTimeOfferAppliesUndoesAndDisappearsAfterLogging() = runVmTest {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Bench", "", listOf(
+            ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(70.0, 5))),
+        )))))
+        val first = newViewModel()
+        val collectFirst = launch { first.uiState.collect {} }
+        advanceUntilIdle()
+        val id = first.uiState.value.exercises.single().programExerciseId
+        repeat(3) { index -> first.toggleDone(id, index, true, Slot.MAIN) }
+        advanceUntilIdle()
+        first.completeDay()
+        advanceUntilIdle()
+        collectFirst.cancel()
+
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val offer = NextTime.Offer("+5 lb", false, 75.0, 70.0)
+        assertEquals(offer, vm.uiState.value.exercises.single().nextTime)
+        assertEquals("3 × 5 · 70 lb", vm.uiState.value.exercises.single().workingHeading)
+
+        vm.setWorkingWeight(id, Slot.MAIN, 75.0)
+        advanceUntilIdle()
+        assertEquals(offer.copy(applied = true), vm.uiState.value.exercises.single().nextTime)
+        assertEquals(listOf(75.0, 75.0, 75.0), vm.uiState.value.exercises.single().rows.map { it.weightDisplay })
+        assertEquals("3 × 5 · 75 lb", vm.uiState.value.exercises.single().workingHeading)
+        assertEquals(HeaderTarget.Prescribed("3 × 5 · 70 lb"), vm.uiState.value.exercises.single().headerTarget)
+        collect.cancel()
+
+        val restored = newViewModel()
+        val collectRestored = launch { restored.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(offer.copy(applied = true), restored.uiState.value.exercises.single().nextTime)
+        restored.setWorkingWeight(id, Slot.MAIN, 70.0)
+        advanceUntilIdle()
+        assertEquals(offer, restored.uiState.value.exercises.single().nextTime)
+        assertEquals(listOf(70.0, 70.0, 70.0), restored.uiState.value.exercises.single().rows.map { it.weightDisplay })
+        restored.toggleDone(id, 0, true, Slot.MAIN)
+        advanceUntilIdle()
+        assertNull(restored.uiState.value.exercises.single().nextTime)
+        collectRestored.cancel()
+    }
+
+    @Test
     fun authoredCardioDraftAndSetPageSurviveParcelRecreationAndSaveImmediately() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Running", "Run")
         repo.plans.publishCreatedAuthoredPlan(plan)

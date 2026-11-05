@@ -19,6 +19,7 @@ import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.setCounts
 import cloud.trotter.log.strength.data.LastPerformed
 import cloud.trotter.log.strength.data.PersonalRecord
+import cloud.trotter.log.strength.data.SlotSession
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.PerformedSlot
 import cloud.trotter.log.strength.data.HistoryRepository
@@ -215,7 +216,7 @@ class DayViewModel @Inject constructor(
             historyKeys.flatMapLatest { (slots, ids) ->
                 flow {
                     ensureSeeded(planId, dayId)
-                    emit(fetchDayHistory(ids))
+                    emit(fetchDayHistory(ids, planId, dayId))
                 }.flatMapLatest { history ->
                 combine(repo.observeDay(planId, dayId), repo.openRunFlow) { day, open ->
                     val tracks = day.tracks
@@ -1006,6 +1007,14 @@ class DayViewModel @Inject constructor(
         super.onCleared()
     }
 
+    fun setWorkingWeight(programExerciseId: Long, slot: String, weightLb: Double) {
+        val day = currentDay() ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
+        mutate { repo.setWorkingWeight(runId, planId, day, programExerciseId, slot, weightLb) }
+    }
+
     fun changeWeight(programExerciseId: Long, slot: String, index: Int, newDisplayWeight: Double) {
         val day = currentDay() ?: return
         val state = dayState.value.takeIf { it.viewDayId == day } ?: return
@@ -1701,9 +1710,9 @@ class DayViewModel @Inject constructor(
     /** One batched read for the whole day's "last time" chips (PLAN.md A1
      *  bonus) AND its "Best" profile chips (performance-profile.md Phase 1)
      *  — never one query per exercise for either. */
-    private suspend fun fetchDayHistory(ids: List<String>): DayHistory {
+    private suspend fun fetchDayHistory(ids: List<String>, planId: Long, dayId: String): DayHistory {
         return DayHistory(historyRepository.lastPerformed(ids), historyRepository.personalRecords(ids),
-            historyRepository.lastPerformedDates(ids))
+            historyRepository.lastPerformedDates(ids), historyRepository.slotSessions(planId, dayId))
     }
 
     private fun buildState(
@@ -1950,6 +1959,9 @@ class DayViewModel @Inject constructor(
             )
         }
         val lastPerformed = history.lastPerformed[performed.exerciseId]
+        val headerTarget = DayScreenBuilder.headerTarget(pe.copy(prescription = performed.prescription), goalTarget, unit)
+        val partnerHeaderTarget = partnerGoalTarget?.let { DayScreenBuilder.headerTarget(
+            pe.copy(prescription = null), it, unit) }
         return ExerciseCardState(
             programExerciseId = id,
             exerciseId = performed.exerciseId,
@@ -1962,7 +1974,15 @@ class DayViewModel @Inject constructor(
             equipment = entry?.equipment.orEmpty(),
             note = pe.note,
             isSuperset = pe.superset != null,
-            headerTarget = DayScreenBuilder.headerTarget(pe.copy(prescription = performed.prescription), goalTarget, unit),
+            headerTarget = headerTarget,
+            workingHeading = if (performed.prescription?.target is PrescribedTarget.RepsInTime) headerTarget.display
+                else DayScreenBuilder.workingHeading(main, tracking, unit),
+            partnerWorkingHeading = if (partner?.prescription?.target is PrescribedTarget.RepsInTime) partnerHeaderTarget?.display
+                else partnerSets?.let { DayScreenBuilder.workingHeading(it, partnerTracking ?: TrackingType.WEIGHTED, unit) },
+            nextTime = DayScreenBuilder.nextTime(main, history.slotSessions[performed.exerciseId to Slot.MAIN], pe.keepToPlan, unit),
+            partnerNextTime = slot.partner?.let {
+                DayScreenBuilder.nextTime(it.sets, history.slotSessions[it.performed.exerciseId to Slot.SS], pe.keepToPlan, unit)
+            },
             perHand = entry?.perHand == true,
             tracking = tracking,
             timedShowsWeight = slot.main.showsLoad,
@@ -1971,8 +1991,7 @@ class DayViewModel @Inject constructor(
             lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, unit),
             lastTimeDate = history.lastPerformedDates[performed.exerciseId]?.let(::lastTimeDate),
             partnerSetLabels = DayScreenBuilder.kindLabels(partnerSets.orEmpty()),
-            partnerHeaderTarget = partnerGoalTarget?.let { DayScreenBuilder.headerTarget(
-                pe.copy(prescription = null), it, unit) },
+            partnerHeaderTarget = partnerHeaderTarget,
             partnerLastTimeDisplay = DayScreenBuilder.lastTimeDisplay(partner?.exerciseId?.let(history.lastPerformed::get), unit),
             partnerLastTimeDate = partner?.exerciseId?.let(history.lastPerformedDates::get)?.let(::lastTimeDate),
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[performed.exerciseId], lastPerformed, unit),
@@ -1996,6 +2015,7 @@ class DayViewModel @Inject constructor(
         val lastPerformed: Map<String, LastPerformed>,
         val personalRecords: Map<String, PersonalRecord>,
         val lastPerformedDates: Map<String, Long> = emptyMap(),
+        val slotSessions: Map<Pair<String, String>, SlotSession> = emptyMap(),
     )
 
     private data class DayContext(

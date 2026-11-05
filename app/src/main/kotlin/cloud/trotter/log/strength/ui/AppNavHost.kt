@@ -487,6 +487,7 @@ internal fun DayRoute(
     }
     val actions = DayActions(
         onWeightChange = viewModel::changeWeight,
+        onNextTime = viewModel::setWorkingWeight,
         onRepsChange = viewModel::changeReps,
         onSecondsChange = viewModel::changeSeconds,
         onToggleDone = viewModel::toggleDone,

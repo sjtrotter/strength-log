@@ -239,6 +239,18 @@
    }
   },
   {
+   "swipe": {
+    "text": "Warm-up",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Rest timer",
+    "direction": "up"
+   }
+  },
+  {
    "checkpoint": "settings-bottom"
   },
   {
@@ -269,17 +281,6 @@
   },
   {
    "checkpoint": "plan-goals"
-  },
-  {
-   "tap": {
-    "text": "Barbell Back Squat"
-   }
-  },
-  {
-   "checkpoint": "goal-tapped"
-  },
-  {
-   "back": true
   },
   {
    "tap": {

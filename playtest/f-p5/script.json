@@ -379,6 +379,12 @@
    "back": true
   },
   {
+   "back": true
+  },
+  {
+   "note": "The editor can do each-side, timed tracking maybe, add cardio with time sets. Going to build my own plan from empty rather than gut the generated one."
+  },
+  {
    "tap": {
     "text": "New plan"
    }
@@ -400,16 +406,46 @@
    "checkpoint": "empty-plan-add-day"
   },
   {
-   "back": true
-  },
-  {
    "tap": {
-    "text": "Today",
-    "role": "Tab"
+    "text": "Day A"
    }
   },
   {
-   "checkpoint": "today-after-poking"
+   "checkpoint": "empty-day-a"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "empty-day-a-edit"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Hinge"
+   }
+  },
+  {
+   "checkpoint": "pick-hinge"
+  },
+  {
+   "scrollTo": {
+    "textContains": "Trap"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Trap"
+   }
+  },
+  {
+   "checkpoint": "after-pick-trap"
   }
  ]
 }

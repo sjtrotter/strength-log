@@ -1171,6 +1171,19 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Remove superset"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove superset"
+      }
+    },
+    {
+      "checkpoint": "saturday-curl-remove-unwanted-superset-partner"
+    },
+    {
       "back": true
     },
     {
@@ -1726,6 +1739,404 @@
     },
     {
       "checkpoint": "second-upper-a-targets-after-saturday-bench145"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-prescriptions-before-changes"
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "170"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "115"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Lateral Raise"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "13"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-manual-targets-saved"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-first-bench-target"
+    },
+    {
+      "expect": {
+        "text": "170 lb × 5"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Log 170 lb × 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 170 lb × 5"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 170 lb × 5"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-bench-three-fives"
+    },
+    {
+      "expect": {
+        "text": "115 lb × 9"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb × 9"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb × 9"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 115 lb × 9"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-rows-three-nines"
+    },
+    {
+      "expect": {
+        "text": "6 reps"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 6 reps"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 6 reps"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "editable": true,
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 6 reps"
+      }
+    },
+    {
+      "expect": {
+        "text": "10 lb × 13"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 10 lb × 13"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 10 lb × 13"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-all-eleven-sets"
+    },
+    {
+      "advance": "17m"
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-recap"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bench170:5,5,5. Pull-ups6,6,6. Brisk walk17min, longer block; distance unknown. DB weights per hand."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "week-two-tuesday-walk-note"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "47h4m"
+    },
+    {
+      "checkpoint": "thursday-nov19-tired-from-hauling-leaves"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day B"
+      }
+    },
+    {
+      "checkpoint": "second-lower-b-original-targets-after-265-success"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "second-lower-b-prescriptions-before-tired-day"
+    },
+    {
+      "tap": {
+        "text": "Conventional Deadlift",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "1"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "270"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-plan-270-before-today-only-reduction"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "checkpoint": "thursday-deadlift-initial-work-set"
+    },
+    {
+      "expect": {
+        "text": "270 lb × 5"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "255"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "thursday-only-this-set-lowered-to255"
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "text": "Log 255 lb × 5"
+      }
+    },
+    {
+      "checkpoint": "thursday-tired-day-deadlift255-recorded"
     }
   ]
 }

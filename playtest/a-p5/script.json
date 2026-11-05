@@ -650,12 +650,12 @@
     },
     {
       "expect": {
-        "text": "Log 35 lb \u00d7 8"
+        "text": "Log 35 lb × 8"
       }
     },
     {
       "tap": {
-        "text": "Log 35 lb \u00d7 8"
+        "text": "Log 35 lb × 8"
       }
     },
     {
@@ -694,12 +694,12 @@
     },
     {
       "expect": {
-        "text": "Log 35 lb \u00d7 6"
+        "text": "Log 35 lb × 6"
       }
     },
     {
       "tap": {
-        "text": "Log 35 lb \u00d7 6"
+        "text": "Log 35 lb × 6"
       }
     },
     {
@@ -735,12 +735,12 @@
     },
     {
       "expect": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1191,7 +1191,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1207,7 +1207,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1218,7 +1218,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb \u00d7 8"
+        "text": "Log 30 lb × 8"
       }
     },
     {
@@ -1559,7 +1559,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
@@ -1597,6 +1597,51 @@
       "checkpoint": "tuesday-actual-start-c1-workout-controls"
     },
     {
+      "recreate": true
+    },
+    {
+      "checkpoint": "retry-loading-c1-after-reopening-app"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "back-out-of-loading-to-c1-preview"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body · Day C1"
+      }
+    },
+    {
+      "checkpoint": "select-running-day-from-today-instead-of-plan-preview"
+    },
+    {
+      "tap": {
+        "text": "Start day C1"
+      }
+    },
+    {
+      "checkpoint": "retry-run-start-via-today"
+    },
+    {
       "tap": {
         "text": "All sets"
       }
@@ -1612,7 +1657,7 @@
       }
     },
     {
-      "checkpoint": "edit-c1-after-actually-starting-session"
+      "checkpoint": "edit-cardio-day-from-today-started-session"
     },
     {
       "tap": {
@@ -1620,15 +1665,12 @@
       }
     },
     {
-      "checkpoint": "cardio-editor-from-active-session"
-    },
-    {
       "tap": {
-        "text": "Intervals 5 \u00d7 2:00"
+        "text": "Intervals 5 × 2:00"
       }
     },
     {
-      "checkpoint": "interval-preset-editable-rounds-and-recovery"
+      "checkpoint": "interval-prescription-rounds-and-recovery-controls"
     },
     {
       "tap": {
@@ -1642,29 +1684,52 @@
       }
     },
     {
-      "checkpoint": "available-cardio-activities-and-running-mode"
+      "checkpoint": "cardio-activity-choices"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "text": "Set 1 · Work"
       }
     },
     {
-      "checkpoint": "easy-run-prescription-fields-from-active-session"
-    },
-    {
-      "back": true
+      "type": {
+        "text": "Duration",
+        "value": "42:10"
+      }
     },
     {
       "tap": {
-        "text": "Cancel"
+        "desc": "Aim",
+        "role": "Switch"
       }
     },
     {
-      "checkpoint": "discard-preset-exploration-keep-easy-run"
+      "checkpoint": "run-distance-target-fields-and-units"
+    },
+    {
+      "tap": {
+        "desc": "Aim",
+        "role": "Switch"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "tuesday-easy-run-time-prescription-not-completed-actual"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "save-run-prescription-from-active-day"
     },
     {
       "tap": {
@@ -1677,19 +1742,37 @@
       }
     },
     {
-      "checkpoint": "remove-core-after-actual-session-start-check-result"
+      "checkpoint": "check-removal-of-core-from-running-day"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "standalone-run-hero-and-recording-controls"
+      "checkpoint": "standalone-run-controls-after-today-route"
     },
     {
       "recreate": true
     },
     {
-      "checkpoint": "active-c1-survives-recreation-before-run"
+      "checkpoint": "run-screen-after-recreation"
+    },
+    {
+      "note": "The 42:10 prescription is only a target. Do not claim a recorded run until actual distance and elapsed time are saved. Tuesday diary is 7.00 km in 42:10, RPE3, quads noticeable first kilometer."
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "leave-run-screen-without-inventing-a-completion"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "navigation-after-leaving-unlogged-run"
+    },
+    {
+      "note": "If the Today start remains stuck on Loading, record that observed blocker. No run or two-week diary completion may be claimed."
     }
   ]
 }

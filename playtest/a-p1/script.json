@@ -56,6 +56,22 @@
     },
     {
       "checkpoint": "setup-question-four"
+    },
+    {
+      "scrollTo": {
+        "textContains": "At 3 days/week only the first 3 rotate this cycle:"
+      }
+    },
+    {
+      "checkpoint": "main-lifts-no-machine-option"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-question-five"
     }
   ]
 }

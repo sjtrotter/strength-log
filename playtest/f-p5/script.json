@@ -2,6 +2,22 @@
   "seat": "f-p5",
   "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
   "steps": [
-    { "checkpoint": "first-open" }
+    { "checkpoint": "first-open" },
+    { "note": "No account, good. But step 1 asks what I'm training for and the three answers are all lifting. Picking Strength-leaning, closest to 3x5." },
+    { "tap": { "text": "Strength-leaning" } },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-2" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-3" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-4" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-5" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-6" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-7" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wizard-8" }
   ]
 }

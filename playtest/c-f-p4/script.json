@@ -1395,6 +1395,12 @@
    }
   },
   {
+   "checkpoint": "receipt-b2-done-stuck"
+  },
+  {
+   "back": true
+  },
+  {
    "checkpoint": "today-after-b2"
   },
   {

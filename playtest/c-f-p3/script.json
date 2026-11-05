@@ -1825,14 +1825,11 @@
   },
   {
    "tap": {
-    "tag": "workout-finish"
+    "tag": "workout-action-filled"
    }
   },
   {
-   "tap": {
-    "text": "Finish",
-    "inDialog": true
-   }
+   "checkpoint": "after-finish-day-a"
   },
   {
    "checkpoint": "tue-wk2-receipt"

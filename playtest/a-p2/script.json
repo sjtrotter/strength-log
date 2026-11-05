@@ -7,6 +7,94 @@
     "zone": "America/Chicago"
   },
   "steps": [
-    { "checkpoint": "first-open-setup" }
-  ]
+    {
+      "checkpoint": "first-open-setup"
+    },
+    {
+      "note": "I want stronger main lifts with some accessory work. Choose Strength-leaning. Explore the initial setup defaults, then inspect and revise before accepting a plan."
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-2-inspect-defaults"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-3-inspect-defaults"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-4-inspect-defaults"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-5-inspect-defaults"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-6-inspect-defaults"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-7-inspect-defaults"
+    },
+    {
+      "expect": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-page-8-inspect-defaults"
+    }
+  ],
+  "capture": "checkpoints"
 }

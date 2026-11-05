@@ -274,25 +274,70 @@
    "checkpoint": "edit-dayA"
   },
   {
+   "note": "Hang on, Edit put me on a workout screen that says Log 100 lb x 5 behind the sheet. It's Sunday night. I just wanted to fix the numbers."
+  },
+  {
    "tap": {
-    "text": "Barbell Bench Press"
+    "textContains": "Ramp to 180 lb"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "edit-bench"
+   "checkpoint": "edit-bench-row"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-back-from-bench"
+   "checkpoint": "after-back-1"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "bench-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "editday-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "add-exercise"
   },
   {
    "back": true
   },
   {
    "back": true
+  },
+  {
+   "checkpoint": "workout-under-edit"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-leaving-workout"
   },
   {
    "tap": {
@@ -338,26 +383,7 @@
    "back": true
   },
   {
-   "tap": {
-    "text": "Today",
-    "role": "Tab"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "tap": {
-    "text": "4-day upper/lower \u00b7 Day A"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "scrollTo": {
-    "text": "Plank / Side Plank"
-   },
-   "timeoutMs": 30000
-  },
-  {
-   "checkpoint": "dayA-detail-bottom"
+   "checkpoint": "plans-after"
   }
  ]
 }

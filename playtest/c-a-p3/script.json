@@ -241,8 +241,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day B lifts, 5 of 24 sets"
       }
     },
     {
@@ -370,8 +369,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day B lifts, 5 of 27 sets"
       }
     },
     {
@@ -876,8 +874,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day C lifts, 4 of 23 sets"
       }
     },
     {
@@ -1238,8 +1235,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day D lifts, 0 of 21 sets"
       }
     },
     {
@@ -1341,8 +1337,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day D lifts, 0 of 24 sets"
       }
     },
     {
@@ -1541,8 +1536,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day D lifts, 4 of 25 sets"
       }
     },
     {
@@ -1591,8 +1585,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day D lifts, 4 of 25 sets"
       }
     },
     {
@@ -2078,8 +2071,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day A lifts, 5 of 26 sets"
       }
     },
     {
@@ -2704,8 +2696,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day B lifts, 5 of 28 sets"
       }
     },
     {
@@ -2946,6 +2937,496 @@
     },
     {
       "checkpoint": "week2-thursday-saved-three-completed-one-failed-note"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "23h18m"
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day C"
+      }
+    },
+    {
+      "checkpoint": "week2-friday-offered-after-225-single"
+    },
+    {
+      "tap": {
+        "text": "Start day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week2-friday-deadlift-original-rows"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "230"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "200"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-6"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "200"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-7"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "200"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-7"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "230x1 @7.5; 200x4x3. Family pickup means main lifts only today."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day C lifts, 4 of 24 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Three-second Paused Bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week2-friday-paused-bench-last-95-and-current-offer"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "97.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "97.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "97.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "97.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "97.5x4x4, three-second pauses. No split squats or leg curls today."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "advance": "26m"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "week2-friday-partial-finish-at-58-minutes"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "58m. Family pickup: no split squats or leg curls. DL230 single @7.5."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "week2-friday-saved-omitted-accessories"
     },
     {
       "tap": {

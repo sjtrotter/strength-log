@@ -1598,27 +1598,6 @@
   },
   {
    "tap": {
-    "text": "Skip this set"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "tap": {
-    "textContains": "Next:"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "advance": "5s"
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   },
-   "timeoutMs": 20000
-  },
-  {
-   "tap": {
     "desc": "More"
    },
    "timeoutMs": 20000
@@ -2541,6 +2520,1430 @@
   },
   {
    "checkpoint": "today-after-thu-wk2"
+  },
+  {
+   "note": "Thursday night on the couch. Two weeks in. What does it show me?"
+  },
+  {
+   "advance": "12h"
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "history-wk2"
+  },
+  {
+   "tap": {
+    "text": "Nov 19, 2026"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "session-nov19"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "edit-session-nov19"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-edit-back"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "trends-wk2"
+  },
+  {
+   "swipe": {
+    "text": "Weekly volume",
+    "direction": "up"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "trends-wk2-scrolled"
+  },
+  {
+   "swipe": {
+    "text": "Weekly volume",
+    "direction": "up"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "trends-wk2-scrolled2"
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "settings-top"
+  },
+  {
+   "swipe": {
+    "textContains": "Reset",
+    "direction": "up"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "settings-scrolled"
+  },
+  {
+   "swipe": {
+    "textContains": "Reset",
+    "direction": "up"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "settings-scrolled2"
+  },
+  {
+   "back": true
+  },
+  {
+   "note": "Friday Nov 20: kid woke up puking at 4:30. No session. Saturday Nov 21, afternoon: press day, 120 on the bar."
+  },
+  {
+   "advance": "1d19h35m"
+  },
+  {
+   "checkpoint": "sat-wk2-today"
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower \u00b7 Day C"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayC-detail-wk2"
+  },
+  {
+   "tap": {
+    "text": "Start day C"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "Day C lifts, 0 of 18 sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Overhead Press (Barbell)"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "sat-press-120"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "120"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "120"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "120"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Note"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Missed rep 5 on sets 2 and 3, bar stuck at my forehead both times. Staying at 120."
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "sat-after-press"
+  },
+  {
+   "tap": {
+    "desc": "Day C lifts, 3 of 18 sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Seated DB Shoulder Press"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "60"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "60"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "60"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "9"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "note": "Chins 10/9/7, laterals, rear delts, off the books again. Finish."
+  },
+  {
+   "tap": {
+    "text": "Skip rest"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Finish",
+    "role": "Button",
+    "inDialog": true
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-C-wk2"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "note": "Monday Nov 23. Squat 235. Week 3."
+  },
+  {
+   "advance": "39h30m"
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower \u00b7 Day D"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayD-detail-wk3"
+  },
+  {
+   "tap": {
+    "text": "Start day D"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "squat-set1-wk3"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "235"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "235"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "235"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Note"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Rep 4 of set 3 was slow and I didn't want the fifth. No spotter. First squat miss in months. Repeat 235."
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "rdl-set1-wk3"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "190"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "190"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "190"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "lunge-set1-wk3"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "45"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "45"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "10"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "90s"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "plank-wk3"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "textContains": "Finish day"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-D-wk3"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "note": "Tuesday Nov 24. Bench 180. Everything went up at once and that was dumb."
+  },
+  {
+   "advance": "23h"
+  },
+  {
+   "tap": {
+    "text": "4-day upper/lower \u00b7 Day A"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayA-detail-wk3"
+  },
+  {
+   "tap": {
+    "text": "Start day A"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "bench-set1-wk3"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "180"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "180"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "180"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "checkpoint": "rows-wk3"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "12"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "12"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "12"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "press-wk3"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "55"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "55"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "7"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "55"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "curls-wk3"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "pullups-wk3"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 4"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "30"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "4"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "5s"
+  },
+  {
+   "tap": {
+    "textContains": "Finish day"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "receipt-A-wk3"
+  },
+  {
+   "scrollTo": {
+    "text": "Add a note"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Bench 180: 5/4/3. Too fast off the 175 success, or tired from the squat miss. Back to 175 for two weeks. Pull-ups +30 and press 55s went up the same day, dumb."
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "textContains": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Done"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "today-after-tue-wk3"
   }
  ]
 }

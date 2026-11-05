@@ -1633,8 +1633,66 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "text": "Next: Leg Press"
+      }
+    },
+    {
+      "checkpoint": "friday-legpress180-target-before-logging"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "friday-legpress-three-straight-rows"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 11 of 34 sets"
       }
     },
     {
@@ -1646,89 +1704,6 @@
       "tap": {
         "text": "Leg Press"
       }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "friday-legpress-rows-before-logging"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-4"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-set-5"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "180"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-5"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-6"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "advance": "2m"
     },
     {
       "tap": {
@@ -1757,12 +1732,11 @@
       }
     },
     {
-      "checkpoint": "friday-legpress-work-and-interval-note"
+      "checkpoint": "friday-legpress-three180x10-and-interval-note"
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day B lifts, 11 of 34 sets"
       }
     },
     {
@@ -1829,8 +1803,7 @@
     },
     {
       "tap": {
-        "role": "Image",
-        "index": 1
+        "desc": "Day B lifts, 11 of 34 sets"
       }
     },
     {
@@ -1844,7 +1817,7 @@
       }
     },
     {
-      "note": "I use the bike clock for my 3 easy + six 30s hard/90s easy + 2 easy minutes. The app gets a total-time record and the exact intervals in my note, not a claimed structured six-round result."
+      "note": "I use the bike clock for 3 easy minutes, six 30s hard/90s easy rounds and 2 easy minutes. The app gets total time; the note keeps my six rounds and fading watts."
     },
     {
       "advance": "39m"
@@ -2053,6 +2026,476 @@
     },
     {
       "checkpoint": "second-monday-squat135x9-8-7-actuals"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov16: Bad sleep. Squat 135x9/8/7; planned 9 each. Stopped last set when folding forward. Longer rests today."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "second-monday-squat-miss-note"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 3 of 16 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "checkpoint": "second-monday-bench-target-before-edit"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "second-monday-read-old-bench-note"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb \u00d7 9"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "105"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 105 lb \u00d7 8"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "second-monday-bench105x9-8-8"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 6 of 16 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "checkpoint": "second-monday-row-offer-before-actuals"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb \u00d7 11"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb \u00d7 11"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 90 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "second-monday-cable90x11-11-10"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 9 of 16 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "second-monday-rdl-offer-before-actuals"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb \u00d7 10"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 16 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov16: RDL dumbbells 40 lb EACH, 10/10. Bike 12min, 105W avg, effort 7/10. Worse sleep; lower watts felt harder."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 16 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "advance": "46m30s"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "checkpoint": "second-monday-bike12min-and78minute-visit"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "second-monday-finish-review"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "second-monday-saved-after-missed-reps"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "1d22h42m"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "3-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day C"
+      }
+    },
+    {
+      "checkpoint": "second-wednesday-targets-after-shoulder-miss"
     }
   ]
 }

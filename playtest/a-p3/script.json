@@ -401,6 +401,90 @@
     },
     {
       "note": "I need Monday squat 190 x 1 at target RPE 7 then four sets 165 x 5, bench five sets 100 x 5, lying leg curl and ab wheel. Inspect the editor before entering actual prescriptions; generated decimal weights are not my program."
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "squat-prescription-editor-single-backoffs-rpe"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "exercise-options-swap-remove-reorder"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "exercise-picker-custom-variation-discovery"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "day-editor-options-name-copy-schedule"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "cardio-prescription-bike-treadmill-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "workout-opened-by-preview-edit-no-sets-logged"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "all-squat-sets-warmups-top-backoffs"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "actual-set-entry-weight-reps-rpe-notes"
+    },
+    {
+      "note": "Monday has not been trained yet. Preview Edit opened a workout under the day editor, without my tapping Start day A. Inspect the captured prescription and logging controls, then enter my real squat and bench work. Start empty is available from Plans > New plan if editing this generated day cannot express my own block."
     }
   ]
 }

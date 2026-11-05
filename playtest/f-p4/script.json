@@ -120,14 +120,6 @@
    "checkpoint": "wiz-8-rotation"
   },
   {
-   "scrollTo": {
-    "text": "Missing a day never skips the next workout."
-   }
-  },
-  {
-   "checkpoint": "wiz-8-rotation-bottom"
-  },
-  {
    "tap": {
     "text": "Start"
    }

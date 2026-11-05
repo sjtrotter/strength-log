@@ -84,6 +84,14 @@
   },
   {
    "tap": {
+    "textContains": "Next: Stationary"
+   }
+  },
+  {
+   "checkpoint": "bike-b-start"
+  },
+  {
+   "tap": {
     "text": "Start"
    }
   },

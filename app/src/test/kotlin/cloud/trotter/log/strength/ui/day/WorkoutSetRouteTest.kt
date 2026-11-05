@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import android.content.Context
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -69,7 +70,7 @@ class WorkoutSetRouteTest {
 
     @Test fun routeShowsTheSetScreen() {
         show()
-        rule.onNode(hasText("Log", substring = true)).assertExists()
+        rule.onNode(hasText("Log", substring = true) and hasTestTag("workout-action-filled")).assertExists()
         rule.onAllNodesWithContentDescription("Barbell Back Squat, not started").assertCountEquals(0)
         rule.onNodeWithText("All sets").assertExists()
     }

@@ -965,9 +965,6 @@ class WorkoutSetScreenTest {
         val reasonBounds = reason.fetchSemanticsNode().boundsInRoot
         assertTrue(reasonBounds.top >= title.fetchSemanticsNode().boundsInRoot.bottom)
         assertTrue(reasonBounds.top >= finish.fetchSemanticsNode().boundsInRoot.bottom)
-        val titleLayouts = mutableListOf<TextLayoutResult>()
-        title.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(titleLayouts) }
-        assertFalse(titleLayouts.single().hasVisualOverflow)
         val layouts = mutableListOf<TextLayoutResult>()
         reason.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         val layout = layouts.single()

@@ -41,11 +41,13 @@
       }
     },
     {
-      "advance": "3m"
+      "expect": {
+        "desc": "Barbell Bench Press, set 2 of 3"
+      }
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
+      "expect": {
+        "tag": "workout-rest"
       }
     },
     {
@@ -54,6 +56,34 @@
     {
       "tap": {
         "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Bench Press, set 3 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "desc": "One-Arm DB Row, set 1 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
       }
     },
     {
@@ -180,11 +210,31 @@
       }
     },
     {
+      "expect": {
+        "desc": "Pull-Up / Chin-Up, set 2 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
       "advance": "2m"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Pull-Up / Chin-Up, set 3 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
       }
     },
     {
@@ -216,6 +266,11 @@
       }
     },
     {
+      "expect": {
+        "text": "10 lb × 12"
+      }
+    },
+    {
       "checkpoint": "tuesday-pullups-six-six-five-logged"
     },
     {
@@ -232,11 +287,26 @@
       }
     },
     {
+      "expect": {
+        "desc": "DB Lateral Raise, set 2 of 2"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
       "advance": "90s"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Road run"
       }
     },
     {
@@ -371,11 +441,31 @@
       }
     },
     {
+      "expect": {
+        "desc": "Barbell Row, set 2 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
       "advance": "2m"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Row, set 3 of 3"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
       }
     },
     {
@@ -2137,6 +2227,287 @@
     },
     {
       "checkpoint": "thursday-tired-day-deadlift255-recorded"
+    },
+    {
+      "expect": {
+        "text": "185 lb × 6"
+      }
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb × 6"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Back Squat, set 2 of 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb × 6"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Barbell Back Squat, set 3 of 3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Log 185 lb × 6"
+      }
+    },
+    {
+      "expect": {
+        "text": "40 lb × 15"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 15"
+      }
+    },
+    {
+      "expect": {
+        "desc": "DB Single-Leg Calf Raise, set 2 of 2"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "text": "Log 40 lb × 15"
+      }
+    },
+    {
+      "checkpoint": "second-thursday-six-weighted-sets-done"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "second-thursday-plan-after-today-only255-deadlift"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "Nov19: side planks30s each side twice, as last Thursday. Leaves yesterday left lower back tired; warmup225 heavy. Used255 deadlift, squat185 today."
+    },
+    {
+      "advance": "11m"
+    },
+    {
+      "tap": {
+        "text": "Finish day B"
+      }
+    },
+    {
+      "checkpoint": "second-thursday-recap255-and185"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Leaves yesterday; back tired,225 warmup heavy. DL255x5,not270; squat185. Side planks30s L/R twice. DB40 per hand."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "second-thursday-reason-for-lighter-weights-saved"
+    },
+    {
+      "tap": {
+        "desc": "Share"
+      }
+    },
+    {
+      "checkpoint": "second-thursday-share-boundary"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "47h17m"
+    },
+    {
+      "checkpoint": "saturday-nov21-second-upper-b"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day C"
+      }
+    },
+    {
+      "checkpoint": "second-upper-b-offered-targets-before-rack-swap"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "second-upper-b-editor"
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press",
+        "index": 1
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "150"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "One-Arm DB Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "50"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Incline DB Curl"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "11"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "25"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "second-upper-b-bench150-rows-and-curls-eleven"
+    },
+    {
+      "tap": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "second-saturday-one-day-press-replacements"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "press"
+      }
+    },
+    {
+      "checkpoint": "second-saturday-search-dumbbell-press"
+    },
+    {
+      "tap": {
+        "text": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "checkpoint": "second-saturday-swap-scope"
+    },
+    {
+      "tap": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "second-saturday-temporary-db-press-before-changing-set-values"
     }
   ]
 }

@@ -148,33 +148,6 @@
   },
   {
    "tap": {
-    "text": "160"
-   }
-  },
-  {
-   "checkpoint": "goal-editor"
-  },
-  {
-   "type": {
-    "editable": true,
-    "inDialog": true,
-    "value": "45",
-    "ime": "done"
-   }
-  },
-  {
-   "checkpoint": "goal-typed"
-  },
-  {
-   "tap": {
-    "text": "Save"
-   }
-  },
-  {
-   "checkpoint": "goal-saved"
-  },
-  {
-   "tap": {
     "desc": "Day options",
     "index": 0
    }
@@ -189,6 +162,39 @@
   },
   {
    "checkpoint": "edit-day"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-edit-day-back"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "checkpoint": "settings"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "textContains": "On Today"
+   }
+  },
+  {
+   "longPress": {
+    "textContains": "Barbell Back Squat"
+   }
+  },
+  {
+   "checkpoint": "goal-longpress"
   }
  ]
 }

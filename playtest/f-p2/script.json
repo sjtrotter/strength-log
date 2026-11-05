@@ -1516,13 +1516,100 @@
    "checkpoint": "swap-search-legraise"
   },
   {
+   "note": "It only offers other leg curls. No leg raise, no way to say 'I did something else'. Skipping it; I'll do the leg raises off the books."
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
    "tap": {
-    "textContains": "Leg Raise"
+    "text": "All sets"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "after-legraise-swap"
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "legcurl-skipped"
+  },
+  {
+   "note": "Seated calf raise. With what, exactly? No machine here. Skip."
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "calf-skipped"
+  },
+  {
+   "checkpoint": "plank-set1"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "plank-set1-logged"
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "advance": "1m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "plank-done"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "finish-dialog"
   }
  ]
 }

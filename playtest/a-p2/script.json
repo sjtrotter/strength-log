@@ -1242,11 +1242,250 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Finish day D"
       }
     },
     {
       "checkpoint": "monday-finish-recap-and-note-controls"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "monday-finished-summary"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "home-after-first-finished-workout"
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "advance": "23h8m"
+    },
+    {
+      "note": "Tuesday November 10, 17:30: Upper A. Bench165 for5,5,5; rows115 for8,8,8; pullups6,6,5; raises10 for12,12; walk15minutes. Monday has to be finished before advancing."
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day A"
+      }
+    },
+    {
+      "checkpoint": "tuesday-upper-preview-before-adjusting-targets"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bench-straight-sets-selected"
+    },
+    {
+      "tap": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bench-straight-prescription-fields"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "165"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bench-target-saved"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "tuesday-focus-before-first-bench"
+    },
+    {
+      "expect": {
+        "text": "165 lb × 5"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bench165-five-five-five"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Seated DB Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Incline DB Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Lateral Raise"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "tuesday-remove-extra-work-and-set-raises"
+    },
+    {
+      "tap": {
+        "text": "One-Arm DB Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "115"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for One-Arm DB Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "tuesday-find-barbell-row-for-my-plan"
     }
   ],
   "capture": "checkpoints"

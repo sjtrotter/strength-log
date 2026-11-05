@@ -1017,6 +1017,7 @@ class DayViewModelCardioExecutionTest {
         vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
         runCurrent()
         vm.openCardioDistance()
+        runCurrent()
         vm.saveCardioDistance(vm.distanceAction())
         runCurrent()
 
@@ -2160,6 +2161,7 @@ class DayViewModelCardioExecutionTest {
         vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
         runCurrent()
         vm.openCardioDistance()
+        runCurrent()
         vm.saveCardioDistance(vm.distanceAction())
         runCurrent()
         assertEquals("A", repo.plans.suggestedDayFlow.first())

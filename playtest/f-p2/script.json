@@ -655,13 +655,134 @@
    "checkpoint": "goals"
   },
   {
+   "note": "Goals aren't tappable. Squat 215, bench 180, deadlift 285, press 115. It guessed from my bodyweight. Two of four are wrong and I can't fix them here. Fine, I'll set each lift myself."
+  },
+  {
    "tap": {
-    "text": "Barbell Back Squat"
+    "text": "5 lifts, 18 sets"
    },
    "timeoutMs": 20000
   },
   {
-   "checkpoint": "goal-tap"
+   "tap": {
+    "text": "Edit"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "bench-3x5"
+  },
+  {
+   "tap": {
+    "textContains": "3 \u00d7 10 at 55 lb"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "50"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Pullover"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayA-after-edits"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "scrollTo": {
+    "text": "V pull"
+   },
+   "timeoutMs": 30000
+  },
+  {
+   "tap": {
+    "text": "V pull"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "vpull-list"
+  },
+  {
+   "tap": {
+    "textContains": "Pull-Up"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "after-pullup-pick"
   }
  ]
 }

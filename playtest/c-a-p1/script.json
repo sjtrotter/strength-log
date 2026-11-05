@@ -3170,7 +3170,8 @@
     },
     {
       "tap": {
-        "text": "Nov 25, 2026"
+        "role": "Tab",
+        "index": 1
       }
     },
     {
@@ -3294,6 +3295,29 @@
     },
     {
       "checkpoint": "dec4-plan-options-looking-for-a-copy-off-phone"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "You"
+      }
+    },
+    {
+      "checkpoint": "dec4-profile-looking-for-personal-data-or-backup-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "checkpoint": "dec4-month-complete-after-history-and-backup-search"
     }
   ]
 }

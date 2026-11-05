@@ -746,10 +746,26 @@
    "checkpoint": "note-sheet"
   },
   {
-   "back": true
+   "type": {
+    "text": "Note",
+    "value": "Monolift, rack 2 taken. RPE 6.5 on the last set."
+   }
   },
   {
-   "back": true
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "note-saved"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "bss-now"
   },
   {
    "tap": {

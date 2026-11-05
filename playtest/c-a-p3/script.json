@@ -346,24 +346,20 @@
       }
     },
     {
-      "checkpoint": "adding-paused-squat-prescription"
+      "checkpoint": "paused-squat-added-directly-to-day-editor"
     },
     {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "145"
+      "expect": {
+        "text": "Two-second Paused Squat"
       }
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "4"
+      "expect": {
+        "text": "3 \u00d7 10 at 145 kg"
       }
     },
     {
-      "tap": {
-        "text": "Save"
-      }
+      "note": "Custom lift added with three default sets. Set the actual four sets of four in the workout below."
     },
     {
       "checkpoint": "day-with-paused-squat-added"
@@ -1180,6 +1176,351 @@
     },
     {
       "checkpoint": "saturday-generated-day-d-preview"
+    },
+    {
+      "tap": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "checkpoint": "saturday-initial-day-d-workout"
+    },
+    {
+      "tap": {
+        "desc": "Day D lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "saturday-day-editor"
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "H push"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Close-grip Bench"
+      }
+    },
+    {
+      "checkpoint": "saturday-close-grip-catalog-search"
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Close-grip Bench"
+      }
+    },
+    {
+      "type": {
+        "text": "Starting weight (kg)",
+        "value": "90"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Choose a movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Choose a movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Close-grip"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Close-grip Bench"
+      }
+    },
+    {
+      "checkpoint": "saturday-close-grip-added-to-day"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day D lifts, 0 of 24 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Close-grip Bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "Close-grip Bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "saturday-close-grip-default-sets"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "90"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "saturday-four-close-grip-work-sets"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "saturday-close-grip-completed"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "90x6x4. Normal close grip; separate from competition and 3-second bench."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "saturday-close-grip-survives-recreation"
+    },
+    {
+      "tap": {
+        "desc": "Day D lifts, 4 of 25 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "saturday-treadmill-editor-before-choice"
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "checkpoint": "saturday-cardio-activity-choices"
     }
   ]
 }

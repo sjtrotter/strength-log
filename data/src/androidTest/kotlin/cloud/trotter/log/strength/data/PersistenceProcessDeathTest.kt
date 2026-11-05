@@ -243,7 +243,10 @@ class PersistenceProcessDeathTest {
 
         // Settings: rotation pointer, wizard state, unit, custom exercise.
         assertEquals("B", repository.plans.suggestedDayFlow.first()) // advanced past A
-        assertEquals(wizardAnswers, repository.plans.wizardAnswersFlow.first())
+        assertEquals(
+            wizardAnswers.copy(config = wizardAnswers.config.copy(weightUnit = WeightUnit.KG)),
+            repository.plans.wizardAnswersFlow.first(),
+        )
         assertTrue(settings.wizardCompleteFlow.first())
         assertEquals(WeightUnit.KG, settings.unitFlow.first())
         val customEntry = repository.catalog.catalogFlow.first().get(customId)

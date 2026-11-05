@@ -645,7 +645,7 @@ class DayViewModelWiringTest {
             advanceUntilIdle()
             val cards = vm.uiState.value.exercises
             assertEquals(
-                HeaderTarget.Goal(if (unit == WeightUnit.LB) "235" else "106.59"),
+                HeaderTarget.Goal(if (unit == WeightUnit.LB) "235" else "105"),
                 cards.first().headerTarget,
             )
             assertEquals(displays.mapIndexed { index, display ->

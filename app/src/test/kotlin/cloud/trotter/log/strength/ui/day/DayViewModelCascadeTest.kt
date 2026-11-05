@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
@@ -130,6 +131,24 @@ class DayViewModelCascadeTest {
 
     private fun DayViewModel.hasRecord(): Boolean =
         finisher.receipt.value?.groups.orEmpty().flatMap { it.rows }.any { it.record != null }
+
+    @Test
+    fun phoneWeightEditPassesUnitAndEquipmentToCascade() = runVmTest {
+        settings.setUnit(WeightUnit.KG)
+        insertProgram()
+        val vm = newViewModel()
+        advanceUntilIdle()
+        vm.changeWeight(slotId(), Slot.MAIN, topIndex(), 20.0)
+        advanceUntilIdle()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val rows = repo.dayTracksFlow(plan, "A").first().tracks.single().sets
+        rows.forEach { assertEquals(20.0, WeightUnit.KG.fromLb(it.weightLb), 1e-9) }
+        vm.changeWeight(slotId(), Slot.MAIN, 0, 16.3)
+        advanceUntilIdle()
+        val manual = repo.dayTracksFlow(plan, "A").first().tracks.single().sets
+        assertEquals(16.3, WeightUnit.KG.fromLb(manual[0].weightLb), 1e-9)
+        assertEquals(rows.drop(1), manual.drop(1))
+    }
 
     // --- it fires ------------------------------------------------------------
 

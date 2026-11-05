@@ -129,7 +129,7 @@ class RestoreJournalTest {
     /** A backup from another device: a program Room can hold, and settings that
      *  differ from this device's in every value a GOAL is derived from. */
     private fun snapshot() = FullSnapshot(
-        answers = WizardAnswers(config = LifterConfig(bodyweightLb = 190, age = 28)),
+        answers = WizardAnswers(config = LifterConfig(bodyweightLb = 190, age = 28, weightUnit = WeightUnit.KG)),
         unit = WeightUnit.KG,
         wizardComplete = true,
         suggestedDay = "R",
@@ -314,7 +314,7 @@ class RestoreJournalTest {
     @Test
     fun previousBuildJournal_appliesPlanSettingsInTheSameStartupPass() = runTest {
         val restored = snapshot().copy(
-            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH)),
+            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH, weightUnit = WeightUnit.KG)),
             suggestedDay = "B",
         )
         val nonce = "previous-build-restore"
@@ -341,7 +341,7 @@ class RestoreJournalTest {
             answers = WizardAnswers(
                 daysPerWeek = 3,
                 split = SplitTemplate.PPL,
-                config = LifterConfig(emphasis = GoalEmphasis.STRENGTH),
+                config = LifterConfig(emphasis = GoalEmphasis.STRENGTH, weightUnit = WeightUnit.KG),
                 cardio = CardioPrefs(CardioMode.TREADMILL, CardioPlacement.SEPARATE_DAYS, false),
                 equipment = setOf(Equipment.DUMBBELL, Equipment.BODYWEIGHT),
             ),
@@ -372,7 +372,7 @@ class RestoreJournalTest {
     @Test
     fun previousBuildJournalWithNoPlan_createsAndSelectsLegacyPlan() = runTest {
         val restored = snapshot().copy(
-            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH)),
+            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH, weightUnit = WeightUnit.KG)),
             suggestedDay = "B",
             selectedPlanId = null,
             days = emptyList(),
@@ -403,7 +403,7 @@ class RestoreJournalTest {
     @Test
     fun previousBuildJournal_overwritesEveryGeneratedRecipeAndSelectedRotation() = runTest {
         val restored = snapshot().copy(
-            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH)),
+            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH, weightUnit = WeightUnit.KG)),
             suggestedDay = "B",
         )
         val nonce = "previous-build-restore-with-interim-edits"
@@ -428,7 +428,7 @@ class RestoreJournalTest {
     @Test
     fun configReadBeforeReconcile_doesNotCopyThisDevicesLegacyPlanSettings() = runTest {
         val restored = snapshot().copy(
-            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH)),
+            answers = WizardAnswers(daysPerWeek = 3, config = LifterConfig(emphasis = GoalEmphasis.STRENGTH, weightUnit = WeightUnit.KG)),
             suggestedDay = "B",
         )
         val nonce = "previous-build-restore-before-gate"

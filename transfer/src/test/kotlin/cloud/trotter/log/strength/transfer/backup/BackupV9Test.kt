@@ -26,7 +26,7 @@ import kotlinx.serialization.json.jsonObject
 class BackupV9Test {
 
     private val codec = BackupCodec()
-    private val global = LifterConfig(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED)
+    private val global = LifterConfig(bodyweightLb = 210, age = 33, level = ExperienceLevel.ADVANCED, weightUnit = WeightUnit.KG)
     private val strength = WizardAnswers(daysPerWeek = 3, config = global.copy(emphasis = GoalEmphasis.STRENGTH))
     private val physique = WizardAnswers(daysPerWeek = 5, config = global.copy(emphasis = GoalEmphasis.PHYSIQUE))
     private val recipeFields = listOf(

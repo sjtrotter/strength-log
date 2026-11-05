@@ -377,6 +377,8 @@ class WizardRestoreWiringTest {
         assertEquals(null, state.restore.error)
         assertEquals(190.0, state.answers.config.bodyweightLb, 0.0)
         assertEquals("STRENGTH", state.answers.config.emphasis.name)
+        assertEquals(cloud.trotter.log.strength.domain.units.WeightUnit.KG, state.unit)
+        assertEquals(state.unit, state.answers.config.weightUnit)
         assertEquals(state.answers, repo.plans.wizardAnswersFlow.first())
         assertEquals(1, db.planDao().allPlans().size)
         assertTrue(repo.plans.programFlow.first().days.isEmpty())

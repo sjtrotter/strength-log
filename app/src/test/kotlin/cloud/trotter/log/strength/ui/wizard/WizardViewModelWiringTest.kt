@@ -303,6 +303,35 @@ class WizardViewModelWiringTest {
     }
 
     @Test
+    fun unitTapBeforeSavedAnswersArriveIsKept() = runVmTest {
+        val readStarted = CompletableDeferred<Unit>()
+        val releaseRead = CompletableDeferred<Unit>()
+        val gatedSettings = SettingsStore(object : DataStore<Preferences> {
+            override val data = flow {
+                readStarted.complete(Unit)
+                releaseRead.await()
+                emitAll(dataStore.data)
+            }
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+                dataStore.updateData(transform)
+        })
+        val gatedRepo = TrackerRepository(db, db.programDao(), db.sessionDao(), db.customExerciseDao(), gatedSettings)
+        val vm = newViewModel(repository = gatedRepo, preferences = gatedSettings)
+        readStarted.await()
+        vm.setUnit(WeightUnit.KG)
+        releaseRead.complete(Unit)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(WeightUnit.KG, state.unit)
+        assertEquals(WeightUnit.KG, state.answers.config.weightUnit)
+        assertEquals(null, state.bodyweightLb)
+        assertEquals(null, state.age)
+        assertEquals(WizardAnswers().config.bodyweightLb, state.answers.config.bodyweightLb, 0.0)
+        assertEquals(WizardAnswers().config.age, state.answers.config.age)
+    }
+
+    @Test
     fun firstRunAboutYouStartsEmptyAndDraftSurvivesRecreation() = runVmTest {
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)
@@ -402,6 +431,24 @@ class WizardViewModelWiringTest {
         advanceUntilIdle()
 
         assertEquals(WeightUnit.KG, vm.uiState.value.unit)
+        assertEquals(WeightUnit.KG, vm.uiState.value.answers.config.weightUnit)
+    }
+
+    @Test
+    fun selectedUnit_isCarriedInAnswersAfterRecreation() = runVmTest {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        vm.setUnit(WeightUnit.KG)
+        advanceUntilIdle()
+        assertEquals(WeightUnit.KG, vm.uiState.value.answers.config.weightUnit)
+
+        val revived = newViewModel(handle)
+        advanceUntilIdle()
+        assertEquals(WeightUnit.KG, revived.uiState.value.answers.config.weightUnit)
+        revived.setUnit(WeightUnit.LB)
+        advanceUntilIdle()
+        assertEquals(WeightUnit.LB, revived.uiState.value.answers.config.weightUnit)
     }
 
     @Test

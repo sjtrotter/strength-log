@@ -122,12 +122,14 @@ class NumberFieldTest {
 
     @Test fun normalizedSaveStillAcknowledgesSoLaterUpdatesShow() {
         val persisted = mutableStateOf(75.0)
-        rule.setContent { AppTheme {
+        rule.setContent { AppTheme { Column {
             NumberField(persisted.value, { persisted.value = 79.83 }, "Bodyweight (kg)", decimalInput = true,
                 format = { "%.1f".format(it) })
-        } }
+            NumberField(8.0, {}, "Reps")
+        } } }
         rule.onNodeWithText("Bodyweight (kg)").performClick().performTextReplacement("80")
-        rule.onNodeWithText("Bodyweight (kg)").performImeAction()
+        // Moving focus to the next field commits, as focus loss does on a device.
+        rule.onNodeWithText("Reps").performClick()
         rule.onNodeWithText("79.8").assertExists()
 
         rule.runOnIdle { persisted.value = 85.0 }

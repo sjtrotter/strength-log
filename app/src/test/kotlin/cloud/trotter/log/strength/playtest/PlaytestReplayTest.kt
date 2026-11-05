@@ -13,6 +13,7 @@ import java.io.File
 import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineExceptionHandler
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,7 +31,8 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PlaytestReplayTest {
     private val hilt = HiltAndroidRule(this)
-    private val compose = createEmptyComposeRule()
+    private lateinit var crashes: AppCrashes
+    private val compose = createEmptyComposeRule(effectContext = CoroutineExceptionHandler { _, error -> crashes.record(error) })
     @get:Rule val rules: RuleChain = RuleChain.outerRule(hilt).around(compose)
 
     @Inject internal lateinit var time: PlaytestTime
@@ -93,6 +95,7 @@ class PlaytestReplayTest {
             compose.mainClock.autoAdvance = false
             launchAttempted = true
             AppCrashes().use { crashes ->
+                this.crashes = crashes
                 crashes.step { ActivityScenario.launch(MainActivity::class.java) }.use { scenario ->
                     var replayFailure: Throwable? = null
                     try {

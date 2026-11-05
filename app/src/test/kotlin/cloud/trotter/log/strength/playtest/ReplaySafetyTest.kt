@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -27,8 +28,13 @@ import cloud.trotter.log.strength.ui.day.CardioBlockDraft
 import cloud.trotter.log.strength.ui.day.CardioBlockPage
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import java.io.File
+import kotlin.test.assertFailsWith
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -42,7 +48,8 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [35], qualifiers = "w360dp-h720dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ReplaySafetyTest {
-    @get:Rule val compose = createComposeRule()
+    private lateinit var crashes: AppCrashes
+    @get:Rule val compose = createComposeRule(effectContext = CoroutineExceptionHandler { _, error -> crashes.record(error) })
     @get:Rule val temporary = TemporaryFolder()
 
     @Test fun cardioActivityAnchorAllowsDropdownTap() {
@@ -83,6 +90,7 @@ class ReplaySafetyTest {
     }
 
     @Test fun screenshotsEncodeSingleAndMultipleWindows() {
+        compose.mainClock.autoAdvance = false
         val dialog = mutableStateOf(false)
         compose.setContent {
             AppTheme {
@@ -105,7 +113,32 @@ class ReplaySafetyTest {
         }
         capture("single")
         compose.runOnIdle { dialog.value = true }
+        compose.mainClock.advanceTimeByFrame()
         capture("dialog")
         capture("dialog-again")
+    }
+
+    @Test fun launchedEffectFailureFailsTheStep() {
+        val crash = IllegalStateException("Compose effect failed")
+        compose.mainClock.autoAdvance = false
+        AppCrashes().use { crashes ->
+            this.crashes = crashes
+            val error = assertFailsWith<PlaytestError> {
+                crashes.step(compose) {
+                    compose.setContent {
+                        LaunchedEffect(Unit) { throw crash }
+                        Text("Screen")
+                    }
+                    compose.mainClock.advanceTimeByFrame()
+                    compose.onNodeWithText("Screen").assertExists()
+                }
+            }
+            assertEquals("app-crash", error.kind)
+            assertSame(crash, error.cause)
+            val json = failureJson(error, 0)
+            assertEquals(JsonPrimitive(crash.javaClass.name), json["exception_class"])
+            assertEquals(JsonPrimitive(crash.message), json["exception_message"])
+            assertTrue((json["exception_stack"] as JsonArray).size in 1..12)
+        }
     }
 }

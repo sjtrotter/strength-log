@@ -27,10 +27,14 @@ internal class AppCrashes : AutoCloseable, IdlingResource {
     private val collector = collectorClass.getField("INSTANCE").get(null)
 
     init {
-        val callback: (Throwable) -> Unit = { pending.compareAndSet(null, it); Unit }
+        val callback: (Throwable) -> Unit = ::record
         collectorClass.getMethod("addOnExceptionCallback", Any::class.java, Function1::class.java)
             .invoke(collector, this, callback)
-        Thread.setDefaultUncaughtExceptionHandler { _, error -> pending.compareAndSet(null, error) }
+        Thread.setDefaultUncaughtExceptionHandler { _, error -> record(error) }
+    }
+
+    fun record(error: Throwable) {
+        pending.compareAndSet(null, error)
     }
 
     override val isIdleNow: Boolean get() {
@@ -98,7 +102,7 @@ internal class PlaytestHandler {
 private fun Throwable.appCrash(): PlaytestError = PlaytestError(
     "app-crash", message ?: javaClass.name,
     buildJsonObject {
-        put("exception_class", javaClass.name)
+        put("exception_class", this@appCrash.javaClass.name)
         put("exception_message", message)
         put("exception_stack", JsonArray(stackTrace.take(12).map { JsonPrimitive(it.toString()) }))
     },

@@ -133,15 +133,35 @@
    }
   },
   {
-   "checkpoint": "plans-tab"
-  },
-  {
    "tap": {
-    "text": "History"
+    "desc": "Plan options"
    }
   },
   {
-   "checkpoint": "history-tab"
+   "checkpoint": "plan-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "3-day full body"
+   }
+  },
+  {
+   "checkpoint": "plan-detail"
+  },
+  {
+   "swipe": {
+    "text": "3-day full body"
+   },
+   "direction": "up"
+  },
+  {
+   "checkpoint": "plan-detail-scrolled"
+  },
+  {
+   "back": true
   },
   {
    "tap": {
@@ -151,44 +171,25 @@
   },
   {
    "tap": {
-    "desc": "Settings"
-   }
-  },
-  {
-   "checkpoint": "settings"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
-    "text": "Other days"
-   }
-  },
-  {
-   "checkpoint": "other-days"
-  },
-  {
-   "back": true
-  },
-  {
-   "tap": {
     "text": "3-day full body \u00b7 Day A"
    }
   },
   {
-   "checkpoint": "day-a-detail"
+   "swipe": {
+    "text": "Barbell Back Squat"
+   },
+   "direction": "up"
   },
   {
-   "back": true
+   "checkpoint": "day-a-detail-scrolled"
   },
   {
    "tap": {
-    "text": "Start day A"
+    "text": "Edit"
    }
   },
   {
-   "checkpoint": "workout-start"
+   "checkpoint": "day-a-edit"
   }
  ]
 }

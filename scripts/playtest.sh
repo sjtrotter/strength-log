@@ -54,6 +54,15 @@ mkdir -p "$worktree/playtest/$seat"
 destination="$worktree/playtest/$seat/script.json"
 if [[ "$script" != "$destination" ]]; then cp "$script" "$destination"; fi
 git -C "$worktree" add -f "playtest/$seat/script.json"
+# A relative start.restore travels with the script; CI cannot see the host's files.
+restore=$(jq -r '.start.restore // empty' "$script")
+if [[ -n "$restore" && "$restore" != /* ]]; then
+    [[ $restore =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ ]] || { echo 'start.restore must be a file name next to the script' >&2; exit 2; }
+    source_backup="$(dirname "$script")/$restore"
+    [[ -f "$source_backup" ]] || { echo "restore backup not found: $source_backup" >&2; exit 2; }
+    if [[ "$source_backup" != "$worktree/playtest/$seat/$restore" ]]; then cp "$source_backup" "$worktree/playtest/$seat/$restore"; fi
+    git -C "$worktree" add -f "playtest/$seat/$restore"
+fi
 if ! git -C "$worktree" diff --cached --quiet; then
     git -C "$worktree" commit -q -m "playtest($seat): $steps steps"
 fi

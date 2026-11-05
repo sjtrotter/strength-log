@@ -1,0 +1,309 @@
+{
+  "seat": "dialog-text-field",
+  "capture": "checkpoints",
+  "steps": [
+    {
+      "note": "Wizard. No skip button, no 'build my own'. Closest answers it is."
+    },
+    {
+      "tap": {
+        "text": "Strength-leaning",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Days per week",
+        "value": "6",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "days-6"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "split-for-6"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat / Bench / Deadlift / Row (Big 4)",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Conventional",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bike / elliptical",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finishers after lifting",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "KG",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "checkpoint": "kg-picked"
+    },
+    {
+      "type": {
+        "text": "Bodyweight (kg)",
+        "value": "95.5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "41",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Advanced",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "checkpoint": "about-me"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "rotation-6-day"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "checkpoint": "home"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "tab-1"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "checkpoint": "tab-2"
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "new-plan"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "after-back-1"
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "plan-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "textContains": "6-day push/pull/legs"
+      }
+    },
+    {
+      "checkpoint": "plan-detail"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "textContains": "You"
+      }
+    },
+    {
+      "checkpoint": "you"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "checkpoint": "settings"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "checkpoint": "other-days"
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Rest timer",
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Theme",
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Warm-up",
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Rest timer",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "settings-bottom"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "6-day push/pull/legs"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Day C",
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Add day",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "plan-goals"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "new-plan-choice"
+    },
+    {
+      "note": "Start empty opens a name field in the same dialog."
+    },
+    {
+      "tap": {
+        "text": "Start empty"
+      }
+    },
+    {
+      "checkpoint": "name-page"
+    },
+    {
+      "expect": {
+        "text": "Create",
+        "inDialog": true
+      }
+    }
+  ]
+}

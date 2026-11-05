@@ -36,7 +36,7 @@ internal class PlaytestTime {
 
     private fun clockIn(fixedZone: ZoneId?): Clock = object : Clock() {
         override fun instant(): Instant = now
-        override fun getZone(): ZoneId = fixedZone ?: zone
+        override fun getZone(): ZoneId = fixedZone ?: this@PlaytestTime.zone
         override fun withZone(zone: ZoneId): Clock = clockIn(zone)
     }
 

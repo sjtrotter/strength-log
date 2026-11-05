@@ -839,7 +839,7 @@
     },
     {
       "tap": {
-        "text": "Lat Pulldown"
+        "text": "Lat Pulldown (wide)"
       }
     },
     {
@@ -847,7 +847,7 @@
     },
     {
       "tap": {
-        "text": "Lat Pulldown"
+        "text": "Lat Pulldown (wide)"
       }
     },
     {
@@ -877,7 +877,7 @@
     },
     {
       "tap": {
-        "text": "Lat Pulldown"
+        "text": "Lat Pulldown (wide)"
       }
     },
     {
@@ -983,7 +983,7 @@
     },
     {
       "tap": {
-        "text": "Lat Pulldown"
+        "text": "Lat Pulldown (wide)"
       }
     },
     {
@@ -1066,7 +1066,224 @@
       "checkpoint": "friday-first-visit-plan-preview"
     },
     {
-      "note": "Next: enact Nov13 leg press180x10x3, incline35x8x3, temporary chest-supported DB row30x10x3, legcurl70x12x2, bike17min six rounds. Wednesday row numbers are narrative only; no falsely labeled cycling. Need Nov16 and Nov18 progression, missedNov20, and weeks3/4. Do not treat pending actions as executed."
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "checkpoint": "friday-nov13-first-workout-before-edits"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 0 of 24 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "friday-native-day-editor"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "H push"
+      }
+    },
+    {
+      "tap": {
+        "text": "H push"
+      }
+    },
+    {
+      "tap": {
+        "text": "Incline DB Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Incline DB Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 0 of 27 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Incline DB Press"
+      }
+    },
+    {
+      "checkpoint": "friday-incline-target35-each-x8"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 35 lb × 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 3 of 27 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "checkpoint": "friday-legcurl-before-my-actual70x12"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "70"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 70 lb × 12"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "70"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 70 lb × 12"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "checkpoint": "friday-incline-and-two-legcurls-recorded"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 5 of 27 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat bilateral"
+      }
+    },
+    {
+      "checkpoint": "friday-legpress-catalog-choices"
+    },
+    {
+      "note": "Next: finish Nov13 with leg press180x10x3, temporary chest-supported DB rows30x10x3, six bike intervals17min. Incline DBs35EACH and curls70x12x2 are pending this replay. Native surplus exercises remain unperformed; inspect editor before removing them."
     }
   ]
 }

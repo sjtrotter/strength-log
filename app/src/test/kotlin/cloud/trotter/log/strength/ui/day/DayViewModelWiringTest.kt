@@ -1418,11 +1418,12 @@ class DayViewModelWiringTest {
             advanceUntilIdle()
             assertFalse(track(id, Slot.MAIN)!![0].done)
             assertTrue(vm.uiState.value.canFinish)
-            assertEquals(0, vm.uiState.value.doneSets)
+            assertEquals(1, vm.uiState.value.doneSets)
             if (retire) {
                 vm.editor.setDaySlotSuperset(vm.uiState.value.exercises.first { it.programExerciseId == id }.position, "face_pull")
                 advanceUntilIdle()
                 assertEquals(1, vm.uiState.value.retiredTracks.single().doneCount)
+                assertEquals(1, vm.uiState.value.doneSets)
                 assertTrue(vm.uiState.value.canFinish)
             }
             vm.completeDay()

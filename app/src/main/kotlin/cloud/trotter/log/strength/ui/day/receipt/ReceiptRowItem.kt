@@ -263,7 +263,7 @@ internal fun StrengthReceiptRow(row: ReceiptRow, unit: WeightUnit, dayIndex: Int
                 ReceiptSetLine(index, visibleSet(set, set.tracking(), unit), spokenSetLine(row, index, unit), dayIndex,
                     mark?.let { stringResource(R.string.receipt_set_pr_note, visibleSet(it.previous, row.tracking, unit)) })
             }
-            row.planned?.let { ReceiptAfter(visiblePlan(it, row.tracking, unit), spokenPlan(it, row.tracking, unit)) }
+            row.planned?.let { ReceiptAfter(visiblePlan(it, unit), spokenPlan(it, unit)) }
         })
 }
 

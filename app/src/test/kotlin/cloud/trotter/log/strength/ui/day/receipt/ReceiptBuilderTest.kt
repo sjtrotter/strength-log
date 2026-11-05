@@ -96,10 +96,12 @@ class ReceiptBuilderTest {
 
     @Test
     fun `ramp top without backoff stays closed`() {
-        val row = row(squat().copy(sets = squat().sets.dropLast(1)), SetStructure.RAMP_TOP)
+        val track = squat().copy(sets = squat().sets.dropLast(1))
+        val row = row(track, SetStructure.RAMP_TOP, targets = track.planned.dropLast(1).map { it.copy(reps = 8) })
         assertEquals(ReceiptRow.Shape.TOP_SET, row.shape)
         assertEquals(listOf(ValueLine(245.0, listOf(4))), row.lines)
-        assertEquals(PlannedSets(6, 130.0, 5, 0), row.planned)
+        assertEquals(PlannedSets(5, 130.0, 8, 0), row.planned)
+        assertEquals(5, listOf(track).setCounts().total)
     }
 
     @Test

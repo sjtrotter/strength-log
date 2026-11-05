@@ -126,6 +126,32 @@ class ReceiptScreenTest {
     }
 
     @Test
+    fun repsOnlyWorkShowsTheWeightedFinishPrescription() {
+        val row = ReceiptRow("Dumbbell Curl", TrackingType.REPS, ReceiptRow.Shape.STRAIGHT,
+            listOf(ReceiptSet(0.0, 12, 0)), listOf(ValueLine(null, listOf(0))),
+            0, PlannedSets(3, 30.0, 8, 0), null)
+        setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row)))))
+
+        rule.onNodeWithContentDescription("Dumbbell Curl. 12 reps.").performClick()
+        rule.onNodeWithContentDescription("Set 1, 12 reps").assertExists()
+        rule.onNodeWithText("Planned 3 × 8 at 30 lb", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("Planned 3 sets of 8 reps at 30 pounds").assertExists()
+    }
+
+    @Test
+    fun repsOnlyWorkShowsTheTimedFinishPrescription() {
+        val row = ReceiptRow("Plank", TrackingType.REPS, ReceiptRow.Shape.STRAIGHT,
+            listOf(ReceiptSet(0.0, 12, 0)), listOf(ValueLine(null, listOf(0))),
+            0, PlannedSets(3, 0.0, 0, 45), null)
+        setReceipt(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row)))))
+
+        rule.onNodeWithContentDescription("Plank. 12 reps.").performClick()
+        rule.onNodeWithContentDescription("Set 1, 12 reps").assertExists()
+        rule.onNodeWithText("Planned 3 × 45s", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("Planned 3 holds of 45 seconds").assertExists()
+    }
+
+    @Test
     fun oldSkippedReceiptDoesNotInventAPlannedSetCount() {
         val skipped = ReceiptRow("Face Pull", TrackingType.WEIGHTED, ReceiptRow.Shape.SKIPPED,
             emptyList(), emptyList(), 0, null, null)

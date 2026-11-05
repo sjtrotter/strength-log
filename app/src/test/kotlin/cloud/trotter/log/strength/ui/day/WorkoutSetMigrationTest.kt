@@ -60,7 +60,7 @@ class WorkoutSetMigrationTest {
             assertEquals(2, state.totalSets)
         }
         rule.onNodeWithTag("workout-finish").performClick()
-        rule.onNodeWithText("Finish with 1 of 2 sets?").assertExists()
+        rule.onNodeWithText("Finish with partner sets open?").assertExists()
         rule.runOnIdle { assertEquals(0, finishes) }
         rule.onNode(hasText("Finish") and hasAnyAncestor(isDialog())).performClick()
         rule.runOnIdle { assertEquals(1, finishes) }

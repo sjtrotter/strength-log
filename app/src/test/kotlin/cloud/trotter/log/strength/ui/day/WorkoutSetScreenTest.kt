@@ -35,6 +35,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.data.RunSetCounts
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
@@ -393,7 +394,7 @@ class WorkoutSetScreenTest {
     @Test fun allLoggedSupersetHasNoPartnerCard() {
         val base = workoutSetSupersetFixture()
         show(base.copy(workout = WorkoutState(WorkoutSelection.Shown.AllLogged, null, false, null, 0L)))
-        rule.onNodeWithText("All 3 sets logged").assertIsDisplayed()
+        rule.onNodeWithText("All 6 sets logged").assertIsDisplayed()
         rule.onNodeWithTag("workout-partner-card").assertDoesNotExist()
         rule.onNodeWithText("Then rest").assertDoesNotExist()
     }
@@ -616,6 +617,42 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Finish with 2 of 6 sets?").assertIsDisplayed()
         rule.onNodeWithText("Keep going").performClick()
         rule.runOnIdle { assertEquals(0, finishes) }
+    }
+
+    @Test fun retiredWorkDoesNotTurnOpenReplacementSetsIntoAPartnerPrompt() {
+        val base = workoutSetSingleFixture()
+        val card = base.exercises.single().copy(rows = base.exercises.single().rows.take(3).map {
+            it.copy(done = it.index == 0)
+        })
+        var state by mutableStateOf(base.copy(exercises = listOf(card)))
+        rule.setContent { AppTheme { WorkoutSetHost(state) } }
+
+        for (retiredCount in listOf(2, 3)) {
+            rule.runOnIdle {
+                state = state.copy(runOpen = true,
+                    runSetCounts = RunSetCounts(retiredCount + 1, 3, 2),
+                    retiredTracks = listOf(RetiredTrackLine("DB Bench Press", retiredCount)))
+            }
+            rule.onNodeWithText("Finish").performClick()
+            rule.onNodeWithText("Finish with ${retiredCount + 1} of 3 sets?").assertIsDisplayed()
+            rule.onNodeWithText("Finish with partner sets open?").assertDoesNotExist()
+            rule.onNodeWithText("Keep going").performClick()
+        }
+    }
+
+    @Test fun retiredWorkDoesNotRequireConfirmationWhenActiveSetsAreDone() {
+        val base = workoutSetSingleFixture()
+        val card = base.exercises.single().copy(allDone = true, rows = base.exercises.single().rows.take(3).map {
+            it.copy(done = true)
+        })
+        var finishes = 0
+        show(base.copy(exercises = listOf(card), runOpen = true,
+            runSetCounts = RunSetCounts(5, 3, 0), retiredTracks = listOf(RetiredTrackLine("DB Bench Press", 2))),
+            workoutActions().copy(onDone = { finishes++ }))
+
+        rule.onNodeWithTag("workout-finish").performClick()
+        rule.onNodeWithText("Finish with partner sets open?").assertDoesNotExist()
+        rule.runOnIdle { assertEquals(1, finishes) }
     }
 
     @Test fun finishConfirmationSurvivesSwitchToTimedRepSlot() {

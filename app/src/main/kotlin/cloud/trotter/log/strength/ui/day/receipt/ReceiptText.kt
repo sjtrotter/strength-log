@@ -35,8 +35,11 @@ internal fun visibleSet(set: ReceiptSet, tracking: TrackingType, unit: WeightUni
 
 internal fun ReceiptSet.tracking(): TrackingType = SetFormatter.trackingOfValues(weightLb, reps, seconds)
 
+private fun PlannedSets.tracking(): TrackingType = SetFormatter.trackingOfValues(weightLb, reps, seconds)
+
 @Composable
-internal fun visiblePlan(plan: PlannedSets, tracking: TrackingType, unit: WeightUnit): String {
+internal fun visiblePlan(plan: PlannedSets, unit: WeightUnit): String {
+    val tracking = plan.tracking()
     val value = if (tracking == TrackingType.TIMED) SecondsStepper.format(plan.seconds) else plan.reps.toString()
     return if (tracking == TrackingType.WEIGHTED) {
         stringResource(R.string.receipt_planned_at, plan.count, value, visibleWeight(plan.weightLb, unit))
@@ -138,7 +141,7 @@ internal fun spokenSetLine(row: ReceiptRow, index: Int, unit: WeightUnit): Strin
 }
 
 @Composable
-internal fun spokenPlan(plan: PlannedSets, tracking: TrackingType, unit: WeightUnit): String = when (tracking) {
+internal fun spokenPlan(plan: PlannedSets, unit: WeightUnit): String = when (plan.tracking()) {
     TrackingType.WEIGHTED -> stringResource(R.string.receipt_say_planned_weighted, plan.count, plan.reps, spokenWeight(plan.weightLb, unit))
     TrackingType.REPS -> stringResource(R.string.receipt_say_planned_reps, plan.count, plan.reps)
     TrackingType.TIMED -> stringResource(R.string.receipt_say_planned_holds, plan.count, spokenDuration(plan.seconds))

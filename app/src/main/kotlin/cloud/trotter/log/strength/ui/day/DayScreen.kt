@@ -98,6 +98,8 @@ fun DayScreen(
         return
     }
     val accent = dayAccent(state.dayIndex)
+    val hasUnloggedSets = state.runSetCounts?.let { it.remaining > 0 }
+        ?: state.exercises.any { card -> card.rows.any { !it.complete } }
     // The sheet stays inside the day feature; its shared ViewModel restores
     // the open editor and prescription draft after process death.
     val showEditSheet = dayEditState.editorOpen
@@ -244,7 +246,7 @@ fun DayScreen(
             catalog = dayEditState.catalog,
             onExercises = actions.onOpenDaySheet,
             onFinish = {
-                if (state.exercises.any { card -> card.rows.any { !it.complete } } ||
+                if (hasUnloggedSets ||
                     state.cardio?.loggedSeconds == null && state.cardio != null) {
                     confirmingPartialFinish = true
                 } else {
@@ -349,7 +351,10 @@ fun DayScreen(
         FinishDayConfirmDialog(
             doneSets = state.doneSets,
             totalSets = state.totalSets,
-            cardioTitle = if (state.exercises.all { card -> card.rows.all { it.complete } }) {
+            onlyPartnerSetsOpen = hasUnloggedSets &&
+                state.exercises.all { card -> card.rows.all { it.done } } &&
+                state.exercises.any { card -> card.rows.any { it.partner?.done == false } },
+            cardioTitle = if (!hasUnloggedSets) {
                 state.cardio?.takeIf { it.loggedSeconds == null }?.block?.activity?.let { cardioActivityName(it) }
             } else null,
             onConfirm = {
@@ -408,6 +413,7 @@ fun DayScreen(
 private fun FinishDayConfirmDialog(
     doneSets: Int,
     totalSets: Int,
+    onlyPartnerSetsOpen: Boolean,
     cardioTitle: String?,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -417,7 +423,7 @@ private fun FinishDayConfirmDialog(
         title = {
             Text(
                 if (cardioTitle != null) stringResource(R.string.day_finish_without_cardio_title, cardioTitle)
-                else if (doneSets == totalSets) stringResource(R.string.day_finish_partner_open_confirm_title)
+                else if (onlyPartnerSetsOpen) stringResource(R.string.day_finish_partner_open_confirm_title)
                 else stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets),
             )
         },

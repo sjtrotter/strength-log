@@ -687,18 +687,31 @@
    "back": true
   },
   {
-   "checkpoint": "categories-again"
+   "note": "Lift options has Straight sets and 'Next time: Plan / Last results'. Setting the trap bar to straight sets. Plank stays at 45 s for now, I'll log 30."
   },
   {
    "tap": {
-    "text": "Plank / Side Plank"
+    "desc": "More options for Trap-Bar Deadlift"
    }
   },
   {
-   "checkpoint": "plank-row-sheet"
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   }
+  },
+  {
+   "checkpoint": "trap-straight-sets"
   },
   {
    "back": true
+  },
+  {
+   "checkpoint": "editor-after-lift-options"
   },
   {
    "tap": {
@@ -706,12 +719,201 @@
    }
   },
   {
-   "scrollTo": {
-    "text": "Core"
+   "tap": {
+    "text": "Hinge"
    }
   },
   {
-   "checkpoint": "categories-scrolled"
+   "type": {
+    "editable": true,
+    "value": "Single-Leg RDL"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create exercise"
+   }
+  },
+  {
+   "checkpoint": "create-form-prefill"
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Single-Leg RDL"
+   }
+  },
+  {
+   "tap": {
+    "text": "Weighted"
+   }
+  },
+  {
+   "tap": {
+    "text": "Per hand (dumbbell/unilateral)"
+   }
+  },
+  {
+   "type": {
+    "text": "Starting weight (lb)",
+    "value": "30"
+   }
+  },
+  {
+   "checkpoint": "create-slrdl-filled"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "after-create-slrdl"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Single leg"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Single-Leg Calf Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create exercise"
+   }
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Single-Leg Calf Raise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Per hand (dumbbell/unilateral)"
+   }
+  },
+  {
+   "checkpoint": "create-calf-filled"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "after-create-calf"
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "tap": {
+    "text": "Single leg"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Copenhagen Plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Create exercise"
+   }
+  },
+  {
+   "type": {
+    "text": "Name",
+    "value": "Copenhagen Plank"
+   }
+  },
+  {
+   "tap": {
+    "text": "Timed"
+   }
+  },
+  {
+   "tap": {
+    "text": "Per hand (dumbbell/unilateral)"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "after-create-copenhagen"
+  },
+  {
+   "tap": {
+    "textContains": "Single-Leg RDL"
+   }
+  },
+  {
+   "checkpoint": "slrdl-prescription"
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "8"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Single-Leg Calf Raise"
+   }
+  },
+  {
+   "checkpoint": "calf-prescription"
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "12"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Copenhagen Plank"
+   }
+  },
+  {
+   "checkpoint": "copenhagen-prescription"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "day-a-built"
   }
  ]
 }

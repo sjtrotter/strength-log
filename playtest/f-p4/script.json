@@ -134,31 +134,31 @@
   },
   {
    "tap": {
-    "desc": "Plan options"
+    "text": "3-day full body"
    }
   },
   {
-   "checkpoint": "plan-options"
+   "tap": {
+    "desc": "Day options",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "day-options"
   },
   {
    "back": true
   },
   {
    "tap": {
-    "text": "3-day full body"
+    "text": "Barbell Back Squat"
    }
   },
   {
-   "checkpoint": "plan-detail"
+   "checkpoint": "goal-squat"
   },
   {
-   "swipe": {
-    "text": "3-day full body",
-    "direction": "up"
-   }
-  },
-  {
-   "checkpoint": "plan-detail-scrolled"
+   "back": true
   },
   {
    "back": true
@@ -175,21 +175,70 @@
    }
   },
   {
-   "swipe": {
-    "text": "Barbell Back Squat",
-    "direction": "up"
-   }
-  },
-  {
-   "checkpoint": "day-a-detail-scrolled"
-  },
-  {
    "tap": {
     "text": "Edit"
    }
   },
   {
-   "checkpoint": "day-a-edit"
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "checkpoint": "editday-more"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   }
+  },
+  {
+   "checkpoint": "squat-more-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Barbell Back Squat"
+   }
+  },
+  {
+   "checkpoint": "squat-row-tap"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "checkpoint": "edit-cardio"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   }
+  },
+  {
+   "checkpoint": "add-exercise"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-sheet-closed"
   }
  ]
 }

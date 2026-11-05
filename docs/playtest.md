@@ -9,7 +9,7 @@ to `playtest-runs/<seat>/<run>/`. It stops on dirty worktrees or merge conflicts
 ```json
 {
   "seat": "beginner",
-  "device": "w360dp-h720dp-xxhdpi-night",
+  "device": "w360dp-h720dp-night-xxhdpi",
   "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
   "steps": [
     { "tap": { "text": "Next" } },

@@ -158,7 +158,7 @@ internal data class Script(
             start.keysOnly(setOf("date", "time", "zone", "restore"), "start")
             val capture = root.optionalString("capture")
             scriptCheck(capture == null || capture == "checkpoints", "capture must be checkpoints when supplied")
-            val device = root.optionalString("device") ?: "w360dp-h720dp-xxhdpi-night"
+            val device = root.optionalString("device") ?: "w360dp-h720dp-night-xxhdpi"
             scriptCheck(device.isNotBlank(), "device must not be blank")
             val steps = root["steps"] as? JsonArray ?: throw PlaytestError("script", "steps must be an array")
             val restore = start.optionalString("restore")?.let { path ->

@@ -28,7 +28,7 @@ import org.robolectric.annotation.GraphicsMode
 
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], qualifiers = "w360dp-h720dp-xxhdpi-night", application = HiltTestApplication::class)
+@Config(sdk = [35], qualifiers = "w360dp-h720dp-night-xxhdpi", application = HiltTestApplication::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PlaytestReplayTest {
     private val hilt = HiltAndroidRule(this)

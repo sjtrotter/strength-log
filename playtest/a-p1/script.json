@@ -805,6 +805,9 @@
       "advance": "5m"
     },
     {
+      "advance": "9m"
+    },
+    {
       "tap": {
         "text": "Log 60 lb \u00d7 10"
       }
@@ -952,6 +955,9 @@
       }
     },
     {
+      "advance": "9m"
+    },
+    {
       "tap": {
         "text": "Log 30 lb \u00d7 6"
       }
@@ -978,7 +984,41 @@
       "checkpoint": "chest-note-entry-looking-for-seat-four"
     },
     {
-      "back": true
+      "type": {
+        "text": "Note",
+        "value": "seat 4"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "recreate": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "seat-four-note-after-reopening"
+    },
+    {
+      "expect": {
+        "text": "seat 4"
+      }
     },
     {
       "back": true
@@ -1049,6 +1089,17 @@
     },
     {
       "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "chest-review-original-six-reps-and-lowered-weights"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
         "text": "Log 20 lb \u00d7 10"
       }
     },
@@ -1064,9 +1115,41 @@
       }
     },
     {
+      "advance": "9m"
+    },
+    {
       "tap": {
         "text": "Log 30 lb \u00d7 10"
       }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Learning where this machine is. First visit."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "row-note-saved-during-workout"
     },
     {
       "advance": "90s"
@@ -1096,6 +1179,9 @@
       }
     },
     {
+      "advance": "450s"
+    },
+    {
       "tap": {
         "text": "Log 20 lb \u00d7 10"
       }
@@ -1121,6 +1207,17 @@
     },
     {
       "checkpoint": "first-day-lifting-done-looking-for-walk"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 11 of 11 sets"
+      }
+    },
+    {
+      "checkpoint": "all-lifts-review-and-order-controls"
+    },
+    {
+      "back": true
     },
     {
       "advance": "8m"

@@ -1306,15 +1306,100 @@
       }
     },
     {
+      "back": true
+    },
+    {
+      "note": "Start empty timed out on the previous replay before a screen could be captured. I will continue using the existing days. Tuesday needs paused pulls, not the generated bench day. First put the omitted Monday accessory details in a short session note."
+    },
+    {
       "tap": {
-        "text": "Start empty"
+        "text": "History"
       }
     },
     {
-      "checkpoint": "own-program-empty-plan-setup"
+      "tap": {
+        "text": "Full Body"
+      }
     },
     {
-      "note": "Next build my actual Tuesday and remaining week from this empty-plan screen. My real Tuesday is paused deadlift170x3x4, one-arm DBrow40kg per hand8x4 per side today only, pulldown3x10,rear delt3x15,bike20m RPE3. The first two weeks still need to be lived; avoid more rounds just exploring unrelated screens."
+      "checkpoint": "monday-history-detail-notes-and-set-count"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Nov9: leg curl 3x12 RPE8; ab wheel 3x8. Squat side video: depth good. Bench stiff first set, then fine."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "monday-short-session-note-saved"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 0
+      }
+    },
+    {
+      "advance": "13m"
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day C"
+      }
+    },
+    {
+      "checkpoint": "tuesday-select-deadlift-day-deliberately"
+    },
+    {
+      "tap": {
+        "text": "Start day C"
+      }
+    },
+    {
+      "checkpoint": "tuesday-deadlift-workout-before-adjustments"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "deadlift-variation-picker"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "paused"
+      }
+    },
+    {
+      "checkpoint": "search-paused-deadlift-and-custom-exercise-route"
+    },
+    {
+      "note": "Tuesday Nov10: need 170kg x3 for four paused sets. If no exact variation exists, inspect the custom exercise route. Then one-arm DB rows40kg x8 for four sets each side TODAY ONLY, pulldown3x10, rear delts3x15, bike20min easy RPE3. First pause rushed. No generated bench or squat work is to be logged as Tuesday."
     }
   ]
 }

@@ -547,7 +547,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb × 5"
+        "text": "Log 95 lb \u00d7 5"
       }
     },
     {
@@ -958,6 +958,89 @@
     },
     {
       "checkpoint": "monday-third-squat-work-set-entry"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "checkpoint": "monday-three-squat-work-sets-logged"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "note": "Three squat work sets at135x8 are done. The unused ramp slots stay unchecked. I want to see where I can enter the actual12-minute bike result before doing the rest of my lifting."
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 4 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "expect": {
+        "text": "25:00"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "bike-all-sets-result-and-edit-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "desc": "Close sheet",
+        "absent": true
+      }
+    },
+    {
+      "note": "The diary calls for barbell bench105x8, not the suggested dumbbell bench. Use the exercise replacement control before logging any bench work."
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 4 of 16 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Bench Press"
+      }
+    },
+    {
+      "checkpoint": "monday-bench-before-replacement"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "monday-barbell-bench-replacement-picker"
     }
   ]
 }

@@ -1564,7 +1564,7 @@
     },
     {
       "tap": {
-        "text": "Activity"
+        "role": "DropdownList"
       }
     },
     {
@@ -3432,6 +3432,422 @@
       "tap": {
         "text": "Done"
       }
+    },
+    {
+      "advance": "15h2m"
+    },
+    {
+      "checkpoint": "week2-saturday-nov21"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day D"
+      }
+    },
+    {
+      "checkpoint": "week2-saturday-offered-after-90-close-grip"
+    },
+    {
+      "tap": {
+        "text": "Start day D"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day D lifts, 0 of 25 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Close-grip Bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "Close-grip Bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week2-close-grip-inherited-load-and-rows"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-0"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "92.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "92.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "92.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "92.5"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week2-close-grip-92-point-5-four-sixes"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "scrollTo": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-3"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "week2-close-grip-completed"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "92.5x6x4; final set RPE8.5. Stayed with DB press24/hand 3x10."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day D lifts, 4 of 25 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Treadmill"
+      }
+    },
+    {
+      "tap": {
+        "text": "Treadmill"
+      }
+    },
+    {
+      "checkpoint": "week2-treadmill-offered-again"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "checkpoint": "week2-walk-ten-minutes-before-incline-reduction"
+    },
+    {
+      "note": "Calves tight: lower the physical treadmill from5% to3%; keep5km/h for remaining15m. Save actual settings in session note. No make-up bike for Tuesday."
+    },
+    {
+      "advance": "15m"
+    },
+    {
+      "checkpoint": "week2-walk-25-minutes-completed"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Walk25m 5km/h:5% first10m,3% last15m; tight calves. DB24s; usual accessories. No makeup bike."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "week2-saturday-saved-incline-change"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History"
+      }
+    },
+    {
+      "checkpoint": "two-weeks-history-with-repeated-variations"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "two-weeks-trends-volume-and-calendar"
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Nov 19, 2026"
+      }
+    },
+    {
+      "tap": {
+        "text": "Nov 19, 2026"
+      }
+    },
+    {
+      "checkpoint": "retrieve-nov19-failed-bench-and-upper-back-note"
+    },
+    {
+      "scrollTo": {
+        "text": "Nov 16, 2026"
+      }
+    },
+    {
+      "tap": {
+        "text": "Nov 16, 2026"
+      }
+    },
+    {
+      "checkpoint": "retrieve-nov16-sleep-note-and-reduced-backoffs"
+    },
+    {
+      "tap": {
+        "text": "Today"
+      }
+    },
+    {
+      "advance": "2d7h23m"
+    },
+    {
+      "checkpoint": "week3-monday-nov23-after-weekend"
+    },
+    {
+      "tap": {
+        "text": "Other days"
+      }
+    },
+    {
+      "tap": {
+        "text": "5-day full body \u00b7 Day A"
+      }
+    },
+    {
+      "checkpoint": "week3-monday-offer-after-195-single-and-reduced-165-backoffs"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "week3-monday-original-prescription-after-reduction"
     }
   ]
 }

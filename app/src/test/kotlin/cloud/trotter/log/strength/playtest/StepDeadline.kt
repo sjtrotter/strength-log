@@ -5,10 +5,6 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.test.espresso.IdlingPolicies
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 
 /** One monotonic, real-time budget shared by lookup, action, settling, and capture. */
 internal class StepDeadline(private val timeoutMs: Long, private val index: Int? = null) : IdlingResource {
@@ -115,11 +111,7 @@ internal class StepDeadline(private val timeoutMs: Long, private val index: Int?
     }
 
     fun <T> io(block: suspend () -> T): T = call {
-        runBlocking {
-            withTimeout((remainingNanos / 1_000_000).coerceAtLeast(1)) {
-                withContext(Dispatchers.IO) { block() }
-            }
-        }
+        waitForStorage((remainingNanos / 1_000_000).coerceAtLeast(1), timeout = { timeout() }, block = block)
     }
 
     fun pause(compose: ComposeTestRule): Boolean {

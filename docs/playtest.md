@@ -26,7 +26,12 @@ where new captures start. Checkpoints and failures are always captured. If you
 change earlier steps, remove `playtest-runs/<seat>/.last-ok` to capture everything.
 
 Read `summary.json` first, then `error.json` if present. `log.jsonl` records each
-attempted step. `backup.json` is the real app backup at exit, including on failure.
+attempted step. `backup.json` is the real app backup at exit, including on failure
+when export succeeds. The summary is written before export and rewritten afterward;
+an export failure is recorded in `backup_error` without replacing the step failure.
+Export and restore each have a 60-second real-time limit. Storage runs in the
+background while the calling thread idles the main looper, including storage reads
+within a step's remaining budget.
 `steps/000-launch.*` shows launch. Other numbered PNG and JSON pairs show the
 screen after that step, using zero-based step numbers. JSON includes text, tags,
 roles, disabled state, and bounds in dp. The default device matches the audit:
@@ -47,10 +52,12 @@ malformed payloads fail before the activity launches. For example:
 Each step has one real-time deadline, defaulting to 10,000 ms. `timeoutMs` must be
 a positive integer. Lookup, action, screen settling, and capture share that budget.
 Every selector retries until it resolves to one node (or the requested `index`).
+For `tap`, `longPress`, `type`, and `swipe`, a disabled match also retries until
+it becomes enabled, sharing the same step deadline as missing or ambiguous matches.
 An absent expectation waits for the node to disappear. Between attempts the
 harness advances a Compose frame, idles the main looper, and briefly sleeps in
 real time so Room and DataStore can finish. A still screen alone does not make
-a missing selector fail. Only the deadline produces `not-found` or `ambiguous`,
+a missing selector fail. Only the deadline produces `not-found`, `ambiguous`, or `disabled`,
 using candidates or matches from the final attempt. Espresso and Compose idling
 timeouts are reported as `timeout`, with the failing step index.
 If a step remains stuck 30 seconds past its deadline, the harness writes `error.json` and `summary.json` and halts the JVM without attempting a screen capture or backup.
@@ -95,7 +102,10 @@ also checks the field's label so a filled field stays selectable.
 Errors are `not-found` (up to 15 nearby text candidates), `ambiguous` (all matches
 with bounds, role, and ancestor text), `disabled`, `not-clickable`, `not-editable`,
 `not-scrollable`, `crash` (stack included), `timeout`, or `script`. Disabled nodes
-still match. An expectation can verify their existence, but an action fails.
+still match. An expectation can verify their existence. `tap`, `longPress`, `type`,
+and `swipe` report `disabled` only if the final match remains disabled at the
+deadline. Scrolling to a disabled target or searching a disabled scroll container
+reports `disabled` immediately.
 
 ## Restores and pilots
 

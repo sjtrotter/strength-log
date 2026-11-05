@@ -14,8 +14,6 @@ import java.io.File
 import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -50,6 +48,20 @@ class PlaytestReplayTest {
         val originalTimeZone = TimeZone.getDefault()
         var failure: Throwable? = null
         var launchAttempted = false
+        var backupAttempted = false
+        fun writeBackup() {
+            backupAttempted = true
+            artifacts.writeSummary(if (this::time.isInitialized) time else null)
+            try {
+                if (!this::backup.isInitialized) hilt.inject()
+                artifacts.writeBackup(backup)
+            } catch (exportError: Throwable) {
+                artifacts.backupFailure(exportError.playtestError())
+                throw exportError
+            } finally {
+                artifacts.writeSummary(if (this::time.isInitialized) time else null)
+            }
+        }
         try {
             scriptCheck(captureFromText.toIntOrNull()?.let { it >= 0 } == true, "playtestCaptureFrom must be a nonnegative integer")
             val script = Script.parse(File(path))
@@ -65,7 +77,9 @@ class PlaytestReplayTest {
             time.set(script.start.instant(), script.start.zone)
             script.start.restore?.let { file ->
                 try {
-                    runBlocking(Dispatchers.IO) { backup.import(file.readText()) }
+                    waitForStorage(60_000) { backup.import(file.readText()) }
+                } catch (error: PlaytestError) {
+                    throw error
                 } catch (error: Exception) {
                     throw PlaytestError("script", "Cannot restore ${file.path}: ${error.message}", cause = error)
                 }
@@ -78,11 +92,12 @@ class PlaytestReplayTest {
                     Replay(compose, scenario, time, cardioAlarm, settings, database, artifacts).run(script)
                 } catch (error: Throwable) {
                     replayFailure = error
+                    artifacts.failure(error.playtestError(), null)
                     throw error
                 } finally {
                     // Export while the foreground graph is still alive, including on a failed step.
                     try {
-                        artifacts.writeBackup(backup)
+                        writeBackup()
                     } catch (exportError: Throwable) {
                         val original = replayFailure
                         if (original != null) original.addSuppressed(exportError) else throw exportError
@@ -104,10 +119,7 @@ class PlaytestReplayTest {
             throw error
         } finally {
             try {
-                if (!File(artifacts.directory, "backup.json").isFile) {
-                    if (!this::backup.isInitialized) hilt.inject()
-                    artifacts.writeBackup(backup)
-                }
+                if (!backupAttempted) writeBackup()
             } catch (exportError: Throwable) {
                 val original = failure
                 if (original != null) original.addSuppressed(exportError) else {

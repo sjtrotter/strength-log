@@ -40,6 +40,7 @@ internal class Selectors(private val nodes: ComposeTestRule, private val density
         deadline: StepDeadline,
         typing: Boolean = false,
         absent: Boolean = false,
+        requireEnabled: Boolean = false,
         search: (() -> Unit)? = null,
     ): Target? {
         var lastFailure: PlaytestError? = null
@@ -60,12 +61,17 @@ internal class Selectors(private val nodes: ComposeTestRule, private val density
             lastMatches = describe(matches)
             val index = selector.index ?: 0
             val present = index < matches.size
+            val unique = present && (selector.index != null || matches.size == 1)
+            val disabled = unique && requireEnabled && matches[index].config.contains(SemanticsProperties.Disabled)
             if (absent && !present) return null
-            if (!absent && present && (selector.index != null || matches.size == 1)) {
+            if (!absent && unique && !disabled) {
                 return Target(collection[index], matches[index])
             }
             val failure = when {
                 absent -> PlaytestError("ambiguous", "Expected no matches for ${selector.json}", buildJsonObject {
+                    put("matches", lastMatches)
+                })
+                disabled -> PlaytestError("disabled", "Matching node is disabled", buildJsonObject {
                     put("matches", lastMatches)
                 })
                 present -> PlaytestError("ambiguous", "${matches.size} matches for ${selector.json}; add index or narrow the selector", buildJsonObject {

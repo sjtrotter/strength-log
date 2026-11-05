@@ -29,9 +29,7 @@ import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.transfer.backup.BackupService
 import java.io.File
 import java.time.Duration
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -48,6 +46,7 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
     var stepsRun = 0
     private var failedStep: Int? = null
     private var errorClass: String? = null
+    private var backupError: JsonObject? = null
 
     init {
         check(directory.mkdirs() || directory.isDirectory)
@@ -69,7 +68,13 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
     }
 
     fun writeBackup(backup: BackupService) {
-        File(directory, "backup.json").writeText(runBlocking(Dispatchers.IO) { backup.export() })
+        waitForStorage(60_000) {
+            File(directory, "backup.json").writeText(backup.export())
+        }
+    }
+
+    fun backupFailure(error: PlaytestError) {
+        backupError = failureJson(error, null)
     }
 
     fun writeSummary(time: PlaytestTime?) {
@@ -79,6 +84,7 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
             put("steps_run", stepsRun)
             put("failed_step", failedStep?.let(::JsonPrimitive) ?: JsonNull)
             put("error_class", errorClass)
+            backupError?.let { put("backup_error", it) }
             put("clock_at_exit", time?.clock?.instant()?.toString())
             put("capture_from", captureFrom)
         }.toString() + "\n")
@@ -180,13 +186,12 @@ internal class Replay(
     private fun act(step: Step, deadline: StepDeadline) {
         val selector = requireNotNull(step.selector)
         val typing = step.action == "type"
-        val resolved = requireNotNull(selectors.await(selector, deadline, typing))
+        val resolved = requireNotNull(selectors.await(selector, deadline, typing, requireEnabled = true))
         val target = resolved.interaction
         val node = resolved.node
         if (step.action == "tap" && node.config.contains(SemanticsProperties.EditableText)) {
             throw PlaytestError("script", "Use type instead of tap on an editable node; a second click can start the magnifier")
         }
-        enabled(node)
         when (step.action) {
             "tap" -> {
                 requireAction(node.config.contains(SemanticsActions.OnClick), "not-clickable", "Node has no click action")

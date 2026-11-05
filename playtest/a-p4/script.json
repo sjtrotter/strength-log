@@ -547,7 +547,7 @@
     },
     {
       "tap": {
-        "text": "Log 95 lb × 5"
+        "text": "Log 95 lb \u00d7 5"
       }
     },
     {
@@ -1093,7 +1093,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -1123,7 +1123,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -1153,7 +1153,7 @@
     },
     {
       "tap": {
-        "text": "Log 105 lb × 8"
+        "text": "Log 105 lb \u00d7 8"
       }
     },
     {
@@ -1235,7 +1235,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -1265,7 +1265,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -1295,7 +1295,7 @@
     },
     {
       "tap": {
-        "text": "Log 90 lb × 10"
+        "text": "Log 90 lb \u00d7 10"
       }
     },
     {
@@ -1400,7 +1400,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -1411,7 +1411,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -1518,7 +1518,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -1550,7 +1550,7 @@
     },
     {
       "tap": {
-        "text": "Log 40 lb × 10"
+        "text": "Log 40 lb \u00d7 10"
       }
     },
     {
@@ -1573,7 +1573,7 @@
       "checkpoint": "monday-before-twelve-minute-bike"
     },
     {
-      "advance": "33m15s"
+      "advance": "1995s"
     },
     {
       "tap": {

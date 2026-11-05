@@ -113,6 +113,52 @@
     },
     {
       "checkpoint": "setup-question-seven"
+    },
+    {
+      "tap": {
+        "text": "Clear all"
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 3
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 4
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 5
+      }
+    },
+    {
+      "tap": {
+        "role": "Checkbox",
+        "index": 6
+      }
+    },
+    {
+      "checkpoint": "equipment-without-barbells"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-question-eight"
     }
   ]
 }

@@ -13,7 +13,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -29,7 +29,7 @@
     },
     {
       "expect": {
-        "text": "165 lb \u00d7 5"
+        "text": "165 lb × 5"
       }
     },
     {
@@ -220,7 +220,7 @@
     },
     {
       "expect": {
-        "text": "10 lb \u00d7 12"
+        "text": "10 lb × 12"
       }
     },
     {
@@ -259,22 +259,10 @@
       "checkpoint": "tuesday-cardio-editor-before-walk"
     },
     {
-      "tap": {
-        "text": "Road run",
-        "role": "DropdownList"
-      }
-    },
-    {
-      "checkpoint": "tuesday-cardio-activity-choices"
-    },
-    {
       "back": true
     },
     {
-      "back": true
-    },
-    {
-      "checkpoint": "tuesday-edit-day-return-from-cardio"
+      "checkpoint": "cardio-dropdown-blocked-return-to-edit-day"
     },
     {
       "tap": {
@@ -325,6 +313,146 @@
     },
     {
       "checkpoint": "row-replacements-search-results"
+    },
+    {
+      "tap": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "checkpoint": "barbell-row-swap-scope"
+    },
+    {
+      "tap": {
+        "text": "The plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "barbell-row-prescription-after-swap"
+    },
+    {
+      "tap": {
+        "text": "Remove cardio"
+      }
+    },
+    {
+      "checkpoint": "removed-unwanted-road-run-intervals-walk-will-be-in-session-note"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 8 of 11 sets"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "checkpoint": "tuesday-rows-before-first-set"
+    },
+    {
+      "expect": {
+        "text": "115 lb × 8"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "tuesday-all-eleven-lifting-sets-done"
+    },
+    {
+      "note": "I walk briskly for 15 minutes outside without measuring distance. The activity dropdown was blocked by the harness; record this in my real session note rather than label a walk as Road run intervals."
+    },
+    {
+      "advance": "15m"
+    },
+    {
+      "tap": {
+        "text": "Finish day A"
+      }
+    },
+    {
+      "checkpoint": "tuesday-finished-recap"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bench 165: 5, 5, 5, about two reps left on the last set. Rows 115: 8, 8, 8. Pull-ups 6, 6, 5. Raises with 10s: 12, 12. Brisk walk outside afterward: 15 minutes, distance unknown. Walk recorded here because I could not change the cardio activity. Dumbbell numbers are per hand."
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "tuesday-saved-real-session-note"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "home-after-tuesday-finished"
+    },
+    {
+      "advance": "47h7m30s"
+    },
+    {
+      "checkpoint": "thursday-nov12-home"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower · Day B"
+      }
+    },
+    {
+      "checkpoint": "thursday-lower-b-original-targets"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "thursday-lower-b-edit-exercises"
     }
   ]
 }

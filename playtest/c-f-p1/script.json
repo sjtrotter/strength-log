@@ -1,56 +1,239 @@
 {
-  "seat": "c-f-p1",
-  "capture": "checkpoints",
-  "start": {"restore": "start-backup.json", "date": "2026-11-11", "time": "17:00", "zone": "America/Chicago"},
-  "steps": [
-    {"checkpoint": "wed-reopen"},
-    {"note": "Wed Nov 11, 5 pm, still at the gym with the treadmill left. Looking around first while I catch my breath."},
-    {"tap": {"text": "History"}},
-    {"checkpoint": "history-1"},
-    {"tap": {"text": "Trends and calendar"}},
-    {"checkpoint": "trends-1"},
-    {"back": true},
-    {"tap": {"textContains": "Nov 9"}},
-    {"checkpoint": "history-entry-mon"},
-    {"back": true},
-    {"tap": {"text": "Today"}},
-    {"tap": {"desc": "Settings"}},
-    {"scrollTo": {"text": "Reset to defaults"}},
-    {"checkpoint": "settings-bottom"},
-    {"back": true},
-    {"tap": {"text": "Plans"}},
-    {"tap": {"textContains": "3-day full body"}},
-    {"checkpoint": "plan-detail"},
-    {"tap": {"textContains": "Day A"}},
-    {"checkpoint": "plan-day-a-after-mon"},
-    {"back": true},
-    {"back": true},
-    {"tap": {"text": "Today"}},
-    {"checkpoint": "today-before-resume"},
-    {"tap": {"textContains": "day B", "role": "Button"}},
-    {"checkpoint": "resumed-wed"},
-    {"note": "treadmill, 10 minutes, then home"},
-    {"tap": {"text": "Start"}},
-    {"advance": "10m"},
-    {"checkpoint": "wed-cardio-10m"},
-    {"tap": {"text": "All sets"}},
-    {"tap": {"desc": "More"}},
-    {"tap": {"text": "End cardio"}},
-    {"tap": {"text": "End and log"}},
-    {"tap": {"tag": "workout-finish"}},
-    {"checkpoint": "wed-finish-dialog"},
-    {"tap": {"textContains": "Finish", "inDialog": true, "role": "Button"}},
-    {"checkpoint": "wed-summary"},
-    {"tap": {"text": "Done"}},
-    {"checkpoint": "today-after-wed"},
-    {"advance": "47h50m"},
-    {"note": "Fri Nov 13, 5:10 pm. Deadlift day in the app's plan. Scared of it."},
-    {"checkpoint": "today-fri"},
-    {"tap": {"text": "Start day C"}},
-    {"checkpoint": "fri-start"},
-    {"tap": {"desc": "Day C lifts, 0 of 21 sets"}},
-    {"tap": {"desc": "More"}},
-    {"tap": {"text": "Edit day"}},
-    {"checkpoint": "edit-day-c"}
-  ]
+ "seat": "c-f-p1",
+ "capture": "checkpoints",
+ "start": {
+  "restore": "start-backup.json",
+  "date": "2026-11-11",
+  "time": "17:00",
+  "zone": "America/Chicago"
+ },
+ "steps": [
+  {
+   "checkpoint": "wed-reopen"
+  },
+  {
+   "note": "Wed Nov 11, 5 pm, still at the gym with the treadmill left. Looking around first while I catch my breath."
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "checkpoint": "history-1"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends-1"
+  },
+  {
+   "swipe": {
+    "text": "Weekly volume",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-2"
+  },
+  {
+   "swipe": {
+    "text": "History",
+    "index": 0,
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "trends-3"
+  },
+  {
+   "tap": {
+    "text": "Today"
+   }
+  },
+  {
+   "tap": {
+    "text": "History"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Nov 9, 2026"
+   }
+  },
+  {
+   "tap": {
+    "text": "Nov 9, 2026"
+   }
+  },
+  {
+   "checkpoint": "history-entry-mon"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Reset to defaults"
+   }
+  },
+  {
+   "checkpoint": "settings-bottom"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "3-day full body"
+   }
+  },
+  {
+   "checkpoint": "plan-detail"
+  },
+  {
+   "tap": {
+    "textContains": "Day A"
+   }
+  },
+  {
+   "checkpoint": "plan-day-a-after-mon"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today"
+   }
+  },
+  {
+   "checkpoint": "today-before-resume"
+  },
+  {
+   "tap": {
+    "textContains": "day B",
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "resumed-wed"
+  },
+  {
+   "note": "treadmill, 10 minutes, then home"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "10m"
+  },
+  {
+   "checkpoint": "wed-cardio-10m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "End cardio"
+   }
+  },
+  {
+   "tap": {
+    "text": "End and log"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "wed-finish-dialog"
+  },
+  {
+   "tap": {
+    "textContains": "Finish",
+    "inDialog": true,
+    "role": "Button"
+   }
+  },
+  {
+   "checkpoint": "wed-summary"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-wed"
+  },
+  {
+   "advance": "47h50m"
+  },
+  {
+   "note": "Fri Nov 13, 5:10 pm. Deadlift day in the app's plan. Scared of it."
+  },
+  {
+   "checkpoint": "today-fri"
+  },
+  {
+   "tap": {
+    "text": "Start day C"
+   }
+  },
+  {
+   "checkpoint": "fri-start"
+  },
+  {
+   "tap": {
+    "desc": "Day C lifts, 0 of 21 sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit day"
+   }
+  },
+  {
+   "checkpoint": "edit-day-c"
+  }
+ ]
 }

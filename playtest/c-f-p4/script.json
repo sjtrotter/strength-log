@@ -168,6 +168,11 @@
    "checkpoint": "receipt-b"
   },
   {
+   "scrollTo": {
+    "text": "Add a note"
+   }
+  },
+  {
    "tap": {
     "text": "Add a note"
    }
@@ -354,6 +359,212 @@
   },
   {
    "checkpoint": "workout-c"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-dl-c"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-dbbench-c"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-hack"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "bike-c-before"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "8m11s"
+  },
+  {
+   "checkpoint": "bike-c-8m11"
   }
  ]
 }

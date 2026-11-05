@@ -308,11 +308,21 @@
    "checkpoint": "planks-skipped"
   },
   {
+   "note": "Can't remove the last plank set and Finish stays grey without it. Fine. One plank, 45 seconds, so the run counts."
+  },
+  {
+   "tap": {
+    "textContains": "Log ",
+    "role": "Button"
+   },
+   "timeoutMs": 20000
+  },
+  {
    "advance": "5s"
   },
   {
    "tap": {
-    "tag": "workout-finish"
+    "textContains": "Finish day"
    },
    "timeoutMs": 20000
   },

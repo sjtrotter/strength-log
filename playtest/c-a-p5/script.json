@@ -1103,7 +1103,8 @@
     },
     {
       "tap": {
-        "text": "Reverse Lunge"
+        "text": "Reverse Lunge",
+        "index": 1
       }
     },
     {
@@ -1299,7 +1300,301 @@
       "back": true
     },
     {
-      "note": "Nov23 A now open if reached:42min diary, squat30x10x3,RDL30x10x3,lunge15x8x2,calf20x12x3,plank30s x2. Do not call pending work logged. Next run inspect offered values before setting actual10 reps. Need Nov27 shortB today-only bridges swap and week4easier, export/backup still."
+      "note": "Nov23 actual diary:42min. Squat30x10x3 and RDL30x10x3; leave35 until after easy week. Calves20x12x3 remain outside the set record. Enter the actual ten reps explicitly."
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov23-three-squats-sets-of-ten"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 30 lb × 10"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov23-three-rdl-sets-of-ten"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb × 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 15 lb × 8"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "text": "Log 30 s"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "advance": "20m"
+    },
+    {
+      "checkpoint": "nov23-forty-two-minute-session-review"
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "nov23-saved-summary-after-ten-sets"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "11h48m"
+    },
+    {
+      "checkpoint": "nov24-easy-seven-km-external-diary"
+    },
+    {
+      "note": "Nov24 07:00 outside-app run7.00km42:50,RPE3. Running remains in my separate diary because no standalone completion was possible here."
+    },
+    {
+      "advance": "2d"
+    },
+    {
+      "checkpoint": "nov26-planned-quicker-run-changed-to-easy"
+    },
+    {
+      "note": "Nov26 07:00 outside-app run6.00km38:15. Family travel, unfamiliar route, poor sleep. NO faster intervals; this replaces the quicker run, not a completed interval workout."
+    },
+    {
+      "advance": "35h30m"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day B"
+      }
+    },
+    {
+      "checkpoint": "nov27-second-b-after-missed-curl-reps-and-skipped-week"
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "checkpoint": "nov27-different-gym-short-session-start"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 0 of 24 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "checkpoint": "nov27-curl-next-offer-before-todays-swap"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "nov27-curl-all-sets-after-forty-ten-ten-eight"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "nov27-today-only-bridge-swap-choices"
+    },
+    {
+      "note": "Nov27:25minutes available; occupied curl machine, actual BW floorbridges2x15 TODAY ONLY, stepups15x8x2 and singlelegRDL20x8x2, seatedcalf45x12 once, noPallof. Nothing logged yet. Inspect swap choices; do not log bridges as curls or permanently replace curl. Need finish partial session, easier week4, history/notes/export."
     }
   ]
 }

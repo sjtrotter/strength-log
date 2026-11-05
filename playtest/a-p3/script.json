@@ -850,8 +850,9 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "Add a set"
+      "swipe": {
+        "tag": "lift-set-6",
+        "direction": "up"
       }
     },
     {

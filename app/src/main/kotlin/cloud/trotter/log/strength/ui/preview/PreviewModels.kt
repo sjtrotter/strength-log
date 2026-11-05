@@ -16,6 +16,9 @@ data class PreviewUiState(
 data class PreviewLift(
     val name: String,
     val working: String?,
+    val previous: List<PreviewPreviousResult>,
+)
+data class PreviewPreviousResult(
     val last: String?,
     val comparable: Boolean = true,
 )

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.ui.day.workoutDaySheetFixture
 import cloud.trotter.log.strength.ui.preview.PreviewActions
 import cloud.trotter.log.strength.ui.preview.PreviewCardio
 import cloud.trotter.log.strength.ui.preview.PreviewLift
+import cloud.trotter.log.strength.ui.preview.PreviewPreviousResult
 import cloud.trotter.log.strength.ui.preview.PreviewScreen
 import cloud.trotter.log.strength.ui.preview.PreviewUiState
 import org.junit.Assume.assumeTrue
@@ -35,7 +36,7 @@ class AuditPreviewShotsTest : UiAuditTest() {
 
     @Test fun shot04PreviewLong() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("preview/04-preview-long") { PreviewScreen(auditPreviewFixture().copy(planName = LONG_PLAN, title = LONG_DAY, lifts = listOf(PreviewLift(longestExercise.name, "35 lb × 10", null))), PreviewActions({}, {}, {})) }
+        rule.auditShot("preview/04-preview-long") { PreviewScreen(auditPreviewFixture().copy(planName = LONG_PLAN, title = LONG_DAY, lifts = listOf(PreviewLift(longestExercise.name, "35 lb × 10", listOf(PreviewPreviousResult(null))))), PreviewActions({}, {}, {})) }
     }
 
     @Config(fontScale = 2f)
@@ -56,7 +57,7 @@ class AuditPreviewShotsTest : UiAuditTest() {
 
     @Test fun shot08PreviewNoLastResults() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
-        rule.auditShot("preview/08-preview-no-last-results") { PreviewScreen(auditPreviewFixture().let { it.copy(lifts = it.lifts.map { lift -> lift.copy(working = null, last = null) }) }, PreviewActions({}, {}, {})) }
+        rule.auditShot("preview/08-preview-no-last-results") { PreviewScreen(auditPreviewFixture().let { it.copy(lifts = it.lifts.map { lift -> lift.copy(working = null, previous = lift.previous.map { PreviewPreviousResult(null) }) }) }, PreviewActions({}, {}, {})) }
     }
 
 }

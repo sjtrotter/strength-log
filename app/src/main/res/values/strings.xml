@@ -810,4 +810,8 @@
     <string name="preview_no_comparable_result">No comparable previous result</string>
     <string name="set_edit_plates_with_unit">%1$s %2$s a side on the bar.</string>
     <string name="set_edit_empty_bar">Empty bar.</string>
+    <plurals name="workout_rest_remaining_minutes">
+        <item quantity="one">Rest remaining: %d minute</item>
+        <item quantity="other">Rest remaining: %d minutes</item>
+    </plurals>
 </resources>

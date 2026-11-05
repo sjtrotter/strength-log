@@ -66,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -713,14 +714,19 @@ private fun WorkoutRestBand(state: DayUiState, actions: DayActions, catalog: Exe
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = WorkoutRestShape,
         modifier = Modifier.fillMaxWidth().testTag("workout-rest").semantics {
             if (announcement != null) {
-                liveRegion = LiveRegionMode.Polite
                 contentDescription = announcement
             }
         }) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (rest != null) {
+                val minutes = (rest.remainingSeconds + 59) / 60
+                val minuteAnnouncement = pluralStringResource(R.plurals.workout_rest_remaining_minutes, minutes, minutes)
                 Text(stringResource(R.string.rest_notification_title), style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("workout-rest-announcement").semantics {
+                        liveRegion = LiveRegionMode.Polite
+                        contentDescription = minuteAnnouncement
+                    })
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(formatCardioTime(rest.remainingSeconds), style = MaterialTheme.typography.displaySmall,
                         modifier = Modifier.clearAndSetSemantics { })
@@ -792,7 +798,7 @@ private fun WorkoutAction(
         val modifier = Modifier.weight(1f).heightIn(min = 64.dp).testTag(if (tonal) "workout-action-tonal" else "workout-action-filled")
         val content: @Composable () -> Unit = {
             Crossfade(label, animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutAction") {
-                Text(it, style = MaterialTheme.typography.titleLarge, maxLines = 2)
+                Text(it, style = MaterialTheme.typography.titleLarge)
             }
         }
         if (tonal) FilledTonalButton(onClick = { guardedTap(onClick) }, enabled = enabled, modifier = modifier) { content() }

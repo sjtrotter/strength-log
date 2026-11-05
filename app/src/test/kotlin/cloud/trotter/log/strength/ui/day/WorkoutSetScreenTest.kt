@@ -123,6 +123,35 @@ class WorkoutSetScreenTest {
         repeat(layout.lineCount) { assertFalse(layout.isLineEllipsized(it)) }
     }
 
+    @Test
+    @Config(qualifiers = "w320dp-h891dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun longNextLabelWrapsFullyAtFontScaleTwo() {
+        val base = workoutSetSingleFixture()
+        val completed = base.exercises.single().copy(allDone = true, rows = base.exercises.single().rows.map { it.copy(done = true) })
+        val nextTitle = "Single-Arm Dumbbell Bulgarian Split Squat"
+        val state = base.copy(
+            exercises = listOf(completed, base.exercises.single().copy(programExerciseId = 2L, title = nextTitle)),
+            workout = base.workout?.copy(shown = WorkoutSelection.Shown.Group("exercise:1", true), focus = null, completedView = true),
+        )
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                AppTheme { WorkoutSetHost(state) }
+            }
+        }
+        val label = "Next: $nextTitle"
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(label).assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        val layout = results.single()
+        assertEquals(label, layout.layoutInput.text.text)
+        assertTrue(layout.lineCount > 2)
+        assertFalse(layout.hasVisualOverflow)
+        repeat(layout.lineCount) { assertFalse(layout.isLineEllipsized(it)) }
+        rule.onNodeWithTag("workout-action-filled").assertHeightIsAtLeast(64.dp)
+    }
+
     @Test fun singleLiftShowsSetAndPlatesAndGuardsDoubleTaps() {
         var logs = 0
         show(workoutSetSingleFixture(), workoutActions().copy(onLogFocusedSet = { logs++ }))
@@ -631,19 +660,39 @@ class WorkoutSetScreenTest {
         rule.onNodeWithText("Undo Bench Press 165 × 5").assertIsDisplayed()
     }
 
-    @Test fun restDescriptionMatchesTheVisibleSeconds() {
+    @Test fun restDescriptionMatchesSecondsWhileLiveRegionChangesOnlyAtMinuteBoundaries() {
         var state by mutableStateOf(workoutSetSingleFixture().copy(rest = workoutRest().copy(remainingSeconds = 64)))
         rule.setContent { AppTheme { WorkoutSetHost(state) } }
-        fun announced() = rule.onNodeWithTag("workout-rest").fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
-        rule.onNodeWithTag("workout-rest").assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
-        assertEquals(listOf("Rest remaining: 1:04"), announced())
-        rule.onNodeWithText("1:04", useUnmergedTree = true).assertIsDisplayed()
+        fun description() = rule.onNodeWithTag("workout-rest").fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+        fun announced() = rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
+            .fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+        fun announcementText() = rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
+            .fetchSemanticsNode().config[SemanticsProperties.Text]
+        var node: SemanticsNode? = rule.onNodeWithTag("workout-rest").fetchSemanticsNode()
+        while (node != null) {
+            assertFalse(node.config.contains(SemanticsProperties.LiveRegion))
+            node = node.parent
+        }
+        rule.onNodeWithTag("workout-rest-announcement", useUnmergedTree = true)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+        assertEquals(listOf("Rest remaining: 1:04"), description())
+        assertEquals(listOf("Rest remaining: 2 minutes"), announced())
+        val minuteAnnouncement = announced()
+        val minuteText = announcementText()
+        rule.onNodeWithContentDescription("Rest remaining: 1:04").assertIsDisplayed()
+        rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 63)) }
+        assertEquals(listOf("Rest remaining: 1:03"), description())
+        assertEquals(minuteAnnouncement, announced())
+        assertEquals(minuteText, announcementText())
         rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 61)) }
-        assertEquals(listOf("Rest remaining: 1:01"), announced())
+        assertEquals(listOf("Rest remaining: 1:01"), description())
+        assertEquals(minuteAnnouncement, announced())
         rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 60)) }
-        assertEquals(listOf("Rest remaining: 1:00"), announced())
+        assertEquals(listOf("Rest remaining: 1:00"), description())
+        assertEquals(listOf("Rest remaining: 1 minute"), announced())
         rule.runOnIdle { state = state.copy(rest = state.rest?.copy(remainingSeconds = 59)) }
-        assertEquals(listOf("Rest remaining: 0:59"), announced())
+        assertEquals(listOf("Rest remaining: 0:59"), description())
+        assertEquals(listOf("Rest remaining: 1 minute"), announced())
     }
 
     @Test

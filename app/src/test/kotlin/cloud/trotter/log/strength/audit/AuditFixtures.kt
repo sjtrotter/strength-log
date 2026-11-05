@@ -28,6 +28,7 @@ import cloud.trotter.log.strength.ui.log.LogScreenBuilder
 import cloud.trotter.log.strength.ui.log.LogUiState
 import cloud.trotter.log.strength.ui.log.logSessionFixture
 import cloud.trotter.log.strength.ui.preview.PreviewLift
+import cloud.trotter.log.strength.ui.preview.PreviewPreviousResult
 import cloud.trotter.log.strength.ui.preview.PreviewUiState
 import cloud.trotter.log.strength.ui.today.TodayUiState
 import cloud.trotter.log.strength.ui.today.todayFirstFixture
@@ -59,9 +60,9 @@ internal fun auditPreviewFixture(day: DayUiState = workoutLiftSheetFixture()) = 
                 row.partner?.let { partner -> SetFormatter.display(requireNotNull(card.partnerTracking),
                     day.unit.toLb(partner.weightDisplay), partner.reps, partner.seconds, day.unit) },
             ).joinToString(" + "),
-            card.lastTimeDisplay?.let {
+            listOf(PreviewPreviousResult(card.lastTimeDisplay?.let {
                 SetFormatter.display(card.tracking, day.unit.toLb(row.weightDisplay), row.reps, row.seconds, day.unit)
-            },
+            })) + if (card.partnerExerciseId != null) listOf(PreviewPreviousResult(null)) else emptyList(),
         )
     },
 )

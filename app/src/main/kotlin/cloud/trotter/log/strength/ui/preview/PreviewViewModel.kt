@@ -61,18 +61,19 @@ class PreviewViewModel @Inject constructor(
                         SetFormatter.display(track.tracking, set.weightLb, set.reps, set.seconds, unit)
                     }
                 }.takeIf { it.isNotEmpty() }?.joinToString(" + ")
-                val comparable = tracks.all { track ->
+                val previousResults = tracks.map { track ->
                     val previous = last[track.performed.exerciseId]
-                    previous == null || SetFormatter.trackingOfValues(previous.weightLb, previous.reps, previous.seconds) == track.tracking
+                    val comparable = previous == null ||
+                        SetFormatter.trackingOfValues(previous.weightLb, previous.reps, previous.seconds) == track.tracking
+                    PreviewPreviousResult(
+                        last = previous?.takeIf { comparable }?.let {
+                            SetFormatter.display(track.tracking, it.weightLb, it.reps, it.seconds, unit)
+                        },
+                        comparable = comparable,
+                    )
                 }
-                val lastDisplay = if (comparable && tracks.all { last[it.performed.exerciseId] != null }) {
-                    tracks.joinToString(" + ") { track ->
-                        val previous = last.getValue(track.performed.exerciseId)
-                        SetFormatter.display(track.tracking, previous.weightLb, previous.reps, previous.seconds, unit)
-                    }
-                } else null
                 PreviewLift(tracks.joinToString(" + ") { it.performed.entry?.name ?: it.performed.exerciseId },
-                    working, lastDisplay, comparable)
+                    working, previousResults)
             },
             cardio = day?.cardioBlock?.let { PreviewCardio(activityLabel(it.activity), it.plannedTimeDetail()) },
         )

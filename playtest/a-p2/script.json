@@ -401,7 +401,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -420,7 +420,7 @@
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day A"
+        "text": "4-day upper/lower · Day A"
       }
     },
     {
@@ -542,12 +542,12 @@
     },
     {
       "expect": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
       "tap": {
-        "text": "4-day upper/lower \u00b7 Day D"
+        "text": "4-day upper/lower · Day D"
       }
     },
     {
@@ -741,7 +741,12 @@
     },
     {
       "tap": {
-        "tag": "lift-check-main-1"
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
       }
     },
     {
@@ -771,7 +776,12 @@
     },
     {
       "tap": {
-        "tag": "lift-check-main-2"
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
       }
     },
     {
@@ -801,7 +811,7 @@
     },
     {
       "tap": {
-        "tag": "lift-check-main-3"
+        "tag": "workout-action-filled"
       }
     },
     {
@@ -812,11 +822,24 @@
     },
     {
       "tap": {
-        "tag": "lift-check-main-4"
+        "tag": "workout-action-filled"
       }
     },
     {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "checkpoint": "monday-extend-top-set-rest-by-fifteen-seconds"
+    },
+    {
       "checkpoint": "monday-first-working-squat215x5"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
     },
     {
       "tap": {
@@ -842,6 +865,11 @@
     },
     {
       "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
         "text": "Add a set"
       }
     },
@@ -852,7 +880,7 @@
       "back": true
     },
     {
-      "advance": "3m"
+      "advance": "195s"
     },
     {
       "tap": {
@@ -863,8 +891,13 @@
       "checkpoint": "monday-second-working-squat-and-added-set-focus"
     },
     {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
       "tap": {
-        "tag": "workout-hero"
+        "desc": "Edit set 7"
       }
     },
     {
@@ -902,7 +935,7 @@
     },
     {
       "expect": {
-        "text": "135 lb \u00d7 8"
+        "text": "135 lb × 8"
       }
     },
     {

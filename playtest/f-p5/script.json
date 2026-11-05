@@ -1005,14 +1005,15 @@
    "checkpoint": "finish-pressed"
   },
   {
+   "note": "Receipt: 18 min, every set listed. No rating, no 'what went up'. Adding my note."
+  },
+  {
    "tap": {
-    "role": "Button",
-    "inDialog": true,
-    "textContains": "Finish"
+    "text": "Add a note"
    }
   },
   {
-   "checkpoint": "after-finish-confirm"
+   "checkpoint": "add-note-opened"
   },
   {
    "type": {
@@ -1024,10 +1025,20 @@
    "checkpoint": "note-typed"
   },
   {
-   "back": true
+   "tap": {
+    "text": "Save"
+   }
   },
   {
-   "checkpoint": "after-receipt-back"
+   "checkpoint": "note-saved"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "after-done"
   },
   {
    "tap": {
@@ -1056,6 +1067,35 @@
    }
   },
   {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Rest timer on phone",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Rest timer on phone",
+    "direction": "up"
+   }
+  },
+  {
+   "swipe": {
+    "text": "Rest timer on phone",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "settings-swiped"
+  },
+  {
+   "back": true
+  },
+  {
    "advance": "24h"
   },
   {
@@ -1081,6 +1121,28 @@
   },
   {
    "checkpoint": "c1-started"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c1-after-tap-1"
+  },
+  {
+   "advance": "40m"
+  },
+  {
+   "checkpoint": "c1-after-40m"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "checkpoint": "c1-after-tap-2"
   }
  ]
 }

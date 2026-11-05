@@ -270,6 +270,24 @@
       "checkpoint": "easy-run-actual-forty-two-ten-end-controls"
     },
     {
+      "type": {
+        "text": "Distance (m)",
+        "value": "7000"
+      }
+    },
+    {
+      "checkpoint": "tuesday-actual-distance-entered-confirm-button"
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "index": 7
+      }
+    },
+    {
+      "checkpoint": "tuesday-actual-distance-confirmed-finish-availability"
+    },
+    {
       "tap": {
         "text": "All sets"
       }
@@ -450,6 +468,24 @@
       "checkpoint": "thursday-timer-end-and-completion-controls"
     },
     {
+      "type": {
+        "text": "Distance (m)",
+        "value": "7000"
+      }
+    },
+    {
+      "checkpoint": "thursday-actual-distance-entered-confirm-button"
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "index": 7
+      }
+    },
+    {
+      "checkpoint": "thursday-actual-distance-confirmed-finish-availability"
+    },
+    {
       "tap": {
         "text": "All sets"
       }
@@ -459,6 +495,134 @@
     },
     {
       "back": true
+    },
+    {
+      "tap": {
+        "text": "Finish"
+      }
+    },
+    {
+      "checkpoint": "thursday-finish-confirmation"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "thursday-saved-actual-7000m-4135"
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "advance": "34h48m25s"
+    },
+    {
+      "checkpoint": "friday-nov13-strength-b-before-start"
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "2-day full body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day B"
+      }
+    },
+    {
+      "checkpoint": "first-strength-b-preview-needs-own-exercises"
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "checkpoint": "first-strength-b-started-offered-loads"
+    },
+    {
+      "tap": {
+        "desc": "Day B lifts, 0 of 21 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "checkpoint": "strength-b-original-exercise-list"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single leg"
+      }
+    },
+    {
+      "tap": {
+        "text": "Step-Up"
+      }
+    },
+    {
+      "checkpoint": "step-up-added-for-friday"
+    },
+    {
+      "tap": {
+        "text": "Step-Up"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15"
+      }
+    },
+    {
+      "checkpoint": "step-up-two-by-eight-fifteen-check-per-side"
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "friday-step-up-prescription-saved"
+    },
+    {
+      "note": "Friday diary:36min. Step-up15lb2x8 per leg; single-leg RDL one20lb2x8 per leg; hamstring curl40x10,10,8; seated calf45lb3x12; Pallof15lb2x10 per side. Only log actual matching exercises. Remaining B configuration needs the now-visible editor; do not log generated lifts as mine."
     }
   ]
 }

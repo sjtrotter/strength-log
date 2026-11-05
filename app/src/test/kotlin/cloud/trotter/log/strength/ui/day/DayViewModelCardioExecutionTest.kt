@@ -373,6 +373,44 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
+    fun mixedReceiptKeepsLiveLiftCountsAndFinishPrescriptionAlongsideCardio() = test {
+        prepareBlock(time(CardioRole.WORK), time(CardioRole.COOLDOWN))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val slotId = repo.plans.slotsFor(plan, "A").first().single().programExerciseId
+        repo.setPrescription(slotId, Prescription(PrescribedTarget.LoadReps(40.0, 5)), sets = 3)
+        repo.startRun(plan, "A")
+        val vm = readyVm()
+        vm.toggleDone(slotId, 0, true, Slot.MAIN)
+        runCurrent()
+        repo.setPrescription(slotId, Prescription(PrescribedTarget.LoadReps(30.0, 8)), sets = 2)
+        runCurrent()
+        vm.startCardio()
+        runCurrent()
+        tick(10_000)
+        tick(10_000)
+
+        assertEquals(1, vm.uiState.value.doneSets)
+        assertEquals(2, vm.uiState.value.totalSets)
+        vm.completeDay()
+        runCurrent()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        val counts = requireNotNull(vm.finisher.receiptSetCounts.value)
+        assertEquals(receipt.sessionId, counts.sessionId)
+        assertEquals(2, counts.total)
+        assertEquals(1, counts.remaining)
+        val row = receipt.groups.single().rows.single()
+        assertEquals(40.0, row.sets.single().weightLb, 0.0)
+        val planned = requireNotNull(row.planned)
+        assertEquals(2, planned.count)
+        assertEquals(30.0, planned.weightLb, 0.0)
+        assertEquals(8, planned.reps)
+        assertEquals(listOf(CardioRole.WORK, CardioRole.COOLDOWN), receipt.cardioRows.map { it.role })
+        assertEquals(CardioActivity.TRACK_RUN, receipt.activity)
+        assertEquals(1, repo.history.sessionSummariesFlow.first().single().setCount)
+    }
+
+    @Test
     fun finishingMidIntervalEndsTheRunLogsRiddenRoundsAndLetsTheReceiptClose() = test {
         prepareBlock(time(CardioRole.WARMUP), time(CardioRole.WORK), time(CardioRole.RECOVERY),
             time(CardioRole.WORK), time(CardioRole.RECOVERY))

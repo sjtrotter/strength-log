@@ -62,6 +62,7 @@ import cloud.trotter.log.strength.ui.day.receipt.hasPlannedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.isPartial
 import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.plannedSetCount
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.emphasizedDecelerate
 import cloud.trotter.log.strength.ui.theme.Done
 import cloud.trotter.log.strength.ui.theme.ReadableWidth
@@ -79,7 +80,10 @@ internal fun SessionReceiptScreen(
     noteSave: NoteSave? = null,
     onNoteSaveHandled: () -> Unit = {},
     modifier: Modifier = Modifier,
+    setCounts: ReceiptSetCounts? = null,
 ) {
+    val counts = setCounts?.takeIf { !receipt.cardio && it.sessionId == receipt.sessionId }
+    val partial = counts?.let { it.remaining > 0 } ?: receipt.isPartial
     var noteOpen by rememberSaveable(receipt.sessionId) { mutableStateOf(false) }
     val noteDrafts = rememberSaveableStateHolder()
     var played by rememberSaveable(receipt.sessionId) { mutableStateOf(false) }
@@ -101,7 +105,7 @@ internal fun SessionReceiptScreen(
     }
     val backProgress = rememberBackGestureProgress(enabled = !noteOpen, onBack = onFinishSession)
     ReceiptScaffold(
-        title = stringResource(if (receipt.isPartial) R.string.operation_receipt_saved else R.string.receipt_title_done, receipt.dayTitle),
+        title = stringResource(if (partial) R.string.operation_receipt_saved else R.string.receipt_title_done, receipt.dayTitle),
         planLine = receipt.planName,
         metaLine = receiptMeta(receipt.completedAt, receipt.minutes),
         showShare = !receipt.cardio,
@@ -109,7 +113,7 @@ internal fun SessionReceiptScreen(
         onShare = onShare,
         modifier = modifier.backGesturePreview { backProgress.value },
         bottomBar = {
-            if (receipt.allPlansDone && !receipt.isPartial) {
+            if (receipt.allPlansDone && !partial) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(bottom = 12.dp).heightIn(min = 40.dp)) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Done)
@@ -119,8 +123,8 @@ internal fun SessionReceiptScreen(
             ReceiptDoneButton(receipt.dayIndex, onFinishSession)
         },
     ) {
-        if (receipt.isPartial) Text(if (receipt.hasPlannedSetCount) {
-                stringResource(R.string.operation_receipt_partial_count, receipt.loggedSetCount, receipt.plannedSetCount)
+        if (partial) Text(if (counts != null || receipt.hasPlannedSetCount) {
+                stringResource(R.string.operation_receipt_partial_count, receipt.loggedSetCount, counts?.total ?: receipt.plannedSetCount)
             } else stringResource(R.string.operation_receipt_plan_count_missing, receipt.loggedSetCount),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))

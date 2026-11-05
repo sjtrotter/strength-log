@@ -55,7 +55,10 @@ class WorkoutSetMigrationTest {
         val state = base.copy(exercises = listOf(card)).withWorkoutSelection()
         var finishes = 0
         rule.setContent { AppTheme { WorkoutSetHost(state, workoutActions().copy(onDone = { finishes++ })) } }
-        rule.runOnIdle { assertEquals(state.totalSets, state.doneSets) }
+        rule.runOnIdle {
+            assertEquals(1, state.doneSets)
+            assertEquals(2, state.totalSets)
+        }
         rule.onNodeWithTag("workout-finish").performClick()
         rule.onNodeWithText("Finish with partner sets open?").assertExists()
         rule.runOnIdle { assertEquals(0, finishes) }

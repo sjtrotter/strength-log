@@ -8,6 +8,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.data.TrackerRepository
@@ -15,6 +16,7 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.dao.PersonalRecordRow
 import cloud.trotter.log.strength.data.serialization.SetJson
+import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.domain.model.CardioMode
@@ -31,6 +33,8 @@ import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.ui.day.receipt.isPartial
+import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.glance.DayProgress
@@ -40,6 +44,8 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
+import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
@@ -334,6 +340,189 @@ class DayViewModelReceiptTest {
     }
 
     @Test
+    fun midRunPrescriptionShrinkUsesTheEditedCountAndTargetsOnTheReceipt() = runVmTest {
+        insertProgram()
+        val id = slotId()
+        repo.setStructure(id, SetStructure.STRAIGHT)
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(40.0, 5)), sets = 6)
+        val vm = newCollectingViewModel()
+        vm.selectDay("A")
+        advanceUntilIdle()
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        assertEquals(6, vm.uiState.value.totalSets)
+
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(30.0, 8)), sets = 3)
+        advanceUntilIdle()
+        assertEquals(1, vm.uiState.value.doneSets)
+        assertEquals(3, vm.uiState.value.totalSets)
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(1, receipt.loggedSetCount)
+        assertEquals(3, vm.finisher.receiptSetCounts.value?.total)
+        val planned = requireNotNull(receipt.groups.single().rows.single().planned)
+        assertEquals(3, planned.count)
+        assertEquals(30.0, planned.weightLb, 0.0)
+        assertEquals(8, planned.reps)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals("1 of 3 sets logged", context.getString(
+            R.string.operation_receipt_partial_count, receipt.loggedSetCount, vm.finisher.receiptSetCounts.value?.total,
+        ))
+        assertEquals(1, repo.history.sessionSummariesFlow.first().single().setCount)
+        assertEquals(3, repo.history.sessionSets(receipt.sessionId).size)
+        val snapshot = SessionPlanJson.decode(requireNotNull(repo.history.session(receipt.sessionId)?.plannedJson))
+        assertEquals(3, snapshot.sumOf { requireNotNull(it.liveSetCount) })
+    }
+
+    @Test
+    fun midRunPrescriptionGrowthUsesTheLiveCountAndNewPlannedTargets() = runVmTest {
+        insertProgram()
+        val id = slotId()
+        repo.setStructure(id, SetStructure.STRAIGHT)
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(40.0, 5)), sets = 3)
+        val vm = newCollectingViewModel()
+        vm.selectDay("A")
+        advanceUntilIdle()
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        val captured = repo.openRunFlow.first()!!.tracks.single().planned
+
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(50.0, 6)), sets = 5)
+        advanceUntilIdle()
+        val live = vm.uiState.value
+        assertEquals(1, live.doneSets)
+        assertEquals(5, live.totalSets)
+        assertEquals(captured, repo.openRunFlow.first()!!.tracks.single().planned)
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(live.doneSets, receipt.loggedSetCount)
+        assertEquals(live.totalSets, vm.finisher.receiptSetCounts.value?.total)
+        val planned = requireNotNull(receipt.groups.single().rows.single().planned)
+        assertEquals(5, planned.count)
+        assertEquals(50.0, planned.weightLb, 0.0)
+        assertEquals(6, planned.reps)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals("1 of 5 sets logged", context.getString(
+            R.string.operation_receipt_partial_count, receipt.loggedSetCount, vm.finisher.receiptSetCounts.value?.total,
+        ))
+        val snapshot = SessionPlanJson.decode(requireNotNull(repo.history.session(receipt.sessionId)?.plannedJson))
+        assertEquals(live.totalSets, snapshot.sumOf { requireNotNull(it.liveSetCount) })
+    }
+
+    @Test
+    fun supersetSwapAfterRemovingARoundUsesOnlyTheLiveRowsAtFinish() = runVmTest {
+        insertSupersetProgram()
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        val id = slotId()
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        vm.toggleDone(id, 0, checked = true, slot = Slot.SS)
+        advanceUntilIdle()
+        vm.removeSet(id, index = 2, isSuperset = true)
+        advanceUntilIdle()
+        val runId = requireNotNull(repo.openRunFlow.first()).id
+        assertTrue(repo.swapInRun(runId, id, Slot.SS, "face_pull"))
+        advanceUntilIdle()
+        val live = vm.uiState.value
+        val tracks = requireNotNull(repo.openRunFlow.first()).tracks
+        assertEquals(listOf(2, 2), tracks.filterNot { it.retired || it.dropped }.map { it.sets.size })
+        assertEquals(2, live.doneSets)
+        assertEquals(4, live.totalSets)
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(live.doneSets, receipt.loggedSetCount)
+        assertEquals(live.totalSets, vm.finisher.receiptSetCounts.value?.total)
+        val snapshot = SessionPlanJson.decode(requireNotNull(repo.history.session(receipt.sessionId)?.plannedJson))
+        assertEquals(live.totalSets, snapshot.sumOf { requireNotNull(it.liveSetCount) })
+        assertEquals(0, snapshot.single { it.retired }.liveSetCount)
+        assertEquals(2, repo.history.sessionSummariesFlow.first().single().setCount)
+    }
+
+    @Test
+    fun droppingAPartnerExcludesItsRowsFromTheFinishCount() = runVmTest {
+        insertSupersetProgram()
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        val id = slotId()
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        vm.toggleDone(id, 0, checked = true, slot = Slot.SS)
+        advanceUntilIdle()
+        vm.skipLift(id, Slot.SS)
+        advanceUntilIdle()
+        val live = vm.uiState.value
+        assertEquals(2, live.doneSets)
+        assertEquals(3, live.totalSets)
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(live.doneSets, receipt.loggedSetCount)
+        assertEquals(live.totalSets, vm.finisher.receiptSetCounts.value?.total)
+        val snapshot = SessionPlanJson.decode(requireNotNull(repo.history.session(receipt.sessionId)?.plannedJson))
+        assertEquals(live.totalSets, snapshot.sumOf { requireNotNull(it.liveSetCount) })
+        assertEquals(0, snapshot.single { it.slot == Slot.SS }.liveSetCount)
+        assertEquals(2, repo.history.sessionSets(receipt.sessionId).count { it.done })
+    }
+
+    @Test
+    fun prescriptionAtTheFinishCommitSuppliesThePlannedLine() = runVmTest {
+        insertProgram()
+        val id = slotId()
+        repo.setStructure(id, SetStructure.STRAIGHT)
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(40.0, 5)), sets = 3)
+        val vm = newCollectingViewModel()
+        vm.selectDay("A")
+        advanceUntilIdle()
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+        beforeFinishBaseline = {
+            repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(30.0, 8)), sets = 2)
+        }
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        val planned = requireNotNull(receipt.groups.single().rows.single().planned)
+        assertEquals(2, planned.count)
+        assertEquals(30.0, planned.weightLb, 0.0)
+        assertEquals(8, planned.reps)
+        assertEquals(2, vm.finisher.receiptSetCounts.value?.total)
+    }
+
+    @Test
+    fun completingAnEditedPrescriptionKeepsTheReceiptComplete() = runVmTest {
+        insertProgram()
+        val id = slotId()
+        repo.setStructure(id, SetStructure.STRAIGHT)
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(40.0, 5)), sets = 6)
+        val vm = newCollectingViewModel()
+        vm.selectDay("A")
+        advanceUntilIdle()
+        vm.toggleDone(id, 0, checked = true, slot = Slot.MAIN)
+        advanceUntilIdle()
+
+        repo.setPrescription(id, Prescription(PrescribedTarget.LoadReps(30.0, 8)), sets = 3)
+        advanceUntilIdle()
+        tickWholeTrack(vm)
+        advanceUntilIdle()
+        assertEquals(3, vm.uiState.value.doneSets)
+        assertEquals(3, vm.uiState.value.totalSets)
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(3, receipt.loggedSetCount)
+        assertEquals(3, vm.finisher.receiptSetCounts.value?.total)
+        assertFalse(receipt.isPartial)
+    }
+
+    @Test
     fun countsTheSetsTheSessionActuallyRecorded() = runVmTest {
         insertProgram()
         val vm = newViewModel()
@@ -344,12 +533,6 @@ class DayViewModelReceiptTest {
         assertEquals(rows, vm.finisher.receipt.value?.groups?.single()?.rows?.single()?.sets?.size)
     }
 
-    /**
-     * The cross-surface pin: a superset day writes two rows per tick, and the
-     * receipt must still report the number the header was showing a second
-     * earlier. Anything else and the lifter watches "3 OF 3 SETS" become
-     * "SETS 6" as the receipt lands.
-     */
     @Test
     fun aSupersetDaysReceiptCountsWhatTheHeaderCounted() = runVmTest {
         insertSupersetProgram()
@@ -365,13 +548,14 @@ class DayViewModelReceiptTest {
 
         // The partner track really is populated, so this isn't passing by having
         // nothing to over-count.
-        assertEquals(headerCount, partnerRows)
-        assertEquals(headerCount, vm.finisher.receipt.value?.groups?.single()?.rounds)
-        assertEquals(listOf(headerCount, partnerRows), vm.finisher.receipt.value?.groups?.single()?.rows?.map { it.sets.size })
+        assertEquals(partnerRows * 2, headerCount)
+        assertEquals(partnerRows, vm.finisher.receipt.value?.groups?.single()?.rounds)
+        assertEquals(headerCount, vm.finisher.receiptSetCounts.value?.total)
+        assertEquals(listOf(partnerRows, partnerRows), vm.finisher.receipt.value?.groups?.single()?.rows?.map { it.sets.size })
     }
 
     @Test
-    fun partialAndLegacySupersetRowsKeepDaySnapshotAndReceiptCountsMainBased() = runVmTest {
+    fun partialSupersetRowsCountEachTrackOnTheWorkoutAndReceipt() = runVmTest {
         for ((mainDone, partnerDone) in listOf(true to false, false to true, true to true)) {
             repo.replaceProgram(Program(listOf(ProgramDay("A", "Arms", "", listOf(
                 ProgramExercise("ez_curl", targetSets = 1, superset = SupersetPartner("rope_pushdown")),
@@ -387,8 +571,8 @@ class DayViewModelReceiptTest {
             val tracks = repo.dayTracksFlow(planId, "A").first()
             assertEquals(mainDone, tracks.tracks.first { it.slot == Slot.MAIN }.sets.single().done)
             assertEquals(partnerDone, tracks.tracks.first { it.slot == Slot.SS }.sets.single().done)
-            assertEquals(expectedDone, vm.uiState.value.doneSets)
-            assertEquals(1, vm.uiState.value.totalSets)
+            assertEquals(listOf(mainDone, partnerDone).count { it }, vm.uiState.value.doneSets)
+            assertEquals(2, vm.uiState.value.totalSets)
             assertEquals(0, tracks.retiredRoundsDone)
             val snapshot = requireNotNull(WatchSnapshotBuilder.build(
                 day = repo.observeDay(planId, "A").first(),
@@ -398,6 +582,7 @@ class DayViewModelReceiptTest {
             vm.completeDay()
             advanceUntilIdle()
             val receipt = requireNotNull(vm.finisher.receipt.value)
+            assertEquals(2, vm.finisher.receiptSetCounts.value?.total)
             val group = receipt.groups.single()
             assertEquals(expectedDone, group.rounds)
             assertEquals(listOf(if (mainDone) 1 else 0, if (partnerDone) 1 else 0), group.rows.map { it.sets.size })
@@ -529,12 +714,17 @@ class DayViewModelReceiptTest {
             parcel.recycle()
         }
 
+        val counts = vm.finisher.receiptSetCounts.value
+        assertNotNull(counts)
         val readsAtFinish = finishBaselineReads
         val restored = newViewModel(restoredHandle)
         advanceUntilIdle()
         assertEquals(readsAtFinish, finishBaselineReads)
         assertEquals(receipt, restored.finisher.receipt.value)
         assertEquals(receipt, restoredHandle.get<WorkoutReceipt>("day_workout_receipt"))
+        assertEquals(counts, restored.finisher.receiptSetCounts.value)
+        restored.finisher.dismissReceipt()
+        assertNull(restored.finisher.receiptSetCounts.value)
     }
 
     @Test

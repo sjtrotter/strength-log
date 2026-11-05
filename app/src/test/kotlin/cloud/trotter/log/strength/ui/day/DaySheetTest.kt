@@ -32,7 +32,7 @@ class DaySheetTest {
                 {}, {}, { dismissals++ })
         } }
         rule.onNodeWithText("Day A").assertIsDisplayed()
-        rule.onNodeWithText("Squat focus, 2 of 18 sets").assertIsDisplayed()
+        rule.onNodeWithText("Squat focus, 3 of 21 sets").assertIsDisplayed()
         rule.onNodeWithText("Superset").assertIsDisplayed()
         rule.onNodeWithText("DB Bench Press + Seated Cable Row").assertIsDisplayed()
         rule.onNodeWithText("Round 2 of 3, now").assertIsDisplayed()

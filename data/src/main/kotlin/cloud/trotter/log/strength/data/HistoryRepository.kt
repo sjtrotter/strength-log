@@ -157,7 +157,7 @@ class HistoryRepository(
         }
     }
 
-    /** The Log screen's list: every session newest-first, with its total
+    /** The Log screen's list: every session newest-first, with its completed
      *  set count pre-aggregated (no per-row query as history grows). */
     val sessionSummariesFlow: Flow<List<SessionSummaryRow>> = sessionDao.observeSessionSummaries()
 

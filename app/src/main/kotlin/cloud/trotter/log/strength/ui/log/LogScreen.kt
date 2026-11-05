@@ -401,11 +401,14 @@ private fun SessionCard(
                 if (item.exerciseGroups == null) {
                     Text(stringResource(R.string.log_session_loading), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 } else {
-                    if (item.exerciseGroups.all { it.sets.isEmpty() }) {
+                    val groups = if (item.editing) item.exerciseGroups else item.exerciseGroups.map { group ->
+                        group.copy(sets = group.sets.filter { it.done })
+                    }.filter { it.sets.isNotEmpty() }
+                    if (groups.all { it.sets.isEmpty() }) {
                         Text(stringResource(R.string.operation_session_no_details), style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    item.exerciseGroups.forEach { group ->
+                    groups.forEach { group ->
                         if (item.editing) EditableExerciseGroupRow(
                             group, item.unit, onWeightChange, onRepsChange, onSecondsChange, onDoneChange,
                         ) else ExerciseGroupRow(group)

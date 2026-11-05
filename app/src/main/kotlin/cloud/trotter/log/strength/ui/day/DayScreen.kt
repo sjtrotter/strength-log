@@ -51,6 +51,7 @@ import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.theme.LocalAppPalette
 import cloud.trotter.log.strength.ui.theme.dayAccent
 import kotlinx.coroutines.launch
@@ -75,12 +76,14 @@ fun DayScreen(
     removedSets: List<RemovedSet> = emptyList(),
     onUndoRemoveSet: () -> Unit = {},
     nowMillis: () -> Long = System::currentTimeMillis,
+    receiptSetCounts: ReceiptSetCounts? = null,
 ) {
     // A receipt replaces the workout, including its back handler and auto-sheet
     // effects. No workout nodes or sheet requests survive underneath it.
     if (receipt != null) {
         SessionReceiptScreen(
             receipt = receipt,
+            setCounts = receiptSetCounts,
             onShare = onShareSession,
             onFinishSession = onFinishSession,
             onSetNote = actions.onSetSessionNote,
@@ -95,6 +98,8 @@ fun DayScreen(
         return
     }
     val accent = dayAccent(state.dayIndex)
+    val hasUnloggedSets = state.runSetCounts?.let { it.remaining > 0 }
+        ?: state.exercises.any { card -> card.rows.any { !it.complete } }
     // The sheet stays inside the day feature; its shared ViewModel restores
     // the open editor and prescription draft after process death.
     val showEditSheet = dayEditState.editorOpen
@@ -241,7 +246,7 @@ fun DayScreen(
             catalog = dayEditState.catalog,
             onExercises = actions.onOpenDaySheet,
             onFinish = {
-                if (state.exercises.any { card -> card.rows.any { !it.complete } } ||
+                if (hasUnloggedSets ||
                     state.cardio?.loggedSeconds == null && state.cardio != null) {
                     confirmingPartialFinish = true
                 } else {
@@ -346,7 +351,10 @@ fun DayScreen(
         FinishDayConfirmDialog(
             doneSets = state.doneSets,
             totalSets = state.totalSets,
-            cardioTitle = if (state.exercises.all { card -> card.rows.all { it.complete } }) {
+            onlyPartnerSetsOpen = hasUnloggedSets &&
+                state.exercises.all { card -> card.rows.all { it.done } } &&
+                state.exercises.any { card -> card.rows.any { it.partner?.done == false } },
+            cardioTitle = if (!hasUnloggedSets) {
                 state.cardio?.takeIf { it.loggedSeconds == null }?.block?.activity?.let { cardioActivityName(it) }
             } else null,
             cardioStarted = state.cardio?.run?.startedAt != null,
@@ -407,6 +415,7 @@ fun DayScreen(
 private fun FinishDayConfirmDialog(
     doneSets: Int,
     totalSets: Int,
+    onlyPartnerSetsOpen: Boolean,
     cardioTitle: String?,
     cardioStarted: Boolean,
     onConfirm: () -> Unit,
@@ -420,7 +429,7 @@ private fun FinishDayConfirmDialog(
                     if (cardioStarted) R.string.day_finish_save_cardio_title else R.string.day_finish_without_cardio_title,
                     cardioTitle,
                 )
-                else if (doneSets == totalSets) stringResource(R.string.day_finish_partner_open_confirm_title)
+                else if (onlyPartnerSetsOpen) stringResource(R.string.day_finish_partner_open_confirm_title)
                 else stringResource(R.string.day_finish_partial_confirm_title, doneSets, totalSets),
             )
         },

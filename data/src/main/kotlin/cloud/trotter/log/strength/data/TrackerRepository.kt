@@ -1406,9 +1406,9 @@ class TrackerRepository(
     /** Archives a run once, carries forward its working values, and advances its day. */
     suspend fun finishRun(runId: String): Long? = finishRunCapturing(runId)?.sessionId
 
-    /** A finished run's session and the tracks it archived; [tracks] is null when an
+    /** A finished run's session, tracks, and slot prescriptions; [tracks] is null when an
      *  earlier finish already archived the run. */
-    data class FinishedRun(val sessionId: Long, val tracks: List<RunTrack>?)
+    data class FinishedRun(val sessionId: Long, val tracks: List<RunTrack>?, val slots: List<ProgramSlot>? = null)
 
     /** [finishRun], also returning the exact tracks the transaction archived, so a caller
      *  describing the session cannot disagree with it after a concurrent edit (the watch's
@@ -1423,6 +1423,8 @@ class TrackerRepository(
             val now = clock.millis()
             val sessionId = archiveRun(run, tracks, config.bodyweightLb, catalog, now)
             val day = run.planId?.let { planId -> run.dayId?.let { programDao.day(planId, it) } }
+            val slots = day?.let { programDao.exercisesForDay(it.planId, it.dayId) }
+                .orEmpty().map { ProgramSlot(it.id, it.position, it.toDomain()) }
             if (day != null && day.nextRunId == run.id) {
                 carryForward(day, tracks, config.weightUnit, catalog)
                 planDao.plan(day.planId)?.let { advanceRotation(it, day.dayId) }
@@ -1430,7 +1432,7 @@ class TrackerRepository(
             }
             runDao.deleteTracks(runId)
             runDao.deleteRun(runId)
-            FinishedRun(sessionId, tracks.map { it.toRunTrack() })
+            FinishedRun(sessionId, tracks.map { it.toRunTrack() }, slots)
         }
     }
 
@@ -1446,7 +1448,8 @@ class TrackerRepository(
             completedAt = now, bodyweightLb = bodyweight, planId = run.planId,
             planName = run.planId?.let { planDao.plan(it)?.name } ?: run.planName, runId = run.id,
             plannedJson = SessionPlanJson.encode(tracks.map {
-                PlannedTrackDto(it.position, it.exerciseId, it.slot, it.retired, SetJson.decodeSets(it.plannedJson).map(SetDto::of))
+                PlannedTrackDto(it.position, it.exerciseId, it.slot, it.retired,
+                    SetJson.decodeSets(it.plannedJson).map(SetDto::of), liveSetCount = it.toRunTrack().setCounts().total)
             }),
         ))
         sessionDao.insertSets(tracks.flatMap { track ->

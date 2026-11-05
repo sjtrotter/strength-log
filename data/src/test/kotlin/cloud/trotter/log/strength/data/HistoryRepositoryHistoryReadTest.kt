@@ -130,7 +130,7 @@ class HistoryRepositoryHistoryReadTest {
 
         assertEquals(2, summaries.size)
         assertEquals("Lower — heavier", summaries[0].session.dayTitle) // newest first
-        assertEquals(2, summaries[0].setCount)
+        assertEquals(1, summaries[0].setCount)
         assertEquals("Lower", summaries[1].session.dayTitle)
         assertEquals(4, summaries[1].setCount)
     }
@@ -145,6 +145,20 @@ class HistoryRepositoryHistoryReadTest {
         val summaries = repo.sessionSummariesFlow.first()
         assertEquals(1, summaries.size)
         assertEquals(0, summaries.single().setCount)
+    }
+
+    @Test
+    fun aSessionWithOnlyUndoneSetsStillAppearsWithACountOfZero() = runTest {
+        repo.importSessionHistory(
+            listOf(ImportedSession(session(completedAt = 500L), listOf(
+                set("bb_back_squat", "Barbell Back Squat", SetKind.WORK, 130.0, 5, done = false),
+            ))),
+            newCustomExercises = emptyList(),
+        )
+
+        val summary = repo.sessionSummariesFlow.first().single()
+        assertEquals(0, summary.setCount)
+        assertFalse(repo.sessionSets(summary.session.id).single().done)
     }
 
     // --- lastPerformed (batched, "last time" chip) -----------------------------

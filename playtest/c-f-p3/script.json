@@ -1241,6 +1241,22 @@
   },
   {
    "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Add a set"
+   }
+  },
+  {
+   "checkpoint": "after-add-a-set"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
     "desc": "Edit set 3"
    }
   },
@@ -1270,20 +1286,30 @@
    "advance": "3m"
   },
   {
-   "checkpoint": "mon-wk2-3-sets"
-  },
-  {
    "tap": {
     "text": "All sets"
    }
   },
   {
    "tap": {
-    "text": "Add a set"
+    "desc": "More"
    }
   },
   {
-   "checkpoint": "after-add-a-set"
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Set 3 rep 3 slow out of the hole, set 4 fine. RPE 7.5. Paused 152.5 3x3. Right knee grumpy on the stairs after."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
   },
   {
    "tap": {
@@ -1317,37 +1343,6 @@
   },
   {
    "checkpoint": "mon-wk2-4x5"
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "tap": {
-    "text": "Note"
-   }
-  },
-  {
-   "type": {
-    "text": "Note",
-    "value": "Set 3 rep 3 slow out of the hole, set 4 fine. RPE 7.5. Paused 152.5 3x3. Right knee grumpy on the stairs after."
-   }
-  },
-  {
-   "tap": {
-    "text": "Save note"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
   },
   {
    "tap": {
@@ -1462,11 +1457,6 @@
   },
   {
    "checkpoint": "mon-legcurl-done"
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
   },
   {
    "tap": {
@@ -1676,6 +1666,32 @@
   },
   {
    "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Fine. Close grip 97.5 3x6, rows, face pulls. Bike 20 min at 130."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
     "desc": "Edit set 5"
    }
   },
@@ -1706,37 +1722,6 @@
   },
   {
    "checkpoint": "tue-wk2-5x5"
-  },
-  {
-   "tap": {
-    "text": "All sets"
-   }
-  },
-  {
-   "tap": {
-    "desc": "More"
-   }
-  },
-  {
-   "tap": {
-    "text": "Note"
-   }
-  },
-  {
-   "type": {
-    "text": "Note",
-    "value": "Fine. Close grip 97.5 3x6, rows, face pulls. Bike 20 min at 130."
-   }
-  },
-  {
-   "tap": {
-    "text": "Save note"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
   },
   {
    "tap": {

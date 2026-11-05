@@ -1,0 +1,201 @@
+{
+  "seat": "c-a-p2",
+  "capture": "checkpoints",
+  "start": {
+    "restore": "start-backup.json",
+    "date": "2026-11-10",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "checkpoint": "restored-tuesday-home"
+    },
+    {
+      "tap": {
+        "text": "4-day upper/lower \u00b7 Day A"
+      }
+    },
+    {
+      "checkpoint": "tuesday-preview-restored-165-target"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "tuesday-start-restored-bench"
+    },
+    {
+      "expect": {
+        "text": "165 lb \u00d7 5"
+      }
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "tuesday-bench165-five-five-five"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "tuesday-edit-remaining-exercises"
+    },
+    {
+      "tap": {
+        "desc": "More options for Seated DB Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Incline DB Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank / Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Lateral Raise"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "tuesday-raises-two-twelves-at-ten"
+    },
+    {
+      "tap": {
+        "text": "Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "tuesday-pullups-target-six-actual-final-set-will-be-five"
+    },
+    {
+      "tap": {
+        "text": "One-Arm DB Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "115"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for One-Arm DB Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "choose-barbell-row-before-logging-any-rows"
+    }
+  ]
+}

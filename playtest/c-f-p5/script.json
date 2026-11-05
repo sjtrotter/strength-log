@@ -191,6 +191,12 @@
    }
   },
   {
+   "expect": {
+    "text": "Start"
+   },
+   "timeoutMs": 15000
+  },
+  {
    "checkpoint": "c1-after-planks"
   },
   {

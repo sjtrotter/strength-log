@@ -1051,6 +1051,33 @@
   },
   {
    "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "bike-b"
+  },
+  {
+   "tap": {
     "text": "Start"
    }
   },
@@ -1097,7 +1124,19 @@
    "advance": "2m"
   },
   {
-   "checkpoint": "intervals-after-24m"
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "intervals-after-35m"
   },
   {
    "tap": {
@@ -1138,7 +1177,7 @@
    "advance": "46h"
   },
   {
-   "advance": "30m"
+   "advance": "20m"
   },
   {
    "checkpoint": "today-fri"
@@ -1150,6 +1189,178 @@
   },
   {
    "checkpoint": "day-c-detail"
+  },
+  {
+   "tap": {
+    "text": "Start day C"
+   }
+  },
+  {
+   "checkpoint": "workout-c"
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 5"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "checkpoint": "dl-top-edited"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "textContains": "Log "
+   }
+  },
+  {
+   "advance": "2m"
+  },
+  {
+   "checkpoint": "after-dl"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "checkpoint": "finish-c-dialog"
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "receipt-c"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history"
+  },
+  {
+   "tap": {
+    "text": "Trends and calendar"
+   }
+  },
+  {
+   "checkpoint": "trends"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "history-back"
   }
  ]
 }

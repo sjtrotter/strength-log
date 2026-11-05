@@ -76,11 +76,276 @@
   },
   {
    "tap": {
-    "text": "3-day full body · Day B"
+    "text": "Resume day B"
    }
   },
   {
-   "checkpoint": "day-b-tapped"
+   "checkpoint": "resume-b"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "5m"
+  },
+  {
+   "checkpoint": "after-warmup"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "checkpoint": "after-round-1"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "note": "round 2 done"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "note": "round 3 done"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "note": "round 4 done"
+  },
+  {
+   "tap": {
+    "text": "Start"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "note": "round 5 done"
+  },
+  {
+   "checkpoint": "intervals-done"
+  },
+  {
+   "tap": {
+    "textContains": "Finish day"
+   }
+  },
+  {
+   "checkpoint": "receipt-b"
+  },
+  {
+   "tap": {
+    "text": "Add a note"
+   }
+  },
+  {
+   "type": {
+    "editable": true,
+    "value": "Veterans Day, gym packed. Did OHP first, both platforms taken. Cable row was camped so I did DB rows. Bike: 290-310 W on the hard rounds, faded to 270 on the last two."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "checkpoint": "receipt-b-noted"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "checkpoint": "today-after-b"
+  },
+  {
+   "advance": "46h35m"
+  },
+  {
+   "checkpoint": "today-fri"
+  },
+  {
+   "tap": {
+    "text": "3-day full body · Day C"
+   }
+  },
+  {
+   "checkpoint": "day-c-detail"
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "day-c-edit"
+  },
+  {
+   "tap": {
+    "desc": "More options for Conventional Deadlift"
+   }
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   }
+  },
+  {
+   "checkpoint": "dl-lift-options"
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   }
+  },
+  {
+   "checkpoint": "dl-prescription"
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease weight"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Decrease reps"
+   }
+  },
+  {
+   "checkpoint": "dl-prescription-set"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "day-c-edit-after-dl"
+  },
+  {
+   "tap": {
+    "text": "Edit cardio"
+   }
+  },
+  {
+   "tap": {
+    "text": "Set 1 · Work"
+   }
+  },
+  {
+   "checkpoint": "cardio-set-c"
+  },
+  {
+   "tap": {
+    "text": "Distance"
+   }
+  },
+  {
+   "checkpoint": "cardio-distance-mode"
+  },
+  {
+   "type": {
+    "text": "Distance (m)",
+    "value": "2000"
+   }
+  },
+  {
+   "checkpoint": "cardio-2000"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "checkpoint": "cardio-c-after-set"
+  },
+  {
+   "tap": {
+    "text": "Save"
+   }
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "workout-c"
   }
  ]
 }

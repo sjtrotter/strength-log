@@ -795,12 +795,359 @@
   },
   {
    "tap": {
-    "textContains": "Pull-Up"
+    "text": "Weighted Pull-Up"
    },
    "timeoutMs": 20000
   },
   {
    "checkpoint": "after-pullup-pick"
+  },
+  {
+   "tap": {
+    "textContains": "Weighted Pull-Up"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "pullup-prescription"
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "4"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "25"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayA-final"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "plan-detail-again"
+  },
+  {
+   "note": "Day C is a second bench day. Friday is press day. Pull bench, add the press."
+  },
+  {
+   "tap": {
+    "text": "7 lifts, 24 sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Bench Press"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Add exercise"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "scrollTo": {
+    "text": "V push"
+   },
+   "timeoutMs": 30000
+  },
+  {
+   "tap": {
+    "text": "V push"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "vpush-list"
+  },
+  {
+   "tap": {
+    "text": "Overhead Press (Barbell)"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "after-ohp-pick"
+  },
+  {
+   "tap": {
+    "desc": "More options for Overhead Press (Barbell)"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "115"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "More options for DB Pullover"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Remove"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayC-final"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "note": "Squat day. 3x5 at 225, not whatever it guessed."
+  },
+  {
+   "tap": {
+    "desc": "Day D"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayD-edit"
+  },
+  {
+   "tap": {
+    "desc": "More options for Barbell Back Squat"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Straight sets"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Sets",
+    "value": "3"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "5"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "225"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayD-final"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "note": "Deadlift day. I'll leave its ramp thing for now and just fix the top set to 275. Its back-off is one set of 8 lighter; mine is two fives at 245. We'll see."
+  },
+  {
+   "tap": {
+    "desc": "Day B"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dayB-edit"
+  },
+  {
+   "tap": {
+    "desc": "More options for Conventional Deadlift"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Lift options"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Prescription"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "dl-prescription"
+  },
+  {
+   "type": {
+    "text": "Weight (lb)",
+    "value": "275"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "tap": {
+    "text": "Save"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "dayB-final"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   },
+   "timeoutMs": 20000
+  },
+  {
+   "checkpoint": "today-after-plan-edits"
   }
  ]
 }

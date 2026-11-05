@@ -29,22 +29,6 @@ class LogScreenInteractionTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun item(expanded: Boolean) = SessionListItem(
-        sessionId = 7L,
-        dateDisplay = "Jul 6, 2026",
-        dayLetter = "A",
-        dayIndex = 0,
-        dayTitle = "DAY A · LOWER",
-        setCount = 21,
-        bodyweightDisplay = "185 lb",
-        expanded = expanded,
-        exerciseGroups = if (expanded) {
-            listOf(SessionExerciseGroup("Back Squat", listOf(SessionSetSummary("TOP", "225×5"))))
-        } else {
-            null
-        },
-    )
-
     private fun setContent(
         expanded: Boolean,
         health: HealthSectionUi = HealthSectionUi(),
@@ -52,7 +36,7 @@ class LogScreenInteractionTest {
         onShare: (Long) -> Unit = {},
         onConnectHealth: () -> Unit = {},
         onPublishPast: () -> Unit = {},
-        sessions: List<SessionListItem> = listOf(item(expanded)),
+        sessions: List<SessionListItem> = listOf(logSessionFixture(expanded)),
     ) {
         composeTestRule.setContent {
             AppTheme {
@@ -86,9 +70,9 @@ class LogScreenInteractionTest {
         setContent(
             expanded = false,
             sessions = listOf(
-                item(false).copy(planId = 1, planName = "Test prep"),
-                item(false).copy(sessionId = 8, dateDisplay = "Jul 3, 2026", planId = 1, planName = "Old name"),
-                item(false).copy(sessionId = 9, dateDisplay = "Jun 30, 2026"),
+                logSessionFixture(false).copy(planId = 1, planName = "Test prep"),
+                logSessionFixture(false).copy(sessionId = 8, dateDisplay = "Jul 3, 2026", planId = 1, planName = "Old name"),
+                logSessionFixture(false).copy(sessionId = 9, dateDisplay = "Jun 30, 2026"),
             ),
         )
 
@@ -104,8 +88,8 @@ class LogScreenInteractionTest {
         setContent(
             expanded = false,
             sessions = listOf(
-                item(false).copy(planId = 1, planName = "Test prep"),
-                item(false).copy(
+                logSessionFixture(false).copy(planId = 1, planName = "Test prep"),
+                logSessionFixture(false).copy(
                     sessionId = 8, dateDisplay = "Jul 3, 2026", dayTitle = "Easy Zone 2",
                     cardioId = 8, cardioSummary = "OUTDOOR RUN", cardioDuration = "20:00",
                     cardioSemantics = "Easy Zone 2", planId = 1, planName = "Old name",
@@ -124,13 +108,13 @@ class LogScreenInteractionTest {
         setContent(
             expanded = false,
             sessions = listOf(
-                item(false).copy(planId = 1, planName = "Test prep"),
-                item(false).copy(
+                logSessionFixture(false).copy(planId = 1, planName = "Test prep"),
+                logSessionFixture(false).copy(
                     sessionId = 8, dateDisplay = "Jul 3, 2026", dayTitle = "Easy Zone 2",
                     cardioId = 8, cardioSummary = "OUTDOOR RUN", cardioDuration = "20:00",
                     cardioSemantics = "Easy Zone 2", planId = 2, planName = "Run plan",
                 ),
-                item(false).copy(sessionId = 9, dateDisplay = "Jun 30, 2026"),
+                logSessionFixture(false).copy(sessionId = 9, dateDisplay = "Jun 30, 2026"),
             ),
         )
 
@@ -146,8 +130,8 @@ class LogScreenInteractionTest {
         setContent(
             expanded = false,
             sessions = listOf(
-                item(false).copy(planId = 1, planName = "Test prep"),
-                item(false).copy(sessionId = 8, dateDisplay = "Jul 3, 2026", planId = 2, planName = "Test prep"),
+                logSessionFixture(false).copy(planId = 1, planName = "Test prep"),
+                logSessionFixture(false).copy(sessionId = 8, dateDisplay = "Jul 3, 2026", planId = 2, planName = "Test prep"),
             ),
         )
 

@@ -42,6 +42,20 @@
     },
     {
       "checkpoint": "setup-question-three"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-question-four"
     }
   ]
 }

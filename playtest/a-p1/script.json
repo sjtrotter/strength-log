@@ -8,6 +8,22 @@
     "zone": "America/Chicago"
   },
   "steps": [
-    { "checkpoint": "first-open-before-gym" }
+    {
+      "checkpoint": "first-open-before-gym"
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "setup-question-two"
+    }
   ]
 }

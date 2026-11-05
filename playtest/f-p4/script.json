@@ -1,5 +1,21 @@
 {
   "seat": "f-p4",
   "start": { "date": "2026-11-09", "time": "17:30", "zone": "America/Chicago" },
-  "steps": []
+  "steps": [
+    { "tap": { "text": "Balanced strength + muscle" } },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wiz-2" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wiz-3" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wiz-4" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wiz-5" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wiz-6" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wiz-7" },
+    { "tap": { "text": "Next" } },
+    { "checkpoint": "wiz-8" }
+  ]
 }

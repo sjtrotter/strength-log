@@ -220,6 +220,91 @@
   },
   {
    "checkpoint": "other-days"
+  },
+  {
+   "tap": {
+    "desc": "Settings"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Reset to defaults"
+   }
+  },
+  {
+   "checkpoint": "settings-bottom"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "6-day push/pull/legs"
+   }
+  },
+  {
+   "scrollTo": {
+    "text": "Goals"
+   }
+  },
+  {
+   "checkpoint": "plan-goals"
+  },
+  {
+   "tap": {
+    "text": "Barbell Back Squat"
+   }
+  },
+  {
+   "checkpoint": "goal-tapped"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "desc": "Day options",
+    "index": 0
+   }
+  },
+  {
+   "checkpoint": "day-options"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "Day A"
+   }
+  },
+  {
+   "checkpoint": "day-a-detail"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "New plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start empty"
+   }
+  },
+  {
+   "checkpoint": "empty-plan"
   }
  ]
 }

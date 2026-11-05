@@ -267,6 +267,66 @@
   },
   {
    "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "text": "2-day full body"
+   }
+  },
+  {
+   "tap": {
+    "text": "Day A"
+   }
+  },
+  {
+   "tap": {
+    "text": "Edit"
+   }
+  },
+  {
+   "checkpoint": "day-a-editor"
+  },
+  {
+   "back": true
+  },
+  {
+   "checkpoint": "after-back-from-editor"
+  },
+  {
+   "back": true
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
+    "text": "New plan"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start empty"
+   }
+  },
+  {
+   "checkpoint": "empty-plan"
+  },
+  {
+   "tap": {
+    "text": "Add day"
+   }
+  },
+  {
+   "checkpoint": "empty-plan-add-day"
+  },
+  {
+   "back": true
+  },
+  {
+   "tap": {
     "text": "Today",
     "role": "Tab"
    }
@@ -277,12 +337,19 @@
    }
   },
   {
-   "scrollTo": {
-    "text": "Reset to defaults"
+   "swipe": {
+    "text": "Rest timer on phone",
+    "direction": "up"
    }
   },
   {
-   "checkpoint": "settings-bottom"
+   "swipe": {
+    "text": "Rest timer on phone",
+    "direction": "up"
+   }
+  },
+  {
+   "checkpoint": "settings-swiped"
   },
   {
    "back": true

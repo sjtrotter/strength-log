@@ -385,30 +385,23 @@
   },
   {
    "tap": {
-    "text": "Add exercise"
+    "desc": "More"
    }
   },
   {
-   "tap": {
-    "text": "Hinge"
-   }
-  },
-  {
-   "checkpoint": "hinge-list"
-  },
-  {
-   "tap": {
-    "textContains": "Romanian Deadlift"
-   }
-  },
-  {
-   "checkpoint": "rdl-added"
+   "checkpoint": "overview-more"
   },
   {
    "back": true
   },
   {
-   "checkpoint": "after-add-back"
+   "back": true
+  },
+  {
+   "checkpoint": "overview-closed"
+  },
+  {
+   "note": "No way to add my RDL from here that I can see. Skipping their accessories; RDL 3x8 at 140 went in the deadlift note."
   },
   {
    "tap": {
@@ -471,111 +464,12 @@
    }
   },
   {
-   "checkpoint": "at-rdl"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 1"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "140"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "8"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "90s"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 2"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "140"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "8"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "90s"
-  },
-  {
-   "tap": {
-    "desc": "Edit set 3"
-   }
-  },
-  {
-   "type": {
-    "text": "Weight (kg)",
-    "value": "140"
-   }
-  },
-  {
-   "type": {
-    "text": "Reps",
-    "value": "8"
-   }
-  },
-  {
-   "tap": {
-    "text": "Save set"
-   }
-  },
-  {
-   "tap": {
-    "tag": "workout-action-filled"
-   }
-  },
-  {
-   "advance": "90s"
-  },
-  {
-   "checkpoint": "rdl-3x8"
-  },
-  {
-   "note": "Out of time, work call at 7. Skipping abs and whatever else is on their list."
+   "checkpoint": "wed-cardio-block"
   },
   {
    "tap": {
     "tag": "workout-finish"
    }
-  },
-  {
-   "checkpoint": "wed-finish-dialog"
   },
   {
    "tap": {
@@ -606,10 +500,556 @@
    "checkpoint": "wed-session-detail"
   },
   {
+   "advance": "2d"
+  },
+  {
+   "note": "Fri Nov 13. Heavy bench 3x3 at 125 on their Day D."
+  },
+  {
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day D"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day D"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "fri-workout-d"
+  },
+  {
+   "expect": {
+    "textContains": "Bench"
+   }
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "125"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "125"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "125"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "3"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "4m"
+  },
+  {
+   "checkpoint": "fri-3x3"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "Third set RPE 8 on the nose. Spoto 3x5 at 105, pull-ups 4x6 +10, rope pushdowns, none of it in here."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "fri-cardio-block"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "fri-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "advance": "1d3h"
+  },
+  {
+   "note": "Sat Nov 14. SSB day on their Day F. SSB is not in here; logging it under the back squat with a note."
+  },
+  {
+   "tap": {
+    "text": "Plans",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "You"
+   }
+  },
+  {
+   "type": {
+    "text": "Bodyweight (kg)",
+    "value": "95.2",
+    "ime": "done"
+   }
+  },
+  {
+   "checkpoint": "bw-95-2"
+  },
+  {
    "back": true
   },
   {
-   "note": "Thursday evening look at Friday. Can I make their Day D bench 3x3 at 125 before I walk in?"
+   "tap": {
+    "text": "Today",
+    "role": "Tab"
+   }
+  },
+  {
+   "tap": {
+    "textContains": "Day F"
+   }
+  },
+  {
+   "tap": {
+    "text": "Start day F"
+   }
+  },
+  {
+   "expect": {
+    "desc": "Edit set 1"
+   },
+   "timeoutMs": 45000
+  },
+  {
+   "checkpoint": "sat-workout-f"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 1"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "160"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 2"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "160"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "desc": "Edit set 3"
+   }
+  },
+  {
+   "type": {
+    "text": "Weight (kg)",
+    "value": "160"
+   }
+  },
+  {
+   "type": {
+    "text": "Reps",
+    "value": "6"
+   }
+  },
+  {
+   "tap": {
+    "text": "Save set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "advance": "3m"
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Note"
+   }
+  },
+  {
+   "type": {
+    "text": "Note",
+    "value": "SSB 3x6 at 160, RPE 7 honest. Then comp singles 3x1 at 187.5, fast, filmed. Back ext 3x12 +20, DB rows 3x10 with 40s, treadmill 25 min."
+   }
+  },
+  {
+   "tap": {
+    "text": "Save note"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip this set"
+   }
+  },
+  {
+   "tap": {
+    "tag": "workout-action-filled"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "tap": {
+    "text": "All sets"
+   }
+  },
+  {
+   "tap": {
+    "desc": "More"
+   }
+  },
+  {
+   "tap": {
+    "text": "Skip for this workout"
+   }
+  },
+  {
+   "checkpoint": "sat-cardio-block"
+  },
+  {
+   "tap": {
+    "tag": "workout-finish"
+   }
+  },
+  {
+   "tap": {
+    "text": "Finish",
+    "inDialog": true
+   }
+  },
+  {
+   "checkpoint": "sat-receipt"
+  },
+  {
+   "tap": {
+    "text": "Done"
+   }
+  },
+  {
+   "tap": {
+    "text": "History",
+    "role": "Tab"
+   }
+  },
+  {
+   "checkpoint": "history-week1"
+  },
+  {
+   "note": "Sunday. Can I make their Day D bench 3x3 at 127.5 before next Friday?"
   },
   {
    "tap": {

@@ -294,7 +294,7 @@ class TrackerRepositoryRunEditsTest {
         }))
         repo.finishRun(runId)
         val next = SetJson.decodeSets(db.programDao().logForSlot(plan, "A", slot(plan), Slot.MAIN)!!.setsJson)
-        next.forEach { assertEquals(20.0, WeightUnit.KG.fromLb(it.weightLb), 1e-9) }
+        assertEquals(rows, next)
     }
 
     /** [F] */
@@ -1275,12 +1275,12 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(before, db.runDao().tracks(result.runId))
     }
 
-    @Test fun `dropped done partner archives without carrying its values forward`() = runTest {
+    @Test fun `dropped done partner archives work and carries opening rows`() = runTest {
         val plan = authored()
         val id = slot(plan)
         repo.setSupersetPartner("A", id, "ez_curl")
         db.storeTestRows("A", id, Slot.SS, work())
-        val working = db.programDao().logForSlot(plan, "A", id, Slot.SS)
+        val working = db.programDao().logForSlot(plan, "A", id, Slot.SS)!!
         val runId = explicitStart(plan)
         seed(runId)
         repo.writeTestRows(runId, "A", id, Slot.SS, work().mapIndexed { i, set -> set.copy(weightLb = 175.0, done = i == 0) })
@@ -1291,7 +1291,8 @@ class TrackerRepositoryRunEditsTest {
         assertEquals(1, archived.size)
         assertTrue(archived.single().done)
         assertEquals(175.0, archived.single().weightLb, 0.0)
-        assertEquals(working, db.programDao().logForSlot(plan, "A", id, Slot.SS))
+        assertEquals(SetJson.decodeSets(working.setsJson),
+            SetJson.decodeSets(db.programDao().logForSlot(plan, "A", id, Slot.SS)!!.setsJson))
         assertTrue(repo.dayTracksFlow(plan, "A").first().droppedPartners.isEmpty())
     }
 

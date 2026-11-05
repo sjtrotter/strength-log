@@ -31,6 +31,17 @@ data class LastPerformedRow(
     val seconds: Int = 0,
 )
 
+data class LastPerformedSourceRow(
+    val exerciseId: String,
+    val slot: String,
+    val weightLb: Double,
+    val reps: Int,
+    val seconds: Int,
+    val planId: Long?,
+    val planName: String?,
+    val dayId: String,
+)
+
 data class LastPerformedDateRow(val exerciseId: String, val completedAt: Long)
 
 /**
@@ -118,6 +129,9 @@ interface SessionDao {
     @Query("SELECT * FROM workout_session WHERE id = :sessionId")
     suspend fun sessionById(sessionId: Long): WorkoutSessionEntity?
 
+    @Query("SELECT * FROM workout_session WHERE planId = :planId AND dayId = :dayId ORDER BY completedAt DESC, id DESC LIMIT 1")
+    suspend fun lastSessionForDay(planId: Long, dayId: String): WorkoutSessionEntity?
+
     /**
      * Every completed ([SessionSetEntity.done]) set ever logged for any of
      * [exerciseIds], newest session first (ties — i.e. rows from the same session
@@ -143,6 +157,19 @@ interface SessionDao {
         """,
     )
     suspend fun lastPerformedRows(exerciseIds: List<String>): List<LastPerformedRow>
+
+    @Query(
+        """
+        SELECT ss.exerciseId AS exerciseId, ss.slot AS slot, ss.weightLb AS weightLb,
+            ss.reps AS reps, ss.seconds AS seconds, ws.planId AS planId,
+            ws.planName AS planName, ws.dayId AS dayId
+        FROM session_set ss
+        INNER JOIN workout_session ws ON ws.id = ss.sessionId
+        WHERE ss.exerciseId IN (:exerciseIds) AND ss.done = 1
+        ORDER BY ws.completedAt DESC, ss.weightLb DESC, ss.reps DESC, ss.seconds DESC
+        """,
+    )
+    suspend fun lastPerformedSourceRows(exerciseIds: List<String>): List<LastPerformedSourceRow>
 
     @Query(
         """

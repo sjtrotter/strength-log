@@ -105,10 +105,9 @@ class GeneratedLoadsTest {
         assertEquals(listOf(5, 5, 5, 3, 3, 8), after.map { it.reps })
         val low = SetEditor.editWeight(after, 4, WeightUnit.KG.toLb(20.0), WeightUnit.KG, barbell)
         assertKg(List(6) { 20.0 }, low.map { it.weightLb })
-        val completed = sets.map { it.copy(done = true) }
+        val completed = sets.mapIndexed { i, row -> row.copy(done = true, plannedIndex = i) }
         val edited = SetEditor.editWeight(completed, 4, WeightUnit.KG.toLb(42.5), WeightUnit.KG, barbell)
-        assertKg(listOf(22.5, 30.0, 35.0, 37.5, 42.5, 32.5),
-            CarryForward.next(sets, edited, WeightUnit.KG, barbell).map { it.weightLb })
+        assertEquals(CarryForward.cleared(sets), CarryForward.next(sets, edited, WeightUnit.KG, barbell))
         val manual = SetEditor.editWeight(after, 0, WeightUnit.KG.toLb(21.3), WeightUnit.KG, barbell)
         assertEquals(21.3, WeightUnit.KG.fromLb(manual[0].weightLb), 1e-9)
         assertEquals(after.drop(1), manual.drop(1))

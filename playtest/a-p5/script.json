@@ -892,7 +892,7 @@
       "back": true
     },
     {
-      "back": true
+      "note": "One Back from the Hinge picker already returns to Edit day; stay here to remove the unwanted exercises."
     },
     {
       "checkpoint": "return-to-day-editor-after-hinge-picker"
@@ -958,6 +958,93 @@
     },
     {
       "checkpoint": "ready-to-add-dumbbell-rdl-to-own-a"
+    },
+    {
+      "tap": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "added-actual-dumbbell-rdl"
+    },
+    {
+      "tap": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "dumbbell-rdl-prescription"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "rdl-prescription-saved-30-per-hand-eight-reps"
+    },
+    {
+      "tap": {
+        "text": "Plank / Side Plank"
+      }
+    },
+    {
+      "checkpoint": "plank-prescription-timed-and-each-side-controls"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single leg"
+      }
+    },
+    {
+      "checkpoint": "single-leg-choices-for-reverse-lunge-and-step-up"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "checkpoint": "goblet-straight-sets-selection"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "day-editor-after-straight-sets"
     }
   ]
 }

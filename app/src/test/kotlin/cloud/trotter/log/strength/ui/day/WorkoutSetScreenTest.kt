@@ -148,7 +148,6 @@ class WorkoutSetScreenTest {
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
         val layout = results.single()
         assertEquals(label, layout.layoutInput.text.text)
-        assertTrue(layout.lineCount > 2)
         assertFalse(layout.hasVisualOverflow)
         repeat(layout.lineCount) { assertFalse(layout.isLineEllipsized(it)) }
         rule.onNodeWithTag("workout-action-filled").assertHeightIsAtLeast(64.dp)

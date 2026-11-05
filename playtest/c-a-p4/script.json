@@ -281,7 +281,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -454,7 +454,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb × 8"
+        "text": "Log 20 lb \u00d7 8"
       }
     },
     {
@@ -484,7 +484,7 @@
     },
     {
       "tap": {
-        "text": "Log 20 lb × 8"
+        "text": "Log 20 lb \u00d7 8"
       }
     },
     {
@@ -590,7 +590,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -699,7 +699,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 8"
+        "text": "Log 30 lb \u00d7 8"
       }
     },
     {
@@ -729,7 +729,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 6"
+        "text": "Log 30 lb \u00d7 6"
       }
     },
     {
@@ -759,7 +759,7 @@
     },
     {
       "tap": {
-        "text": "Log 25 lb × 8"
+        "text": "Log 25 lb \u00d7 8"
       }
     },
     {
@@ -907,7 +907,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 lb × 10"
+        "text": "Log 100 lb \u00d7 10"
       }
     },
     {
@@ -937,7 +937,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 lb × 10"
+        "text": "Log 100 lb \u00d7 10"
       }
     },
     {
@@ -967,7 +967,7 @@
     },
     {
       "tap": {
-        "text": "Log 100 lb × 10"
+        "text": "Log 100 lb \u00d7 10"
       }
     },
     {
@@ -1143,7 +1143,12 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 0 of 24 sets"
+        "desc": "Day B lifts, 0 of 27 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Incline DB Press"
       }
     },
     {
@@ -1152,35 +1157,97 @@
       }
     },
     {
-      "checkpoint": "friday-incline-target35-each-x8"
+      "checkpoint": "friday-incline-ramp-structure-before-work-sets"
     },
     {
       "tap": {
-        "text": "Log 35 lb × 8"
+        "text": "All sets"
       }
+    },
+    {
+      "checkpoint": "friday-incline-top35x8-and-backoff-before-logging"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-4"
+      }
+    },
+    {
+      "back": true
     },
     {
       "advance": "90s"
     },
     {
       "tap": {
-        "text": "Log 35 lb × 8"
+        "text": "All sets"
       }
+    },
+    {
+      "tap": {
+        "tag": "lift-set-5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-5"
+      }
+    },
+    {
+      "back": true
     },
     {
       "advance": "90s"
     },
     {
       "tap": {
-        "text": "Log 35 lb × 8"
+        "text": "All sets"
       }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-6"
+      }
+    },
+    {
+      "back": true
     },
     {
       "advance": "90s"
     },
     {
+      "checkpoint": "friday-three-incline-work-sets35x8-unused-ramps-unchecked"
+    },
+    {
       "tap": {
-        "desc": "Day B lifts, 3 of 24 sets"
+        "desc": "Day B lifts, 3 of 28 sets"
       }
     },
     {
@@ -1220,7 +1287,7 @@
     },
     {
       "tap": {
-        "text": "Log 70 lb × 12"
+        "text": "Log 70 lb \u00d7 12"
       }
     },
     {
@@ -1250,7 +1317,7 @@
     },
     {
       "tap": {
-        "text": "Log 70 lb × 12"
+        "text": "Log 70 lb \u00d7 12"
       }
     },
     {
@@ -1261,7 +1328,7 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 5 of 24 sets"
+        "desc": "Day B lifts, 5 of 28 sets"
       }
     },
     {
@@ -1307,7 +1374,7 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 5 of 27 sets"
+        "desc": "Day B lifts, 5 of 31 sets"
       }
     },
     {
@@ -1388,7 +1455,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -1418,7 +1485,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -1448,7 +1515,7 @@
     },
     {
       "tap": {
-        "text": "Log 30 lb × 10"
+        "text": "Log 30 lb \u00d7 10"
       }
     },
     {
@@ -1456,7 +1523,7 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 8 of 27 sets"
+        "desc": "Day B lifts, 8 of 31 sets"
       }
     },
     {
@@ -1495,7 +1562,7 @@
     },
     {
       "tap": {
-        "desc": "Day B lifts, 8 of 27 sets"
+        "desc": "Day B lifts, 8 of 31 sets"
       }
     },
     {

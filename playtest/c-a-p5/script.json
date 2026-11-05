@@ -47,6 +47,27 @@
     },
     {
       "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "look-for-prior-plank-note-on-restored-day"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "tap": {
+        "desc": "Day C1 lifts, 0 of 3 sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
         "text": "Edit day"
       }
     },
@@ -63,7 +84,7 @@
     },
     {
       "tap": {
-        "text": "Intervals 5 × 2:00"
+        "text": "Intervals 5 \u00d7 2:00"
       }
     },
     {
@@ -88,7 +109,7 @@
     },
     {
       "tap": {
-        "text": "Set 1 · Work"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
@@ -155,6 +176,42 @@
     },
     {
       "note": "Tuesday Nov 10 diary: 7.00 km in 42:10, RPE3, quads noticeable first kilometer then fine. The duration entered above is a prescription ONLY. Next inspect live controls and record actual time and distance; no completed run is claimed by this batch."
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "role": "Tab",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "history-after-cardio-edit-no-completed-run-claimed"
+    },
+    {
+      "tap": {
+        "text": "Full Body"
+      }
+    },
+    {
+      "checkpoint": "reopen-monday-actual-results-and-notes"
+    },
+    {
+      "tap": {
+        "desc": "Goblet Squat. 35 pounds: 8 and 6 reps. 30 pounds: 8 reps."
+      }
+    },
+    {
+      "checkpoint": "monday-squat-history-actual-and-planned"
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "checkpoint": "overall-workout-note-fields"
     }
   ]
 }
